@@ -3,7 +3,7 @@
 // XCPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCPotential.C,v 1.3 2004-02-04 19:55:17 fgygi Exp $
+// $Id: XCPotential.C,v 1.4 2004-08-11 17:56:24 fgygi Exp $
 
 #include "XCPotential.h"
 #include "Basis.h"
@@ -164,7 +164,7 @@ void XCPotential::update(vector<vector<double> >& vr, bool compute_stress,
         vft_.backward(&tmp1[0],&tmpr[0]);
         int inc2=2, inc1=1;
         double *grj = xcf_->grad_rho[j];
-        dcopy_(&np012loc_,(double*)&tmpr[0],&inc2,grj,&inc1);
+        dcopy(&np012loc_,(double*)&tmpr[0],&inc2,grj,&inc1);
       }
     }
     else
@@ -188,8 +188,8 @@ void XCPotential::update(vector<vector<double> >& vr, bool compute_stress,
         double *grj_dn = xcf_->grad_rho_dn[j];
         int inc2=2, inc1=1;
         double* p = (double*) &tmpr[0];
-        dcopy_(&np012loc_,p,  &inc2,grj_up,&inc1);
-        dcopy_(&np012loc_,p+1,&inc2,grj_dn,&inc1);
+        dcopy(&np012loc_,p,  &inc2,grj_up,&inc1);
+        dcopy(&np012loc_,p+1,&inc2,grj_dn,&inc1);
       } // j
     }
     
@@ -224,11 +224,11 @@ void XCPotential::update(vector<vector<double> >& vr, bool compute_stress,
         int inc1 = 1, inc2 = 2;
         if ( j == 0 )
         {
-          dcopy_(&np012loc_,(double*)&tmpr[0],&inc2,&vxctmp[0][0],&inc1);
+          dcopy(&np012loc_,(double*)&tmpr[0],&inc2,&vxctmp[0][0],&inc1);
         }
         else
         {
-          daxpy_(&np012loc_,&one,(double*)&tmpr[0],&inc2,&vxctmp[0][0],&inc1);
+          daxpy(&np012loc_,&one,(double*)&tmpr[0],&inc2,&vxctmp[0][0],&inc1);
         }
       }
     }
@@ -265,13 +265,13 @@ void XCPotential::update(vector<vector<double> >& vr, bool compute_stress,
         double* p = (double*) &tmpr[0];
         if ( j == 0 )
         {
-          dcopy_(&np012loc_,p  ,&inc2,&vxctmp[0][0],&inc1);
-          dcopy_(&np012loc_,p+1,&inc2,&vxctmp[1][0],&inc1);
+          dcopy(&np012loc_,p  ,&inc2,&vxctmp[0][0],&inc1);
+          dcopy(&np012loc_,p+1,&inc2,&vxctmp[1][0],&inc1);
         }
         else
         {
-          daxpy_(&np012loc_,&one,p  ,&inc2,&vxctmp[0][0],&inc1);
-          daxpy_(&np012loc_,&one,p+1,&inc2,&vxctmp[1][0],&inc1);
+          daxpy(&np012loc_,&one,p  ,&inc2,&vxctmp[0][0],&inc1);
+          daxpy(&np012loc_,&one,p+1,&inc2,&vxctmp[1][0],&inc1);
         }
       } // j
     }

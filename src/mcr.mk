@@ -3,13 +3,14 @@
 #  mcr.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.7 2004-06-02 21:40:40 fgygi Exp $
+# $Id: mcr.mk,v 1.8 2004-08-11 17:56:24 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
- GCCDIR=/usr/lib/gcc-lib/i386-redhat-linux/egcs-2.91.66
+ GCCDIR=/usr/lib/gcc-lib/i386-redhat-linux/3.2.3
  MPIDIR=/usr/lib/mpi
- XERCESCDIR=$(HOME)/software/xml/icc-7.0/xerces-c-src2_2_0
+ XERCESCDIR=$(HOME)/software/xml/xerces-c-src2_2_0
+#XERCESCDIR=$(HOME)/software/xml/xerces-c-src_2_5_0
  XERCESCLIBDIR=/usr/apps/qbox/lib
  PLTOBJECTS = readTSC.o
 
@@ -28,16 +29,16 @@
  #          -I$(PAPIDIR)/include
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include 
  
- CXXFLAGS= -O3 -xW -Zp16 \
-           -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
+#CXXFLAGS= -g -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
+ CXXFLAGS= -O3 -xW -Zp16 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR) -L/usr/X11R6/lib \
-           -L$(MPIDIR)/lib -L$(BLASDIR) -L/usr/lib \
+           -L$(MPIDIR)/lib -L$(BLASDIR) \
            -L$(XERCESCLIBDIR) 
   
  LIBS =  $(PLIBS) $(GCCDIR)/libg2c.a -lfftw \
-         -lmkl_p4 -lmkl_lapack -lm -lmpi -lpmpi \
-         -lelan -lelan3 -openmp -lrmscall -lxerces-c
+        -lmkl_p4 -lmkl_lapack -lm -lmpi -lpmpi \
+        -openmp $(XERCESCDIR)/lib/libxerces-c.a
  
  LDFLAGS = $(LIBPATH) $(LIBS) 
 

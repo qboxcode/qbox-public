@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.25 2004-06-02 21:40:40 fgygi Exp $
+# $Id: Makefile,v 1.26 2004-08-11 17:56:24 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -28,7 +28,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
         PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
         SDCellStepper.o ConfinementPotential.o Preconditioner.o \
-        release.o isodate.o $(PLTOBJECTS)
+        release.o qbox_xmlns.o isodate.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  SamplePrint: SamplePrint.o SamplePrintHandlers.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -81,10 +81,13 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testMemParse: testMemParse.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- xmlSpecies: xmlSpecies.o
+ xmlSpecies: xmlSpecies.o qbox_xmlns.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  xmlget: xmlget.o
 	$(LD) -o xmlget xmlget.C -I$(XERCESCDIR)/include \
+        -L$(XERCESCDIR)/lib -lxerces-c 
+ xmlextract: xmlextract.o
+	$(LD) -o xmlextract xmlextract.C -I$(XERCESCDIR)/include \
         -L$(XERCESCDIR)/lib -lxerces-c 
  testXMLGFPreprocessor: testXMLGFPreprocessor.o XMLGFPreprocessor.o Context.o \
         Base64Transcoder.o Matrix.o
@@ -114,7 +117,7 @@ SampleStepper.o EnergyFunctional.o
 	rm -rf ti_files
 #------------------------------------------------------------------------------
  ctags :
-	ctags *.[Ch]
+	etags -o tags *.[Ch]
 #------------------------------------------------------------------------------
  html :
 	enscript -Ecpp --color -Whtml --toc -pqbsrc.html *.h *.C

@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.26 2004-04-20 22:12:42 fgygi Exp $
+// $Id: SlaterDet.C,v 1.27 2004-08-11 17:56:24 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -273,7 +273,7 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
       int len = 4 * mloc;
       int inc1 = 1;
       double alpha = 1.0;
-      daxpy_(&len,&alpha,(double*)&ctmp[0],&inc1,&dcp[2*n*mloc],&inc1);
+      daxpy(&len,&alpha,(double*)&ctmp[0],&inc1,&dcp[2*n*mloc],&inc1);
     }
     if ( nstloc() % 2 != 0 )
     {
@@ -292,7 +292,7 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
       int len = 2 * mloc;
       int inc1 = 1;
       double alpha = 1.0;
-      daxpy_(&len,&alpha,(double*)&ctmp[0],&inc1,&dcp[2*n*mloc],&inc1);
+      daxpy(&len,&alpha,(double*)&ctmp[0],&inc1,&dcp[2*n*mloc],&inc1);
     }
   }
   else
@@ -307,7 +307,7 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
       int len = 2 * mloc;
       int inc1 = 1;
       double alpha = 1.0;
-      daxpy_(&len,&alpha,(double*)&ctmp[0],&inc1,&dcp[2*n*mloc],&inc1);
+      daxpy(&len,&alpha,(double*)&ctmp[0],&inc1,&dcp[2*n*mloc],&inc1);
     }
   }
   
@@ -767,7 +767,7 @@ double SlaterDet::dot(const SlaterDet& sd) const
       int len = c_proxy.nloc();
       // stride of scalar product is mloc
       int stride = c_proxy.mloc();
-      sum = ddot_(&len,c,&stride,sdc,&stride);
+      sum = ddot(&len,c,&stride,sdc,&stride);
     }
     ctxt_.dsum(1,1,&sum,1);
     return d - sum;

@@ -3,7 +3,7 @@
 // Context.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.C,v 1.9 2003-11-20 20:22:33 fgygi Exp $
+// $Id: Context.C,v 1.10 2004-08-11 17:56:24 fgygi Exp $
 
 #include <iostream>
 #include <iomanip>
@@ -317,8 +317,13 @@ struct ContextRep
     }
     MPI_Bcast(&len,1,MPI_INT,isrc,comm());
     char* buf = new char[len+1];
-    s.copy(buf,string::npos);
-    buf[len] = 0;
+    // s is initialized only on task isrc
+    if ( mype() == isrc )
+    {
+      s.copy(buf,string::npos);
+      buf[len]=0;
+      assert(buf[len]=='\0');
+    }
     MPI_Bcast(buf,len+1,MPI_CHAR,isrc,comm());
     s = buf;
     delete [] buf;

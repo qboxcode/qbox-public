@@ -3,7 +3,7 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.11 2004-03-11 21:48:39 fgygi Exp $
+// $Id: FourierTransform.C,v 1.12 2004-08-11 17:56:24 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
@@ -27,9 +27,10 @@ typedef int MPI_Comm;
 
 #if USE_FFTW
 #include "fftw.h"
-extern "C" {
-  void zdscal_(int *,double *,complex<double> *,int *);
-}
+#ifdef ADD_
+#define zdscal zdscal_
+#endif
+extern "C" void zdscal(int *n,double *alpha,complex<double> *x,int *incx);
 #elif USE_ESSL
 extern "C" {
   void dcft_(int *initflag, complex<double> *x, int *inc2x, int *inc3x,
@@ -957,7 +958,7 @@ void FourierTransform::fwd(complex<double>* val)
                       (FFTW_COMPLEX*)0,0,0);
   int len = zvec_.size();
   double fac = 1.0 / ( np0_ * np1_ * np2_ );
-  zdscal_(&len,&fac,&zvec_[0],&inc1);
+  zdscal(&len,&fac,&zvec_[0],&inc1);
 #else
   // No library
   /* Transform along z */

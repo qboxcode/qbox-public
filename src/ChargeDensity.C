@@ -3,7 +3,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.C,v 1.6 2004-06-01 23:08:08 fgygi Exp $
+// $Id: ChargeDensity.C,v 1.7 2004-08-11 17:56:24 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -141,8 +141,8 @@ void ChargeDensity::update_density(void)
       {
         cout.setf(ios::fixed,ios::floatfield);
         cout.setf(ios::right,ios::adjustfield);
-        cout << "  <total_electronic_charge> " << setprecision(8) << sum 
-             << " </total_electronic_charge>" << endl;
+        cout << "  <!-- total_electronic_charge: " << setprecision(8) << sum 
+             << " -->" << endl;
       }
         
       vft_->forward(&rhotmp[0],&rhog[ispin][0]);

@@ -3,13 +3,14 @@
 // SaveCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.C,v 1.7 2004-05-20 00:18:42 fgygi Exp $
+// $Id: SaveCmd.C,v 1.8 2004-08-11 17:56:24 fgygi Exp $
 
 
 #include "SaveCmd.h"
 #include "fstream"
 #include "isodate.h"
 #include "release.h"
+#include "qbox_xmlns.h"
 
 #ifdef USE_CSTDIO_LFS
 #include <cstdio>
@@ -81,13 +82,18 @@ int SaveCmd::action(int argc, char **argv)
   if ( ui->onpe0() )
   {
     outfile = fopen(filename,"w");
-    char *header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-    "<qbox:sample xmlns:qbox=\"http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0\"\n"
+    string header("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    "<qbox:sample xmlns:qbox=\"");
+    header += qbox_xmlns();
+    header += string("\"\n");
+    header += string(
     " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-    " xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n"
-    " xsi:schemaLocation=\"http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0 sample.xsd\">\n";
-    off_t len = strlen(header);
-    fwrite(header,sizeof(char),len,outfile);
+    " xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n");
+    header += string(" xsi:schemaLocation=\"");
+    header += qbox_xmlns();
+    header += string(" sample.xsd\">\n");
+    off_t len = header.size();
+    fwrite(header.c_str(),sizeof(char),len,outfile);
     
     string desc = string("<description> Created ") +
       isodate() +string(" by qbox-") + release() +
@@ -125,10 +131,13 @@ int SaveCmd::action(int argc, char **argv)
     
     os 
 <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-<<"<qbox:sample xmlns:qbox=\"http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0\"\n" 
+<<"<qbox:sample xmlns:qbox=\""
+<< qbox_xmlns()
+<< "\"\n" 
 <<" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
 <<" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n"
-<<" xsi:schemaLocation=\"http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0 sample.xsd\">"
+<<" xsi:schemaLocation=\""
+<< qbox_xmlns() << " sample.xsd\">"
 << endl;
 
     os << "<description> Created " << isodate() << " by qbox-" << release()

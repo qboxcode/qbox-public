@@ -3,16 +3,13 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.11 2004-06-01 22:45:30 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.12 2004-08-11 17:56:24 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
 
 #if AIX
 extern "C" void vsincos(double *x, double *y, double *z, int *n);
-#elif OSF1
-extern "C" void vcos_sin_(double *x, int *ix, double *y, int *iy, 
-              double *z, int *iz, int *n);
 #endif
 
 
@@ -934,14 +931,11 @@ void NonLocalPotential::update_eigr(vector<vector<double> >& tau)
       double* gx = const_cast<double*>(basis_.gx_ptr(0));
       int iafirst = ctxt_.mycol() * nalocmax[is];
       
-      dgemm_(&cn,&cn,&ngwl,&nalocis,&k,&mone,
+      dgemm(&cn,&cn,&ngwl,&nalocis,&k,&mone,
              gx,&ngwl, &tau[is][3*iafirst],&k, &zero,&gr[0],&ngwl);
 
 #if AIX
       vsincos(&singr[is][0],&cosgr[is][0],&gr[0],&len);
-#elif OSF1
-      int inc1 = 1;
-      vcos_sin_(&gr[0],&inc1,&cosgr[is][0],&inc1,&singr[is][0],&inc1,&len);
 #else
       for ( int i = 0; i < len; i++ )
       {

@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.17 2004-03-11 21:52:31 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.18 2004-08-11 17:56:24 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -328,7 +328,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   } // ispin
   
   // sum contains the contributions to ekin, etc.. from this task
-  wf.context().dsum(14,1,&sum[0],1);
+  wf.context().dsum(14,1,&sum[0],14);
  
   ekin_  = sum[0];
   sigma_ekin[0] = sum[1];
@@ -374,7 +374,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   // potential energy: integral of electronic charge times ionic local pot.
   tsum = 0.0;
   int len=2*ngloc,inc1=1;
-  tsum[0] = 2.0 * ddot_(&len,(double*)&rhoelg[0],&inc1,
+  tsum[0] = 2.0 * ddot(&len,(double*)&rhoelg[0],&inc1,
          (double*)&vion_local_g[0],&inc1);
   // remove double counting for G=0
   if ( vbasis_->context().myrow() == 0 )

@@ -1,33 +1,4 @@
 --------------------------------------------------------------------------------
-- Add options to the load command to read only atomset or only wavefunctions
-- Enable Fourier interpolation during the load command to allow for arbitrary
-mesh in input sample file.
-
-To do: move the SlaterDet weight into SlaterDet.
-To do: add fermi variable for metals.
-To do: Use WavefunctionStepper classes and WavefunctionStepperFactory.
->>>>>>> Must change: use of XMLString::transcode(..) is a memory leak 
->>>>>>> when called in a string constructor, such as in 
->>>>>>> string a(XMLString::transcode(...) ). The XMLString dynamically 
->>>>>>> allocated by transcode must be deleted using XMLString::release, 
->>>>>>> (which is impossible for a temporary as in the constructor call above).
->>>>>>> Must use other form of transcode: bool transcode(XMLCh*,unsigned int).
-
---------------------------------------------------------------------------------
-Known bugs
-
-In 1.11.2: using atoms_dyn = SD: ekin is not computed in SDIonicStepper.
-Incorrect (uninitialized) values are printed by BOSampleStepper. Must either
-include calculation of ekin_ in SDIonicStepper, or suppress printing of 
-ekin_ion and temp_ion if atoms_dyn = SD.
-
-Saving a sample with wavefunctions of size zero crashes in FourierTransform
-(size zero not working)
-
-When resizing the cell to a *smaller* cell, the grid size is 
-not decreased, presumably because the ref_cell is kept at its current value
-and determines the grid size.
-
 XMLGFPreprocessor uses Allgather to send xmlcontent to all tasks, which is 
 unnecessary since the parser is only created on task 0 (for now)
 
@@ -35,27 +6,27 @@ gfdata matrix used in XMLGFPreprocessor uses a single-row context. May be
 preferrable to use a single-column context when nst is small to avoid 
 memory problems.
 
-Replace Xerces Base64 transcoding in SlaterDet::print with Base64Transcoder.
-
-UnitCell bug was not fixed in 1.8.1. Still observe inf loops for Si432 FCC.
-
-There is no mechanism to remove s.wfv once it has been created through either
-the load command or the set wf_dyn MD command. Should implement a block_wf cmd.
-
-Note: when building for release on /usr/apps, the LD_LIBRARY_PATH var will 
-determine library search path, even if makefile specifies another path.
- 
-Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
-This will avoid the problem of needing libxerces-c.so when using qbox.
-
-Mon May  3 16:34:49 PDT 2004
-xlC 6.0 is broken when using the -D_LARGE_FILES macro. Reverted to 
-USE_CSTDIO_LFS for large file support as on mcr.
+--------------------------------------------------------------------------------
+rel1_17_0 candidate
+Fixed bug 27: buffer overrun in Context::string_bcast.
+Fixed bug 26: inconsistent qbox xmlns namespace in species file and qbox output.
+Modified qb.C: use new qbox_xmlns() function to print qbox XML namespace.
+EnergyFunctional.C:909: change lda argument to 14. This was done automatically
+by the BLACS lib, but corrected line conforms to the BLACS convention that
+lda >= m.
+ChargeDensity.C: changed the <total_electronic_charge> output to an XML comment.
+SaveCmd.C: include proper xmlns info when saving a sample.
+blas.h: reorganized using the ADD_ macro, removed all platform-specific ifdefs.
+XCPotential.C: removed underscores in blas calls.
+SlaterDet.C: removed underscores in blas calls.
+FourierTransform.C: use ADD_ for zdscal.
+NonLocalPotential.C: removed underscores in blas calls, removed old OSF ifdefs.
 --------------------------------------------------------------------------------
 rel1_16_0
 Implemented l=1,l=2 non-local stress.
 Modified UnitCell.C to avoid infinite loops due to finite precision.
 Modified mcr.mk to use library mkl_p4 instead of mkl: -lmkl_p4 before -lmkl
+This change of library accelerates the si432 calculation by 12% overall
 --------------------------------------------------------------------------------
 rel1_15_2
 Ecut.h: exit without any action if ecut is same as current value. Caused 

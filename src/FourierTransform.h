@@ -3,7 +3,7 @@
 // FourierTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.h,v 1.6 2003-11-20 20:27:06 fgygi Exp $
+// $Id: FourierTransform.h,v 1.7 2004-08-11 17:56:24 fgygi Exp $
 
 #ifndef FOURIERTRANSFORM_H
 #define FOURIERTRANSFORM_H
@@ -14,9 +14,6 @@ using namespace std;
 
 #if USE_FFTW
 #include "fftw.h"
-extern "C" void zdscal_(int *n,double *alpha,complex<double> *x,int *incx);
-extern "C" void zcopy_(int *n,complex<double> *x, int *incx,
-                              complex<double> *y, int *incy);
 #endif
 
 class Basis;
@@ -57,7 +54,7 @@ class FourierTransform
   vector<double> aux2;
   int naux1x,naux1y,naux1z,naux2;
 #endif
-#elif USE_FFTW
+#elif USE_FFTW || USE_FFTW3
   fftw_plan fwplan0,fwplan1,fwplan2,bwplan0,bwplan1,bwplan2;
 #else
   // no library

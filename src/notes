@@ -21,9 +21,6 @@ Incorrect (uninitialized) values are printed by BOSampleStepper. Must either
 include calculation of ekin_ in SDIonicStepper, or suppress printing of 
 ekin_ion and temp_ion if atoms_dyn = SD.
 
-The quadrature formula for integration of semi-local potentials must be 
-improved to at least Simpson level.
-
 Saving a sample with wavefunctions of size zero crashes in FourierTransform
 (size zero not working)
 
@@ -51,8 +48,19 @@ determine library search path, even if makefile specifies another path.
 Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
 This will avoid the problem of needing libxerces-c.so when using qbox.
 --------------------------------------------------------------------------------
+rel1_12_1
+Removed Gauss-Jacobi quadrature in NonLocalPotential introduced in 1_12_0 and
+reverted to trapezoidal rule. Tests on Si64 using trapezoidal, Simpson, Gauss-
+Legendre and Gauss-Jacobi show that the trapezoidal rule is more efficient 
+than all other methods, likely because higher order methods are not in their 
+asymptotic range for reasonable numbers of points  (4-32). A possible 
+improvement over the present status may be to use Richardson extrapolation, 
+since the trapezoidal rule has O(h^2) error. However, from the example of Si64, 
+little improvement is obtained for small (4-8) numbers of points.
+--------------------------------------------------------------------------------
 rel1_12_0
 Replaced trapezoidal integration in NonLocalPotential.C by a Gauss-Jacobi rule.
+(Note: this was later found to be less efficient. Removed in 1.12.1e)
 Fixed bug in PSDWavefunctionStepper.C and PSDAWavefunctionStepper.C:
 use ecut if ecutprec==0.0. Caused nans when ecutprec was not set.
 --------------------------------------------------------------------------------

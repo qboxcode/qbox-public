@@ -5,10 +5,10 @@
   xmlns:xlink="http://www.w3.org/1999/xlink">
   
   <annotation>
-    <documentation> $Id: sample.xsd,v 1.6 2004-03-11 21:53:22 fgygi Exp $
+    <documentation> $Id: sample.xsd,v 1.7 2004-05-04 21:49:41 fgygi Exp $
       Qbox sample specification schema. 
-      The Quantum Box project. Francois Gygi, Lawrence Livermore National Laboratory. 
-      Copyright (c) 2003 The Regents of the University of California.
+      Francois Gygi, Lawrence Livermore National Laboratory. 
+      Copyright (c) 2003-2004 The Regents of the University of California.
     </documentation>
   </annotation>
   

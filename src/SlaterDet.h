@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.17 2004-09-14 22:24:11 fgygi Exp $
+// $Id: SlaterDet.h,v 1.18 2004-11-10 22:42:23 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -31,7 +31,8 @@ class SlaterDet
   private:
 
   const Context& ctxt_;
-  Basis basis_;
+  Context* my_col_ctxt_;
+  Basis* basis_;
   ComplexMatrix c_;
   vector<double> occ_;
   vector<double> eig_;
@@ -47,8 +48,8 @@ class SlaterDet
   SlaterDet(const SlaterDet& rhs);
   ~SlaterDet();
   const Context& context(void) const { return ctxt_; }
-  const Basis& basis(void) const { return basis_; }
-  const D3vector kpoint(void) const { return basis_.kpoint(); }
+  const Basis& basis(void) const { return *basis_; }
+  const D3vector kpoint(void) const { return basis_->kpoint(); }
   const ComplexMatrix& c(void) const { return c_; }
   ComplexMatrix& c(void) { return c_; }
   const vector<double>& occ(void) const { return occ_; }

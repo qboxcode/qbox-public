@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.31 2004-10-28 16:51:09 fgygi Exp $
+// $Id: SlaterDet.C,v 1.32 2004-11-10 22:42:23 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -23,20 +23,36 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt), 
-basis_(Context(ctxt,'c',ctxt.mycol()),kpoint), c_(ctxt)
+ c_(ctxt)
 {
   //cout << ctxt.mype() << ": SlaterDet::SlaterDet: ctxt.mycol="
-  //     << ctxt.mycol() << " basis_.context(): " 
-  //     << basis_.context() << basis_.context().comm() << endl;
+  //     << ctxt.mycol() << " basis_->context(): " 
+  //     << basis_->context();
+  my_col_ctxt_ = 0;
+  for ( int icol = 0; icol < ctxt_.npcol(); icol++ )
+  {
+    Context* col_ctxt = new Context(ctxt_,ctxt_.nprow(),1,0,icol);
+    ctxt_.barrier();
+    if ( icol == ctxt_.mycol() )
+      my_col_ctxt_ = col_ctxt;
+    else
+      delete col_ctxt;
+  }
+  //cout << ctxt_.mype() << ": SlaterDet::SlaterDet: my_col_ctxt: " 
+  //     << *my_col_ctxt_;
+  basis_ = new Basis(*my_col_ctxt_,kpoint);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const SlaterDet& rhs) : ctxt_(rhs.context()),
-basis_(rhs.basis_), c_(rhs.c_) {}
+  basis_(new Basis(*(rhs.basis_))), 
+  my_col_ctxt_(new Context(*(rhs.my_col_ctxt_))) , c_(rhs.c_){}
   
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::~SlaterDet() 
-{ 
+{
+  delete basis_;
+  delete my_col_ctxt_;
   // cout << ctxt_.mype() << ": SlaterDet::dtor: ctxt=" << ctxt_;
 }
 
@@ -46,21 +62,21 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
 {
   //!! Test in next line should be replaced by test on basis min/max indices
   //!! to signal change in basis vectors
-  //if ( basis_.refcell().volume() != 0.0 && !refcell.encloses(cell) )
+  //if ( basis_->refcell().volume() != 0.0 && !refcell.encloses(cell) )
   //{
     //!! << " SlaterDet::resize: warning" << endl;
     //cout << " SlaterDet::resize: cell=" << cell;
-    //cout << " SlaterDet::resize: refcell=" << basis_.refcell();
+    //cout << " SlaterDet::resize: refcell=" << basis_->refcell();
     //throw SlaterDetException("could not resize: cell not in refcell");
   //}
   
   try
   {
-    basis_.resize(cell,refcell,ecut);
+    basis_->resize(cell,refcell,ecut);
     occ_.resize(nst);
     eig_.resize(nst);
     
-    const int mb = basis_.maxlocalsize();
+    const int mb = basis_->maxlocalsize();
     const int m = ctxt_.nprow() * mb;
     const int nb = nst/ctxt_.npcol() + (nst%ctxt_.npcol() > 0 ? 1 : 0);
     
@@ -84,7 +100,7 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
 void SlaterDet::reset(void)
 {
   // initialize coefficients with lowest plane waves
-  if ( c_.n() <= basis_.size() )
+  if ( c_.n() <= basis_->size() )
   {
     // initialize c_
     c_.clear();
@@ -101,7 +117,7 @@ void SlaterDet::reset(void)
         value = s2i;
  
       // find process row holding the smallest g vector
-      double g2 = basis_.g2(basis_.isort(ismallest));
+      double g2 = basis_->g2(basis_->isort(ismallest));
       // cout << "smallest vector on proc " << ctxt_.mype()
       //      << " has norm " << g2 << endl;
       int minrow, mincol;
@@ -112,16 +128,16 @@ void SlaterDet::reset(void)
       int pr = minrow;
       if ( pr == ctxt_.myrow() )
       {
-        int iii = basis_.isort(ismallest);
+        int iii = basis_->isort(ismallest);
         ismallest++; // increment on entire process row
         if ( pc == ctxt_.mycol() )
         {
           // cout << " n=" << n << " on process "
           //      << pr << "," << pc
-          //      << " vector " << basis_.idx(3*iii) << " "
-          //      << basis_.idx(3*iii+1) << " "
-          //      << basis_.idx(3*iii+2) << " norm="
-          //      << basis_.g2(iii) << " "
+          //      << " vector " << basis_->idx(3*iii) << " "
+          //      << basis_->idx(3*iii+1) << " "
+          //      << basis_->idx(3*iii+2) << " norm="
+          //      << basis_->g2(iii) << " "
           //      << value << endl;
           int jjj = c_.m(n) * c_.nb() + c_.y(n);
           int index = iii+c_.mloc()*jjj;
@@ -141,14 +157,14 @@ void SlaterDet::compute_density(FourierTransform& ft,
   assert(occ_.size() == c_.n());
   vector<complex<double> > tmp(ft.np012loc());
   
-  assert(basis_.cell().volume() > 0.0);
-  const double omega_inv = 1.0 / basis_.cell().volume();
+  assert(basis_->cell().volume() > 0.0);
+  const double omega_inv = 1.0 / basis_->cell().volume();
   const int np012loc = ft.np012loc();
   
   for ( int i = 0; i < np012loc; i++ )
     rho[i] = 0.0;
 
-  if ( basis_.real() )
+  if ( basis_->real() )
   {
     // transform two states at a time
     for ( int n = 0; n < nstloc()-1; n++, n++ )
@@ -237,7 +253,7 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
   double* p = (double*) &tmp[0];
   double* dcp = (double*) sdp.c().valptr();
 
-  if ( basis_.real() )
+  if ( basis_->real() )
   {
     // transform two states at a time
     for ( int n = 0; n < nstloc()-1; n++, n++ )
@@ -301,7 +317,7 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::gram(void)
 {
-  if ( basis_.real() )
+  if ( basis_->real() )
   {
     // k = 0 case
     // create a DoubleMatrix proxy for c_
@@ -327,7 +343,7 @@ void SlaterDet::gram(void)
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::riccati(SlaterDet& sd)
 {
-  if ( basis_.real() )
+  if ( basis_->real() )
   {
     // k = 0 case
     DoubleMatrix s(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
@@ -444,7 +460,7 @@ void SlaterDet::riccati(SlaterDet& sd)
 void SlaterDet::lowdin(void)
 {
   // Higham algorithm for polar decomposition
-  if ( basis_.real() )
+  if ( basis_->real() )
   {
     ComplexMatrix c_tmp(c_);
     DoubleMatrix c_proxy(c_);
@@ -532,7 +548,7 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 {
   // Orthogonalize *this and align with sd
   // Higham algorithm for polar decomposition
-  if ( basis_.real() )
+  if ( basis_->real() )
   {
     ComplexMatrix c_tmp(c_);
     DoubleMatrix c_proxy(c_);
@@ -608,7 +624,8 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     // x now contains the orthogonal polar factor X of the 
     // polar decomposition L^-1 B = XH
     
-    //cout << " SlaterDet::ortho_align: orthogonal polar factor=\n" << x << endl;
+    //cout << " SlaterDet::ortho_align: orthogonal polar factor=\n" 
+    //     << x << endl;
     
     // Form the product L^-T Q
     // Solve trans(L) Z = X
@@ -632,7 +649,7 @@ void SlaterDet::align(const SlaterDet& sd)
 {
   // Align *this with sd
   // Higham algorithm for polar decomposition
-  if ( basis_.real() )
+  if ( basis_->real() )
   {
     ComplexMatrix c_tmp(c_);
     DoubleMatrix c_proxy(c_);
@@ -722,7 +739,7 @@ void SlaterDet::align(const SlaterDet& sd)
 double SlaterDet::dot(const SlaterDet& sd) const
 {
   // dot product of Slater determinants: dot = tr (V^T W)
-  if ( basis_.real() )
+  if ( basis_->real() )
   {
     // DoubleMatrix proxy for c_ and sd.c()
     const DoubleMatrix c_proxy(c_);
@@ -873,7 +890,7 @@ double SlaterDet::ortho_error(void)
 {
   // deviation from orthogonality of c_
   double error;
-  if ( basis_.real() )
+  if ( basis_->real() )
   {
     // k = 0 case
     // declare a proxy DoubleMatrix for c_
@@ -921,7 +938,7 @@ void SlaterDet::randomize(double amplitude)
   for ( int n = 0; n < c_.nloc(); n++ )
   {
     complex<double>* p = c_.valptr(c_.mloc()*n);
-    for ( int i = 0; i < basis_.localsize(); i++ )
+    for ( int i = 0; i < basis_->localsize(); i++ )
     {
       double re = drand48();
       double im = drand48();
@@ -937,7 +954,7 @@ void SlaterDet::cleanup(void)
 {
   // set Im( c(G=0) ) to zero and 
   // set the empty rows of the matrix c_ to zero
-  // The empty rows are located between i = basis_.localsize() and 
+  // The empty rows are located between i = basis_->localsize() and 
   // c_.mloc(). Empty rows are necessary to insure that the 
   // local size c_.mloc() is the same on all processes, while the 
   // local basis size is not.
@@ -949,16 +966,16 @@ void SlaterDet::cleanup(void)
     {
       // index of G=0 element
       int izero;
-      if ( basis_.real() )
+      if ( basis_->real() )
         izero = 0;
       else
-        izero = basis_.rod_size(0)/2;
-      //cout << " izero = " << izero << " G = " << basis_.kv(3*izero) << " " 
-      //     << basis_.kv(3*izero+1) << " " << basis_.kv(3*izero+2) << endl;
+        izero = basis_->rod_size(0)/2;
+      //cout << " izero = " << izero << " G = " << basis_->kv(3*izero) << " " 
+      //     << basis_->kv(3*izero+1) << " " << basis_->kv(3*izero+2) << endl;
       p[izero] = complex<double> ( p[izero].real(), 0.0);
     }
     // reset values of empty rows of c_ to zero
-    for ( int i = basis_.localsize(); i < c_.mloc(); i++ )
+    for ( int i = basis_->localsize(); i < c_.mloc(); i++ )
     {
       p[i] = 0.0;
     }
@@ -977,19 +994,19 @@ SlaterDet& SlaterDet::operator=(SlaterDet& rhs)
 ////////////////////////////////////////////////////////////////////////////////
 double SlaterDet::memsize(void) const
 {
-  return basis_.memsize() + c_.memsize();
+  return basis_->memsize() + c_.memsize();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 double SlaterDet::localmemsize(void) const
 {
-  return basis_.localmemsize() + c_.localmemsize();
+  return basis_->localmemsize() + c_.localmemsize();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::print(ostream& os, string encoding)
 {
-  FourierTransform ft(basis_,basis_.np(0),basis_.np(1),basis_.np(2));
+  FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
   vector<double> wftmpr(ft.np012());
   Base64Transcoder xcdr;
@@ -998,7 +1015,7 @@ void SlaterDet::print(ostream& os, string encoding)
   {
     const double weight = 1.0; //!! fixed determinant weight to 1.0
     //!! no spin attribute written
-    os << "<slater_determinant kpoint=\"" << basis_.kpoint() << "\"\n"
+    os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
  
@@ -1114,7 +1131,7 @@ void SlaterDet::print(ostream& os, string encoding)
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::write(FILE* outfile, string encoding)
 {
-  FourierTransform ft(basis_,basis_.np(0),basis_.np(1),basis_.np(2));
+  FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
   vector<double> wftmpr(ft.np012());
   Base64Transcoder xcdr;
@@ -1124,7 +1141,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
   {
     const double weight = 1.0; //!! fixed determinant weight to 1.0
     //!! no spin attribute written
-    os << "<slater_determinant kpoint=\"" << basis_.kpoint() << "\"\n"
+    os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
  
@@ -1285,13 +1302,13 @@ void SlaterDet::info(ostream& os)
   {
     const double weight = 1.0; //!! fixed determinant weight to 1.0
     //!! no spin attribute written
-    os << "<slater_determinant kpoint=\"" << basis_.kpoint() << "\"\n"
+    os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
     os << " <!-- sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << " -->"
        << endl;
-    os << " <!-- sdcontext: " << ctxt_ << " -->" << endl;
-    os << " <!-- basis size: " << basis_.size() << " -->" << endl;
+    //os << " <!-- sdcontext: " << ctxt_ << " -->" << endl;
+    os << " <!-- basis size: " << basis_->size() << " -->" << endl;
     os << " <!-- c dimensions: "
        << c_.m() << "x" << c_.n()
        << "   (" << c_.mb() << "x" << c_.nb() << " blocks)" << " -->" << endl;

@@ -3,7 +3,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.C,v 1.10 2004-10-28 16:48:15 fgygi Exp $
+// $Id: ChargeDensity.C,v 1.11 2004-11-10 22:30:53 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -16,42 +16,11 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 ChargeDensity::ChargeDensity(const Wavefunction& wf) : ctxt_(wf.context()),
-wf_(wf) 
+wf_(wf), vcontext_(wf.sd(0,0)->basis().context()) 
+
 {
-  // determine which k points are stored on the sd context to which 
-  // this pe belongs
-  int myspin = -1;
-  int ikplast = -1;
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-  {
-    for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
-    {
-      if ( wf.sd(ispin,ikp) != 0 )
-      {
-        myspin = ispin;
-        ikplast = ikp;
-      }
-    }
-  }
-  // the last kpoint on this process is ikplast
-  
-  // create a vbasis
-  // Note: avoid creating more than one vcontext if there are 
-  // more than one kpoint per process
-  if ( wf.sd(myspin,ikplast) != 0 )
-  {
-    // Note: Basis defined on columns of vcontext
-    vcontext_ = new Context(*wf_.spincontext(myspin),'c',
-      wf_.spincontext(myspin)->mycol());
-    vbasis_ = new Basis(*vcontext_, D3vector(0,0,0));
-    vbasis_->resize(wf.cell(),wf.refcell(),4.0*wf.ecut());
-    //cout << vcontext_->mype() << ": vcontext = " << *vcontext_ << endl;
-  }
-  else
-  {
-    vcontext_ = 0;
-    vbasis_ = 0;
-  }
+  vbasis_ = new Basis(vcontext_, D3vector(0,0,0));
+  vbasis_->resize(wf.cell(),wf.refcell(),4.0*wf.ecut());
     
   // define vft_, FT on vbasis context for transforming the density
   
@@ -87,7 +56,6 @@ wf_(wf)
 ////////////////////////////////////////////////////////////////////////////////
 ChargeDensity::~ChargeDensity(void)
 {
-  delete const_cast<Context*>(vcontext_);
   delete vbasis_;
   delete vft_;
   for ( int ikp = 0; ikp < ft_.size(); ikp++ )
@@ -165,9 +133,9 @@ void ChargeDensity::update_density(void)
              << " -->" << endl;
       }
         
-      tmap["charge_ft"].start();
+      tmap["charge_vft"].start();
       vft_->forward(&rhotmp[0],&rhog[ispin][0]);
-      tmap["charge_ft"].stop();
+      tmap["charge_vft"].stop();
     }
   }
 }

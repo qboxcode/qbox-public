@@ -3,7 +3,7 @@
 // ChargeDensity.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.h,v 1.3 2004-10-28 16:55:47 fgygi Exp $
+// $Id: ChargeDensity.h,v 1.4 2004-11-10 22:31:43 fgygi Exp $
 
 #ifndef CHARGEDENSITY_H
 #define CHARGEDENSITY_H
@@ -27,8 +27,8 @@ class ChargeDensity
   private:
   
   const Context& ctxt_;
+  const Context& vcontext_;
   const Wavefunction& wf_;
-  const Context* vcontext_;
   Basis* vbasis_;
   FourierTransform* vft_;
   vector<FourierTransform*> ft_; // ft_[ikp];
@@ -45,7 +45,7 @@ class ChargeDensity
   void update_rhor(void);
   
   Basis* vbasis(void) const { return vbasis_; }
-  const Context* vcontext(void) const { return vcontext_; }
+  const Context& vcontext(void) const { return vcontext_; }
   FourierTransform* vft(void) const { return vft_; }
   FourierTransform* ft(int ikp) const { return ft_[ikp]; }
 

@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.16 2003-09-16 16:24:26 fgygi Exp $
+# $Id: Makefile,v 1.17 2003-10-02 23:29:37 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -74,7 +74,8 @@ testChargeDensity  testFourierTransform testSpecies testContext
  xmlSpecies: xmlSpecies.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  xmlget: xmlget.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+	$(LD) -o xmlget xmlget.C -I$(XERCESCDIR)/include \
+        -L$(XERCESCDIR)/lib -lxerces-c 
  testXMLGFPreprocessor: testXMLGFPreprocessor.o XMLGFPreprocessor.o Context.o \
         Base64Transcoder.o Matrix.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -304,3 +305,4 @@ xmlget.o: StrX.h
 XMLGFPreprocessor.o: Timer.h Context.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h
 XMLGFPreprocessor.o: Matrix.h
+

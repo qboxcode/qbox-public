@@ -1,12 +1,11 @@
 --------------------------------------------------------------------------------
-
-- Move occ[i] information from Wavefunction to SlaterDet (simplifies the 
-print operation for XML output).
-- Read occ info from XML file (currently fixed to 2.0).
 - Add options to the load command to read only atomset or only wavefunctions
 - Enable Fourier interpolation during the load command to allow for arbitrary
 mesh in input sample file.
 
+To do: move the SlaterDet weight into SlaterDet.
+To do: add fermi variable for metals.
+To do: Use WavefunctionStepper classes and WavefunctionStepperFactory.
 >>>>>>> Must change: use of XMLString::transcode(..) is a memory leak 
 >>>>>>> when called in a string constructor, such as in 
 >>>>>>> string a(XMLString::transcode(...) ). The XMLString dynamically 
@@ -33,9 +32,19 @@ memory problems.
 
 Replace Xerces Base64 transcoding in SlaterDet::print with Base64Transcoder.
 
-Note: UnitCell but was not fixed in 1.8.1. Still observe inf loops.
+UnitCell but was not fixed in 1.8.1. Still observe inf loops for Si432 FCC.
+
 There is no mechanism to remove s.wfv once it has been created through either
-the load command or the set wf_dyn MD command. Should implement a block_wf cmd. 
+the load command or the set wf_dyn MD command. Should implement a block_wf cmd.
+ 
+--------------------------------------------------------------------------------
+rel1_9_0
+Large file support (LFS): LFS is not correctly supported for <iostream> in icc
+and gcc 3.2. A workaround is implemented in SaveCmd.C, Wavefunction.C, 
+SlaterDet.C. The workaround is activated by defining the USE_CSTDIO_LFS macro.
+Occupation numbers moved to the SlaterDet class.
+Occupation numbers are not fixed to 2.0 anymore. Load and save now use
+occupation numbers.
 --------------------------------------------------------------------------------
 rel1_8_2
 Fixed problem with wfvtmp in SampleReader: cannot load sample and 

@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.13 2004-08-18 23:58:56 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.14 2004-10-28 16:52:58 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
@@ -1068,6 +1068,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
           for ( int ii=0; ii < mbs; ii++)
           {
             assert(mbs%npr[is]==0);
+            // mbs/npr[is] is the number of atoms in the block li
             const int ipr = ii / (mbs/npr[is]);
             const double fac = wt[is][ipr] * omega_inv;
             for ( int jj=0; jj < nbs; jj++)
@@ -1172,22 +1173,21 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
           const int mloc = fnl.mloc();
           const int mb = fnl.mb();
           const int nb = fnl.nb();
-          const int ia_first = fnl.context().myrow() * nalocmax[is];
           for ( int li=0; li < fnl.mblocks(); li++)
           {
+            // find index of first atom in block li
+            const int ia_first = nalocmax[is] * 
+              ( li * fnl.context().nprow() + fnl.context().myrow() );
             const int mbs = fnl.mbs(li);
             for ( int lj=0; lj < fnl.nblocks(); lj++)
             {
               const int nbs = fnl.nbs(lj);
               for ( int ii=0; ii < mbs; ii++)
               {
-                assert(mbs%npr[is]==0);
-                // mbs/npr[is] is the size of the ipr block
-                // mbs/npr[is] = nalocmax[is] on most tasks
-                // but possibly less on the last process row
+                // ia_local: index of atom within block li
                 const int ia_local = ii % ( mbs / npr[is] );
-                // ia_global = ia_local + myrow * nalocmax[is]
                 const int ia_global = ia_local + ia_first;
+                assert(3*ia_global+j < 3*na[is]);
                 for ( int jj=0; jj < nbs; jj++)
                 {
                   const int nglobal = fnl.j(lj,jj);
@@ -1195,7 +1195,6 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
                   const double facn = 2.0 * occ[nglobal];
                   const int iii = ii+li*mb;
                   const int jjj = jj+lj*nb;
-                  assert(3*ia_global+j < 3*na[is]);
                   tmpfion[3*ia_global+j] -= facn *
                     f[iii+mloc*jjj] * df[iii+mloc*jjj];
                 }
@@ -1374,11 +1373,6 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               const int nbs = fnl.nbs(lj);
               for ( int ii=0; ii < mbs; ii++)
               {
-                assert(mbs%npr[is]==0);
-                // mbs/npr[is] is the size of the ipr block
-                // mbs/npr[is]==nalocmax[is] on most tasks
-                // but may be smaller on the last process row
-                const int ipr = ii / (mbs/npr[is]);
                 for ( int jj=0; jj < nbs; jj++)
                 {
                   // global index: i(li,ii), j(lj,jj)

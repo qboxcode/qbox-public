@@ -3,7 +3,7 @@
 // IonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: IonicStepper.h,v 1.3 2004-03-11 21:52:31 fgygi Exp $
+// $Id: IonicStepper.h,v 1.4 2004-04-20 22:09:46 fgygi Exp $
 
 #ifndef IONICSTEPPER_H
 #define IONICSTEPPER_H
@@ -16,6 +16,7 @@ class IonicStepper
 {
   protected:
   
+  Sample& s_;
   AtomSet& atoms_;
   double                    dt_;
   int                       nsp_;
@@ -29,7 +30,7 @@ class IonicStepper
 
   public:
   
-  IonicStepper (Sample& s) : atoms_(s.atoms), dt_(s.ctrl.dt)
+  IonicStepper (Sample& s) : s_(s), atoms_(s.atoms), dt_(s.ctrl.dt)
   {
     ndofs_ = 3 * s.atoms.size();
     nsp_ = atoms_.nsp();

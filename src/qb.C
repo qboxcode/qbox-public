@@ -3,9 +3,9 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.23 2003-11-27 01:26:06 fgygi Exp $
+// $Id: qb.C,v 1.24 2003-12-02 20:27:43 fgygi Exp $
 
-const char* const release = "1.11.0";
+const char* const release = "1.11.1";
 const char* const xmlns_url = "http://www.llnl.gov/casc/fpmd/qbox/1.0";
 
 #include <iostream>

@@ -6,7 +6,7 @@
 // Ceperley & Alder, parametrized by Perdew and Zunger
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LDAFunctional.C,v 1.3 2003-08-22 18:01:13 fgygi Exp $
+// $Id: LDAFunctional.C,v 1.4 2004-08-14 00:18:34 fgygi Exp $
 
 #include <cmath>
 #include <cassert>
@@ -93,9 +93,14 @@ void LDAFunctional::xc_unpolarized(const double rh, double &ee, double &vv)
   const double B  = -0.048;
   const double b1 =  1.0529;
   const double b2 =  0.3334;
-  const double C  =  0.0020;
-  const double D  = -0.0116;
-
+  const double G  = -0.1423;
+  
+  // C from the PZ paper: const double C  =  0.0020;
+  // D from the PZ paper: const double D  = -0.0116;
+  // C and D by matching Ec and Vc at rs=1
+  const double D = G / ( 1.0 + b1 + b2 ) - B;
+  const double C = -A - D - G * ( (b1/2.0 + b2) / ((1.0+b1+b2)*(1.0+b1+b2)));
+  
   ee = 0.0;
   vv = 0.0;
 
@@ -123,7 +128,7 @@ void LDAFunctional::xc_unpolarized(const double rh, double &ee, double &vv)
     {
       double sqrtrs = sqrt(rs);
       double den = 1.0 + b1 * sqrtrs + b2 * rs;
-      ec = ( B + D ) * ( 1.0 + b1 + b2 ) / den;
+      ec = G / den;
       vc = ec * ( 1.0 + (7.0/6.0) * b1 * sqrtrs +
                   (4.0/3.0) * b2 * rs ) / den;
     }
@@ -152,8 +157,12 @@ void LDAFunctional::xc_polarized(const double rh, double &ee, double &vv)
   const double B = -0.0269;
   const double b1  =  1.3981;
   const double b2  =  0.2611;
-  const double C   =  0.0007;
-  const double D   = -0.0048;
+  const double G   = -0.0843;
+  // C from PZ paper: const double C   =  0.0007;
+  // D from PZ paper: const double D   = -0.0048;
+  // C and D by matching Ec and Vc at rs=1
+  const double D = G / ( 1.0 + b1 + b2 ) - B;
+  const double C = -A - D - G * ( (b1/2.0 + b2) / ((1.0+b1+b2)*(1.0+b1+b2)));
 
   ee = 0.0;
   vv = 0.0;
@@ -182,7 +191,7 @@ void LDAFunctional::xc_polarized(const double rh, double &ee, double &vv)
     {
       double sqrtrs = sqrt(rs);
       double den = 1.0 + b1 * sqrtrs + b2 * rs;
-      ec = ( B + D ) * ( 1.0 + b1 + b2 ) / den;
+      ec = G / den;
       vc = ec * ( 1.0 + (7.0/6.0) * b1 * sqrtrs +
                   (4.0/3.0) * b2 * rs ) / den;
     }

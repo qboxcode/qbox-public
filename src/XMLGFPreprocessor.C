@@ -3,15 +3,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.2 2003-09-12 22:39:28 fgygi Exp $
-
-// Note: the following #define's must appear before <iostream> and <cstdio>
-#if LINUX
-#define _LARGEFILE_SOURCE 1
-#define _LARGEFILE64_SOURCE 1
-#elif AIX
-#define _LARGE_FILES 1
-#endif
+// $Id: XMLGFPreprocessor.C,v 1.3 2003-12-02 20:26:05 fgygi Exp $
 
 #include <cassert>
 #include <iostream>

@@ -3,16 +3,8 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.10 2003-11-27 01:17:20 fgygi Exp $
+// $Id: SampleReader.C,v 1.11 2003-12-02 20:26:05 fgygi Exp $
 
-
-// Note: the following #define's must appear before <iostream> and <cstdio>
-#if LINUX
-#define _LARGEFILE_SOURCE 1
-#define _LARGEFILE64_SOURCE 1
-#elif AIX
-#define _LARGE_FILES 1
-#endif
 
 #include "Sample.h"
 #include "SampleReader.h"

@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.9 2003-11-21 19:07:24 fgygi Exp $
+// $Id: AtomSet.C,v 1.10 2004-03-11 21:44:08 fgygi Exp $
 
 #include "AtomSet.h"
 #include "NameOf.h"
@@ -293,6 +293,20 @@ void AtomSet::set_velocities(const vector<vector<double> >& vel)
     {
       atom_list[is][ia]->set_velocity(
         D3vector(vel[is][i],vel[is][i+1],vel[is][i+2]));
+      i += 3;
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void AtomSet::reset_velocities(void)
+{
+  for ( int is = 0; is < atom_list.size(); is++ )
+  {
+    int i = 0;
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      atom_list[is][ia]->set_velocity(D3vector(0.0, 0.0, 0.0));
       i += 3;
     }
   }

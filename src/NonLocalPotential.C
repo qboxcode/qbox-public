@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.5 2003-10-02 17:36:34 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.6 2003-11-21 19:18:15 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
@@ -862,7 +862,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
 
   assert(compute_stress==false); // stress for arbitrary cells not implemented
   
-  const valarray<double>& occ = sd_.occ();
+  const vector<double>& occ = sd_.occ();
 
   double enl = 0.0;
 

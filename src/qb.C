@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.42 2004-12-02 22:22:19 fgygi Exp $
+// $Id: qb.C,v 1.43 2005-03-17 17:16:54 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -126,7 +126,7 @@ int main(int argc, char **argv, char **envp)
   // Identify executable name, checksum, size and link date
   if ( getlogin() != 0 ) 
     cout << "<user> " << getlogin() << " </user>" << endl;
-#if AIX || OSF1
+#if AIX 
   // read filehdr for link time
   filehdr hdr;
   FILE *fx = fopen(argv[0],"r");

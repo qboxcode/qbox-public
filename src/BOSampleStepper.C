@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.7 2004-04-19 21:54:13 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.8 2004-04-20 22:15:01 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -202,6 +202,12 @@ void BOSampleStepper::step(int niter)
     
     if ( compute_stress )
     {
+      if ( s_.ctxt_.onpe0() )            
+      {                                  
+        cout << "<unit_cell>" << endl;   
+        cout << s_.wf.cell();            
+        cout << "</unit_cell>" << endl;  
+      }                                  
       compute_sigma();
       print_stress();
       
@@ -211,7 +217,7 @@ void BOSampleStepper::step(int niter)
  
         // Update cell
         cell_stepper->update_cell();
- 
+        
         ef_.cell_moved();
         ef_.atoms_moved(); // modifications of the cell also move ions
         

@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.7 2004-09-14 22:24:11 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.8 2004-10-28 16:54:28 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -32,6 +32,21 @@ CPSampleStepper::~CPSampleStepper(void)
 {
   delete mdwf_stepper;
   if ( mdionic_stepper != 0 ) delete mdionic_stepper;
+  for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
+  {
+    double time = (*i).second.real();
+    double tmin = time;
+    double tmax = time;
+    s_.ctxt_.dmin(1,1,&tmin,1);
+    s_.ctxt_.dmax(1,1,&tmax,1);
+    if ( s_.ctxt_.myproc()==0 )
+    {
+      cout << "<!-- timing "
+           << setw(15) << (*i).first
+           << " : " << setprecision(3) << setw(9) << tmin
+           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
+    }
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +80,10 @@ void CPSampleStepper::step(int niter)
   
   Timer tm_iter;
   
+  tmap["charge"].start();
   cd_.update_density();
+  tmap["charge"].stop();
+  
   ef_.update_vhxc();
   double energy =
     ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
@@ -197,7 +215,9 @@ void CPSampleStepper::step(int niter)
       ef_.atoms_moved();
     }
     
+    tmap["charge"].start();
     cd_.update_density();
+    tmap["charge"].stop();
     ef_.update_vhxc();
     energy =
       ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);

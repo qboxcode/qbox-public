@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.16 2004-11-29 04:07:06 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.17 2004-12-02 22:23:55 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -22,10 +22,6 @@
 #include <iostream>
 #include <iomanip>
 using namespace std;
-
-#define CHARGE_MIXING 1
-#define KERKER_MIXING 1
-#define ANDERSON_CHARGE_MIXING 1
 
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) : 
@@ -415,17 +411,13 @@ void BOSampleStepper::step(int niter)
     // do nitscf self-consistent iterations, each with nite electronic steps
     if ( wf_stepper != 0 )
     {
-#if CHARGE_MIXING
       assert(cd_.rhog.size()==1); // works for nspin=1 only
       vector<complex<double> > rhog_current(cd_.rhog[0]);
+      vector<complex<double> > rhog_last(rhog_current);
       vector<complex<double> > drhog(rhog_current.size());
-      AndersonMixer mixer((double*)&rhog_current[0],
-                          2*rhog_current.size(),cd_.vcontext());
-#endif
-#if POTENTIAL_MIXING
-      vector<vector<double> > vi(ef_.v_r);
-      vector<vector<double> > vo1(vi), vi1(vi);
-#endif
+      vector<complex<double> > drhog_bar(rhog_current.size());
+      AndersonMixer mixer(2*rhog_current.size(),cd_.vcontext());
+      mixer.set_theta_max(2.0);
       
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
       {
@@ -438,62 +430,77 @@ void BOSampleStepper::step(int niter)
         tmap["charge"].stop();
         
         // charge mixing
-        
-        // compute correction drhog = rhog - rhog_current
-        // precondition with Kerker preconditioner
-        
-#if CHARGE_MIXING
         if ( nite_ > 1 )
         {
-          if ( itscf > 0 )
-          {
-            // mix density with previous density rhog_old
-            const double alpha = 0.5;
-            // real space Kerker cutoff in a.u.
-            const double rc_Kerker = 5.0;
-            const double q0_kerker = 2.0 * M_PI / rc_Kerker;
-            const double q0_kerker2 = q0_kerker * q0_kerker;
-            const double *const g2 = cd_.vbasis()->g2_ptr();
-            
-            // compute correction in drhog[i]
-#if KERKER_MIXING
-            for ( int i=0; i < rhog_current.size(); i++ )
-            {
-              const double fac = g2[i] / ( g2[i] + q0_kerker2 );
-              drhog[i] = alpha * fac * (cd_.rhog[0][i] - rhog_current[i]);
-            }
-#else
-            for ( int i=0; i < rhog_current.size(); i++ )
-            {
-              drhog[i] = alpha * (cd_.rhog[0][i] - rhog_current[i]);
-            }
-#endif
-            
-#if ANDERSON_CHARGE_MIXING
-            mixer.update((double*)&drhog[0]);
-            if ( s_.ctxt_.onpe0() )
-            {
-              cout << "  <!-- Charge mixing: Anderson theta="
-                   << mixer.theta() << " -->" << endl;
-            }
-#else
-            // next line: simple update
-            for ( int i=0; i < rhog_current.size(); i++ )
-            {
-              rhog_current[i] += drhog[i];
-            }
-#endif
-            
-            // rhog_current contains the extrapolated density
-            cd_.rhog[0] = rhog_current;
-          }
-          else
+          if ( itscf == 0 )
           {
             rhog_current = cd_.rhog[0];
           }
+
+          // compute correction in drhog
+          for ( int i=0; i < rhog_current.size(); i++ )
+          {
+            drhog[i] = (cd_.rhog[0][i] - rhog_current[i]);
+          }
+          double theta;
+          
+          const bool anderson_charge_mixing = true;
+          if ( anderson_charge_mixing )
+          {
+            mixer.update((double*)&drhog[0],&theta,(double*)&drhog_bar[0]);
+            if ( s_.ctxt_.onpe0() )
+            {
+              cout << "  <!-- Charge mixing: Anderson theta="
+                   << theta << " -->" << endl;
+            }
+          }
+          else
+          {
+            theta = 0.0;
+            for ( int i=0; i < rhog_current.size(); i++ )
+            {
+              drhog_bar[i] = drhog[i];
+            }
+          }
+ 
+          // update rhog_current                                             
+          // rhog_current = rhog_current + theta*(rhog_current-rhog_last) +  
+          //                precond(drhog_bar)                               
+
+          // Apply Kerker preconditioner to drhog_bar                        
+          // Use Kerker preconditioning if rc_Kerker > 0.0,                  
+          // no preconditioning otherwise                                    
+          const double alpha = s_.ctrl.charge_mix_coeff;                     
+          const double *const g2 = cd_.vbasis()->g2_ptr();                   
+          // real space Kerker cutoff in a.u.                                
+          const double rc_Kerker = s_.ctrl.charge_mix_rcut;                  
+          if ( rc_Kerker > 0.0 )                                             
+          {                                                                  
+            const double q0_kerker = 2 * M_PI / rc_Kerker;                   
+            const double q0_kerker2 = q0_kerker * q0_kerker;                 
+            for ( int i=0; i < rhog_current.size(); i++ )                    
+            {                                                                
+              drhog_bar[i] *= alpha * g2[i] / ( g2[i] + q0_kerker2 );        
+            }                                                                
+          }                                                                  
+          else                                                               
+          {                                                                  
+            for ( int i=0; i < rhog_current.size(); i++ )                    
+            {                                                                
+              drhog_bar[i] *= alpha;                                         
+            }                                                                
+          }                                                                  
+ 
+          for ( int i=0; i < rhog_current.size(); i++ )
+          {
+            complex<double> rhotmp = rhog_current[i];
+            rhog_current[i] += theta * (rhog_current[i] - rhog_last[i]) +
+                               drhog_bar[i];
+            rhog_last[i] = rhotmp;
+          }
+          cd_.rhog[0] = rhog_current;
           cd_.update_rhor();
-        }
-#endif
+        } // if nite > 1
 
         ef_.update_vhxc();
         

@@ -3,7 +3,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.8 2004-03-11 21:52:31 fgygi Exp $
+// $Id: Matrix.h,v 1.9 2004-03-18 19:56:09 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -211,6 +211,8 @@ class DoubleMatrix
 
     void trmm(char side, char uplo, char trans, char diag, 
               double alpha, const DoubleMatrix& a);
+    
+    // solve triangular system
     void trsm(char side, char uplo, char trans, char diag, 
               double alpha, const DoubleMatrix& a);
     void trtrs(char uplo, char trans, char diag, DoubleMatrix& b) const;
@@ -219,6 +221,12 @@ class DoubleMatrix
     void potrf(char uplo);
     // Inverse of a symmetric matrix from Cholesky factor
     void potri(char uplo);
+    
+    // LU decomposition
+    void lu(valarray<int>& ipiv);
+    
+    // compute inverse of a square matrix
+    void inverse(void);
     
     // Inverse of triangular matrix
     void trtri(char uplo,char diag);

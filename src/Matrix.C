@@ -3,7 +3,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.9 2004-03-11 21:52:31 fgygi Exp $
+// $Id: Matrix.C,v 1.10 2004-03-18 19:56:09 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -50,6 +50,8 @@ using namespace std;
 #define pdlatra    pdlatra_
 #define pdlacp2    pdlacp2_
 #define pdlacp3    pdlacp3_
+#define pdgetrf    pdgetrf_
+#define pdgetri    pdgetri_
 
 #define dscal      dscal_
 #define zscal      zscal_
@@ -82,6 +84,8 @@ using namespace std;
 #define dsyev      dsyev_
 #define zheev      zheev_
 #define idamax     idamax_
+#define dgetrf     dgetrf_
+#define dgetri     dgetri_
 #endif
 
 extern "C"
@@ -184,6 +188,11 @@ extern "C"
               double* rwork, const int* lrwork, int* info);
   void pdtrtri(const char*, const char*, const int*, double*, 
                const int*, const int*, const int*, int*);
+  void pdgetrf(const int* m, const int* n, double* val, 
+               int* ia, const int* ja, const int* desca, int* ipiv, int* info);
+  void pdgetri(const int* n, double* val, 
+               const int* ia, const int* ja, int* desca, int* ipiv, 
+               double* work, int* lwork, int* iwork, int* liwork, int* info);
 #endif
   // BLAS1
   void dscal(const int*, const double*, double*, const int*);
@@ -1655,6 +1664,102 @@ void DoubleMatrix::trtrs(char uplo, char trans, char diag,
     if(info!=0)
     {
       cout <<" Matrix::trtrs, info=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// LU decomposition of a general matrix 
+////////////////////////////////////////////////////////////////////////////////
+void DoubleMatrix::lu(valarray<int>& ipiv)
+{
+  int info;
+  if ( active() )
+  {
+    assert(m_==n_);
+    ipiv.resize(mloc_+mb_);
+
+#ifdef SCALAPACK
+    int ione=1;
+    pdgetrf(&m_, &n_, val, &ione, &ione, desc_, &ipiv[0], &info);
+#else
+    dgetrf(&m_, &n_, val, &m_, &ipiv[0], &info);
+#endif
+    if(info!=0)
+    {
+      cout << " DoubleMatrix::lu, info=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// inverse of a general square matrix 
+////////////////////////////////////////////////////////////////////////////////
+void DoubleMatrix::inverse(void)
+{
+  int info;
+  if ( active() )
+  {
+    assert(m_==n_);
+    valarray<int> ipiv(mloc_+mb_);
+
+    // LU decomposition
+#ifdef SCALAPACK
+    int ione=1;
+    pdgetrf(&m_, &n_, val, &ione, &ione, desc_, &ipiv[0], &info);
+#else
+    dgetrf(&m_, &n_, val, &m_, &ipiv[0], &info);
+#endif
+    if(info!=0)
+    {
+      cout << " DoubleMatrix::inverse, info(getrf)=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+
+    // Compute inverse using LU decomposition
+#ifdef SCALAPACK
+    valarray<double> work(1);
+    valarray<int> iwork(1);
+    int lwork = -1;
+    int liwork = -1;
+    // First call to compute dimensions of work arrays lwork and liwork
+    // dimensions are returned in work[0] and iwork[0];
+    pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0], 
+            &work[0], &lwork, &iwork[0], &liwork, &info);
+    lwork = (int) work[0] + 1;
+    liwork = iwork[0];
+    work.resize(lwork);
+    iwork.resize(liwork);
+    
+    // Compute inverse
+    pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0], 
+            &work[0], &lwork, &iwork[0], &liwork, &info);
+#else
+    valarray<double> work(1);
+    int lwork = -1;
+    // First call to compute optimal size of work array, returned in work[0]
+    dgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
+    lwork = (int) work[0] + 1;
+    work.resize(lwork);
+    dgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
+#endif
+    if(info!=0)
+    {
+      cout << " DoubleMatrix::inverse, info(getri)=" << info << endl;
 #ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
 #else

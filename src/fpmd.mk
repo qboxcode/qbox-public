@@ -3,7 +3,7 @@
 #  fpmd.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: fpmd.mk,v 1.4 2004-09-14 22:24:11 fgygi Exp $
+# $Id: fpmd.mk,v 1.5 2005-02-04 22:02:42 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -38,26 +38,22 @@
 
  # Blacs libraries
  BLACSDBGLVL   = 0
- BLACSdir      = /home/casc/repository/fpmd/software/BLACS/LIB
- BLACSFINIT    = $(BLACSdir)/blacsF77init_MPI-$(PLT)-$(BLACSDBGLVL).a
+#BLACSdir      = /home/casc/repository/fpmd/software/BLACS/LIB
+ BLACSdir      = $(HOME)/software/blacs/fpmd/BLACS/LIB
  BLACSCINIT    = $(BLACSdir)/blacsCinit_MPI-$(PLT)-$(BLACSDBGLVL).a
  BLACSLIB      = $(BLACSdir)/blacs_MPI-$(PLT)-$(BLACSDBGLVL).a
-
  CBLACSLIB     = $(BLACSCINIT) $(BLACSLIB) $(BLACSCINIT)
- FBLACSLIB     = $(BLACSFINIT) $(BLACSLIB) $(BLACSFINIT)
 
  # Scalapack libraries
- SCALAPACK_DIR = /home/casc/repository/fpmd/lib
- PBLASLIB      = $(SCALAPACK_DIR)/pblas_$(PLT).a
- SCALAPACKLIB  = $(SCALAPACK_DIR)/scalapack_$(PLT).a
- TOOLSLIB      = $(SCALAPACK_DIR)/tools_$(PLT).a
- REDISTLIB     = $(SCALAPACK_DIR)/redist_$(PLT).a
+#SCALAPACK_DIR = /home/casc/repository/fpmd/lib
+ SCALAPACK_DIR = $(HOME)/software/scalapack/fpmd/SCALAPACK
+ SCALAPACKLIB  = $(SCALAPACK_DIR)/libscalapack.a
 
  LAPACKLIB = -llapack
  BLASLIB = -lblas
 
  # Parallel libraries
- PLIBS = $(SCALAPACKLIB) $(PBLASLIB) $(TOOLSLIB) $(REDISTLIB) $(CBLACSLIB)
+ PLIBS = $(SCALAPACKLIB) $(CBLACSLIB)
 
 #-------------------------------------------------------------------------------
 .C.s:

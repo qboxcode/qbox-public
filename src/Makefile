@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.18 2003-11-21 20:01:47 fgygi Exp $
+# $Id: Makefile,v 1.19 2003-11-27 01:25:22 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -24,7 +24,7 @@ testChargeDensity  testFourierTransform testSpecies testContext
         CPSampleStepper.o BOSampleStepper.o \
         WavefunctionStepper.o SDWavefunctionStepper.o \
         MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
-        PSDWavefunctionStepper.o
+        PSDWavefunctionStepper.o PSDAWavefunctionStepper.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  SamplePrint: SamplePrint.o SamplePrintHandlers.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -112,6 +112,9 @@ SampleStepper.o EnergyFunctional.o
  ps :
 	enscript -Ecpp --toc -2rGj -pqb.ps *.h *.C Makefile *.mk
 #------------------------------------------------------------------------------
+ tar :
+	tar cf qbsrc.tar *.[Ch] Makefile *.mk
+#------------------------------------------------------------------------------
 # DO NOT DELETE
 
 Atom.o: Atom.h D3vector.h
@@ -136,6 +139,7 @@ BOSampleStepper.o: Context.h Atom.h D3vector.h Species.h Wavefunction.h
 BOSampleStepper.o: UnitCell.h Control.h Timer.h EnergyFunctional.h
 BOSampleStepper.o: ChargeDensity.h StructureFactor.h SlaterDet.h Basis.h
 BOSampleStepper.o: Matrix.h WavefunctionStepper.h SDWavefunctionStepper.h
+BOSampleStepper.o: PSDWavefunctionStepper.h PSDAWavefunctionStepper.h
 BOSampleStepper.o: SDIonicStepper.h IonicStepper.h MDIonicStepper.h
 BOSampleStepper.o: SampleStepper.h Sample.h AtomSet.h Context.h Atom.h
 BOSampleStepper.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
@@ -213,6 +217,12 @@ PBEFunctional.o: PBEFunctional.h XCFunctional.h
 PBEFunctional.o: XCFunctional.h
 PrintCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 PrintCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
+PSDAWavefunctionStepper.o: PSDAWavefunctionStepper.h Wavefunction.h
+PSDAWavefunctionStepper.o: D3vector.h UnitCell.h WavefunctionStepper.h
+PSDAWavefunctionStepper.o: Timer.h SlaterDet.h Context.h Basis.h Matrix.h
+PSDAWavefunctionStepper.o: Sample.h AtomSet.h Atom.h Species.h Control.h
+PSDAWavefunctionStepper.o: Wavefunction.h D3vector.h UnitCell.h
+PSDAWavefunctionStepper.o: WavefunctionStepper.h Timer.h
 PSDWavefunctionStepper.o: PSDWavefunctionStepper.h WavefunctionStepper.h
 PSDWavefunctionStepper.o: Timer.h Wavefunction.h D3vector.h UnitCell.h
 PSDWavefunctionStepper.o: SlaterDet.h Context.h Basis.h Matrix.h Sample.h
@@ -321,8 +331,8 @@ testSlaterDet.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
 testSlaterDet.o: Timer.h FourierTransform.h
 testSpecies.o: Species.h Context.h SpeciesReader.h
 testStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
-testStepper.o: Wavefunction.h UnitCell.h Control.h MDIonicStepper.h
-testStepper.o: IonicStepper.h
+testStepper.o: Wavefunction.h UnitCell.h Control.h BOSampleStepper.h
+testStepper.o: SampleStepper.h Timer.h
 testUnitCell.o: UnitCell.h D3vector.h
 testWavefunction.o: Context.h Wavefunction.h D3vector.h UnitCell.h
 testWavefunction.o: SlaterDet.h Basis.h Matrix.h Timer.h

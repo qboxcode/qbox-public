@@ -3,17 +3,13 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.28 2004-09-14 22:24:11 fgygi Exp $
+// $Id: SlaterDet.C,v 1.29 2004-10-04 19:03:38 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
 #include "Context.h"
 #include "blas.h" // daxpy
 #include "Base64Transcoder.h"
-// // XML transcoding for print function
-// #include <xercesc/util/Base64.hpp>
-// #include <xercesc/util/XMLString.hpp>
-// using namespace xercesc;
 
 #include <cstdlib>
 #include <iostream>
@@ -667,8 +663,8 @@ void SlaterDet::align(const SlaterDet& sd)
     //cout << "SlaterDet::align: B=\n" << x << endl;
     
     // Compute the distance | c - sdc | before alignment
-    for ( int i = 0; i < c_proxy.size(); i++ )
-      c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
+    //for ( int i = 0; i < c_proxy.size(); i++ )
+    //  c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
     //cout << " SlaterDet::align: distance before: "
     //     << c_tmp_proxy.nrm2() << endl;
     
@@ -1083,15 +1079,17 @@ void SlaterDet::print(ostream& os, string encoding)
         #if AIX
         xcdr.byteswap_double(ft.np012(),&wftmpr[0]);
         #endif
-        unsigned int outlen = xcdr.nchars(ft.np012()*sizeof(double));
-        char* b = new char(outlen);
+        int nbytes = ft.np012()*sizeof(double);
+        int outlen = xcdr.nchars(nbytes);
+        char* b = new char[outlen];
         assert(b!=0);
+        xcdr.encode(nbytes,(byte*) &wftmpr[0],b);
         // Note: optional x0,y0,z0 attributes not used, default is zero
         os << "<grid_function type=\"double\""
            << " nx=\"" << ft.np0()
            << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
            << " encoding=\"base64\">" << endl;
-        os.write((char*) b, outlen);
+        xcdr.print(outlen,(char*) b, os);
         os << "</grid_function>\n";
         delete [] b;
       }
@@ -1131,7 +1129,6 @@ void SlaterDet::write(FILE* outfile, string encoding)
   vector<complex<double> > wftmp(ft.np012loc());
   vector<double> wftmpr(ft.np012());
   Base64Transcoder xcdr;
-  
   ostringstream os;
   
   if ( ctxt_.onpe0() )
@@ -1212,9 +1209,12 @@ void SlaterDet::write(FILE* outfile, string encoding)
         #if AIX
         xcdr.byteswap_double(ft.np012(),&wftmpr[0]);
         #endif
-        unsigned int outlen = xcdr.nchars(ft.np012()*sizeof(double));
-        char* b = new char(outlen);
+        
+        int nbytes = ft.np012()*sizeof(double);
+        int outlen = xcdr.nchars(nbytes);
+        char* b = new char[outlen];
         assert(b!=0);
+        xcdr.encode(nbytes,(byte*) &wftmpr[0],b);
         
         // Note: optional x0,y0,z0 attributes not used, default is zero
         os.str("");
@@ -1222,11 +1222,14 @@ void SlaterDet::write(FILE* outfile, string encoding)
            << " nx=\"" << ft.np0()
            << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
            << " encoding=\"base64\">" << endl;
+           
         string str(os.str());
         off_t len = str.length();
         fwrite(str.c_str(),sizeof(char),len,outfile);
-        fwrite((char*) b,sizeof(char),outlen,outfile);
-        //os.write((char*) b, outlen);
+        
+        // write buffer b inserting newlines 
+        xcdr.print(outlen, b, outfile);
+        
         os.str("");
         os << "</grid_function>\n";
         str = os.str();

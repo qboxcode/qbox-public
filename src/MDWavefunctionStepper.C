@@ -3,7 +3,7 @@
 // MDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.C,v 1.3 2004-03-11 21:52:32 fgygi Exp $
+// $Id: MDWavefunctionStepper.C,v 1.4 2004-05-03 23:19:57 fgygi Exp $
 
 #include "MDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -101,9 +101,7 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
   // Compute cm using c and wavefunction velocity
   // cm = c - dt * v - 0.5 * dt2/m * hpsi
   // replace wfv by wfm
-  const double m_e = dt_ * dt_ / dt2bye_;
   const double half_dt2bye = 0.5 * dt2bye_;
-  double ekin_e = 0.0;
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
@@ -114,33 +112,6 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
         {
           SlaterDet* sd = wf_.sd(ispin,ikp);
           
-#if 0
-          // dwf must be orthogonal to the subspace spanned by c
-          // compute descent direction H psi - psi (psi^T H psi)
- 
-          if ( sd->basis().real() )
-          {
-            // proxy real matrices c, cp
-            DoubleMatrix c(sd->c());
-            DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
- 
-            DoubleMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
- 
-            // factor 2.0 in next line: G and -G
-            a.gemm('t','n',2.0,c,cp,0.0);
-            // rank-1 update correction
-            a.ger(-1.0,c,0,cp,0);
- 
-            // cp = cp - c * a
-            cp.gemm('n','n',-1.0,c,a,1.0);
-          }
-          else
-          {
-            // not implemented in the complex case
-            assert(false);
-          }
-#endif
- 
           double* cptr = (double*) sd->c().valptr();
           double* cptrv = (double*) wfv->sd(ispin,ikp)->c().valptr();
           const double* dcptr =
@@ -157,13 +128,6 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
             double* c = &cptr[2*mloc*n];
             double* cv = &cptrv[2*mloc*n];
             const double* dc = &dcptr[2*mloc*n];
-            double tmpsum = 0.0;
-            if ( onrow0 )
-            {
-              const double cvtmp = cv[0];
-              tmpsum -= 0.5 * (cvtmp*cvtmp);
-              cv[1] = 0.0;
-            }
             for ( int i = 0; i < mloc; i++ )
             {
               const double ctmp = c[2*i];
@@ -172,13 +136,9 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
               const double cvtmp1 = cv[2*i+1];
               const double dctmp = dc[2*i];
               const double dctmp1 = dc[2*i+1];
-
-              tmpsum += (cvtmp*cvtmp + cvtmp1*cvtmp1);
               cv[2*i]    = ctmp  - dt_ * cvtmp  - half_dt2bye * dctmp;
               cv[2*i+1]  = ctmp1 - dt_ * cvtmp1 - half_dt2bye * dctmp1;
-              // Note: 2 in next line from G,-G
             }
-            ekin_e += 2.0 * m_e * occn * tmpsum;
           }
           tmap_["riccati"].start();
           wfv->sd(ispin,ikp)->riccati(*wf_.sd(ispin,ikp));
@@ -187,8 +147,10 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
       }
     }
   }
-  wf_.context().dsum(1,1,&ekin_e,1);
-  ekin_em_ = ekin_ep_ = ekin_e;
+  ekin_em_ = 0.0;
+  ekin_ep_ = ekin_eh();
+  // Note: ekin_ep is a first-order approximation of ekin_e using wf and wfm
+  // only. This makes ekin_e consistent with the following update() call
   // Note: *wfv now contains wf(t-dt)
 }
 

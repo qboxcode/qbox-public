@@ -3,7 +3,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.7 2003-10-02 17:35:51 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.8 2003-12-02 22:39:05 fgygi Exp $
 
 #include "WavefunctionHandler.h"
 #include "Wavefunction.h"
@@ -284,9 +284,6 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
     assert(sd != 0);
     sd->context().dbcast_send(dmat.size(),1,&dmat[0],1);
     sd->set_occ(dmat);
-    
-    //for ( int i = 0; i < dmat.size(); i++ )
-    //  cout << "WavefunctionHandler: dmat: " << i << " " << dmat[i] << endl;
   }
   else if ( locname == "grid_function")
   {

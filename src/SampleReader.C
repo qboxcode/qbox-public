@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.11 2003-12-02 20:26:05 fgygi Exp $
+// $Id: SampleReader.C,v 1.12 2003-12-02 22:39:05 fgygi Exp $
 
 
 #include "Sample.h"
@@ -372,7 +372,6 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
             {
               // receive density_matrix
               vector<double> dmat_tmp(sd->nst());
-	      cout << " SampleReader: dmat.size()=" << dmat_tmp.size() << endl;
               sd->context().dbcast_recv(sd->nst(),1,&dmat_tmp[0],1,0,0);
               sd->set_occ(dmat_tmp);
                 

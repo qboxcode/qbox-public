@@ -3,7 +3,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.C,v 1.8 2004-09-14 22:24:11 fgygi Exp $
+// $Id: ChargeDensity.C,v 1.9 2004-10-15 18:04:11 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -87,11 +87,11 @@ wf_(wf)
 ////////////////////////////////////////////////////////////////////////////////
 ChargeDensity::~ChargeDensity(void)
 {
-  delete vcontext_;
-  delete vbasis_;
-  delete vft_;
+  delete (void*) vcontext_;
+  delete (void*) vbasis_;
+  delete (void*) vft_;
   for ( int ikp = 0; ikp < ft_.size(); ikp++ )
-    delete ft_[ikp];
+    delete (void*) ft_[ikp];
 }
 
 ////////////////////////////////////////////////////////////////////////////////

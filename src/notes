@@ -7,6 +7,18 @@ preferrable to use a single-column context when nst is small to avoid
 memory problems.
 
 --------------------------------------------------------------------------------
+rel1_23_0
+Added SDA algorithm for atoms dynamics: Anderson acceleration of SD.
+New implementation of NonLocalPotential::energy, recomputing anl array at
+every call.
+Modified IonicStepper to make ekin and temp virtual. Implemented only in 
+MDIonicStepper.
+--------------------------------------------------------------------------------
+rel1_22_0
+BOSampleStepper.C: new implementation of Kerker-Anderson charge mixing.
+new variables charge_mix_rcut and charge_mix_coeff introduced: determine
+the Kerker cutoff and mixing coefficient parameters.
+--------------------------------------------------------------------------------
 rel1_21_0
 Context.[Ch]: redesigned Context to be column-major in all cases.
 ChargeDensity.C: vcontext definition modified.

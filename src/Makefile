@@ -1,11 +1,12 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.31 2004-12-02 22:25:07 fgygi Exp $
+# $Id: Makefile,v 1.32 2004-12-17 23:43:01 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
 #------------------------------------------------------------------------------
 #
-EXECS=qb testMatrix testFTGrid testGridFunction testBasis \
+EXEC=qb
+TESTEXECS=testMatrix testFTGrid testGridFunction testBasis \
 testBlacsContext testSlaterDet testEnergyFunctional testSample \
 testChargeDensity  testFourierTransform testSpecies testContext
 
@@ -28,9 +29,9 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
         SDCellStepper.o ConfinementPotential.o Preconditioner.o \
         release.o qbox_xmlns.o isodate.o \
-        AndersonMixer.o $(PLTOBJECTS)
+        AndersonMixer.o SDAIonicStepper.o $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
- qb:    $(OBJECTS)
+ $(EXEC):    $(OBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  lib:   $(OBJECTS)
 	ar cr libqb.a $^
@@ -119,7 +120,7 @@ SampleStepper.o EnergyFunctional.o
 #  Cleanup object files
  clean :
 	rm -f *.o
-	rm -f $(EXECS)
+	rm -f $(EXEC) $(TESTEXECS)
 	rm -rf ti_files
 	rm -f libqb.a
 #------------------------------------------------------------------------------
@@ -159,9 +160,9 @@ BOSampleStepper.o: UnitCell.h Control.h Timer.h EnergyFunctional.h
 BOSampleStepper.o: ChargeDensity.h StructureFactor.h SlaterDet.h Basis.h
 BOSampleStepper.o: Matrix.h WavefunctionStepper.h SDWavefunctionStepper.h
 BOSampleStepper.o: PSDWavefunctionStepper.h PSDAWavefunctionStepper.h
-BOSampleStepper.o: SDIonicStepper.h IonicStepper.h MDIonicStepper.h
-BOSampleStepper.o: SDCellStepper.h CellStepper.h Preconditioner.h
-BOSampleStepper.o: AndersonMixer.h
+BOSampleStepper.o: SDIonicStepper.h IonicStepper.h SDAIonicStepper.h
+BOSampleStepper.o: AndersonMixer.h MDIonicStepper.h SDCellStepper.h
+BOSampleStepper.o: CellStepper.h Preconditioner.h
 BOSampleStepper.o: SampleStepper.h Sample.h AtomSet.h Context.h Atom.h
 BOSampleStepper.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
 BOSampleStepper.o: Timer.h EnergyFunctional.h ChargeDensity.h
@@ -259,6 +260,9 @@ Nempty.o: Wavefunction.h UnitCell.h Control.h
 NonLocalPotential.o: NonLocalPotential.h AtomSet.h Context.h Atom.h
 NonLocalPotential.o: D3vector.h Species.h Basis.h UnitCell.h SlaterDet.h
 NonLocalPotential.o: Matrix.h Timer.h blas.h
+NonLocalPotential-forces-ok.o: NonLocalPotential.h AtomSet.h Context.h Atom.h
+NonLocalPotential-forces-ok.o: D3vector.h Species.h Basis.h UnitCell.h
+NonLocalPotential-forces-ok.o: SlaterDet.h Matrix.h Timer.h blas.h
 NonLocalPotential.o: AtomSet.h Context.h Atom.h D3vector.h Species.h Basis.h
 NonLocalPotential.o: UnitCell.h SlaterDet.h Matrix.h Timer.h
 Nrowmax.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
@@ -328,6 +332,12 @@ SaveCmd.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h isodate.h
 SaveCmd.o: release.h qbox_xmlns.h
 SaveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SaveCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
+SDAIonicStepper.o: SDAIonicStepper.h IonicStepper.h Sample.h AtomSet.h
+SDAIonicStepper.o: Context.h Atom.h D3vector.h Species.h Wavefunction.h
+SDAIonicStepper.o: UnitCell.h Control.h AndersonMixer.h
+SDAIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
+SDAIonicStepper.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
+SDAIonicStepper.o: AndersonMixer.h
 SDCellStepper.o: SDCellStepper.h CellStepper.h Sample.h AtomSet.h Context.h
 SDCellStepper.o: Atom.h D3vector.h Species.h Wavefunction.h UnitCell.h
 SDCellStepper.o: Control.h

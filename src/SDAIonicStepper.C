@@ -3,7 +3,7 @@
 // SDAIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.C,v 1.2 2004-12-17 23:31:41 fgygi Exp $
+// $Id: SDAIonicStepper.C,v 1.3 2004-12-18 23:21:42 fgygi Exp $
 
 #include "SDAIonicStepper.h"
 #include <iostream>
@@ -32,12 +32,14 @@ void SDAIonicStepper::compute_rp(const vector<vector< double> >& f0)
     }
   }
   if ( s_.ctxt_.onpe0() )
-    cout << "SDAIonicStepper: residual: " << sum << endl;
+    cout << "<sda_residual> " << sum 
+         << "</sda_residual>" << endl;
   
   mixer_.update(&f_[0],&theta_,&fbar_[0]);
   if ( s_.ctxt_.onpe0() )
-    cout << "SDAIonicStepper: theta: " << theta_ << endl;
-  
+    cout << "<sda_theta> " << theta_ 
+         << "</sda_theta>" << endl;
+    
   k = 0;
   for ( int is = 0; is < r0_.size(); is++ )
   {

@@ -40,27 +40,40 @@ the load command or the set wf_dyn MD command. Should implement a block_wf cmd.
 Note: when building for release on /usr/apps, the LD_LIBRARY_PATH var will 
 determine library search path, even if makefile specifies another path.
  
-In 1_9_0: running PSDA steps followed in the same run by MD/MD steps
-causes a seg fault.
-
 Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
 This will avoid the problem of needing libxerces-c.so when using qbox.
 --------------------------------------------------------------------------------
-rel1_10_0 (not for release)
+rel1_11_0
+BOSampleStepper: changed to do extrapolation and ionic move before 
+smoothing the wf. Uses wf velocity if available. Creates it if not
+Included PSDA wf stepper.
+BO dyn Works ok with PSDA. 
+Tested 1pe vs 2pe on CH4 BO dynamics: ok.
+Corrected bug in SampleReader.C (reading of wf velocity, appeared in rel1_9_0)
+--------------------------------------------------------------------------------
+rel1_10_0 (not for release) (Note: known bugs)
 Complete rewrite of the SampleStepper hierarchy, including CP and BO classes.
 Runs CP and BO/SD and BO/PSD tests ok. No extrapolation of wavefunctions yet.
 Note: wavefunction extrapolation implemented yet.
 Planned work: interchange nite iterations and ionic move in BO stepper, so 
 that the wfs at the end of the iteration are the GS for the ionic positions at
 the same time.
+XML files: a <description> tag (optional) was added to the sample.xsd file
+to include any information about the sample that a user may want to include.
+Bug in SampleReader.C: reading of density matrix for the 
+wavefunction velocity is incorrect. Causes out of sync MPI call and Abort
+Corrected in 1_11_0 (candidate)
 --------------------------------------------------------------------------------
-rel1_9_0
+rel1_9_0 (Note: known bugs)
 Large file support (LFS): LFS is not correctly supported for <iostream> in icc
 and gcc 3.2. A workaround is implemented in SaveCmd.C, Wavefunction.C, 
 SlaterDet.C. The workaround is activated by defining the USE_CSTDIO_LFS macro.
 Occupation numbers moved to the SlaterDet class.
 Occupation numbers are not fixed to 2.0 anymore. Load and save now use
 occupation numbers.
+Bug in SampleReader.C: reading of density matrix for the 
+wavefunction velocity is incorrect. Causes out of sync MPI call and Abort
+Corrected in 1_11_0 (candidate)
 --------------------------------------------------------------------------------
 rel1_8_2
 Fixed problem with wfvtmp in SampleReader: cannot load sample and 

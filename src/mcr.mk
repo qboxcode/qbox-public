@@ -3,13 +3,14 @@
 #  linux-pc_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.1 2003-10-02 17:42:09 fgygi Exp $
+# $Id: mcr.mk,v 1.2 2003-11-21 19:09:01 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
  GCCDIR=/usr/lib/gcc-lib/i386-redhat-linux/egcs-2.91.66
  MPIDIR=/usr/lib/mpi
  XERCESCDIR=$(HOME)/software/xml/icc-7.0/xerces-c-src2_2_0
+ XERCESCLIBDIR=/usr/apps/qbox/lib
 
  CXX=icc
  LD=$(CXX)
@@ -26,7 +27,7 @@
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L$(BLASDIR) -L/usr/lib \
-           -L$(XERCESCDIR)/lib
+           -L$(XERCESCLIBDIR)
   
  LIBS =  $(PLIBS) $(GCCDIR)/libg2c.a -lfftw \
          -lmkl_lapack -lmkl -lmkl_def -lmkl_p4 -lm -lmpi -lpmpi \

@@ -3,7 +3,7 @@
 // NonLocalPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.h,v 1.3 2004-02-04 19:55:17 fgygi Exp $
+// $Id: NonLocalPotential.h,v 1.4 2004-12-17 23:32:57 fgygi Exp $
 
 #ifndef NONLOCALPOTENTIAL_H
 #define NONLOCALPOTENTIAL_H
@@ -46,6 +46,7 @@ class NonLocalPotential
   vector<vector<double> > rquad;    // rquad[is][iquad], iquad = 0, nquad[is]-1
   vector<vector<double> > wquad;    // wquad[is][iquad], iquad = 0, nquad[is]-1
     
+  mutable TimerMap tmap;
   void init(void);
    
   public:

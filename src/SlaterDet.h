@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.13 2003-11-27 01:23:54 fgygi Exp $
+// $Id: SlaterDet.h,v 1.14 2004-02-04 19:30:38 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -57,7 +57,6 @@ class SlaterDet
   int nstloc(void) const { return c_.nloc(); }
   void resize(const UnitCell& cell, const UnitCell& refcell,
               double ecut, int nst);
-  double ekin(void) const;  // electronic kinetic energy
   void compute_density(FourierTransform& ft, double weight, double* rho) const;
   void rs_mul_add(FourierTransform& ft, double* v, SlaterDet& sdp) const;
   void randomize(double amplitude);
@@ -69,7 +68,11 @@ class SlaterDet
   void update_occ(int nel, int nspin);
   void update_occ(int nspin, double mu, double temp);
   double eig(int i) const { return eig_[i]; };
+  const double* eig_ptr(void) const { return &eig_[0]; }
+  const double* eig_ptr(int i) const { return &eig_[i]; }
   double occ(int i) const { return occ_[i]; };
+  const double* occ_ptr(void) const { return &occ_[0]; }
+  const double* occ_ptr(int i) const { return &occ_[i]; }
   void set_occ(vector<double>& occ)
     { assert(occ_.size()==occ.size()); occ_ = occ; }
   void set_eig(vector<double>& eig)

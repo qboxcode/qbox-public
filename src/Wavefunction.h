@@ -3,7 +3,7 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.10 2003-10-02 17:33:20 fgygi Exp $
+// $Id: Wavefunction.h,v 1.11 2003-11-27 01:21:45 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
@@ -39,7 +39,6 @@ class Wavefunction
   vector<double>      weight_;  // weight[ikp]
   vector<D3vector  >  kpoint_;  // kpoint[ikp]
   
-  vector<vector<vector<double> > > occ_;  // occ_[ispin][ikp][n]
   vector<int> nst_;                       // nst_[ispin]
   vector<Context*> spincontext_;          // spincontext[ispin]
   vector<vector<Context*> > sdcontext_;   // sdcontext_[ispin][ikp]
@@ -78,8 +77,6 @@ class Wavefunction
   int nrowmax(void) const { return nrowmax_; }
   
   double spin(void) const;        // total spin
-  const vector<double>& occ(int ispin, int ikp) const
-        { return occ_[ispin][ikp]; }
 
   void resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
   void resize(double ec) { resize(cell_,refcell_,ec); }

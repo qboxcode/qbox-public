@@ -7,6 +7,16 @@ preferrable to use a single-column context when nst is small to avoid
 memory problems.
 
 --------------------------------------------------------------------------------
+rel1_19_0
+BOSampleStepper.C: Implemented simple charge mixing for SCF iterations.
+Disabled potential mixing. 
+SpeciesReader.C: fixed parsing of species files.
+SlaterDet.C in print and write: fixed incorrect allocation of char buffer b:
+caused segfaults when saving sample.
+Base64Transcoder.[Ch]: added cstdio style interface for print function.
+FourierTransform.[Ch]: implemented timers, activated if TIMING is defined.
+testFourierTransform.C: updated to print timing info in readable form.
+--------------------------------------------------------------------------------
 rel1_18_0 2004-09-14
 BOSampleStepper modified for scf iterations. Update of charge density and 
 calculation of VHXC is taken out of EnergyFunctional.
@@ -18,6 +28,8 @@ only species files can be read. Loading of sample files without the Xerces lib
 is not implemented yet.
 SlaterDet.C modified to remove dependency on xercesc. Uses Base64Transcoder.
 Makefile modified for libqb.a target for BGL.
+Known bug: SpeciesReader.C incorrect if not USE_XERCES
+Known bug: Base64 encoding not done in SlaterDet.C
 --------------------------------------------------------------------------------
 rel1_17_1 2004-08-18
 Fixed bug #27: overrun of variable tmpfion in NonLocalPotential.C is due to 

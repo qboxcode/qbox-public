@@ -3,7 +3,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.9 2004-03-18 19:56:09 fgygi Exp $
+// $Id: Matrix.h,v 1.10 2004-04-17 01:16:40 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -110,23 +110,25 @@ class DoubleMatrix
     void resize(int m, int n, int mb = MATRIX_DEF_BLOCK_SIZE, 
       int nb = MATRIX_DEF_BLOCK_SIZE)
     {
-      if ( m == m_ && n == n_ && mb == mb_ && nb == nb_ ) return;
+      const int old_size = size_;
+      init_size(m,n,mb,nb);
+      if ( size_ == old_size ) return;
       init_size(m,n,mb,nb);
       delete[] val;
       val = new double[size_];
-      // clear();
+      clear();
     }    
     
     void print(ostream& os) const;
     
     explicit DoubleMatrix(const Context& ctxt) : ctxt_(ctxt),
-        m_(0), n_(0), mb_(0), nb_(0), reference_(false), val(0) {}
+        m_(0), n_(0), mb_(0), nb_(0), size_(0), reference_(false), val(0) {}
         
     // Construct a DoubleMatrix of dimensions m,n
     explicit DoubleMatrix(const Context& ctxt, int m, int n,
         int mb=MATRIX_DEF_BLOCK_SIZE, 
         int nb=MATRIX_DEF_BLOCK_SIZE) : ctxt_(ctxt),
-        m_(0), n_(0), mb_(0), nb_(0), reference_(false), val(0)
+        m_(0), n_(0), mb_(0), nb_(0), size_(0), reference_(false), val(0)
     {
       resize(m,n,mb,nb);
     }
@@ -335,23 +337,24 @@ class ComplexMatrix
     void resize(int m, int n, int mb = MATRIX_DEF_BLOCK_SIZE, 
       int nb = MATRIX_DEF_BLOCK_SIZE)
     {
-      if ( m == m_ && n == n_ && mb == mb_ && nb == nb_ ) return;
+      const int old_size = size_;
       init_size(m,n,mb,nb);
+      if ( size_ == old_size ) return;
       delete[] val;
       val = new complex<double>[size_];
-      // clear();
+      clear();
     }    
     
     void print(ostream& os) const;
     
     explicit ComplexMatrix(const Context& ctxt) : ctxt_(ctxt),
-        m_(0), n_(0), mb_(0), nb_(0), reference_(false), val(0) {}
+        m_(0), n_(0), mb_(0), nb_(0), size_(0), reference_(false), val(0) {}
         
     // Construct a ComplexMatrix of dimensions m,n
     explicit ComplexMatrix(const Context& ctxt, int m, int n,
         int mb=MATRIX_DEF_BLOCK_SIZE, 
         int nb=MATRIX_DEF_BLOCK_SIZE) : ctxt_(ctxt), 
-        m_(0), n_(0), mb_(0), nb_(0), reference_(false), val(0)
+        m_(0), n_(0), mb_(0), nb_(0), size_(0), reference_(false), val(0)
     {
       resize(m,n,mb,nb);
     }

@@ -3,7 +3,7 @@
 // SDAIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.h,v 1.1 2004-12-10 01:13:04 fgygi Exp $
+// $Id: SDAIonicStepper.h,v 1.2 2004-12-17 23:32:28 fgygi Exp $
 
 #ifndef SDAIONICSTEPPER_H
 #define SDAIONICSTEPPER_H
@@ -30,14 +30,13 @@ class SDAIonicStepper : public IonicStepper
     f_.resize(ndofs_);
     fbar_.resize(ndofs_);
     rm_ = r0_;
+    mixer_.set_theta_max(1.0);
   }
 
   void compute_rp(const vector<vector< double> >& f0);
   void compute_v0(const vector<vector< double> >& f0) {}
   void update_r(void);
   void update_v(void);
-  double ekin(void) const { return 0.0; }
-  double temp(void) const { return 0.0; }
   void reset(void) { first_step_ = true; }
 };
 

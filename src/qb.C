@@ -3,9 +3,9 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.22 2003-11-21 20:01:47 fgygi Exp $
+// $Id: qb.C,v 1.23 2003-11-27 01:26:06 fgygi Exp $
 
-const char* const release = "1.10.0           ";
+const char* const release = "1.11.0";
 const char* const xmlns_url = "http://www.llnl.gov/casc/fpmd/qbox/1.0";
 
 #include <iostream>
@@ -82,7 +82,8 @@ int main(int argc, char **argv, char **envp)
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   cout << "<!--\n\n";
   cout << "                   ===========================\n";
-  cout << "                   I qbox " << release << "  I\n";
+  cout << "                   I qbox " 
+       << setw(17) << left << release << "  I\n";
   cout << "                   I                         I\n";
   cout << "                   I                         I\n";
   cout << "                   I                         I\n";

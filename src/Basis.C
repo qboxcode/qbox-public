@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.11 2003-11-20 20:30:26 fgygi Exp $
+// $Id: Basis.C,v 1.12 2004-03-11 21:45:31 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -310,6 +310,14 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   assert(ecut>=0.0);
   assert(cell.volume() >= 0.0);
   assert(refcell.volume() >= 0.0);
+  
+  if ( ecut == ecut_ && refcell == refcell_ && refcell_.volume() != 0.0 )
+  {
+    cell_ = cell;
+    // only the cell changes, ecut and the refcell remain unchanged
+    update_g();
+    return true;
+  }
   
   ecut_ = ecut;
   cell_ = cell;

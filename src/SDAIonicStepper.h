@@ -3,7 +3,7 @@
 // SDAIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.h,v 1.2 2004-12-17 23:32:28 fgygi Exp $
+// $Id: SDAIonicStepper.h,v 1.3 2004-12-18 23:21:18 fgygi Exp $
 
 #ifndef SDAIONICSTEPPER_H
 #define SDAIONICSTEPPER_H
@@ -31,6 +31,7 @@ class SDAIonicStepper : public IonicStepper
     fbar_.resize(ndofs_);
     rm_ = r0_;
     mixer_.set_theta_max(1.0);
+    //mixer_.set_theta_nc(-0.5); // default: 0.0
   }
 
   void compute_rp(const vector<vector< double> >& f0);

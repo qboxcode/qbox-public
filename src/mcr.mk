@@ -1,9 +1,9 @@
 #-------------------------------------------------------------------------------
 #
-#  linux-pc_mpi.mk
+#  mcr.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.4 2003-12-19 00:39:51 fgygi Exp $
+# $Id: mcr.mk,v 1.5 2004-01-22 01:17:36 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -16,15 +16,16 @@
  LD=$(CXX)
 
  PLTFLAGS += -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
-             -D_FILE_OFFSET_BITS=64
- 
+             -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
+             -DAPP_NO_THREADS -DXML_USE_NO_THREADS
+
  FFTWDIR=$(HOME)/fftw/linux-pc-icc/fftw-2.1.3/fftw
  BLASDIR=/opt/intel/mkl/lib/32
  
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
  
- CXXFLAGS= -O3 -xW -Zp16 -tpp7  -DUSE_MPI -DSCALAPACK -DADD_ \
-           -D$(PLT) $(INCLUDE) $(DFLAGS) $(PLTFLAGS)
+ CXXFLAGS= -O3 -xW -Zp16 -tpp7  \
+           -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L$(BLASDIR) -L/usr/lib \

@@ -3,7 +3,7 @@
 #  linux-pc_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: linux-pc_mpi.mk,v 1.5 2003-06-04 17:45:39 fgygi Exp $
+# $Id: linux-pc_mpi.mk,v 1.6 2004-01-22 01:20:00 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -14,13 +14,16 @@
  CXX=$(GCCDIR)/bin/g++
  LD=$(CXX)
 
+ PLTFLAGS += -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
+             -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
+             -DAPP_NO_THREADS -DXML_USE_NO_THREADS
+             
  FFTWDIR=$(HOME)/fftw/fftw-2.1.3/fftw
  BLASDIR=/usr/lib
  
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
  
- CXXFLAGS= -O3 -DUSE_MPI -DSCALAPACK -DADD_ -D$(PLT) $(INCLUDE) $(DFLAGS) \
-           -DAPP_NO_THREADS -DXML_USE_NO_THREADS
+ CXXFLAGS= -O3 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L $(BLASDIR) -L$(XERCESCDIR)/lib

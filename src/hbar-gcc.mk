@@ -3,7 +3,7 @@
 #  hbar-gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: hbar-gcc.mk,v 1.1 2003-06-04 17:45:39 fgygi Exp $
+# $Id: hbar-gcc.mk,v 1.2 2004-01-22 01:20:00 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -14,24 +14,26 @@
  CXX=$(GCCDIR)/bin/g++
  LD=$(CXX)
 
-#FFTWDIR=$(HOME)/fftw/linux-pc/fftw-1.3
+ PLTFLAGS = -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
+            -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
+            -DAPP_NO_THREADS -DXML_USE_NO_THREADS
+ 
  FFTWDIR=$(HOME)/fftw/fftw-2.1.3/fftw
  BLASDIR=$(HOME)/software/mkl/lib/32
  
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
- 
- CXXFLAGS= -O3 -DUSE_MPI -DSCALAPACK -DADD_ -D$(PLT) \
-            $(INCLUDE) $(DFLAGS) -DAPP_NO_THREADS -DXML_USE_NO_THREADS
 
-# CXXFLAGS= -g  -DUSE_MPI -DSCALAPACK -DADD_ -D$(PLT) $(INCLUDE) $(DFLAGS) \
-#           -DAPP_NO_THREADS -DXML_USE_NO_THREADS
+ CXXFLAGS= -O6 -fomit-frame-pointer -Wall -W -Wcast-qual -Wpointer-arith \
+ -Wcast-align -pedantic -fno-schedule-insns -fschedule-insns2 -malign-double \
+ -fstrict-aliasing -mcpu=pentiumpro \
+          -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
 
  LIBPATH = -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L $(BLASDIR) -L $(GCCDIR)/lib -L$(XERCESCDIR)/lib
   
  LIBS =  $(PLIBS) -lfftw -lmkl_lapack $(BLASDIR)/libmkl_def.a \
          -lm -lmpich -lpmpich -lmpich -lgm \
-         -lg2c -lxerces-c -lguide -pthread
+         -lg2c -lguide -pthread $(XERCESCDIR)/lib/libxerces-c.a
  
  LDFLAGS = $(LIBPATH) $(LIBS) 
 

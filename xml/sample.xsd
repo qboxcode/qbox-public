@@ -5,7 +5,7 @@
   xmlns:xlink="http://www.w3.org/1999/xlink">
   
   <annotation>
-    <documentation> $Id: sample.xsd,v 1.5 2003-11-21 20:03:00 fgygi Exp $
+    <documentation> $Id: sample.xsd,v 1.6 2004-03-11 21:53:22 fgygi Exp $
       Qbox sample specification schema. 
       The Quantum Box project. Francois Gygi, Lawrence Livermore National Laboratory. 
       Copyright (c) 2003 The Regents of the University of California.
@@ -49,6 +49,7 @@
   <complexType name="wavefunctionType">
     <sequence minOccurs="0">
       <element name="domain" type="qbox:domainType"/>
+      <element name="reference_domain" minOccurs="0" type="qbox:domainType"/>
       <element name="grid" type="qbox:gridType"/>
       <element name="slater_determinant" type="qbox:slater_determinantType"
                maxOccurs="unbounded"/>

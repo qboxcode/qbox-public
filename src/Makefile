@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.23 2004-04-17 01:19:03 fgygi Exp $
+# $Id: Makefile,v 1.24 2004-05-20 00:21:55 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -27,7 +27,8 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         WavefunctionStepper.o SDWavefunctionStepper.o \
         MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
         PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
-        SDCellStepper.o ConfinementPotential.o Preconditioner.o
+        SDCellStepper.o ConfinementPotential.o Preconditioner.o \
+        release.o isodate.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  SamplePrint: SamplePrint.o SamplePrintHandlers.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -54,6 +55,8 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSpecies: testSpecies.o Species.o sinft.o spline.o Context.o \
 	SpeciesReader.o StructuredDocumentHandler.o SpeciesHandler.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testXCFunctional: testXCFunctional.o LDAFunctional.o PBEFunctional.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testMatrix: testMatrix.o Matrix.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -92,6 +95,10 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 Wavefunction.o Species.o SlaterDet.o spline.o sinft.o Basis.o Matrix.o \
 FourierTransform.o UnitCell.o Atom.o BOSampleStepper.o \
 SampleStepper.o EnergyFunctional.o 
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ test_fftw: test_fftw.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ test_fftw3: test_fftw3.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
 #------------------------------------------------------------------------------
 # generate dependencies in makefile: use -Y to avoid library header files
@@ -203,6 +210,7 @@ HelpCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 HelpCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 IonicStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 IonicStepper.o: Wavefunction.h UnitCell.h Control.h
+isodate.o: isodate.h
 LDAFunctional.o: LDAFunctional.h XCFunctional.h
 LDAFunctional.o: XCFunctional.h
 ListAtomsCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
@@ -261,20 +269,21 @@ PSDWavefunctionStepper.o: Preconditioner.h
 PSDWavefunctionStepper.o: WavefunctionStepper.h Sample.h AtomSet.h Context.h
 PSDWavefunctionStepper.o: Atom.h D3vector.h Species.h Wavefunction.h
 PSDWavefunctionStepper.o: UnitCell.h Control.h Timer.h
-qb.o: Context.h UserInterface.h Sample.h AtomSet.h Atom.h D3vector.h
-qb.o: Species.h Wavefunction.h UnitCell.h Control.h Timer.h AtomCmd.h
-qb.o: HelpCmd.h ListAtomsCmd.h ListSpeciesCmd.h LoadCmd.h PrintCmd.h
-qb.o: QuitCmd.h RandomizeWfCmd.h RunCmd.h SaveCmd.h SetCmd.h SpeciesCmd.h
-qb.o: StatusCmd.h AtomsDyn.h Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h
-qb.o: CellLock.h CellMass.h Debug.h Ecut.h Ecutprec.h Ecuts.h Emass.h
-qb.o: ExtStress.h Dt.h Nempty.h Nrowmax.h RefCell.h Stress.h Thermostat.h
-qb.o: ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: isodate.h release.h Context.h UserInterface.h Sample.h AtomSet.h Atom.h
+qb.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h Timer.h
+qb.o: AtomCmd.h HelpCmd.h ListAtomsCmd.h ListSpeciesCmd.h LoadCmd.h
+qb.o: PrintCmd.h QuitCmd.h RandomizeWfCmd.h RunCmd.h SaveCmd.h SetCmd.h
+qb.o: SpeciesCmd.h StatusCmd.h AtomsDyn.h Cell.h CellDyn.h SlaterDet.h
+qb.o: Basis.h Matrix.h CellLock.h CellMass.h Debug.h Ecut.h Ecutprec.h
+qb.o: Ecuts.h Emass.h ExtStress.h Dt.h Nempty.h Nrowmax.h RefCell.h Stress.h
+qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 RandomizeWfCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 RandomizeWfCmd.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
 RefCell.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 RefCell.o: Wavefunction.h UnitCell.h Control.h
+release.o: release.h
 RunCmd.o: RunCmd.h UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 RunCmd.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
 RunCmd.o: EnergyFunctional.h ChargeDensity.h StructureFactor.h Timer.h
@@ -300,7 +309,8 @@ SampleStepper.o: Timer.h
 SampleStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 SampleStepper.o: Wavefunction.h UnitCell.h Control.h Timer.h
 SaveCmd.o: SaveCmd.h UserInterface.h Sample.h AtomSet.h Context.h Atom.h
-SaveCmd.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
+SaveCmd.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h isodate.h
+SaveCmd.o: release.h
 SaveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SaveCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 SDCellStepper.o: SDCellStepper.h CellStepper.h Sample.h AtomSet.h Context.h
@@ -326,8 +336,6 @@ sinft.o: sinft.h
 SlaterDet.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h Matrix.h
 SlaterDet.o: Timer.h FourierTransform.h blas.h
 SlaterDet.o: Context.h Basis.h D3vector.h UnitCell.h Matrix.h Timer.h
-SlaterDet.tmp1.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h
-SlaterDet.tmp1.o: Matrix.h Timer.h FourierTransform.h blas.h
 Species.o: Species.h Context.h spline.h sinft.h
 SpeciesCmd.o: SpeciesCmd.h UserInterface.h Sample.h AtomSet.h Context.h
 SpeciesCmd.o: Atom.h D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
@@ -362,6 +370,7 @@ testEnergyFunctional.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h
 testEnergyFunctional.o: Species.h Wavefunction.h UnitCell.h Control.h
 testEnergyFunctional.o: EnergyFunctional.h ChargeDensity.h StructureFactor.h
 testEnergyFunctional.o: Timer.h
+test_fftw3.o: Timer.h
 test_fftw.o: Timer.h
 testFourierTransform.o: Context.h Basis.h D3vector.h UnitCell.h
 testFourierTransform.o: FourierTransform.h Timer.h
@@ -423,6 +432,7 @@ XCPotential.o: XCFunctional.h PBEFunctional.h BLYPFunctional.h Basis.h
 XCPotential.o: D3vector.h UnitCell.h FourierTransform.h blas.h
 XCPotential.o: ChargeDensity.h Context.h LDAFunctional.h XCFunctional.h
 XCPotential.o: PBEFunctional.h BLYPFunctional.h
+xmlextract.o: StrX.h
 xmlget.o: StrX.h
 XMLGFPreprocessor.o: Timer.h Context.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h

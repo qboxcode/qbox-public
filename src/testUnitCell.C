@@ -3,7 +3,7 @@
 // testUnitCell.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testUnitCell.C,v 1.1 2002-10-15 17:39:28 fgygi Exp $
+// $Id: testUnitCell.C,v 1.2 2004-03-11 21:52:31 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -16,7 +16,7 @@ int main()
   UnitCell cell;
   
   cout << " orthorhombic cell: " << endl;
-  cell.set(D3vector(4.,5.,7.));
+  cell.set(D3vector(4.,0.,0.),D3vector(0.,5.,0.),D3vector(0.,0.,7.));
   cout << cell << endl;
   
   D3vector v;
@@ -90,6 +90,12 @@ int main()
   cout << " Monoclinic cell: " << endl;
   cell.set(D3vector(4,0,0.1),D3vector(0.2, 4,0),D3vector(0.1,0.3,4));  
   cout << cell << endl;
+  
+  // Check matrix multiplication function
+  double ztest[9];
+  cell.matmult3x3(cell.amat(),cell.amat_inv(),ztest);
+  for ( int i = 0; i < 9; i++ )
+    cout << " ztest[" << i << "]=" << ztest[i] << endl;
   
   count = 0;
   for ( int i = 0; i < n; i++ )

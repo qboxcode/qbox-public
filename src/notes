@@ -48,6 +48,19 @@ determine library search path, even if makefile specifies another path.
 Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
 This will avoid the problem of needing libxerces-c.so when using qbox.
 --------------------------------------------------------------------------------
+rel1_13_0
+Implemented stress calculation and variable cell dynamics
+Stress calculation works for s-only non-local potentials.
+Changed names of variables tau0, taup to r0, rp (and keep tau for scaled
+coordinates)
+modified the IonicStepper interface to separate the calculation of rp
+from the update r0 := rp.
+Removed a bug in calculation of eta at first step (was not using ekin_ion)
+--------------------------------------------------------------------------------
+rel1_13_0a1 (not for release)
+Computes stress tensor. Limited to s-only n-l projectors. No cell eq. of 
+motion yet. Tested against GP results in cubic Si64.
+--------------------------------------------------------------------------------
 rel1_12_1
 Removed Gauss-Jacobi quadrature in NonLocalPotential introduced in 1_12_0 and
 reverted to trapezoidal rule. Tests on Si64 using trapezoidal, Simpson, Gauss-

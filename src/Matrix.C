@@ -3,7 +3,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.8 2003-09-16 16:24:26 fgygi Exp $
+// $Id: Matrix.C,v 1.9 2004-03-11 21:52:31 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -462,6 +462,7 @@ void ComplexMatrix::init_size(int m, int n, int mb, int nb)
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::clear(void)
 {
+  assert(val!=0);
   memset(val,0,size_*sizeof(double));
 }
 

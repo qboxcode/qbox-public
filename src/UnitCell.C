@@ -3,7 +3,7 @@
 // UnitCell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.7 2004-02-04 19:55:17 fgygi Exp $
+// $Id: UnitCell.C,v 1.8 2004-03-11 21:52:32 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -14,19 +14,73 @@ using namespace std;
 void UnitCell::set(const D3vector& a0, const D3vector& a1, const D3vector& a2)
 {
   a_[0] = a0; a_[1] = a1, a_[2] = a2;
+  amat_[0] = a0.x;
+  amat_[1] = a0.y;
+  amat_[2] = a0.z;
+  amat_[3] = a1.x;
+  amat_[4] = a1.y;
+  amat_[5] = a1.z;
+  amat_[6] = a2.x;
+  amat_[7] = a2.y;
+  amat_[8] = a2.z;
+  
+  // volume = det(A)
   volume_ = a0 * ( a1 ^ a2 );
   if ( volume_ > 0.0 )
   {
-    double fac = 2.0 * M_PI / volume_;
-    b_[0] = fac * a1 ^ a2;
-    b_[1] = fac * a2 ^ a0;
-    b_[2] = fac * a0 ^ a1;
+    // Compute rows of A-1 (columns of A^-T)
+    double fac = 1.0 / volume_;
+    D3vector amt0 = fac * a1 ^ a2;
+    D3vector amt1 = fac * a2 ^ a0;
+    D3vector amt2 = fac * a0 ^ a1;
     
+    amat_inv_[0] = amt0.x;
+    amat_inv_[1] = amt1.x;
+    amat_inv_[2] = amt2.x;
+    amat_inv_[3] = amt0.y;
+    amat_inv_[4] = amt1.y;
+    amat_inv_[5] = amt2.y;
+    amat_inv_[6] = amt0.z;
+    amat_inv_[7] = amt1.z;
+    amat_inv_[8] = amt2.z;
+    
+    amat_inv_t_[0] = amt0.x;
+    amat_inv_t_[1] = amt0.y;
+    amat_inv_t_[2] = amt0.z;
+    amat_inv_t_[3] = amt1.x;
+    amat_inv_t_[4] = amt1.y;
+    amat_inv_t_[5] = amt1.z;
+    amat_inv_t_[6] = amt2.x;
+    amat_inv_t_[7] = amt2.y;
+    amat_inv_t_[8] = amt2.z;
+    
+    // B = 2 pi A^-T
+    b_[0] = 2.0 * M_PI * amt0;
+    b_[1] = 2.0 * M_PI * amt1;
+    b_[2] = 2.0 * M_PI * amt2;
+
+    bmat_[0] = b_[0].x;
+    bmat_[1] = b_[0].y;
+    bmat_[2] = b_[0].z;
+    bmat_[3] = b_[1].x;
+    bmat_[4] = b_[1].y;
+    bmat_[5] = b_[1].z;
+    bmat_[6] = b_[2].x;
+    bmat_[7] = b_[2].y;
+    bmat_[8] = b_[2].z;
   }
   else
   {
     b_[0] = b_[1] = b_[2] = D3vector(0.0,0.0,0.0);
+    amat_inv_[0] =  amat_inv_[1] =  amat_inv_[2] = 
+      amat_inv_[3] =  amat_inv_[4] =  amat_inv_[5] = 
+      amat_inv_[6] =  amat_inv_[7] =  amat_inv_[8] = 0.0;
+    bmat_[0] =  bmat_[1] =  bmat_[2] = 
+      bmat_[3] =  bmat_[4] =  bmat_[5] = 
+      bmat_[6] =  bmat_[7] =  bmat_[8] = 0.0;
   }
+  
+  
   
   an_[0]  = a_[0];
   an_[1]  = a_[1];
@@ -148,12 +202,14 @@ void UnitCell::fold_in_bz(D3vector& k) const
 ////////////////////////////////////////////////////////////////////////////////
 bool UnitCell::encloses(const UnitCell& c) const
 {
-  D3vector center(0.5*an_[9]); // an_[9] is a_[0] + a_[1] + a_[2]
   bool in = true;
   int i = 0;
   while ( i < 13 && in )
   {
-    in = ( contains(center+0.5*c.an_[i]) );
+    in = ( contains(c.an_[i]) );
+    if ( !in )
+      cout << "UnitCell::encloses: " << c.an_[i] << " not in cell "
+      << c << endl;
     i++;
   }
   return in;
@@ -190,6 +246,108 @@ void UnitCell::print(ostream& os) const
 bool UnitCell::operator==(const UnitCell& c) const
 {
   return ( a_[0]==c.a_[0] && a_[1]==c.a_[1] && a_[2]==c.a_[2] );
+}
+ 
+////////////////////////////////////////////////////////////////////////////////
+bool UnitCell::operator!=(const UnitCell& c) const
+{
+  return ! ( *this == c );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void UnitCell::vecmult3x3(const double* x, const double* y, double *z) const
+{
+  //  | z0 |     | x0 x3 x6 |     | y0 |
+  //  | z1 |  =  | x1 x4 x7 |  *  | y1 |
+  //  | z2 |     | x2 x5 x8 |     | y2 |
+  
+  const double z0 = x[0]*y[0]+x[3]*y[1]+x[6]*y[2];
+  const double z1 = x[1]*y[0]+x[4]*y[1]+x[7]*y[2];
+  const double z2 = x[2]*y[0]+x[5]*y[1]+x[8]*y[2];
+  z[0] = z0;
+  z[1] = z1;
+  z[2] = z2;
+}
+ 
+////////////////////////////////////////////////////////////////////////////////
+void UnitCell::matmult3x3(const double* x, const double* y, double *z) const
+{
+  //  | z0 z3 z6 |     | x0 x3 x6 |     | y0 y3 y6 |
+  //  | z1 z4 z7 |  =  | x1 x4 x7 |  *  | y1 y4 y7 |
+  //  | z2 z5 z8 |     | x2 x5 x8 |     | y2 y5 y8 |
+  
+  const double z00 = x[0]*y[0]+x[3]*y[1]+x[6]*y[2];
+  const double z10 = x[1]*y[0]+x[4]*y[1]+x[7]*y[2];
+  const double z20 = x[2]*y[0]+x[5]*y[1]+x[8]*y[2];
+  
+  const double z01 = x[0]*y[3]+x[3]*y[4]+x[6]*y[5];
+  const double z11 = x[1]*y[3]+x[4]*y[4]+x[7]*y[5];
+  const double z21 = x[2]*y[3]+x[5]*y[4]+x[8]*y[5];
+  
+  const double z02 = x[0]*y[6]+x[3]*y[7]+x[6]*y[8];
+  const double z12 = x[1]*y[6]+x[4]*y[7]+x[7]*y[8];
+  const double z22 = x[2]*y[6]+x[5]*y[7]+x[8]*y[8];
+  
+  z[0] = z00;
+  z[1] = z10;
+  z[2] = z20;
+  
+  z[3] = z01;
+  z[4] = z11;
+  z[5] = z21;
+  
+  z[6] = z02;
+  z[7] = z12;
+  z[8] = z22; 
+}
+ 
+////////////////////////////////////////////////////////////////////////////////
+void UnitCell::smatmult3x3(const double* xs, const double* y, double *z) const
+{
+  //  | z0 z3 z6 |     | xs0 xs3 xs5 |     | y0 y3 y6 |
+  //  | z1 z4 z7 |  =  | xs3 xs1 xs4 |  *  | y1 y4 y7 |
+  //  | z2 z5 z8 |     | xs5 xs4 xs2 |     | y2 y5 y8 |
+  
+  const double z00 = xs[0]*y[0]+xs[3]*y[1]+xs[5]*y[2];
+  const double z10 = xs[3]*y[0]+xs[1]*y[1]+xs[4]*y[2];
+  const double z20 = xs[5]*y[0]+xs[4]*y[1]+xs[2]*y[2];
+  
+  const double z01 = xs[0]*y[3]+xs[3]*y[4]+xs[5]*y[5];
+  const double z11 = xs[3]*y[3]+xs[1]*y[4]+xs[4]*y[5];
+  const double z21 = xs[5]*y[3]+xs[4]*y[4]+xs[2]*y[5];
+  
+  const double z02 = xs[0]*y[6]+xs[3]*y[7]+xs[5]*y[8];
+  const double z12 = xs[3]*y[6]+xs[1]*y[7]+xs[4]*y[8];
+  const double z22 = xs[5]*y[6]+xs[4]*y[7]+xs[2]*y[8];
+  
+  z[0] = z00;
+  z[1] = z10;
+  z[2] = z20;
+  
+  z[3] = z01;
+  z[4] = z11;
+  z[5] = z21;
+  
+  z[6] = z02;
+  z[7] = z12;
+  z[8] = z22; 
+}
+////////////////////////////////////////////////////////////////////////////////
+void UnitCell::compute_deda(const valarray<double>& sigma,
+ valarray<double>& deda) const
+{
+  // Compute energy derivatives dE/da_ij from a symmetric stress tensor
+  assert(sigma.size()==6);
+  assert(deda.size()==9);
+  
+  //!! local copy of sigma to circumvent bug in icc compiler
+  valarray<double> sigma_loc(6);
+  sigma_loc = sigma;
+  
+  // deda = - omega * sigma * A^-T
+  smatmult3x3(&sigma_loc[0],&amat_inv_t_[0],&deda[0]);
+  
+  deda *= -volume_;
 }
  
 ////////////////////////////////////////////////////////////////////////////////

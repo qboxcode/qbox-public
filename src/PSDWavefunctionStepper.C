@@ -3,27 +3,21 @@
 // PSDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.C,v 1.3 2004-02-04 19:55:16 fgygi Exp $
+// $Id: PSDWavefunctionStepper.C,v 1.4 2004-03-11 21:52:31 fgygi Exp $
 
 #include "PSDWavefunctionStepper.h"
 #include "Wavefunction.h"
 #include "SlaterDet.h"
 #include "Sample.h"
+#include "Preconditioner.h"
 #include <iostream>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-PSDWavefunctionStepper::PSDWavefunctionStepper(Sample& s, TimerMap& tmap) : 
-  WavefunctionStepper(s,tmap)
-{
-  dt_ = s_.ctrl.dt;
-  const double emass = s_.ctrl.emass;
-  dt2bye_ = (emass == 0.0) ? 0.5 / wf_.ecut() : dt_*dt_/emass;           
-  
-  // divide dt2bye by facs coefficient if stress == ON
-  if ( s_.ctrl.stress == "ON" )
-    dt2bye_ /= s_.ctrl.facs;
-}
+PSDWavefunctionStepper::PSDWavefunctionStepper(Sample& s, 
+  Preconditioner& p, TimerMap& tmap) : 
+  WavefunctionStepper(s,tmap), prec_(p)
+{}
 
 ////////////////////////////////////////////////////////////////////////////////
 void PSDWavefunctionStepper::update(Wavefunction& dwf)
@@ -62,10 +56,8 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
  
           // dwf.sd->c() now contains the descent direction (HV-VA)
  
-          const double g2i_prec = s_.ctrl.ecutprec > 0.0 ? 
-                                  0.5 / s_.ctrl.ecutprec :
-                                  0.5 / wf_.ecut();
-          const double* g2i_ptr = wf_.sd(ispin,ikp)->basis().g2i_ptr();
+          const valarray<double>& diag = prec_.diag(ispin,ikp);
+          
           double* coeff = (double*) wf_.sd(ispin,ikp)->c().valptr();
           const double* dcoeff =
             (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
@@ -78,11 +70,11 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
             const double* dc = &dcoeff[2*mloc*n];
             for ( int i = 0; i < mloc; i++ )
             {
-              const double g2i = g2i_ptr[i];
-              const double dt2bye = ( g2i == 0.0 ? g2i_prec :
-                ( g2i < g2i_prec ) ? g2i : g2i_prec );
-              c[2*i] -= dt2bye * dc[2*i];
-              c[2*i+1] -= dt2bye * dc[2*i+1];
+              const double fac = diag[i];
+              const double delta_re = fac * dc[2*i];
+              const double delta_im = fac * dc[2*i+1];
+              c[2*i]   -= delta_re;
+              c[2*i+1] -= delta_im;
             }
           }
           

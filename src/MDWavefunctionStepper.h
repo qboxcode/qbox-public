@@ -3,7 +3,7 @@
 // MDWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.h,v 1.2 2004-02-04 19:55:16 fgygi Exp $
+// $Id: MDWavefunctionStepper.h,v 1.3 2004-03-11 21:52:31 fgygi Exp $
 
 #ifndef MDWAVEFUNCTIONSTEPPER_H
 #define MDWAVEFUNCTIONSTEPPER_H
@@ -22,8 +22,8 @@ class MDWavefunctionStepper : public WavefunctionStepper
   public:
 
   void update(Wavefunction& dwf);
-  void stoermer_start(Wavefunction& dwf);
-  void stoermer_end(Wavefunction& dwf);
+  void compute_wfm(Wavefunction& dwf);
+  void compute_wfv(Wavefunction& dwf);
   double ekin(void) const { return 0.5*(ekin_ep_ + ekin_em_); }
 
   MDWavefunctionStepper(Sample& s, TimerMap& tmap);

@@ -3,7 +3,7 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.11 2003-11-27 01:21:45 fgygi Exp $
+// $Id: Wavefunction.h,v 1.12 2004-03-11 21:52:31 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
@@ -80,7 +80,8 @@ class Wavefunction
 
   void resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
   void resize(double ec) { resize(cell_,refcell_,ec); }
-  void clear(void);
+  void reset(void); // initialize with lowest plane waves
+  void clear(void); // initialize with zero
   void set_nel(int nel);
   void set_nempty(int nempty);
   void set_nspin(int nspin);

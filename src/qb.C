@@ -3,9 +3,9 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.30 2004-02-04 19:56:12 fgygi Exp $
+// $Id: qb.C,v 1.31 2004-03-11 21:52:32 fgygi Exp $
 
-const char* const release = "1.13.0a1";
+const char* const release = "1.13.0";
 const char* const xmlns_url = "http://www.llnl.gov/casc/fpmd/qbox/1.0";
 
 #include <iostream>
@@ -44,6 +44,7 @@ using namespace std;
 #include "CellDyn.h"
 #include "CellLock.h"
 #include "CellMass.h"
+#include "Debug.h"
 #include "Ecut.h"
 #include "Ecutprec.h"
 #include "Ecuts.h"
@@ -57,6 +58,7 @@ using namespace std;
 #include "Thermostat.h"
 #include "ThTemp.h"
 #include "ThTime.h"
+#include "ThWidth.h"
 #include "WfDiag.h"
 #include "WfDyn.h"
 #include "Xc.h"
@@ -195,6 +197,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new CellDyn(s));
   ui.addVar(new CellLock(s));
   ui.addVar(new CellMass(s));
+  ui.addVar(new Debug(s));
   ui.addVar(new Ecut(s));
   ui.addVar(new Ecutprec(s));
   ui.addVar(new Ecuts(s));
@@ -208,6 +211,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Thermostat(s));
   ui.addVar(new ThTemp(s));
   ui.addVar(new ThTime(s));
+  ui.addVar(new ThWidth(s));
   ui.addVar(new WfDiag(s));
   ui.addVar(new WfDyn(s));
   ui.addVar(new Xc(s));

@@ -3,7 +3,7 @@
 // WfDyn.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WfDyn.h,v 1.4 2003-11-27 01:22:11 fgygi Exp $
+// $Id: WfDyn.h,v 1.5 2004-03-11 21:52:32 fgygi Exp $
 
 #ifndef WFDYN_H
 #define WFDYN_H
@@ -45,19 +45,19 @@ class WfDyn : public Var
 
     s->ctrl.wf_dyn = v;
     
-    if ( v == "MD" )
-    {
-      if ( s->wfv == 0 )
-      {
-        s->wfv = new Wavefunction(s->wf);
-        s->wfv->clear();
-      }
-    }
-    else
-    {
-      delete s->wfv;
-      s->wfv = 0;
-    }
+//     if ( v == "MD" )
+//     {
+//       if ( s->wfv == 0 )
+//       {
+//         s->wfv = new Wavefunction(s->wf);
+//         s->wfv->clear();
+//       }
+//     }
+//     else
+//     {
+//       delete s->wfv;
+//       s->wfv = 0;
+//     }
     
     return 0;
   }

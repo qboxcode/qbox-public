@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.14 2004-02-04 19:30:38 fgygi Exp $
+// $Id: SlaterDet.h,v 1.15 2004-03-11 21:52:32 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -61,6 +61,7 @@ class SlaterDet
   void rs_mul_add(FourierTransform& ft, double* v, SlaterDet& sdp) const;
   void randomize(double amplitude);
   void cleanup(void);
+  void reset(void);
   void gram(void);
   void riccati(SlaterDet& sd);
   double dot(const SlaterDet& sd) const;
@@ -89,4 +90,11 @@ class SlaterDet
   void info(ostream& os);
 };
 ostream& operator << ( ostream& os, SlaterDet& sd );
+
+class SlaterDetException
+{
+  public:
+  string msg;
+  SlaterDetException(string s) : msg(s) {}
+};
 #endif

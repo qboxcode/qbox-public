@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.12 2003-11-21 19:11:29 fgygi Exp $
+// $Id: Wavefunction.C,v 1.13 2004-03-11 21:52:32 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -34,6 +34,8 @@ nel_(wf.nel_), nempty_(wf.nempty_), nspin_(wf.nspin_),
 deltaspin_(wf.deltaspin_), cell_(wf.cell_), refcell_(wf.refcell_),
 ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
 {
+  // Create a Wavefunction using the dimensions of the argument
+  
   compute_nst();
   
   // Next lines: do special allocation of contexts to ensure that 
@@ -62,7 +64,8 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
     sd_[0][0] = new SlaterDet(*sdcontext_[0][0],kpoint_[0]);
   }
   
-  resize();
+  resize(cell_,refcell_,ecut_);
+  reset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -364,11 +367,52 @@ double Wavefunction::entropy(void) const {return 0.0;}// dimensionless entropy
 void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell, 
   double ecut)
 {
-  cell_ = cell;
-  refcell_ = refcell;
-  ecut_ = ecut;
+  try
+  {
+    // resize all SlaterDets using cell, refcell, ecut and nst_[ispin]
+    for ( int ispin = 0; ispin < nspin_; ispin++ )
+    {
+      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+      {
+        if ( sdcontext_[ispin][ikp]!= 0 && sdcontext_[ispin][ikp]->active() )
+        {
+          sd_[ispin][ikp]->resize(cell,refcell,ecut,nst_[ispin]);
+        }
+      }
+    }
+    cell_ = cell;
+    refcell_ = refcell;
+    ecut_ = ecut;
+  }
+  catch ( const SlaterDetException& sdex )
+  {
+    cout << " Wavefunction: SlaterDetException during resize: " << endl
+         << sdex.msg << endl;
+    // no resize took place
+    return;
+  }
+  catch ( bad_alloc )
+  {
+    cout << " Wavefunction: insufficient memory for resize operation" << endl;
+    return;
+  }
   
-  resize();
+}
+  
+////////////////////////////////////////////////////////////////////////////////
+void Wavefunction::reset(void)
+{
+  // reset all SlaterDets
+  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  {
+    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    {
+      if ( sdcontext_[ispin][ikp]!= 0 && sdcontext_[ispin][ikp]->active() )
+      {
+        sd_[ispin][ikp]->reset();
+      }
+    }
+  }
 }
   
 ////////////////////////////////////////////////////////////////////////////////
@@ -390,26 +434,9 @@ void Wavefunction::compute_nst(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::resize(void)
-{
-  // resize SlaterDets if ecut,cell,refcell,or nst have changed
-  
-  // resize all SlaterDets using cell_, refcell_, ecut_ and nst_[ispin]
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
-  {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-    {
-      if ( sdcontext_[ispin][ikp]!= 0 && sdcontext_[ispin][ikp]->active() )
-      {
-        sd_[ispin][ikp]->resize(cell_,refcell_,ecut_,nst_[ispin]);
-      }
-    }
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::set_nel(int nel)
 {
+  if ( nel == nel_ ) return;
   if ( nel < 0 )
   {
     cout << " Wavefunction::set_nel: nel < 0" << endl;
@@ -418,12 +445,14 @@ void Wavefunction::set_nel(int nel)
   
   nel_ = nel;
   compute_nst();
-  resize();
+  resize(cell_,refcell_,ecut_);
+  reset();
 }
   
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::set_nempty(int nempty)
 {
+  if ( nempty == nempty_ ) return;
   if ( nempty < 0 )
   {
     cout << " Wavefunction::set_nempty: negative value" << endl;
@@ -431,7 +460,8 @@ void Wavefunction::set_nempty(int nempty)
   }
   nempty_ = nempty;
   compute_nst();
-  resize();
+  resize(cell_,refcell_,ecut_);
+  reset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -448,7 +478,8 @@ void Wavefunction::set_nspin(int nspin)
   
   allocate();
   cout << " Wavefunction::set_nspin: " << nspin << " allocate done" << endl;
-  resize();
+  resize(cell_,refcell_,ecut_);
+  reset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -463,7 +494,8 @@ void Wavefunction::set_nrowmax(int n)
   deallocate();
   nrowmax_ = n;
   allocate();
-  resize();
+  resize(cell_,refcell_,ecut_);
+  reset();
 }
   
 ////////////////////////////////////////////////////////////////////////////////
@@ -487,7 +519,8 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
   
   allocate();
   cout << " Wavefunction::add_kpoint: " << kpoint << " allocate done" << endl;
-  resize();
+  resize(cell_,refcell_,ecut_);
+  reset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -717,6 +750,13 @@ void Wavefunction::write(FILE* outfile, string encoding, string tag)
        << cell_.a(0) << "\"\n        b=\""
        << cell_.a(1) << "\"\n        c=\""
        << cell_.a(2) << "\"/>" << endl;
+    if ( refcell_.volume() != 0.0 )
+    {
+      os << "<reference_domain a=\""
+         << refcell_.a(0) << "\"\n        b=\""
+         << refcell_.a(1) << "\"\n        c=\""
+         << refcell_.a(2) << "\"/>" << endl;
+    }
     os << "<grid nx=\"" << sd_[0][0]->basis().np(0) << "\""
        <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
@@ -751,10 +791,14 @@ void Wavefunction::info(ostream& os, string tag)
        << " nspin=\"" << nspin_ << "\""
        << " nel=\"" << nel_ << "\""
        << " nempty=\"" << nempty_ << "\">" << endl;
-    os << "<domain a=\""
+    os << "<cell a=\""
        << cell_.a(0) << "\"\n        b=\""
        << cell_.a(1) << "\"\n        c=\""
        << cell_.a(2) << "\"/>" << endl;
+    os << "<refcell a=\""
+       << refcell_.a(0) << "\"\n        b=\""
+       << refcell_.a(1) << "\"\n        c=\""
+       << refcell_.a(2) << "\"/>" << endl;
     os << "<grid nx=\"" << sd_[0][0]->basis().np(0) << "\""
        <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;

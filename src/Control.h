@@ -3,7 +3,7 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.6 2004-02-04 19:55:17 fgygi Exp $
+// $Id: Control.h,v 1.7 2004-03-11 21:52:32 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -14,6 +14,7 @@
 struct Control
 {
   // control variables
+  string debug, timing;
   string wf_dyn, atoms_dyn; // dynamics string flags 
   int nite;
   double emass;       // electron mass
@@ -31,7 +32,7 @@ struct Control
   double gms_mix; // mixing factor for generalized minimum spread functions
   
   string thermostat;
-  double th_temp,th_time; // thermostat control
+  double th_temp,th_time, th_width; // thermostat control
   
   string stress;
   string cell_dyn;

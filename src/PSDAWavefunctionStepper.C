@@ -3,28 +3,22 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.4 2004-02-04 19:55:16 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.5 2004-03-11 21:52:32 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
 #include "SlaterDet.h"
 #include "Sample.h"
+#include "Preconditioner.h"
 #include <iostream>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-PSDAWavefunctionStepper::PSDAWavefunctionStepper(Sample& s, TimerMap& tmap) : 
-  WavefunctionStepper(s,tmap), wf_last_(s.wf), dwf_last_(s.wf), 
+PSDAWavefunctionStepper::PSDAWavefunctionStepper(Sample& s, 
+  Preconditioner& p, TimerMap& tmap) : 
+  WavefunctionStepper(s,tmap), prec_(p), wf_last_(s.wf), dwf_last_(s.wf), 
   extrapolate_(false)
-{
-  dt_ = s_.ctrl.dt;
-  const double emass = s_.ctrl.emass;
-  dt2bye_ = (emass == 0.0) ? 0.5 / wf_.ecut() : dt_*dt_/emass;
-  
-  // divide dt2bye by facs coefficient if stress == ON
-  if ( s_.ctrl.stress == "ON" )
-    dt2bye_ /= s_.ctrl.facs;
-}
+{}
 
 ////////////////////////////////////////////////////////////////////////////////
 void PSDAWavefunctionStepper::update(Wavefunction& dwf)
@@ -59,11 +53,8 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
             // dwf.sd->c() now contains the descent direction (HV-VA)
  
             // Apply preconditioner K and store dt2bye*K(HV-VA) in dwf
+            const valarray<double>& diag = prec_.diag(ispin,ikp);
  
-            const double g2i_prec = s_.ctrl.ecutprec > 0.0 ?
-                                    0.5 / s_.ctrl.ecutprec :
-                                    0.5 / wf_.ecut();
-            const double* g2i_ptr = wf_.sd(ispin,ikp)->basis().g2i_ptr();
             double* c = (double*) wf_.sd(ispin,ikp)->c().valptr();
             double* c_last = (double*) wf_last_.sd(ispin,ikp)->c().valptr();
             double* dc = (double*) dwf.sd(ispin,ikp)->c().valptr();
@@ -81,11 +72,9 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
               double* dcn = &dc[2*mloc*n];
               for ( int i = 0; i < mloc; i++ )
               {
-                const double g2i = g2i_ptr[i];
-                const double dt2bye = ( g2i == 0.0 ? g2i_prec :
-                  ( g2i < g2i_prec ) ? g2i : g2i_prec );
-                const double f0 = -psda_enhancement_factor*dt2bye * dcn[2*i];
-                const double f1 = -psda_enhancement_factor*dt2bye * dcn[2*i+1];
+                const double fac = diag[i];
+                const double f0 = -psda_enhancement_factor*fac * dcn[2*i];
+                const double f1 = -psda_enhancement_factor*fac * dcn[2*i+1];
                 dcn[2*i] = f0;
                 dcn[2*i+1] = f1;
               }

@@ -3,7 +3,7 @@
 // EnergyFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.h,v 1.10 2004-02-04 19:55:17 fgygi Exp $
+// $Id: EnergyFunctional.h,v 1.11 2004-03-11 21:52:32 fgygi Exp $
 
 #ifndef ENERGYFUNCTIONAL_H
 #define ENERGYFUNCTIONAL_H
@@ -26,6 +26,7 @@ class UnitCell;
 class FourierTransform;
 class XCPotential;
 class NonLocalPotential;
+class ConfinementPotential;
 
 typedef map<string,Timer> TimerMap;
 
@@ -41,6 +42,7 @@ class EnergyFunctional
   StructureFactor sf;
   XCPotential* xcp;
   NonLocalPotential* nlp;
+  vector<ConfinementPotential*> cfp; // cfp[ikp]
   
   vector<vector<double> > vps, dvps, rhops;
   vector<complex<double> > tmp_r, vion_local_g, dvion_local_g, vlocal_g,
@@ -55,12 +57,9 @@ class EnergyFunctional
   int nsp_;
   double ekin_, econf_, eps_, enl_, ehart_, 
          ecoul_, exc_, esr_, eself_, etotal_;
-  valarray<double> fstress_, dfstress_;
   valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
     sigma_enl, sigma_esr, sigma;
 
-  void init(void);
-  
   public:
 
   mutable TimerMap tmap;
@@ -80,10 +79,15 @@ class EnergyFunctional
   double esr(void) const { return esr_; }
   double eself(void) const { return eself_; }
   
+  const ConfinementPotential *confpot(int ikp) const { return cfp[ikp]; }
+  
   void atoms_moved(void);
   void cell_moved(void);
+  
+  void print(ostream& os) const;
 
   EnergyFunctional(const Sample& s);
   ~EnergyFunctional();
 };
+ostream& operator << ( ostream& os, const EnergyFunctional& e );
 #endif

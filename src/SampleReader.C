@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.12 2003-12-02 22:39:05 fgygi Exp $
+// $Id: SampleReader.C,v 1.13 2004-03-11 21:52:31 fgygi Exp $
 
 
 #include "Sample.h"
@@ -255,13 +255,11 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         s.wf.set_nempty(nempty);
         
         // domain
-        double buf[3];
-        ctxt_.dbcast_recv(3,1,buf,1,0,0);
+        double buf[9];
+        ctxt_.dbcast_recv(9,1,buf,1,0,0);
         D3vector a(buf[0],buf[1],buf[2]);
-        ctxt_.dbcast_recv(3,1,buf,1,0,0);
-        D3vector b(buf[0],buf[1],buf[2]);
-        ctxt_.dbcast_recv(3,1,buf,1,0,0);
-        D3vector c(buf[0],buf[1],buf[2]);
+        D3vector b(buf[3],buf[4],buf[5]);
+        D3vector c(buf[6],buf[7],buf[8]);
         UnitCell uc(a,b,c);
         
         // grid
@@ -269,7 +267,14 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         double ecut;
         ctxt_.dbcast_recv(1,1,&ecut,1,0,0);
         
-        s.wf.resize(uc,uc,ecut);
+        // reference_domain
+        ctxt_.dbcast_recv(9,1,buf,1,0,0);
+        D3vector ar(buf[0],buf[1],buf[2]);
+        D3vector br(buf[3],buf[4],buf[5]);
+        D3vector cr(buf[6],buf[7],buf[8]);
+        UnitCell ruc(ar,br,cr);
+        
+        s.wf.resize(uc,ruc,ecut);
         
         //cout << ctxt_.mype() << ": wf resized, ecut=" << ecut << endl;
         
@@ -351,12 +356,27 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         D3vector c(buf[0],buf[1],buf[2]);
         UnitCell uc(a,b,c);
         
+        // test if reference_domain present
+        UnitCell ruc;
+        int flag;
+        ctxt_.ibcast_recv(1,1,&flag,1,0,0);
+        if ( flag != 0 )
+        {
+          ctxt_.dbcast_recv(3,1,buf,1,0,0);
+          D3vector a(buf[0],buf[1],buf[2]);
+          ctxt_.dbcast_recv(3,1,buf,1,0,0);
+          D3vector b(buf[0],buf[1],buf[2]);
+          ctxt_.dbcast_recv(3,1,buf,1,0,0);
+          D3vector c(buf[0],buf[1],buf[2]);
+          ruc.set(a,b,c);
+        }
+        
         // grid
         // receive only computed ecut
         double ecut;
         ctxt_.dbcast_recv(1,1,&ecut,1,0,0);
         
-        wfvtmp.resize(uc,uc,ecut);
+        wfvtmp.resize(uc,ruc,ecut);
         
         //cout << ctxt_.mype() << ": wfv resized, ecut=" << ecut << endl;
         

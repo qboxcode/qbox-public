@@ -3,7 +3,7 @@
 // RunCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.C,v 1.3 2003-11-21 20:01:47 fgygi Exp $
+// $Id: RunCmd.C,v 1.4 2004-03-11 21:52:31 fgygi Exp $
 
 #include "RunCmd.h"
 #include<iostream>
@@ -31,6 +31,12 @@ int RunCmd::action(int argc, char **argv)
       cout << " <qb:error> RunCmd: no states, cannot run </qb:error>" << endl;
     return 1;
   }
+  if ( s->wf.ecut() == 0.0 )
+  {
+    if ( ui->onpe0() )
+      cout << " <qb:error> RunCmd: ecut = 0.0, cannot run </qb:error>" << endl;
+    return 1;
+  }
   
   EnergyFunctional ef(*s);
   SampleStepper* stepper;
@@ -44,14 +50,16 @@ int RunCmd::action(int argc, char **argv)
   }
   
   if ( s->ctrl.wf_dyn == "MD" )
-    stepper = new CPSampleStepper(*s);
+    stepper = new CPSampleStepper(*s,ef);
   else
-    stepper = new BOSampleStepper(*s,nite);
+    stepper = new BOSampleStepper(*s,ef,nite);
   
   assert(stepper!=0);
   
   s->wf.info(cout,"wavefunction");
-  stepper->step(ef,niter);
+  stepper->step(niter);
+  
+  delete stepper;
   
   return 0;
 }

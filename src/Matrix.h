@@ -3,7 +3,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.7 2003-11-20 20:23:25 fgygi Exp $
+// $Id: Matrix.h,v 1.8 2004-03-11 21:52:31 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -110,10 +110,11 @@ class DoubleMatrix
     void resize(int m, int n, int mb = MATRIX_DEF_BLOCK_SIZE, 
       int nb = MATRIX_DEF_BLOCK_SIZE)
     {
+      if ( m == m_ && n == n_ && mb == mb_ && nb == nb_ ) return;
       init_size(m,n,mb,nb);
       delete[] val;
       val = new double[size_];
-      clear();
+      // clear();
     }    
     
     void print(ostream& os) const;
@@ -124,7 +125,8 @@ class DoubleMatrix
     // Construct a DoubleMatrix of dimensions m,n
     explicit DoubleMatrix(const Context& ctxt, int m, int n,
         int mb=MATRIX_DEF_BLOCK_SIZE, 
-        int nb=MATRIX_DEF_BLOCK_SIZE) : ctxt_(ctxt), reference_(false), val(0)
+        int nb=MATRIX_DEF_BLOCK_SIZE) : ctxt_(ctxt),
+        m_(0), n_(0), mb_(0), nb_(0), reference_(false), val(0)
     {
       resize(m,n,mb,nb);
     }
@@ -325,10 +327,11 @@ class ComplexMatrix
     void resize(int m, int n, int mb = MATRIX_DEF_BLOCK_SIZE, 
       int nb = MATRIX_DEF_BLOCK_SIZE)
     {
+      if ( m == m_ && n == n_ && mb == mb_ && nb == nb_ ) return;
       init_size(m,n,mb,nb);
       delete[] val;
       val = new complex<double>[size_];
-      clear();
+      // clear();
     }    
     
     void print(ostream& os) const;
@@ -339,7 +342,8 @@ class ComplexMatrix
     // Construct a ComplexMatrix of dimensions m,n
     explicit ComplexMatrix(const Context& ctxt, int m, int n,
         int mb=MATRIX_DEF_BLOCK_SIZE, 
-        int nb=MATRIX_DEF_BLOCK_SIZE) : ctxt_(ctxt), reference_(false), val(0)
+        int nb=MATRIX_DEF_BLOCK_SIZE) : ctxt_(ctxt), 
+        m_(0), n_(0), mb_(0), nb_(0), reference_(false), val(0)
     {
       resize(m,n,mb,nb);
     }

@@ -3,7 +3,7 @@
 // RunCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.h,v 1.1 2003-01-25 01:23:31 fgygi Exp $
+// $Id: RunCmd.h,v 1.2 2004-03-11 21:52:31 fgygi Exp $
 
 #ifndef RUNCMD_H
 #define RUNCMD_H
@@ -15,8 +15,6 @@
 class RunCmd : public Cmd
 {
   private:
-
-  int niter, nfi;
 
   public:
 

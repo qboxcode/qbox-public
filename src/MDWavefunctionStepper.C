@@ -3,7 +3,7 @@
 // MDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.C,v 1.2 2004-02-04 19:55:16 fgygi Exp $
+// $Id: MDWavefunctionStepper.C,v 1.3 2004-03-11 21:52:32 fgygi Exp $
 
 #include "MDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -21,6 +21,7 @@ MDWavefunctionStepper::MDWavefunctionStepper(Sample& s, TimerMap& tmap) :
   dt2bye_ = (emass == 0.0) ? 0.5 / wf_.ecut() : dt_*dt_/emass;           
   
   // divide dt2bye by facs coefficient if stress == ON
+  //!! next test should be if s_.ctrl.ecuts > 0.0
   if ( s_.ctrl.stress == "ON" )
     dt2bye_ /= s_.ctrl.facs;
 }
@@ -30,6 +31,7 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
 {
   // Verlet update of wf using force dwf and wfm stored in *wfv
   Wavefunction* const wfv = s_.wfv;
+  assert(wfv!=0);
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
@@ -40,9 +42,11 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
         {
           tmap_["update_psi"].start();
           // Verlet update of wf
-          // cp = c + (c - cm) + dt2/m * hpsi
-          // c += c - cm + dt2bye * hpsi
+          // cp = c + (c - cm) - dt2/m * hpsi
+          // This is implemented (for each coefficient) as:
+          // cp = 2*c - cm - dt2bye * hpsi
           // cm = c
+          // c = cp
           SlaterDet* sd = wf_.sd(ispin,ikp);
           double* cptr = (double*) sd->c().valptr();
           double* cptrm = (double*) wfv->sd(ispin,ikp)->c().valptr();
@@ -76,8 +80,7 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
           tmap_["update_psi"].stop();
           
           tmap_["riccati"].start();
-          assert(wfv!=0);
-          wf_.sd(ispin,ikp)->riccati(*wfv->sd(ispin,ikp));
+          wf_.sd(ispin,ikp)->riccati(*(wfv->sd(ispin,ikp)));
           tmap_["riccati"].stop();
         }
       }
@@ -88,14 +91,15 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void MDWavefunctionStepper::stoermer_start(Wavefunction& dwf)
+void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
 {
-  // First step MD step using Stoermer rule
+  // Compute wfm for first MD step using wf, wfv and dwf (= Hpsi)
+  // Replace then wfv by wfm
   
   Wavefunction* const wfv = s_.wfv;
   assert(wfv!=0);
-  // First iteration of Stoermer's rule
-  // cp = c + dt * v - 0.5 * dt2/m * hpsi
+  // Compute cm using c and wavefunction velocity
+  // cm = c - dt * v - 0.5 * dt2/m * hpsi
   // replace wfv by wfm
   const double m_e = dt_ * dt_ / dt2bye_;
   const double half_dt2bye = 0.5 * dt2bye_;
@@ -108,8 +112,35 @@ void MDWavefunctionStepper::stoermer_start(Wavefunction& dwf)
       {
         if ( wf_.sdcontext(ispin,ikp)->active() )
         {
-          tmap_["update_psi"].start();
           SlaterDet* sd = wf_.sd(ispin,ikp);
+          
+#if 0
+          // dwf must be orthogonal to the subspace spanned by c
+          // compute descent direction H psi - psi (psi^T H psi)
+ 
+          if ( sd->basis().real() )
+          {
+            // proxy real matrices c, cp
+            DoubleMatrix c(sd->c());
+            DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
+ 
+            DoubleMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
+ 
+            // factor 2.0 in next line: G and -G
+            a.gemm('t','n',2.0,c,cp,0.0);
+            // rank-1 update correction
+            a.ger(-1.0,c,0,cp,0);
+ 
+            // cp = cp - c * a
+            cp.gemm('n','n',-1.0,c,a,1.0);
+          }
+          else
+          {
+            // not implemented in the complex case
+            assert(false);
+          }
+#endif
+ 
           double* cptr = (double*) sd->c().valptr();
           double* cptrv = (double*) wfv->sd(ispin,ikp)->c().valptr();
           const double* dcptr =
@@ -143,19 +174,14 @@ void MDWavefunctionStepper::stoermer_start(Wavefunction& dwf)
               const double dctmp1 = dc[2*i+1];
 
               tmpsum += (cvtmp*cvtmp + cvtmp1*cvtmp1);
-              c[2*i]    = ctmp  + dt_ * cvtmp  - half_dt2bye * dctmp;
-              c[2*i+1]  = ctmp1 + dt_ * cvtmp1 - half_dt2bye * dctmp1;
-              cv[2*i]   = ctmp;
-              cv[2*i+1] = ctmp1;
+              cv[2*i]    = ctmp  - dt_ * cvtmp  - half_dt2bye * dctmp;
+              cv[2*i+1]  = ctmp1 - dt_ * cvtmp1 - half_dt2bye * dctmp1;
               // Note: 2 in next line from G,-G
             }
             ekin_e += 2.0 * m_e * occn * tmpsum;
           }
-          tmap_["update_psi"].stop();
-          
           tmap_["riccati"].start();
-          assert(wfv!=0);
-          wf_.sd(ispin,ikp)->riccati(*wfv->sd(ispin,ikp));
+          wfv->sd(ispin,ikp)->riccati(*wf_.sd(ispin,ikp));
           tmap_["riccati"].stop();
         }
       }
@@ -167,10 +193,9 @@ void MDWavefunctionStepper::stoermer_start(Wavefunction& dwf)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void MDWavefunctionStepper::stoermer_end(Wavefunction& dwf)
+void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
 {
-  // Last step of Stoermer rule
-  // Compute wfv = (wf - wfm)/dt + 0.5*dtbye*dwf
+  // Compute wfv = (wf - wfm)/dt - 0.5*dtbye*dwf
   
   Wavefunction * const wfv = s_.wfv;
   assert(wfv!=0);
@@ -183,13 +208,12 @@ void MDWavefunctionStepper::stoermer_end(Wavefunction& dwf)
       {
         if ( wf_.sdcontext(ispin,ikp)->active() )
         {
-          // Last iteration of Stoermer's rule
           // compute final velocity wfv
           // v = ( c - cm ) / dt - 0.5 * dt/m * hpsi
  
           // Note: At this point, *wfv contains wf(t-dt)
  
-          // hpsi must be orthogonal to subspace spanned by c
+          // hpsi must be orthogonal to the subspace spanned by c
           // compute descent direction H psi - psi (psi^T H psi)
  
           SlaterDet* sd = wf_.sd(ispin,ikp);

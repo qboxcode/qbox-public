@@ -3,7 +3,7 @@
 // WavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionStepper.h,v 1.4 2004-02-04 19:55:16 fgygi Exp $
+// $Id: WavefunctionStepper.h,v 1.5 2004-03-11 21:52:31 fgygi Exp $
 
 #ifndef WAVEFUNCTIONSTEPPER_H
 #define WAVEFUNCTIONSTEPPER_H
@@ -31,7 +31,8 @@ class WavefunctionStepper
   virtual void preprocess(void) {}
   virtual void postprocess(void) {}
 
-  WavefunctionStepper(Sample& s, TimerMap& tmap) : s_(s), wf_(s.wf), tmap_(tmap)
+  WavefunctionStepper(Sample& s, TimerMap& tmap) : 
+  s_(s), wf_(s.wf), tmap_(tmap)
   {}
   virtual ~WavefunctionStepper() {}
 };

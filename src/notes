@@ -16,6 +16,14 @@ To do: Use WavefunctionStepper classes and WavefunctionStepperFactory.
 --------------------------------------------------------------------------------
 Known bugs
 
+In 1.11.2: using atoms_dyn = SD: ekin is not computed in SDIonicStepper.
+Incorrect (uninitialized) values are printed by BOSampleStepper. Must either
+include calculation of ekin_ in SDIonicStepper, or suppress printing of 
+ekin_ion and temp_ion if atoms_dyn = SD.
+
+The quadrature formula for integration of semi-local potentials must be 
+improved to at least Simpson level.
+
 Saving a sample with wavefunctions of size zero crashes in FourierTransform
 (size zero not working)
 
@@ -32,7 +40,7 @@ memory problems.
 
 Replace Xerces Base64 transcoding in SlaterDet::print with Base64Transcoder.
 
-UnitCell but was not fixed in 1.8.1. Still observe inf loops for Si432 FCC.
+UnitCell bug was not fixed in 1.8.1. Still observe inf loops for Si432 FCC.
 
 There is no mechanism to remove s.wfv once it has been created through either
 the load command or the set wf_dyn MD command. Should implement a block_wf cmd.
@@ -42,6 +50,13 @@ determine library search path, even if makefile specifies another path.
  
 Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
 This will avoid the problem of needing libxerces-c.so when using qbox.
+--------------------------------------------------------------------------------
+rel1_12_0 candidate
+Replaced trapezoidal integration in NonLocalPotential.C by a Gauss-Jacobi rule.
+--------------------------------------------------------------------------------
+rel1_11_3
+Fixed bug in PSDWavefunctionStepper.C and PSDAWavefunctionStepper.C:
+use ecut if ecutprec==0.0. Caused nans when ecutprec was not set.
 --------------------------------------------------------------------------------
 rel1_11_2 2003-12-04
 Fixed Elan allocation failure problem in SlaterDet::write. Problem was caused 
@@ -57,7 +72,7 @@ Fixed uninitialized var eta_ in MDIonicStepper that caused errors on AIX.
 Known problem: elan allocation failure on mcr when writing h2o64 sample
 using 140 tasks on 70 nodes. Possible bug in SlaterDet::write if USE_CSTDIO_LFS.
 When running on AIX (using SlaterDet::print instead of SlaterDet::write) no 
-problem arises, and memory usage per node is low.
+problem arises, and memory usage per node is low.(fixed in 1_11_2).
 --------------------------------------------------------------------------------
 rel1_11_0
 BOSampleStepper: changed to do extrapolation and ionic move before 

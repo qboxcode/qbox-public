@@ -3,10 +3,14 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.6 2003-11-21 19:18:15 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.7 2003-12-19 00:40:40 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
+void gauleg(const double x1,const double x2,double *x,double *w,const int n);
+void gaujac(double x1, double x2, double *x, double *w, int n, 
+  double alf, double bet);
+double gammln(double xx);
 
 #if AIX
 extern "C" void vsincos(double *x, double *y, double *z, int *n);
@@ -107,21 +111,21 @@ void NonLocalPotential::init(void)
       twnl[is].resize(npr[is]*ngwl);      
       dtwnl[is].resize(npr[is]*3*ngwl);
       
-      // compute quadrature abcissae and weights
+      // Gauss-Jacobi integration
+      // quadrature abcissae and weights
       rquad[is].resize(nquad[is]);
       wquad[is].resize(nquad[is]);
       
-      const double h = s->rcut_loc(epsilon) / ( nquad[is] +1 );
+      // The integrand vanishes (at least) linearly as r->0
+      // alpha = 0.0, beta = 1.0
+      // Int[ f(x) dx ] = Int[ x g(x) dx ] where g(x) = f(x)/x
+      // Generate Gauss-Jacobi abscissae and weights
+      gaujac(0.0,s->rquad(),&rquad[is][0],&wquad[is][0],nquad[is],0.0,1.0);
+      
+      // Include 1/r in the Gauss-Jacobi weights
       for ( int iquad = 0; iquad < nquad[is]; iquad++ )
       {
-        // trapezoidal integration for f(a) = f(b) = 0
-        // Davis & Rabinowitz, second edition, p.132
-        // use interior points only
-        // sum = h * ( f(h) + f(2h) +... + f(n) )
-        // h = (b-a)/(n+1)
-        // Note: correction h^2/12 f'(a) could be added for l=0
-        rquad[is][iquad] = (iquad+1) * h;
-        wquad[is][iquad] = h;
+        wquad[is][iquad] /= rquad[is][iquad];
       }
       
       // compute weights wt[is][ipr]
@@ -1263,4 +1267,169 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
 #endif
 
   return enl;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void gauleg(const double x1, const double x2, 
+  double *x, double *w, const int n)
+{
+  const double pi = 3.1415926535897932384;
+  const double eps = 1.e-14;
+
+  int m = ( n + 1 ) / 2;
+  
+  const double xm = 0.5 * ( x2 + x1 );
+  const double xl = 0.5 * ( x2 - x1 );
+  
+  for ( int i = 0; i < m; i++ )
+  {
+    double z = cos ( pi * ( i + 0.75 ) / ( n + 0.5 ) );
+    double pp, z1;
+    
+    do
+    {
+      double p1 = 1.0;
+      double p2 = 0.0;
+      double p3;
+
+      for ( int j = 0; j < n; j++ )
+      {
+        p3 = p2;
+        p2 = p1;
+        p1 = ( ( 2.0 * (j+1) - 1.0 ) * z * p2 - j * p3 ) / ( j + 1 );
+      }
+      
+      pp = n * ( z * p1 - p2 ) / ( z * z - 1.0 );
+      z1 = z;
+      z = z1 - p1 / pp;
+    } while ( fabs(z-z1) > eps );
+    
+    x[i] = xm - xl * z;
+    x[n-i-1] = xm + xl * z;
+    w[i] = 2.0 * xl / ( ( 1.0 - z * z ) * pp * pp );
+    w[n-i-1] = w[i];
+    
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void gaujac(double x1, double x2, double *x, double *w, int n, 
+  double alf, double bet)
+{
+  const double eps = 1.e-14;
+  const int maxit = 20;
+  double gammln(double xx);
+  double pp,z,z1;
+  double xm = 0.5 * ( x2 + x1 );
+  double xl = 0.5 * ( x2 - x1 );
+  for ( int i = 0; i < n; i++ )
+  {
+    if ( i == 0 )
+    {
+      double an = alf / n;
+      double bn = bet / n;
+      double r1 = (1.0+alf)*(2.78/(4.0+n*n)+0.768*an/n);
+      double r2 = 1.0+1.48*an+0.96*bn+0.452*an*an+0.83*an*bn;
+      z = 1.0 - r1/r2;
+    }
+    else if ( i == 1 )
+    {
+      double r1 = (4.1+alf)/((1.0+alf)*(1.0+0.156*alf));
+      double r2 = 1.0+0.06*(n-8.0)*(1.0+0.12*alf)/n;
+      double r3 = 1.0+0.012*bet*(1.0+0.25*fabs(alf))/n;
+      z -= (1.0-z)*r1*r2*r3;
+    }
+    else if ( i == 2 )
+    {
+      double r1 = (1.67+0.28*alf)/(1.0+0.37*alf);
+      double r2 = 1.0+0.22*(n-8.0)/n;
+      double r3 = 1.0+8.0*bet/((6.28+bet)*n*n);
+      z -= (x[0]-z)*r1*r2*r3;
+    }
+    else if ( i == n-2 )
+    {
+      double r1 = (1.0+0.235*bet)/(0.766+0.119*bet);
+      double r2 = 1.0/(1.0+0.639*(n-4.0)/(1.0+0.71*(n-4.0)));
+      double r3 = 1.0/(1.0+20.0*alf/((7.5+alf)*n*n));
+      z += (z-x[n-4])*r1*r2*r3;
+    }
+    else if ( i == n-1 )
+    {
+      double r1 = (1.0+0.37*bet)/(1.67+0.28*bet);
+      double r2 = 1.0/(1.0+0.22*(n-8.0)/n);
+      double r3 = 1.0/(1.0+8.0*alf/((6.28+alf)*n*n));
+      z += (z-x[n-3])*r1*r2*r3;
+    }
+    else
+    {
+      z = 3.0 * x[i-1] - 3.0 * x[i-2] + x[i-3];
+    }
+    
+    double alfbet = alf + bet;
+    bool done = false;
+    double temp, p1, p2, p3;
+    for ( int its = 0; its < maxit && !done; its++ )
+    {
+      temp = 2.0 + alfbet;
+      p1 = ( alf - bet + temp * z ) / 2.0;
+      p2 = 1.0;
+      p3;
+      for ( int j = 2; j <= n; j++ )
+      {
+        p3 = p2;
+        p2 = p1;
+        temp = 2 * j + alfbet;
+        double a = 2 * j * ( j + alfbet ) * ( temp - 2.0 );
+        double b = ( temp - 1.0 ) * ( alf*alf - bet*bet + temp * 
+                   ( temp - 2.0 ) * z );
+        double c = 2.0 * ( j - 1 + alf ) * ( j - 1 + bet ) * temp;
+        p1 = ( b * p2 - c * p3 ) / a;
+      }
+      
+      // p1 is now the Jacobi polynomial
+      pp = ( n * ( alf - bet - temp * z ) * p1 +
+           2.0 * ( n + alf ) * ( n + bet ) * p2 ) / ( temp * ( 1.0 - z*z ) );
+      z1 = z;
+      z = z1 - p1 / pp;
+      
+      if ( fabs(z-z1) <= eps )
+        done = true;
+    }
+    
+    if ( !done )
+    {
+      cout << " gauss-jacobi: error, more than " << maxit << " iterations"
+      << endl;
+      exit(1);
+    }
+    
+    x[i] = z;
+    w[i] = exp(gammln(alf+n)+gammln(bet+n)-gammln(n+1.0)-
+               gammln(n+alfbet+1.0)) * temp*pow(2.0,alfbet) / ( pp*p2 );
+               
+  }
+  for ( int i = 0; i < n; i++ )
+  {
+    // translate nodes to the [x1,x2]
+    x[i] = xm - xl * x[i];
+    w[i] = xl * w[i];
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+double gammln(double xx)
+{
+  static double cof[6] = 
+  {
+    76.18009172947146, -86.50532032941677, 24.01409824083091,
+    -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5
+  };
+  double y = xx;
+  double x = xx;
+  double tmp = x + 5.5;
+  tmp -= (x+0.5)*log(tmp);
+  double ser = 1.000000000190015;
+  for ( int j = 0; j <= 5; j++ ) ser += cof[j]/++y;
+  
+  return -tmp+log(2.5066282746310005*ser/x);
 }

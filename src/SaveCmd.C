@@ -3,11 +3,13 @@
 // SaveCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.C,v 1.6 2004-02-06 23:59:44 fgygi Exp $
+// $Id: SaveCmd.C,v 1.7 2004-05-20 00:18:42 fgygi Exp $
 
 
 #include "SaveCmd.h"
 #include "fstream"
+#include "isodate.h"
+#include "release.h"
 
 #ifdef USE_CSTDIO_LFS
 #include <cstdio>
@@ -86,8 +88,13 @@ int SaveCmd::action(int argc, char **argv)
     " xsi:schemaLocation=\"http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0 sample.xsd\">\n";
     off_t len = strlen(header);
     fwrite(header,sizeof(char),len,outfile);
- 
+    
+    string desc = string("<description> Created ") +
+      isodate() +string(" by qbox-") + release() +
+      string(" </description>\n");
+    
     ostringstream ss("");
+    ss << desc;
     ss << s->atoms;
     string str = ss.str();
     const char* buf = str.c_str();
@@ -124,6 +131,8 @@ int SaveCmd::action(int argc, char **argv)
 <<" xsi:schemaLocation=\"http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0 sample.xsd\">"
 << endl;
 
+    os << "<description> Created " << isodate() << " by qbox-" << release()
+       << " </description>" << endl;
     os << s->atoms;
   }
     

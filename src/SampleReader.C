@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.9 2003-11-21 19:19:43 fgygi Exp $
+// $Id: SampleReader.C,v 1.10 2003-11-27 01:17:20 fgygi Exp $
 
 
 // Note: the following #define's must appear before <iostream> and <cstdio>
@@ -371,14 +371,20 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         //!! nkpoint fixed = 1
         const int nkpoint = 1;
         
-        if ( !read_from_file )
+        for ( int ispin = 0; ispin < nspin; ispin++ )
         {
-          for ( int ispin = 0; ispin < nspin; ispin++ )
+          for ( int ikp = 0; ikp < nkpoint; ikp++ )
           {
-            for ( int ikp = 0; ikp < nkpoint; ikp++ )
+            SlaterDet* sd = wfvtmp.sd(ispin,ikp);
+            if ( sd != 0 )
             {
-              SlaterDet* sd = s.wfv->sd(ispin,ikp);
-              if ( sd != 0 )
+              // receive density_matrix
+              vector<double> dmat_tmp(sd->nst());
+	      cout << " SampleReader: dmat.size()=" << dmat_tmp.size() << endl;
+              sd->context().dbcast_recv(sd->nst(),1,&dmat_tmp[0],1,0,0);
+              sd->set_occ(dmat_tmp);
+                
+              if ( !read_from_file )
               {
                 const Basis& basis = sd->basis();
                 FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
@@ -507,11 +513,14 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   }
   
   // check if wavefunction_velocity element was read, if not, delete wfvtmp
+  if ( s.wfv != 0 )
+  {
+    delete s.wfv;
+    s.wfv = 0;
+  }
   if ( read_wfv )
   {
-    if ( s.wfv != 0 )
-      delete s.wfv;
     s.wfv = new Wavefunction(s.wf);
     *s.wfv = wfvtmp;
-  } 
+  }
 }

@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.22 2004-03-11 21:52:31 fgygi Exp $
+# $Id: Makefile,v 1.23 2004-04-17 01:19:03 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -326,6 +326,8 @@ sinft.o: sinft.h
 SlaterDet.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h Matrix.h
 SlaterDet.o: Timer.h FourierTransform.h blas.h
 SlaterDet.o: Context.h Basis.h D3vector.h UnitCell.h Matrix.h Timer.h
+SlaterDet.tmp1.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h
+SlaterDet.tmp1.o: Matrix.h Timer.h FourierTransform.h blas.h
 Species.o: Species.h Context.h spline.h sinft.h
 SpeciesCmd.o: SpeciesCmd.h UserInterface.h Sample.h AtomSet.h Context.h
 SpeciesCmd.o: Atom.h D3vector.h Species.h Wavefunction.h UnitCell.h Control.h

@@ -48,7 +48,24 @@ determine library search path, even if makefile specifies another path.
 Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
 This will avoid the problem of needing libxerces-c.so when using qbox.
 --------------------------------------------------------------------------------
-rel1_13_0
+rel1_14_0 candidate
+Matrix.h Reintroduced the clear() call in the resize members. Working with 
+uninitialized matrices sometimes caused NaNs to appear in the padding areas
+of the danl matrix in NonLocalPotential.C.
+Note that the clear() call was removed in rel1_13_0, which invalidates 1_13_0.
+Matrix.C: Added assert()'s in clear() functions.
+BOSampleStepper.C: Introduced quadratic extrapolation of wfs. Added calculation
+of forces at each electronic step to monitor the convergence
+of the force x velocity product.
+PSDWavefunctionStepper.C: Fixed bug in usage of preconditioner (affects 
+1_13_0 only).
+PSDAWavefunctionStepper.C: Fixed bug in usage of preconditioner (see above).
+SlaterDet.[Ch]: introduced new orthogonalization and alignment functions:lowdin, 
+align, ortho_align.
+
+
+--------------------------------------------------------------------------------
+rel1_13_0 (not for release, see Matrix clear() bug above)
 Implemented stress calculation and variable cell dynamics
 Stress calculation works for s-only non-local potentials.
 Changed names of variables tau0, taup to r0, rp (and keep tau for scaled

@@ -3,19 +3,9 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.1 2003-11-21 20:01:06 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.2 2003-11-27 01:23:22 fgygi Exp $
 
 #include "MDIonicStepper.h"
-
-////////////////////////////////////////////////////////////////////////////////
-double MDIonicStepper::temp(void) const
-{
-  const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
-  if ( ndofs_ > 0.0 )
-    return 2.0 * ( ekin_ / boltz ) / ndofs_;
-  else
-    return 0.0;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 void MDIonicStepper::update(const vector<vector< double> >& fion)
@@ -80,6 +70,7 @@ void MDIonicStepper::stoermer_start(const vector<vector< double> >& fion)
   // x-1 = x0 - h * v0 + 0.5 * dt2/m * f0
  
   atoms_.get_velocities(vel_);
+  ekin_ = 0.0;
  
   for ( int is = 0; is < tau0_.size(); is++ )
   {
@@ -88,8 +79,10 @@ void MDIonicStepper::stoermer_start(const vector<vector< double> >& fion)
     {
       const double taum = tau0_[is][i] - dt_ * vel_[is][i] +
                           0.5 * dt2bym * fion[is][i];
-
       taum_[is][i] = taum;
+
+      const double v = vel_[is][i];
+      ekin_ += 0.5 * pmass_[is] * v * v;
     }
   }
 }
@@ -101,6 +94,7 @@ void MDIonicStepper::stoermer_end(const vector<vector< double> >& fion)
   // Last step of Stoermer's rule
   // v = (xn - x(n-1) )/dt + 0.5 * dt/m * fn
  
+  ekin_ = 0.0;
   if ( dt_ != 0.0 )
   {
     for ( int is = 0; is < tau0_.size(); is++ )
@@ -110,6 +104,8 @@ void MDIonicStepper::stoermer_end(const vector<vector< double> >& fion)
       {
         vel_[is][i] = ( tau0_[is][i] - taum_[is][i] ) / dt_ +
                      0.5 * dtbym * fion[is][i];
+      const double v = vel_[is][i];
+      ekin_ += 0.5 * pmass_[is] * v * v;
       }
     }
   }

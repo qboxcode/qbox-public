@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.19 2003-10-02 17:29:17 fgygi Exp $
+// $Id: SlaterDet.C,v 1.20 2003-11-21 19:12:09 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -991,6 +991,10 @@ void SlaterDet::info(ostream& os)
     os << "<slater_determinant kpoint=\"" << basis_.kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
+    os << " <!-- basis size: " << basis_.size() << " -->" << endl;
+    os << "  <!-- c dimensions: "
+       << c_.m() << "x" << c_.n()
+       << "   (" << c_.mb() << "x" << c_.nb() << " blocks)" << " -->" << endl;
     os << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">" 
        << endl;
     os << "</density_matrix>" << endl;

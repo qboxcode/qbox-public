@@ -7,6 +7,16 @@ preferrable to use a single-column context when nst is small to avoid
 memory problems.
 
 --------------------------------------------------------------------------------
+rel1_24_0
+UnitCell.C: added space in output of lattice vectors.
+Wavefunction.C: added syevx option for diagonalization (not active)
+BOSampleStepper.C: added diag timer.
+SlaterDet.C: Added CHOLESKY_REMAP macro to enable remapping to a square context
+in SlaterDet::gram.
+SlaterDet.C: rewritten communication in SlaterDet::print and SlaterDet::write
+to avoid a deadlock on BGL.
+Matrix.C: Added syevx and syevd functions
+--------------------------------------------------------------------------------
 rel1_23_3
 NonLocalPotential.C: fixed bug: double fnl_size should be int fnl_size.
 --------------------------------------------------------------------------------

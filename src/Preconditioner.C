@@ -3,7 +3,7 @@
 // Preconditioner.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Preconditioner.C,v 1.1 2004-03-11 21:58:10 fgygi Exp $
+// $Id: Preconditioner.C,v 1.2 2004-03-18 19:54:40 fgygi Exp $
 
 #include "Preconditioner.h"
 #include "EnergyFunctional.h"
@@ -24,8 +24,9 @@ void Preconditioner::update(void)
 {
   // reinitialize preconditioner
   bool use_confinement = s_.ctrl.ecuts > 0.0;
-  const double ecutpr = s_.ctrl.ecutprec;
   const Wavefunction& wf = s_.wf;
+  // If ecutprec is zero, use ecut
+  const double ecutpr = s_.ctrl.ecutprec> 0.0 ? s_.ctrl.ecutprec : wf.ecut();
   
   diag_.resize(wf.nspin());
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
@@ -40,7 +41,7 @@ void Preconditioner::update(void)
         const int ngwloc = basis.localsize();
         diag_[ispin][ikp].resize(ngwloc);
         const double *g2_ptr = basis.g2_ptr();
- 
+
         if ( use_confinement )
         {
           const valarray<double>& fstress = ef_.confpot(ikp)->fstress();

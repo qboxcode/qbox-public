@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.5 2004-03-11 21:52:31 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.6 2004-04-17 01:18:36 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -30,8 +30,13 @@ BOSampleStepper::BOSampleStepper(Sample& s, EnergyFunctional& ef, int nite) :
 ////////////////////////////////////////////////////////////////////////////////
 void BOSampleStepper::step(int niter)
 {
+  const bool quad_extrapolation = true;
+  enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
+  
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
+  Wavefunction wfmm(wf);
+  
   const UnitCell& cell = wf.cell();
   const double omega = cell.volume();
   
@@ -45,6 +50,7 @@ void BOSampleStepper::step(int niter)
   const bool compute_hpsi = ( wf_dyn != "LOCKED" );
   const bool compute_forces = ( atoms_dyn != "LOCKED" );
   const bool compute_stress = ( s_.ctrl.stress == "ON" );
+  const bool use_confinement = ( s_.ctrl.ecuts > 0.0 );
   
   Timer tm_iter;
   
@@ -64,6 +70,7 @@ void BOSampleStepper::step(int niter)
     wf_stepper = new PSDWavefunctionStepper(s_,*preconditioner,tmap);
   else if ( wf_dyn == "PSDA" )
     wf_stepper = new PSDAWavefunctionStepper(s_,*preconditioner,tmap);
+    
   // wf_stepper == 0 indicates that wf_dyn == LOCKED
     
   IonicStepper* ionic_stepper = 0;
@@ -108,6 +115,7 @@ void BOSampleStepper::step(int niter)
     double energy = 0.0;
     if ( compute_forces || compute_stress )
     {
+    
       // compute energy and ionic forces using existing wavefunction
       energy =
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
@@ -118,7 +126,7 @@ void BOSampleStepper::step(int niter)
         cout.setf(ios::right,ios::adjustfield);
         cout << "  <ekin>   " << setprecision(8)
              << setw(15) << ef_.ekin() << " </ekin>\n";
-        if ( compute_stress )
+        if ( use_confinement )
           cout << "  <econf>  " << setw(15) << ef_.econf() << " </econf>\n";
         cout << "  <eps>    " << setw(15) << ef_.eps() << " </eps>\n"
              << "  <enl>    " << setw(15) << ef_.enl() << " </enl>\n"
@@ -233,6 +241,7 @@ void BOSampleStepper::step(int niter)
           {
             if ( s_.wf.sdcontext(ispin,ikp)->active() )
             {
+              ortho_type ortho;
               if ( iter == 0 )
               {
                 // extrapolation using the wavefunction velocity
@@ -249,16 +258,17 @@ void BOSampleStepper::step(int niter)
                   c[i] = x + dt * v;
                   cv[i] = x;
                 }
-                tmap["gram"].start();
-                s_.wf.sd(ispin,ikp)->gram();
-                tmap["gram"].stop();
+                //ortho = GRAM; 
+                //ortho = ORTHO_ALIGN;
+                ortho = LOWDIN;
               }
-              else
+              else if ( iter == 1  || !quad_extrapolation )
               {
-                // extrapolation using the previous wavefunction
+                // linear extrapolation using the previous wavefunction
                 // cm is stored in wfv
                 double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
                 double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+                double* cmm = (double*) wfmm.sd(ispin,ikp)->c().cvalptr();
                 const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
                 const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
                 for ( int i = 0; i < 2*mloc*nloc; i++ )
@@ -267,12 +277,77 @@ void BOSampleStepper::step(int niter)
                   const double xm = cv[i];
                   c[i] = 2.0 * x - xm;
                   cv[i] = x;
+                  cmm[i] = xm;
                 }
-                tmap["riccati"].start();
-                s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));
-                tmap["riccati"].stop();
+                ortho = ORTHO_ALIGN;
+                //ortho = RICCATI;
+                //ortho = LOWDIN;
+                //ortho = GRAM;
               }
-            }
+              else
+              {
+                // quad_extrapolation == true && iter >= 1
+                // quadratic extrapolation using the two previous wavefunctions
+                // cm is stored in wfv, cmm is stored in wfmm
+                double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
+                double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+                double* cmm = (double*) wfmm.sd(ispin,ikp)->c().cvalptr();
+                const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
+                const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+                for ( int i = 0; i < 2*mloc*nloc; i++ )
+                {
+                  const double x = c[i];
+                  const double xm = cv[i];
+                  const double xmm = cmm[i];
+                  
+                  // linear extrapolation
+                  //c[i] = 2.0 * x - xm;
+                  
+                  // Lagrange quadratic extrapolation
+                  //c[i] = 3.0 * ( x - xm ) + xmm;
+                  
+                  // k=1 extrapolation 
+                  c[i] = 2.0 * x - xm + 0.5 * ( x - 2.0 * xm + xmm );
+                  
+                  // damped/enhanced linear extrapolation
+                  //c[i] = x + 0.9 * ( x - xm );
+                  
+                  cv[i] = x;
+                  cmm[i] = xm;
+                }
+                ortho = ORTHO_ALIGN;
+                //ortho = RICCATI;
+                //ortho = LOWDIN;
+                //ortho = GRAM;
+              }
+              
+              switch ( ortho )
+              {
+                case GRAM:
+                  tmap["gram"].stop();
+                  s_.wf.sd(ispin,ikp)->gram();
+                  tmap["gram"].stop();
+                  break;
+ 
+                case LOWDIN:
+                  tmap["lowdin"].stop();
+                  s_.wf.sd(ispin,ikp)->lowdin();
+                  tmap["lowdin"].stop();
+                  break;
+ 
+                case ORTHO_ALIGN:
+                  tmap["ortho_align"].stop();
+                  s_.wf.sd(ispin,ikp)->ortho_align(*s_.wfv->sd(ispin,ikp));
+                  tmap["ortho_align"].stop();
+                  break;
+ 
+                case RICCATI:
+                  tmap["riccati"].stop();
+                  s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));
+                  tmap["riccati"].stop();
+                  break;
+              }
+            } // if active
           }
         }
       }
@@ -284,7 +359,10 @@ void BOSampleStepper::step(int niter)
       wf_stepper->preprocess();
       for ( int ite = 0; ite < nite_; ite++ )
       {
-        double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+        //double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+        
+        // compute forces at each electronic step for monitoring
+        double energy = ef_.energy(true,dwf,compute_forces,fion,false,sigma_eks);
  
         wf_stepper->update(dwf);
  
@@ -314,6 +392,24 @@ void BOSampleStepper::step(int niter)
                  << " </pv>" << endl;
             cout << "  <enthalpy_int> " << setw(15) << enthalpy << " </enthalpy_int>\n"
                  << flush;
+          }
+          
+          // compute force*velocity
+          if ( compute_forces )
+          {
+            double fv = 0.0;
+            for ( int is = 0; is < atoms.atom_list.size(); is++ )
+            {
+              int i = 0;
+              for ( int ia = 0; ia < atoms.atom_list[is].size(); ia++ )
+              {
+                fv += ionic_stepper->v0(is,i) * fion[is][i] +
+                      ionic_stepper->v0(is,i+1) * fion[is][i+1] +
+                      ionic_stepper->v0(is,i+2) * fion[is][i+2];
+                i += 3;
+              }
+            }
+            cout << "  <fv> " << fv << " </fv>\n";
           }
         }
       }

@@ -3,7 +3,7 @@
 #  linux-pc_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.2 2003-11-21 19:09:01 fgygi Exp $
+# $Id: mcr.mk,v 1.3 2003-12-01 17:51:56 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -15,7 +15,7 @@
  CXX=icc
  LD=$(CXX)
 
- DFLAGS += -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+ DFLAGS += -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
  
  FFTWDIR=$(HOME)/fftw/linux-pc-icc/fftw-2.1.3/fftw
  BLASDIR=/opt/intel/mkl/lib/32

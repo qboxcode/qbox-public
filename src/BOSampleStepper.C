@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.20 2004-12-18 23:22:47 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.21 2005-02-04 21:59:55 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -549,7 +549,9 @@ void BOSampleStepper::step(int niter)
         if ( compute_eigvec || s_.ctrl.wf_diag == "EIGVAL" )
         {
           energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+          tmap["diag"].start();
           s_.wf.diag(dwf,compute_eigvec);
+          tmap["diag"].stop();
         }
         
         // update occupation numbers

@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.4 2004-03-15 21:49:38 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.5 2004-05-03 19:16:20 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -105,8 +105,11 @@ void CPSampleStepper::step(int niter)
  
     if ( compute_forces )
     {
-      mdionic_stepper->compute_v0(fion);
-      mdionic_stepper->update_v();
+      if ( iter > 0 ) 
+      {
+        mdionic_stepper->compute_v0(fion);
+        mdionic_stepper->update_v();
+      }
       mdionic_stepper->compute_rp(fion);
       ekin_ion = mdionic_stepper->ekin();
       

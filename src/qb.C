@@ -3,9 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.38 2004-05-20 00:23:44 fgygi Exp $
-
-const char* const xmlns_url = "http://www.llnl.gov/casc/fpmd/qbox/1.0";
+// $Id: qb.C,v 1.39 2004-08-11 17:56:24 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -20,6 +18,7 @@ using namespace std;
 
 #include "isodate.h"
 #include "release.h"
+#include "qbox_xmlns.h"
 
 #include "Context.h"
 #include "UserInterface.h"
@@ -98,7 +97,7 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I Copyright (c) 2003-2004 I\n";     
   cout << "                   ===========================\n\n";
   cout << "-->\n";
-  cout << "<qbox:simulation xmlns:qbox=\"" << xmlns_url << "\">" << endl;
+  cout << "<qbox:simulation xmlns:qbox=\"" << qbox_xmlns() << "\">" << endl;
   cout << "<release> " << release() << " " << TARGET << " </release>" << endl;
 
   // Identify executable name, checksum, size and link date

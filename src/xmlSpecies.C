@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <fstream>
 #include <cstdio>
+#include "qbox_xmlns.h"
 using namespace std;
 
 int main(int argc, char **argv)
@@ -44,9 +45,12 @@ int main(int argc, char **argv)
   }
   
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-  cout << "<qbox:species xmlns:qbox=\"http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0\"" << endl; 
+  cout << "<qbox:species xmlns:qbox=\""
+       << qbox_xmlns() 
+       << "\"" << endl; 
   cout << "  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " << endl;
-  cout << "  xsi:schemaLocation=\"http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0 " << endl;
+  cout << "  xsi:schemaLocation=\"";
+  cout << qbox_xmlns();
   cout << "  species.xsd\">" << endl;
   cout << "<description>" << psname_buf << "</description>" << endl;
   cout << "<symbol>X</symbol>" << endl;

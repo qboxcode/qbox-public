@@ -1,12 +1,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// release.C
+// qbox_xmlns.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: release.C,v 1.4 2004-08-11 17:56:24 fgygi Exp $
+// $Id: qbox_xmlns.h,v 1.1 2004-08-11 17:56:24 fgygi Exp $
 
-#include "release.h"
-std::string release(void)
-{
-  return std::string("1.17.0");
-}
+#ifndef QBOX_XMLNS_H
+#include <string>
+std::string qbox_xmlns(void);
+#endif

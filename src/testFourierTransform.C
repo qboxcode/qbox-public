@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
   Context ctxt_global;
   int mype = ctxt_global.mype();
-  cout << " Process " << mype << " on " << processor_name << endl;
+  //cout << " Process " << mype << " on " << processor_name << endl;
 
   if ( argc != 14 )
   {
@@ -43,25 +43,31 @@ int main(int argc, char **argv)
   double ecut = atof(argv[10]);
   D3vector kpoint(atof(argv[11]),atof(argv[12]),atof(argv[13]));
   
-  cout << " ctxt_global: " << ctxt_global;
-  cout << " ctxt_global.comm(): " << ctxt_global.comm() << endl;
+  //cout << " ctxt_global: " << ctxt_global;
+  //cout << " ctxt_global.comm(): " << ctxt_global.comm() << endl;
   Context ctxt(ctxt_global,'c');
-  cout << " ctxt: " << ctxt;
-  cout << " ctxt.comm(): " << ctxt.comm() << endl;
+  //cout << " ctxt: " << ctxt;
+  //cout << " ctxt.comm(): " << ctxt.comm() << endl;
   Basis basis(ctxt,kpoint);
   basis.resize(cell,cell,ecut);
   
   FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
   
   vector<complex<double> > x(basis.localsize());
-  cout << " basis.localsize() = " << basis.localsize() << endl;
-  cout << " basis.np() = " << basis.np(0) << " " << basis.np(1)
-       << " " << basis.np(2) << endl;
   double flops = 5.0 * ft.np012() * 
     ( log((double)basis.np(0)) + log((double)basis.np(1)) + 
       log((double)basis.np(2)) ) / log(2.0);
-  cout << " flop count: " << flops << endl;
-
+  if ( ctxt.onpe0() )
+  {
+    cout << " basis.localsize() = " << basis.localsize() << endl;
+    cout << " basis.np() = " << basis.np(0) << " " << basis.np(1)
+         << " " << basis.np(2) << endl;
+    cout << " flop count: " << flops << endl;
+  }
+  cout.setf(ios::fixed,ios::floatfield);
+  cout.setf(ios::right,ios::adjustfield);
+  cout << setprecision(6);
+  
   const double rc = 1.0;
 #if 1
   // Initialize with Fourier coefficients of a normalized gaussian distribution
@@ -84,8 +90,10 @@ int main(int argc, char **argv)
   tm.start();
   ft.backward(&x[0],&f[0]);
   tm.stop();
-  cout << " fwd time: " << tm.cpu() << " / " << tm.real() 
-  << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
+  cout << " " << basis.np(0) << " " << basis.np(1)
+       << " " << basis.np(2) << " ";
+  cout << " bwd time: " << tm.cpu() << " / " << tm.real() 
+       << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
   
 #if 0
   for ( int i = 0; i < basis.localsize(); i++ )
@@ -107,11 +115,15 @@ int main(int argc, char **argv)
     tsum += real(f[i]);
   MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
   
-  cout << " sum: " << sum * omega / ft.np012() << endl;
+  if ( ctxt.onpe0() )
+    cout << " sum: " << sum * omega / ft.np012() << endl;
   
   FourierTransform ft2(basis,2*basis.np(0),2*basis.np(1),2*basis.np(2));
   vector<complex<double> > f2(ft2.np012loc());
+  tm.reset();
+  tm.start();
   ft2.backward(&x[0],&f2[0]);
+  tm.stop();
   
   // integral in r space must be 1.0
   tsum = 0.0;
@@ -119,8 +131,14 @@ int main(int argc, char **argv)
     tsum += real(f2[i]);
   MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
   
+
+  cout << " " << 2*basis.np(0) << " " << 2*basis.np(1)
+       << " " << 2*basis.np(2) << " ";
+  cout << " bwd time: " << tm.cpu() << " / " << tm.real() 
+  << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
   cout << " sum on f2: " << sum * omega / ft2.np012() << endl;
   
+#if 0
   //////////////////////////////////////////////////////////////////////////////
   // Integration of a 2-norm normalized plane wave
   //////////////////////////////////////////////////////////////////////////////
@@ -183,38 +201,45 @@ int main(int argc, char **argv)
   
   cout << " sum gaussian^2: " << sum / ft.np012() << endl;
   
+#endif
+
   //////////////////////////////////////////////////////////////////////////////
   // Test forward transform
   //////////////////////////////////////////////////////////////////////////////
-  for ( int i = 0; i < ft.np0(); i++ )
-    for ( int j = 0; j < ft.np1(); j++ )
-      for ( int k = 0; k < ft.np2_loc(); k++ )
-         f[ft.index(i,j,k)] = cos(k*2*M_PI/ft.np2()) + sin(i*2*M_PI/ft.np0()) ;
-  ft.forward(&f[0],&x[0]);
+  for ( int i = 0; i < ft2.np0(); i++ )
+    for ( int j = 0; j < ft2.np1(); j++ )
+      for ( int k = 0; k < ft2.np2_loc(); k++ )
+         f2[ft2.index(i,j,k)] = cos(k*2*M_PI/ft2.np2()) + sin(i*2*M_PI/ft2.np0()) ;
+  ft2.forward(&f2[0],&x[0]);
 #if 0
   for ( int i = 0; i < basis.localsize(); i++ )
     cout << basis.kv(3*i) << " " << basis.kv(3*i+1) << " " << basis.kv(3*i+2)
          << "   x[G]= " << x[i] << endl;
 #endif
-         
   tm.reset();
   tm.start();
-  ft.forward(&f[0],&x[0]);
+  ft2.forward(&f2[0],&x[0]);
   tm.stop();
+  cout << " " << 2*basis.np(0) << " " << 2*basis.np(1)
+       << " " << 2*basis.np(2) << " ";
   cout << " fwd time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
 
   tm.reset();
   tm.start();
-  ft.backward(&x[0],&f[0]);
+  ft2.backward(&x[0],&f2[0]);
   tm.stop();
+  cout << " " << 2*basis.np(0) << " " << 2*basis.np(1)
+       << " " << 2*basis.np(2) << " ";
   cout << " bwd2 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
   
   tm.reset();
   tm.start();
-  ft.forward(&f[0],&x[0]);
+  ft2.forward(&f2[0],&x[0]);
   tm.stop();
+  cout << " " << 2*basis.np(0) << " " << 2*basis.np(1)
+       << " " << 2*basis.np(2) << " ";
   cout << " fwd2 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
 

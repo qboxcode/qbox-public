@@ -3,7 +3,7 @@
 // FourierTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.h,v 1.7 2004-08-11 17:56:24 fgygi Exp $
+// $Id: FourierTransform.h,v 1.8 2004-10-04 18:38:24 fgygi Exp $
 
 #ifndef FOURIERTRANSFORM_H
 #define FOURIERTRANSFORM_H
@@ -15,6 +15,8 @@ using namespace std;
 #if USE_FFTW
 #include "fftw.h"
 #endif
+
+#include "Timer.h"
 
 class Basis;
 class Context;
@@ -102,5 +104,8 @@ class FourierTransform
   int index(int i, int j, int k) const
   { return i + np0_ * ( j +  np1_ * k ); } 
 
+  void reset_timers(void);
+  Timer tm_f_map, tm_f_fft, tm_f_pack, tm_f_mpi, tm_f_zero, tm_f_unpack,
+        tm_b_map, tm_b_fft, tm_b_pack, tm_b_mpi, tm_b_zero, tm_b_unpack;
 };
 #endif

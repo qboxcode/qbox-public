@@ -3,15 +3,13 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.12 2004-08-11 17:56:24 fgygi Exp $
+// $Id: FourierTransform.C,v 1.13 2004-10-04 18:38:24 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
 #include "FourierTransform.h"
 #include "Basis.h"
 #include "Context.h"
-
-#include "Timer.h"
 
 #include <complex>
 #include <algorithm>
@@ -452,13 +450,11 @@ FourierTransform::FourierTransform (const Basis &basis,
 void FourierTransform::backward(const complex<double>* c, complex<double>* f)
 {
 #if TIMING
-  Timer t_map;
-  t_map.start();
+  tm_b_map.start();
 #endif
   vector_to_zvec(c);
 #if TIMING
-  t_map.stop();
-  cout << "backward: map_to_zvec=" << t_map.real() << endl;
+  tm_b_map.stop();
 #endif
   bwd(f);
 }
@@ -467,7 +463,13 @@ void FourierTransform::backward(const complex<double>* c, complex<double>* f)
 void FourierTransform::forward(complex<double>* f, complex<double>* c)
 {
   fwd(f);
+#if TIMING
+  tm_f_map.start();
+#endif
   zvec_to_vector(c);
+#if TIMING
+  tm_f_map.stop();
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -475,7 +477,13 @@ void FourierTransform::backward(const complex<double>* c1,
                                const complex<double>* c2,
                                complex<double>* f)
 {
+#if TIMING
+  tm_b_map.start();
+#endif
   doublevector_to_zvec(c1,c2);
+#if TIMING
+  tm_b_map.stop();
+#endif
   bwd(f);
 }
 
@@ -484,7 +492,13 @@ void FourierTransform::forward(complex<double>* f,
   complex<double>* c1, complex<double>* c2)
 {
   fwd(f);
+#if TIMING
+  tm_f_map.start();
+#endif
   zvec_to_doublevector(c1,c2);
+#if TIMING
+  tm_f_map.stop();
+#endif
 }
   
 ////////////////////////////////////////////////////////////////////////////////
@@ -499,8 +513,7 @@ void FourierTransform::bwd(complex<double>* val)
   // except for (0,0)
 
 #if TIMING
-  Timer t_fft, t_pack, t_mpi, t_zero, t_unpack;
-  t_fft.start();
+  tm_b_fft.start();
 #endif
 
 #if USE_ESSL
@@ -536,8 +549,8 @@ void FourierTransform::bwd(complex<double>* val)
 #endif
   
 #if TIMING
-  t_fft.stop();
-  t_pack.start();
+  tm_b_fft.stop();
+  tm_b_pack.start();
 #endif
   
   // scatter zvec_ to sbuf for transpose
@@ -568,8 +581,8 @@ void FourierTransform::bwd(complex<double>* val)
   // segments of z-vectors are now in sbuf
   
 #if TIMING
-  t_pack.stop();
-  t_mpi.start();
+  tm_b_pack.stop();
+  tm_b_mpi.start();
 #endif
 
   // transpose
@@ -588,8 +601,8 @@ void FourierTransform::bwd(complex<double>* val)
 #endif
   
 #if TIMING
-  t_mpi.stop();
-  t_zero.start();
+  tm_b_mpi.stop();
+  tm_b_zero.start();
 #endif
 
   // copy from rbuf to val
@@ -605,8 +618,8 @@ void FourierTransform::bwd(complex<double>* val)
   }
   
 #if TIMING
-  t_zero.stop();
-  t_unpack.start();
+  tm_b_zero.stop();
+  tm_b_unpack.start();
 #endif
 
 #if USE_GATHER_SCATTER
@@ -635,8 +648,8 @@ void FourierTransform::bwd(complex<double>* val)
 #endif
   
 #if TIMING
-  t_unpack.stop();
-  t_fft.start();
+  tm_b_unpack.stop();
+  tm_b_fft.start();
 #endif
 
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
@@ -748,19 +761,16 @@ void FourierTransform::bwd(complex<double>* val)
   } // for k
   
 #if TIMING
-  t_fft.stop();
-  cout << " bwd: fft=" << t_fft.real() << " pack=" << t_pack.real()
-  << " mpi=" << t_mpi.real() << " zero=" << t_zero.real()
-  << " unpack=" << t_unpack.real() << endl;
-  cout << " fwd: zvec_.size()=" << zvec_.size() << " rbuf.size()="
-  << rbuf.size() << " sbuf.size()=" << sbuf.size() << endl;
+  tm_b_fft.stop();
 #endif
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void FourierTransform::fwd(complex<double>* val)
 {
+#if TIMING
+  tm_f_fft.start();
+#endif
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
     // transform along x for non-zero vectors only
@@ -871,6 +881,10 @@ void FourierTransform::fwd(complex<double>* val)
   } // for k
   
   // gather val into rbuf
+#if TIMING
+  tm_f_fft.stop();
+  tm_f_pack.start();
+#endif
 
 #if USE_GATHER_SCATTER
   // zgthr: x(i) = y(indx(i))
@@ -897,6 +911,10 @@ void FourierTransform::fwd(complex<double>* val)
 #endif
   
   // transpose
+#if TIMING
+  tm_f_pack.stop();
+  tm_f_mpi.start();
+#endif
 #if USE_MPI
   int status = MPI_Alltoallv((double*)&rbuf[0],&rcounts[0],&rdispl[0],
       MPI_DOUBLE,(double*)&sbuf[0],&scounts[0],&sdispl[0],MPI_DOUBLE,
@@ -909,6 +927,10 @@ void FourierTransform::fwd(complex<double>* val)
   
   // segments of z-vectors are now in sbuf
   // gather sbuf into zvec_
+#if TIMING
+  tm_f_mpi.stop();
+  tm_f_unpack.start();
+#endif
   
 #if USE_GATHER_SCATTER
   // zgthr: x(i) = y(indx(i))
@@ -935,6 +957,10 @@ void FourierTransform::fwd(complex<double>* val)
 #endif
 
   // transform along z
+#if TIMING
+  tm_f_unpack.stop();
+  tm_f_fft.start();
+#endif
   
 #if USE_ESSL
   int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = 1, initflag = 0;
@@ -970,7 +996,10 @@ void FourierTransform::fwd(complex<double>* val)
   int idir = 1;
   cfftm ( &zvec_[0], &zvec_[0], scale, ntrans, length, ainc, ajmp, idir );
 #endif
-  
+
+#if TIMING
+  tm_f_fft.stop();
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1426,3 +1455,23 @@ void fftstp ( int idir, complex<double> *zin, int after,
   }
 }
 #endif
+
+////////////////////////////////////////////////////////////////////////////////
+void FourierTransform::reset_timers(void)
+{
+#if TIMING
+  tm_f_map.reset();
+  tm_f_fft.reset();
+  tm_f_pack.reset();
+  tm_f_mpi.reset();
+  tm_f_zero.reset();
+  tm_f_unpack.reset();
+
+  tm_b_map.reset();
+  tm_b_fft.reset();
+  tm_b_pack.reset();
+  tm_b_mpi.reset();
+  tm_b_zero.reset();
+  tm_b_unpack.reset();
+#endif
+}

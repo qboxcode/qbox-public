@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.41 2004-11-10 22:43:39 fgygi Exp $
+// $Id: qb.C,v 1.42 2004-12-02 22:22:19 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -45,6 +45,8 @@ using namespace std;
 #include "CellDyn.h"
 #include "CellLock.h"
 #include "CellMass.h"
+#include "ChargeMixCoeff.h"
+#include "ChargeMixRcut.h"
 #include "Debug.h"
 #include "Ecut.h"
 #include "Ecutprec.h"
@@ -206,6 +208,8 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Cell(s));
   ui.addVar(new CellDyn(s));
   ui.addVar(new CellLock(s));
+  ui.addVar(new ChargeMixCoeff(s));
+  ui.addVar(new ChargeMixRcut(s));
   ui.addVar(new CellMass(s));
   ui.addVar(new Debug(s));
   ui.addVar(new Ecut(s));

@@ -3,7 +3,7 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.8 2004-09-14 22:24:11 fgygi Exp $
+// $Id: Control.h,v 1.9 2004-12-02 22:20:23 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -46,6 +46,9 @@ struct Control
 
   double dt;
   int iprint;
-  int timeout; 
+  int timeout;
+  
+  double charge_mix_coeff;
+  double charge_mix_rcut;
 };
 #endif

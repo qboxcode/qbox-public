@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.40 2004-09-14 22:24:11 fgygi Exp $
+// $Id: qb.C,v 1.41 2004-11-10 22:43:39 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -65,6 +65,10 @@ using namespace std;
 #include "WfDyn.h"
 #include "Xc.h"
 
+#if BGLDEBUG
+#include <rts.h>
+#endif
+
 int main(int argc, char **argv, char **envp)
 {
   Timer tm;
@@ -72,6 +76,21 @@ int main(int argc, char **argv, char **envp)
 
 #if USE_MPI
   MPI_Init(&argc,&argv);
+#endif
+
+#if BGLDEBUG
+  {
+    int myrank,mysize;
+    BGLPersonality personality;
+    rts_get_personality (&personality, sizeof(personality));
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mysize);
+    cout << myrank << ": at "
+         << personality.xCoord << " "
+         << personality.yCoord << " "
+         << personality.zCoord << endl;
+  }
 #endif
 
   {
@@ -208,11 +227,10 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new WfDyn(s));
   ui.addVar(new Xc(s));
   
-  bool echo = !isatty(0);
-  
   if ( argc == 2 )
   {
     // input file was given as a command line argument
+    bool echo = true;
     ifstream in;
     if ( ctxt.onpe0() )
     {
@@ -223,6 +241,7 @@ int main(int argc, char **argv, char **envp)
   else
   {
     // use standard input
+    bool echo = !isatty(0);
     ui.processCmds(cin, "[qbox]", echo);
   }
 

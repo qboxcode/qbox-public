@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.30 2004-10-28 17:33:17 fgygi Exp $
+# $Id: Makefile,v 1.31 2004-12-02 22:25:07 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -27,13 +27,16 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
         PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
         SDCellStepper.o ConfinementPotential.o Preconditioner.o \
-        release.o qbox_xmlns.o isodate.o $(PLTOBJECTS)
+        release.o qbox_xmlns.o isodate.o \
+        AndersonMixer.o $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
  qb:    $(OBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  lib:   $(OBJECTS)
 	ar cr libqb.a $^
  SamplePrint: SamplePrint.o SamplePrintHandlers.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testAndersonMixer: testAndersonMixer.o AndersonMixer.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSample: testSample.o AtomSet.o Atom.o Species.o \
         Wavefunction.o SlaterDet.o \
@@ -134,6 +137,8 @@ SampleStepper.o EnergyFunctional.o
 #------------------------------------------------------------------------------
 # DO NOT DELETE
 
+AndersonMixer.o: AndersonMixer.h Context.h blas.h
+AndersonMixer.o: Context.h
 Atom.o: Atom.h D3vector.h
 AtomCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 AtomCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
@@ -156,6 +161,7 @@ BOSampleStepper.o: Matrix.h WavefunctionStepper.h SDWavefunctionStepper.h
 BOSampleStepper.o: PSDWavefunctionStepper.h PSDAWavefunctionStepper.h
 BOSampleStepper.o: SDIonicStepper.h IonicStepper.h MDIonicStepper.h
 BOSampleStepper.o: SDCellStepper.h CellStepper.h Preconditioner.h
+BOSampleStepper.o: AndersonMixer.h
 BOSampleStepper.o: SampleStepper.h Sample.h AtomSet.h Context.h Atom.h
 BOSampleStepper.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
 BOSampleStepper.o: Timer.h EnergyFunctional.h ChargeDensity.h
@@ -175,6 +181,10 @@ ChargeDensity.o: ChargeDensity.h Timer.h Context.h Basis.h D3vector.h
 ChargeDensity.o: UnitCell.h Wavefunction.h FourierTransform.h SlaterDet.h
 ChargeDensity.o: Matrix.h
 ChargeDensity.o: Timer.h Context.h
+ChargeMixCoeff.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
+ChargeMixCoeff.o: Wavefunction.h UnitCell.h Control.h
+ChargeMixRcut.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
+ChargeMixRcut.o: Wavefunction.h UnitCell.h Control.h
 ConfinementPotential.o: ConfinementPotential.h Basis.h D3vector.h UnitCell.h
 Context.o: Context.h
 CPSampleStepper.o: CPSampleStepper.h SampleStepper.h Sample.h AtomSet.h
@@ -282,10 +292,10 @@ qb.o: AtomSet.h Atom.h D3vector.h Species.h Wavefunction.h UnitCell.h
 qb.o: Control.h Timer.h AtomCmd.h HelpCmd.h ListAtomsCmd.h ListSpeciesCmd.h
 qb.o: LoadCmd.h PrintCmd.h QuitCmd.h RandomizeWfCmd.h RunCmd.h SaveCmd.h
 qb.o: SetCmd.h SpeciesCmd.h StatusCmd.h AtomsDyn.h Cell.h CellDyn.h
-qb.o: SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h Debug.h Ecut.h
-qb.o: Ecutprec.h Ecuts.h Emass.h ExtStress.h FermiTemp.h Dt.h Nempty.h
-qb.o: Nrowmax.h RefCell.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h
-qb.o: WfDiag.h WfDyn.h Xc.h
+qb.o: SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h ChargeMixCoeff.h
+qb.o: ChargeMixRcut.h Debug.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h
+qb.o: FermiTemp.h Dt.h Nempty.h Nrowmax.h RefCell.h Stress.h Thermostat.h
+qb.o: ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
@@ -360,6 +370,7 @@ Stress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 Stress.o: Wavefunction.h UnitCell.h Control.h
 StructuredDocumentHandler.o: StrX.h StructureHandler.h
 StructureFactor.o: StructureFactor.h Basis.h D3vector.h UnitCell.h
+testAndersonMixer.o: Context.h AndersonMixer.h
 testBase64Transcoder.o: Base64Transcoder.h
 testBasis.o: Basis.h D3vector.h UnitCell.h Context.h
 testChargeDensity.o: Context.h Wavefunction.h D3vector.h UnitCell.h

@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.27 2004-09-14 22:24:11 fgygi Exp $
+# $Id: Makefile,v 1.28 2004-10-04 18:44:29 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -141,9 +141,6 @@ AtomsDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 AtomsDyn.o: Wavefunction.h UnitCell.h Control.h
 AtomSet.o: AtomSet.h Context.h Atom.h D3vector.h Species.h NameOf.h
 AtomSet.o: Context.h Atom.h D3vector.h Species.h
-AtomSetHandler.o: AtomSetHandler.h StructureHandler.h D3vector.h AtomSet.h
-AtomSetHandler.o: Context.h Atom.h Species.h SpeciesHandler.h SpeciesReader.h
-AtomSetHandler.o: StrX.h
 AtomSetHandler.o: StructureHandler.h D3vector.h
 Base64Transcoder.o: Base64Transcoder.h
 Basis.o: Basis.h D3vector.h UnitCell.h Context.h
@@ -174,8 +171,8 @@ CellMass.o: Wavefunction.h UnitCell.h Control.h
 CellStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 CellStepper.o: Wavefunction.h UnitCell.h Control.h
 ChargeDensity.o: ChargeDensity.h Context.h Basis.h D3vector.h UnitCell.h
-ChargeDensity.o: Wavefunction.h FourierTransform.h SlaterDet.h Matrix.h
-ChargeDensity.o: Timer.h
+ChargeDensity.o: Wavefunction.h FourierTransform.h Timer.h SlaterDet.h
+ChargeDensity.o: Matrix.h
 ChargeDensity.o: Context.h
 ConfinementPotential.o: ConfinementPotential.h Basis.h D3vector.h UnitCell.h
 Context.o: Context.h
@@ -214,8 +211,9 @@ ExtStress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 ExtStress.o: Wavefunction.h UnitCell.h Control.h
 FermiTemp.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 FermiTemp.o: Wavefunction.h UnitCell.h Control.h
-FourierTransform.o: FourierTransform.h Basis.h D3vector.h UnitCell.h
-FourierTransform.o: Context.h Timer.h
+FourierTransform.o: FourierTransform.h Timer.h Basis.h D3vector.h UnitCell.h
+FourierTransform.o: Context.h
+FourierTransform.o: Timer.h
 HelpCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 HelpCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 IonicStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
@@ -304,16 +302,11 @@ RunCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 RunCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 Sample.o: AtomSet.h Context.h Atom.h D3vector.h Species.h Wavefunction.h
 Sample.o: UnitCell.h Control.h
-SampleHandler.o: SampleHandler.h StructureHandler.h Sample.h AtomSet.h
-SampleHandler.o: Context.h Atom.h D3vector.h Species.h Wavefunction.h
-SampleHandler.o: UnitCell.h Control.h AtomSetHandler.h WavefunctionHandler.h
-SampleHandler.o: SlaterDet.h Basis.h Matrix.h Timer.h StrX.h
 SampleHandler.o: StructureHandler.h
 SampleReader.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 SampleReader.o: Wavefunction.h UnitCell.h Control.h SampleReader.h
-SampleReader.o: SpeciesReader.h StructuredDocumentHandler.h StrX.h
-SampleReader.o: StructureHandler.h SampleHandler.h Basis.h FourierTransform.h
-SampleReader.o: SlaterDet.h Matrix.h Timer.h XMLGFPreprocessor.h
+SampleReader.o: SpeciesReader.h Basis.h FourierTransform.h Timer.h
+SampleReader.o: SlaterDet.h Matrix.h XMLGFPreprocessor.h
 SampleReader.o: Context.h
 SampleStepper.o: SampleStepper.h Sample.h AtomSet.h Context.h Atom.h
 SampleStepper.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
@@ -346,7 +339,7 @@ SetCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SetCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 sinft.o: sinft.h
 SlaterDet.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h Matrix.h
-SlaterDet.o: Timer.h FourierTransform.h blas.h
+SlaterDet.o: Timer.h FourierTransform.h blas.h Base64Transcoder.h
 SlaterDet.o: Context.h Basis.h D3vector.h UnitCell.h Matrix.h Timer.h
 Species.o: Species.h Context.h spline.h sinft.h
 SpeciesCmd.o: SpeciesCmd.h UserInterface.h Sample.h AtomSet.h Context.h
@@ -355,12 +348,8 @@ SpeciesCmd.o: SpeciesReader.h
 SpeciesCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SpeciesCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 Species.o: Context.h
-SpeciesHandler.o: SpeciesHandler.h StructureHandler.h Species.h Context.h
-SpeciesHandler.o: StrX.h
 SpeciesHandler.o: StructureHandler.h
 SpeciesReader.o: Species.h Context.h SpeciesReader.h
-SpeciesReader.o: StructuredDocumentHandler.h StrX.h StructureHandler.h
-SpeciesReader.o: SpeciesHandler.h
 SpeciesReader.o: Context.h
 SpeciesReaderHandler.o: SpeciesReaderHandler.h Species.h Context.h StrX.h
 SpeciesReaderHandler.o: Species.h Context.h StrX.h
@@ -369,10 +358,9 @@ StatusCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 StatusCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 Stress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 Stress.o: Wavefunction.h UnitCell.h Control.h
-StructuredDocumentHandler.o: StructuredDocumentHandler.h StrX.h
-StructuredDocumentHandler.o: StructureHandler.h
 StructuredDocumentHandler.o: StrX.h StructureHandler.h
 StructureFactor.o: StructureFactor.h Basis.h D3vector.h UnitCell.h
+testBase64Transcoder.o: Base64Transcoder.h
 testBasis.o: Basis.h D3vector.h UnitCell.h Context.h
 testChargeDensity.o: Context.h Wavefunction.h D3vector.h UnitCell.h
 testChargeDensity.o: ChargeDensity.h SlaterDet.h Basis.h Matrix.h Timer.h
@@ -423,9 +411,6 @@ UserInterface.o: UserInterface.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SlaterDet.h Context.h
 Wavefunction.o: Basis.h Matrix.h Timer.h
 Wavefunction.o: D3vector.h UnitCell.h
-WavefunctionHandler.o: WavefunctionHandler.h StructureHandler.h UnitCell.h
-WavefunctionHandler.o: D3vector.h Wavefunction.h SlaterDet.h Context.h
-WavefunctionHandler.o: Basis.h Matrix.h Timer.h FourierTransform.h StrX.h
 WavefunctionHandler.o: StructureHandler.h UnitCell.h D3vector.h
 WavefunctionHandler.o: Wavefunction.h SlaterDet.h Context.h Basis.h Matrix.h
 WavefunctionHandler.o: Timer.h
@@ -443,7 +428,7 @@ Xc.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h Wavefunction.h
 Xc.o: UnitCell.h Control.h
 XCPotential.o: XCPotential.h ChargeDensity.h Context.h LDAFunctional.h
 XCPotential.o: XCFunctional.h PBEFunctional.h BLYPFunctional.h Basis.h
-XCPotential.o: D3vector.h UnitCell.h FourierTransform.h blas.h
+XCPotential.o: D3vector.h UnitCell.h FourierTransform.h Timer.h blas.h
 XCPotential.o: ChargeDensity.h Context.h LDAFunctional.h XCFunctional.h
 XCPotential.o: PBEFunctional.h BLYPFunctional.h
 xmlextract.o: StrX.h

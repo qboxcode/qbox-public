@@ -3,7 +3,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.5 2004-04-20 22:09:46 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.6 2004-05-03 19:14:08 fgygi Exp $
 
 #include "MDIonicStepper.h"
 
@@ -18,7 +18,6 @@ void MDIonicStepper::compute_rp(const vector<vector< double> >& f0)
   atoms_.get_velocities(v0_);
   for ( int is = 0; is < v0_.size(); is++ )
   {
-    const double dt2bym = dt_ * dt_ / pmass_[is];
     const double dtby2m = dt_ / ( 2.0 * pmass_[is] );
     if ( dt_ != 0.0 )
     {
@@ -42,17 +41,24 @@ void MDIonicStepper::compute_rp(const vector<vector< double> >& f0)
       cout << "  <!-- Thermostat: tref=" << th_temp_ << " -->" << endl;
       cout << "  <!-- Thermostat: eta=" << eta_ << " -->" << endl;
     }
+    
+    const double fac = (1.0 - eta_ * dt_);
+    for ( int is = 0; is < r0_.size(); is++ )
+    {
+      for ( int i = 0; i < r0_[is].size(); i++ )
+      {
+        vhalf_[is][i] *= fac;
+      }
+    }
   }
  
   // compute rp
   atoms_.get_positions(r0_);
   for ( int is = 0; is < r0_.size(); is++ )
   {
-    const double dt2by2m = dt_ * dt_ / ( 2.0 * pmass_[is] );
     for ( int i = 0; i < r0_[is].size(); i++ )
     {
-      rp_[is][i] = r0_[is][i] +
-        (1.0 - dt_*eta_) * v0_[is][i] * dt_ + dt2by2m * f0[is][i];
+      rp_[is][i] = r0_[is][i] + vhalf_[is][i] * dt_;
     }
   }
 }

@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.10 2003-05-23 21:51:04 fgygi Exp $
+// $Id: Basis.C,v 1.11 2003-11-20 20:30:26 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -379,12 +379,6 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
     cout << " Basis::resize: warning: " << kpoint_
          << " out of the BZ: " << kp << endl;
 
-  const double two_e = norm(kp);
-  
-  const double b0kp = b0 * kp;
-  const double b1kp = b1 * kp;
-  const double b2kp = b2 * kp;
-  
   const double fac = sqrt(two_ecut) / twopi;
 
   // define safe enclosing domain  

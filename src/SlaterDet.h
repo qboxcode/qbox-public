@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.15 2004-03-11 21:52:32 fgygi Exp $
+// $Id: SlaterDet.h,v 1.16 2004-04-17 01:15:24 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -64,6 +64,9 @@ class SlaterDet
   void reset(void);
   void gram(void);
   void riccati(SlaterDet& sd);
+  void lowdin(void);
+  void align(const SlaterDet& sd);
+  void ortho_align(const SlaterDet& sd);
   double dot(const SlaterDet& sd) const;
   double total_charge(void);
   void update_occ(int nel, int nspin);

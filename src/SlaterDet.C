@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.24 2004-03-11 21:46:46 fgygi Exp $
+// $Id: SlaterDet.C,v 1.25 2004-04-17 01:15:24 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -458,6 +458,291 @@ void SlaterDet::riccati(SlaterDet& sd)
   tmap["riccati"].stop();
 }
   
+////////////////////////////////////////////////////////////////////////////////
+void SlaterDet::lowdin(void)
+{
+  tmap["lowdin"].start();
+  // Higham algorithm for polar decomposition
+  if ( basis_.real() )
+  {
+    ComplexMatrix c_tmp(c_);
+    DoubleMatrix c_proxy(c_);
+    DoubleMatrix c_tmp_proxy(c_tmp);
+    DoubleMatrix l(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    
+    l.clear();
+    l.syrk('l','t',2.0,c_proxy,0.0); 
+    l.syr('l',-1.0,c_proxy,0,'r');
+    
+    //cout << "SlaterDet::lowdin: A=\n" << l << endl;
+    
+    // Cholesky decomposition of A=Y^T Y
+    l.potrf('l');
+    // The lower triangle of l now contains the Cholesky factor of Y^T Y
+
+    //cout << "SlaterDet::lowdin: L=\n" << l << endl;
+    
+    // Compute the polar decomposition of R = L^T
+
+    x.transpose(1.0,l,0.0);
+    // x now contains R
+    //cout << "SlaterDet::lowdin: R=\n" << x << endl;
+    
+    double diff = 1.0;
+    const double epsilon = 1.e-10;
+    const int maxiter = 20;
+    int iter = 0;
+ 
+    while ( iter < maxiter && diff > epsilon )
+    {
+      // t = X^T
+      t.transpose(1.0,x,0.0);
+      t.inverse();
+      
+      // t now contains X^-T
+      
+      // xp = 0.5 * ( x + x^-T );
+      for ( int i = 0; i < x.size(); i++ )
+        xp[i] = 0.5 * ( x[i] + t[i] );
+      
+ 
+      // Next lines: use t as temporary to compute || x - xp ||_F
+      for ( int i = 0; i < t.size(); i++ )
+        t[i] = x[i] - xp[i];
+ 
+      diff = t.nrm2();
+      
+      //cout << " SlaterDet::lowdin: diff=" << diff << endl;
+      
+      x = xp;
+      //cout << "SlaterDet::lowdin: X=\n" << x << endl;
+ 
+      iter++;
+    }
+    
+    // x now contains the orthogonal polar factor U of the 
+    // polar decomposition R = UH
+    
+    //cout << " SlaterDet::lowdin: orthogonal polar factor=\n" << x << endl;
+    
+    // Compute L^-1
+    l.trtri('l','n');
+    // l now contains L^-1
+    
+    // Form the product L^-T U
+    t.gemm('t','n',1.0,l,x,0.0);
+    
+    // Multiply c by L^-T U
+    c_proxy.gemm('n','n',1.0,c_tmp_proxy,t,0.0);
+    
+  }
+  else
+  { 
+    // complex case: not implemented
+    assert(false);
+  }
+    
+  tmap["lowdin"].stop();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void SlaterDet::ortho_align(const SlaterDet& sd)
+{
+  tmap["ortho_align"].start();
+  // Orthogonalize *this and align with sd
+  // Higham algorithm for polar decomposition
+  if ( basis_.real() )
+  {
+    ComplexMatrix c_tmp(c_);
+    DoubleMatrix c_proxy(c_);
+    DoubleMatrix sdc_proxy(sd.c());
+    DoubleMatrix c_tmp_proxy(c_tmp);
+    DoubleMatrix l(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    
+    l.clear();
+    l.syrk('l','t',2.0,c_proxy,0.0); 
+    l.syr('l',-1.0,c_proxy,0,'r');
+    
+    //cout << "SlaterDet::ortho_align: A=\n" << l << endl;
+    
+    // Cholesky decomposition of A=Y^T Y
+    l.potrf('l');
+    // The lower triangle of l now contains the Cholesky factor of Y^T Y
+
+    //cout << "SlaterDet::ortho_align: L=\n" << l << endl;
+    
+    // Compute the polar decomposition of L^-1 B
+    // where B = C^T sd.C
+    
+    // Compute B: store result in x
+    // factor -2.0 in next line: G and -G
+    x.gemm('t','n',2.0,c_proxy,sdc_proxy,0.0);
+    // rank-1 update using first row of sdc_proxy() and c_proxy
+    x.ger(-1.0,c_proxy,0,sdc_proxy,0);
+    
+    // Form the product L^-1 B, store result in x
+    // triangular solve: L X = B
+    // trtrs: solve op(*this) * X = Z, output in Z
+    l.trtrs('l','n','n',x);
+    // x now contains L^-1 B
+
+    //cout << "SlaterDet::ortho_align: L^-1 B=\n" << x << endl;
+    
+    // compute the polar decomposition of L^-1 B
+    double diff = 1.0;
+    const double epsilon = 1.e-10;
+    const int maxiter = 20;
+    int iter = 0;
+ 
+    while ( iter < maxiter && diff > epsilon )
+    {
+      // t = X^T
+      t.transpose(1.0,x,0.0);
+      t.inverse();
+      
+      // t now contains X^-T
+      
+      // xp = 0.5 * ( x + x^-T );
+      for ( int i = 0; i < x.size(); i++ )
+        xp[i] = 0.5 * ( x[i] + t[i] );
+      
+ 
+      // Next lines: use t as temporary to compute || x - xp ||_F
+      for ( int i = 0; i < t.size(); i++ )
+        t[i] = x[i] - xp[i];
+ 
+      diff = t.nrm2();
+      
+      //cout << " SlaterDet::ortho_align: diff=" << diff << endl;
+      
+      x = xp;
+      //cout << "SlaterDet::ortho_align: X=\n" << x << endl;
+ 
+      iter++;
+    }
+    
+    // x now contains the orthogonal polar factor X of the 
+    // polar decomposition L^-1 B = XH
+    
+    //cout << " SlaterDet::ortho_align: orthogonal polar factor=\n" << x << endl;
+    
+    // Form the product L^-T Q
+    // Solve trans(L) Z = X
+    l.trtrs('l','t','n',x);
+    
+    // x now contains L^-T Q
+    
+    // Multiply c by L^-T Q
+    c_proxy.gemm('n','n',1.0,c_tmp_proxy,x,0.0);
+    
+  }
+  else
+  { 
+    // complex case: not implemented
+    assert(false);
+  }
+    
+  tmap["ortho_align"].stop();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void SlaterDet::align(const SlaterDet& sd)
+{
+  tmap["align"].start();
+  // Align *this with sd
+  // Higham algorithm for polar decomposition
+  if ( basis_.real() )
+  {
+    ComplexMatrix c_tmp(c_);
+    DoubleMatrix c_proxy(c_);
+    DoubleMatrix sdc_proxy(sd.c());
+    DoubleMatrix c_tmp_proxy(c_tmp);
+    DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    
+    
+    // Compute the polar decomposition of B
+    // where B = C^T sd.C
+    
+    // Compute B: store result in x
+    // factor -2.0 in next line: G and -G
+    x.gemm('t','n',2.0,c_proxy,sdc_proxy,0.0);
+    // rank-1 update using first row of sdc_proxy() and c_proxy
+    x.ger(-1.0,c_proxy,0,sdc_proxy,0);
+    
+    // x now contains B
+
+    //cout << "SlaterDet::align: B=\n" << x << endl;
+    
+    // Compute the distance | c - sdc | before alignment
+    for ( int i = 0; i < c_proxy.size(); i++ )
+      c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
+    cout << " SlaterDet::align: distance before: "<< c_tmp_proxy.nrm2() << endl;
+    
+    // compute the polar decomposition of B
+    double diff = 1.0;
+    const double epsilon = 1.e-10;
+    const int maxiter = 20;
+    int iter = 0;
+ 
+    while ( iter < maxiter && diff > epsilon )
+    {
+      // t = X^T
+      t.transpose(1.0,x,0.0);
+      t.inverse();
+      
+      // t now contains X^-T
+      
+      // xp = 0.5 * ( x + x^-T );
+      for ( int i = 0; i < x.size(); i++ )
+        xp[i] = 0.5 * ( x[i] + t[i] );
+      
+ 
+      // Next lines: use t as temporary to compute || x - xp ||_F
+      for ( int i = 0; i < t.size(); i++ )
+        t[i] = x[i] - xp[i];
+ 
+      diff = t.nrm2();
+      
+      //cout << " SlaterDet::align: diff=" << diff << endl;
+      
+      x = xp;
+      //cout << "SlaterDet::align: X=\n" << x << endl;
+ 
+      iter++;
+    }
+    
+    // x now contains the orthogonal polar factor X of the 
+    // polar decomposition B = XH
+    
+    //cout << " SlaterDet::align: orthogonal polar factor=\n" << x << endl;
+        
+    // Multiply c by X
+    c_tmp_proxy = c_proxy;
+    c_proxy.gemm('n','n',1.0,c_tmp_proxy,x,0.0);
+    
+    // Compute the distance | c - sdc | after alignment
+    for ( int i = 0; i < c_proxy.size(); i++ )
+      c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
+    cout << " SlaterDet::align: distance after:  "<< c_tmp_proxy.nrm2() << endl;
+    
+  }
+  else
+  { 
+    // complex case: not implemented
+    assert(false);
+  }
+    
+  tmap["align"].stop();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 double SlaterDet::dot(const SlaterDet& sd) const
 {

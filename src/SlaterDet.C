@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.20 2003-11-21 19:12:09 fgygi Exp $
+// $Id: SlaterDet.C,v 1.21 2003-11-27 01:15:51 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -468,6 +468,40 @@ void SlaterDet::riccati(SlaterDet& sd)
   tmap["riccati"].stop();
 }
   
+////////////////////////////////////////////////////////////////////////////////
+double SlaterDet::dot(const SlaterDet& sd) const
+{
+  // dot product of Slater determinants: dot = tr (V^T W)
+  if ( basis_.real() )
+  {
+    // DoubleMatrix proxy for c_ and sd.c()
+    const DoubleMatrix c_proxy(c_);
+    const DoubleMatrix sdc_proxy(sd.c());
+    // factor 2.0: G and -G
+    double d = 2.0 * c_proxy.dot(sdc_proxy);
+    
+    // correct double counting of first element
+    double sum = 0.0;
+    if ( ctxt_.myrow() == 0 )
+    {
+      // compute the scalar product of the first rows of c_ and sd.c_
+      const double *c = c_proxy.cvalptr(0);
+      const double *sdc = sdc_proxy.cvalptr(0);
+      int len = c_proxy.nloc();
+      // stride of scalar product is mloc
+      int stride = c_proxy.mloc();
+      sum = ddot_(&len,c,&stride,sdc,&stride);
+    }
+    ctxt_.dsum(1,1,&sum,1);
+    return d - sum;
+  }
+  else
+  {
+    assert(false);
+    return 0.0;
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::update_occ(int nel, int nspin)
 {

@@ -3,7 +3,7 @@
 //  BLAS Header file
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: blas.h,v 1.1 2003-01-10 00:38:46 fgygi Exp $
+// $Id: blas.h,v 1.2 2003-11-27 01:16:34 fgygi Exp $
 
 #ifndef BLAS_H
 #define BLAS_H
@@ -80,8 +80,8 @@ void zcopy_(int *n, complex<double> *x, int *incx,
 complex<double> *y, int *incy );
 void daxpy_(int *n, double *alpha, double *x, int *incx,
 double *y, int *incy );
-double ddot_(int *n, double *a, int *inca, 
-double *b, int *incb);
+double ddot_(const int *n, const double *a, const int *inca, 
+const double *b, const int *incb);
 void drot_(int*, double*, int*, double*, int*, double*, double*);
 void dgemm_(char *ta, char *tb, int *m, int *n, int *k,
 double *alpha, double *a, int *lda, double *b, int *ldb,

@@ -3,13 +3,14 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.30 2004-10-15 18:02:54 fgygi Exp $
+// $Id: SlaterDet.C,v 1.31 2004-10-28 16:51:09 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
 #include "Context.h"
 #include "blas.h" // daxpy
 #include "Base64Transcoder.h"
+#include "Timer.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -23,7 +24,11 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt), 
 basis_(Context(ctxt,'c',ctxt.mycol()),kpoint), c_(ctxt)
-{}
+{
+  //cout << ctxt.mype() << ": SlaterDet::SlaterDet: ctxt.mycol="
+  //     << ctxt.mycol() << " basis_.context(): " 
+  //     << basis_.context() << basis_.context().comm() << endl;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const SlaterDet& rhs) : ctxt_(rhs.context()),
@@ -51,8 +56,6 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
   
   try
   {
-    tmap["resize"].start();
-    
     basis_.resize(cell,refcell,ecut);
     occ_.resize(nst);
     eig_.resize(nst);
@@ -70,8 +73,6 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
     
     if ( needs_reset )
       reset();
-    
-    tmap["resize"].stop();
   }
   catch ( bad_alloc )
   {
@@ -135,9 +136,9 @@ void SlaterDet::reset(void)
 void SlaterDet::compute_density(FourierTransform& ft, 
   double weight, double* rho) const
 {
+  //Timer tm_ft, tm_rhosum;
   // compute density of the states residing on my column of ctxt_
   assert(occ_.size() == c_.n());
-  tmap["density"].start();
   vector<complex<double> > tmp(ft.np012loc());
   
   assert(basis_.cell().volume() > 0.0);
@@ -159,10 +160,13 @@ void SlaterDet::compute_density(FourierTransform& ft,
       
       if ( fac1 + fac2 > 0.0 )
       {
+        //tm_ft.start();
         ft.backward(c_.cvalptr(n*c_.mloc()),
-                   c_.cvalptr((n+1)*c_.mloc()),&tmp[0]);
+                    c_.cvalptr((n+1)*c_.mloc()),&tmp[0]);
+        //tm_ft.stop();
         const double* psi = (double*) &tmp[0];
         int ii = 0;
+        //tm_rhosum.start();
         for ( int i = 0; i < np012loc; i++ )
         {
           const double psi1 = psi[ii];
@@ -170,6 +174,7 @@ void SlaterDet::compute_density(FourierTransform& ft,
           rho[i] += fac1 * psi1 * psi1 + fac2 * psi2 * psi2;
           ii++; ii++;
         }
+        //tm_rhosum.start();
       }
     }
     if ( nstloc() % 2 != 0 )
@@ -210,8 +215,10 @@ void SlaterDet::compute_density(FourierTransform& ft,
       }
     }
   }
-  
-  tmap["density"].stop();
+  // cout << "SlaterDet: compute_density: ft_bwd time: " 
+  //      << tm_ft.real() << endl;
+  // cout << "SlaterDet: compute_density: rhosum time: " 
+  //      << tm_rhosum.real() << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -221,7 +228,6 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
   // transform states to real space, multiply states by v[r] in real space
   // transform back to reciprocal space and add to sdp
   // sdp[n] += v * sd[n]
-  tmap["rs_mul_add"].start();
   
   vector<complex<double> > tmp(ft.np012loc());
   vector<complex<double> > ctmp(2*c_.mloc());
@@ -290,13 +296,11 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
     }
   }
   
-  tmap["rs_mul_add"].stop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::gram(void)
 {
-  tmap["gram"].start();
   if ( basis_.real() )
   {
     // k = 0 case
@@ -318,13 +322,11 @@ void SlaterDet::gram(void)
     // solve triangular system X * L^T = C
     c_.trsm('r','l','c','n',1.0,s);
   }
-  tmap["gram"].stop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::riccati(SlaterDet& sd)
 {
-  tmap["riccati"].start();
   if ( basis_.real() )
   {
     // k = 0 case
@@ -436,13 +438,11 @@ void SlaterDet::riccati(SlaterDet& sd)
     }
     c_.hemm('r','l',1.0,x,sd.c(),1.0);
   }
-  tmap["riccati"].stop();
 }
   
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::lowdin(void)
 {
-  tmap["lowdin"].start();
   // Higham algorithm for polar decomposition
   if ( basis_.real() )
   {
@@ -525,14 +525,11 @@ void SlaterDet::lowdin(void)
     // complex case: not implemented
     assert(false);
   }
-    
-  tmap["lowdin"].stop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::ortho_align(const SlaterDet& sd)
 {
-  tmap["ortho_align"].start();
   // Orthogonalize *this and align with sd
   // Higham algorithm for polar decomposition
   if ( basis_.real() )
@@ -628,14 +625,11 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     // complex case: not implemented
     assert(false);
   }
-    
-  tmap["ortho_align"].stop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::align(const SlaterDet& sd)
 {
-  tmap["align"].start();
   // Align *this with sd
   // Higham algorithm for polar decomposition
   if ( basis_.real() )
@@ -722,8 +716,6 @@ void SlaterDet::align(const SlaterDet& sd)
     // complex case: not implemented
     assert(false);
   }
-    
-  tmap["align"].stop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -880,7 +872,6 @@ double SlaterDet::entropy(int nspin)
 double SlaterDet::ortho_error(void)
 {
   // deviation from orthogonality of c_
-  tmap["ortho_error"].start();
   double error;
   if ( basis_.real() )
   {
@@ -907,7 +898,6 @@ double SlaterDet::ortho_error(void)
   }
   else
   {
-    tmap["ortho_error"].start();
     // k != 0 case
     
     ComplexMatrix s(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
@@ -920,7 +910,6 @@ double SlaterDet::ortho_error(void)
     
     error = s.nrm2();
   }
-  tmap["ortho_error"].stop();
   return error;
 }
 
@@ -1301,7 +1290,7 @@ void SlaterDet::info(ostream& os)
        << " size=\"" << nst() << "\">" << endl;
     os << " <!-- sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << " -->"
        << endl;
-    // os << " <!-- sdcontext: " << ctxt_ << " -->" << endl;
+    os << " <!-- sdcontext: " << ctxt_ << " -->" << endl;
     os << " <!-- basis size: " << basis_.size() << " -->" << endl;
     os << " <!-- c dimensions: "
        << c_.m() << "x" << c_.n()

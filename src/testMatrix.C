@@ -1,4 +1,4 @@
-// $Id: testMatrix.C,v 1.7 2004-10-28 16:58:22 fgygi Exp $
+// $Id: testMatrix.C,v 1.8 2004-11-30 23:00:09 fgygi Exp $
 //
 // test Matrix
 //
@@ -275,6 +275,18 @@ int main(int argc, char **argv)
     a -= a2;
     norm = a.nrm2();
     if (mype == 0) cout << "Norm(a)=" << norm << endl;
+
+    if ( ctxt.nprow() >= 2 )
+    {
+      Context subctxt(2,1);
+      DoubleMatrix csub(subctxt);
+      csub.resize(c.m(),c.n());
+      csub.getsub(c,c.m(),c.n(),0,0);
+      norm = c.nrm2();
+      if (mype == 0) cout << "Norm(c)=" << norm << endl;
+      norm = csub.nrm2();
+      if (mype == 0) cout << "Norm(csub)=" << norm << endl;
+    }
   }
 
 #ifdef USE_MPI

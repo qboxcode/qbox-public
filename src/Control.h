@@ -3,7 +3,7 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.3 2003-08-28 00:28:51 fgygi Exp $
+// $Id: Control.h,v 1.4 2003-11-21 19:12:59 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -14,6 +14,7 @@ struct Control
 {
   // control variables
   string wf_dyn, atoms_dyn, cell_dyn; // dynamics string flags 
+  int nite;
   string fermi;        // use Fermi distribution to fill states
   double ecutprec;
   double ecuts,sigmas,facs; // confinement energy parameters

@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.1 2003-11-27 01:30:31 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.2 2003-12-19 00:35:10 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -56,12 +56,14 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
  
             // Apply preconditioner K and store dt2bye*K(HV-VA) in dwf
  
-            const double g2i_prec = 0.5 / s_.ctrl.ecutprec;
+            const double g2i_prec = s_.ctrl.ecutprec > 0.0 ?
+                                    0.5 / s_.ctrl.ecutprec :
+                                    0.5 / wf_.ecut();
             const double* g2i_ptr = wf_.sd(ispin,ikp)->basis().g2i_ptr();
-            double* c = (double*) wf_.sd(ispin,ikp)->c().cvalptr();
-            double* c_last = (double*) wf_last_.sd(ispin,ikp)->c().cvalptr();
-            double* dc = (double*) dwf.sd(ispin,ikp)->c().cvalptr();
-            double* dc_last = (double*) dwf_last_.sd(ispin,ikp)->c().cvalptr();
+            double* c = (double*) wf_.sd(ispin,ikp)->c().valptr();
+            double* c_last = (double*) wf_last_.sd(ispin,ikp)->c().valptr();
+            double* dc = (double*) dwf.sd(ispin,ikp)->c().valptr();
+            double* dc_last = (double*) dwf_last_.sd(ispin,ikp)->c().valptr();
             const int mloc = wf_.sd(ispin,ikp)->c().mloc();
             const int nloc = wf_.sd(ispin,ikp)->c().nloc();
             

@@ -54,9 +54,10 @@ uninitialized matrices sometimes caused NaNs to appear in the padding areas
 of the danl matrix in NonLocalPotential.C.
 Note that the clear() call was removed in rel1_13_0, which invalidates 1_13_0.
 Matrix.C: Added assert()'s in clear() functions.
-BOSampleStepper.C: Introduced quadratic extrapolation of wfs. Added calculation
+BOSampleStepper.C: Introduced quadratic wf extrapolation option (switch
+in BOSampleStepper.C, currently disabled in 1.14.0. Added calculation
 of forces at each electronic step to monitor the convergence
-of the force x velocity product.
+of the force x velocity product (disabled in 1.14.0).
 PSDWavefunctionStepper.C: Fixed bug in usage of preconditioner (affects 
 1_13_0 only).
 PSDAWavefunctionStepper.C: Fixed bug in usage of preconditioner (see above).

@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.6 2004-04-17 01:18:36 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.7 2004-04-19 21:54:13 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -30,7 +30,8 @@ BOSampleStepper::BOSampleStepper(Sample& s, EnergyFunctional& ef, int nite) :
 ////////////////////////////////////////////////////////////////////////////////
 void BOSampleStepper::step(int niter)
 {
-  const bool quad_extrapolation = true;
+  const bool quad_extrapolation = false;
+  const bool compute_fv = false;
   enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
   
   AtomSet& atoms = s_.atoms;
@@ -359,10 +360,18 @@ void BOSampleStepper::step(int niter)
       wf_stepper->preprocess();
       for ( int ite = 0; ite < nite_; ite++ )
       {
-        //double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+        double energy = 0.0;
         
-        // compute forces at each electronic step for monitoring
-        double energy = ef_.energy(true,dwf,compute_forces,fion,false,sigma_eks);
+        if ( compute_forces && compute_fv )
+        {
+          // compute forces at each electronic step for monitoring
+          energy = ef_.energy(true,dwf,compute_forces,fion,false,sigma_eks);
+        }
+        else
+        {
+          // normal case: do not compute forces during wf optimization
+          energy =ef_.energy(true,dwf,false,fion,false,sigma_eks);
+        }
  
         wf_stepper->update(dwf);
  
@@ -395,7 +404,7 @@ void BOSampleStepper::step(int niter)
           }
           
           // compute force*velocity
-          if ( compute_forces )
+          if ( compute_forces && compute_fv )
           {
             double fv = 0.0;
             for ( int is = 0; is < atoms.atom_list.size(); is++ )

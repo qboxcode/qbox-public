@@ -7,7 +7,15 @@ preferrable to use a single-column context when nst is small to avoid
 memory problems.
 
 --------------------------------------------------------------------------------
-rel1_19_0
+rel1_20_0
+Wavefunction.C: Changed allocation of sd context to column-major order to get
+contiguous nodes in  context columns.
+Wavefunction.C: Changed maxiter to 500 and dmu to 2 eV in update_occ.
+Nrowmax.h: add update_occ when changing nrowmax.
+Matrix.C:219 and similar: removed assert. Some valptr may be 0 on some blocks.
+SlaterDet.C: print sdcontext dimensions in SlaterDet::info.
+--------------------------------------------------------------------------------
+rel1_19_0 2004-10-04
 BOSampleStepper.C: Implemented simple charge mixing for SCF iterations.
 Disabled potential mixing. 
 SpeciesReader.C: fixed parsing of species files.
@@ -16,8 +24,10 @@ caused segfaults when saving sample.
 Base64Transcoder.[Ch]: added cstdio style interface for print function.
 FourierTransform.[Ch]: implemented timers, activated if TIMING is defined.
 testFourierTransform.C: updated to print timing info in readable form.
+Known bug: Wavefunction::update_occ iteration on mu does not converge in some
+systems.
 --------------------------------------------------------------------------------
-rel1_18_0 2004-09-14
+rel1_18_0 2004-09-14 (not for distribution)
 BOSampleStepper modified for scf iterations. Update of charge density and 
 calculation of VHXC is taken out of EnergyFunctional.
 RunCmd modified. Use run niter nitscf nite.

@@ -3,7 +3,7 @@
 // PBEFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PBEFunctional.C,v 1.3 2003-08-22 18:01:13 fgygi Exp $
+// $Id: PBEFunctional.C,v 1.4 2004-05-20 00:19:26 fgygi Exp $
 
 #include "PBEFunctional.h"
 #include <cmath>
@@ -453,69 +453,6 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   *vxc2_dndn = 2 * vx2_dn + vc2;
   *vxc2_updn = vc2;
   *vxc2_dnup = vc2;
-
-//   *exc_up = ec + h;
-//   *exc_dn = ec + h;
-//   *vxc1_up = vc1_up; 
-//   *vxc1_dn = vc1_dn; 
-//   *vxc2_upup = vc2;
-//   *vxc2_dndn = vc2;
-//   *vxc2_updn = vc2;
-//   *vxc2_dnup = vc2;
-
-//   *exc_up = ex_up ;
-//   *exc_dn = ex_dn ;
-//   *vxc1_up = vx1_up ;
-//   *vxc1_dn = vx1_dn ;
-//   *vxc2_upup = 2 * vx2_up ;
-//   *vxc2_updn = 0.0;
-//   *vxc2_dnup = 0.0;
-//   *vxc2_dndn = 2 * vx2_dn ;
-
-//   *exc_up = ec;
-//   *exc_dn = ec;
-//   *vxc1_up = vc1_up;
-//   *vxc1_dn = vc1_dn;
-//   *vxc2_upup = 0.0;
-//   *vxc2_updn = 0.0;
-//   *vxc2_dnup = 0.0;
-//   *vxc2_dndn = 0.0;
-
-//   *exc_up = rhotot;
-//   *exc_dn = rhotot;
-//   *vxc1_up = 2 * rhotot;
-//   *vxc1_dn = 2 * rhotot;
-//   *vxc2_upup = 0.0;
-//   *vxc2_updn = 0.0;
-//   *vxc2_dnup = 0.0;
-//   *vxc2_dndn = 0.0;
-
-//   *exc_up = rh13;
-//   *exc_dn = rh13;
-//   *vxc1_up = (4./3.) * rh13;
-//   *vxc1_dn = (4./3.) * rh13;
-//   *vxc2_upup = 0.0;
-//   *vxc2_updn = 0.0;
-//   *vxc2_dnup = 0.0;
-//   *vxc2_dndn = 0.0;
-
-//   *exc_up = grad * grad;
-//   *exc_dn = grad * grad;
-//   *vxc1_up = grad * grad;
-//   *vxc1_dn = grad * grad;
-//   *vxc2_upup = -2.0 * rhotot;
-//   *vxc2_dnup = -2.0 * rhotot;
-//   *vxc2_updn = -2.0 * rhotot;
-//   *vxc2_dndn = -2.0 * rhotot;
-
-//   *exc_up = grad_up * grad_up;
-//   *exc_dn = grad_dn * grad_dn;
-//   *vxc1_up = grad_up * grad_up;
-//   *vxc1_dn = grad_dn * grad_dn;
-//   *vxc2_upup = -2.0 * rho_up;
-//   *vxc2_dnup = 0.0;
-//   *vxc2_updn = 0.0;
-//   *vxc2_dndn = -2.0 * rho_dn;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

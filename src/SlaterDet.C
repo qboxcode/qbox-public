@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.22 2003-12-04 18:39:59 fgygi Exp $
+// $Id: SlaterDet.C,v 1.23 2004-02-04 19:29:52 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -127,37 +127,6 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
     cout << " bad_alloc exception caught in SlaterDet::resize" << endl;
     throw;
   }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-double SlaterDet::ekin(void) const
-{
-  double sum = 0.0;
-  const double* kpg2 = basis_.kpg2_ptr();
-  
-  // factor in next line: 2.0 for G and -G (if basis is real) and
-  // 0.5 from 1/(2m)
-  // note: if basis is real, the factor of 2.0 for G=0 need not be
-  // corrected since G^2 = 0
-  
-  const double fac = basis_.real() ? 1.0 : 0.5;
-  for ( int n = 0; n < c_.nloc(); n++ )
-  {
-    // global n index
-    int nn = ctxt_.mycol() * c_.nb() + n;
-    
-    if ( occ_[nn] != 0.0 )
-    {
-      const complex<double>* p = c_.cvalptr(c_.mloc()*n);
-      for ( int i = 0; i < basis_.localsize(); i++ )
-      {
-        sum += fac * occ_[nn] * kpg2[i] * norm(p[i]);
-      }
-    }
-  }
-  
-  ctxt_.dsum(1,1,&sum,1);
-  return sum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -48,7 +48,14 @@ determine library search path, even if makefile specifies another path.
 Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
 This will avoid the problem of needing libxerces-c.so when using qbox.
 --------------------------------------------------------------------------------
-rel1_14_0 candidate
+rel1_14_1 candidate
+SlaterDet.C: Removed messages from resize about cell being enclosed by ref_cell.
+Note: the determination of enclosure should be revised.
+SDCellStepper.C: removed debug messages. New "S" option to preserve shape.
+BOSampleStepper.C: Added output of cell dimensions if cell is not locked.
+Preconditioner.C: bug fixed in calculation of diag when using confinement.
+--------------------------------------------------------------------------------
+rel1_14_0
 Matrix.h Reintroduced the clear() call in the resize members. Working with 
 uninitialized matrices sometimes caused NaNs to appear in the padding areas
 of the danl matrix in NonLocalPotential.C.

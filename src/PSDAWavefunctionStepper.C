@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.7 2004-04-17 01:15:55 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.8 2004-11-10 22:35:23 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -42,6 +42,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
             DoubleMatrix a(c_proxy.context(),c_proxy.n(),c_proxy.n(),
               c_proxy.nb(),c_proxy.nb());
  
+            tmap_["psda_residual"].start();
             // factor 2.0 in next line: G and -G
             a.gemm('t','n',2.0,c_proxy,cp_proxy,0.0);
             // rank-1 update correction
@@ -49,10 +50,12 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
  
             // cp = cp - c * a
             cp_proxy.gemm('n','n',-1.0,c_proxy,a,1.0);
+            tmap_["psda_residual"].stop();
  
             // dwf.sd->c() now contains the descent direction (HV-VA)
  
             // Apply preconditioner K and store -K(HV-VA) in dwf
+            tmap_["psda_prec"].start();
             const valarray<double>& diag = prec_.diag(ispin,ikp);
  
             double* c = (double*) wf_.sd(ispin,ikp)->c().valptr();
@@ -82,9 +85,12 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
                 dcn[2*i+1] = f1;
               }
             }
+            tmap_["psda_prec"].stop();
+            
             // dwf now contains the preconditioned descent
             // direction -K(HV-VA)
             
+            tmap_["psda_update_wf"].start();
             // Anderson extrapolation
             if ( extrapolate_ )
             {
@@ -178,6 +184,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
               }
             }
             extrapolate_ = true;
+            tmap_["psda_update_wf"].stop();
             
             enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
             //const ortho_type ortho = GRAM;
@@ -187,20 +194,27 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
             switch ( ortho )
             {
               case GRAM:
+                tmap_["gram"].start();
                 wf_.sd(ispin,ikp)->gram();
-                //wf_.sd(ispin,ikp)->align(*wf_last_.sd(ispin,ikp));
+                tmap_["gram"].stop();
                 break;
                 
               case LOWDIN:
+                tmap_["lowdin"].start();
                 wf_.sd(ispin,ikp)->lowdin();
+                tmap_["lowdin"].stop();
                 break;
                 
               case ORTHO_ALIGN:
+                tmap_["ortho_align"].start();
                 wf_.sd(ispin,ikp)->ortho_align(*wf_last_.sd(ispin,ikp));
+                tmap_["ortho_align"].stop();
                 break;
                 
               case RICCATI:
+                tmap_["riccati"].start();
                 wf_.sd(ispin,ikp)->riccati(*wf_last_.sd(ispin,ikp));
+                tmap_["riccati"].stop();
                 break;
             }
           }

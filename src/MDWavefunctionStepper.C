@@ -3,7 +3,7 @@
 // MDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.C,v 1.4 2004-05-03 23:19:57 fgygi Exp $
+// $Id: MDWavefunctionStepper.C,v 1.5 2004-11-10 22:35:23 fgygi Exp $
 
 #include "MDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -40,7 +40,7 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
       {
         if ( wf_.sdcontext(ispin,ikp)->active() )
         {
-          tmap_["update_psi"].start();
+          tmap_["md_update_wf"].start();
           // Verlet update of wf
           // cp = c + (c - cm) - dt2/m * hpsi
           // This is implemented (for each coefficient) as:
@@ -77,7 +77,7 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
               cm[2*i+1] = ctmp1;
             }
           }
-          tmap_["update_psi"].stop();
+          tmap_["md_update_wf"].stop();
           
           tmap_["riccati"].start();
           wf_.sd(ispin,ikp)->riccati(*(wfv->sd(ispin,ikp)));

@@ -3,7 +3,7 @@
 // PSDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.C,v 1.5 2004-04-17 01:15:55 fgygi Exp $
+// $Id: PSDWavefunctionStepper.C,v 1.6 2004-11-10 22:35:23 fgygi Exp $
 
 #include "PSDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -32,6 +32,7 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
         {
           // compute A = V^T H V  and descent direction HV - VA
  
+          tmap_["psd_residual"].start();
           if ( wf_.sd(ispin,ikp)->basis().real() )
           {
             // proxy real matrices c, cp
@@ -53,9 +54,11 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
             // not implemented in the complex case
             assert(false);
           }
+          tmap_["psd_residual"].stop();
  
           // dwf.sd->c() now contains the descent direction (HV-VA)
  
+          tmap_["psd_update_wf"].start();
           const valarray<double>& diag = prec_.diag(ispin,ikp);
           
           double* coeff = (double*) wf_.sd(ispin,ikp)->c().valptr();
@@ -79,6 +82,7 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
               c[2*i+1] -= delta_im;
             }
           }
+          tmap_["psd_update_wf"].stop();
           
           tmap_["gram"].start();
           wf_.sd(ispin,ikp)->gram();

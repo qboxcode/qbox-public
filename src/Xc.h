@@ -3,7 +3,7 @@
 // Xc.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Xc.h,v 1.1 2003-04-10 19:15:39 fgygi Exp $
+// $Id: Xc.h,v 1.2 2004-02-04 19:55:16 fgygi Exp $
 
 #ifndef XC_H
 #define XC_H
@@ -33,10 +33,10 @@ class Xc : public Var
     }
     
     string v = argv[1];
-    if ( !( v == "LDA" || v == "PBE" ) )
+    if ( !( v == "LDA" || v == "PBE" || v == "BLYP" ) )
     {
       if ( ui->onpe0() )
-        cout << " xc must be LDA or PBE" << endl;
+        cout << " xc must be LDA, PBE or BLYP" << endl;
       return 1;
     }
 

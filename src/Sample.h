@@ -3,7 +3,7 @@
 // Sample.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Sample.h,v 1.5 2003-06-11 22:10:11 fgygi Exp $
+// $Id: Sample.h,v 1.6 2004-02-04 19:55:16 fgygi Exp $
 
 #ifndef SAMPLE_H
 #define SAMPLE_H
@@ -27,6 +27,7 @@ class Sample
   Wavefunction* wfv; // wavefunction velocity
   Control ctrl;
 
-  Sample(const Context& ctxt) : ctxt_(ctxt), atoms(ctxt), wf(ctxt), wfv(0) {}
+  Sample(const Context& ctxt) : ctxt_(ctxt), atoms(ctxt), wf(ctxt), wfv(0)
+  { ctrl.sigmas = 0.5; ctrl.facs = 2.0; }
 };
 #endif

@@ -3,7 +3,7 @@
 // SDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDWavefunctionStepper.C,v 1.1 2003-11-21 20:01:06 fgygi Exp $
+// $Id: SDWavefunctionStepper.C,v 1.2 2004-02-04 19:55:16 fgygi Exp $
 
 #include "SDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -14,11 +14,15 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 SDWavefunctionStepper::SDWavefunctionStepper(Sample& s, TimerMap& tmap) : 
-  s_(s), wf_(s.wf), tmap_(tmap)
+  WavefunctionStepper(s,tmap)
 {
   dt_ = s_.ctrl.dt;
   const double emass = s_.ctrl.emass;
-  dt2bye_ = (emass == 0.0) ? 0.5 / wf_.ecut() : dt_*dt_/emass;           
+  dt2bye_ = (emass == 0.0) ? 0.5 / wf_.ecut() : dt_*dt_/emass;
+  
+  // divide dt2bye by facs coefficient if stress == ON
+  if ( s_.ctrl.stress == "ON" )
+    dt2bye_ /= s_.ctrl.facs;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

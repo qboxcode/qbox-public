@@ -3,7 +3,7 @@
 // SampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.1 2003-11-21 20:01:06 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.2 2004-02-04 19:55:16 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -35,7 +35,7 @@ void CPSampleStepper::step(EnergyFunctional& e, int niter)
 {
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
-  UnitCell dcell;
+  valarray<double> sigma(6);
   
   const double dt = s_.ctrl.dt;
   double ekin_ion=0.0,ekin_e, temp_ion, eta;
@@ -51,7 +51,7 @@ void CPSampleStepper::step(EnergyFunctional& e, int niter)
   Timer tm_iter;
   
   double energy =
-    e.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,dcell);
+    e.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma);
  
   for ( int iter = 0; iter < niter; iter++ )
   {
@@ -133,7 +133,7 @@ void CPSampleStepper::step(EnergyFunctional& e, int niter)
     }
     
     energy =
-      e.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,dcell);
+      e.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma);
 
     if ( s_.ctxt_.mype() == 0 )
       cout << "  </iteration>" << endl;

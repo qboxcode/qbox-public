@@ -3,7 +3,7 @@
 // UnitCell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.6 2003-09-16 16:24:26 fgygi Exp $
+// $Id: UnitCell.C,v 1.7 2004-02-04 19:55:17 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -166,9 +166,9 @@ bool UnitCell::contains(D3vector v) const
   const double p0 = fac * v * b_[0];
   const double p1 = fac * v * b_[1];
   const double p2 = fac * v * b_[2];
-  return ( (p0 > 0.0) && (p0 < 1.0) &&
-           (p1 > 0.0) && (p1 < 1.0) &&
-           (p2 > 0.0) && (p2 < 1.0) );
+  return ( (p0 > 0.0) && (p0 <= 1.0) &&
+           (p1 > 0.0) && (p1 <= 1.0) &&
+           (p2 > 0.0) && (p2 <= 1.0) );
 }
  
 ////////////////////////////////////////////////////////////////////////////////

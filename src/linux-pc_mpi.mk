@@ -3,7 +3,7 @@
 #  linux-pc_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: linux-pc_mpi.mk,v 1.6 2004-01-22 01:20:00 fgygi Exp $
+# $Id: linux-pc_mpi.mk,v 1.7 2004-02-04 19:55:16 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -23,7 +23,7 @@
  
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
  
- CXXFLAGS= -O3 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
+ CXXFLAGS= -Wall -O3 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L $(BLASDIR) -L$(XERCESCDIR)/lib

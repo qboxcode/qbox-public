@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.3 2004-01-22 01:31:40 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.4 2004-02-04 19:55:16 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -14,12 +14,16 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 PSDAWavefunctionStepper::PSDAWavefunctionStepper(Sample& s, TimerMap& tmap) : 
-  s_(s), wf_(s.wf), wf_last_(s.wf), dwf_last_(s.wf), tmap_(tmap), 
+  WavefunctionStepper(s,tmap), wf_last_(s.wf), dwf_last_(s.wf), 
   extrapolate_(false)
 {
   dt_ = s_.ctrl.dt;
   const double emass = s_.ctrl.emass;
   dt2bye_ = (emass == 0.0) ? 0.5 / wf_.ecut() : dt_*dt_/emass;
+  
+  // divide dt2bye by facs coefficient if stress == ON
+  if ( s_.ctrl.stress == "ON" )
+    dt2bye_ /= s_.ctrl.facs;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

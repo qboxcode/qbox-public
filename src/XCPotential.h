@@ -3,7 +3,7 @@
 // XCPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCPotential.h,v 1.1 2003-04-10 19:16:52 fgygi Exp $
+// $Id: XCPotential.h,v 1.2 2004-02-04 19:55:17 fgygi Exp $
 
 #ifndef XCPOTENTIAL_H
 #define XCPOTENTIAL_H
@@ -13,6 +13,7 @@
 #include "PBEFunctional.h"
 #include "BLYPFunctional.h"
 #include <vector>
+#include <valarray>
 #include <complex>
 using namespace std;
 
@@ -44,12 +45,13 @@ class XCPotential
   const XCFunctional* xcf() { return xcf_; }
   XCPotential(ChargeDensity& cd, const string functional_name);
   ~XCPotential();
-  void update(vector<vector<double> >& vr, bool compute_stress);
+  void update(vector<vector<double> >& vr, bool compute_stress,
+    valarray<double>& sigma_exc);
   double exc(void) { return exc_; }
-  double dxc(void) { return dxc_; }
-  double dxc0(void) { return dxc0_; }
-  double dxc1(void) { return dxc1_; }
-  double dxc2(void) { return dxc2_; }
+  //double dxc(void) { return dxc_; }
+  //double dxc0(void) { return dxc0_; }
+  //double dxc1(void) { return dxc1_; }
+  //double dxc2(void) { return dxc2_; }
 };
 
 class XCPotentialException

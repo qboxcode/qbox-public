@@ -3,27 +3,19 @@
 // MDWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.h,v 1.1 2003-11-21 20:01:06 fgygi Exp $
+// $Id: MDWavefunctionStepper.h,v 1.2 2004-02-04 19:55:16 fgygi Exp $
 
 #ifndef MDWAVEFUNCTIONSTEPPER_H
 #define MDWAVEFUNCTIONSTEPPER_H
 
-class Sample;
-class Wavefunction;
 #include "WavefunctionStepper.h"
-#include "Timer.h"
-#include <map>
-#include <string>
-using namespace std;
-typedef map<string,Timer> TimerMap;
 
 class MDWavefunctionStepper : public WavefunctionStepper
 {
   private:
-  Sample& s_;
-  Wavefunction& wf_;
+
   double dt_, dt2bye_;
-  TimerMap& tmap_;
+
   double ekin_ep_, ekin_em_;
   double ekin_eh(void);
 

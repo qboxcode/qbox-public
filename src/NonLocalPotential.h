@@ -3,7 +3,7 @@
 // NonLocalPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.h,v 1.2 2003-10-02 17:36:34 fgygi Exp $
+// $Id: NonLocalPotential.h,v 1.3 2004-02-04 19:55:17 fgygi Exp $
 
 #ifndef NONLOCALPOTENTIAL_H
 #define NONLOCALPOTENTIAL_H
@@ -19,9 +19,9 @@ class NonLocalPotential
   private:
   
   const Context& ctxt_;
+  const AtomSet& atoms_;
   const SlaterDet& sd_;
   const Basis& basis_;
-  const AtomSet& atoms_;
 
   int nsp;   // number of species
   int nspnl; // number of non-local species
@@ -36,7 +36,7 @@ class NonLocalPotential
   vector<vector<int> >    lproj;    // lproj[is][ipr]
   vector<vector<double> > wt;       // wt[is][ipr]
   vector<vector<double> > twnl;     // twnl[is][npr*ngwl]
-  vector<vector<double> > dtwnl;    // dtwnl[is][3*npr*ngwl]
+  vector<vector<double> > dtwnl;    // dtwnl[is][6*npr*ngwl], ij=0,..,5
   
   vector<DoubleMatrix*>   anl;      // anl[is][ipr*ia][ig]
   vector<vector<double> > singr;    // singr[is][naloc*2*ngwloc]
@@ -51,7 +51,7 @@ class NonLocalPotential
   public:
   
   NonLocalPotential(const AtomSet& as, const SlaterDet& sd) :  
-    atoms_(as), sd_(sd), ctxt_(sd.context()), basis_(sd.basis()) { init(); }
+    ctxt_(sd.context()), atoms_(as), sd_(sd), basis_(sd.basis()) { init(); }
   ~NonLocalPotential(void);
                
   void update_twnl(void);
@@ -59,6 +59,6 @@ class NonLocalPotential
   void update_anl(void);
   double energy(bool compute_hpsi, SlaterDet& dsd, 
     bool compute_forces, vector<vector<double> >& fion, 
-    bool compute_stress, UnitCell& dcell);
+    bool compute_stress, valarray<double>& sigma_enl);
 };
 #endif

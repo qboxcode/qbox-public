@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.3 2003-12-01 17:57:44 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.4 2004-02-04 19:55:16 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -34,7 +34,7 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
 {
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
-  UnitCell dcell;
+  valarray<double> sigma(6);
   atoms.get_positions(tau0);
   atoms.get_velocities(vel);
   
@@ -43,11 +43,13 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
   
   const string wf_dyn = s_.ctrl.wf_dyn;
   const string atoms_dyn = s_.ctrl.atoms_dyn;
+  const string cell_dyn = s_.ctrl.cell_dyn;
   
   const bool compute_hpsi = ( wf_dyn != "LOCKED" );
   const bool compute_forces = ( atoms_dyn != "LOCKED" );
   const bool compute_stress = ( s_.ctrl.stress == "ON" );
-
+  const bool move_cell = ( cell_dyn != "LOCKED" );
+  
   Timer tm_iter;
   
   WavefunctionStepper* wf_stepper = 0;
@@ -84,19 +86,22 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
     if ( s_.ctxt_.onpe0() )
       cout << "  <iteration count=\"" << iter+1 << "\">\n";
  
-    if ( compute_forces )
+    double energy = 0.0;
+    if ( compute_forces || compute_stress )
     {
       // compute energy and ionic forces using existing wavefunction
-      double energy =
-        e.energy(false,dwf,compute_forces,fion,compute_stress,dcell);
+      energy =
+        e.energy(false,dwf,compute_forces,fion,compute_stress,sigma);
 
       if ( s_.ctxt_.onpe0() )
       {
         cout.setf(ios::fixed,ios::floatfield);
         cout.setf(ios::right,ios::adjustfield);
         cout << "  <ekin>   " << setprecision(8)
-             << setw(15) << e.ekin() << " </ekin>\n"
-             << "  <eps>    " << setw(15) << e.eps() << " </eps>\n"
+             << setw(15) << e.ekin() << " </ekin>\n";
+        if ( compute_stress )
+          cout << "  <econf>  " << setw(15) << e.econf() << " </econf>\n";
+        cout << "  <eps>    " << setw(15) << e.eps() << " </eps>\n"
              << "  <enl>    " << setw(15) << e.enl() << " </enl>\n"
              << "  <ecoul>  " << setw(15) << e.ecoul() << " </ecoul>\n"
              << "  <exc>    " << setw(15) << e.exc() << " </exc>\n"
@@ -105,7 +110,10 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
              << "  <etotal> " << setw(15) << e.etotal() << " </etotal>\n"
              << flush;
       }
+    }
  
+    if ( compute_forces )
+    {
       if ( iter == 0 )
         ionic_stepper->preprocess(fion);
         
@@ -221,7 +229,7 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
       for ( int ite = 0; ite < nite_; ite++ )
       {
         // at the last nite iteration, compute ionic forces for the last
-        double energy = e.energy(true,dwf,false,fion,false,dcell);
+        double energy = e.energy(true,dwf,false,fion,false,sigma);
  
         wf_stepper->update(dwf);
  
@@ -230,8 +238,13 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
           cout.setf(ios::fixed,ios::floatfield);
           cout.setf(ios::right,ios::adjustfield);
           cout << "  <ekin_int>   " << setprecision(8)
-               << setw(15) << e.ekin() << " </ekin_int>\n"
-               << "  <eps_int>    " << setw(15) << e.eps() << " </eps_int>\n"
+               << setw(15) << e.ekin() << " </ekin_int>\n";
+          if ( compute_stress )
+          {
+            cout << "  <econf_int>  " << setw(15) << e.econf() 
+                 << " </econf_int>\n";
+          }
+          cout << "  <eps_int>    " << setw(15) << e.eps() << " </eps_int>\n"
                << "  <enl_int>    " << setw(15) << e.enl() << " </enl_int>\n"
                << "  <ecoul_int>  " << setw(15) << e.ecoul() << " </ecoul_int>\n"
                << "  <exc_int>    " << setw(15) << e.exc() << " </exc_int>\n"
@@ -293,7 +306,7 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
     // compute ionic forces at last position for postprocessing of ionic
     // positions (Stoermer end step)
     double energy = 
-      e.energy(false,dwf,compute_forces,fion,compute_stress,dcell); 
+      e.energy(false,dwf,compute_forces,fion,compute_stress,sigma); 
     ionic_stepper->postprocess(fion);
   }
   else

@@ -3,7 +3,7 @@
 // XCPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCPotential.C,v 1.2 2003-05-16 16:14:00 fgygi Exp $
+// $Id: XCPotential.C,v 1.3 2004-02-04 19:55:17 fgygi Exp $
 
 #include "XCPotential.h"
 #include "Basis.h"
@@ -55,7 +55,8 @@ XCPotential::~XCPotential(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void XCPotential::update(vector<vector<double> >& vr, bool compute_stress)
+void XCPotential::update(vector<vector<double> >& vr, bool compute_stress,
+ valarray<double>& sigma_exc)
 {
   // compute exchange-correlation energy and add vxc potential to vr[ispin][ir]
   
@@ -124,12 +125,22 @@ void XCPotential::update(vector<vector<double> >& vr, bool compute_stress)
         vr[1][i] += v_dn[i];
       }                                                         
     }
-    double fac = vbasis_.cell().volume() / vft_.np012();
-    exc_ *= fac;
-    ctxt_.dsum(1,1,&exc_,1);
-    //dexcda[0] = fac * dxc / al[0];
-    //dexcda[1] = fac * dxc / al[1];
-    //dexcda[2] = fac * dxc / al[2];
+    const double fac = 1.0 / vft_.np012();
+    double tsum[2];
+    tsum[0] = exc_ * vbasis_.cell().volume() * fac;
+    // Next line: factor omega in volume element cancels 1/omega in 
+    // definition of sigma_exc
+    tsum[1] = - fac * dxc_;
+    ctxt_.dsum(2,1,&tsum[0],2);
+    
+    // Note: contribution to sigma_exc is a multiple of the identity
+    exc_ = tsum[0];
+    sigma_exc[0] = tsum[1];
+    sigma_exc[1] = tsum[1];
+    sigma_exc[2] = tsum[1];
+    sigma_exc[3] = 0.0;
+    sigma_exc[4] = 0.0;
+    sigma_exc[5] = 0.0;
   }
   else
   {
@@ -268,13 +279,14 @@ void XCPotential::update(vector<vector<double> >& vr, bool compute_stress)
     // add xc potential to local potential in vr[i]
     // div(vxc2*grad_rho) is stored in vxctmp[ispin][ir]
 
+    double esum=0.0,dsum=0.0,sum0=0.0,sum1=0.0,sum2=0.0,
+           sum3=0.0,sum4=0.0,sum5=0.0;
     if ( nspin_ == 1 )
     {
       const double *const e = xcf_->exc;
       const double *const v1 = xcf_->vxc1;
       const double *const v2 = xcf_->vxc2;
       const double *const rh = xcf_->rho;
-      double esum=0.0,dsum=0.0,sum0=0.0,sum1=0.0,sum2=0.0;
       {
         for ( int ir = 0; ir < np012loc_; ir++ )
         {
@@ -294,14 +306,12 @@ void XCPotential::update(vector<vector<double> >& vr, bool compute_stress)
             sum0 += ( grad2 + grx2 ) * v2t;
             sum1 += ( grad2 + gry2 ) * v2t;
             sum2 += ( grad2 + grz2 ) * v2t;
+            sum3 += grx * gry * v2t;
+            sum4 += gry * grz * v2t;
+            sum5 += grx * grz * v2t;
           }
         }
       }
-      exc_ += esum;
-      dxc_ += dsum;
-      dxc0_ += sum0;
-      dxc1_ += sum1;
-      dxc2_ += sum2;
     }
     else
     {
@@ -315,70 +325,95 @@ void XCPotential::update(vector<vector<double> >& vr, bool compute_stress)
       const double *const edn = xcf_->exc_dn;
       const double *const rh_up = xcf_->rho_up;
       const double *const rh_dn = xcf_->rho_dn;
-      double esum=0.0,dsum=0.0,sum0=0.0,sum1=0.0,sum2=0.0;
+      for ( int ir = 0; ir < np012loc_; ir++ )
       {
-        for ( int ir = 0; ir < np012loc_; ir++ )
+        const double r_up = rh_up[ir];
+        const double r_dn = rh_dn[ir];
+        esum += r_up * eup[ir] + r_dn * edn[ir];
+        vr[0][ir] += v1_up[ir] + vxctmp[0][ir];
+        vr[1][ir] += v1_dn[ir] + vxctmp[1][ir];
+        if ( compute_stress )
         {
-          const double r_up = rh_up[ir];
-          const double r_dn = rh_dn[ir];
-          esum += r_up * eup[ir] + r_dn * edn[ir];
-          vr[0][ir] += v1_up[ir] + vxctmp[0][ir];
-          vr[1][ir] += v1_dn[ir] + vxctmp[1][ir];
-          if ( compute_stress )
-          {
-            dsum += r_up * ( eup[ir] - v1_up[ir] ) +
-                    r_dn * ( edn[ir] - v1_dn[ir] );
+          dsum += r_up * ( eup[ir] - v1_up[ir] ) +
+                  r_dn * ( edn[ir] - v1_dn[ir] );
  
-            const double grx_up = xcf_->grad_rho_up[0][ir];
-            const double gry_up = xcf_->grad_rho_up[1][ir];
-            const double grz_up = xcf_->grad_rho_up[2][ir];
-            const double grx2_up = grx_up * grx_up;
-            const double gry2_up = gry_up * gry_up;
-            const double grz2_up = grz_up * grz_up;
-            const double grad2_up = grx2_up + gry2_up + grz2_up;
+          const double grx_up = xcf_->grad_rho_up[0][ir];
+          const double gry_up = xcf_->grad_rho_up[1][ir];
+          const double grz_up = xcf_->grad_rho_up[2][ir];
+          const double grx2_up = grx_up * grx_up;
+          const double gry2_up = gry_up * gry_up;
+          const double grz2_up = grz_up * grz_up;
+          const double grad2_up = grx2_up + gry2_up + grz2_up;
  
-            const double grx_dn = xcf_->grad_rho_dn[0][ir];
-            const double gry_dn = xcf_->grad_rho_dn[1][ir];
-            const double grz_dn = xcf_->grad_rho_dn[2][ir];
-            const double grx2_dn = grx_dn * grx_dn;
-            const double gry2_dn = gry_dn * gry_dn;
-            const double grz2_dn = grz_dn * grz_dn;
-            const double grad2_dn = grx2_dn + gry2_dn + grz2_dn;
+          const double grx_dn = xcf_->grad_rho_dn[0][ir];
+          const double gry_dn = xcf_->grad_rho_dn[1][ir];
+          const double grz_dn = xcf_->grad_rho_dn[2][ir];
+          const double grx2_dn = grx_dn * grx_dn;
+          const double gry2_dn = gry_dn * gry_dn;
+          const double grz2_dn = grz_dn * grz_dn;
+          const double grad2_dn = grx2_dn + gry2_dn + grz2_dn;
  
-            const double grad_up_grad_dn = grx_up * grx_dn +
-                                           gry_up * gry_dn +
-                                           grz_up * grz_dn;
+          const double grad_up_grad_dn = grx_up * grx_dn +
+                                         gry_up * gry_dn +
+                                         grz_up * grz_dn;
 
-            sum0 += v2_upup[ir] * ( grad2_up + grx2_up ) +
-            v2_updn[ir] * ( grad_up_grad_dn + grx_up * grx_dn ) +
-            v2_dnup[ir] * ( grad_up_grad_dn + grx_up * grx_dn ) +
-            v2_dndn[ir] * ( grad2_dn + grx2_dn );
+          const double v2_upup_ir = v2_upup[ir];
+          const double v2_updn_ir = v2_updn[ir];
+          const double v2_dnup_ir = v2_dnup[ir];
+          const double v2_dndn_ir = v2_dndn[ir];
+
+          sum0 += v2_upup_ir * ( grad2_up + grx2_up ) +
+                  v2_updn_ir * ( grad_up_grad_dn + grx_up * grx_dn ) +
+                  v2_dnup_ir * ( grad_up_grad_dn + grx_dn * grx_up ) +
+                  v2_dndn_ir * ( grad2_dn + grx2_dn );
  
-            sum1 += v2_upup[ir] * ( grad2_up + gry2_up ) +
-            v2_updn[ir] * ( grad_up_grad_dn + gry_up * gry_dn ) +
-            v2_dnup[ir] * ( grad_up_grad_dn + gry_up * gry_dn ) +
-            v2_dndn[ir] * ( grad2_dn + gry2_dn );
+          sum1 += v2_upup_ir * ( grad2_up + gry2_up ) +
+                  v2_updn_ir * ( grad_up_grad_dn + gry_up * gry_dn ) +
+                  v2_dnup_ir * ( grad_up_grad_dn + gry_dn * gry_up ) +
+                  v2_dndn_ir * ( grad2_dn + gry2_dn );
  
-            sum2 += v2_upup[ir] * ( grad2_up + grz2_up ) +
-            v2_updn[ir] * ( grad_up_grad_dn + grz_up * grz_dn ) +
-            v2_dnup[ir] * ( grad_up_grad_dn + grz_up * grz_dn ) +
-            v2_dndn[ir] * ( grad2_dn + grz2_dn );
+          sum2 += v2_upup_ir * ( grad2_up + grz2_up ) +
+                  v2_updn_ir * ( grad_up_grad_dn + grz_up * grz_dn ) +
+                  v2_dnup_ir * ( grad_up_grad_dn + grz_dn * grz_up ) +
+                  v2_dndn_ir * ( grad2_dn + grz2_dn );
  
-          }
+          sum3 += v2_upup_ir * grx_up * gry_up +
+                  v2_updn_ir * grx_up * gry_dn +
+                  v2_dnup_ir * grx_dn * gry_up +
+                  v2_dndn_ir * grx_dn * gry_dn;
+ 
+          sum4 += v2_upup_ir * gry_up * grz_up +
+                  v2_updn_ir * gry_up * grz_dn +
+                  v2_dnup_ir * gry_dn * grz_up +
+                  v2_dndn_ir * gry_dn * grz_dn;
+ 
+          sum5 += v2_upup_ir * grx_up * grz_up +
+                  v2_updn_ir * grx_up * grz_dn +
+                  v2_dnup_ir * grx_dn * grz_up +
+                  v2_dndn_ir * grx_dn * grz_dn;
         }
       }
-      exc_ += esum;
-      dxc_ += dsum;
-      dxc0_ += sum0;
-      dxc1_ += sum1;
-      dxc2_ += sum2;
     }
-    double fac = vbasis_.cell().volume() / vft_.np012();
-    exc_ *= fac;
-    ctxt_.dsum(1,1,&exc_,1);
-    //dexcda[0] = fac * (dxc + dxc0) / al[0];
-    //dexcda[1] = fac * (dxc + dxc1) / al[1];
-    //dexcda[2] = fac * (dxc + dxc2) / al[2];
+    double fac = 1.0 / vft_.np012();
+    double tsum[7];
+    tsum[0] = esum * vbasis_.cell().volume() * fac;
+    // Next line: factor omega in volume element cancels 1/omega in 
+    // definition of sigma_exc
+    tsum[1] = - fac * ( dsum + sum0 );
+    tsum[2] = - fac * ( dsum + sum1 );
+    tsum[3] = - fac * ( dsum + sum2 );
+    tsum[4] = - fac * sum3;
+    tsum[5] = - fac * sum4;
+    tsum[6] = - fac * sum5;
+    ctxt_.dsum(7,1,&tsum[0],7);
     
+    // Note: contribution to sigma_exc is a multiple of the identity
+    exc_ = tsum[0];
+    sigma_exc[0] = tsum[1];
+    sigma_exc[1] = tsum[2];
+    sigma_exc[2] = tsum[3];
+    sigma_exc[3] = tsum[4];
+    sigma_exc[4] = tsum[5];
+    sigma_exc[5] = tsum[6];
   }
 }

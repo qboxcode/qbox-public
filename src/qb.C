@@ -3,9 +3,9 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.29 2004-01-22 01:28:22 fgygi Exp $
+// $Id: qb.C,v 1.30 2004-02-04 19:56:12 fgygi Exp $
 
-const char* const release = "1.12.1";
+const char* const release = "1.13.0a1";
 const char* const xmlns_url = "http://www.llnl.gov/casc/fpmd/qbox/1.0";
 
 #include <iostream>
@@ -41,12 +41,19 @@ using namespace std;
 
 #include "AtomsDyn.h"
 #include "Cell.h"
+#include "CellDyn.h"
+#include "CellLock.h"
+#include "CellMass.h"
 #include "Ecut.h"
-#include "Emass.h"
-#include "Dt.h"
 #include "Ecutprec.h"
+#include "Ecuts.h"
+#include "Emass.h"
+#include "ExtStress.h"
+#include "Dt.h"
 #include "Nempty.h"
 #include "Nrowmax.h"
+#include "RefCell.h"
+#include "Stress.h"
 #include "Thermostat.h"
 #include "ThTemp.h"
 #include "ThTime.h"
@@ -96,7 +103,7 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I                         I\n";
   cout << "                   I                         I\n";
   cout << "                   I            F.Gygi, LLNL I\n";
-  cout << "                   I      Copyright (c) 2003 I\n";
+  cout << "                   I Copyright (c) 2003-2004 I\n";     
   cout << "                   ===========================\n\n";
   cout << "-->\n";
   cout << "<qbox:simulation xmlns:qbox=\"" << xmlns_url << "\">" << endl;
@@ -185,12 +192,19 @@ int main(int argc, char **argv, char **envp)
   
   ui.addVar(new AtomsDyn(s));
   ui.addVar(new Cell(s));
+  ui.addVar(new CellDyn(s));
+  ui.addVar(new CellLock(s));
+  ui.addVar(new CellMass(s));
   ui.addVar(new Ecut(s));
-  ui.addVar(new Emass(s));
-  ui.addVar(new Dt(s));
   ui.addVar(new Ecutprec(s));
+  ui.addVar(new Ecuts(s));
+  ui.addVar(new Emass(s));
+  ui.addVar(new ExtStress(s));
+  ui.addVar(new Dt(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new Nrowmax(s));
+  ui.addVar(new RefCell(s));
+  ui.addVar(new Stress(s));
   ui.addVar(new Thermostat(s));
   ui.addVar(new ThTemp(s));
   ui.addVar(new ThTime(s));

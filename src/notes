@@ -51,10 +51,8 @@ determine library search path, even if makefile specifies another path.
 Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
 This will avoid the problem of needing libxerces-c.so when using qbox.
 --------------------------------------------------------------------------------
-rel1_12_0 candidate
+rel1_12_0
 Replaced trapezoidal integration in NonLocalPotential.C by a Gauss-Jacobi rule.
---------------------------------------------------------------------------------
-rel1_11_3
 Fixed bug in PSDWavefunctionStepper.C and PSDAWavefunctionStepper.C:
 use ecut if ecutprec==0.0. Caused nans when ecutprec was not set.
 --------------------------------------------------------------------------------

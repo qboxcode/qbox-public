@@ -34,22 +34,40 @@ int main(int argc, char **argv)
   int mype = ctxt_global.mype();
   cout << " Process " << mype << " on " << processor_name << endl;
 
-  if ( argc != 5 )
+  D3vector a,b,c,kpoint;
+  double ecut;
+  if ( argc == 5 )
   {
-    cout << 
-    " use: testFourierTransform a b c ecut(a.u.) " << endl;
+    a = D3vector(atof(argv[1]),0,0);
+    b = D3vector(0,atof(argv[2]),0);
+    c = D3vector(0,0,atof(argv[3]));
+    ecut = atof(argv[4]);
   }
-  D3vector a(atof(argv[1]),0,0);
-  D3vector b(0,atof(argv[2]),0);
-  D3vector c(0,0,atof(argv[3]));
+  else if ( argc == 11 )
+  {
+    a = D3vector(atof(argv[1]),atof(argv[2]),atof(argv[3]));
+    b = D3vector(atof(argv[4]),atof(argv[5]),atof(argv[6]));
+    c = D3vector(atof(argv[7]),atof(argv[8]),atof(argv[9]));
+    ecut = atof(argv[10]);
+  }
+  else if ( argc == 14 )
+  {
+    a = D3vector(atof(argv[1]),atof(argv[2]),atof(argv[3]));
+    b = D3vector(atof(argv[4]),atof(argv[5]),atof(argv[6]));
+    c = D3vector(atof(argv[7]),atof(argv[8]),atof(argv[9]));
+    ecut = atof(argv[10]);
+    kpoint = D3vector(atof(argv[11]),atof(argv[12]),atof(argv[13]));
+  }
+  else
+  {
+    cout << " use: testFourierTransform a b c ecut(a.u.) [kpoint] " << endl;
+  }
   UnitCell cell(a,b,c);
   const double omega = cell.volume();
-  double ecut = atof(argv[4]);
-  D3vector kpoint(0.0, 0.0, 0.0);
   
   //cout << " ctxt_global: " << ctxt_global;
   //cout << " ctxt_global.comm(): " << ctxt_global.comm() << endl;
-  Context ctxt(ctxt_global,'c');
+  Context ctxt(ctxt_global.size(),1);
   //cout << " ctxt: " << ctxt;
   //cout << " ctxt.comm(): " << ctxt.comm() << endl;
   Basis basis(ctxt,kpoint);
@@ -224,75 +242,7 @@ int main(int argc, char **argv)
   cout << " bwd3 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
   
-  }
-#if USE_MPI
-  MPI_Finalize();
-#endif
-  return 0;
-}
-
-/////////////////////////
-// other tests on ft
-//
-#if 0
-  FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
-#endif
-
-#if 0
-  x[0] = 1.0;
-#endif
-  
-#if 0
-  vector<complex<double> > f(ft.np012loc());
-  
-  tm.reset();
-  tm.start();
-  ft.backward(&x[0],&f[0]);
-  tm.stop();
-  cout << " " << basis.np(0) << " " << basis.np(1)
-       << " " << basis.np(2) << " ";
-  cout << " bwd time: " << tm.cpu() << " / " << tm.real() 
-       << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
-
-  for ( int i = 0; i < basis.localsize(); i++ )
-    cout << setw(8) << basis.gx(i) << " " 
-         << setw(8) << basis.gx(i+basis.localsize()) << " " 
-         << setw(8) << basis.gx(i+2*basis.localsize())
-         << "     " << x[i] << endl;
-  for ( int i = 0; i < ft.np0(); i++ )
-    for ( int j = 0; j < ft.np1(); j++ )
-      for ( int k = 0; k < ft.np2_loc(); k++ )
-        cout << mype << ": "
-             << i << " " << j << " " << k+ft.np2_first() << " "
-             << f[ft.index(i,j,k)] << endl;
-#endif
-             
-#if 0
-  // integral in r space must be 1.0
-  double sum,tsum = 0.0;
-  for ( int i = 0; i < f.size(); i++ ) 
-    tsum += real(f[i]);
-  MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
-  
-  if ( ctxt.onpe0() )
-    cout << " sum: " << sum * omega / ft.np012() << endl;
-#endif
-  
-#if 0
-  // integral in r space must be 1.0
-  tsum = 0.0;
-  for ( int i = 0; i < f2.size(); i++ ) 
-    tsum += real(f2[i]);
-  MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
-  
-  cout << " " << 2*basis.np(0) << " " << 2*basis.np(1)
-       << " " << 2*basis.np(2) << " ";
-  cout << " bwd time: " << tm.cpu() << " / " << tm.real() 
-  << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
-  cout << " sum on f2: " << sum * omega / ft2.np012() << endl;
-#endif
-  
-#if 0
+#if 1
   //////////////////////////////////////////////////////////////////////////////
   // Integration of a 2-norm normalized plane wave
   //////////////////////////////////////////////////////////////////////////////
@@ -303,7 +253,7 @@ int main(int argc, char **argv)
   }
   if ( ctxt.myproc() == 0 ) x[1] = 1.0/sqrt(2.0);
   
-  ft.backward(&x[0],&f[0]);
+  ft2.backward(&x[0],&f2[0]);
 
 #if 0
   for ( int i = 0; i < basis.localsize(); i++ )
@@ -318,12 +268,12 @@ int main(int argc, char **argv)
 #endif
              
   // integral of f^2 in r space must be 1.0
-  tsum = 0.0;
-  for ( int i = 0; i < f.size(); i++ ) 
-    tsum += norm(f[i]);
+  double sum=0.0, tsum = 0.0;
+  for ( int i = 0; i < f2.size(); i++ ) 
+    tsum += norm(f2[i]);
   MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
   
-  cout << " sum pw^2: " << sum / ft.np012() << endl;
+  cout << " sum pw^2: " << sum / ft2.np012() << endl;
   
   //////////////////////////////////////////////////////////////////////////////
   // Integration of a 2-norm normalized gaussian
@@ -334,6 +284,15 @@ int main(int argc, char **argv)
     x[i] = 1.0 / sqrt(omega) * pow(2.0*M_PI*rc*rc,0.75) * 
            exp( -0.25 * g2 * rc*rc );
   }
+
+  // Compute norm in g space
+  double gnorm = 0.0;
+  for ( int i = 0; i < basis.localsize(); i++ )
+    gnorm += 2.0 * norm(x[i]);
+  if ( ctxt.onpe0() )
+    gnorm -= norm(x[0]);
+  ctxt.dsum(1,1,&gnorm,1);
+  cout << " gaussian gnorm: " << gnorm << endl;
   
   ft2.backward(&x[0],&f2[0]);
   
@@ -349,27 +308,32 @@ int main(int argc, char **argv)
              
   // integral of gaussian^2 in r space must be 1.0
   tsum = 0.0;
-  for ( int i = 0; i < f.size(); i++ ) 
-    tsum += norm(f[i]);
+  for ( int i = 0; i < f2.size(); i++ ) 
+    tsum += norm(f2[i]);
   MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
   
-  cout << " sum gaussian^2: " << sum / ft.np012() << endl;
+  cout << " gaussian rnorm: " << sum / ft2.np012() << endl;
+#endif
+
+  // Define ft from vbasis
+  Basis vbasis(ctxt,kpoint);
+  vbasis.resize(cell,cell,4.0*ecut);
+  cout << " vbasis.np() = " << vbasis.np(0) << " " << vbasis.np(1)
+       << " " << vbasis.np(2) << endl;
+  FourierTransform vft(basis,vbasis.np(0),vbasis.np(1),vbasis.np(2));
+  vector<complex<double> > vf(vft.np012loc());
+  vft.backward(&x[0],&vf[0]);
+  // integral of gaussian^2 in r space must be 1.0
+  tsum = 0.0;
+  for ( int i = 0; i < vf.size(); i++ ) 
+    tsum += norm(vf[i]);
+  MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
   
-#endif
+  cout << " gaussian rnorm: " << sum / vft.np012() << endl;
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Test forward transform
-  //////////////////////////////////////////////////////////////////////////////
-  // initialize
-
-#if 0
-  for ( int i = 0; i < ft2.np0(); i++ )
-    for ( int j = 0; j < ft2.np1(); j++ )
-      for ( int k = 0; k < ft2.np2_loc(); k++ )
-         f2[ft2.index(i,j,k)] = 
-           cos(k*2*M_PI/ft2.np2()) + sin(i*2*M_PI/ft2.np0()) ;
-  ft2.forward(&f2[0],&x[0]);
-  for ( int i = 0; i < basis.localsize(); i++ )
-    cout << basis.kv(3*i) << " " << basis.kv(3*i+1) << " " << basis.kv(3*i+2)
-         << "   x[G]= " << x[i] << endl;
+  } // Context scope
+#if USE_MPI
+  MPI_Finalize();
 #endif
+  return 0;
+}

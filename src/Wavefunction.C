@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.16 2004-09-14 22:24:11 fgygi Exp $
+// $Id: Wavefunction.C,v 1.17 2004-10-15 18:05:03 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -31,7 +31,8 @@ nempty_(0), nspin_(1), deltaspin_(0), ecut_(0.0), nrowmax_(32)
 ////////////////////////////////////////////////////////////////////////////////
 Wavefunction::Wavefunction(const Wavefunction& wf) : ctxt_(wf.ctxt_), 
 nel_(wf.nel_), nempty_(wf.nempty_), nspin_(wf.nspin_), 
-deltaspin_(wf.deltaspin_), cell_(wf.cell_), refcell_(wf.refcell_),
+deltaspin_(wf.deltaspin_), nrowmax_(wf.nrowmax_), 
+cell_(wf.cell_), refcell_(wf.refcell_),
 ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
 {
   // Create a Wavefunction using the dimensions of the argument
@@ -85,21 +86,22 @@ void Wavefunction::allocate(void)
   assert(nspin_ == 1);
   assert(nkp == 1);
   
-  int npr, npc; // dimensions of each sdcontext
-  npr = ctxt_.size() / nkp;
-  npc = 1;
-  while ( npr%2 == 0 && npr > nrowmax_ )
-  {
-    npr /= 2;
-    npc *= 2;
-  }
+  // determine dimensions of sdcontext
+  assert(nrowmax_>0);
+  const int size = ctxt_.size();
+  int npr = nrowmax_;
+  while ( size%npr != 0 ) npr--;
+  // npr now divides size
+  int npc = size/npr;
+
   spincontext_.resize(1);
   sdcontext_.resize(1);
   sdcontext_[0].resize(1);
   sd_.resize(1);
   sd_[0].resize(1);
   
-  spincontext_[0] = new Context(ctxt_,npr,npc);
+  //spincontext_[0] = new Context(ctxt_,npr,npc);
+  spincontext_[0] = new Context(ctxt_,npr,npc,'c');
   sdcontext_[0][0] = 0;
   sd_[0][0] = 0;
   if ( spincontext_[0]->active() )
@@ -124,13 +126,13 @@ void Wavefunction::allocate(void)
     if ( ctxt_.size() >= nkp )
     {
       // more than one task per k point
-      npr = ctxt_.size() / nkp;
-      npc = 1;
-      while ( npr%2 == 0 && npr > nrowmax_ )
-      {
-        npr /= 2;
-        npc *= 2;
-      }
+      // determine dimensions of sdcontext
+      assert(nrowmax_>0);
+      const int size = ctxt_.size() / nkp;
+      int npr = nrowmax_;
+      while ( size%npr != 0 ) npr--;
+      // npr now divides size
+      int npc = size/npr;
       spincontext_[0] = new Context(ctxt_,npr,nkp*npc);
     }
     else
@@ -479,8 +481,8 @@ void Wavefunction::set_nspin(int nspin)
   cout << " Wavefunction::set_nspin: " << nspin << " deallocate done" << endl;
   
   nspin_ = nspin;
-  compute_nst();
   
+  compute_nst();
   allocate();
   cout << " Wavefunction::set_nspin: " << nspin << " allocate done" << endl;
   resize(cell_,refcell_,ecut_);
@@ -498,6 +500,7 @@ void Wavefunction::set_nrowmax(int n)
   
   deallocate();
   nrowmax_ = n;
+  compute_nst();
   allocate();
   resize(cell_,refcell_,ecut_);
   reset();
@@ -589,11 +592,11 @@ void Wavefunction::update_occ(double temp)
   {
     // finite temperature
     const double eVolt = 0.036749023; // 1 eV in Hartree
-    const int maxiter = 100;
+    const int maxiter = 500;
  
     // loop to find value of mu
     double mu = 0.0;
-    double dmu = 1.0 * eVolt;
+    double dmu = 2.0 * eVolt;
     //!! double totalcharge = (double) ( nel_ + netcharge_ );
     const double totalcharge = (double) nel_;
     enum direction { up, down };
@@ -972,6 +975,7 @@ Wavefunction& Wavefunction::operator=(const Wavefunction& wf)
   assert(nel_ == wf.nel_);
   assert(nempty_== wf.nempty_);
   assert(nspin_ == wf.nspin_);
+  assert(nrowmax_ == wf.nrowmax_);
   assert(deltaspin_ == wf.deltaspin_);
   assert(cell_ == wf.cell_);
   assert(refcell_ == wf.refcell_);

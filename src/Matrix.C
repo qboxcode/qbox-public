@@ -3,7 +3,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.12 2004-05-06 20:40:31 fgygi Exp $
+// $Id: Matrix.C,v 1.13 2004-10-15 18:05:44 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -288,7 +288,6 @@ DoubleMatrix::DoubleMatrix(ComplexMatrix& rhs) : ctxt_(rhs.context()),
   int new_m = 2 * rhs.m();
   int new_mb = 2 * rhs.mb();
   init_size(new_m,rhs.n(),new_mb,rhs.nb());
-  assert(rhs.cvalptr() != 0);
   val = (double*) rhs.valptr();
 }
 
@@ -300,7 +299,6 @@ DoubleMatrix::DoubleMatrix(const ComplexMatrix& rhs) : ctxt_(rhs.context()),
   int new_m = 2 * rhs.m();
   int new_mb = 2 * rhs.mb();
   init_size(new_m,rhs.n(),new_mb,rhs.nb());
-  assert(rhs.cvalptr() != 0);
   val = (double*) rhs.cvalptr();
 }
 
@@ -314,7 +312,6 @@ ComplexMatrix::ComplexMatrix(DoubleMatrix& rhs) : ctxt_(rhs.context()),
   assert(rhs.mb()%2 == 0);
   int new_mb = rhs.mb() / 2;
   init_size(new_m,rhs.n(),new_mb,rhs.nb());
-  assert(rhs.cvalptr() != 0);
   val = (complex<double>*) rhs.valptr();
 }
     
@@ -328,7 +325,6 @@ ComplexMatrix::ComplexMatrix(const DoubleMatrix& rhs) : ctxt_(rhs.context()),
   assert(rhs.mb()%2 == 0);
   int new_mb = rhs.mb() / 2;
   init_size(new_m,rhs.n(),new_mb,rhs.nb());
-  assert(rhs.cvalptr() != 0);
   val = (complex<double>*) rhs.cvalptr();
 }
     

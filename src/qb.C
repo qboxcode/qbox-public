@@ -3,9 +3,9 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.27 2003-12-19 00:44:06 fgygi Exp $
+// $Id: qb.C,v 1.28 2004-01-22 01:23:49 fgygi Exp $
 
-const char* const release = "1.12.0";
+const char* const release = "1.12.1e1";
 const char* const xmlns_url = "http://www.llnl.gov/casc/fpmd/qbox/1.0";
 
 #include <iostream>
@@ -94,12 +94,13 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I                         I\n";
   cout << "                   I                         I\n";
   cout << "                   I                         I\n";
+  cout << "                   I                         I\n";
   cout << "                   I            F.Gygi, LLNL I\n";
   cout << "                   I      Copyright (c) 2003 I\n";
   cout << "                   ===========================\n\n";
   cout << "-->\n";
   cout << "<qbox:simulation xmlns:qbox=\"" << xmlns_url << "\">" << endl;
-  cout << "<release> " << release << " </release>" << endl;
+  cout << "<release> " << release << " " << TARGET << " </release>" << endl;
 
   // Identify executable name, checksum, size and link date
   if ( getlogin() != 0 ) 

@@ -3,7 +3,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.4 2004-09-14 22:24:11 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.5 2005-03-17 17:17:50 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -21,10 +21,6 @@ using namespace std;
 #include "Base64Transcoder.h"
 #include "Matrix.h"
 #include "XMLGFPreprocessor.h"
-
-#if BGL
-#define fseeko fseek
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -100,8 +96,14 @@ void XMLGFPreprocessor::process(const char* const filename,
 
   tm.start();
   off_t offset = ctxt.mype()*block_size;
-  fseeko(infile,offset,SEEK_SET);
-  fread(&buf[0],sizeof(char),local_size,infile);
+  int fseek_status = fseeko(infile,offset,SEEK_SET);
+  if ( fseek_status != 0 )
+  {
+    cout << "fseeko failed: offset=" << offset << " file_size=" << sz << endl;
+  }
+  assert(fseek_status==0);
+  size_t items_read = fread(&buf[0],sizeof(char),local_size,infile);
+  assert(items_read==local_size);
   
   //std::streampos offset = ctxt.mype()*block_size;
   //is.seekg(offset);
@@ -684,7 +686,7 @@ void XMLGFPreprocessor::process(const char* const filename,
  
   ////////////////////////////////////////////////////////////////////////////
   // byte swapping on big-endian platforms
-#if AIX
+#if PLT_BIG_ENDIAN
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
     xcdr.byteswap_double(dbuf[iseg].size(),&dbuf[iseg][0]);
  

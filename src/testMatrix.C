@@ -1,11 +1,11 @@
-// $Id: testMatrix.C,v 1.6 2003-11-20 20:25:00 fgygi Exp $
+// $Id: testMatrix.C,v 1.7 2004-10-28 16:58:22 fgygi Exp $
 //
 // test Matrix
 //
 // multiply a matrix a(m,k) by b(k,n) to get c(m,n)
 // using blocks of size (mb,nb) on a process grid (nprow,npcol)
 //
-// use: testMatrix nprow npcol [-check] < input_file
+// use: testMatrix nprow npcol input_file [-check] 
 // input_file:
 // m_a n_a mb_a nb_a transa
 // m_b n_b mb_b nb_b transb
@@ -47,15 +47,18 @@ int main(int argc, char **argv)
   mype=0;
 #endif
 
-  assert(argc == 3 || argc == 4);
+  char* infilename = argv[3];
+  ifstream infile(infilename);
+
+  assert(argc == 4 || argc == 5);
   bool tcheck = false;
-  if ( argc == 4 )
+  if ( argc == 5 )
   {
-    if ( !strcmp(argv[3],"-check") )
+    if ( !strcmp(argv[4],"-check") )
       tcheck = true;
     else
     {
-      cerr << " invalid argv[3]" << endl;
+      cerr << " invalid argv[4]" << endl;
 #if USE_MPI
       MPI_Abort(MPI_COMM_WORLD,2);
 #else
@@ -75,11 +78,11 @@ int main(int argc, char **argv)
   char ta, tb;
   if(mype == 0)
   {
-    cin >> m_a >> n_a >> mb_a >> nb_a >> ta;
+    infile >> m_a >> n_a >> mb_a >> nb_a >> ta;
     cout<<"m_a="<<m_a<<", n_a="<<n_a<<endl;
-    cin >> m_b >> n_b >> mb_b >> nb_b >> tb;
+    infile >> m_b >> n_b >> mb_b >> nb_b >> tb;
     cout<<"m_b="<<m_b<<", n_b="<<n_a<<endl;
-    cin >> m_c >> n_c >> mb_c >> nb_c;
+    infile >> m_c >> n_c >> mb_c >> nb_c;
     cout<<"m_c="<<m_c<<", n_c="<<n_c<<endl;
   }
 #ifdef USE_MPI

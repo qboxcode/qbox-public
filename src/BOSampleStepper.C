@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.12 2004-09-15 01:01:28 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.13 2004-10-04 18:40:13 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -22,8 +22,8 @@
 #include <iomanip>
 using namespace std;
 
-#define POTENTIAL_MIXING 1
-#define CHARGE_MIXING 0
+#define POTENTIAL_MIXING 0
+#define CHARGE_MIXING 1
 
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) : 
@@ -150,12 +150,13 @@ void BOSampleStepper::step(int niter)
              << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
              << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
              << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
+             << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n"
              << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
         if ( compute_stress )
         {
           const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
           const double enthalpy = ef_.etotal() + pext * cell.volume();
-          cout << "  <pv> " << setw(15) << pext * cell.volume()
+          cout << "  <pv>     " << setw(15) << pext * cell.volume()
                << " </pv>" << endl;
           cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
              << flush;
@@ -398,7 +399,7 @@ void BOSampleStepper::step(int niter)
       
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
       {
-        if ( s_.ctxt_.onpe0() )
+        if ( nite_ > 1 && s_.ctxt_.onpe0() )
           cout << "  <!-- BOSampleStepper: start scf iteration -->" << endl;
         cd_.update_density();
         
@@ -408,24 +409,28 @@ void BOSampleStepper::step(int niter)
         // precondition with Kerker preconditioner
         
 #if CHARGE_MIXING
-        if ( itscf > 0 )
+        if ( nite_ > 1 )
         {
-          // mix density with previous density rhog_old
-          const double alpha = 0.5;
-          // Kerker cutoff: 15 a.u. in real space
-          const double q0_kerker = 2.0 * M_PI / 15.0;
-          const double q0_kerker2 = q0_kerker * q0_kerker;
-          assert(rhog_old.size()==1); // assume nspin==1 for now
-          const double *const g2 = cd_.vbasis()->g2_ptr();
-          for ( int i=0; i < rhog_old[0].size(); i++ )
+          if ( itscf > 0 )
           {
-            const complex<double> drhog = cd_.rhog[0][i] - rhog_old[0][i];
-            const double fac = g2[i] / ( g2[i] + q0_kerker2 );
-            cd_.rhog[0][i] = rhog_old[0][i] + alpha * fac * drhog;
+            // mix density with previous density rhog_old
+            const double alpha = 0.5;
+            // real space Kerker cutoff in a.u.
+            const double rc_Kerker = 5.0;
+            const double q0_kerker = 2.0 * M_PI / rc_Kerker;
+            const double q0_kerker2 = q0_kerker * q0_kerker;
+            assert(rhog_old.size()==1); // assume nspin==1 for now
+            const double *const g2 = cd_.vbasis()->g2_ptr();
+            for ( int i=0; i < rhog_old[0].size(); i++ )
+            {
+              const complex<double> drhog = cd_.rhog[0][i] - rhog_old[0][i];
+              const double fac = g2[i] / ( g2[i] + q0_kerker2 );
+              cd_.rhog[0][i] = rhog_old[0][i] + alpha * fac * drhog;
+            }
+            cd_.update_rhor();
           }
-          cd_.update_rhor();
+          rhog_old = cd_.rhog;
         }
-        rhog_old = cd_.rhog;
 #endif
 
         ef_.update_vhxc();
@@ -434,6 +439,26 @@ void BOSampleStepper::step(int niter)
         // vlocal_old, vlocal_new in ef_
         
 #if POTENTIAL_MIXING
+//!! need to clean up this section
+        assert(nspin==1);
+        vector<vector<double> >& vo = ef_.v_r;
+        const int size = vo[0].size();
+        if ( itscf > 0 )
+        {
+          // first iteration: only vo is defined. Use vo.
+          for ( int i = 0; i < size; i++ )
+          {
+            double vn = vi[0][i] + 0.7 * (vo[0][i]-vi[0][i]);
+            vo[0][i] = vi[0][i];
+            vi[0][i] = vn;
+          }
+        }
+        else
+        {
+          vi = vo;
+        }
+        ef_.v_r = vi;
+#if 0
         if ( nite_ > 1 )
         {
         
@@ -448,7 +473,6 @@ void BOSampleStepper::step(int niter)
           // first iteration: only vo is defined. Use vo.
           for ( int i = 0; i < size; i++ )
           {
-            const double bl = 0.3;
             double vn = vo[0][i];
             vi1[0][i] = vi[0][i];
             vo1[0][i] = vo[0][i];
@@ -493,7 +517,12 @@ void BOSampleStepper::step(int niter)
             thl = sn / sd;
           else
             thl = 1.0;
-
+          
+          const double thl_min = -4.0;
+          const double thl_max = 4.0;
+          if ( thl < thl_min ) thl = thl_min;
+          if ( thl > thl_max ) thl = thl_max;
+          
           if ( s_.ctxt_.onpe0() )
             cout << "  <!-- potential mixing: Anderson thl=" << thl << " -->"
                  << endl;
@@ -511,6 +540,7 @@ void BOSampleStepper::step(int niter)
         ef_.v_r = vi;
         
         }
+#endif
 #endif
 
         // Next line: reset the wf stepper only if nite > 1
@@ -621,7 +651,7 @@ void BOSampleStepper::step(int niter)
           }
         }
         
-        if ( s_.ctxt_.onpe0() )
+        if ( nite_ > 1 && s_.ctxt_.onpe0() )
           cout << "  <!-- BOSampleStepper: end scf iteration -->" << endl;
       } // for itscf
       

@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.5 2004-05-03 19:16:20 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.6 2004-05-04 21:26:24 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -86,21 +86,30 @@ void CPSampleStepper::step(int niter)
     {
       cout.setf(ios::fixed,ios::floatfield);
       cout.setf(ios::right,ios::adjustfield);
-      cout << "  <ekin>   " << setprecision(8)
+      cout << "  <ekin>     " << setprecision(8)
            << setw(15) << ef_.ekin() << " </ekin>\n";
       if ( use_confinement )
       {
-        cout << "  <econf_int>  " << setw(15) << ef_.econf()
-             << " </econf_int>\n";
+        cout << "  <econf>    " << setw(15) << ef_.econf()
+             << " </econf>\n";
       }
-      cout << "  <eps>    " << setw(15) << ef_.eps() << " </eps>\n"
-           << "  <enl>    " << setw(15) << ef_.enl() << " </enl>\n"
-           << "  <ecoul>  " << setw(15) << ef_.ecoul() << " </ecoul>\n"
-           << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
-           << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
-           << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
-           << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n"
+      cout << "  <eps>      " << setw(15) << ef_.eps() << " </eps>\n"
+           << "  <enl>      " << setw(15) << ef_.enl() << " </enl>\n"
+           << "  <ecoul>    " << setw(15) << ef_.ecoul() << " </ecoul>\n"
+           << "  <exc>      " << setw(15) << ef_.exc() << " </exc>\n"
+           << "  <esr>      " << setw(15) << ef_.esr() << " </esr>\n"
+           << "  <eself>    " << setw(15) << ef_.eself() << " </eself>\n"
+           << "  <etotal>   " << setw(15) << ef_.etotal() << " </etotal>\n"
            << flush;
+      if ( compute_stress )
+      {
+        const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
+        const double enthalpy = ef_.etotal() + pext * s_.wf.cell().volume();
+        cout << "  <pv>     " << setw(15) << pext * s_.wf.cell().volume()
+             << " </pv>" << endl;
+        cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
+           << flush;
+      }
     }
  
     if ( compute_forces )
@@ -160,6 +169,12 @@ void CPSampleStepper::step(int niter)
     
     if ( compute_stress )
     {
+      if ( s_.ctxt_.onpe0() )            
+      {                                  
+        cout << "<unit_cell>" << endl;   
+        cout << s_.wf.cell();            
+        cout << "</unit_cell>" << endl;  
+      }                                  
       compute_sigma();
       print_stress();
       

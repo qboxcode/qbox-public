@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.8 2004-04-20 22:15:01 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.9 2004-05-04 21:26:24 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -140,6 +140,8 @@ void BOSampleStepper::step(int niter)
         {
           const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
           const double enthalpy = ef_.etotal() + pext * cell.volume();
+          cout << "  <pv> " << setw(15) << pext * cell.volume()
+               << " </pv>" << endl;
           cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
              << flush;
         }
@@ -387,7 +389,7 @@ void BOSampleStepper::step(int niter)
           cout.setf(ios::right,ios::adjustfield);
           cout << "  <ekin_int>   " << setprecision(8)
                << setw(15) << ef_.ekin() << " </ekin_int>\n";
-          if ( compute_stress )
+          if ( use_confinement )
           {
             cout << "  <econf_int>  " << setw(15) << ef_.econf() 
                  << " </econf_int>\n";
@@ -403,8 +405,6 @@ void BOSampleStepper::step(int niter)
           {
             const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
             const double enthalpy = ef_.etotal() + pext * cell.volume();
-            cout << "  <pv> " << setw(15) << pext * cell.volume()
-                 << " </pv>" << endl;
             cout << "  <enthalpy_int> " << setw(15) << enthalpy << " </enthalpy_int>\n"
                  << flush;
           }

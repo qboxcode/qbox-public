@@ -3,7 +3,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.10 2004-09-14 22:24:11 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.11 2005-03-17 17:16:15 fgygi Exp $
 
 #if USE_XERCES
 
@@ -402,7 +402,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
         assert(length/sizeof(double)==ft->np012());
  
         double* d = (double*) b;
-#if AIX
+#if PLT_BIG_ENDIAN
         tm.reset();
         tm.start();
         byteswap_double(ft->np012(),d);

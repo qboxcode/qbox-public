@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.34 2005-02-08 19:32:22 fgygi Exp $
+// $Id: SlaterDet.C,v 1.35 2005-03-17 17:18:27 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -1117,7 +1117,7 @@ void SlaterDet::print(ostream& os, string encoding)
 
       if ( encoding == "base64" )
       {
-        #if AIX
+        #if PLT_BIG_ENDIAN
         xcdr.byteswap_double(ft.np012(),&wftmpr[0]);
         #endif
         int nbytes = ft.np012()*sizeof(double);
@@ -1271,7 +1271,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
 
       if ( encoding == "base64" )
       {
-        #if AIX
+        #if PLT_BIG_ENDIAN
         xcdr.byteswap_double(ft.np012(),&wftmpr[0]);
         #endif
         

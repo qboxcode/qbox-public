@@ -3,14 +3,14 @@
 // SDCellStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDCellStepper.C,v 1.1 2004-03-11 21:58:10 fgygi Exp $
+// $Id: SDCellStepper.C,v 1.2 2004-04-20 22:11:30 fgygi Exp $
 
 #include "SDCellStepper.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
 {
-  cout << " SDCellStepper::compute_new_cell" << endl;
+  //cout << " SDCellStepper::compute_new_cell" << endl;
   // multiply stress by A^T to get dE/da_ij
   valarray<double> deda(9);
   
@@ -30,8 +30,8 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
   // deda = - omega * sigma * A^-T
   cell.compute_deda(sigma,deda);
   
-  for ( int i = 0; i < 9; i++ )
-    cout << " deda[" << i << "] = " << deda[i] << endl;
+  //for ( int i = 0; i < 9; i++ )
+  //  cout << " deda[" << i << "] = " << deda[i] << endl;
   
   string cell_lock = s_.ctrl.cell_lock;
   if ( cell_lock != "OFF" )
@@ -52,9 +52,32 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
       // vector C is locked
       deda[6] = deda[7] = deda[8] = 0.0;
     }
-    cout << " cell derivatives after constraints" << endl;
-    for ( int i = 0; i < 9; i++ )
-      cout << " deda[" << i << "] = " << deda[i] << endl;
+    
+    // Check is cell shape should be preserved (if "S" is present in cell_lock)
+    // The only changes allowed are renormalizations of a,b,c
+    if ( cell_lock.find("S") != string::npos )
+    {
+      // projection of d in the direction of e
+      D3vector d,e;
+      
+      d = D3vector(deda[0],deda[1],deda[2]);
+      e = cell.a(0) / length(cell.a(0));
+      d = (d * e) * e;
+      deda[0] = d.x; deda[1] = d.y; deda[2] = d.z;
+      
+      d = D3vector(deda[3],deda[4],deda[5]);
+      e = cell.a(1) / length(cell.a(1));
+      d = (d * e) * e;
+      deda[3] = d.x; deda[4] = d.y; deda[5] = d.z;
+      
+      d = D3vector(deda[6],deda[7],deda[8]);
+      e = cell.a(2) / length(cell.a(2));
+      d = (d * e) * e;
+      deda[6] = d.x; deda[7] = d.y; deda[8] = d.z;
+    }
+    //cout << " cell derivatives after constraints" << endl;
+    //for ( int i = 0; i < 9; i++ )
+    //  cout << " deda[" << i << "] = " << deda[i] << endl;
   }
   
   const double dt = s_.ctrl.dt;
@@ -67,8 +90,8 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
   
   cellp = UnitCell(a0p,a1p,a2p);
   
-  cout << " SDCellStepper::compute_new_cell: cellp: " << endl;
-  cout << cellp;
+  //cout << " SDCellStepper::compute_new_cell: cellp: " << endl;
+  //cout << cellp;
   
 }
 
@@ -102,7 +125,7 @@ void SDCellStepper::update_cell(void)
   
   // resize wavefunction and basis sets
   
-  cout << " SDCellStepper::update_cell" << endl;
+  //cout << " SDCellStepper::update_cell" << endl;
   s_.wf.resize(cellp,s_.wf.refcell(),s_.wf.ecut());
   if ( s_.wfv != 0 )
   {

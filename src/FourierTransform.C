@@ -3,7 +3,7 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.13 2004-10-04 18:38:24 fgygi Exp $
+// $Id: FourierTransform.C,v 1.14 2005-01-04 22:08:51 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
@@ -76,6 +76,7 @@ FourierTransform::FourierTransform (const Basis &basis,
   int np0, int np1, int np2) : ctxt_(basis.context()), basis_(basis), 
   np0_(np0), np1_(np1), np2_(np2)
 {
+  assert(ctxt_.npcol() == 1);
   nprocs_ = ctxt_.size();
   myproc_ = ctxt_.myproc();
 
@@ -129,6 +130,13 @@ FourierTransform::FourierTransform (const Basis &basis,
   {
     nvec_ = basis_.nrod_loc();
   }
+  
+  // compute number of transforms along the x,y and z directions
+  // ntrans0_ is the number of transforms along x in one of the two blocks
+  // of vectors corresponding to positive and negative y indices
+  ntrans0_ = max(abs(basis_.idxmax(1)),abs(basis_.idxmin(1)))+1;
+  ntrans1_ = np0_;
+  ntrans2_ = nvec_;
   
   // resize array zvec holding columns
   zvec_.resize(nvec_ * np2_);
@@ -655,7 +663,7 @@ void FourierTransform::bwd(complex<double>* val)
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
     // transform along x for non-zero vectors only
-    // transform along x for y in [0,imax1] and y in [np1-imax1-1, np1-1]
+    // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
 #if USE_ESSL
 #if USE_ESSL_2DFFT
 
@@ -675,12 +683,9 @@ void FourierTransform::bwd(complex<double>* val)
   
   int inc1, inc2, ntrans, istart, length, isign = -1, initflag = 0;
   double scale = 1.0;
-  int imax1 = basis_.idxmax(1);
   // transform only non-zero vectors along x
-  // use ntrans = imax1+1 for both blocks (even though the second block
-  // has only imax1 non-zero vectors)
- 
-  ntrans = imax1+1;
+  // First block: positive y indices: [0,ntrans0_]
+  ntrans = ntrans0_;
   inc1 = 1;
   inc2 = np0_;
   istart = k * np0_ * np1_;
@@ -688,13 +693,10 @@ void FourierTransform::bwd(complex<double>* val)
   dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
        &length,&ntrans,&isign,&scale,&aux1xb[0],&naux1x,&aux2[0],&naux2);
  
-  // Note: the number of non-zero vectors in next call is imax1, but
-  // ESSL's dcft must be used with same value of ntrans as used in the
-  // initialization call (ntrans=imax1+1)
-  ntrans = imax1+1;
+  // Second block: negative y indices: [np1-ntrans0_,np1-1]
   inc1 = 1;
   inc2 = np0_;
-  istart = np0_ * ( (np1_-imax1-1) + k * np1_ );
+  istart = np0_ * ( (np1_-ntrans) + k * np1_ );
   length = np0_;
   dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
        &length,&ntrans,&isign,&scale,&aux1xb[0],&naux1x,&aux2[0],&naux2);
@@ -709,22 +711,33 @@ void FourierTransform::bwd(complex<double>* val)
        &length,&ntrans,&isign,&scale,&aux1yb[0],&naux1y,&aux2[0],&naux2);
 #endif  
 #elif USE_FFTW
-    int ntrans, inc1, inc2, istart;
-    int imax1 = basis_.idxmax(1);
+    int inc1, inc2, istart;
 
-    ntrans = imax1+1;
+#if 1
+    int ntrans = ntrans0_;
+    // Transform first block along x: positive y indices
     inc1 = 1;
     inc2 = np0_;
     istart = k * np0_ * np1_; 
     fftw(bwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
-    ntrans = imax1;
+    // Transform second block along x: negative y indices
     inc1 = 1;
     inc2 = np0_;
-    istart = np0_ * ( (np1_-imax1) + k * np1_ );
+    istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     fftw(bwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
-                        
+#else
+    // debug: transform along x for all values of y
+    int ntrans = np1_;
+    inc1 = 1;
+    inc2 = np0_;
+    istart = k * np0_ * np1_; 
+    fftw(bwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
+                        (FFTW_COMPLEX*)0,0,0);
+    
+#endif
+                    
     // transform along y for all values of x
     ntrans = np0_;
     inc1 = np0_;
@@ -735,8 +748,8 @@ void FourierTransform::bwd(complex<double>* val)
 #else
     // No library
     // transform along x for non-zero elements
-    int imax1 = basis_.idxmax(1);
-    int ntrans = imax1+1;
+    // Transform first block along x: positive y indices
+    int ntrans = ntrans0_;
     int istart = k * np0_ * np1_;
     int length = np0_;
     int ainc   = 1;
@@ -745,8 +758,8 @@ void FourierTransform::bwd(complex<double>* val)
     int idir = -1;
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
  
-    ntrans = imax1;
-    istart = np0_ * ( (np1_-imax1) + k * np1_ );
+    // Transform second block along x: negative y indices
+    istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
  
     // transform along y for all values of x
@@ -774,7 +787,7 @@ void FourierTransform::fwd(complex<double>* val)
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
     // transform along x for non-zero vectors only
-    // transform along x for y in [0,imax1] and y in [np1-imax1-1, np1-1]
+    // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
 #if USE_ESSL
 #if USE_ESSL_2DFFT
 
@@ -794,7 +807,6 @@ void FourierTransform::fwd(complex<double>* val)
  
     int inc1, inc2, ntrans, istart, length, isign = 1, initflag = 0;
     double scale = 1.0;
-    int imax1 = basis_.idxmax(1);
     // transform along y for all values of x
     ntrans = np0_;
     inc1 = np0_;
@@ -805,10 +817,7 @@ void FourierTransform::fwd(complex<double>* val)
          &length,&ntrans,&isign,&scale,&aux1yf[0],&naux1y,&aux2[0],&naux2);
  
     // transform only non-zero vectors along x
-    // use ntrans = imax1+1 for both blocks (even though the second block
-    // has only imax1 non-zero vectors)
- 
-    ntrans = imax1+1;
+    ntrans = ntrans0_;
     inc1 = 1;
     inc2 = np0_;
     istart = k * np0_ * np1_;
@@ -816,47 +825,41 @@ void FourierTransform::fwd(complex<double>* val)
     dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
          &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
  
-    // Note: the number of non-zero vectors in next call is imax1, but
-    // ESSL's dcft must be used with same value of ntrans as used in the
-    // initialization call (ntrans=imax1+1)
-    ntrans = imax1+1;
     inc1 = 1;
     inc2 = np0_;
-    istart = np0_ * ( (np1_-imax1-1) + k * np1_ );
+    istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     length = np0_;
     dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
          &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
 #endif  
 #elif USE_FFTW
-    int ntrans, inc1, inc2, istart;
-    int imax1 = basis_.idxmax(1);
+    int inc1, inc2, istart;
 
     // transform along y for all values of x
-    ntrans = np0_;
+    int ntrans = np0_;
     inc1 = np0_;
     inc2 = 1;
     istart = k * np0_ * np1_; 
     fftw(fwplan1,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
                         
-    // transform along x for selected values
-    ntrans = imax1+1;
+    ntrans = ntrans0_;
+    // Transform first block along x: positive y indices
     inc1 = 1;
     inc2 = np0_;
     istart = k * np0_ * np1_; 
     fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
-    ntrans = imax1;
+    // Transform second block along x: negative y indices
     inc1 = 1;
     inc2 = np0_;
-    istart = np0_ * ( (np1_-imax1) + k * np1_ );
+    istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
                         
 #else
     // No library
     // transform along y for all values of x
-    int imax1 = basis_.idxmax(1);
     int ntrans = np0_;
     int istart = k * np0_ * np1_;
     int length = np1_;
@@ -867,15 +870,14 @@ void FourierTransform::fwd(complex<double>* val)
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
  
     // transform along x for non-zero elements
-    ntrans = imax1+1;
+    ntrans = ntrans0_;
     istart = k * np0_ * np1_;
     length = np0_;
     ainc   = 1;
     ajmp   = np0_;
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
  
-    ntrans = imax1;
-    istart = np0_ * ( (np1_-imax1) + k * np1_ );
+    istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
 #endif
   } // for k
@@ -1048,9 +1050,6 @@ void FourierTransform::init_lib(void)
        &isign,&scale,&aux1zf[0],&naux1z,&aux2[0],&naux2);
 #else
 
-  int ntrans0 = basis_.idxmax(1)+1;
-  int ntrans1 = np0_;
-  int ntrans2 = nvec_;
   
   naux1x = (int) (20000 + 2.28 * np0_);
   naux1y = (int) (20000 + 2.28 * np1_);
@@ -1076,10 +1075,8 @@ void FourierTransform::init_lib(void)
   double scale = 1.0;
   complex<double> *p = 0;
   
-  int imax1 = basis_.idxmax(1);
-
   // x transforms
-  inc1 = 1; inc2 = np0_; ntrans = imax1+1;
+  inc1 = 1; inc2 = np0_; ntrans = ntrans0_;
   isign = -1;
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np0_,&ntrans,
         &isign,&scale,&aux1xb[0],&naux1x,&aux2[0],&naux2);
@@ -1088,7 +1085,7 @@ void FourierTransform::init_lib(void)
         &isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
   
   // y transforms
-  inc1 = np0_; inc2 = 1; ntrans = np0_;
+  inc1 = np0_; inc2 = 1; ntrans = ntrans1_;
   isign = -1;
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np1_,&ntrans,
         &isign,&scale,&aux1yb[0],&naux1y,&aux2[0],&naux2);
@@ -1097,7 +1094,7 @@ void FourierTransform::init_lib(void)
         &isign,&scale,&aux1yf[0],&naux1y,&aux2[0],&naux2);
        
   // z transforms
-  inc1 = 1; inc2 = np2_; ntrans = nvec_;
+  inc1 = 1; inc2 = np2_; ntrans = ntrans2_;
   isign = -1;
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np2_,&ntrans,
         &isign,&scale,&aux1zb[0],&naux1z,&aux2[0],&naux2);

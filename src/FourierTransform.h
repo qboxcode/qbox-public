@@ -3,7 +3,7 @@
 // FourierTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.h,v 1.8 2004-10-04 18:38:24 fgygi Exp $
+// $Id: FourierTransform.h,v 1.9 2005-01-04 22:08:51 fgygi Exp $
 
 #ifndef FOURIERTRANSFORM_H
 #define FOURIERTRANSFORM_H
@@ -30,6 +30,7 @@ class FourierTransform
   int nprocs_, myproc_;
 
   int np0_,np1_,np2_;
+  int ntrans0_,ntrans1_,ntrans2_;
   
   int nvec_;
   

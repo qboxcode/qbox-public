@@ -1,0 +1,259 @@
+--------------------------------------------------------------------------------
+
+- Move occ[i] information from Wavefunction to SlaterDet (simplifies the 
+print operation for XML output).
+- Read occ info from XML file (currently fixed to 2.0).
+- Add options to the load command to read only atomset or only wavefunctions
+- Enable Fourier interpolation during the load command to allow for arbitrary
+mesh in input sample file.
+
+>>>>>>> Must change: use of XMLString::transcode(..) is a memory leak 
+>>>>>>> when called in a string constructor, such as in 
+>>>>>>> string a(XMLString::transcode(...) ). The XMLString dynamically 
+>>>>>>> allocated by transcode must be deleted using XMLString::release, 
+>>>>>>> (which is impossible for a temporary as in the constructor call above).
+>>>>>>> Must use other form of transcode: bool transcode(XMLCh*,unsigned int).
+
+--------------------------------------------------------------------------------
+Known bugs
+
+Saving a sample with wavefunctions of size zero crashes in FourierTransform
+(size zero not working)
+
+When resizing the cell to a *smaller* cell, the grid size is 
+not decreased, presumably because the ref_cell is kept at its current value
+and determines the grid size.
+
+XMLGFPreprocessor uses Allgather to send xmlcontent to all tasks, which is 
+unnecessary since the parser is only created on task 0 (for now)
+
+gfdata matrix used in XMLGFPreprocessor uses a single-row context. May be
+preferrable to use a single-column context when nst is small to avoid 
+memory problems.
+
+Replace Xerces Base64 transcoding in SlaterDet::print with Base64Transcoder.
+
+Note: UnitCell but was not fixed in 1.8.1. Still observe inf loops.
+There is no mechanism to remove s.wfv once it has been created through either
+the load command or the set wf_dyn MD command. Should implement a block_wf cmd. 
+--------------------------------------------------------------------------------
+rel1_8_2
+Fixed problem with wfvtmp in SampleReader: cannot load sample and 
+then set wf_dyn = MD. Also, the order of load and set wf_dyn MD commands causes 
+a seg fault.
+--------------------------------------------------------------------------------
+rel1_8_1
+Fixed large-file support for sample files.
+Fixed resizing of wf velocity.
+Defined Matrix::operator=.
+Fixed bug in PSD optimization: G=0 coefficient had zero value of dt2bye.
+Fixed bug in UnitCell::fold_in_ws: caused infinite loop in some cases.
+--------------------------------------------------------------------------------
+rel1_8_0
+Added thermostat, th_time, th_temp.
+Added emass variable.
+--------------------------------------------------------------------------------
+rel1_7_1
+Fixed bug in calculation of electronic kinetic energy in SampleStepper.C which
+caused small kink in ekin_e and spike in econst during restarts.
+--------------------------------------------------------------------------------
+rel1_7_0
+Implemented parallel XML preprocessing of sample files for fast loading.
+Added -serial option to the load command to force serial parsing of files.
+Fixed a bug in Context::string_send: was incorrect for zero-length strings
+initialization of ibuf removed, unnecessary.
+Added new dmin,dmax,imin,imax,string_send,string_recv,pmap functions in 
+Context
+Changed the block distribution of the slabs in FourierTransform to adopt the
+same type of block distribution used in ScaLAPACK. Needed in SampleReader.C
+in order to read from the gfdata matrix.
+--------------------------------------------------------------------------------
+rel1_6_1exp
+2003-07-24:modified initialization of coefficients in SlaterDet constructor
+to choose g vectors of minimum norm. Note: reverting to -O2 option using xlC
+after noting that -O3 causes incorrect results in testBasis.
+Added dmin,dmax,imin,imax members to Context.C to identify process where 
+max or min is found.
+--------------------------------------------------------------------------------
+rel1_6_0
+Implemented MD for wfs and for ions, print ekin_e, ekin_ion, econst in 
+SampleStepper.C. Use Stoermer's rule to compute velocities at end points.
+Implemented load/save of wf velocities
+--------------------------------------------------------------------------------
+rel1_5_1
+Fixed bug in NonLocalPotential that appeared for Contexts having multiple
+columns and rows (computation of enl and fion incorrect).
+--------------------------------------------------------------------------------
+rel1_5_0    May 21, 2003
+Parallel Load/Save XML sample implemented.
+Load is slow: 6 min for 256 states on a (64)^3 grid (H2O_64, 73 Ry)
+Save is ok (30 s.)
+Bug found in NonLocalPotential::update_eigr: index of first local atom not
+computed. Fixed. Affects calculations with multiple-column contexts.
+Fixed bug in NonLocalPotential::energy: loop over fnl elements.
+Added optional ecut attribute to the wavefunction element to insure
+restart from xml sample in exact same conditions. If ecut attribute is not
+specified in xml file, a value is inferred from the grid size.
+Fixed incorrect initialization of dwf in EnergyFunctional::energy.
+Implemented PSD for wf_dyn.
+--------------------------------------------------------------------------------
+rel1_4_0    May 16, 2003
+Implemented byteswap operation when loading/saving XML base64 file on AIX.
+(affects WavefunctionHandler.[Ch] and SlaterDet.[Ch].
+All storage in base64 form is therefore little-endian. No byte swapping needed
+on Intel platforms.
+--------------------------------------------------------------------------------
+rel1_3_0    May 16, 2003
+New features in rel1_3_0:
+XML input for sample, species, atomset, wavefunctions, including base64
+encoding. New hiearchy of XML handler classes for parsing of sample files.
+Parsing done with Apache xerces-c, 2.2.0.
+Clean-up of FourierTransform: convention of fwd/bwd changed to be consistent
+with usually accepted definitions (forward transform is Fourier analysis, i.e.
+computation of Fourier coefficients, and involves scaling by 1/np012. Backward
+transform is computation of real-space function from coefficients, no scaling).
+Load command includes reading of sample and appropriate resizing of all 
+variables.
+The "locked" variable is removed from the Atom class, and will be reintroduced
+as a Constraint. This is to avoid having to include the "locked" info in the 
+XML definition of an Atom.
+Builds and runs on Linux (linuc-pc_mpi_icc.mk) and on snow (aix_mpi.mk)
+--------------------------------------------------------------------------------
+Jan 24, 2003
+Checking in release rel1_0_0:
+performs SD steps with LDA and local pseudopotentials
+--------------------------------------------------------------------------------
+Thu Jan  9 16:01:42 PST 2003
+Added UserInterface to qb. Commands Set, Print, Quit, Atom.
+TO BE FIXED: SlaterDet cannot resize if more states than basis functions.
+This forces the order in which ecut, cell and atoms are defined.
+--------------------------------------------------------------------------------
+Tue Sep 24 14:19:13 PDT 2002
+SlaterDet can exist on any context.
+Developing a Wavefunction that can hold any number of SlaterDets for 
+arbitrary nspin and nkpoints.
+--------------------------------------------------------------------------------
+
+Examples of sizes for H2O calculations
+--------------------------------------
+
+512 molecules (1536 atoms), cell: 46.912^3 Bohr, ecut=85Ry, FTGrid 280x280x280
+nst = 2048
+
+BlacsContext (nprow = 128, npcol = 128), total of 16384 nodes
+16 states/column
+wfbasis.size() = 690000
+vbasis.size() = 5480000
+global matrix of coefficients: 690000 x 2048 complex<double>, 
+(or 1380000 x 2048 double)
+wfbasis.localsize() = 5400
+vbasis.localsize() = 42800
+local size of coefficients: 5400 x 16 x sizeof(complex<double>) = 1.4 MB 
+local size of FTGrid: 280x280x280/128 x sizeof(complex<double>) = 2.7 MB
+local number of grid points: 280x280x280/128 = 172000
+
+keeping the real-space copies of the wavefunctions takes 16 real grid
+functions per column, i.e. 2.7 * 8 = 22 MB, and is therefore possible.
+
+The number of FFT's needed to compute the density is 8 (complex)
+on each column. Considering the timing of a 280^3 transform with 128
+tasks on Frost (0.24 s.), the 8 transforms take 2.0 seconds.
+Accumulation of the charge density is an MPI_Allreduce on the 
+rows of the BlacsContext.
+
+NonLocalPotential:
+aux[ia][ig] for s-projector: distributed across rows and columns:
+512/128 = 4 atoms/column, 5400 plane-waves/row:
+local size: 4 * 5400 * sizeof(complex<double>) = 0.3 MB
+Fnl[n][ia]: 2048 x 512 double: distributed over rows and columns
+localsize: 16 x 4 double
+
+Replicating aux[ia][ig] on each column:
+localsize = 512 x 5400 x sizeof(complex) = 44 MB
+
+LocalPotential
+Real space grid, replicated over columns: 1.4 MB/node
+
+Summary of local sizes:
+
+3 copies of wf coefficients:    33   MB
+1 real-space copy of wf's       22   MB
+2 complex FTGrid's               5.4 MB
+1 real rho grid                  1.4 MB
+1 real vloc grid                 1.4 MB
+3 real grad_rho grids            4.2 MB
+1 aux array                      2.7 MB
+                               --------
+                                70.1 MB
+                                
+Using replicated aux[ia][ig] arrays in NonLocalPotential adds 44 MB.
+Note that having p-projectors would multiply the size of aux by 4, thus
+making it difficult to replicate projectors on nodes. 
+Distributing projectors across rows and columns is better suited for 
+simulations involving d-projectors, or semi-local potentials (factors
+10-20 in the number of projectors)
+
+(sizes are OK for BGL, assuming 256 MB/node)
+--------------------------------------------------------------------------------
+
+2048 molecules (6144 atoms), cell 46x92x92 Bohr, ecut=85Ry, grid 280x560x560
+nst=8192
+
+Use a BlacsContext (nprow=256, npcol=256), total of 65536 nodes
+32 states / column
+Basis.size() = 22000000
+global matrix of coefficients: 22000000 x 8192 complex<double>, 
+(or 44000000 x 8192 double)
+Basis.localsize() ~= 85600
+local size of coefficients: 85600 x 32 x sizeof(complex<double>) = 44 MB
+local size of FTGrid: 280x560x560/256 x sizeof(complex<double>) = 5.4 MB
+
+(i.e. sizes are OK for BGL)
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+ FTGrid timings
+--------------------------------------------------------------------------------
+
+(using blue, esslsmp)
+
+   file           size      tasks     nodes   fwd/bwd time
+   ----           ----      -----     -----   ------------
+ftest.o45511  264x264x264      2        2        11.0
+ftest.o45507  264x264x264      4        4         5.8
+ftest.o45506  264x264x264      8        8         3.0
+ftest.o45505  264x264x264     16       16         1.6
+ftest.o45504  264x264x264     32       32         0.9-1.1
+ftest.o43442  264x264x264     64       64         0.5-0.6
+ftest.o43879  264x264x264    128       64         1.0-2.9 
+ftest.o43431  264x264x264    256       64         1.9-10.5
+ftest.o43423  264x264x264    128       32         1.5-4.5
+ftest.o39910  264x264x264     64       16         1.6-4.4
+ftest.o41371  264x264x264     32        8         2.2-4.6
+ftest.o10483  264x264x264     64        8         1.6-7.8 (snow)
+ftest.o10481  264x264x264     32        8         1.8-3.7 (snow)
+
+ftest.o3426   256x256x256    128       32         0.7-0.8
+ftest.o1065   256x256x256     64       16         1.0     
+
+ftest.o1067   512x512x512    128       32         4.0-4.5
+
+--------------------------------------------------------------------------------
+Note: these results were obtained with esslsmp. Better timings
+can be obtained with essl and using 1 task per cpu.
+The timings with essl and multiple tasks per node also appear
+to be very homogeneous from node to node. It is likely that 
+the use of esslsmp causes delays in the MPI calls, and is 
+the source of the very inhomogenous timings observed
+--------------------------------------------------------------------------------
+Timings with essl
+
+   file           size      tasks     nodes   fwd/bwd time
+   ----           ----      -----     -----   ------------
+              264x264x264     16        1       1.0/1.0 (Frost)         
+              264x264x264     16        4       3.6/3.7 (Blue)
+              140x140x140      4        1       1.2/1.3 (Blue)
+
+--------------------------------------------------------------------------------
+Using 4 nodes on Blue for the (264)^3 case, it is better to use 16 tasks
+with 4 tasks/node with essl (3.6 s.) than to use 4 tasks with 1 task/node
+and esslsmp (5.8 s.).

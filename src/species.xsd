@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" 
+  targetNamespace="http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0"
+  xmlns:qbox="http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  
+  <annotation>
+    <documentation> $Id: species.xsd,v 1.2 2003-05-16 16:14:00 fgygi Exp $
+      Qbox atomic species specification schema. 
+      The Quantum Box project. Francois Gygi, Lawrence Livermore National Laboratory. 
+      Copyright (c) 2003 The Regents of the University of California.
+    </documentation>
+  </annotation>
+  
+  <import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
+  
+  <element name="species" type="qbox:speciesType"/>
+  
+  <complexType name="speciesType">
+    <sequence minOccurs="0">
+      <element name="description" type="string" minOccurs="0" maxOccurs="1"/>
+      <element name="symbol" type="NMTOKEN"/>
+      <element name="atomic_number" type="nonNegativeInteger"/>
+      <element name="mass" type="qbox:positiveDouble"/>
+      <element name="norm_conserving_pseudopotential" minOccurs="0" maxOccurs="1"
+       type="qbox:norm_conserving_pseudopotentialType"/>
+    </sequence>
+    <attribute name="name" type="NMTOKEN" use="optional"/>
+    <attribute ref="xlink:href" use="optional"/>
+  </complexType>
+  
+  <complexType name="norm_conserving_pseudopotentialType">
+    <sequence>
+      <element name="valence_charge" type="nonNegativeInteger"/>
+      <element name="lmax" type="nonNegativeInteger"/>
+      <element name="llocal" type="nonNegativeInteger"/>
+      <element name="nquad" type="nonNegativeInteger"/>
+      <element name="rquad" type="qbox:nonNegativeDouble"/>
+      <element name="mesh_spacing" type="qbox:positiveDouble"/>
+      <element name="projector" minOccurs="1" maxOccurs="unbounded">
+        <complexType>
+          <sequence>
+            <element name="radial_potential">
+              <simpleType>
+                <list itemType="double"/>
+              </simpleType>
+            </element>
+            <element name="radial_function" minOccurs="0">
+              <simpleType>
+                <list itemType="double"/>
+              </simpleType>
+            </element>
+          </sequence>
+          <attribute name="l" type="nonNegativeInteger" use="required"/>
+          <attribute name="size" type="positiveInteger" use="required"/>
+        </complexType>
+      </element>
+    </sequence>
+  </complexType>
+  
+  <simpleType name="positiveDouble">
+    <restriction base="double">
+      <minExclusive value="0"/>
+    </restriction>
+  </simpleType>
+  
+  <simpleType name="nonNegativeDouble">
+    <restriction base="double">
+      <minInclusive value="0"/>
+    </restriction>
+  </simpleType>
+  
+</schema>

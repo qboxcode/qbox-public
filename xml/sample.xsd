@@ -1,0 +1,171 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" 
+  xmlns:qbox="http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0"
+  targetNamespace="http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  
+  <annotation>
+    <documentation> $Id: sample.xsd,v 1.4 2003-09-16 16:24:41 fgygi Exp $
+      Qbox sample specification schema. 
+      The Quantum Box project. Francois Gygi, Lawrence Livermore National Laboratory. 
+      Copyright (c) 2003 The Regents of the University of California.
+    </documentation>
+  </annotation>
+  
+  <import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
+  
+  <include schemaLocation="species.xsd"/>
+  
+  <element name="sample" type="qbox:sampleType"/>
+  <complexType name="sampleType">
+    <sequence>
+      <element name="atomset" type="qbox:atomsetType" minOccurs="0"/>
+      <element name="wavefunction" type="qbox:wavefunctionType" minOccurs="0"/>
+      <element name="wavefunction_velocity" 
+         type="qbox:wavefunctionType" minOccurs="0"/>
+    </sequence>
+  </complexType>
+  
+  <complexType name="atomsetType">
+    <sequence minOccurs="0">
+      <element name="species" type="qbox:speciesType" 
+               minOccurs="0" maxOccurs="unbounded"/>
+      <element name="atom" type="qbox:atomType"
+               minOccurs="0" maxOccurs="unbounded"/>
+    </sequence>
+    <attribute ref="xlink:href" use="optional"/>
+  </complexType>
+  
+  <complexType name="atomType">
+    <sequence>
+      <element name="position" type="qbox:d3vectorType"/>
+      <element name="velocity" minOccurs="0" type="qbox:d3vectorType"/>
+    </sequence>
+    <attribute name="name" type="NMTOKEN" use="required"/>
+    <attribute name="species" type="NMTOKEN" use="required"/>
+  </complexType>
+  
+  <complexType name="wavefunctionType">
+    <sequence minOccurs="0">
+      <element name="domain" type="qbox:domainType"/>
+      <element name="grid" type="qbox:gridType"/>
+      <element name="slater_determinant" type="qbox:slater_determinantType"
+               maxOccurs="unbounded"/>
+    </sequence>
+    <attribute name="ecut" type="qbox:nonNegativeDouble" use="optional"/>
+    <attribute name="nspin" type="qbox:nspinType" use="required"/>
+    <attribute name="nel" type="nonNegativeInteger" use="required"/>
+    <attribute name="nempty" type="nonNegativeInteger" default="0"/>
+    <attribute ref="xlink:href" use="optional"/>
+  </complexType>
+  
+  <complexType name="domainType">
+    <attribute name="a" type="qbox:d3vectorType" use="required"/>
+    <attribute name="b" type="qbox:d3vectorType" use="required"/>
+    <attribute name="c" type="qbox:d3vectorType" use="required"/>
+  </complexType>
+  
+  <complexType name="gridType">
+    <attribute name="nx" type="positiveInteger" use="required"/>
+    <attribute name="ny" type="positiveInteger" use="required"/>
+    <attribute name="nz" type="positiveInteger" use="required"/>
+  </complexType>
+  
+  <complexType name="slater_determinantType">
+    <sequence minOccurs="0">
+      <element name="density_matrix" type="qbox:density_matrixType"/>
+      <element name="grid_function" type="qbox:grid_functionType"
+               maxOccurs="unbounded"/>
+    </sequence>
+    <attribute name="spin" type="qbox:spinType" use="optional"/>
+    <attribute name="kpoint" type="qbox:d3vectorType" use="required"/>
+    <attribute name="weight" type="double" use="required"/>
+    <attribute name="size" type="positiveInteger" use="required"/>
+    <attribute ref="xlink:href" use="optional"/>
+  </complexType>
+      
+  <simpleType name="nspinType">
+    <restriction base="integer">
+      <minInclusive value="1"/>
+      <maxInclusive value="2"/>
+    </restriction>
+  </simpleType>
+  
+  <simpleType name="spinType">
+    <restriction base="string">
+    <enumeration value="up"/>
+    <enumeration value="down"/>
+    </restriction>
+  </simpleType>
+  
+  <simpleType name="d3vectorType">
+    <restriction>
+       <simpleType>
+         <list itemType="double"/>
+       </simpleType>
+       <length value="3"/>
+    </restriction>
+  </simpleType>
+      
+  <complexType name="vectorType">
+    <simpleContent>
+      <extension base="string">
+      <attribute name="type" type="qbox:numericType" use="required"/>
+      <attribute name="size" type="positiveInteger" use="required"/>
+      <attribute name="encoding" type="qbox:encodingType" use="required"/>
+      </extension>
+    </simpleContent>
+  </complexType>
+  
+  <simpleType name="numericType">
+    <restriction base="string">
+    <enumeration value="double"/>
+    <enumeration value="complex"/>
+    </restriction>
+  </simpleType>
+  
+  <simpleType name="encodingType">
+    <restriction base="string">
+    <enumeration value="text"/>
+    <enumeration value="base64"/>
+    </restriction>
+  </simpleType>
+  
+  <complexType name="grid_functionType">
+    <simpleContent>
+      <extension base="string">
+      <attribute name="type" type="qbox:numericType" use="required"/>
+      <attribute name="nx" type="positiveInteger" use="required"/>
+      <attribute name="ny" type="positiveInteger" use="required"/>
+      <attribute name="nz" type="positiveInteger" use="required"/>
+      <attribute name="x0" type="nonNegativeInteger" default="0"/>
+      <attribute name="y0" type="nonNegativeInteger" default="0"/>
+      <attribute name="z0" type="nonNegativeInteger" default="0"/>
+      <attribute name="encoding" type="qbox:encodingType" use="required"/>
+      <attribute ref="xlink:href" use="optional"/>
+      </extension>
+    </simpleContent>
+  </complexType>
+
+  <simpleType name="doubleListType">
+    <list itemType="double"/>
+  </simpleType>
+  
+  <complexType name="density_matrixType">
+    <simpleContent>
+      <extension base="qbox:doubleListType">
+        <attribute name="form" type="qbox:density_matrix_formType" use="required"/>
+        <attribute name="size" type="positiveInteger" use="required"/>
+        <attribute ref="xlink:href" use="optional"/>
+      </extension>
+    </simpleContent>
+  </complexType>
+  
+  <simpleType name="density_matrix_formType">
+    <restriction base="string">
+    <enumeration value="full"/>
+    <enumeration value="diagonal"/>
+    </restriction>
+  </simpleType>
+
+</schema>

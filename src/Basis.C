@@ -1,0 +1,784 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Basis.C
+//
+////////////////////////////////////////////////////////////////////////////////
+// $Id: Basis.C,v 1.10 2003-05-23 21:51:04 fgygi Exp $
+
+#include "Basis.h"
+#include "Context.h"
+
+#include <cmath>
+#include <cassert>
+#include <cstdlib>
+#include <vector>
+#include <set>
+#include <algorithm>
+#include <functional>
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+struct BasisImpl
+{
+  Context ctxt_;
+  int nprow_, myrow_;
+  
+  UnitCell cell_;         // cell dimensions
+  UnitCell refcell_;      // reference cell dimensions
+  D3vector kpoint_;       // k-point in units of b0,b1,b2
+  double ecut_;           // energy cutoff of wavefunctions in Rydberg
+  int idxmin_[3];          // minimum index in each direction 
+  int idxmax_[3];          // maximum index in each direction 
+  int size_;              // basis size
+  int nrods_;             // total number of rods
+  vector<int> localsize_; // localsize_[ipe]
+  int maxlocalsize_, minlocalsize_;
+  vector<int> nrod_loc_;
+  vector<vector<int> > rod_h_;
+  vector<vector<int> > rod_k_;
+  vector<vector<int> > rod_lmin_;
+  vector<vector<int> > rod_size_;
+  vector<vector<int> > rod_first_;
+  
+  vector<int>    idx_;   // 3-d index of vectors idx[i*3+j]
+  vector<double> g_;     // norm of g vectors g[localsize]
+  vector<double> kpg_;   // norm of g vectors g[localsize]
+  vector<double> gi_;    // inverse norm of g vectors gi[localsize]
+  vector<double> g2_;    // 2-norm of g vectors g2[localsize]
+  vector<double> kpg2_;  // 2-norm of g vectors g2[localsize]
+  vector<double> g2i_;   // inverse square norm of g vectors g2i[localsize]
+  int np_[3];            // cache for the function np
+  vector<double> gx_;    // g vectors components gx[j*localsize+i], j=0,1,2
+  vector<double> gx2_;   // g vectors components^2 gx2[j*localsize+i], j=0,1,2
+  vector<int> isort_loc; // index array to access locally sorted vectors
+                         // g2_[isort_loc[i]] < g2_[isort_loc[j]] if i < j
+  bool real_;            // true if k=0 
+  
+  bool resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
+  
+  BasisImpl(const Context &ctxt, D3vector kpoint);
+  ~BasisImpl(void);
+  
+  void update_g(void);
+  
+};
+
+////////////////////////////////////////////////////////////////////////////////
+double Basis::localmemsize(void) const
+{ 
+  return 
+  5.0 * (pimpl_->nprow_*pimpl_->nrods_*sizeof(int)) // x[ipe][irod]
+  + pimpl_->localsize_[pimpl_->myrow_] * (3.0*sizeof(int) + 10 * sizeof(double));
+}
+double Basis::memsize(void) const { return pimpl_->nprow_*localmemsize(); }
+
+const Context& Basis::context(void) const { return pimpl_->ctxt_; }
+
+const UnitCell& Basis::cell() const { return pimpl_->cell_; }
+const UnitCell& Basis::refcell() const { return pimpl_->refcell_; }
+int Basis::idxmin(int i) const { return pimpl_->idxmin_[i]; }
+int Basis::idxmax(int i) const { return pimpl_->idxmax_[i]; }
+double Basis::ecut() const { return pimpl_->ecut_; }
+
+int Basis::size() const { return pimpl_->size_; }
+int Basis::localsize() const { return pimpl_->localsize_[pimpl_->myrow_]; }
+int Basis::localsize(int ipe) const { return pimpl_->localsize_[ipe]; }
+int Basis::maxlocalsize() const { return pimpl_->maxlocalsize_; }
+int Basis::minlocalsize() const { return pimpl_->minlocalsize_; }
+
+int Basis::nrods() const { return pimpl_->nrods_; }
+int Basis::nrod_loc() const { return pimpl_->nrod_loc_[pimpl_->myrow_]; }
+int Basis::nrod_loc(int ipe) const { return pimpl_->nrod_loc_[ipe]; }
+
+int Basis::rod_h(int irod) const
+{ return pimpl_->rod_h_[pimpl_->myrow_][irod]; }
+int Basis::rod_h(int ipe, int irod) const
+{ return pimpl_->rod_h_[ipe][irod]; }
+
+int Basis::rod_k(int irod) const
+{ return pimpl_->rod_k_[pimpl_->myrow_][irod]; }
+int Basis::rod_k(int ipe, int irod) const
+{ return pimpl_->rod_k_[ipe][irod]; }
+
+int Basis::rod_lmin(int irod) const
+{ return pimpl_->rod_lmin_[pimpl_->myrow_][irod]; }
+int Basis::rod_lmin(int ipe, int irod) const
+{ return pimpl_->rod_lmin_[ipe][irod]; }
+
+// size of rod irod on current process
+int Basis::rod_size(int irod) const
+{ return pimpl_->rod_size_[pimpl_->myrow_][irod]; }
+int Basis::rod_size(int ipe, int irod) const
+{ return pimpl_->rod_size_[ipe][irod]; }
+
+// position of first elem. of rod irod in the local list of g vectors
+int Basis::rod_first(int irod) const
+{ return pimpl_->rod_first_[pimpl_->myrow_][irod]; }
+int Basis::rod_first(int ipe, int irod) const
+{ return pimpl_->rod_first_[ipe][irod]; }
+
+int    Basis::idx(int i) const   { return pimpl_->idx_[i]; }
+double Basis::g(int i) const    { return pimpl_->g_[i]; }
+double Basis::kpg(int i) const  { return pimpl_->kpg_[i]; }
+double Basis::gi(int i) const   { return pimpl_->gi_[i]; }
+double Basis::g2(int i) const   { return pimpl_->g2_[i]; }
+double Basis::kpg2(int i) const { return pimpl_->kpg2_[i]; }
+double Basis::g2i(int i) const  { return pimpl_->g2i_[i]; }
+double Basis::gx(int i) const   { return pimpl_->gx_[i]; }
+double Basis::gx2(int i) const  { return pimpl_->gx2_[i]; }
+int    Basis::isort(int i) const { return pimpl_->isort_loc[i]; }
+
+const int*    Basis::idx_ptr(void) const   { return &(pimpl_->idx_[0]); }
+const double* Basis::g_ptr(void)  const   { return &(pimpl_->g_[0]); }
+const double* Basis::kpg_ptr(void)  const { return &(pimpl_->kpg_[0]); }
+const double* Basis::gi_ptr(void) const   { return &(pimpl_->gi_[0]); }
+const double* Basis::g2_ptr(void) const   { return &(pimpl_->g2_[0]); }
+const double* Basis::kpg2_ptr(void) const { return &(pimpl_->kpg2_[0]); }
+const double* Basis::g2i_ptr(void) const  { return &(pimpl_->g2i_[0]); }
+const double* Basis::gx_ptr(int j) const 
+{ return &(pimpl_->gx_[j*pimpl_->localsize_[pimpl_->myrow_]]); }
+const double* Basis::gx2_ptr(int j) const 
+{ return &(pimpl_->gx2_[j*pimpl_->localsize_[pimpl_->myrow_]]); }
+
+////////////////////////////////////////////////////////////////////////////////
+inline bool factorizable(int n)
+{
+  // next lines: use AIX criterion for all platforms (AIX and fftw)
+  
+//#if AIX
+
+  // Acceptable lengths for FFTs in the ESSL library:
+  // n = (2^h) (3^i) (5^j) (7^k) (11^m) for n <= 37748736 
+  // where: 
+  //  h = 1, 2, ..., 25
+  //  i = 0, 1, 2
+  //  j, k, m = 0, 1
+  if ( n % 11 == 0 ) n /= 11;
+  if ( n % 7 == 0 ) n /= 7;
+  if ( n % 5 == 0 ) n /= 5;
+  if ( n % 3 == 0 ) n /= 3;
+  if ( n % 3 == 0 ) n /= 3;
+  // the bound h <= 25 is not tested since 2^25 would cause
+  // memory allocation problems
+  while ( ( n % 2 == 0 ) ) n /= 2;
+  return ( n == 1 );
+  
+// #else
+//   while ( n % 5 == 0 ) n /= 5;
+//   while ( n % 3 == 0 ) n /= 3;
+//   while ( n % 2 == 0 ) n /= 2;
+//   return ( n == 1 );
+// #endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+int Basis::np(int i) const { return pimpl_->np_[i]; }
+
+////////////////////////////////////////////////////////////////////////////////
+const D3vector Basis::kpoint(void) const { return pimpl_->kpoint_; }
+
+////////////////////////////////////////////////////////////////////////////////
+bool Basis::real(void) const { return pimpl_->real_; }
+
+////////////////////////////////////////////////////////////////////////////////
+bool Basis::resize(const UnitCell& cell, const UnitCell& refcell, double ecut)
+{
+  return pimpl_->resize(cell,refcell,ecut);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+Basis::Basis(const Context& ctxt, D3vector kpoint) : 
+  pimpl_(new BasisImpl(ctxt,kpoint)) {}
+
+////////////////////////////////////////////////////////////////////////////////
+Basis::Basis(const Basis& b) : 
+  pimpl_(new BasisImpl(b.context(),b.kpoint()))
+{
+  resize(b.cell(),b.refcell(),b.ecut());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+Basis::~Basis(void) { delete pimpl_; }
+
+inline double sqr( double x ) { return x*x; }
+inline void swap(int &x, int &y) { int tmp = x; x = y; y = tmp; }
+
+////////////////////////////////////////////////////////////////////////////////
+class Rod
+{
+  // z-column of non-zero reciprocal lattice vectors
+  int h_, k_, lmin_, size_;
+  
+  public:
+  Rod(int h, int k, int lmin, int size) : h_(h), k_(k), 
+  lmin_(lmin), size_(size) {}
+  
+  int h(void) const { return h_; }
+  int k(void) const { return k_; }
+  int lmin(void) const { return lmin_; }
+  int size(void) const { return size_; }
+  bool operator< (const Rod& x) const
+  {
+    return size_ < x.size();
+  }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+class Node
+{
+  int id_, nrods_, size_;
+  
+  public:
+  Node() : id_(0), nrods_(0), size_(0) {}
+  Node(int id) : id_(id), nrods_(0), size_(0) {}
+  
+  int id(void) const { return id_; }
+  int nrods(void) const { return nrods_; }
+  int size(void) const { return size_; }
+  
+  void addrod(const Rod& r)
+  {
+    nrods_++;
+    size_ += r.size();
+  }
+  bool operator< (const Node& x) const
+  {
+    return size_ < x.size();
+  }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+template <class T>
+struct ptr_less
+{
+  public:
+  bool operator() ( T* x, T* y ) { return *x < *y; }
+};
+template <class T>
+struct ptr_greater
+{
+  public:
+  bool operator() ( T* x, T* y ) { return *y < *x; }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+template <class T>
+struct VectorLess
+{
+  // function object for indirect comparison of vector elements
+  public:
+  vector<T>& a_;
+  VectorLess<T>(vector<T>& a) : a_(a) {};
+  bool operator() (int i, int j) const
+  {
+    return a_[i] < a_[j];
+  }
+};
+  
+////////////////////////////////////////////////////////////////////////////////
+BasisImpl::BasisImpl(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt)
+{
+  // Construct the default empty basis
+  // cell and refcell are (0,0,0)
+  myrow_ = ctxt.myrow();
+  nprow_ = ctxt.nprow();
+
+  ecut_ = 0.0;
+  kpoint_ = kpoint;
+  real_ = ( kpoint == D3vector(0.0,0.0,0.0) );
+  
+  localsize_.resize(nprow_);
+  nrod_loc_.resize(nprow_);
+  rod_h_.resize(nprow_);
+  rod_k_.resize(nprow_);
+  rod_lmin_.resize(nprow_);
+  rod_size_.resize(nprow_);
+  rod_first_.resize(nprow_);
+  
+  // resize with zero cutoff to initialize empty Basis
+  resize(cell_,refcell_,0.0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+BasisImpl::~BasisImpl(void) {}
+
+////////////////////////////////////////////////////////////////////////////////
+bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell, 
+  double ecut)
+{
+  assert(ecut>=0.0);
+  assert(cell.volume() >= 0.0);
+  assert(refcell.volume() >= 0.0);
+  
+  ecut_ = ecut;
+  cell_ = cell;
+  refcell_ = refcell;
+  
+  if ( ecut == 0.0 || cell.volume() == 0.0)
+  {
+    idxmax_[0] = 0;
+    idxmax_[1] = 0;
+    idxmax_[2] = 0;
+    idxmin_[0] = 0;
+    idxmin_[1] = 0;
+    idxmin_[2] = 0;
+ 
+    size_ = 0;
+    nrods_ = 0;
+    for ( int ipe = 0; ipe < nprow_; ipe++ )
+    {
+      localsize_[ipe] = 0;
+      nrod_loc_[ipe] = 0;
+    }
+    maxlocalsize_ = minlocalsize_ = 0;
+    np_[0] = np_[1] = np_[2] = 0;
+    idx_.resize(3*localsize_[myrow_]);
+    g_.resize(localsize_[myrow_]);
+    kpg_.resize(localsize_[myrow_]);
+    gi_.resize(localsize_[myrow_]);
+    g2_.resize(localsize_[myrow_]);
+    kpg2_.resize(localsize_[myrow_]);
+    g2i_.resize(localsize_[myrow_]);
+    gx_.resize(3*localsize_[myrow_]);
+    gx2_.resize(3*localsize_[myrow_]);
+    isort_loc.resize(localsize_[myrow_]);
+    return true;
+  }
+  
+  const double two_ecut = 2.0 * ecut;
+  const double twopi = 2.0 * M_PI;
+
+  const double kpx = kpoint_.x;
+  const double kpy = kpoint_.y;
+  const double kpz = kpoint_.z;
+  
+  UnitCell defcell;
+  // defcell: cell used to define which vectors are contained in the Basis
+  // if refcell is defined, defcell = refcell
+  // otherwise, defcell = cell
+  if ( norm(refcell.b(0)) + norm(refcell.b(1)) + norm(refcell.b(2)) == 0.0 )
+  {
+    defcell = cell;
+  }
+  else
+  {
+    defcell = refcell;
+  }
+  
+  const D3vector b0 = defcell.b(0);
+  const D3vector b1 = defcell.b(1);
+  const D3vector b2 = defcell.b(2);
+  
+  const double normb2 = norm(b2);
+  const double b2inv2 = 1.0 / normb2;
+  
+  const D3vector kp = kpx*b0 + kpy*b1 + kpz*b2;
+  
+  if ( !cell.in_bz(kp) )
+    cout << " Basis::resize: warning: " << kpoint_
+         << " out of the BZ: " << kp << endl;
+
+  const double two_e = norm(kp);
+  
+  const double b0kp = b0 * kp;
+  const double b1kp = b1 * kp;
+  const double b2kp = b2 * kp;
+  
+  const double fac = sqrt(two_ecut) / twopi;
+
+  // define safe enclosing domain  
+  const int hmax_tmp = (int) ( fac * (
+    abs(defcell.a(0).x) + abs(defcell.a(0).y) + abs(defcell.a(0).z) ) );
+  const int hmin_tmp = - hmax_tmp;
+  
+  const int kmax_tmp = (int) ( fac * (
+    abs(defcell.a(1).x) + abs(defcell.a(1).y) + abs(defcell.a(1).z) ) );
+  const int kmin_tmp = - kmax_tmp;
+ 
+  const int lmax_tmp = (int) ( fac * (
+    abs(defcell.a(2).x) + abs(defcell.a(2).y) + abs(defcell.a(2).z) ) );
+  const int lmin_tmp = - lmax_tmp;
+  
+  multiset<Rod> rodset;
+  
+  // build rod set
+  
+  int hmax_used = -10000, hmin_used = 10000;
+  int kmax_used = -10000, kmin_used = 10000;
+  int lmax_used = -10000, lmin_used = 10000;
+
+  if ( real_ )
+  {
+    // build basis at kpoint (0,0,0)
+
+    // rod(0,0,0)
+    // length of rod(0,0,0) is lmax+1
+    int lmax = (int) ( sqrt(two_ecut * b2inv2) );
+    size_ = lmax + 1;
+    rodset.insert(Rod(0,0,0,lmax+1));
+    nrods_ = 1;
+
+    if ( lmax > lmax_used ) lmax_used = lmax;
+    hmin_used = 0;
+    
+    // rods (0,k,l)
+    for ( int k = 1; k <= kmax_tmp; k++ )
+    {
+      const D3vector c = k * b1;
+      const double b2c = b2 * c;
+      const double delta = b2c*b2c - normb2*(norm(c)-two_ecut);
+      if ( delta >= 0.0 )
+      {
+        // compute lmin, lmax for that rod
+        const double sdelta = sqrt(delta);
+        const double argm = ( b2inv2 * (-b2c - sdelta) );
+        const double argp = ( b2inv2 * (-b2c + sdelta) );
+        const int lmin = ( (int) argm ) + (( argm < 0.0 ) ?  0 : 1);
+        const int lmax = ( (int) argp ) + (( argp < 0.0 ) ? -1 : 0);
+        if ( lmin <= lmax )
+        {
+          const int rodsize = lmax - lmin + 1;
+          size_ += rodsize;
+          rodset.insert(Rod(0,k,lmin,rodsize));
+          nrods_++;
+
+          if ( k > kmax_used ) kmax_used = k;
+          if ( k < kmin_used ) kmin_used = k;
+          if ( lmax > lmax_used ) lmax_used = lmax;
+          if ( lmin < lmin_used ) lmin_used = lmin;
+        }
+      }
+    }
+    // rods (h,k,l) h>0
+    for ( int h = 1; h <= hmax_tmp; h++ )
+    {
+      for ( int k = kmin_tmp; k <= kmax_tmp; k++ )
+      {
+        const D3vector c = h * b0 + k * b1;
+        const double b2c = b2 * c;
+        const double delta = b2c*b2c - normb2*(norm(c)-two_ecut);
+        if ( delta >= 0.0 )
+        {
+          // compute lmin, lmax for that rod
+          const double sdelta = sqrt(delta);
+          const double argm = ( b2inv2 * (-b2c - sdelta) );
+          const double argp = ( b2inv2 * (-b2c + sdelta) );
+          const int lmin = ( (int) argm ) + (( argm < 0.0 ) ?  0 : 1);
+          const int lmax = ( (int) argp ) + (( argp < 0.0 ) ? -1 : 0);
+          if ( lmin <= lmax )
+          {
+            const int rodsize = lmax - lmin + 1;
+            size_ += rodsize;
+            rodset.insert(Rod(h,k,lmin,rodsize));
+            nrods_++;
+          
+            if ( h > hmax_used ) hmax_used = h;
+            if ( h < hmin_used ) hmin_used = h;
+            if ( k > kmax_used ) kmax_used = k;
+            if ( k < kmin_used ) kmin_used = k;
+            if ( lmax > lmax_used ) lmax_used = lmax;
+            if ( lmin < lmin_used ) lmin_used = lmin;
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    // build Basis for k != (0,0,0)
+
+    size_ = 0;
+    nrods_ = 0;
+    // rods (h,k,l)
+    for ( int h = hmin_tmp; h <= hmax_tmp; h++ )
+    {
+      for ( int k = kmin_tmp; k <= kmax_tmp; k++ )
+      {
+        const D3vector c = (kpx+h) * b0 + (kpy+k) * b1 + kpz * b2;
+        const double b2c = b2 * c;
+        const double delta = b2c*b2c - normb2*(norm(c)-two_ecut);
+        if ( delta >= 0.0 )
+        {
+          // compute lmin and lmax for that rod
+          const double sdelta = sqrt(delta);
+          const double argm = ( b2inv2 * (-b2c - sdelta) );
+          const double argp = ( b2inv2 * (-b2c + sdelta) );
+          const int lmin = ( (int) argm ) + (( argm < 0.0 ) ?  0 : 1);
+          const int lmax = ( (int) argp ) + (( argp < 0.0 ) ? -1 : 0);
+          
+          if ( lmin <= lmax )
+          {
+            const int rodsize = lmax - lmin + 1;
+            size_ += rodsize;
+            rodset.insert(Rod(h,k,lmin,rodsize));
+            nrods_++;
+ 
+            if ( h > hmax_used ) hmax_used = h;
+            if ( h < hmin_used ) hmin_used = h;
+            if ( k > kmax_used ) kmax_used = k;
+            if ( k < kmin_used ) kmin_used = k;
+            if ( lmax > lmax_used ) lmax_used = lmax;
+            if ( lmin < lmin_used ) lmin_used = lmin;
+          }
+        }
+      }
+    }
+  }
+  
+  // cout << " hmin/hmax used: " << hmin_used << " / " << hmax_used << endl;
+  // cout << " kmin/kmax used: " << kmin_used << " / " << kmax_used << endl;
+  // cout << " lmin/lmax used: " << lmin_used << " / " << lmax_used << endl;
+
+  idxmax_[0] = hmax_used;
+  idxmin_[0] = hmin_used;
+  
+  idxmax_[1] = kmax_used;
+  idxmin_[1] = kmin_used;
+  
+  idxmax_[2] = lmax_used;
+  idxmin_[2] = lmin_used;
+  
+  assert(lmax_used <= lmax_tmp);
+  assert(lmin_used >= lmin_tmp);
+  
+  // compute good FFT sizes
+  for ( int i = 0; i < 3; i++ )
+  {
+    int n = 2 * max(abs(idxmax_[i]),abs(idxmin_[i])) + 2;
+    while ( !factorizable(n) ) n += 2;
+    np_[i] = n;
+  }
+
+  // Distribute the basis on nprow_ processors
+
+  // build a min-heap of Nodes
+ 
+  vector<Node*> nodes(nprow_);
+ 
+  for ( int ipe = 0; ipe < nprow_; ipe++ )
+  {
+    nodes[ipe] = new Node(ipe);
+    localsize_[ipe] = 0;
+    nrod_loc_[ipe] = 0;
+    rod_h_[ipe].resize(0);
+    rod_k_[ipe].resize(0);
+    rod_lmin_[ipe].resize(0);
+    rod_size_[ipe].resize(0);
+  }
+
+  // nodes contains a valid min-heap of zero-size Nodes
+ 
+  // insert rods into the min-heap
+  // keep track of where rod(0,0,0) goes
+  int pe_rod0 = -1, rank_rod0 = -1;
+  multiset<Rod>::iterator p = rodset.begin();
+  while ( p != rodset.end() )
+  {
+    // pop smallest element
+    pop_heap(nodes.begin(), nodes.end(), ptr_greater<Node>());
+    
+    // add rod size to smaller element
+    nodes[nprow_-1]->addrod(*p);
+    int ipe = nodes[nprow_-1]->id();
+
+    // update info about rod on process ipe
+    nrod_loc_[ipe]++;
+    rod_h_[ipe].push_back(p->h());
+    rod_k_[ipe].push_back(p->k());
+    rod_lmin_[ipe].push_back(p->lmin());
+    rod_size_[ipe].push_back(p->size());
+    localsize_[ipe] += p->size();
+    if ( p->h() == 0 && p->k() == 0 )
+    {
+      pe_rod0 = ipe;
+      rank_rod0 = nodes[nprow_-1]->nrods()-1;
+    }
+
+    // push modified element back in the heap
+    push_heap(nodes.begin(), nodes.end(), ptr_greater<Node>());
+    
+    p++;
+  }
+  
+  maxlocalsize_ = (*max_element(nodes.begin(), nodes.end(), 
+    ptr_less<Node>()))->size();
+  minlocalsize_ = (*min_element(nodes.begin(), nodes.end(), 
+    ptr_less<Node>()))->size();
+ 
+  for ( int ipe = 0; ipe < nprow_; ipe++ )
+  {
+    delete nodes[ipe];
+  }
+  
+  // swap node pe_rod0 with node 0 in order to have rod(0,0,0) on node 0
+  swap(nrod_loc_[0], nrod_loc_[pe_rod0]);
+  rod_h_[pe_rod0].swap(rod_h_[0]);
+  rod_k_[pe_rod0].swap(rod_k_[0]);
+  rod_lmin_[pe_rod0].swap(rod_lmin_[0]);
+  rod_size_[pe_rod0].swap(rod_size_[0]);
+  swap(localsize_[0], localsize_[pe_rod0]);
+  //Node *tmpnodeptr = nodes[0]; nodes[0] = nodes[pe_rod0]; 
+  //  nodes[pe_rod0]=tmpnodeptr;
+    
+  // reorder rods on node 0 so that rod(0,0,0) comes first
+  swap(rod_h_[0][rank_rod0], rod_h_[0][0]);
+  swap(rod_k_[0][rank_rod0], rod_k_[0][0]);
+  swap(rod_lmin_[0][rank_rod0], rod_lmin_[0][0]);
+  swap(rod_size_[0][rank_rod0], rod_size_[0][0]);
+  
+  // compute position of first element of rod (ipe,irod)
+  for ( int ipe = 0; ipe < nprow_; ipe++ )
+  {
+    rod_first_[ipe].resize(nrod_loc_[ipe]);
+    if ( nrod_loc_[ipe] > 0 )
+      rod_first_[ipe][0] = 0;
+    for ( int irod = 1; irod < nrod_loc_[ipe]; irod++ )
+    {
+      rod_first_[ipe][irod] = rod_first_[ipe][irod-1] + rod_size_[ipe][irod-1];
+    }
+  }
+  
+  // local arrays idx, g, gi, g2i, g2, gx, gx2
+  idx_.resize(3*localsize_[myrow_]);
+  int i = 0;
+  for ( int irod = 0; irod < nrod_loc_[myrow_]; irod++ )
+  {
+    for ( int l = 0; l < rod_size_[myrow_][irod]; l++ )
+    {
+      idx_[3*i]   = rod_h_[myrow_][irod];
+      idx_[3*i+1] = rod_k_[myrow_][irod];
+      idx_[3*i+2] = rod_lmin_[myrow_][irod] + l;
+      
+      i++;
+    }
+  }
+  
+  g_.resize(localsize_[myrow_]);
+  kpg_.resize(localsize_[myrow_]);
+  gi_.resize(localsize_[myrow_]);
+  g2_.resize(localsize_[myrow_]);
+  kpg2_.resize(localsize_[myrow_]);
+  g2i_.resize(localsize_[myrow_]);
+  gx_.resize(3*localsize_[myrow_]);
+  gx2_.resize(3*localsize_[myrow_]);
+  isort_loc.resize(localsize_[myrow_]);
+  
+  update_g();
+  
+  // basis set construction is complete
+  
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void BasisImpl::update_g(void)
+{
+  // compute the values of g, kpg, gi, g2i, g2, kpg2, gx, gx2
+  // N.B. use the values of cell (not defcell)
+  
+  const int locsize = localsize_[myrow_];
+  for ( int i = 0; i < locsize; i++ )
+  {
+    D3vector gt = idx_[3*i+0] * cell_.b(0) +
+                  idx_[3*i+1] * cell_.b(1) +
+                  idx_[3*i+2] * cell_.b(2);
+                  
+    D3vector kpgt = (kpoint_.x + idx_[3*i+0]) * cell_.b(0) +
+                    (kpoint_.y + idx_[3*i+1]) * cell_.b(1) +
+                    (kpoint_.z + idx_[3*i+2]) * cell_.b(2);
+ 
+    gx_[i] = gt.x;
+    gx_[locsize+i] = gt.y;
+    gx_[locsize+locsize+i] = gt.z;
+
+    g2_[i] = norm(gt);
+    g_[i] = sqrt( g2_[i] );
+ 
+    kpg2_[i] = norm(kpgt);
+    kpg_[i] = sqrt( kpg2_[i] );
+ 
+    gi_[i] = g_[i] > 0.0 ? 1.0 / g_[i] : 0.0;
+    g2i_[i] = gi_[i] * gi_[i];
+    isort_loc[i] = i;
+  }
+  
+  VectorLess<double> g2_less(g2_);
+  sort(isort_loc.begin(), isort_loc.end(), g2_less);
+#if DEBUG
+  for ( int i = 0; i < locsize; i++ )
+  {
+    cout << ctxt_.mype() << " sorted " << i << " " << g2_[isort_loc[i]] << endl;
+  }
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void Basis::print(ostream& os)
+{
+  os << context().mype() << ": ";
+  os << " Basis.kpoint():   " << kpoint() << endl;
+  os << context().mype() << ": ";
+  os << " Basis.kpoint():   " << kpoint().x << " * b0 + "
+                              << kpoint().y << " * b1 + "
+                              << kpoint().z << " * b2" << endl;
+  os << context().mype() << ": ";
+  os << " Basis.kpoint():   " << kpoint().x * cell().b(0) + 
+                                 kpoint().y * cell().b(1) +
+                                 kpoint().z * cell().b(2) << endl;
+  os << context().mype() << ": ";
+  os << " Basis.cell():     " << endl << cell() << endl;
+  os << context().mype() << ": ";
+  os << " Basis.ref cell(): " << endl << refcell() << endl;
+  os << context().mype() << ": ";
+  os << " Basis.ecut():     " << ecut() << endl;
+  os << context().mype() << ": ";
+  os << " Basis.np(0,1,2):  " << np(0) << " "
+       << np(1) << " " << np(2) << endl;
+  os << context().mype() << ": ";
+  os << " Basis.idxmin:       " << idxmin(0) << " "
+       << idxmin(1) << " " << idxmin(2) << endl;
+  os << context().mype() << ": ";
+  os << " Basis.idxmax:       " << idxmax(0) << " "
+       << idxmax(1) << " " << idxmax(2) << endl;
+  os << context().mype() << ": ";
+  os << " Basis.size():     " << size() << endl;
+  os << context().mype() << ": ";
+  os << " Basis.localsize(): " << localsize() << endl;
+  os << context().mype() << ": ";
+  os << " Basis.nrods():    " << nrods() << endl;
+  os << context().mype() << ": ";
+  os << " Basis.real():     " << real() << endl;
+  os << context().mype() << ": ";
+  os << " Basis total mem size: " << memsize() / 1048576 << endl;
+  os << context().mype() << ": ";
+  os << " Basis local mem size: " << localmemsize() / 1048576 << endl;
+  
+  os << context().mype() << ": ";
+  os << "   ig      i   j   k        gx      gy      gz       |k+g|^2" 
+     << endl;
+  os << context().mype() << ": ";
+  os << "   --      -   -   -        --      --      --       -------" 
+     << endl;
+  for ( int i = 0; i < localsize(); i++ )
+  {
+    os << context().mype() << ": ";
+    os << setw(5) << i << "   " 
+       << setw(4) << idx(3*i) 
+       << setw(4) << idx(3*i+1) 
+       << setw(4) << idx(3*i+2)
+       << "    "
+       << setw(8) << gx(i) 
+       << setw(8) << gx(i+localsize()) 
+       << setw(8) << gx(i+2*localsize())
+       << setw(12) << setprecision(4) << 0.5 * kpg2(i)
+       << endl;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+ostream& operator<<(ostream& os, Basis& b)
+{
+  b.print(os);
+  return os;
+}

@@ -3,7 +3,7 @@
 // UnitCell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.8 2004-03-11 21:52:32 fgygi Exp $
+// $Id: UnitCell.C,v 1.9 2004-04-20 22:10:20 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -231,15 +231,16 @@ bool UnitCell::contains(D3vector v) const
 void UnitCell::print(ostream& os) const
 {
   os.setf(ios::fixed,ios::floatfield);
-  os << "    <a> " << setw(10) << setprecision(4) << a_[0].x
-                   << setw(10) << setprecision(4) << a_[0].y
-                   << setw(10) << setprecision(4) << a_[0].z << " </a>" << endl;
-  os << "    <b> " << setw(10) << setprecision(4) << a_[1].x
-                   << setw(10) << setprecision(4) << a_[1].y
-                   << setw(10) << setprecision(4) << a_[1].z << " </b>" << endl;
-  os << "    <c> " << setw(10) << setprecision(4) << a_[2].x
-                   << setw(10) << setprecision(4) << a_[2].y
-                   << setw(10) << setprecision(4) << a_[2].z << " </c>" << endl;
+  os << setprecision(8);
+  os << "    <a> " << setw(12) << a_[0].x
+                   << setw(12) << a_[0].y
+                   << setw(12) << a_[0].z << " </a>" << endl;
+  os << "    <b> " << setw(12) << a_[1].x
+                   << setw(12) << a_[1].y
+                   << setw(12) << a_[1].z << " </b>" << endl;
+  os << "    <c> " << setw(12) << a_[2].x
+                   << setw(12) << a_[2].y
+                   << setw(12) << a_[2].z << " </c>" << endl;
 }
   
 ////////////////////////////////////////////////////////////////////////////////

@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.25 2004-04-17 01:15:24 fgygi Exp $
+// $Id: SlaterDet.C,v 1.26 2004-04-20 22:12:42 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -60,13 +60,15 @@ void SlaterDet::byteswap_double(size_t n, double* x)
 void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell, 
   double ecut, int nst)
 {
-  if ( basis_.refcell().volume() != 0.0 && !refcell.encloses(cell) )
-  {
-    cout << " SlaterDet::resize: warning" << endl;
-    cout << " SlaterDet::resize: cell=" << cell;
-    cout << " SlaterDet::resize: refcell=" << basis_.refcell();
+  //!! Test in next line should be replaced by test on basis min/max indices
+  //!! to signal change in basis vectors
+  //if ( basis_.refcell().volume() != 0.0 && !refcell.encloses(cell) )
+  //{
+    //!! << " SlaterDet::resize: warning" << endl;
+    //cout << " SlaterDet::resize: cell=" << cell;
+    //cout << " SlaterDet::resize: refcell=" << basis_.refcell();
     //throw SlaterDetException("could not resize: cell not in refcell");
-  }
+  //}
   
   try
   {

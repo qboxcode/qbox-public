@@ -3,7 +3,7 @@
 // UnitCell.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.11 2004-10-28 16:51:52 fgygi Exp $
+// $Id: UnitCell.C,v 1.12 2005-02-04 21:58:24 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -242,14 +242,14 @@ void UnitCell::print(ostream& os) const
 {
   os.setf(ios::fixed,ios::floatfield);
   os << setprecision(8);
-  os << "    <a> " << setw(12) << a_[0].x
-                   << setw(12) << a_[0].y
+  os << "    <a> " << setw(12) << a_[0].x << " " 
+                   << setw(12) << a_[0].y << " " 
                    << setw(12) << a_[0].z << " </a>" << endl;
-  os << "    <b> " << setw(12) << a_[1].x
-                   << setw(12) << a_[1].y
+  os << "    <b> " << setw(12) << a_[1].x << " " 
+                   << setw(12) << a_[1].y << " " 
                    << setw(12) << a_[1].z << " </b>" << endl;
-  os << "    <c> " << setw(12) << a_[2].x
-                   << setw(12) << a_[2].y
+  os << "    <c> " << setw(12) << a_[2].x << " " 
+                   << setw(12) << a_[2].y << " " 
                    << setw(12) << a_[2].z << " </c>" << endl;
 }
   

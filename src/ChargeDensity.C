@@ -3,7 +3,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.C,v 1.5 2003-10-02 17:37:05 fgygi Exp $
+// $Id: ChargeDensity.C,v 1.6 2004-06-01 23:08:08 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -123,11 +123,18 @@ void ChargeDensity::update_density(void)
       //tmap["dsum"].stop();
       
       // check integral of charge density
+      // compute Fourier coefficients of the charge density
       double sum = 0.0;
-      for ( int i = 0; i < rhor[ispin].size(); i++ )
-        sum += rhor[ispin][i];
+      const int rhor_size = rhor[ispin].size();
+      const double *const prhor = &rhor[ispin][0];
+      #pragma ivdep
+      for ( int i = 0; i < rhor_size; i++ )
+      {
+        const double prh = prhor[i];
+        sum += prh;
+        rhotmp[i] = complex<double>(omega * prh, 0.0);
+      }
       sum *= omega / vft_->np012();
-      // cout << ctxt_.mype() << ": local integral of rhor: " << sum << endl;
 
       wf_.spincontext(ispin)->dsum('c',1,1,&sum,1);
       if ( ctxt_.onpe0() )
@@ -137,15 +144,8 @@ void ChargeDensity::update_density(void)
         cout << "  <total_electronic_charge> " << setprecision(8) << sum 
              << " </total_electronic_charge>" << endl;
       }
-
-      // compute Fourier coefficients of the charge density
-      for ( int i = 0; i < rhor[ispin].size(); i++ )
-        rhotmp[i] = rhor[ispin][i];
+        
       vft_->forward(&rhotmp[0],&rhog[ispin][0]);
-
-      for ( int ig = 0; ig < vbasis_->localsize(); ig++ )
-        rhog[ispin][ig] *= omega;
-
     }
   }
 }

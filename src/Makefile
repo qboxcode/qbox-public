@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.32 2004-12-17 23:43:01 fgygi Exp $
+# $Id: Makefile,v 1.33 2005-03-17 17:30:26 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -106,7 +106,7 @@ Wavefunction.o Species.o SlaterDet.o spline.o sinft.o Basis.o Matrix.o \
 FourierTransform.o UnitCell.o Atom.o BOSampleStepper.o \
 SampleStepper.o EnergyFunctional.o 
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- test_fftw: test_fftw.o
+ test_fftw: test_fftw.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  test_fftw3: test_fftw3.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)

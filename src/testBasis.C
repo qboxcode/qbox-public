@@ -3,7 +3,7 @@
 // testBasis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testBasis.C,v 1.3 2002-10-15 17:37:28 fgygi Exp $
+// $Id: testBasis.C,v 1.4 2005-01-04 22:08:13 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -24,7 +24,13 @@ int main(int argc, char **argv)
   MPI_Init(&argc,&argv);
 #endif
   {
-    assert(argc==16);
+    if ( argc !=16 )
+    {
+      cout <<
+      " use: testBasis a0x a0y a0z a1x a1y a1z a2x a2y a2z ecut kx ky kz npr npc"
+      << endl;
+      return 1;
+    }
     const D3vector a0(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     const D3vector a1(atof(argv[4]),atof(argv[5]),atof(argv[6]));
     const D3vector a2(atof(argv[7]),atof(argv[8]),atof(argv[9]));

@@ -3,7 +3,7 @@
 // WfDyn.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WfDyn.h,v 1.3 2003-06-11 22:10:11 fgygi Exp $
+// $Id: WfDyn.h,v 1.4 2003-11-27 01:22:11 fgygi Exp $
 
 #ifndef WFDYN_H
 #define WFDYN_H
@@ -35,10 +35,11 @@ class WfDyn : public Var
     }
     
     string v = argv[1];
-    if ( !( v == "LOCKED" || v == "SD" || v == "PSD" || v == "MD" ) )
+    if ( !( v == "LOCKED" || v == "SD" || v == "PSD" || 
+            v == "PSDA" || v == "MD" ) )
     {
       if ( ui->onpe0() )
-        cout << " wf_dyn must be in [LOCKED,SD,PSD,MD]" << endl;
+        cout << " wf_dyn must be in [LOCKED,SD,PSD,PSDA,MD]" << endl;
       return 1;
     }
 

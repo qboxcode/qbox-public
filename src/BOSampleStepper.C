@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.15 2004-10-28 16:56:41 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.16 2004-11-29 04:07:06 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -17,13 +17,15 @@
 #include "MDIonicStepper.h"
 #include "SDCellStepper.h"
 #include "Preconditioner.h"
+#include "AndersonMixer.h"
 
 #include <iostream>
 #include <iomanip>
 using namespace std;
 
-#define POTENTIAL_MIXING 0
 #define CHARGE_MIXING 1
+#define KERKER_MIXING 1
+#define ANDERSON_CHARGE_MIXING 1
 
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) : 
@@ -55,7 +57,6 @@ void BOSampleStepper::step(int niter)
 {
   const bool extrapolate_wf = true;
   const bool quad_extrapolation = false;
-  const bool compute_fv = false;
   const int nempty = s_.wf.nempty();
   const bool compute_eigvec = nempty > 0 || s_.ctrl.wf_diag == "T";
   enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
@@ -415,7 +416,11 @@ void BOSampleStepper::step(int niter)
     if ( wf_stepper != 0 )
     {
 #if CHARGE_MIXING
-      vector<vector<complex<double> > > rhog_old(cd_.rhog);
+      assert(cd_.rhog.size()==1); // works for nspin=1 only
+      vector<complex<double> > rhog_current(cd_.rhog[0]);
+      vector<complex<double> > drhog(rhog_current.size());
+      AndersonMixer mixer((double*)&rhog_current[0],
+                          2*rhog_current.size(),cd_.vcontext());
 #endif
 #if POTENTIAL_MIXING
       vector<vector<double> > vi(ef_.v_r);
@@ -426,13 +431,15 @@ void BOSampleStepper::step(int niter)
       {
         if ( nite_ > 1 && s_.ctxt_.onpe0() )
           cout << "  <!-- BOSampleStepper: start scf iteration -->" << endl;
+          
+        // compute new density in cd_.rhog
         tmap["charge"].start();
         cd_.update_density();
         tmap["charge"].stop();
         
         // charge mixing
         
-        // compute correction delta_rhog = rhog_new - rhog_old
+        // compute correction drhog = rhog - rhog_current
         // precondition with Kerker preconditioner
         
 #if CHARGE_MIXING
@@ -446,131 +453,50 @@ void BOSampleStepper::step(int niter)
             const double rc_Kerker = 5.0;
             const double q0_kerker = 2.0 * M_PI / rc_Kerker;
             const double q0_kerker2 = q0_kerker * q0_kerker;
-            assert(rhog_old.size()==1); // assume nspin==1 for now
             const double *const g2 = cd_.vbasis()->g2_ptr();
-            for ( int i=0; i < rhog_old[0].size(); i++ )
+            
+            // compute correction in drhog[i]
+#if KERKER_MIXING
+            for ( int i=0; i < rhog_current.size(); i++ )
             {
-              const complex<double> drhog = cd_.rhog[0][i] - rhog_old[0][i];
               const double fac = g2[i] / ( g2[i] + q0_kerker2 );
-              //const double fac = 1.0;
-              cd_.rhog[0][i] = rhog_old[0][i] + alpha * fac * drhog;
+              drhog[i] = alpha * fac * (cd_.rhog[0][i] - rhog_current[i]);
             }
-            cd_.update_rhor();
+#else
+            for ( int i=0; i < rhog_current.size(); i++ )
+            {
+              drhog[i] = alpha * (cd_.rhog[0][i] - rhog_current[i]);
+            }
+#endif
+            
+#if ANDERSON_CHARGE_MIXING
+            mixer.update((double*)&drhog[0]);
+            if ( s_.ctxt_.onpe0() )
+            {
+              cout << "  <!-- Charge mixing: Anderson theta="
+                   << mixer.theta() << " -->" << endl;
+            }
+#else
+            // next line: simple update
+            for ( int i=0; i < rhog_current.size(); i++ )
+            {
+              rhog_current[i] += drhog[i];
+            }
+#endif
+            
+            // rhog_current contains the extrapolated density
+            cd_.rhog[0] = rhog_current;
           }
-          rhog_old = cd_.rhog;
+          else
+          {
+            rhog_current = cd_.rhog[0];
+          }
+          cd_.update_rhor();
         }
 #endif
 
         ef_.update_vhxc();
         
-        // potential mixing
-        // vlocal_old, vlocal_new in ef_
-        
-#if POTENTIAL_MIXING
-//!! need to clean up this section
-        assert(nspin==1);
-        vector<vector<double> >& vo = ef_.v_r;
-        const int size = vo[0].size();
-        if ( itscf > 0 )
-        {
-          // first iteration: only vo is defined. Use vo.
-          for ( int i = 0; i < size; i++ )
-          {
-            double vn = vi[0][i] + 0.7 * (vo[0][i]-vi[0][i]);
-            vo[0][i] = vi[0][i];
-            vi[0][i] = vn;
-          }
-        }
-        else
-        {
-          vi = vo;
-        }
-        ef_.v_r = vi;
-#if 0
-        if ( nite_ > 1 )
-        {
-        
-        // Potential mixing using Hamann's implementation of Anderson's method
-        // generate next iteration using d. g. anderson's method
-        assert(nspin==1);
-        vector<vector<double> >& vo = ef_.v_r;
-        const int size = vo[0].size();
-        double thl = 0.0;
-        if ( itscf == 0 )
-        {
-          // first iteration: only vo is defined. Use vo.
-          for ( int i = 0; i < size; i++ )
-          {
-            double vn = vo[0][i];
-            vi1[0][i] = vi[0][i];
-            vo1[0][i] = vo[0][i];
-            vi[0][i]  = vn;
-            
-          }
-        }
-        else if ( itscf == 1 )
-        {
-          // second iteration: only vo, vi are defined. Use thl = 0.0
-          for ( int i = 0; i < size; i++ )
-          {
-            const double bl = 0.3;
-            double vn = ( 1.0 - bl ) * vi[0][i] + bl * vo[0][i];
-            vi1[0][i] = vi[0][i];
-            vo1[0][i] = vo[0][i];
-            vi[0][i]  = vn;
-            
-          }
-        }
-        else
-        {
-          // itscf > 1
-          double sn = 0.0;
-          double sd = 0.0;
-          for ( int i = 0; i < size; i++ )
-          {
-            double rl = vo[0][i] - vi[0][i];
-            double rl1 = vo1[0][i] - vi1[0][i];
-            double dr = rl - rl1;
-            sn += rl * dr;
-            sd += dr * dr;
-          }
-          double tmp[2];
-          tmp[0] = sn;
-          tmp[1] = sd;
-          s_.wf.context().dsum(2,1,&tmp[0],2);
-          sn = tmp[0];
-          sd = tmp[1];
-          
-          if ( sd != 0.0 )
-            thl = sn / sd;
-          else
-            thl = 1.0;
-          
-          const double thl_min = -4.0;
-          const double thl_max = 4.0;
-          if ( thl < thl_min ) thl = thl_min;
-          if ( thl > thl_max ) thl = thl_max;
-          
-          if ( s_.ctxt_.onpe0() )
-            cout << "  <!-- potential mixing: Anderson thl=" << thl << " -->"
-                 << endl;
-          for ( int i = 0; i < size; i++ )
-          {
-            const double bl = 0.3;
-            double vn = ( 1.0 - bl ) * ( ( 1.0 - thl ) * 
-                        vi[0][i] + thl * vi1[0][i] ) +
-                        bl * ( ( 1.0 - thl ) * vo[0][i] + thl * vo1[0][i] );
-            vi1[0][i] = vi[0][i];
-            vo1[0][i] = vo[0][i];
-            vi[0][i]  = vn;
-          }
-        }
-        ef_.v_r = vi;
-        
-        }
-#endif
-#endif
-
         // Next line: reset the wf stepper only if nite > 1
         // If nite = 1, the acceleration procedure of some steppers should not 
         // be reset.
@@ -578,18 +504,7 @@ void BOSampleStepper::step(int niter)
       
         for ( int ite = 0; ite < nite_; ite++ )
         {
-          double energy = 0.0;
-
-          if ( compute_forces && compute_fv )
-          {
-            // compute forces at each electronic step for monitoring
-            energy = ef_.energy(true,dwf,compute_forces,fion,false,sigma_eks);
-          }
-          else
-          {
-            // normal case: do not compute forces during wf optimization
-            energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
-          }
+          double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
           
           // compute the sum of eigenvalues (with fixed weight)
           // to measure convergence of the subspace update
@@ -615,24 +530,6 @@ void BOSampleStepper::step(int niter)
               cout << "  <enthalpy_int> " << setw(15) 
                    << enthalpy << " </enthalpy_int>\n"
                    << flush;
-            }
- 
-            // compute force*velocity
-            if ( compute_forces && compute_fv )
-            {
-              double fv = 0.0;
-              for ( int is = 0; is < atoms.atom_list.size(); is++ )
-              {
-                int i = 0;
-                for ( int ia = 0; ia < atoms.atom_list[is].size(); ia++ )
-                {
-                  fv += ionic_stepper->v0(is,i) * fion[is][i] +
-                        ionic_stepper->v0(is,i+1) * fion[is][i+1] +
-                        ionic_stepper->v0(is,i+2) * fion[is][i+2];
-                  i += 3;
-                }
-              }
-              cout << "  <fv> " << fv << " </fv>\n";
             }
           }
         } // for ite

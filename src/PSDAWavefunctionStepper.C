@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.5 2004-03-11 21:52:32 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.6 2004-03-18 20:07:18 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -52,7 +52,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
  
             // dwf.sd->c() now contains the descent direction (HV-VA)
  
-            // Apply preconditioner K and store dt2bye*K(HV-VA) in dwf
+            // Apply preconditioner K and store -K(HV-VA) in dwf
             const valarray<double>& diag = prec_.diag(ispin,ikp);
  
             double* c = (double*) wf_.sd(ispin,ikp)->c().valptr();
@@ -80,7 +80,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
               }
             }
             // dwf now contains the preconditioned descent
-            // direction -dt2bye*K(HV-VA)
+            // direction -K(HV-VA)
  
             // Anderson extrapolation
             if ( extrapolate_ )
@@ -175,10 +175,31 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
               }
             }
             extrapolate_ = true;
+            
+            enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
+            //const ortho_type ortho = LOWDIN;
+            const ortho_type ortho = ORTHO_ALIGN;
+            //const ortho_type ortho = GRAM;
  
-            tmap_["riccati"].start();
-            wf_.sd(ispin,ikp)->riccati(*wf_last_.sd(ispin,ikp));
-            tmap_["riccati"].stop();
+            switch ( ortho )
+            {
+              case GRAM:
+                wf_.sd(ispin,ikp)->gram();
+                //wf_.sd(ispin,ikp)->align(*wf_last_.sd(ispin,ikp));
+                break;
+                
+              case LOWDIN:
+                wf_.sd(ispin,ikp)->lowdin();
+                break;
+                
+              case ORTHO_ALIGN:
+                wf_.sd(ispin,ikp)->ortho_align(*wf_last_.sd(ispin,ikp));
+                break;
+                
+              case RICCATI:
+                wf_.sd(ispin,ikp)->riccati(*wf_last_.sd(ispin,ikp));
+                break;
+            }
           }
           else
           {

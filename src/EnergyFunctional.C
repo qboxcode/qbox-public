@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.20 2004-10-04 18:37:13 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.21 2005-01-04 22:07:17 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -803,9 +803,6 @@ void EnergyFunctional::atoms_moved(void)
       dvion_local_g[ig] += sg * dvps[is][ig];
     }
   }
-  
-  nlp->update_eigr(tau0);
-  nlp->update_anl();
   
   // compute esr: pseudocharge repulsion energy
   const UnitCell& cell = s_.wf.cell();

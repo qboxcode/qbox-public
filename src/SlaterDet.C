@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.21 2003-11-27 01:15:51 fgygi Exp $
+// $Id: SlaterDet.C,v 1.22 2003-12-04 18:39:59 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -771,6 +771,10 @@ void SlaterDet::print(ostream& os, string encoding)
   
   for ( int n = 0; n < nst(); n++ )
   {
+    // Barrier to limit the number of messages sent to task 0 
+    // that don't have a receive posted
+    ctxt_.barrier();
+    
     // check if state n resides on mype
     if ( c_.pc(n) == ctxt_.mycol() )
     {
@@ -896,6 +900,10 @@ void SlaterDet::write(FILE* outfile, string encoding)
   
   for ( int n = 0; n < nst(); n++ )
   {
+    // Barrier to limit the number of messages sent to task 0 
+    // that don't have a receive posted
+    ctxt_.barrier();
+    
     // check if state n resides on mype
     if ( c_.pc(n) == ctxt_.mycol() )
     {

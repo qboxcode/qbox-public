@@ -7,6 +7,10 @@ preferrable to use a single-column context when nst is small to avoid
 memory problems.
 
 --------------------------------------------------------------------------------
+rel1_24_2
+NonLocalPotential.C: Fixed bug in G=0 component of l=0 non-local projector in 
+semilocal form
+--------------------------------------------------------------------------------
 rel1_24_1
 SlaterDet.C: fixed bug introduced in 1.24.0: Cholesky decomp was skipped if 
 CHOLESKY_REMAP is not defined.
@@ -21,6 +25,9 @@ SlaterDet.C: rewritten communication in SlaterDet::print and SlaterDet::write
 to avoid a deadlock on BGL.
 Matrix.C: Added syevx and syevd functions
 Note: modif of SlaterDet.C introduced a bug: see 1.24.1
+--------------------------------------------------------------------------------
+rel1_23_4 (on branch rel1_23_3_bf)
+Fixed bug in NonLocalPotential.C: G=0 component of l=0 semilocal projector.
 --------------------------------------------------------------------------------
 rel1_23_3
 NonLocalPotential.C: fixed bug: double fnl_size should be int fnl_size.

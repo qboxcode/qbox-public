@@ -3,7 +3,7 @@
 // ChargeDensity.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.h,v 1.1 2003-01-25 01:23:31 fgygi Exp $
+// $Id: ChargeDensity.h,v 1.2 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef CHARGEDENSITY_H
 #define CHARGEDENSITY_H
@@ -35,6 +35,7 @@ class ChargeDensity
   vector<vector<complex<double> > > rhog; // rhog[ispin][ig]
 
   void update_density(void);
+  void update_rhor(void);
   
   Basis* vbasis(void) const { return vbasis_; }
   const Context* vcontext(void) const { return vcontext_; }

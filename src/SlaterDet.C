@@ -3,12 +3,17 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.27 2004-08-11 17:56:24 fgygi Exp $
+// $Id: SlaterDet.C,v 1.28 2004-09-14 22:24:11 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
 #include "Context.h"
 #include "blas.h" // daxpy
+#include "Base64Transcoder.h"
+// // XML transcoding for print function
+// #include <xercesc/util/Base64.hpp>
+// #include <xercesc/util/XMLString.hpp>
+// using namespace xercesc;
 
 #include <cstdlib>
 #include <iostream>
@@ -18,11 +23,6 @@
 #include <cstdio>
 #endif
 using namespace std;
-
-// XML transcoding for print function
-#include <xercesc/util/Base64.hpp>
-#include <xercesc/util/XMLString.hpp>
-using namespace xercesc;
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt), 
@@ -38,23 +38,6 @@ SlaterDet::~SlaterDet()
 { 
   // cout << ctxt_.mype() << ": SlaterDet::dtor: ctxt=" << ctxt_;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::byteswap_double(size_t n, double* x)
-{
-  if (n==0) return;
-  unsigned char* c = (unsigned char*) x;
-  while ( n-- > 0 )
-  {
-    unsigned char tmp;
-    tmp = c[7]; c[7] = c[0]; c[0] = tmp;
-    tmp = c[6]; c[6] = c[1]; c[1] = tmp;
-    tmp = c[5]; c[5] = c[2]; c[2] = tmp;
-    tmp = c[4]; c[4] = c[3]; c[3] = tmp;
-    
-    c+=8;
-  }
-}  
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell, 
@@ -237,7 +220,7 @@ void SlaterDet::compute_density(FourierTransform& ft,
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::rs_mul_add(FourierTransform& ft, 
-  double* v, SlaterDet& sdp) const
+  const double* v, SlaterDet& sdp) const
 {
   // transform states to real space, multiply states by v[r] in real space
   // transform back to reciprocal space and add to sdp
@@ -686,7 +669,8 @@ void SlaterDet::align(const SlaterDet& sd)
     // Compute the distance | c - sdc | before alignment
     for ( int i = 0; i < c_proxy.size(); i++ )
       c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
-    cout << " SlaterDet::align: distance before: "<< c_tmp_proxy.nrm2() << endl;
+    //cout << " SlaterDet::align: distance before: "
+    //     << c_tmp_proxy.nrm2() << endl;
     
     // compute the polar decomposition of B
     double diff = 1.0;
@@ -708,10 +692,10 @@ void SlaterDet::align(const SlaterDet& sd)
       
  
       // Next lines: use t as temporary to compute || x - xp ||_F
-      for ( int i = 0; i < t.size(); i++ )
-        t[i] = x[i] - xp[i];
+      //for ( int i = 0; i < t.size(); i++ )
+      //  t[i] = x[i] - xp[i];
  
-      diff = t.nrm2();
+      //diff = t.nrm2();
       
       //cout << " SlaterDet::align: diff=" << diff << endl;
       
@@ -731,9 +715,10 @@ void SlaterDet::align(const SlaterDet& sd)
     c_proxy.gemm('n','n',1.0,c_tmp_proxy,x,0.0);
     
     // Compute the distance | c - sdc | after alignment
-    for ( int i = 0; i < c_proxy.size(); i++ )
-      c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
-    cout << " SlaterDet::align: distance after:  "<< c_tmp_proxy.nrm2() << endl;
+    //for ( int i = 0; i < c_proxy.size(); i++ )
+    //  c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
+    //cout << " SlaterDet::align: distance after:  "
+    //     << c_tmp_proxy.nrm2() << endl;
     
   }
   else
@@ -1022,6 +1007,7 @@ void SlaterDet::print(ostream& os, string encoding)
   FourierTransform ft(basis_,basis_.np(0),basis_.np(1),basis_.np(2));
   vector<complex<double> > wftmp(ft.np012loc());
   vector<double> wftmpr(ft.np012());
+  Base64Transcoder xcdr;
   
   if ( ctxt_.onpe0() )
   {
@@ -1095,11 +1081,10 @@ void SlaterDet::print(ostream& os, string encoding)
       if ( encoding == "base64" )
       {
         #if AIX
-        byteswap_double(ft.np012(),&wftmpr[0]);
+        xcdr.byteswap_double(ft.np012(),&wftmpr[0]);
         #endif
-        unsigned int outlen;
-        XMLByte* b = Base64::encode((XMLByte*) &wftmpr[0],
-          ft.np012()*sizeof(double), &outlen);
+        unsigned int outlen = xcdr.nchars(ft.np012()*sizeof(double));
+        char* b = new char(outlen);
         assert(b!=0);
         // Note: optional x0,y0,z0 attributes not used, default is zero
         os << "<grid_function type=\"double\""
@@ -1108,7 +1093,7 @@ void SlaterDet::print(ostream& os, string encoding)
            << " encoding=\"base64\">" << endl;
         os.write((char*) b, outlen);
         os << "</grid_function>\n";
-        XMLString::release(&b);
+        delete [] b;
       }
       else
       {
@@ -1145,6 +1130,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
   FourierTransform ft(basis_,basis_.np(0),basis_.np(1),basis_.np(2));
   vector<complex<double> > wftmp(ft.np012loc());
   vector<double> wftmpr(ft.np012());
+  Base64Transcoder xcdr;
   
   ostringstream os;
   
@@ -1224,12 +1210,12 @@ void SlaterDet::write(FILE* outfile, string encoding)
       if ( encoding == "base64" )
       {
         #if AIX
-        byteswap_double(ft.np012(),&wftmpr[0]);
+        xcdr.byteswap_double(ft.np012(),&wftmpr[0]);
         #endif
-        unsigned int outlen;
-        XMLByte* b = Base64::encode((XMLByte*) &wftmpr[0],
-          ft.np012()*sizeof(double), &outlen);
+        unsigned int outlen = xcdr.nchars(ft.np012()*sizeof(double));
+        char* b = new char(outlen);
         assert(b!=0);
+        
         // Note: optional x0,y0,z0 attributes not used, default is zero
         os.str("");
         os << "<grid_function type=\"double\""
@@ -1246,7 +1232,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
         str = os.str();
         len = str.length();
         fwrite(str.c_str(),sizeof(char),len,outfile);
-        XMLString::release(&b);
+        delete [] b;
       }
       else
       {

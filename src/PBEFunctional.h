@@ -3,7 +3,7 @@
 // PBEFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PBEFunctional.h,v 1.1 2003-01-25 01:23:31 fgygi Exp $
+// $Id: PBEFunctional.h,v 1.2 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef PBEFUNCTIONAL_H
 #define PBEFUNCTIONAL_H
@@ -36,7 +36,7 @@ class PBEFunctional : public XCFunctional
 
   public:
   
-  PBEFunctional(vector<vector<double> > &rhoe);
+  PBEFunctional(const vector<vector<double> > &rhoe);
   
   bool isGGA() { return true; };
   string name() { return "PBE"; };

@@ -3,7 +3,7 @@
 #  mcr.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.8 2004-08-11 17:56:24 fgygi Exp $
+# $Id: mcr.mk,v 1.9 2004-09-14 22:24:11 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -19,7 +19,7 @@
 
  PLTFLAGS += -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
              -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
-             -DAPP_NO_THREADS -DXML_USE_NO_THREADS
+             -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES
 
  FFTWDIR=$(HOME)/fftw/linux-pc-icc/fftw-2.1.3/fftw
  BLASDIR=/opt/intel/mkl/lib/32

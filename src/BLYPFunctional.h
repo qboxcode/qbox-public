@@ -3,7 +3,7 @@
 // BLYPFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BLYPFunctional.h,v 1.1 2003-04-10 19:11:38 fgygi Exp $
+// $Id: BLYPFunctional.h,v 1.2 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef BLYPFUNCTIONAL_H
 #define BLYPFUNCTIONAL_H
@@ -32,7 +32,7 @@ class BLYPFunctional : public XCFunctional
 
   public:
   
-  BLYPFunctional(vector<vector<double> > &rhoe);
+  BLYPFunctional(const vector<vector<double> > &rhoe);
   
   bool isGGA() { return true; };
   string name() { return "BLYP"; };

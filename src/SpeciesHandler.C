@@ -3,7 +3,9 @@
 // SpeciesHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesHandler.C,v 1.1 2003-05-16 16:14:00 fgygi Exp $
+// $Id: SpeciesHandler.C,v 1.2 2004-09-14 22:24:11 fgygi Exp $
+
+#if USE_XERCES
 
 #include "SpeciesHandler.h"
 #include "Species.h"
@@ -167,4 +169,4 @@ void SpeciesHandler::endSubHandler(const XMLCh* const uri,
   // delete subHandler;
 }
       
-    
+#endif

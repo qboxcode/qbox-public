@@ -3,7 +3,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.C,v 1.7 2004-08-11 17:56:24 fgygi Exp $
+// $Id: ChargeDensity.C,v 1.8 2004-09-14 22:24:11 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -93,6 +93,7 @@ ChargeDensity::~ChargeDensity(void)
   for ( int ikp = 0; ikp < ft_.size(); ikp++ )
     delete ft_[ikp];
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 void ChargeDensity::update_density(void)
 {
@@ -146,6 +147,34 @@ void ChargeDensity::update_density(void)
       }
         
       vft_->forward(&rhotmp[0],&rhog[ispin][0]);
+    }
+  }
+}
+////////////////////////////////////////////////////////////////////////////////
+void ChargeDensity::update_rhor(void)
+{
+  // recalculate rhor from rhog
+  assert(rhor.size() == wf_.nspin());
+  const double omega = vbasis_->cell().volume();
+  assert(omega!=0.0);
+  const double omega_inv = 1.0 / omega;
+  
+  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  {
+    if ( wf_.spincontext(ispin)->active())
+    {
+      assert(rhor[ispin].size() == vft_->np012loc() );
+      assert(rhotmp.size() == vft_->np012loc() );
+      
+      vft_->backward(&rhog[ispin][0],&rhotmp[0]);
+
+      const int rhor_size = rhor[ispin].size();
+      double *const prhor = &rhor[ispin][0];
+      #pragma ivdep
+      for ( int i = 0; i < rhor_size; i++ )
+      {
+        prhor[i] = rhotmp[i].real() * omega_inv;
+      }
     }
   }
 }

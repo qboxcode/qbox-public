@@ -3,7 +3,7 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.12 2004-03-11 21:52:31 fgygi Exp $
+// $Id: Wavefunction.h,v 1.13 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
@@ -93,11 +93,13 @@ class Wavefunction
   void randomize(double amplitude);
   
   void update_occ(double fermitemp);
-  void update_occ(void);
-  
   double entropy(void) const; // dimensionless entropy
   void gram(void);
   void riccati(Wavefunction& wf);
+  void align(Wavefunction& wf);
+  void diag(Wavefunction& dwf, bool eigvec);
+  
+  double dot(const Wavefunction& wf) const;
   
   void print(ostream& os, string encoding, string tag);
 #if USE_CSTDIO_LFS

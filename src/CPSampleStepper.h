@@ -3,15 +3,16 @@
 // CPSampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.h,v 1.2 2004-03-11 21:52:31 fgygi Exp $
+// $Id: CPSampleStepper.h,v 1.3 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef CPSAMPLESTEPPER_H
 #define CPSAMPLESTEPPER_H
 
 #include "SampleStepper.h"
+#include "EnergyFunctional.h"
+#include "ChargeDensity.h"
 #include "Sample.h"
 #include "Wavefunction.h"
-class EnergyFunctional;
 class MDWavefunctionStepper;
 class MDIonicStepper;
 using namespace std;
@@ -20,7 +21,8 @@ class CPSampleStepper : public SampleStepper
 {
   private:
   
-  EnergyFunctional& ef_;
+  ChargeDensity cd_;
+  EnergyFunctional ef_;
   Wavefunction dwf;
   Wavefunction* wfv;
   
@@ -36,7 +38,7 @@ class CPSampleStepper : public SampleStepper
   
   void step(int niter);
 
-  CPSampleStepper(Sample& s, EnergyFunctional& ef);
+  CPSampleStepper(Sample& s);
   ~CPSampleStepper();
 };
 #endif

@@ -3,7 +3,7 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.7 2004-03-11 21:52:32 fgygi Exp $
+// $Id: Control.h,v 1.8 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -19,7 +19,6 @@ struct Control
   int nite;
   double emass;       // electron mass
   
-  string fermi;        // use Fermi distribution to fill states
   double fermi_temp;  // temperature of Fermi distribution
   double ecutprec;
 

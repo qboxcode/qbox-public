@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.16 2004-04-17 01:15:24 fgygi Exp $
+// $Id: SlaterDet.h,v 1.17 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -58,7 +58,7 @@ class SlaterDet
   void resize(const UnitCell& cell, const UnitCell& refcell,
               double ecut, int nst);
   void compute_density(FourierTransform& ft, double weight, double* rho) const;
-  void rs_mul_add(FourierTransform& ft, double* v, SlaterDet& sdp) const;
+  void rs_mul_add(FourierTransform& ft, const double* v, SlaterDet& sdp) const;
   void randomize(double amplitude);
   void cleanup(void);
   void reset(void);
@@ -81,6 +81,11 @@ class SlaterDet
     { assert(occ_.size()==occ.size()); occ_ = occ; }
   void set_eig(vector<double>& eig)
     { assert(eig_.size()==eig.size()); eig_ = eig; }
+  void set_eig(valarray<double>& eig)
+    { assert(eig_.size()==eig.size()); 
+      for ( int i = 0; i < eig.size(); i++ )
+        eig_[i] = eig[i];
+    }
   double entropy(int nspin);
   double ortho_error(void);
   double memsize(void) const;

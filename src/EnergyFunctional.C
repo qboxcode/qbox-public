@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.18 2004-08-11 17:56:24 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.19 2004-09-14 22:24:11 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -25,7 +25,8 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-EnergyFunctional::EnergyFunctional(const Sample& s) : s_(s), cd_(s.wf)
+EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
+ : s_(s), cd_(cd)
 {
   const AtomSet& atoms = s_.atoms;
   const Wavefunction& wf = s_.wf;
@@ -176,6 +177,108 @@ EnergyFunctional::~EnergyFunctional(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void EnergyFunctional::update_vhxc(void)
+{
+  // called when the charge density has changed
+  // update Hartree and xc potentials using the charge density cd_
+  // compute Hartree and xc energies
+  
+  const Wavefunction& wf = s_.wf;
+  const UnitCell& cell = wf.cell();
+  const double omega = cell.volume();
+  const double omega_inv = 1.0 / omega;
+  const double *const g2i = vbasis_->g2i_ptr();
+  const double fpi = 4.0 * M_PI;
+  const int ngloc = vbasis_->localsize();
+  double tsum[2];
+  
+  // compute total electronic density: rhoelg = rho_up + rho_dn
+  if ( wf.nspin() == 1 )
+  {
+    for ( int ig = 0; ig < ngloc; ig++ )
+    {
+      rhoelg[ig] = omega_inv * cd_.rhog[0][ig];
+    }
+  }
+  else
+  {
+    for ( int ig = 0; ig < ngloc; ig++ )
+    {
+      rhoelg[ig] = omega_inv * ( cd_.rhog[0][ig] + cd_.rhog[1][ig] );
+    }
+  }
+  
+  // update XC energy and potential
+  tmap["exc"].start();
+  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+    fill(v_r[ispin].begin(),v_r[ispin].end(),0.0);
+  xcp->update(v_r);
+  exc_ = xcp->exc();
+  tmap["exc"].stop();
+  
+  // compute local potential energy: 
+  // integral of el. charge times ionic local pot.
+  int len=2*ngloc,inc1=1;
+  tsum[0] = 2.0 * ddot(&len,(double*)&rhoelg[0],&inc1,
+         (double*)&vion_local_g[0],&inc1);
+  // remove double counting for G=0
+  if ( vbasis_->context().myrow() == 0 )
+  {
+    tsum[0] -= real(conj(rhoelg[0])*vion_local_g[0]);
+  }
+  tsum[0] *= omega; // tsum[0] contains eps
+  
+  // Hartree energy
+  ehart_ = 0.0;
+  double ehsum = 0.0;
+  for ( int ig = 0; ig < ngloc; ig++ )
+  {
+    const complex<double> tmp = rhoelg[ig] + rhopst[ig];
+    ehsum += norm(tmp) * g2i[ig];
+    rhogt[ig] = tmp;
+  }
+  // factor 1/2 from definition of Ehart cancels with half sum over G
+  // Note: rhogt[ig] includes a factor 1/Omega
+  // Factor omega in next line yields prefactor 4 pi / omega in
+  tsum[1] = omega * fpi * ehsum;
+  // tsum[1] contains ehart
+  
+  vbasis_->context().dsum(2,1,&tsum[0],2);
+  eps_   = tsum[0];
+  ehart_ = tsum[1];
+  
+  // compute vlocal_g = vion_local_g + vhart_g
+  // where vhart_g = 4 * pi * (rhoelg + rhopst) * g2i
+  for ( int ig = 0; ig < ngloc; ig++ )
+  {
+    vlocal_g[ig] = vion_local_g[ig] + fpi * rhogt[ig] * g2i[ig];
+  }
+ 
+  // FT to tmpr_r
+  vft->backward(&vlocal_g[0],&tmp_r[0]);
+ 
+  // add local potential in tmp_r to v_r[ispin][i]
+  // v_r contains the xc potential
+  const int size = tmp_r.size();
+  if ( wf.nspin() == 1 )
+  {
+    for ( int i = 0; i < size; i++ )
+    {
+      v_r[0][i] += real(tmp_r[i]);
+    }
+  }
+  else
+  {
+    for ( int i = 0; i < size; i++ )
+    {
+      const double vloc = real(tmp_r[i]);
+      v_r[0][i] += vloc;
+      v_r[1][i] += vloc;
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
               bool compute_forces, vector<vector<double> >& fion,
               bool compute_stress, valarray<double>& sigma)
@@ -189,7 +292,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   const double omega = cell.volume();
   const double omega_inv = 1.0 / omega;
   const int ngloc = vbasis_->localsize();
-  vector<double> temp(ngloc);
+  const double *const g2i = vbasis_->g2i_ptr();
   assert(wf.nspin()==1);
   
   const bool use_confinement = s_.ctrl.ecuts > 0.0;
@@ -351,42 +454,11 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   
   tmap["ekin"].stop();
   
-  tmap["density"].start();
-  cd_.update_density();
-  tmap["density"].stop();
-  
-  // total electronic density: rhoelg = rho_up + rho_dn
-  if ( wf.nspin() == 1 )
-  {
-    for ( int ig = 0; ig < ngloc; ig++ )
-    {
-      rhoelg[ig] = omega_inv * cd_.rhog[0][ig];
-    }
-  }
-  else
-  {
-    for ( int ig = 0; ig < ngloc; ig++ )
-    {
-      rhoelg[ig] = omega_inv * ( cd_.rhog[0][ig] + cd_.rhog[1][ig] );
-    }
-  }
-  
-  // potential energy: integral of electronic charge times ionic local pot.
-  tsum = 0.0;
-  int len=2*ngloc,inc1=1;
-  tsum[0] = 2.0 * ddot(&len,(double*)&rhoelg[0],&inc1,
-         (double*)&vion_local_g[0],&inc1);
-  // remove double counting for G=0
-  if ( vbasis_->context().myrow() == 0 )
-  {
-    tsum[0] -= real(conj(rhoelg[0])*vion_local_g[0]);
-  }
-  tsum[0] *= omega; // tsum[0] contains eps
-  
   // Stress from Eps
   sigma_eps = 0.0;
   if ( compute_stress )
   {
+    tsum = 0.0;
     const double *const gi  = vbasis_->gi_ptr();
     const double *const g_x = vbasis_->gx_ptr(0);
     const double *const g_y = vbasis_->gx_ptr(1);
@@ -402,44 +474,27 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       const double tgy = g_y[ig];
       const double tgz = g_z[ig];
       
-      tsum[1] += fac * tgx * tgx;
-      tsum[2] += fac * tgy * tgy;
-      tsum[3] += fac * tgz * tgz;
-      tsum[4] += fac * tgx * tgy;
-      tsum[5] += fac * tgy * tgz;
-      tsum[6] += fac * tgx * tgz;
+      tsum[0] += fac * tgx * tgx;
+      tsum[1] += fac * tgy * tgy;
+      tsum[2] += fac * tgz * tgz;
+      tsum[3] += fac * tgx * tgy;
+      tsum[4] += fac * tgy * tgz;
+      tsum[5] += fac * tgx * tgz;
     }
-  }
-  vbasis_->context().dsum(7,1,&tsum[0],7);
-  
-  eps_ = tsum[0];
-  sigma_eps[0] = eps_ * omega_inv + tsum[1]; 
-  sigma_eps[1] = eps_ * omega_inv + tsum[2]; 
-  sigma_eps[2] = eps_ * omega_inv + tsum[3]; 
-  sigma_eps[3] = tsum[4];
-  sigma_eps[4] = tsum[5];
-  sigma_eps[5] = tsum[6];
+    vbasis_->context().dsum(6,1,&tsum[0],6);
 
-  // Hartree energy
-  tsum = 0.0;
-  ehart_ = 0.0;
-  const double *const g2i = vbasis_->g2i_ptr();
-  double ehsum = 0.0;
-  for ( int ig = 0; ig < ngloc; ig++ )
-  {
-    const complex<double> tmp = rhoelg[ig] + rhopst[ig];
-    ehsum += norm(tmp) * g2i[ig];
-    rhogt[ig] = tmp;
+    sigma_eps[0] = eps_ * omega_inv + tsum[0];
+    sigma_eps[1] = eps_ * omega_inv + tsum[1];
+    sigma_eps[2] = eps_ * omega_inv + tsum[2];
+    sigma_eps[3] = tsum[3];
+    sigma_eps[4] = tsum[4];
+    sigma_eps[5] = tsum[5];
   }
-  // factor 1/2 from definition of Ehart cancels with half sum over G
-  // Note: rhogt[ig] includes a factor 1/Omega
-  // Factor omega in next line yields prefactor 4 pi / omega in
-  tsum[0] = omega * fpi * ehsum;
-  // tsum[0] contains ehart
   
   // Stress from Hartree energy
   if ( compute_stress )
   {
+    tsum = 0.0;
     const double *const g_x = vbasis_->gx_ptr(0);
     const double *const g_y = vbasis_->gx_ptr(1);
     const double *const g_z = vbasis_->gx_ptr(2);
@@ -451,12 +506,12 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       const double tgy = g_y[ig];
       const double tgz = g_z[ig];
 
-      tsum[1] += temp * tgx * tgx;
-      tsum[2] += temp * tgy * tgy;
-      tsum[3] += temp * tgz * tgz;
-      tsum[4] += temp * tgx * tgy;
-      tsum[5] += temp * tgy * tgz;
-      tsum[6] += temp * tgx * tgz;
+      tsum[0] += temp * tgx * tgx;
+      tsum[1] += temp * tgy * tgy;
+      tsum[2] += temp * tgz * tgz;
+      tsum[3] += temp * tgx * tgy;
+      tsum[4] += temp * tgy * tgz;
+      tsum[5] += temp * tgx * tgz;
     }
 
     for ( int is = 0; is < nsp_; is++ )
@@ -479,37 +534,32 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
         const double tgy = g_y[ig];
         const double tgz = g_z[ig];
 
-        tsum[1] += temp * tgx * tgx;
-        tsum[2] += temp * tgy * tgy;
-        tsum[3] += temp * tgz * tgz;
-        tsum[4] += temp * tgx * tgy;
-        tsum[5] += temp * tgy * tgz;
-        tsum[6] += temp * tgx * tgz;
+        tsum[0] += temp * tgx * tgx;
+        tsum[1] += temp * tgy * tgy;
+        tsum[2] += temp * tgz * tgz;
+        tsum[3] += temp * tgx * tgy;
+        tsum[4] += temp * tgy * tgz;
+        tsum[5] += temp * tgx * tgz;
       }
     }
+    vbasis_->context().dsum(6,1,&tsum[0],6);
+    // Factor in next line:
+    //  factor 2 from G and -G
+    //  factor fpi from definition of sigma
+    //  no factor 1/Omega^2 (already included in rhogt[ig] above)
+    sigma_ehart[0] = ehart_ * omega_inv - 2.0 * fpi * tsum[0];
+    sigma_ehart[1] = ehart_ * omega_inv - 2.0 * fpi * tsum[1];
+    sigma_ehart[2] = ehart_ * omega_inv - 2.0 * fpi * tsum[2];
+    sigma_ehart[3] = - 2.0 * fpi * tsum[3];
+    sigma_ehart[4] = - 2.0 * fpi * tsum[4];
+    sigma_ehart[5] = - 2.0 * fpi * tsum[5];
   } // compute_stress
-  vbasis_->context().dsum(7,1,&tsum[0],7);
   
-  ehart_ = tsum[0];
-  // Factor in next line: 
-  //  factor 2 from G and -G
-  //  factor fpi from definition of sigma
-  //  no factor 1/Omega^2 (already included in rhogt[ig] above)
-  sigma_ehart[0] = ehart_ * omega_inv - 2.0 * fpi * tsum[1];
-  sigma_ehart[1] = ehart_ * omega_inv - 2.0 * fpi * tsum[2];
-  sigma_ehart[2] = ehart_ * omega_inv - 2.0 * fpi * tsum[3];
-  sigma_ehart[3] = - 2.0 * fpi * tsum[4];
-  sigma_ehart[4] = - 2.0 * fpi * tsum[5];
-  sigma_ehart[5] = - 2.0 * fpi * tsum[6];
-  
-  tmap["exc"].start();
-  // XC energy and potential
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-    fill(v_r[ispin].begin(),v_r[ispin].end(),0.0);
-  // boolean in next line: compute_stress
-  xcp->update(v_r,compute_stress,sigma_exc);
-  exc_ = xcp->exc();
-  tmap["exc"].stop();
+  // Stress from exchange-correlation
+  if ( compute_stress )
+  {
+    xcp->compute_stress(sigma_exc);
+  }
   
   // Non local energy
   // Note: next line for nspin==0, nkp==0 only
@@ -523,37 +573,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   
   if ( compute_hpsi )
   {
-  
-    // compute vlocal_g = vion_local_g + vhart_g
-    // where vhart_g = 4 * pi * (rhoelg + rhopst) * g2i
-    for ( int ig = 0; ig < ngloc; ig++ )
-    {
-      vlocal_g[ig] = vion_local_g[ig] + fpi * rhogt[ig] * g2i[ig];
-    }
- 
-    // FT to tmpr_r
-    vft->backward(&vlocal_g[0],&tmp_r[0]);
- 
-    // add local potential in tmp_r to v_r[ispin][i]
-    // v_r contains the xc potential
-    const int size = tmp_r.size();
-    if ( wf.nspin() == 1 )
-    {
-      for ( int i = 0; i < size; i++ )
-      {
-        v_r[0][i] += real(tmp_r[i]);
-      }
-    }
-    else
-    {
-      for ( int i = 0; i < size; i++ )
-      {
-        const double vloc = real(tmp_r[i]);
-        v_r[0][i] += vloc;
-        v_r[1][i] += vloc;
-      }
-    }
- 
     tmap["hpsi"].start();
     assert(wf.nspin()==1);
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
@@ -630,9 +649,9 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
         for ( int ig = 0; ig < ngloc; ig++ )
         {
           // compute Exp[igr] in 3D as a product of 1D contributions
-//           complex<double> teigr = ei0[kv[3*ig+0]] *
-//                                   ei1[kv[3*ig+1]] *
-//                                   ei2[kv[3*ig+2]];
+          // complex<double> teigr = ei0[kv[3*ig+0]] *
+          //                         ei1[kv[3*ig+1]] *
+          //                         ei2[kv[3*ig+2]];
           const int iii = ig+ig+ig;
           const int kx = idx[iii];
           const int ky = idx[iii+1];
@@ -845,12 +864,12 @@ void EnergyFunctional::atoms_moved(void)
 ////////////////////////////////////////////////////////////////////////////////
 void EnergyFunctional::cell_moved(void)
 {
-  // resize vbasis_
-  vbasis_->resize(s_.wf.cell(),s_.wf.refcell(),4.0*s_.wf.ecut());
-  
-  const int ngloc = vbasis_->localsize();
   const Wavefunction& wf = s_.wf;
   const UnitCell& cell = wf.cell();
+  // resize vbasis_
+  vbasis_->resize(cell,s_.wf.refcell(),4.0*s_.wf.ecut());
+  
+  const int ngloc = vbasis_->localsize();
   const double omega = cell.volume();
   assert(omega != 0.0);
   const double omega_inv = 1.0 / omega;  

@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.39 2004-08-11 17:56:24 fgygi Exp $
+// $Id: qb.C,v 1.40 2004-09-14 22:24:11 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -12,7 +12,8 @@ using namespace std;
 #include <sys/utsname.h>
 #include <unistd.h>
 #include <cstdlib>
-#if AIX || OSF1
+#include <fstream>
+#if AIX 
 #include<filehdr.h>
 #endif
 
@@ -50,6 +51,7 @@ using namespace std;
 #include "Ecuts.h"
 #include "Emass.h"
 #include "ExtStress.h"
+#include "FermiTemp.h"
 #include "Dt.h"
 #include "Nempty.h"
 #include "Nrowmax.h"
@@ -192,6 +194,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Ecuts(s));
   ui.addVar(new Emass(s));
   ui.addVar(new ExtStress(s));
+  ui.addVar(new FermiTemp(s));
   ui.addVar(new Dt(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new Nrowmax(s));
@@ -206,7 +209,23 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Xc(s));
   
   bool echo = !isatty(0);
-  ui.processCmds(cin, "[qbox]", echo);
+  
+  if ( argc == 2 )
+  {
+    // input file was given as a command line argument
+    ifstream in;
+    if ( ctxt.onpe0() )
+    {
+      in.open(argv[1],ios::in);
+    }
+    ui.processCmds(in, "[qbox]", echo);
+  }
+  else
+  {
+    // use standard input
+    ui.processCmds(cin, "[qbox]", echo);
+  }
+
   // exit using the quit command when a encountering EOF in a script
   Cmd *c = ui.findCmd("quit");
   c->action(1,NULL);

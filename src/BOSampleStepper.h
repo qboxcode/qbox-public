@@ -3,15 +3,15 @@
 // BOSampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.h,v 1.2 2004-03-11 21:52:32 fgygi Exp $
+// $Id: BOSampleStepper.h,v 1.3 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef BOSAMPLESTEPPER_H
 #define BOSAMPLESTEPPER_H
 
 #include "SampleStepper.h"
+#include "EnergyFunctional.h"
 #include "Sample.h"
 #include "Wavefunction.h"
-class EnergyFunctional;
 class WavefunctionStepper;
 class IonicStepper;
 using namespace std;
@@ -22,8 +22,10 @@ class BOSampleStepper : public SampleStepper
   
   Wavefunction dwf;
   Wavefunction* wfv;
+  int nitscf_;
   int nite_;
-  EnergyFunctional& ef_;
+  ChargeDensity cd_;
+  EnergyFunctional ef_;
   
   WavefunctionStepper* wf_stepper;
   IonicStepper* ionic_stepper;
@@ -37,7 +39,7 @@ class BOSampleStepper : public SampleStepper
   
   void step(int niter);
 
-  BOSampleStepper(Sample& s, EnergyFunctional& ef, int nite);
+  BOSampleStepper(Sample& s, int nitscf, int nite);
   //~BOSampleStepper();
 };
 #endif

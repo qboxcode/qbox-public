@@ -3,7 +3,7 @@
 // EnergyFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.h,v 1.11 2004-03-11 21:52:32 fgygi Exp $
+// $Id: EnergyFunctional.h,v 1.12 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef ENERGYFUNCTIONAL_H
 #define ENERGYFUNCTIONAL_H
@@ -35,7 +35,7 @@ class EnergyFunctional
   private:
   
   const Sample& s_;
-  ChargeDensity cd_;
+  const ChargeDensity& cd_;
   Basis* vbasis_;
   FourierTransform *vft;
   vector<FourierTransform*> ft;
@@ -48,7 +48,6 @@ class EnergyFunctional
   vector<complex<double> > tmp_r, vion_local_g, dvion_local_g, vlocal_g,
     rhopst, rhogt, rhoelg, vtemp;
   vector<double> ftmp;
-  vector<vector<double> > v_r;
   
   vector<vector<double> > tau0, taum, fion_esr;
   vector<double> zv_, rcps_;
@@ -62,6 +61,7 @@ class EnergyFunctional
 
   public:
 
+  vector<vector<double> > v_r;
   mutable TimerMap tmap;
   
   double energy(bool compute_hpsi, Wavefunction& dwf,
@@ -81,12 +81,14 @@ class EnergyFunctional
   
   const ConfinementPotential *confpot(int ikp) const { return cfp[ikp]; }
   
+  void update_vhxc(void);
+  
   void atoms_moved(void);
   void cell_moved(void);
   
   void print(ostream& os) const;
 
-  EnergyFunctional(const Sample& s);
+  EnergyFunctional(const Sample& s, const ChargeDensity& cd);
   ~EnergyFunctional();
 };
 ostream& operator << ( ostream& os, const EnergyFunctional& e );

@@ -3,7 +3,9 @@
 // AtomSetHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.C,v 1.2 2003-05-23 21:51:04 fgygi Exp $
+// $Id: AtomSetHandler.C,v 1.3 2004-09-14 22:24:11 fgygi Exp $
+
+#if USE_XERCES
 
 #include "AtomSetHandler.h"
 #include "AtomSet.h"
@@ -193,4 +195,4 @@ void AtomSetHandler::endSubHandler(const XMLCh* const uri,
   delete last;
 }
       
-    
+#endif

@@ -3,7 +3,9 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.9 2004-03-11 21:47:54 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.10 2004-09-14 22:24:11 fgygi Exp $
+
+#if USE_XERCES
 
 #include "WavefunctionHandler.h"
 #include "Wavefunction.h"
@@ -489,4 +491,4 @@ void WavefunctionHandler::endSubHandler(const XMLCh* const uri,
   delete last;
 }
       
-    
+#endif

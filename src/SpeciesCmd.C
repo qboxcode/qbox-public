@@ -3,7 +3,7 @@
 // SpeciesCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesCmd.C,v 1.3 2003-05-23 21:51:04 fgygi Exp $
+// $Id: SpeciesCmd.C,v 1.4 2004-09-14 22:24:11 fgygi Exp $
 
 #include "SpeciesCmd.h"
 #include "SpeciesReader.h"
@@ -24,7 +24,7 @@ int SpeciesCmd::action(int argc, char **argv)
   if ( ui->onpe0() )
     cout << "  <!-- SpeciesCmd: defining species " << argv[1]
          << " as " << argv[2] << " -->" << endl;
-         
+
   SpeciesReader sp_reader(s->ctxt_);
   
   Species* sp = new Species(s->ctxt_,argv[1]);

@@ -3,12 +3,11 @@
 // RunCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.C,v 1.4 2004-03-11 21:52:31 fgygi Exp $
+// $Id: RunCmd.C,v 1.5 2004-09-14 22:24:11 fgygi Exp $
 
 #include "RunCmd.h"
 #include<iostream>
 using namespace std;
-#include "EnergyFunctional.h"
 #include "BOSampleStepper.h"
 #include "CPSampleStepper.h"
 
@@ -18,41 +17,48 @@ using namespace std;
 int RunCmd::action(int argc, char **argv)
 {
 
-  if ( argc < 2 || argc > 3)
+  if ( argc < 2 || argc > 4)
   {
     if ( ui->onpe0() )
       cout << " use: run niter" << endl;
+      cout << "      run niter nitscf" << endl;
+      cout << "      run niter nitscf nite" << endl;
     return 1;
   }
   
   if ( s->wf.nst() == 0 )
   {
     if ( ui->onpe0() )
-      cout << " <qb:error> RunCmd: no states, cannot run </qb:error>" << endl;
+      cout << " <!-- RunCmd: no states, cannot run -->" << endl;
     return 1;
   }
   if ( s->wf.ecut() == 0.0 )
   {
     if ( ui->onpe0() )
-      cout << " <qb:error> RunCmd: ecut = 0.0, cannot run </qb:error>" << endl;
+      cout << " <!-- RunCmd: ecut = 0.0, cannot run -->" << endl;
     return 1;
   }
   
-  EnergyFunctional ef(*s);
   SampleStepper* stepper;
   
   int niter = atoi(argv[1]);
   int nite = 1;
+  int nitscf = 1;
   if ( argc == 3 )
   {
-    // run niter nite
-    nite = atoi(argv[2]);
+    // run niter nitscf
+    nitscf = atoi(argv[2]);
   }
-  
+  else if ( argc == 4 )
+  {
+    // run niter nitscf nite
+    nitscf = atoi(argv[2]);
+    nite = atoi(argv[3]);
+  }
   if ( s->ctrl.wf_dyn == "MD" )
-    stepper = new CPSampleStepper(*s,ef);
+    stepper = new CPSampleStepper(*s);
   else
-    stepper = new BOSampleStepper(*s,ef,nite);
+    stepper = new BOSampleStepper(*s,nitscf,nite);
   
   assert(stepper!=0);
   

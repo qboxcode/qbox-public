@@ -3,7 +3,9 @@
 // StructuredDocumentHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.C,v 1.3 2003-08-18 22:51:17 fgygi Exp $
+// $Id: StructuredDocumentHandler.C,v 1.4 2004-09-14 22:24:11 fgygi Exp $
+
+#if USE_XERCES
 
 #include <xercesc/util/XMLUniDefs.hpp>
 #include <xercesc/sax2/Attributes.hpp>
@@ -151,3 +153,5 @@ void StructuredDocumentHandler::notationDecl(const   XMLCh* const name,
 {
     // Not used at this time
 }
+
+#endif

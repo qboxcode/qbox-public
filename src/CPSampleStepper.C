@@ -3,10 +3,9 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.6 2004-05-04 21:26:24 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.7 2004-09-14 22:24:11 fgygi Exp $
 
 #include "CPSampleStepper.h"
-#include "EnergyFunctional.h"
 #include "SlaterDet.h"
 #include "MDWavefunctionStepper.h"
 #include "MDIonicStepper.h"
@@ -18,8 +17,8 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-CPSampleStepper::CPSampleStepper(Sample& s, EnergyFunctional& ef) : 
-  SampleStepper(s), ef_(ef), dwf(s.wf), wfv(s.wfv)
+CPSampleStepper::CPSampleStepper(Sample& s) : 
+  SampleStepper(s), cd_(s.wf), ef_(s,cd_), dwf(s.wf), wfv(s.wfv)
 {
   mdwf_stepper = new MDWavefunctionStepper(s,tmap);
   assert(mdwf_stepper!=0);
@@ -66,6 +65,8 @@ void CPSampleStepper::step(int niter)
   
   Timer tm_iter;
   
+  cd_.update_density();
+  ef_.update_vhxc();
   double energy =
     ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
  
@@ -196,6 +197,8 @@ void CPSampleStepper::step(int niter)
       ef_.atoms_moved();
     }
     
+    cd_.update_density();
+    ef_.update_vhxc();
     energy =
       ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
 

@@ -3,7 +3,7 @@
 // WfDiag.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WfDiag.h,v 1.1 2003-02-04 19:21:30 fgygi Exp $
+// $Id: WfDiag.h,v 1.2 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef WFDIAG_H
 #define WFDIAG_H
@@ -33,10 +33,10 @@ class WfDiag : public Var
     }
     
     string v = argv[1];
-    if ( !( v == "T" || v == "F" ) )
+    if ( !( v == "T" || v == "F" || v == "EIGVAL" ) )
     {
       if ( ui->onpe0() )
-        cout << " wf_diag must be T or F" << endl;
+        cout << " wf_diag must be T, F or EIGVAL" << endl;
       return 1;
     }
 

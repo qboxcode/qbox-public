@@ -3,7 +3,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.3 2003-12-02 20:26:05 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.4 2004-09-14 22:24:11 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -21,6 +21,10 @@ using namespace std;
 #include "Base64Transcoder.h"
 #include "Matrix.h"
 #include "XMLGFPreprocessor.h"
+
+#if BGL
+#define fseeko fseek
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //

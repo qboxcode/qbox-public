@@ -3,7 +3,7 @@
 #  aix_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: aix_mpi.mk,v 1.11 2004-05-20 00:21:18 fgygi Exp $
+# $Id: aix_mpi.mk,v 1.12 2004-09-14 22:24:11 fgygi Exp $
 PLT=AIX
 #-------------------------------------------------------------------------------
  XERCESCDIR=${HOME}/software/xml/xerces-c-${PLT}
@@ -12,8 +12,8 @@ PLT=AIX
  CXX=newmpxlC
  LD=$(CXX)
 
-#PLTFLAGS += -DUSE_ESSL -D_LARGE_FILES
- PLTFLAGS += -DUSE_ESSL -DUSE_CSTDIO_LFS
+#PLTFLAGS += -DUSE_ESSL -D_LARGE_FILES -DUSE_XERCES
+ PLTFLAGS += -DUSE_ESSL -DUSE_CSTDIO_LFS -DUSE_XERCES
  INCLUDE = -I$(XERCESCDIR)/include
  
  CXXFLAGS= -O2 -qmaxmem=-1 -DUSE_MPI -DSCALAPACK -D$(PLT) $(INCLUDE) \

@@ -3,7 +3,7 @@
 // XCFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCFunctional.h,v 1.1 2003-01-25 01:23:31 fgygi Exp $
+// $Id: XCFunctional.h,v 1.2 2004-09-14 22:24:11 fgygi Exp $
 
 //
 // Abstract base class for density functionals
@@ -53,7 +53,7 @@ class XCFunctional
  
   public:
   
-  double *rho, *rho_up, *rho_dn;
+  const double *rho, *rho_up, *rho_dn;
   double *grad_rho[3], *grad_rho_up[3], *grad_rho_dn[3];
   double *exc, *exc_up, *exc_dn;
   double *vxc1, *vxc1_up, *vxc1_dn;

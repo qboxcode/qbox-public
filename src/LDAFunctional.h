@@ -3,7 +3,7 @@
 // LDAFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LDAFunctional.h,v 1.2 2003-03-27 22:05:59 fgygi Exp $
+// $Id: LDAFunctional.h,v 1.3 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef LDAFUNCTIONAL_H
 #define LDAFUNCTIONAL_H
@@ -24,7 +24,7 @@ class LDAFunctional : public XCFunctional
   
   public:
   
-  LDAFunctional(vector<vector<double> > &rhoe)
+  LDAFunctional(const vector<vector<double> > &rhoe)
   {
     _nspin = rhoe.size();
     if ( _nspin > 1 ) assert(rhoe[0].size() == rhoe[1].size());

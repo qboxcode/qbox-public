@@ -3,7 +3,7 @@
 // BLYPFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BLYPFunctional.C,v 1.2 2003-08-22 18:01:13 fgygi Exp $
+// $Id: BLYPFunctional.C,v 1.3 2004-09-14 22:24:11 fgygi Exp $
 
 #include <cmath>
 #include <cassert>
@@ -11,7 +11,7 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-BLYPFunctional::BLYPFunctional(vector<vector<double> > &rhoe)
+BLYPFunctional::BLYPFunctional(const vector<vector<double> > &rhoe)
 {
   _nspin = rhoe.size();
   if ( _nspin > 1 ) assert(rhoe[0].size() == rhoe[1].size());

@@ -3,7 +3,7 @@
 // PBEFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PBEFunctional.C,v 1.4 2004-05-20 00:19:26 fgygi Exp $
+// $Id: PBEFunctional.C,v 1.5 2004-09-14 22:24:11 fgygi Exp $
 
 #include "PBEFunctional.h"
 #include <cmath>
@@ -12,7 +12,7 @@
 #include <vector>
 using namespace std;
 
-PBEFunctional::PBEFunctional(vector<vector<double> > &rhoe)
+PBEFunctional::PBEFunctional(const vector<vector<double> > &rhoe)
 {
   _nspin = rhoe.size();
   if ( _nspin > 1 ) assert(rhoe[0].size() == rhoe[1].size());

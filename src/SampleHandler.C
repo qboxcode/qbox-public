@@ -3,7 +3,9 @@
 // SampleHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleHandler.C,v 1.4 2003-09-23 19:03:21 fgygi Exp $
+// $Id: SampleHandler.C,v 1.5 2004-09-14 22:24:11 fgygi Exp $
+
+#if USE_XERCES
 
 #include "SampleHandler.h"
 #include "Sample.h"
@@ -78,3 +80,4 @@ void SampleHandler::endSubHandler(const XMLCh* const uri,
   // cout << " SampleHandler::endSubHandler " << StrX(qname) << endl;
   delete subHandler;
 }
+#endif

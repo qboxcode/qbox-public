@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.15 2004-05-20 00:17:54 fgygi Exp $
+// $Id: Wavefunction.C,v 1.16 2004-09-14 22:24:11 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -361,7 +361,12 @@ int Wavefunction::nempty() const { return nempty_; } // number of empty states
 int Wavefunction::nspin() const { return nspin_; } // number of empty states
 
 ////////////////////////////////////////////////////////////////////////////////
-double Wavefunction::entropy(void) const {return 0.0;}// dimensionless entropy
+double Wavefunction::entropy(void) const 
+{
+  assert(nspin_==1);
+  assert(kpoint_.size()==1);
+  return sd(0,0)->entropy(nspin_);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell, 
@@ -548,51 +553,53 @@ void Wavefunction::randomize(double amplitude)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::update_occ(double temp)
 {
-  // update occupation numbers at finite temperature temp
-  const double eVolt = 0.036749023; // 1 eV in Hartree
-  
-  // loop to find value of mu
-  double mu = 0.0;
-  double dmu = 1.0 * eVolt;
-  //!! double totalcharge = (double) ( nel_ + netcharge_ );
-  const double totalcharge = (double) nel_;
-  enum direction { up, down };
-  direction dir = up;
-
-  double rhosum = 0.0;
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  // update occupation numbers using eigenvalues in SlaterDet
+  if ( temp == 0.0 )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    // zero temperature
+    if ( nspin_ == 1 )
     {
-      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
+      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       {
-        sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
-        rhosum += sd_[ispin][ikp]->total_charge();
+        if ( sd_[0][ikp] != 0 && sdcontext_[0][ikp]->active() )
+        {
+          sd_[0][ikp]->update_occ(nel_,nspin_);
+        }
       }
-      //!! rhosum must be reduced on pe 0 of each sdcontext only
-      //!! without reduction, works only if nspin_==1 and nkp_==1
-      assert(nspin_==1);
-      assert(kpoint_.size()==1);
     }
-  }
-  
-  int niter = 0;
-  while ( niter < 50 && fabs(rhosum - nel_) > 1.e-10 )
-  {
-    niter++;
-    if ( rhosum < totalcharge )
+    else if ( nspin_ == 2 )
     {
-      if ( dir == down ) dmu /= 2.0;
-      mu += dmu;
-      dir = up;
+      const int nocc_up = (nel_+1)/2+deltaspin_;
+      const int nocc_dn = nel_/2 - deltaspin_;
+      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+      {
+        if ( sd_[0][ikp] != 0 && sdcontext_[0][ikp]->active() )
+          sd_[0][ikp]->update_occ(nocc_up,nspin_);
+        if ( sd_[1][ikp] != 0 && sdcontext_[1][ikp]->active() )
+          sd_[1][ikp]->update_occ(nocc_dn,nspin_);
+      }
     }
     else
     {
-      if ( dir == up ) dmu /= 2.0;
-      mu -= dmu;
-      dir = down;
+      // incorrect value of nspin_
+      assert(false);
     }
-    rhosum = 0.0;
+  }
+  else
+  {
+    // finite temperature
+    const double eVolt = 0.036749023; // 1 eV in Hartree
+    const int maxiter = 100;
+ 
+    // loop to find value of mu
+    double mu = 0.0;
+    double dmu = 1.0 * eVolt;
+    //!! double totalcharge = (double) ( nel_ + netcharge_ );
+    const double totalcharge = (double) nel_;
+    enum direction { up, down };
+    direction dir = up;
+
+    double rhosum = 0.0;
     for ( int ispin = 0; ispin < nspin_; ispin++ )
     {
       for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
@@ -608,71 +615,76 @@ void Wavefunction::update_occ(double temp)
         assert(kpoint_.size()==1);
       }
     }
-  }
-  
-  if ( niter == 50 )
-  {
-    cout << "Wavefunction::update_occ: mu did not converge in 50 iterations"
-         << endl;
-    ctxt_.abort(1);
-  }
-  
-  cout << " Wavefunction::update_occ: sum = " << rhosum << endl;
-
-  cout << " Wavefunction::update_occ: mu = "
-       << setprecision(4) << mu / eVolt << " eV" << endl;
-
-  cout.setf(ios::right,ios::adjustfield);
-  cout.setf(ios::fixed,ios::floatfield);
-  
-  //!! print on all processes
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
-  {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+ 
+    int niter = 0;
+    while ( niter < maxiter && fabs(rhosum - nel_) > 1.e-10 )
     {
-      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
+      niter++;
+      if ( rhosum < totalcharge )
       {
-        for ( int n = 0; n < sd_[ispin][ikp]->nst(); n++ )
+        if ( dir == down ) dmu /= 2.0;
+        mu += dmu;
+        dir = up;
+      }
+      else
+      {
+        if ( dir == up ) dmu /= 2.0;
+        mu -= dmu;
+        dir = down;
+      }
+      rhosum = 0.0;
+      for ( int ispin = 0; ispin < nspin_; ispin++ )
+      {
+        for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
         {
-          cout << setw(7) << setprecision(4) << sd_[ispin][ikp]->occ(n);
-          if ( ( n%10 ) == 9 ) cout << endl;
+          if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
+          {
+            sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
+            rhosum += sd_[ispin][ikp]->total_charge();
+          }
+          //!! rhosum must be reduced on pe 0 of each sdcontext only
+          //!! without reduction, works only if nspin_==1 and nkp_==1
+          assert(nspin_==1);
+          assert(kpoint_.size()==1);
         }
       }
     }
-    cout << endl;
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::update_occ(void)
-{
-  // update occupation numbers for zero temperature
-  if ( nspin_ == 1 )
-  {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+ 
+    if ( niter == maxiter )
     {
-      if ( sd_[0][ikp] != 0 && sdcontext_[0][ikp]->active() )
+      cout << "Wavefunction::update_occ: mu did not converge in "
+           << maxiter << " iterations" << endl;
+      ctxt_.abort(1);
+    }
+
+    if ( ctxt_.onpe0() )
+    {
+      //!! print on one process only
+      cout << " <!-- Wavefunction::update_occ: sum = "
+           << rhosum << " -->" << endl;
+      cout << " <!-- Wavefunction::update_occ: mu = "
+           << setprecision(4) << mu / eVolt << " eV" << " -->" << endl;
+
+      cout.setf(ios::right,ios::adjustfield);
+      cout.setf(ios::fixed,ios::floatfield);
+ 
+      cout << " <!-- Wavefunction::update_occ: occupation numbers" << endl;
+      for ( int ispin = 0; ispin < nspin_; ispin++ )
       {
-        sd_[0][ikp]->update_occ(nel_,nspin_);
+        for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+        {
+          if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
+          {
+            for ( int n = 0; n < sd_[ispin][ikp]->nst(); n++ )
+            {
+              cout << setw(7) << setprecision(4) << sd_[ispin][ikp]->occ(n);
+              if ( ( n%10 ) == 9 ) cout << endl;
+            }
+          }
+        }
+        cout << "  -->" << endl;
       }
     }
-  }
-  else if ( nspin_ == 2 )
-  {
-    const int nocc_up = (nel_+1)/2+deltaspin_;
-    const int nocc_dn = nel_/2 - deltaspin_;
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-    {
-      if ( sd_[0][ikp] != 0 && sdcontext_[0][ikp]->active() )
-        sd_[0][ikp]->update_occ(nocc_up,nspin_);
-      if ( sd_[1][ikp] != 0 && sdcontext_[1][ikp]->active() )
-        sd_[1][ikp]->update_occ(nocc_dn,nspin_);
-    }
-  }
-  else
-  {
-    // incorrect value of nspin_
-    assert(false);
   }
 }
 
@@ -702,6 +714,134 @@ void Wavefunction::riccati(Wavefunction& wf)
       if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
       {
         sd_[ispin][ikp]->riccati(*wf.sd_[ispin][ikp]);
+      }
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void Wavefunction::align(Wavefunction& wf)
+{
+  assert(wf.context() == ctxt_);
+  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  {
+    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    {
+      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
+      {
+        sd_[ispin][ikp]->align(*wf.sd_[ispin][ikp]);
+      }
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+double Wavefunction::dot(const Wavefunction& wf) const
+{
+  assert(wf.context() == ctxt_);
+  double sum = 0.0;
+  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  {
+    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    {
+      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
+      {
+        sum += sd_[ispin][ikp]->dot(*wf.sd_[ispin][ikp]);
+      }
+    }
+  }
+  return sum;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
+{
+  // subspace diagonalization of <*this | dwf>
+  // if eigvec==true, eigenvectors are computed and stored in *this, dwf is 
+  // overwritten
+  for ( int ispin = 0; ispin < nspin(); ispin++ )
+  {
+    for ( int ikp = 0; ikp < nkp(); ikp++ )
+    {
+      if ( sd(ispin,ikp) != 0 )
+      {
+        if ( sdcontext(ispin,ikp)->active() )
+        {
+          // compute eigenvalues
+          if ( sd(ispin,ikp)->basis().real() )
+          {
+            // proxy real matrices c, cp
+            DoubleMatrix c(sd(ispin,ikp)->c());
+            DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
+ 
+            DoubleMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
+            valarray<double> w(h.m());
+ 
+            // factor 2.0 in next line: G and -G
+            h.gemm('t','n',2.0,c,cp,0.0);
+            // rank-1 update correction
+            h.ger(-1.0,c,0,cp,0);
+ 
+            // cout << " Hamiltonian at k = " << sd(ispin,ikp)->kpoint()
+            //      << endl;
+            // cout << h;
+ 
+            if ( eigvec )
+            {
+              DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+              h.syev('l',w,z);
+              cp = c;
+              c.gemm('n','n',1.0,cp,z,0.0);
+            }
+            else
+            {
+              h.syev('l',w);
+            }
+            if ( ctxt_.onpe0() )
+            {
+              const double eVolt = 2.0 * 13.6058;
+              cout <<    "  <eigenvalues spin=\"" << ispin
+                   << "\" kpoint=\"" << sd(ispin,ikp)->kpoint()
+                   << "\" n=\"" << h.m() << "\">" << endl;
+              for ( int i = 0; i < h.m(); i++ )
+              {
+                cout << setw(10) << setprecision(5) << w[i]*eVolt;
+                if ( i%5 == 4 ) cout << endl;
+              }
+              if ( h.m()%5 != 0 ) cout << endl;
+              cout << "  </eigenvalues>" << endl;
+            }
+            // set eigenvalues in SlaterDet
+            sd(ispin,ikp)->set_eig(w);
+          }
+          else
+          {
+            // complex case not implemented
+            assert(false);
+            #if 0
+            ComplexMatrix& c(wf.sd[ikp]->c());
+            ComplexMatrix& cp(dwf.sd[ikp]->c());
+ 
+            ComplexMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
+ 
+            h.gemm('c','n',1.0,c,cp,0.0);
+ 
+            //cout << " Hamiltonian at k = " << sd[ikp]->kpoint() << endl;
+            //cout << h;
+ 
+            valarray<double> w(h.m());
+
+            h.heev('l',w);
+            cout << " Eigenvalues at k = " << sd[ikp]->kpoint() << endl;
+            const double eVolt = 2.0 * 13.6058;
+            for ( int i = 0; i < h.m(); i++ )
+            {
+              cout << "%" << setw(3) << ikp
+                   << setw(10) << setprecision(5) << w[i]*eVolt << endl;;
+            }
+            #endif
+          }
+        }
       }
     }
   }

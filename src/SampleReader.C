@@ -3,14 +3,12 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.14 2004-03-19 00:56:04 fgygi Exp $
+// $Id: SampleReader.C,v 1.15 2004-09-14 22:24:11 fgygi Exp $
 
 
 #include "Sample.h"
 #include "SampleReader.h"
 #include "SpeciesReader.h"
-#include "StructuredDocumentHandler.h"
-#include "SampleHandler.h"
 #include "Basis.h"
 #include "FourierTransform.h"
 #include "SlaterDet.h"
@@ -25,6 +23,9 @@
 #include <sys/stat.h>
 using namespace std;
 
+#if USE_XERCES
+#include "SampleHandler.h"
+#include "StructuredDocumentHandler.h"
 #include <xercesc/util/XMLUniDefs.hpp>
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
@@ -33,6 +34,7 @@ using namespace std;
 #include <xercesc/sax2/XMLReaderFactory.hpp>
 #include <xercesc/framework/MemBufInputSource.hpp>
 using namespace xercesc;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 SampleReader::SampleReader(const Context& ctxt) : ctxt_(ctxt) {}
@@ -40,6 +42,7 @@ SampleReader::SampleReader(const Context& ctxt) : ctxt_(ctxt) {}
 ////////////////////////////////////////////////////////////////////////////////
 void SampleReader::readSample (Sample& s, const string uri, bool serial)
 {
+#if USE_XERCES
   const char* encodingName = "UTF-8";
   //SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Auto;
   SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Always;
@@ -524,4 +527,12 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     s.wfv = new Wavefunction(s.wf);
     *s.wfv = wfvtmp;
   }
+#else
+  // USE_XERCES was not defined
+  if ( ctxt_.onpe0() )
+  {
+    cout << "  <!-- SampleReader: could not read (parser not defined) -->"
+         << endl;
+  }
+#endif
 }

@@ -3,7 +3,7 @@
 // LoadCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LoadCmd.C,v 1.5 2003-10-02 17:37:49 fgygi Exp $
+// $Id: LoadCmd.C,v 1.6 2004-09-14 22:24:11 fgygi Exp $
 
 #include "LoadCmd.h"
 #include "SampleReader.h"
@@ -58,7 +58,7 @@ int LoadCmd::action(int argc, char **argv)
   if ( s->wf.nel() != s->atoms.nel() )
   {
     s->wf.set_nel(s->atoms.nel());
-    s->wf.update_occ();
+    s->wf.update_occ(0.0);
   }
   //cout << " LoadCmd: atoms.nel() = " << s->atoms.nel() << endl;
   //cout << " LoadCmd: wf.nel() =    " << s->wf.nel() << endl;

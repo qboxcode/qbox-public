@@ -3,7 +3,7 @@
 // AtomCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomCmd.h,v 1.4 2003-09-16 16:24:26 fgygi Exp $
+// $Id: AtomCmd.h,v 1.5 2004-09-14 22:24:11 fgygi Exp $
 
 #ifndef ATOMCMD_H
 #define ATOMCMD_H
@@ -79,7 +79,7 @@ cout << " dbg check "<< __FILE__ <<" "<< __LINE__ <<" mype="<< mype << endl;
 #endif
 
     s->wf.set_nel(s->atoms.nel());
-    s->wf.update_occ();
+    s->wf.update_occ(0.0);
     if ( s->wfv != 0 )
     {
       s->wfv->set_nel(s->atoms.nel());

@@ -7,6 +7,18 @@ preferrable to use a single-column context when nst is small to avoid
 memory problems.
 
 --------------------------------------------------------------------------------
+rel1_18_0 2004-09-14
+BOSampleStepper modified for scf iterations. Update of charge density and 
+calculation of VHXC is taken out of EnergyFunctional.
+RunCmd modified. Use run niter nitscf nite.
+Added FermiTemp variable.
+Modifications for calculation of occupation numbers if nempty > 0.
+Added USE_XERCES macro. If not defined, the Xerces library is not used, and 
+only species files can be read. Loading of sample files without the Xerces lib
+is not implemented yet.
+SlaterDet.C modified to remove dependency on xercesc. Uses Base64Transcoder.
+Makefile modified for libqb.a target for BGL.
+--------------------------------------------------------------------------------
 rel1_17_1 2004-08-18
 Fixed bug #27: overrun of variable tmpfion in NonLocalPotential.C is due to 
 incorrect index calculation in situations where na[is] % (ntasks/nrowmax) != 0.

@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.11 2004-09-14 22:33:08 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.12 2004-09-15 01:01:28 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -434,6 +434,9 @@ void BOSampleStepper::step(int niter)
         // vlocal_old, vlocal_new in ef_
         
 #if POTENTIAL_MIXING
+        if ( nite_ > 1 )
+        {
+        
         // Potential mixing using Hamann's implementation of Anderson's method
         // generate next iteration using d. g. anderson's method
         assert(nspin==1);
@@ -506,6 +509,8 @@ void BOSampleStepper::step(int niter)
           }
         }
         ef_.v_r = vi;
+        
+        }
 #endif
 
         // Next line: reset the wf stepper only if nite > 1

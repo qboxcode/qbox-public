@@ -1,4 +1,4 @@
-// $Id: testMatrix.C,v 1.9 2004-12-10 01:06:06 fgygi Exp $
+// $Id: testMatrix.C,v 1.10 2005-02-04 22:02:09 fgygi Exp $
 //
 // test Matrix
 //
@@ -32,8 +32,8 @@ using namespace std;
 #include "Context.h"
 #include "Matrix.h"
 
-int aa(int i, int j) { return 1.0/(i+1)+2.0/(j+1); }
-int bb(int i, int j) { return i-j-3; }
+double aa(int i, int j) { return 1.0/(i+1)+2.0*i/(j+1); }
+double bb(int i, int j) { return i-j-3; }
 
 int main(int argc, char **argv)
 {
@@ -223,23 +223,31 @@ int main(int argc, char **argv)
       cout << "  MFlops: " 
            << (2.0e-6*m_c*n_c*kmax) / tm.real() << endl;
     }
-#if 0    
+#if 1    
     double norma=a.nrm2();
     if(mype == 0)cout<<"Norm(a)="<<norma<<endl;
+    
+    double norm;
+#if 0
     if(mype == 0)cout<<"DoubleMatrix::matgather..."<<endl;
     double*  aa=new double[a.m()*a.n()];
     a.matgather(aa, a.m());
     if(mype == 0)cout<<"DoubleMatrix::init..."<<endl;
     b.init(aa, a.m());
-    double norm=b.nrm2();
+    norm=b.nrm2();
     if ( mype == 0 ) cout << "Norm(b)=" << norm << endl;
     if ( fabs(norm-norma)>0.000001 )
        cout << "DoubleMatrix: problem with matgather/init" << endl;
+#endif
 
     if ( c.n() == b.m() && c.m() == b.n() )
     {
       if(mype == 0)cout<<"DoubleMatrix::transpose..."<<endl;
+      tm.reset();
+      tm.start();
       c.transpose(1.0,b,0.0);
+      tm.stop();
+      if ( mype == 0 ) cout << " transpose time: " << tm.real() << endl;
       norm=c.nrm2();
       if(mype == 0)cout<<"Norm(c)="<<norm<<endl;
     }
@@ -262,18 +270,88 @@ int main(int argc, char **argv)
     if(mype == 0)cout<<"DoubleMatrix::nrm2..."<<endl;
     norm=c.nrm2();
     if (mype == 0) cout<<"Norm="<<norm<<endl;
-    
-    if ( mype == 0 ) cout << "DoubleMatrix::syrk...";
-    ComplexMatrix d(ctxt,m_c,n_c,mb_c,nb_c);
-    DoubleMatrix e(d);
-    c.syrk('l','t',2.0,e,0.0);
-    if ( mype == 0 ) cout << "done" << endl;
-    
+        
+#if 1
     a.identity();
     DoubleMatrix a2(a);
     a -= a2;
     norm = a.nrm2();
     if (mype == 0) cout << "Norm(a)=" << norm << endl;
+#endif
+    
+    // Eigenvalues and eigenvectors of c if c is square
+    if ( c.m() == c.n() && c.mb() == c.nb() )
+    {
+      for ( int m = 0; m < c.nblocks(); m++ )
+        for ( int l = 0; l < c.mblocks(); l++ )
+          for ( int y = 0; y < c.nbs(m); y++ )
+            for ( int x = 0; x < c.mbs(l); x++ )
+            {
+              int i = c.i(l,x);
+              int j = c.j(m,y);
+              int iii = x + l*c.mb();
+              int jjj = y + m*c.nb();
+              int ival = iii + jjj * c.mloc();
+              if ( i == j )
+                c[ival] = i + 1.e-5*drand48();
+              else
+                c[ival] = 1.e-5*drand48();
+            }
+      tm.reset();
+      tm.start();
+      if (mype == 0) cout << "Eigenproblem... ";
+      DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+      valarray<double> w(c.m());
+      c.syev('l',w,z);
+      //c.syevx('l',w,z,1.e-5);
+      if (mype == 0) cout << " done" << endl;
+      tm.stop();
+      if (mype == 0) cout << "Eigenproblem time: " << tm.real() << endl;
+    }
+    
+//  Gram-Schmidt orthogonalization of matrix a
+    for ( int m = 0; m < a.nblocks(); m++ )
+      for ( int l = 0; l < a.mblocks(); l++ )
+        for ( int y = 0; y < a.nbs(m); y++ )  
+          for ( int x = 0; x < a.mbs(l); x++ )
+          {
+            int i = a.i(l,x);
+            int j = a.j(m,y);
+            double aij = aa(i,j);
+            int iii = x + l*a.mb();
+            int jjj = y + m*a.nb();
+            int ival = iii + jjj * a.mloc();
+            if ( i == j ) 
+              a[ival] = i + 1.e-6*drand48();
+            else
+              a[ival] = 1.e-6*drand48();
+          }
+    DoubleMatrix s(a.context(),a.n(),a.n(),a.nb(),a.nb());
+    tm.reset();
+    tm.start();
+    s.syrk('l','t',2.0,a,0.0);
+    if (mype == 0) cout << "Gram syrk time: " << tm.real() << endl;
+    
+    tm.reset();
+    tm.start();
+    s.syr('l',-1.0,a,0,'r');
+    tm.stop();
+    if (mype == 0) cout << "Gram syr time: " << tm.real() << endl;
+    
+    // Cholesky decomposition
+    tm.reset();
+    tm.start();
+    s.potrf('l'); // Cholesky decomposition: S = L * L^T
+    tm.stop();
+    if (mype == 0) cout << "Gram Cholesky time: " << tm.real() << endl;
+    
+    // Triangular solve
+    tm.reset();
+    tm.start();
+    // solve triangular system X * L^T = C
+    a.trsm('r','l','t','n',1.0,s);
+    tm.stop();
+    if (mype == 0) cout << "Gram triangular solve time: " << tm.real() << endl;
 #endif
   }
 

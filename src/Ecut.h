@@ -3,7 +3,7 @@
 // Ecut.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Ecut.h,v 1.4 2003-09-16 16:24:26 fgygi Exp $
+// $Id: Ecut.h,v 1.5 2004-05-20 00:17:33 fgygi Exp $
 
 #ifndef ECUT_H
 #define ECUT_H
@@ -39,6 +39,9 @@ class Ecut : public Var
         cout << " ecut must be non-negative" << endl;
       return 1;
     }
+    
+    if ( s->wf.ecut() == 0.5 * v )
+      return 0;
 
     s->wf.resize(0.5*v);
     if ( s->wfv != 0 ) 

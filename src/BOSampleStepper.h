@@ -3,7 +3,7 @@
 // BOSampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.h,v 1.3 2004-09-14 22:24:11 fgygi Exp $
+// $Id: BOSampleStepper.h,v 1.4 2004-10-28 16:54:51 fgygi Exp $
 
 #ifndef BOSAMPLESTEPPER_H
 #define BOSAMPLESTEPPER_H
@@ -40,6 +40,6 @@ class BOSampleStepper : public SampleStepper
   void step(int niter);
 
   BOSampleStepper(Sample& s, int nitscf, int nite);
-  //~BOSampleStepper();
+  ~BOSampleStepper();
 };
 #endif

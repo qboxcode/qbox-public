@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.10 2004-05-06 20:41:11 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.11 2004-06-01 22:45:30 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
@@ -245,6 +245,8 @@ void NonLocalPotential::update_twnl(void)
   const double s14pi = sqrt(1.0/fpi);
   const double s34pi = sqrt(3.0/fpi);  
   const double s54pi = sqrt(5.0/fpi);
+  const double s20pi = sqrt(20.0*pi);
+  const double s20pi3 = sqrt(20.0*pi/3.0);
   const double s3 = sqrt(3.0);
 
   const double *g   = basis_.g_ptr();
@@ -318,7 +320,7 @@ void NonLocalPotential::update_twnl(void)
               // index = ig + ngwl*iquad
               double *t0 = &twnl[is][ngwl*iquad];
               // dtwnl[is][ipr][j][ngwl]
-              // index = ig + ngwl * ( j + 3 * iquad)
+              // index = ig + ngwl * ( ij + 6 * iquad)
               double *dt0_xx = &dtwnl[is][ngwl*(0+6*iquad)];
               double *dt0_yy = &dtwnl[is][ngwl*(1+6*iquad)];
               double *dt0_zz = &dtwnl[is][ngwl*(2+6*iquad)];
@@ -375,27 +377,34 @@ void NonLocalPotential::update_twnl(void)
             double *t2 = &twnl[is][ngwl*ipr2];
             double *t3 = &twnl[is][ngwl*ipr3];
             
-#if 0
-  //!! Note: l=1 stress not implemented
-  //!! assert statement in energy calculation
-            // dtwnl[is][ipr][j][ngwl]
-            // index = ig + ngwl * ( j + 3 * ipr )
-            double *dt1_x = &dtwnl[is][ngwl*(0+3*ipr1)];
-            double *dt1_y = &dtwnl[is][ngwl*(1+3*ipr1)];
-            double *dt1_z = &dtwnl[is][ngwl*(2+3*ipr1)];
+            // dtwnl[is][ipr][ij][ngwl]
+            // index = ig + ngwl * ( ij + 6 * ipr )
+            double *dt1_xx = &dtwnl[is][ngwl*(0+6*ipr1)];
+            double *dt1_yy = &dtwnl[is][ngwl*(1+6*ipr1)];
+            double *dt1_zz = &dtwnl[is][ngwl*(2+6*ipr1)];
+            double *dt1_xy = &dtwnl[is][ngwl*(3+6*ipr1)];
+            double *dt1_yz = &dtwnl[is][ngwl*(4+6*ipr1)];
+            double *dt1_xz = &dtwnl[is][ngwl*(5+6*ipr1)];
 
-            double *dt2_x = &dtwnl[is][ngwl*(0+3*ipr2)];
-            double *dt2_y = &dtwnl[is][ngwl*(1+3*ipr2)];
-            double *dt2_z = &dtwnl[is][ngwl*(2+3*ipr2)];
+            double *dt2_xx = &dtwnl[is][ngwl*(0+6*ipr2)];
+            double *dt2_yy = &dtwnl[is][ngwl*(1+6*ipr2)];
+            double *dt2_zz = &dtwnl[is][ngwl*(2+6*ipr2)];
+            double *dt2_xy = &dtwnl[is][ngwl*(3+6*ipr2)];
+            double *dt2_yz = &dtwnl[is][ngwl*(4+6*ipr2)];
+            double *dt2_xz = &dtwnl[is][ngwl*(5+6*ipr2)];
 
-            double *dt3_x = &dtwnl[is][ngwl*(0+3*ipr3)];
-            double *dt3_y = &dtwnl[is][ngwl*(1+3*ipr3)];
-            double *dt3_z = &dtwnl[is][ngwl*(2+3*ipr3)];
-#endif            
+            double *dt3_xx = &dtwnl[is][ngwl*(0+6*ipr3)];
+            double *dt3_yy = &dtwnl[is][ngwl*(1+6*ipr3)];
+            double *dt3_zz = &dtwnl[is][ngwl*(2+6*ipr3)];
+            double *dt3_xy = &dtwnl[is][ngwl*(3+6*ipr3)];
+            double *dt3_yz = &dtwnl[is][ngwl*(4+6*ipr3)];
+            double *dt3_xz = &dtwnl[is][ngwl*(5+6*ipr3)];
+
             for ( int ig = 0; ig < ngwl; ig++ )
             {
               double v,dv;
-              s->dvnlg(l,g[ig],v,dv);
+              const double tg = g[ig];
+              s->dvnlg(l,tg,v,dv);
               
               const double tgx = g_x[ig];
               const double tgy = g_y[ig];
@@ -415,33 +424,32 @@ void NonLocalPotential::update_twnl(void)
               t2[ig]  = y2 * v;
               t3[ig]  = y3 * v;
 
-#if 0
-  //!! Note: l=1 stress not implemented
-              // dylm/dx, dylm/dy, c * dylm/dz
-              const double dy1_x = s34pi * tgi * ( 1.0 - tgx2 * tgi2 );
-              const double dy1_y = s34pi * tgi * ( - tgx * tgy * tgi2 );
-              const double dy1_z = s34pi * tgi * ( - tgx * tgz * tgi2 );
+              const double fac1 = - y1 * ( v - tg * dv ) * tgi2;
+              // m=x
+              dt1_xx[ig] = fac1 * tgx2 + v * y1;
+              dt1_yy[ig] = fac1 * tgy2;
+              dt1_zz[ig] = fac1 * tgz2;
+              dt1_xy[ig] = fac1 * tgx * tgy;
+              dt1_yz[ig] = fac1 * tgy * tgz;
+              dt1_xz[ig] = fac1 * tgx * tgz;
               
-              const double dy2_x = s34pi * tgi * ( - tgy * tgx * tgi2 );
-              const double dy2_y = s34pi * tgi * ( 1.0 - tgy2 * tgi2 );
-              const double dy2_z = s34pi * tgi * ( - tgy * tgz * tgi2 );
+              const double fac2 = - y2 * ( v - tg * dv ) * tgi2;
+              // m=y
+              dt2_xx[ig] = fac2 * tgx2;
+              dt2_yy[ig] = fac2 * tgy2 + v * y2;
+              dt2_zz[ig] = fac2 * tgz2;
+              dt2_xy[ig] = fac2 * tgx * tgy + v * y1;
+              dt2_yz[ig] = fac2 * tgy * tgz;
+              dt2_xz[ig] = fac2 * tgx * tgz;
               
-              const double dy3_x = s34pi * tgi * ( - tgz * tgx * tgi2 );
-              const double dy3_y = s34pi * tgi * ( - tgz * tgy * tgi2 );
-              const double dy3_z = s34pi * tgi * ( 1.0 - tgz2 * tgi2 );
-              
-              dt1_x[ig] = - ( v * tgx * dy1_x + y1 * tgx2 * tgi * dv );
-              dt1_y[ig] = - ( v * tgy * dy1_y + y1 * tgy2 * tgi * dv );
-              dt1_z[ig] = - ( v * tgz * dy1_z + y1 * tgz2 * tgi * dv );
-
-              dt2_x[ig] = - ( v * tgx * dy2_x + y2 * tgx2 * tgi * dv );
-              dt2_y[ig] = - ( v * tgy * dy2_y + y2 * tgy2 * tgi * dv );
-              dt2_z[ig] = - ( v * tgz * dy2_z + y2 * tgz2 * tgi * dv );
-
-              dt3_x[ig] = - ( v * tgx * dy3_x + y3 * tgx2 * tgi * dv );
-              dt3_y[ig] = - ( v * tgy * dy3_y + y3 * tgy2 * tgi * dv );
-              dt3_z[ig] = - ( v * tgz * dy3_z + y3 * tgz2 * tgi * dv );
-#endif            
+              const double fac3 = - y3 * ( v - tg * dv ) * tgi2;
+              // m=z
+              dt3_xx[ig] = fac3 * tgx2;
+              dt3_yy[ig] = fac3 * tgy2;
+              dt3_zz[ig] = fac3 * tgz2 + v * y3;
+              dt3_xy[ig] = fac3 * tgx * tgy;
+              dt3_yz[ig] = fac3 * tgy * tgz + v * y2;
+              dt3_xz[ig] = fac3 * tgx * tgz + v * y1;
             }
           }
           else
@@ -458,29 +466,36 @@ void NonLocalPotential::update_twnl(void)
               double *t2 = &twnl[is][ngwl*ipr2];
               double *t3 = &twnl[is][ngwl*ipr3];
             
-#if 0
-  //!! Note: l=1 stress not implemented
               // dtwnl[is][ipr][j][ngwl]
-              // index = ig + ngwl * ( j + 3 * ( iquad + nquad[is] * ilm ))
-              double *dt1_x = &dtwnl[is][ngwl*(0+3*ipr1)];
-              double *dt1_y = &dtwnl[is][ngwl*(1+3*ipr1)];
-              double *dt1_z = &dtwnl[is][ngwl*(2+3*ipr1)];
+              // index = ig + ngwl * ( ij + 6 * ipr )
+              double *dt1_xx = &dtwnl[is][ngwl*(0+6*ipr1)];
+              double *dt1_yy = &dtwnl[is][ngwl*(1+6*ipr1)];
+              double *dt1_zz = &dtwnl[is][ngwl*(2+6*ipr1)];
+              double *dt1_xy = &dtwnl[is][ngwl*(3+6*ipr1)];
+              double *dt1_yz = &dtwnl[is][ngwl*(4+6*ipr1)];
+              double *dt1_xz = &dtwnl[is][ngwl*(5+6*ipr1)];
 
-              double *dt2_x = &dtwnl[is][ngwl*(0+3*ipr2)];
-              double *dt2_y = &dtwnl[is][ngwl*(1+3*ipr2)];
-              double *dt2_z = &dtwnl[is][ngwl*(2+3*ipr2)];
+              double *dt2_xx = &dtwnl[is][ngwl*(0+6*ipr2)];
+              double *dt2_yy = &dtwnl[is][ngwl*(1+6*ipr2)];
+              double *dt2_zz = &dtwnl[is][ngwl*(2+6*ipr2)];
+              double *dt2_xy = &dtwnl[is][ngwl*(3+6*ipr2)];
+              double *dt2_yz = &dtwnl[is][ngwl*(4+6*ipr2)];
+              double *dt2_xz = &dtwnl[is][ngwl*(5+6*ipr2)];
 
-              double *dt3_x = &dtwnl[is][ngwl*(0+3*ipr3)];
-              double *dt3_y = &dtwnl[is][ngwl*(1+3*ipr3)];
-              double *dt3_z = &dtwnl[is][ngwl*(2+3*ipr3)];
-#endif            
+              double *dt3_xx = &dtwnl[is][ngwl*(0+6*ipr3)];
+              double *dt3_yy = &dtwnl[is][ngwl*(1+6*ipr3)];
+              double *dt3_zz = &dtwnl[is][ngwl*(2+6*ipr3)];
+              double *dt3_xy = &dtwnl[is][ngwl*(3+6*ipr3)];
+              double *dt3_yz = &dtwnl[is][ngwl*(4+6*ipr3)];
+              double *dt3_xz = &dtwnl[is][ngwl*(5+6*ipr3)];
             
               const double r = rquad[is][iquad];
               for ( int ig = 0; ig < ngwl; ig++ )
               {
                 double v = 0.0, dv = 0.0;
                 // j_1(Gr) = (1/(Gr))*(sin(Gr)/(Gr)-cos(Gr))
-                const double z = g[ig] * r;
+                const double tg = g[ig];
+                const double z = tg * r;
                 if ( z != 0.0 )
                 {
                   const double zi = 1.0 / z;
@@ -514,33 +529,32 @@ void NonLocalPotential::update_twnl(void)
                 t2[ig]  = y2 * v;
                 t3[ig]  = y3 * v;
 
-#if 0
-  //!! Note: l=1 stress not implemented
-                // dylm/dx, dylm/dy, c * dylm/dz
-                const double dy1_x = s34pi * tgi * ( 1.0 - tgx2 * tgi2 );
-                const double dy1_y = s34pi * tgi * ( - tgx * tgy * tgi2 );
-                const double dy1_z = s34pi * tgi * ( - tgx * tgz * tgi2 );
+                const double fac1 = - y1 * ( v - tg * dv ) * tgi2;
+                // m=x
+                dt1_xx[ig] = fac1 * tgx2 + v * y1;
+                dt1_yy[ig] = fac1 * tgy2;
+                dt1_zz[ig] = fac1 * tgz2;
+                dt1_xy[ig] = fac1 * tgx * tgy;
+                dt1_yz[ig] = fac1 * tgy * tgz;
+                dt1_xz[ig] = fac1 * tgx * tgz;
  
-                const double dy2_x = s34pi * tgi * ( - tgy * tgx * tgi2 );
-                const double dy2_y = s34pi * tgi * ( 1.0 - tgy2 * tgi2 );
-                const double dy2_z = s34pi * tgi * ( - tgy * tgz * tgi2 );
+                const double fac2 = - y2 * ( v - tg * dv ) * tgi2;
+                // m=y
+                dt2_xx[ig] = fac2 * tgx2;
+                dt2_yy[ig] = fac2 * tgy2 + v * y2;
+                dt2_zz[ig] = fac2 * tgz2;
+                dt2_xy[ig] = fac2 * tgx * tgy + v * y1;
+                dt2_yz[ig] = fac2 * tgy * tgz;
+                dt2_xz[ig] = fac2 * tgx * tgz;
  
-                const double dy3_x = s34pi * tgi * ( - tgz * tgx * tgi2 );
-                const double dy3_y = s34pi * tgi * ( - tgz * tgy * tgi2 );
-                const double dy3_z = s34pi * tgi * ( 1.0 - tgz2 * tgi2 );
- 
-                dt1_x[ig] = - ( v * tgx * dy1_x + y1 * tgx2 * tgi * dv );
-                dt1_y[ig] = - ( v * tgy * dy1_y + y1 * tgy2 * tgi * dv );
-                dt1_z[ig] = - ( v * tgz * dy1_z + y1 * tgz2 * tgi * dv );
-
-                dt2_x[ig] = - ( v * tgx * dy2_x + y2 * tgx2 * tgi * dv );
-                dt2_y[ig] = - ( v * tgy * dy2_y + y2 * tgy2 * tgi * dv );
-                dt2_z[ig] = - ( v * tgz * dy2_z + y2 * tgz2 * tgi * dv );
-
-                dt3_x[ig] = - ( v * tgx * dy3_x + y3 * tgx2 * tgi * dv );
-                dt3_y[ig] = - ( v * tgy * dy3_y + y3 * tgy2 * tgi * dv );
-                dt3_z[ig] = - ( v * tgz * dy3_z + y3 * tgz2 * tgi * dv );
-#endif
+                const double fac3 = - y3 * ( v - tg * dv ) * tgi2;
+                // m=z
+                dt3_xx[ig] = fac3 * tgx2;
+                dt3_yy[ig] = fac3 * tgy2;
+                dt3_zz[ig] = fac3 * tgz2 + v * y3;
+                dt3_xy[ig] = fac3 * tgx * tgy;
+                dt3_yz[ig] = fac3 * tgy * tgz + v * y2;
+                dt3_xz[ig] = fac3 * tgx * tgz + v * y1;
               } // ig
             }
           }
@@ -563,34 +577,49 @@ void NonLocalPotential::update_twnl(void)
             double *t7 = &twnl[is][ngwl*ipr7];
             double *t8 = &twnl[is][ngwl*ipr8];
             
-#if 0
-  //!! l=2 stress not implemented
-            // dtwnl[is][ipr][j][ngwl]
-            // index = ig + ngwl * ( j + 3 * ipr )
-            double *dt4_x = &dtwnl[is][ngwl*(0+3*ipr4)];
-            double *dt4_y = &dtwnl[is][ngwl*(1+3*ipr4)];
-            double *dt4_z = &dtwnl[is][ngwl*(2+3*ipr4)];
+            // dtwnl[is][ipr][ij][ngwl]
+            // index = ig + ngwl * ( ij + 6 * ipr )
+            double *dt4_xx = &dtwnl[is][ngwl*(0+6*ipr4)];
+            double *dt4_yy = &dtwnl[is][ngwl*(1+6*ipr4)];
+            double *dt4_zz = &dtwnl[is][ngwl*(2+6*ipr4)];
+            double *dt4_xy = &dtwnl[is][ngwl*(3+6*ipr4)];
+            double *dt4_yz = &dtwnl[is][ngwl*(4+6*ipr4)];
+            double *dt4_xz = &dtwnl[is][ngwl*(5+6*ipr4)];
 
-            double *dt5_x = &dtwnl[is][ngwl*(0+3*ipr5)];
-            double *dt5_y = &dtwnl[is][ngwl*(1+3*ipr5)];
-            double *dt5_z = &dtwnl[is][ngwl*(2+3*ipr5)];
+            double *dt5_xx = &dtwnl[is][ngwl*(0+6*ipr5)];
+            double *dt5_yy = &dtwnl[is][ngwl*(1+6*ipr5)];
+            double *dt5_zz = &dtwnl[is][ngwl*(2+6*ipr5)];
+            double *dt5_xy = &dtwnl[is][ngwl*(3+6*ipr5)];
+            double *dt5_yz = &dtwnl[is][ngwl*(4+6*ipr5)];
+            double *dt5_xz = &dtwnl[is][ngwl*(5+6*ipr5)];
+            
+            double *dt6_xx = &dtwnl[is][ngwl*(0+6*ipr6)];
+            double *dt6_yy = &dtwnl[is][ngwl*(1+6*ipr6)];
+            double *dt6_zz = &dtwnl[is][ngwl*(2+6*ipr6)];
+            double *dt6_xy = &dtwnl[is][ngwl*(3+6*ipr6)];
+            double *dt6_yz = &dtwnl[is][ngwl*(4+6*ipr6)];
+            double *dt6_xz = &dtwnl[is][ngwl*(5+6*ipr6)];
+            
+            double *dt7_xx = &dtwnl[is][ngwl*(0+6*ipr7)];
+            double *dt7_yy = &dtwnl[is][ngwl*(1+6*ipr7)];
+            double *dt7_zz = &dtwnl[is][ngwl*(2+6*ipr7)];
+            double *dt7_xy = &dtwnl[is][ngwl*(3+6*ipr7)];
+            double *dt7_yz = &dtwnl[is][ngwl*(4+6*ipr7)];
+            double *dt7_xz = &dtwnl[is][ngwl*(5+6*ipr7)];
+            
+            double *dt8_xx = &dtwnl[is][ngwl*(0+6*ipr8)];
+            double *dt8_yy = &dtwnl[is][ngwl*(1+6*ipr8)];
+            double *dt8_zz = &dtwnl[is][ngwl*(2+6*ipr8)];
+            double *dt8_xy = &dtwnl[is][ngwl*(3+6*ipr8)];
+            double *dt8_yz = &dtwnl[is][ngwl*(4+6*ipr8)];
+            double *dt8_xz = &dtwnl[is][ngwl*(5+6*ipr8)];
 
-            double *dt6_x = &dtwnl[is][ngwl*(0+3*ipr6)];
-            double *dt6_y = &dtwnl[is][ngwl*(1+3*ipr6)];
-            double *dt6_z = &dtwnl[is][ngwl*(2+3*ipr6)];
-            
-            double *dt7_x = &dtwnl[is][ngwl*(0+3*ipr7)];
-            double *dt7_y = &dtwnl[is][ngwl*(1+3*ipr7)];
-            double *dt7_z = &dtwnl[is][ngwl*(2+3*ipr7)];
-            
-            double *dt8_x = &dtwnl[is][ngwl*(0+3*ipr8)];
-            double *dt8_y = &dtwnl[is][ngwl*(1+3*ipr8)];
-            double *dt8_z = &dtwnl[is][ngwl*(2+3*ipr8)];
-#endif            
             for ( int ig = 0; ig < ngwl; ig++ )
             {
               double v,dv;
-              s->dvnlg(l,g[ig],v,dv);
+              const double tg = g[ig];
+              
+              s->dvnlg(l,tg,v,dv);
               
               const double tgx = g_x[ig];
               const double tgy = g_y[ig];
@@ -600,17 +629,46 @@ void NonLocalPotential::update_twnl(void)
               const double tgz2 = tgz * tgz;
               
               const double tgi = gi[ig];
-              const double tg2 = g2[ig];
+              const double tg2 = tg * tg;
               const double tgi2 = tgi * tgi;
               
-              const double s3 = sqrt(3.0);
-              const double yfac = s54pi * tgi2;
+              const double tgxx = tgx2 * tgi2;
+              const double tgyy = tgy2 * tgi2;
+              const double tgzz = tgz2 * tgi2;
+              const double tgxy = tgx * tgy * tgi2;
+              const double tgyz = tgy * tgz * tgi2;
+              const double tgxz = tgx * tgz * tgi2;
               
-              const double y4 = 0.5 * (3.0 * tgz2 - tg2 ) * yfac;
-              const double y5 = 0.5 * s3 * ( tgx2 - tgy2 ) * yfac;
-              const double y6 = s3 * tgx * tgy * yfac;
-              const double y7 = s3 * tgy * tgz * yfac;
-              const double y8 = s3 * tgz * tgx * yfac;
+              const double y4 = s54pi * 0.5 * (3.0 * tgzz - 1.0 );
+              const double y5 = s54pi * 0.5 * s3 * ( tgxx - tgyy );
+              const double y6 = s54pi * s3 * tgxy;
+              const double y7 = s54pi * s3 * tgyz;
+              const double y8 = s54pi * s3 * tgxz;
+              
+              const double y1x = s34pi * tgx * tgi;
+              const double y1y = s34pi * tgy * tgi;
+              const double y1z = s34pi * tgz * tgi;
+              
+              const double dx_xx = y1x * tgxx - y1x;
+              const double dx_yy = y1x * tgyy;
+              const double dx_zz = y1x * tgzz;
+              const double dx_xy = y1x * tgxy;
+              const double dx_yz = y1x * tgyz;
+              const double dx_xz = y1x * tgxz;
+              
+              const double dy_xx = y1y * tgxx;
+              const double dy_yy = y1y * tgyy - y1y;
+              const double dy_zz = y1y * tgzz;
+              const double dy_xy = y1y * tgxy - y1x;
+              const double dy_yz = y1y * tgyz;
+              const double dy_xz = y1y * tgxz;
+              
+              const double dz_xx = y1z * tgxx;
+              const double dz_yy = y1z * tgyy;
+              const double dz_zz = y1z * tgzz - y1z;
+              const double dz_xy = y1z * tgxy;
+              const double dz_yz = y1z * tgyz - y1y;
+              const double dz_xz = y1z * tgxz - y1x;
               
               t4[ig]  = y4 * v;
               t5[ig]  = y5 * v;
@@ -618,57 +676,45 @@ void NonLocalPotential::update_twnl(void)
               t7[ig]  = y7 * v;
               t8[ig]  = y8 * v;
 
-#if 0
-  //!! l=2 stress not implemented
-              // dylm/dx, dylm/dy, c * dylm/dz
-              
-              const double tgi4 = tgi2 * tgi2;
-              
               // y4 = s54pi 1/2 ( 3 z^2/r^2 - 1 )
-              const double dy4_x = - s54pi *3.0 * tgx * tgz2 * tgi4;
-              const double dy4_y = - s54pi *3.0 * tgy * tgz2 * tgi4;
-              const double dy4_z = - s54pi *3.0 * tgz * ( tgz2 - tg2 ) * tgi4;
+              dt4_xx[ig] = -(v * s20pi * dz_xx * y1z - y4 * dv * tg * tgxx);
+              dt4_yy[ig] = -(v * s20pi * dz_yy * y1z - y4 * dv * tg * tgyy);
+              dt4_zz[ig] = -(v * s20pi * dz_zz * y1z - y4 * dv * tg * tgzz);
+              dt4_xy[ig] = -(v * s20pi * dz_xy * y1z - y4 * dv * tg * tgxy);
+              dt4_yz[ig] = -(v * s20pi * dz_yz * y1z - y4 * dv * tg * tgyz);
+              dt4_xz[ig] = -(v * s20pi * dz_xz * y1z - y4 * dv * tg * tgxz);
               
               // y5 = s54pi sqrt(3)/2 ( x^2 - y^2 ) / r^2
-              const double dy5_x = - s54pi *s3 * tgx * ( tgx2 - tgy2 - tg2 ) * tgi4;
-              const double dy5_y = - s54pi *s3 * tgy * ( tgx2 - tgy2 + tg2 ) * tgi4;
-              const double dy5_z = - s54pi *s3 * tgz * ( tgx2 - tgy2 ) * tgi4;
-              
+              dt5_xx[ig] = -(v * s20pi3 * (y1x * dx_xx - y1y * dy_xx) - y5 * dv * tg * tgxx);
+              dt5_yy[ig] = -(v * s20pi3 * (y1x * dx_yy - y1y * dy_yy) - y5 * dv * tg * tgyy);
+              dt5_zz[ig] = -(v * s20pi3 * (y1x * dx_zz - y1y * dy_zz) - y5 * dv * tg * tgzz);
+              dt5_xy[ig] = -(v * s20pi3 * (y1x * dx_xy - y1y * dy_xy) - y5 * dv * tg * tgxy);
+              dt5_yz[ig] = -(v * s20pi3 * (y1x * dx_yz - y1y * dy_yz) - y5 * dv * tg * tgyz);
+              dt5_xz[ig] = -(v * s20pi3 * (y1x * dx_xz - y1y * dy_xz) - y5 * dv * tg * tgxz);
+
               // y6 = s54pi sqrt(3) x y / r^2
-              const double dy6_x = - s54pi *s3 * tgy * ( 2 * tgx2 - tg2 ) * tgi4;
-              const double dy6_y = - s54pi *s3 * tgx * ( 2 * tgy2 - tg2 ) * tgi4;
-              const double dy6_z = - s54pi *s3 * tgz * 2 * tgx * tgy * tgi4;
-              
+              dt6_xx[ig] = -(v * s20pi3 * (dx_xx * y1y + y1x * dy_xx) - y6 * dv * tg * tgxx);
+              dt6_yy[ig] = -(v * s20pi3 * (dx_yy * y1y + y1x * dy_yy) - y6 * dv * tg * tgyy);
+              dt6_zz[ig] = -(v * s20pi3 * (dx_zz * y1y + y1x * dy_zz) - y6 * dv * tg * tgzz);
+              dt6_xy[ig] = -(v * s20pi3 * (dx_xy * y1y + y1x * dy_xy) - y6 * dv * tg * tgxy);
+              dt6_yz[ig] = -(v * s20pi3 * (dx_yz * y1y + y1x * dy_yz) - y6 * dv * tg * tgyz);
+              dt6_xz[ig] = -(v * s20pi3 * (dx_xz * y1y + y1x * dy_xz) - y6 * dv * tg * tgxz);
+
               // y7 = s54pi sqrt(3) y z / r^2
-              const double dy7_x = - s54pi *s3 * tgx * 2 * tgy * tgz * tgi4;
-              const double dy7_y = - s54pi *s3 * tgz * ( 2 * tgy2 - tg2 ) * tgi4;
-              const double dy7_z = - s54pi *s3 * tgy * ( 2 * tgz2 - tg2 ) * tgi4;
+              dt7_xx[ig] = -(v * s20pi3 * (dy_xx * y1z + y1y * dz_xx) - y7 * dv * tg * tgxx);
+              dt7_yy[ig] = -(v * s20pi3 * (dy_yy * y1z + y1y * dz_yy) - y7 * dv * tg * tgyy);
+              dt7_zz[ig] = -(v * s20pi3 * (dy_zz * y1z + y1y * dz_zz) - y7 * dv * tg * tgzz);
+              dt7_xy[ig] = -(v * s20pi3 * (dy_xy * y1z + y1y * dz_xy) - y7 * dv * tg * tgxy);
+              dt7_yz[ig] = -(v * s20pi3 * (dy_yz * y1z + y1y * dz_yz) - y7 * dv * tg * tgyz);
+              dt7_xz[ig] = -(v * s20pi3 * (dy_xz * y1z + y1y * dz_xz) - y7 * dv * tg * tgxz);
               
               // y8 = s54pi sqrt(3) z x / r^2
-              const double dy8_x = - s54pi *s3 * tgz * ( 2 * tgx2 - tg2 ) * tgi4;
-              const double dy8_y = - s54pi *s3 * tgy * 2 * tgz * tgx * tgi4;
-              const double dy8_z = - s54pi *s3 * tgx * ( 2 * tgz2 - tg2 ) * tgi4;
-              
-              dt4_x[ig] = - ( v * tgx * dy4_x + y4 * tgx2 * tgi * dv );
-              dt4_y[ig] = - ( v * tgy * dy4_y + y4 * tgy2 * tgi * dv );
-              dt4_z[ig] = - ( v * tgz * dy4_z + y4 * tgz2 * tgi * dv );
-
-              dt5_x[ig] = - ( v * tgx * dy5_x + y5 * tgx2 * tgi * dv );
-              dt5_y[ig] = - ( v * tgy * dy5_y + y5 * tgy2 * tgi * dv );
-              dt5_z[ig] = - ( v * tgz * dy5_z + y5 * tgz2 * tgi * dv );
-
-              dt6_x[ig] = - ( v * tgx * dy6_x + y6 * tgx2 * tgi * dv );
-              dt6_y[ig] = - ( v * tgy * dy6_y + y6 * tgy2 * tgi * dv );
-              dt6_z[ig] = - ( v * tgz * dy6_z + y6 * tgz2 * tgi * dv );
-
-              dt7_x[ig] = - ( v * tgx * dy7_x + y7 * tgx2 * tgi * dv );
-              dt7_y[ig] = - ( v * tgy * dy7_y + y7 * tgy2 * tgi * dv );
-              dt7_z[ig] = - ( v * tgz * dy7_z + y7 * tgz2 * tgi * dv );
-
-              dt8_x[ig] = - ( v * tgx * dy8_x + y8 * tgx2 * tgi * dv );
-              dt8_y[ig] = - ( v * tgy * dy8_y + y8 * tgy2 * tgi * dv );
-              dt8_z[ig] = - ( v * tgz * dy8_z + y8 * tgz2 * tgi * dv );
-#endif            
+              dt8_xx[ig] = -(v * s20pi3 * (dx_xx * y1z + y1x * dz_xx) - y8 * dv * tg * tgxx);
+              dt8_yy[ig] = -(v * s20pi3 * (dx_yy * y1z + y1x * dz_yy) - y8 * dv * tg * tgyy);
+              dt8_zz[ig] = -(v * s20pi3 * (dx_zz * y1z + y1x * dz_zz) - y8 * dv * tg * tgzz);
+              dt8_xy[ig] = -(v * s20pi3 * (dx_xy * y1z + y1x * dz_xy) - y8 * dv * tg * tgxy);
+              dt8_yz[ig] = -(v * s20pi3 * (dx_yz * y1z + y1x * dz_yz) - y8 * dv * tg * tgyz);
+              dt8_xz[ig] = -(v * s20pi3 * (dx_xz * y1z + y1x * dz_xz) - y8 * dv * tg * tgxz);
             }
           }
           else
@@ -691,37 +737,52 @@ void NonLocalPotential::update_twnl(void)
               double *t7 = &twnl[is][ngwl*ipr7];
               double *t8 = &twnl[is][ngwl*ipr8];
 
-#if 0
-  //!! l=2 stress not implemented
-              // dtwnl[is][ipr][j][ngwl]
-              // index = ig + ngwl * ( j + 3 * ( iquad + nquad[is] * ipr ))
-              double *dt4_x = &dtwnl[is][ngwl*(0+3*ipr4)];
-              double *dt4_y = &dtwnl[is][ngwl*(1+3*ipr4)];
-              double *dt4_z = &dtwnl[is][ngwl*(2+3*ipr4)];
+              // dtwnl[is][ipr][ij][ngwl]
+              // index = ig + ngwl * ( ij + 6 * ipr )
+              double *dt4_xx = &dtwnl[is][ngwl*(0+6*ipr4)];
+              double *dt4_yy = &dtwnl[is][ngwl*(1+6*ipr4)];
+              double *dt4_zz = &dtwnl[is][ngwl*(2+6*ipr4)];
+              double *dt4_xy = &dtwnl[is][ngwl*(3+6*ipr4)];
+              double *dt4_yz = &dtwnl[is][ngwl*(4+6*ipr4)];
+              double *dt4_xz = &dtwnl[is][ngwl*(5+6*ipr4)];
 
-              double *dt5_x = &dtwnl[is][ngwl*(0+3*ipr5)];
-              double *dt5_y = &dtwnl[is][ngwl*(1+3*ipr5)];
-              double *dt5_z = &dtwnl[is][ngwl*(2+3*ipr5)];
+              double *dt5_xx = &dtwnl[is][ngwl*(0+6*ipr5)];
+              double *dt5_yy = &dtwnl[is][ngwl*(1+6*ipr5)];
+              double *dt5_zz = &dtwnl[is][ngwl*(2+6*ipr5)];
+              double *dt5_xy = &dtwnl[is][ngwl*(3+6*ipr5)];
+              double *dt5_yz = &dtwnl[is][ngwl*(4+6*ipr5)];
+              double *dt5_xz = &dtwnl[is][ngwl*(5+6*ipr5)];
+ 
+              double *dt6_xx = &dtwnl[is][ngwl*(0+6*ipr6)];
+              double *dt6_yy = &dtwnl[is][ngwl*(1+6*ipr6)];
+              double *dt6_zz = &dtwnl[is][ngwl*(2+6*ipr6)];
+              double *dt6_xy = &dtwnl[is][ngwl*(3+6*ipr6)];
+              double *dt6_yz = &dtwnl[is][ngwl*(4+6*ipr6)];
+              double *dt6_xz = &dtwnl[is][ngwl*(5+6*ipr6)];
+ 
+              double *dt7_xx = &dtwnl[is][ngwl*(0+6*ipr7)];
+              double *dt7_yy = &dtwnl[is][ngwl*(1+6*ipr7)];
+              double *dt7_zz = &dtwnl[is][ngwl*(2+6*ipr7)];
+              double *dt7_xy = &dtwnl[is][ngwl*(3+6*ipr7)];
+              double *dt7_yz = &dtwnl[is][ngwl*(4+6*ipr7)];
+              double *dt7_xz = &dtwnl[is][ngwl*(5+6*ipr7)];
+ 
+              double *dt8_xx = &dtwnl[is][ngwl*(0+6*ipr8)];
+              double *dt8_yy = &dtwnl[is][ngwl*(1+6*ipr8)];
+              double *dt8_zz = &dtwnl[is][ngwl*(2+6*ipr8)];
+              double *dt8_xy = &dtwnl[is][ngwl*(3+6*ipr8)];
+              double *dt8_yz = &dtwnl[is][ngwl*(4+6*ipr8)];
+              double *dt8_xz = &dtwnl[is][ngwl*(5+6*ipr8)];
 
-              double *dt6_x = &dtwnl[is][ngwl*(0+3*ipr6)];
-              double *dt6_y = &dtwnl[is][ngwl*(1+3*ipr6)];
-              double *dt6_z = &dtwnl[is][ngwl*(2+3*ipr6)];
-
-              double *dt7_x = &dtwnl[is][ngwl*(0+3*ipr7)];
-              double *dt7_y = &dtwnl[is][ngwl*(1+3*ipr7)];
-              double *dt7_z = &dtwnl[is][ngwl*(2+3*ipr7)];
-
-              double *dt8_x = &dtwnl[is][ngwl*(0+3*ipr8)];
-              double *dt8_y = &dtwnl[is][ngwl*(1+3*ipr8)];
-              double *dt8_z = &dtwnl[is][ngwl*(2+3*ipr8)];
-#endif            
               const double r = rquad[is][iquad];
               for ( int ig = 0; ig < ngwl; ig++ )
               {
                 double v = 0.0, dv = 0.0;
                 // j_2(z) = (3/z^3-1/z) sin(z) - 3/z^2 cos(z)
                 // j_2(z) = (1/z)*((3/z^2-1)*sin(z) - (3/z) cos(z) )
-                const double z = g[ig] * r;
+                
+                const double tg = g[ig];
+                const double z = tg * r;
                 if ( z != 0.0 )
                 {
                   const double zi = 1.0 / z;
@@ -746,17 +807,46 @@ void NonLocalPotential::update_twnl(void)
                 const double tgz2 = tgz * tgz;
  
                 const double tgi = gi[ig];
-                const double tg2 = g2[ig];
+                const double tg2 = tg * tg;
                 const double tgi2 = tgi * tgi;
  
-                const double s3 = sqrt(3.0);
-                const double yfac = s54pi * tgi2;
+                const double tgxx = tgx2 * tgi2;
+                const double tgyy = tgy2 * tgi2;
+                const double tgzz = tgz2 * tgi2;
+                const double tgxy = tgx * tgy * tgi2;
+                const double tgyz = tgy * tgz * tgi2;
+                const double tgxz = tgx * tgz * tgi2;
  
-                const double y4 = 0.5 * (3.0 * tgz2 - tg2 ) * yfac;
-                const double y5 = 0.5 * s3 * ( tgx2 - tgy2 ) * yfac;
-                const double y6 = s3 * tgx * tgy * yfac;
-                const double y7 = s3 * tgy * tgz * yfac;
-                const double y8 = s3 * tgz * tgx * yfac;
+                const double y4 = s54pi * 0.5 * (3.0 * tgzz - 1.0 );
+                const double y5 = s54pi * 0.5 * s3 * ( tgxx - tgyy );
+                const double y6 = s54pi * s3 * tgxy;
+                const double y7 = s54pi * s3 * tgyz;
+                const double y8 = s54pi * s3 * tgxz;
+ 
+                const double y1x = s34pi * tgx * tgi;
+                const double y1y = s34pi * tgy * tgi;
+                const double y1z = s34pi * tgz * tgi;
+ 
+                const double dx_xx = y1x * tgxx - y1x;
+                const double dx_yy = y1x * tgyy;
+                const double dx_zz = y1x * tgzz;
+                const double dx_xy = y1x * tgxy;
+                const double dx_yz = y1x * tgyz;
+                const double dx_xz = y1x * tgxz;
+ 
+                const double dy_xx = y1y * tgxx;
+                const double dy_yy = y1y * tgyy - y1y;
+                const double dy_zz = y1y * tgzz;
+                const double dy_xy = y1y * tgxy - y1x;
+                const double dy_yz = y1y * tgyz;
+                const double dy_xz = y1y * tgxz;
+ 
+                const double dz_xx = y1z * tgxx;
+                const double dz_yy = y1z * tgyy;
+                const double dz_zz = y1z * tgzz - y1z;
+                const double dz_xy = y1z * tgxy;
+                const double dz_yz = y1z * tgyz - y1y;
+                const double dz_xz = y1z * tgxz - y1x;
  
                 t4[ig]  = y4 * v;
                 t5[ig]  = y5 * v;
@@ -764,57 +854,45 @@ void NonLocalPotential::update_twnl(void)
                 t7[ig]  = y7 * v;
                 t8[ig]  = y8 * v;
 
-#if 0
-  //!! l=2 stress not implemented
-                // dylm/dx, dylm/dy, c * dylm/dz
- 
-                const double tgi4 = tgi2 * tgi2;
- 
                 // y4 = s54pi 1/2 ( 3 z^2/r^2 - 1 )
-                const double dy4_x = - s54pi *3.0 * tgx * tgz2 * tgi4;
-                const double dy4_y = - s54pi *3.0 * tgy * tgz2 * tgi4;
-                const double dy4_z = - s54pi *3.0 * tgz * ( tgz2 - tg2 ) * tgi4;
+                dt4_xx[ig] = -(v * s20pi * dz_xx * y1z - y4 * dv * tg * tgxx);
+                dt4_yy[ig] = -(v * s20pi * dz_yy * y1z - y4 * dv * tg * tgyy);
+                dt4_zz[ig] = -(v * s20pi * dz_zz * y1z - y4 * dv * tg * tgzz);
+                dt4_xy[ig] = -(v * s20pi * dz_xy * y1z - y4 * dv * tg * tgxy);
+                dt4_yz[ig] = -(v * s20pi * dz_yz * y1z - y4 * dv * tg * tgyz);
+                dt4_xz[ig] = -(v * s20pi * dz_xz * y1z - y4 * dv * tg * tgxz);
  
                 // y5 = s54pi sqrt(3)/2 ( x^2 - y^2 ) / r^2
-                const double dy5_x = - s54pi *s3 * tgx * ( tgx2 - tgy2 - tg2 ) * tgi4;
-                const double dy5_y = - s54pi *s3 * tgy * ( tgx2 - tgy2 + tg2 ) * tgi4;
-                const double dy5_z = - s54pi *s3 * tgz * ( tgx2 - tgy2 ) * tgi4;
- 
+                dt5_xx[ig] = -(v * s20pi3 * (y1x * dx_xx - y1y * dy_xx) - y5 * dv * tg * tgxx);
+                dt5_yy[ig] = -(v * s20pi3 * (y1x * dx_yy - y1y * dy_yy) - y5 * dv * tg * tgyy);
+                dt5_zz[ig] = -(v * s20pi3 * (y1x * dx_zz - y1y * dy_zz) - y5 * dv * tg * tgzz);
+                dt5_xy[ig] = -(v * s20pi3 * (y1x * dx_xy - y1y * dy_xy) - y5 * dv * tg * tgxy);
+                dt5_yz[ig] = -(v * s20pi3 * (y1x * dx_yz - y1y * dy_yz) - y5 * dv * tg * tgyz);
+                dt5_xz[ig] = -(v * s20pi3 * (y1x * dx_xz - y1y * dy_xz) - y5 * dv * tg * tgxz);
+
                 // y6 = s54pi sqrt(3) x y / r^2
-                const double dy6_x = - s54pi *s3 * tgy * ( 2 * tgx2 - tg2 ) * tgi4;
-                const double dy6_y = - s54pi *s3 * tgx * ( 2 * tgy2 - tg2 ) * tgi4;
-                const double dy6_z = - s54pi *s3 * tgz * 2 * tgx * tgy * tgi4;
- 
+                dt6_xx[ig] = -(v * s20pi3 * (dx_xx * y1y + y1x * dy_xx) - y6 * dv * tg * tgxx);
+                dt6_yy[ig] = -(v * s20pi3 * (dx_yy * y1y + y1x * dy_yy) - y6 * dv * tg * tgyy);
+                dt6_zz[ig] = -(v * s20pi3 * (dx_zz * y1y + y1x * dy_zz) - y6 * dv * tg * tgzz);
+                dt6_xy[ig] = -(v * s20pi3 * (dx_xy * y1y + y1x * dy_xy) - y6 * dv * tg * tgxy);
+                dt6_yz[ig] = -(v * s20pi3 * (dx_yz * y1y + y1x * dy_yz) - y6 * dv * tg * tgyz);
+                dt6_xz[ig] = -(v * s20pi3 * (dx_xz * y1y + y1x * dy_xz) - y6 * dv * tg * tgxz);
+
                 // y7 = s54pi sqrt(3) y z / r^2
-                const double dy7_x = - s54pi *s3 * tgx * 2 * tgy * tgz * tgi4;
-                const double dy7_y = - s54pi *s3 * tgz * ( 2 * tgy2 - tg2 ) * tgi4;
-                const double dy7_z = - s54pi *s3 * tgy * ( 2 * tgz2 - tg2 ) * tgi4;
+                dt7_xx[ig] = -(v * s20pi3 * (dy_xx * y1z + y1y * dz_xx) - y7 * dv * tg * tgxx);
+                dt7_yy[ig] = -(v * s20pi3 * (dy_yy * y1z + y1y * dz_yy) - y7 * dv * tg * tgyy);
+                dt7_zz[ig] = -(v * s20pi3 * (dy_zz * y1z + y1y * dz_zz) - y7 * dv * tg * tgzz);
+                dt7_xy[ig] = -(v * s20pi3 * (dy_xy * y1z + y1y * dz_xy) - y7 * dv * tg * tgxy);
+                dt7_yz[ig] = -(v * s20pi3 * (dy_yz * y1z + y1y * dz_yz) - y7 * dv * tg * tgyz);
+                dt7_xz[ig] = -(v * s20pi3 * (dy_xz * y1z + y1y * dz_xz) - y7 * dv * tg * tgxz);
  
                 // y8 = s54pi sqrt(3) z x / r^2
-                const double dy8_x = - s54pi *s3 * tgz * ( 2 * tgx2 - tg2 ) * tgi4;
-                const double dy8_y = - s54pi *s3 * tgy * 2 * tgz * tgx * tgi4;
-                const double dy8_z = - s54pi *s3 * tgx * ( 2 * tgz2 - tg2 ) * tgi4;
- 
-                dt4_x[ig] = - ( v * tgx * dy4_x + y4 * tgx2 * tgi * dv );
-                dt4_y[ig] = - ( v * tgy * dy4_y + y4 * tgy2 * tgi * dv );
-                dt4_z[ig] = - ( v * tgz * dy4_z + y4 * tgz2 * tgi * dv );
-
-                dt5_x[ig] = - ( v * tgx * dy5_x + y5 * tgx2 * tgi * dv );
-                dt5_y[ig] = - ( v * tgy * dy5_y + y5 * tgy2 * tgi * dv );
-                dt5_z[ig] = - ( v * tgz * dy5_z + y5 * tgz2 * tgi * dv );
-
-                dt6_x[ig] = - ( v * tgx * dy6_x + y6 * tgx2 * tgi * dv );
-                dt6_y[ig] = - ( v * tgy * dy6_y + y6 * tgy2 * tgi * dv );
-                dt6_z[ig] = - ( v * tgz * dy6_z + y6 * tgz2 * tgi * dv );
-
-                dt7_x[ig] = - ( v * tgx * dy7_x + y7 * tgx2 * tgi * dv );
-                dt7_y[ig] = - ( v * tgy * dy7_y + y7 * tgy2 * tgi * dv );
-                dt7_z[ig] = - ( v * tgz * dy7_z + y7 * tgz2 * tgi * dv );
-
-                dt8_x[ig] = - ( v * tgx * dy8_x + y8 * tgx2 * tgi * dv );
-                dt8_y[ig] = - ( v * tgy * dy8_y + y8 * tgy2 * tgi * dv );
-                dt8_z[ig] = - ( v * tgz * dy8_z + y8 * tgz2 * tgi * dv );
-#endif
+                dt8_xx[ig] = -(v * s20pi3 * (dx_xx * y1z + y1x * dz_xx) - y8 * dv * tg * tgxx);
+                dt8_yy[ig] = -(v * s20pi3 * (dx_yy * y1z + y1x * dz_yy) - y8 * dv * tg * tgyy);
+                dt8_zz[ig] = -(v * s20pi3 * (dx_zz * y1z + y1x * dz_zz) - y8 * dv * tg * tgzz);
+                dt8_xy[ig] = -(v * s20pi3 * (dx_xy * y1z + y1x * dz_xy) - y8 * dv * tg * tgxy);
+                dt8_yz[ig] = -(v * s20pi3 * (dx_yz * y1z + y1x * dz_yz) - y8 * dv * tg * tgyz);
+                dt8_xz[ig] = -(v * s20pi3 * (dx_xz * y1z + y1x * dz_xz) - y8 * dv * tg * tgxz);
               } // ig
             } // iquad
           }
@@ -1144,8 +1222,9 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
         DoubleMatrix dfnl(ctxt_,fnl.m(),fnl.n(),fnl.mb(),fnl.nb());
         
         for ( int ij = 0; ij < 6; ij++ )
-        { 
-          for ( int ipr = 0; ipr < npr[is]; ipr++ )
+        {
+          int ipr = 0;
+          while ( ipr < npr[is] )
           {
             const int l = lproj[is][ipr];
             if ( l == 0 )
@@ -1153,12 +1232,11 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               // dtwnl[is][ipr][ij][ngwl]
               // index = ig + ngwl * ( ij + 6 * ipr))
               // ipr = iquad + nquad[is] * ilm, where ilm = 0
-              const double *const dt0 =
-                &dtwnl[is][ngwl*(ij+6*ipr)];
+              const double *const dt0 = &dtwnl[is][ngwl*(ij+6*ipr)];
               for ( int ia = 0; ia < naloc[is]; ia++ )
               {
-                const int ipra = ia+naloc[is]*ipr;
-                double *da = danl.valptr(2*(sd_.c().mloc()*ipra));
+                const int ipra0 = ia+naloc[is]*ipr;
+                double *da0 = danl.valptr(2*(sd_.c().mloc()*ipra0));
                 const double *c = &cosgr[is][ia*ngwl];
                 const double *s = &singr[is][ia*ngwl];
                 for ( int ig = 0; ig < ngwl; ig++ )
@@ -1166,132 +1244,111 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
                   const double d0 = dt0[ig];
                   // danl[is][ipr][iquad][ia][ig].re =
                   //   dtwnl[is][ipr][iquad][j][ig] * cosgr[is][ia][ig]
-                  *da++ = *c++ * d0;
+                  *da0++ = *c++ * d0;
                   // danl[is][ipr][iquad][ia][ig].im =
                   //   dtwnl[is][ipr][iquad][j][ig] * singr[is][ia][ig]
-                  *da++ = *s++ * d0;
+                  *da0++ = *s++ * d0;
                 }
               }
             }
             else if ( l == 1 )
             {
-   //!! l=1 stress not implemented
-   assert(false);
-#if 0
               const int ipr1 = ipr;
               const int ipr2 = ipr + 1;
               const int ipr3 = ipr + 2;
-              for ( int iquad = 0; iquad < nquad[is]; iquad++ )
+              // dtwnl[is][ipr][ij][ngwl]
+              // index = ig + ngwl * ( ij + 6 * iprx ))
+              const double *dt1 = &dtwnl[is][ngwl*(ij+6*ipr1)];
+              const double *dt2 = &dtwnl[is][ngwl*(ij+6*ipr2)];
+              const double *dt3 = &dtwnl[is][ngwl*(ij+6*ipr3)];
+              for ( int ia = 0; ia < naloc[is]; ia++ )
               {
-                // dtwnl[is][ipr][iquad][j][ngwl]
-                // index = ig + ngwl * ( j + 3 * ( iquad + nquad[is] * ipr ))
-                const double *dt1 =
-                  &dtwnl[is][ngwl*(ij+3*(iquad+nquad[is]*ipr1))];
-                const double *dt2 =
-                  &dtwnl[is][ngwl*(ij+3*(iquad+nquad[is]*ipr2))];
-                const double *dt3 =
-                  &dtwnl[is][ngwl*(ij+3*(iquad+nquad[is]*ipr3))];
-                for ( int ia = 0; ia < nais; ia++ )
+                const int ipra1 = ia+naloc[is]*ipr1;
+                const int ipra2 = ia+naloc[is]*ipr2;
+                const int ipra3 = ia+naloc[is]*ipr3;
+                double *da1 = danl.valptr(2*(sd_.c().mloc()*ipra1));
+                double *da2 = danl.valptr(2*(sd_.c().mloc()*ipra2));
+                double *da3 = danl.valptr(2*(sd_.c().mloc()*ipra3));
+ 
+                const double *c = &cosgr[is][ia*ngwl];
+                const double *s = &singr[is][ia*ngwl];
+                for ( int ig = 0; ig < ngwl; ig++ )
                 {
-                  double *a1 =
-                    &anl[is][2*(ngwl*(ia+na[is]*(iquad+nquad[is]*ipr1)))];
-                  double *a2 =
-                    &anl[is][2*(ngwl*(ia+na[is]*(iquad+nquad[is]*ipr2)))];
-                  double *a3 =
-                    &anl[is][2*(ngwl*(ia+na[is]*(iquad+nquad[is]*ipr3)))];
-                  const double *c = &cosgr[is][ia*ngwl];
-                  const double *s = &singr[is][ia*ngwl];
-                  for ( int ig = 0; ig < ngwl; ig++ )
-                  {
-                    const double d1 = dt1[ig];
-                    const double d2 = dt2[ig];
-                    const double d3 = dt3[ig];
-                    // Next line: (-i)^l factor is -i
-                    // Next line: -i * eigr
-                    // -i * (a+i*b) = b - i*a
-                    const double tc = -*c++; //  -cosgr[is][ia][ig]
-                    const double ts =  *s++; //   singr[is][ia][ig]
-                    *a1++ = d1 * ts;
-                    *a1++ = d1 * tc;
-                    *a2++ = d2 * ts;
-                    *a2++ = d2 * tc;
-                    *a3++ = d3 * ts;
-                    *a3++ = d3 * tc;
-                  }
+                  const double d1 = dt1[ig];
+                  const double d2 = dt2[ig];
+                  const double d3 = dt3[ig];
+                  // Next line: (-i)^l factor is -i
+                  // Next line: -i * eigr
+                  // -i * (a+i*b) = b - i*a
+                  const double tc = -*c++; //  -cosgr[is][ia][ig]
+                  const double ts =  *s++; //   singr[is][ia][ig]
+                  *da1++ = d1 * ts;
+                  *da1++ = d1 * tc;
+                  *da2++ = d2 * ts;
+                  *da2++ = d2 * tc;
+                  *da3++ = d3 * ts;
+                  *da3++ = d3 * tc;
                 }
               }
-              ipr += (2*l+1);
-#endif
             }
             else if ( l == 2 )
             {
-   //!! l=2 stress not implemented
-   assert(false);
-#if 0
               const int ipr4 = ipr;                                            
               const int ipr5 = ipr + 1;                                        
               const int ipr6 = ipr + 2;                                        
               const int ipr7 = ipr + 3;                                        
               const int ipr8 = ipr + 4;                                        
-              for ( int iquad = 0; iquad < nquad[is]; iquad++ )                
-              {                                                                
-                // dtwnl[is][ipr][iquad][j][ngwl]                              
-                // index = ig + ngwl * ( ij + 6 * ( iquad + nquad[is] * ipr ))  
-                const double *dt4 =                                            
-                  &dtwnl[is][ngwl*(ij+6*(iquad+nquad[is]*ipr4))];               
-                const double *dt5 =                                            
-                  &dtwnl[is][ngwl*(ij+6*(iquad+nquad[is]*ipr5))];               
-                const double *dt6 =                                            
-                  &dtwnl[is][ngwl*(ij+6*(iquad+nquad[is]*ipr6))];               
-                const double *dt7 =                                            
-                  &dtwnl[is][ngwl*(ij+6*(iquad+nquad[is]*ipr7))];               
-                const double *dt8 =                                            
-                  &dtwnl[is][ngwl*(ij+6*(iquad+nquad[is]*ipr8))];               
-                for ( int ia = 0; ia < nais; ia++ )                            
-                {                                                              
-                  // anl[is][ipr][iquad][ia][ig]                               
-                  double *a4 =                                                 
-                    &anl[is][2*(ngwl*(ia+na[is]*(iquad+nquad[is]*ipr4)))];     
-                  double *a5 =                                                 
-                    &anl[is][2*(ngwl*(ia+na[is]*(iquad+nquad[is]*ipr5)))];     
-                  double *a6 =                                                 
-                    &anl[is][2*(ngwl*(ia+na[is]*(iquad+nquad[is]*ipr6)))];     
-                  double *a7 =                                                 
-                    &anl[is][2*(ngwl*(ia+na[is]*(iquad+nquad[is]*ipr7)))];     
-                  double *a8 =                                                 
-                    &anl[is][2*(ngwl*(ia+na[is]*(iquad+nquad[is]*ipr8)))];     
-                  const double *c = &cosgr[is][ia*ngwl];                       
-                  const double *s = &singr[is][ia*ngwl];                       
-                  for ( int ig = 0; ig < ngwl; ig++ )                          
-                  {                                                            
-                    const double d4 = dt4[ig];                                 
-                    const double d5 = dt5[ig];                                 
-                    const double d6 = dt6[ig];                                 
-                    const double d7 = dt7[ig];                                 
-                    const double d8 = dt8[ig];                                 
-                    // Next lines: (-i)^2 * ( a + ib ) =  - ( a + ib )         
-                    const double tc = -*c++;                                   
-                    const double ts = -*s++;                                   
-                    *a4++ = d4 * tc;                                           
-                    *a4++ = d4 * ts;                                           
-                    *a5++ = d5 * tc;                                           
-                    *a5++ = d5 * ts;                                           
-                    *a6++ = d6 * tc;                                           
-                    *a6++ = d6 * ts;                                           
-                    *a7++ = d7 * tc;                                           
-                    *a7++ = d7 * ts;                                           
-                    *a8++ = d8 * tc;                                           
-                    *a8++ = d8 * ts;                                           
-                  }                                                            
-                }                                                              
-              }                                                                
-#endif
-            }                                                                  
+              // dtwnl[is][ipr][iquad][ij][ngwl]
+              // index = ig + ngwl * ( ij + 6 * ( iquad + nquad[is] * ipr ))
+              const double *dt4 = &dtwnl[is][ngwl*(ij+6*ipr4)];
+              const double *dt5 = &dtwnl[is][ngwl*(ij+6*ipr5)];
+              const double *dt6 = &dtwnl[is][ngwl*(ij+6*ipr6)];
+              const double *dt7 = &dtwnl[is][ngwl*(ij+6*ipr7)];
+              const double *dt8 = &dtwnl[is][ngwl*(ij+6*ipr8)];
+              for ( int ia = 0; ia < naloc[is]; ia++ )
+              {
+                const int ipra4 = ia+naloc[is]*ipr4;
+                const int ipra5 = ia+naloc[is]*ipr5;
+                const int ipra6 = ia+naloc[is]*ipr6;
+                const int ipra7 = ia+naloc[is]*ipr7;
+                const int ipra8 = ia+naloc[is]*ipr8;
+                double *da4 = danl.valptr(2*(sd_.c().mloc()*ipra4));
+                double *da5 = danl.valptr(2*(sd_.c().mloc()*ipra5));
+                double *da6 = danl.valptr(2*(sd_.c().mloc()*ipra6));
+                double *da7 = danl.valptr(2*(sd_.c().mloc()*ipra7));
+                double *da8 = danl.valptr(2*(sd_.c().mloc()*ipra8));
+ 
+                const double *c = &cosgr[is][ia*ngwl];
+                const double *s = &singr[is][ia*ngwl];
+                for ( int ig = 0; ig < ngwl; ig++ )
+                {
+                  const double d4 = dt4[ig];
+                  const double d5 = dt5[ig];
+                  const double d6 = dt6[ig];
+                  const double d7 = dt7[ig];
+                  const double d8 = dt8[ig];
+                  // Next lines: (-i)^2 * ( a + ib ) =  - ( a + ib )
+                  const double tc = -*c++;
+                  const double ts = -*s++;
+                  *da4++ = d4 * tc;
+                  *da4++ = d4 * ts;
+                  *da5++ = d5 * tc;
+                  *da5++ = d5 * ts;
+                  *da6++ = d6 * tc;
+                  *da6++ = d6 * ts;
+                  *da7++ = d7 * tc;
+                  *da7++ = d7 * ts;
+                  *da8++ = d8 * tc;
+                  *da8++ = d8 * ts;
+                }
+              }
+            }                                                                
             else                                                               
             {                                                                  
               assert(false);                                                   
-            }                                                                  
-          } // l
+            } // l
+            ipr += 2*l+1;
+          } // while ipr
       
           // compute dfnl
           const DoubleMatrix c_proxy(sd_.c());
@@ -1301,8 +1358,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
           // Note: no need to correct for double counting of the
           // G=0 component which is always zero
           
- 
-          // partial contributions to the stress sigma_ij
+           // partial contributions to the stress sigma_ij
           // Note: fnl was already premultiplied by the factor
           // fac = wt[is][ipr][iquad] * omega_inv;
           const double *const f = fnl.cvalptr(0);

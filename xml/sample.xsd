@@ -5,7 +5,7 @@
   xmlns:xlink="http://www.w3.org/1999/xlink">
   
   <annotation>
-    <documentation> $Id: sample.xsd,v 1.4 2003-09-16 16:24:41 fgygi Exp $
+    <documentation> $Id: sample.xsd,v 1.5 2003-11-21 20:03:00 fgygi Exp $
       Qbox sample specification schema. 
       The Quantum Box project. Francois Gygi, Lawrence Livermore National Laboratory. 
       Copyright (c) 2003 The Regents of the University of California.
@@ -19,6 +19,7 @@
   <element name="sample" type="qbox:sampleType"/>
   <complexType name="sampleType">
     <sequence>
+      <element name="description" type="string" minOccurs="0" maxOccurs="1"/>
       <element name="atomset" type="qbox:atomsetType" minOccurs="0"/>
       <element name="wavefunction" type="qbox:wavefunctionType" minOccurs="0"/>
       <element name="wavefunction_velocity" 

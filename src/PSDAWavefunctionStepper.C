@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.9 2004-11-29 04:09:40 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.10 2004-12-18 23:20:17 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -140,7 +140,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
  
               if ( theta < -1.0 )
               {
-                theta = 2.0;
+                theta = 0.0;
               }
  
               theta = min(2.0,theta);

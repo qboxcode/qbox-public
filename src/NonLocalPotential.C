@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.7 2003-12-19 00:40:40 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.8 2004-01-22 01:19:34 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
@@ -111,21 +111,100 @@ void NonLocalPotential::init(void)
       twnl[is].resize(npr[is]*ngwl);      
       dtwnl[is].resize(npr[is]*3*ngwl);
       
-      // Gauss-Jacobi integration
       // quadrature abcissae and weights
       rquad[is].resize(nquad[is]);
       wquad[is].resize(nquad[is]);
       
-      // The integrand vanishes (at least) linearly as r->0
-      // alpha = 0.0, beta = 1.0
-      // Int[ f(x) dx ] = Int[ x g(x) dx ] where g(x) = f(x)/x
-      // Generate Gauss-Jacobi abscissae and weights
-      gaujac(0.0,s->rquad(),&rquad[is][0],&wquad[is][0],nquad[is],0.0,1.0);
+      enum quadrature_rule_type { TRAPEZOID, MODIF_TRAPEZOID, 
+      TRAPEZOID_WITH_RIGHT_ENDPOINT, 
+      SIMPSON, GAUSS_LEGENDRE, GAUSS_JACOBI };
       
-      // Include 1/r in the Gauss-Jacobi weights
-      for ( int iquad = 0; iquad < nquad[is]; iquad++ )
+      const quadrature_rule_type quad_rule = TRAPEZOID;
+      //const quadrature_rule_type quad_rule = MODIF_TRAPEZOID;
+      //const quadrature_rule_type quad_rule = TRAPEZOID_WITH_RIGHT_ENDPOINT;
+      //const quadrature_rule_type quad_rule = SIMPSON;
+      //const quadrature_rule_type quad_rule = GAUSS_LEGENDRE;
+      //const quadrature_rule_type quad_rule = GAUSS_JACOBI;
+
+      if ( quad_rule == TRAPEZOID )
       {
-        wquad[is][iquad] /= rquad[is][iquad];
+        // trapezoidal rule with interior points only
+        // (end points are zero)
+        const double h = s->rquad() / (nquad[is]+1);
+        for ( int iquad = 0; iquad < nquad[is]; iquad++ )
+        {
+          rquad[is][iquad] = (iquad+1) * h;
+          wquad[is][iquad] = h;
+        }
+        //cout << " NonLocalPotential::init: trapezoidal rule (interior)"
+        //     << endl;
+      }
+      else if ( quad_rule == MODIF_TRAPEZOID )
+      {
+        // use modified trapezoidal rule with interior points, and include
+        // correction for first derivative at r=0 as
+        // h^2/12 f'(0) where f'(0) is estimated with f(h)/h
+        // i.e. add correction h/12) * f(h)
+        // See Davis & Rabinowitz, p. 132
+        const double h = s->rquad() / (nquad[is]+1);
+        for ( int iquad = 0; iquad < nquad[is]; iquad++ )
+        {
+          rquad[is][iquad] = (iquad+1) * h;
+          wquad[is][iquad] = h;
+        }
+        wquad[is][0] += h / 12.0;
+        //cout << " NonLocalPotential::init: modified trapezoidal rule"
+        //     << endl;
+      }
+      else if ( quad_rule == TRAPEZOID_WITH_RIGHT_ENDPOINT )
+      {
+        const double h = s->rquad() / nquad[is];
+        for ( int iquad = 0; iquad < nquad[is]; iquad++ )
+        {
+          rquad[is][iquad] = (iquad+1) * h;
+          wquad[is][iquad] = h;
+        }
+        wquad[is][nquad[is]-1] = 0.5 * h;
+        //cout << " NonLocalPotential::init: trapezoidal rule with right endpoint"
+        //     << endl;
+      }
+      else if ( quad_rule == SIMPSON )
+      {
+        // must have 2n+1 points
+        assert(nquad[is]%2==1);
+        const double h = s->rquad() / (nquad[is]-1);
+        for ( int iquad = 0; iquad < nquad[is]; iquad++ )
+        {
+          rquad[is][iquad] = iquad * h;
+          if ( ( iquad == 0 ) || ( iquad == nquad[is]-1 ) )
+            wquad[is][iquad] = h / 3.0;
+          else if ( iquad % 2 == 0 )
+            wquad[is][iquad] = h * 2.0 / 3.0;
+          else
+            wquad[is][iquad] = h * 4.0 / 3.0;
+        }
+        //cout << " NonLocalPotential::init: Simpson rule" << endl;
+      }
+      else if ( quad_rule == GAUSS_LEGENDRE )
+      {
+        // Generate Gauss-Legendre abscissae and weights
+        gauleg(0.0,s->rquad(),&rquad[is][0],&wquad[is][0],nquad[is]);
+        //cout << " NonLocalPotential::init: Gauss-Legendre quadrature" << endl;
+      }
+      else if ( quad_rule == GAUSS_JACOBI )
+      {
+        // Generate Gauss-Jacobi abscissae and weights
+        // int (1-x)^alpha (1+x)^beta f(x)
+        const double alpha = 0.0;
+        const double beta = 1.0;
+        gaujac(0.0,s->rquad(),&rquad[is][0],&wquad[is][0],nquad[is],
+               alpha, beta);
+        //cout << " NonLocalPotential::init: Gauss-Jacobi quadrature" << endl;
+        //cout << " alpha = " << alpha << " beta = " << beta << endl;
+      }
+      else
+      {
+        assert(false);
       }
       
       // compute weights wt[is][ipr]

@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.13 2004-10-04 18:40:13 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.14 2004-10-15 18:06:24 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -425,6 +425,7 @@ void BOSampleStepper::step(int niter)
             {
               const complex<double> drhog = cd_.rhog[0][i] - rhog_old[0][i];
               const double fac = g2[i] / ( g2[i] + q0_kerker2 );
+              //const double fac = 1.0;
               cd_.rhog[0][i] = rhog_old[0][i] + alpha * fac * drhog;
             }
             cd_.update_rhor();
@@ -578,27 +579,8 @@ void BOSampleStepper::step(int niter)
           {
             cout.setf(ios::fixed,ios::floatfield);
             cout.setf(ios::right,ios::adjustfield);
-//             cout << "  <ekin_int>   " << setprecision(8)
-//                  << setw(15) << ef_.ekin() << " </ekin_int>\n";
-//             if ( use_confinement )
-//             {
-//               cout << "  <econf_int>  " << setw(15) << ef_.econf()
-//                    << " </econf_int>\n";
-//             }
-//             cout << "  <eps_int>    " << setw(15) 
-//                  << ef_.eps() << " </eps_int>\n"
-//                  << "  <enl_int>    " << setw(15) 
-//                  << ef_.enl() << " </enl_int>\n"
-//                  << "  <ecoul_int>  " << setw(15) 
-//                  << ef_.ecoul() << " </ecoul_int>\n"
-//                  << "  <exc_int>    " << setw(15) 
-//                  << ef_.exc() << " </exc_int>\n"
-//                  << "  <esr_int>    " << setw(15) 
-//                  << ef_.esr() << " </esr_int>\n"
-//                  << "  <eself_int>  " << setw(15) 
-//                  << ef_.eself() << " </eself_int>\n"
-              cout << "  <etotal_int> " << setw(15) 
-                   << ef_.etotal() << " </etotal_int>\n";
+            cout << "  <etotal_int> " << setw(15)
+                 << ef_.etotal() << " </etotal_int>\n";
             if ( compute_stress )
             {
               const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;

@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.29 2004-10-04 19:03:38 fgygi Exp $
+// $Id: SlaterDet.C,v 1.30 2004-10-15 18:02:54 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -1299,13 +1299,16 @@ void SlaterDet::info(ostream& os)
     os << "<slater_determinant kpoint=\"" << basis_.kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
+    os << " <!-- sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << " -->"
+       << endl;
+    // os << " <!-- sdcontext: " << ctxt_ << " -->" << endl;
     os << " <!-- basis size: " << basis_.size() << " -->" << endl;
-    os << "  <!-- c dimensions: "
+    os << " <!-- c dimensions: "
        << c_.m() << "x" << c_.n()
        << "   (" << c_.mb() << "x" << c_.nb() << " blocks)" << " -->" << endl;
-    os << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">" 
+    os << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\">" 
        << endl;
-    os << "</density_matrix>" << endl;
+    os << " </density_matrix>" << endl;
     os << "</slater_determinant>" << endl;
   }
 }

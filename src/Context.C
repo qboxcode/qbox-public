@@ -3,7 +3,7 @@
 // Context.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.C,v 1.10 2004-08-11 17:56:24 fgygi Exp $
+// $Id: Context.C,v 1.11 2004-11-10 22:34:17 fgygi Exp $
 
 #include <iostream>
 #include <iomanip>
@@ -166,7 +166,7 @@ struct ContextRep
   // returns -1 if current process is not part of this context
   int myproc() const { return myproc_; }
   int mype() const { return mype_; }
-  int pmap(int irow, int icol) const { return pmap_[irow*npcol_+icol]; }
+  int pmap(int irow, int icol) const { return pmap_[irow+nprow_*icol]; }
  
   bool onpe0(void) const { return onpe0_; }
   bool active(void) const { return active_; }
@@ -342,35 +342,13 @@ struct ContextRep
   // default global context: construct a single-row global ContextRep
   explicit ContextRep();
  
-  // global ContextRep of size nprow * npcol with row or column major order
-  explicit ContextRep(const int nprow, const int npcol, char order);
+  // global ContextRep of size nprow * npcol with column major order
+  explicit ContextRep(int nprow, int npcol);
  
-  // specialized ContextRep derived from a Context ctxt
-  // ContextRep(ctxt,'r'): single-row context
-  // ContextRep(ctxt,'c'): single-column context
-  // ContextRep(ctxt,'s'): largest possible square context
-  explicit ContextRep(const ContextRep &c, const char type);
- 
-  // construct a ContextRep of size nprow * npcol from c 
-  // with row or column major order
-  explicit ContextRep(const ContextRep &c,
-    const int nprow, const int npcol, char order);
- 
-  // construct a ContextRep of size nprow*npcol starting at process ipe
-  // with row or column major order
-  explicit ContextRep(const ContextRep &c,
-    const int ipe, const int nprow, const int npcol, char order);
- 
-  // construct a ContextRep of size nprow*npcol from the processes
-  // in context c lying in the rectangle of size nr * nc starting
-  // at process (irow,icol) 
-  explicit ContextRep(ContextRep &c, const int irow, const int icol,
-    const int nr, const int nc,  const int nprow, const int npcol, char order);
- 
-  // construct a ContextRep corresponding to row or column i
-  // of a given context c
-  // use: ContextRep(c,'r',i) or ContextRep(c,'c',i)
-  explicit ContextRep(const ContextRep &c, const char type, const int i);
+  // construct a ContextRep of size nprow*npcol using the processes
+  // in context c starting at process (irstart,icstart) 
+  explicit ContextRep(const ContextRep &c, int nprow, int npcol, 
+    int irstart, int icstart);
  
   ~ContextRep();
  
@@ -408,22 +386,25 @@ ContextRep::ContextRep() : ictxt_(-1), myrow_(-1), mycol_(-1)
   MPI_Comm_group(MPI_COMM_WORLD,&group_world);
   MPI_Group_incl(group_world,size_,&pmap_[0],&subgroup);
   MPI_Comm_create(MPI_COMM_WORLD,subgroup,&comm_);
+  MPI_Group_free(&group_world);
+  MPI_Group_free(&subgroup);
 #else
   comm_ = 0;
 #endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-ContextRep::ContextRep(const int nprow, const int npcol, char order) :
+ContextRep::ContextRep(int nprow, int npcol) :
   ictxt_(-1), myrow_(-1), mycol_(-1), nprow_(nprow), npcol_(npcol)
 {
-  int	  nprocs;
+  int nprocs;
+  char order = 'C';
   Cblacs_pinfo( &mype_, &nprocs );
   if ( nprocs < nprow * npcol )
   {
-      cout << " nprocs=" << nprocs << endl;
-      cout << " Context nprow*npcol > nprocs" << endl;
-      Cblacs_abort(ictxt_, 1);
+    cout << " nprocs=" << nprocs << endl;
+    cout << " Context nprow*npcol > nprocs" << endl;
+    Cblacs_abort(ictxt_, 1);
   }
   Cblacs_get(0, 0, &ictxt_ );
   Cblacs_gridinit( &ictxt_, &order, nprow, npcol );
@@ -433,284 +414,64 @@ ContextRep::ContextRep(const int nprow, const int npcol, char order) :
     Cblacs_gridinfo(ictxt_, &nprow_, &npcol_, &myrow_, &mycol_);
   
   size_ = nprow_ * npcol_;
-  myproc_ = myrow_ < 0 ? -1 : mycol_ + npcol_ * myrow_;
+  myproc_ = Cblacs_pnum(ictxt_,myrow_,mycol_);
   onpe0_ = ( mype_ == 0 );
   active_ = ( ictxt_ >= 0 );
   
   pmap_.resize(size_);
-  if ( order == 'r' || order == 'R' )
-  {
-    for ( int i = 0; i < size_; i++ )
-      pmap_[i] = i;
-  }
-  else if ( order == 'c' || order == 'C' )
-  {
-    // column-major order
-    int i = 0;
-    for ( int ic = 0; ic < npcol; ic++ )
-      for ( int ir = 0; ir < nprow; ir++ )
-      {
-        pmap_[ic+npcol*ir] = i;
-        i++;
-      }
-  }
-  else
-  {
-    abort(1);
-  }
+  // column-major order
+  int i = 0;
+  for ( int ic = 0; ic < npcol; ic++ )
+    for ( int ir = 0; ir < nprow; ir++ )
+    {
+      pmap_[ir+nprow*ic] = i;
+      i++;
+    }
 
 #if USE_MPI
   MPI_Group group_world, subgroup;
   MPI_Comm_group(MPI_COMM_WORLD,&group_world);
   MPI_Group_incl(group_world,size_,&pmap_[0],&subgroup);
   MPI_Comm_create(MPI_COMM_WORLD,subgroup,&comm_);
+  MPI_Group_free(&group_world);
+  MPI_Group_free(&subgroup);
 #else
   comm_ = 0;
 #endif
 }
     
 ////////////////////////////////////////////////////////////////////////////////
-ContextRep::ContextRep(const ContextRep& c, const char type) : 
-ictxt_(-1), myrow_(-1), mycol_(-1)
-{
-  // Build a row, column, or largest possible square context from context c
-  // single row if type == 'r'
-  // single column if type == 'c'
-  // largest square if type == 's'
-  
-  assert(c.active());
-  
-  int nprocs;
-  char order='R';
-  Cblacs_pinfo( &mype_, &nprocs );
-  
-  if ( type == 'r' )
-  {
-    // single row
-    nprow_ = 1;
-    npcol_ = nprocs;
-  }
-  else if ( type == 'c' )
-  {
-    // single column
-    nprow_ = nprocs;
-    npcol_ = 1;
-  }
-  else if ( type == 's' )
-  {
-    // largest possible square context
-    int sqrt_nprocs = (int) sqrt((double)nprocs);
-    assert ( nprocs > sqrt_nprocs * sqrt_nprocs );
-    nprow_ = npcol_ = sqrt_nprocs;
-  }
-  else
-  {
-    cout << " Context::Context: row/col incorrect parameter" << endl;
-    Cblacs_abort(ictxt_, 1);
-  }
-  
-  Cblacs_get(c.ictxt(), 10, &ictxt_ );
-  Cblacs_gridinit( &ictxt_, &order, nprow_, npcol_ );
-
-  // get values of nprow_, npcol_, myrow_ and mycol_ in the new context
-  if ( ictxt_ >= 0 )
-    Cblacs_gridinfo(ictxt_, &nprow_, &npcol_, &myrow_, &mycol_);
-  
-  size_ = nprow_ * npcol_;
-  myproc_ = myrow_ < 0 ? -1 : mycol_ + npcol_ * myrow_;
-  onpe0_ = ( mype_ == 0 );
-  active_ = ( ictxt_ >= 0 );
-  
-  pmap_.resize(size_);
-  for ( int i = 0; i < size_; i++ )
-    pmap_[i] = c.pmap_[i];
-
-#if USE_MPI
-  MPI_Group c_group, subgroup;
-  MPI_Comm_group(c.comm(),&c_group);
-  MPI_Group_incl(c_group,size_,&pmap_[0],&subgroup);
-  MPI_Comm_create(c.comm(),subgroup,&comm_);
-#else
-  comm_ = 0;
-#endif
-}
-
-////////////////////////////////////////////////////////////////////////////////
-ContextRep::ContextRep(const ContextRep& c, 
-  const int nprow, const int npcol, char order) :
-  ictxt_(-1), myrow_(-1), mycol_(-1), nprow_(nprow), npcol_(npcol)
-{
-  assert(c.active());
-  
-  int	  nprocs;
-  Cblacs_pinfo( &mype_, &nprocs );
-  if ( nprocs < nprow * npcol )
-  {
-      cout << " nprocs=" << nprocs << endl;
-      cout << " Context nprow*npcol > nprocs" << endl;
-      Cblacs_abort(ictxt_, 1);
-  }
-  Cblacs_get(c.ictxt(), 10, &ictxt_ );
-  Cblacs_gridinit( &ictxt_, &order, nprow, npcol );
-
-  // get values of nprow_, npcol_, myrow_ and mycol_ in the new context
-  if ( ictxt_ >= 0 )
-    Cblacs_gridinfo(ictxt_, &nprow_, &npcol_, &myrow_, &mycol_);
-  
-  size_ = nprow_ * npcol_;
-  myproc_ = myrow_ < 0 ? -1 : mycol_ + npcol_ * myrow_;
-  onpe0_ = ( mype_ == 0 );
-  active_ = ( ictxt_ >= 0 );
-  
-  pmap_.resize(size_);
-  if ( order == 'r' || order == 'R' )
-  {
-    for ( int i = 0; i < size_; i++ )
-      pmap_[i] = c.pmap_[i];
-  }
-  else if ( order == 'c' || order == 'C' )
-  {
-    // column-major order
-    int i = 0;
-    for ( int ic = 0; ic < npcol; ic++ )
-      for ( int ir = 0; ir < nprow; ir++ )
-      {
-        pmap_[ic+npcol*ir] = c.pmap_[i];
-        i++;
-      }
-  }
-  else
-  {
-    abort(1);
-  }
-
-#if USE_MPI
-  MPI_Group c_group, subgroup;
-  MPI_Comm_group(c.comm(),&c_group);
-  MPI_Group_incl(c_group,size_,&pmap_[0],&subgroup);
-  MPI_Comm_create(c.comm(),subgroup,&comm_);
-#else
-  comm_ = 0;
-#endif
-}
-    
-////////////////////////////////////////////////////////////////////////////////
-ContextRep::ContextRep(const ContextRep& c, 
-const int ipe, const int nprow, const int npcol, char order) :
+ContextRep::ContextRep(const ContextRep& c, int nprow, int npcol, 
+  int irstart, int icstart) :
 ictxt_(-1), myrow_(-1), mycol_(-1), nprow_(nprow), npcol_(npcol)
 {
   assert(c.active());
-  
-  int nprocs;
-  Cblacs_pinfo( &mype_, &nprocs );
-  
-  if ( ipe < 0 || nprow <= 0 || npcol <= 0 || ipe+nprow*npcol > nprocs )
-  {
-    cout << " Context::Context: invalid parameters" 
-         << " in " << __FILE__ << ":" << __LINE__
-         << " ipe=" << ipe << " nprow=" << nprow << " npcol=" << npcol << endl;
-    Cblacs_abort(ictxt_, 1);
-  }
-  
-  //cout << " Context::Context: ipe_call: " 
-  //     << " ipe=" << ipe << " nprow=" << nprow << " npcol=" << npcol << endl;
-         
-  pmap_.resize(nprow*npcol);
-  // build pmap 
-  if ( order == 'r' || order == 'R')
-  {
-    for ( int i = 0; i < nprow*npcol; i++ )
-      pmap_[i] = c.pmap_[ipe + i];
-  }
-  else if ( order == 'c' || order == 'C')
-  {
-    // column-major order
-    int i = ipe;
-    for ( int ic = 0; ic < npcol; ic++ )
-      for ( int ir = 0; ir < nprow; ir++ )
-      {
-        pmap_[ic+npcol*ir] = c.pmap_[i];
-        i++;
-      }
-  }
-  else
-  {
-    abort(1);
-  }
-  
-#if DEBUG
-  cout << c.mype() << ": Context_ipe: c.pmap: ";
-  for ( int i = 0; i < c.size(); i++ )
-    cout << " " << c.pmap_[i];
-  cout << endl;
-  
-  cout << c.mype() << ": Context_ipe: pmap: ";
-  for ( int i = 0; i < nprow*npcol; i++ )
-    cout << " " << pmap_[i];
-  cout << endl;
-#endif
-  
-  Cblacs_get(c.ictxt(), 10, &ictxt_ );
-  Cblacs_gridmap(&ictxt_,&pmap_[0],nprow,nprow,npcol);
-  
-  // get values of nprow_, npcol_, myrow_ and mycol_ in the new context
-  if ( ictxt_ >= 0 )
-    Cblacs_gridinfo(ictxt_, &nprow_, &npcol_, &myrow_, &mycol_);
-  
-  size_ = nprow_ * npcol_;
-  myproc_ = myrow_ < 0 ? -1 : mycol_ + npcol_ * myrow_;
-  onpe0_ = ( mype_ == 0 );
-  active_ = ( ictxt_ >= 0 );
-  
-#if USE_MPI
-  MPI_Group c_group, subgroup;
-  MPI_Comm_group(c.comm(),&c_group);
-  MPI_Group_incl(c_group,size_,&pmap_[0],&subgroup);
-  MPI_Comm_create(c.comm(),subgroup,&comm_);
-#else
-  comm_ = 0;
-#endif
-}
-
-////////////////////////////////////////////////////////////////////////////////
-ContextRep::ContextRep(ContextRep& c, const int irow, const int icol, 
-  const int nr, const int nc, const int nprow, const int npcol, char trans) :
-ictxt_(-1), myrow_(-1), mycol_(-1), nprow_(nprow), npcol_(npcol)
-{
-  assert(c.active());
+  vector<int> gmap_;
   
   int nprocs;
   Cblacs_pinfo( &mype_, &nprocs );
   // construct a (nprow*npcol) context using the processes in c
-  // located in the rectangle (nr*nc) anchored at (irow,icol)
-  if ( irow < 0 || icol < 0 || nr <= 0 || nc <= 0 ||
-       irow+nr > c.nprow() || icol+nc > c.npcol() || nr*nc != nprow*npcol )
+  // located at (irstart,icstart)
+  if ( irstart < 0 || icstart < 0 || 
+       irstart+nprow > c.nprow() || icstart+npcol > c.npcol() )
   {
-    cout << " Context::Context: invalid parameters" << endl;
+    cout << " Context::Context: cut rectangle: invalid parameters" << endl;
     Cblacs_abort(ictxt_, 1);
   }
   pmap_.resize(nprow*npcol);
+  gmap_.resize(nprow*npcol);
   // build pmap
   int i = 0;
-  if ( trans == 'n' || trans == 'N' )
-  {
-    for ( int ir = 0; ir < nr; ir++ )
-      for ( int ic = 0; ic < nc; ic++ )
-        pmap_[i++] = c.pmap_[c.npcol()*(irow+ir)+icol+ic];
-  }
-  else if ( trans == 't' || trans == 'T' )
-  {
-    for ( int ic = 0; ic < nc; ic++ )
-      for ( int ir = 0; ir < nr; ir++ )
-        pmap_[i++] = c.pmap_[c.npcol()*(irow+ir)+icol+ic];
-  }
-  else
-  {
-    abort(1);
-  }
+  for ( int ic = icstart; ic < icstart+npcol; ic++ )
+    for ( int ir = irstart; ir < irstart+nprow; ir++ )
+    {
+      pmap_[i] = c.pmap(ir,ic);
+      gmap_[i] = ic + c.npcol()*ir;
+      i++;
+    }
   
   Cblacs_get(c.ictxt(), 10, &ictxt_ );
-  Cblacs_gridmap(&ictxt_,&pmap_[0],nprow,nprow,npcol);
+  Cblacs_gridmap(&ictxt_,&gmap_[0],nprow,nprow,npcol);
   
   // get values of nprow_, npcol_, myrow_ and mycol_ in the new context
   if ( ictxt_ >= 0 )
@@ -726,64 +487,8 @@ ictxt_(-1), myrow_(-1), mycol_(-1), nprow_(nprow), npcol_(npcol)
   MPI_Comm_group(c.comm(),&c_group);
   MPI_Group_incl(c_group,size_,&pmap_[0],&subgroup);
   MPI_Comm_create(c.comm(),subgroup,&comm_);
-#else
-  comm_ = 0;
-#endif
-}
-
-////////////////////////////////////////////////////////////////////////////////
-ContextRep::ContextRep(const ContextRep& c, const char type, const int i) :
-ictxt_(-1), myrow_(-1), mycol_(-1)
-{
-  assert(c.active());
-  
-  // construct context containing row or column i of context c
-  int nprocs;
-  Cblacs_pinfo( &mype_, &nprocs );
-  if ( type == 'c' )
-  {
-    // make context consisting of column i in context c
-    nprow_ = c.nprow();
-    npcol_ = 1;
-    int icol = i;
-    pmap_.resize(nprow_);
-    for ( int ir = 0; ir < nprow_; ir++ )
-      pmap_[ir] = Cblacs_pnum(c.ictxt(),ir,icol);
-  }
-  else if ( type == 'r' )
-  {
-    // make context consisting of my row in context c
-    nprow_ = 1;
-    npcol_ = c.npcol();
-    int irow = i;
-    pmap_.resize(npcol_);
-    // build pmap
-    for ( int ic = 0; ic < npcol_; ic++ )
-      pmap_[ic] = Cblacs_pnum(c.ictxt(),irow,ic);
-  }
-  else
-  {
-    cout << " Context::Context: row/col incorrect parameter" << endl;
-    Cblacs_abort(ictxt_, 1);
-  }
-  
-  Cblacs_get(c.ictxt(), 10, &ictxt_ );
-  Cblacs_gridmap(&ictxt_,&pmap_[0],nprow_,nprow_,npcol_);
-  
-  // get values of nprow_, npcol_, myrow_ and mycol_ in the new context
-  if ( ictxt_ >= 0 )
-    Cblacs_gridinfo(ictxt_, &nprow_, &npcol_, &myrow_, &mycol_);
-  
-  size_ = nprow_ * npcol_;
-  myproc_ = myrow_ < 0 ? -1 : mycol_ + npcol_ * myrow_;
-  onpe0_ = ( mype_ == 0 );
-  active_ = ( ictxt_ >= 0 );
-  
-#if USE_MPI
-  MPI_Group c_group, subgroup;
-  MPI_Comm_group(c.comm(),&c_group);
-  MPI_Group_incl(c_group,size_,&pmap_[0],&subgroup);
-  MPI_Comm_create(c.comm(),subgroup,&comm_);
+  MPI_Group_free(&c_group);
+  MPI_Group_free(&subgroup);
 #else
   comm_ = 0;
 #endif
@@ -814,11 +519,16 @@ void ContextRep::print(ostream& os) const
       os << "{ ";
       for ( int ic = 0; ic < npcol_; ic++ )
       {
-        os << pmap_[ic+npcol_*ir] << " ";
+        os << pmap_[ir+nprow_*ic] << " ";
       }
       os << "} ";
     }
-    os << "} (ictxt=" << ictxt_ << ")" << endl;
+    //os << "} (ictxt=" << ictxt_ << ")" << endl;
+    os << "} (ictxt=" << ictxt_ << ")";
+    int handle;
+    Cblacs_get(ictxt_,10,&handle);
+    os << "(handle=" << handle << ")";
+    os << "(comm=" << comm_<< ")" << endl;
   }
   else
   {
@@ -870,35 +580,14 @@ class ContextImpl
 Context::Context(void) : pimpl_(new ContextImpl(new ContextRep())) {}
 
 ////////////////////////////////////////////////////////////////////////////////
-Context::Context(const int nprow, const int npcol, const char order):  
-pimpl_(new ContextImpl(new ContextRep(nprow,npcol,order))) {}
+Context::Context(int nprow, int npcol):  
+pimpl_(new ContextImpl(new ContextRep(nprow,npcol))) {}
  
 ////////////////////////////////////////////////////////////////////////////////
-Context::Context(const Context &c, const char type) : 
-pimpl_(new ContextImpl(new ContextRep(*(c.pimpl_)->get_rep(),type))) {}
- 
-////////////////////////////////////////////////////////////////////////////////
-Context::Context(const Context &c, const int nprow, const int npcol,
-  const char order) : 
-pimpl_(new ContextImpl(
-  new ContextRep(*(c.pimpl_)->get_rep(),nprow,npcol,order))) {}
- 
-////////////////////////////////////////////////////////////////////////////////
-Context::Context(const Context &c, const int ipe, 
-                 const int nprow, const int npcol, const char order) :  
-pimpl_(new ContextImpl(
-  new ContextRep(*(c.pimpl_)->get_rep(),ipe,nprow,npcol,order))) {}
- 
-////////////////////////////////////////////////////////////////////////////////
-Context::Context(Context &c, const int irow, const int icol,
-        const int nr, const int nc,  const int nprow, const int npcol,
-        const char order) : 
-pimpl_(new ContextImpl(new ContextRep(*(c.pimpl_)->get_rep(),irow,icol,
-nr,nc,nprow,npcol,order))) {}
- 
-////////////////////////////////////////////////////////////////////////////////
-Context::Context(const Context &c, const char type, const int i) : 
-pimpl_(new ContextImpl(new ContextRep(*(c.pimpl_)->get_rep(),type,i))) {}
+Context::Context(const Context &c, int nprow, int npcol, 
+        int irstart, int icstart) : 
+pimpl_(new ContextImpl(new ContextRep(*(c.pimpl_)->get_rep(),nprow,npcol,
+irstart,icstart))) {}
  
 ////////////////////////////////////////////////////////////////////////////////
 Context::~Context() { delete pimpl_; }

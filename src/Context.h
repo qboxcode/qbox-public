@@ -3,7 +3,7 @@
 // Context.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.h,v 1.7 2003-08-18 22:45:57 fgygi Exp $
+// $Id: Context.h,v 1.8 2004-11-10 22:34:17 fgygi Exp $
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -135,36 +135,13 @@ class Context
   // default global context: construct a single-row global Context
   explicit Context();
  
-  // global Context of size nprow * npcol with row
-  // or column major order
-  explicit Context(const int nprow, const int npcol, const char order = 'r');
- 
-  // specialized Context derived from a Context ctxt
-  // Context(ctxt,'r'): single-row context
-  // Context(ctxt,'c'): single-column context
-  // Context(ctxt,'s'): largest possible square context
-  explicit Context(const Context &ctxt, const char type);
- 
-  // construct a Context of size nprow * npcol from ctxt with row
-  // or column major order
-  explicit Context(const Context &ctxt, const int nprow, const int npcol, 
-    const char order = 'r');
- 
-  // construct a Context of size nprow*npcol starting at process ipe with row
-  // or column major order
-  explicit Context(const Context &ctxt, 
-    const int ipe, const int nprow, const int npcol, const char order = 'r');
+  // global Context of size nprow * npcol with column major order
+  explicit Context(int nprow, int npcol);
  
   // construct a Context of size nprow*npcol from the processes
-  // in context ctxt lying in the rectangle of size nr * nc starting
-  // at process (irow,icol) 
-  explicit Context(Context &ctxt, const int irow, const int icol, const int nr, 
-    const int nc, const int nprow, const int npcol, const char trans = 'n');
- 
-  // construct a Context corresponding to row or column i
-  // of a given context ctxt
-  // use: Context(ctxt,'r',i) or Context(ctxt,'c',i)
-  explicit Context(const Context &ctxt, const char type, const int i);
+  // in context ctxt starting at process (irstart,icstart) 
+  explicit Context(const Context &ctxt, int nprow, int npcol, 
+    int irstart, int icstart);
  
   ~Context();
   

@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.10 2004-09-14 22:24:11 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.11 2004-09-14 22:33:08 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -508,7 +508,10 @@ void BOSampleStepper::step(int niter)
         ef_.v_r = vi;
 #endif
 
-        wf_stepper->preprocess();
+        // Next line: reset the wf stepper only if nite > 1
+        // If nite = 1, the acceleration procedure of some steppers should not 
+        // be reset.
+        if ( nite_ > 1 ) wf_stepper->preprocess();
       
         for ( int ite = 0; ite < nite_; ite++ )
         {

@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.32 2004-11-10 22:42:23 fgygi Exp $
+// $Id: SlaterDet.C,v 1.33 2005-02-04 22:01:21 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -325,7 +325,15 @@ void SlaterDet::gram(void)
     DoubleMatrix s(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     s.syrk('l','t',2.0,c_proxy,0.0); 
     s.syr('l',-1.0,c_proxy,0,'r');
-    s.potrf('l'); // Cholesky decomposition: S = L * L^T
+#ifdef CHOLESKY_REMAP
+    // create a square context for the Cholesky decomposition
+    int nsq = (int) sqrt((double) ctxt_.size());
+    Context csq(nsq,nsq);
+    DoubleMatrix ssq(csq,c_.n(),c_.n(),c_.nb(),c_.nb());
+    ssq.getsub(s,s.m(),s.n(),0,0);
+    ssq.potrf('l'); // Cholesky decomposition: S = L * L^T
+    s.getsub(ssq,s.m(),s.n(),0,0);
+#endif
     // solve triangular system X * L^T = C
     c_proxy.trsm('r','l','t','n',1.0,s);
   }
@@ -1040,7 +1048,7 @@ void SlaterDet::print(ostream& os, string encoding)
     // that don't have a receive posted
     ctxt_.barrier();
     
-    // check if state n resides on mype
+    // transform data on ctxt_.mycol()
     if ( c_.pc(n) == ctxt_.mycol() )
     {
       //cout << " state " << n << " is stored on column " 
@@ -1051,33 +1059,58 @@ void SlaterDet::print(ostream& os, string encoding)
       double *a = (double*) &wftmp[0];
       for ( int i = 0; i < ft.np012loc(); i++ )
         wftmpr[i] = a[2*i];
-        
-      for ( int i = 0; i < ctxt_.nprow(); i++ )
+    }
+    
+    // send blocks of wftmpr to pe0
+    for ( int i = 0; i < ctxt_.nprow(); i++ )
+    {
+      bool iamsending = c_.pc(n) == ctxt_.mycol() && i == ctxt_.myrow();
+      
+      // send size of wftmpr block
+      int size=-1;
+      if ( ctxt_.onpe0() )
       {
-        if ( i == ctxt_.myrow() )
+        if ( iamsending )
         {
-          int size = ft.np012loc();
-          //cout << " process " << ctxt_.mype() << " sending block " << i
-          //     << " of state "
-          //     << n << " to task 0, size = " << size << endl;
+          // sending to self, size not needed
+        }
+        else
+          ctxt_.irecv(1,1,&size,1,i,c_.pc(n));
+      }
+      else
+      {
+        if ( iamsending )
+        {
+          size = ft.np012loc();
           ctxt_.isend(1,1,&size,1,0,0);
+        }
+      }
+      
+      // send wftmpr block
+      if ( ctxt_.onpe0() )
+      {
+        if ( iamsending )
+        {
+          // do nothing, data is already in place
+        }
+        else
+        {
+          int istart = ft.np0() * ft.np1() * ft.np2_first(i);
+          ctxt_.drecv(size,1,&wftmpr[istart],1,i,c_.pc(n));
+        }
+      }
+      else
+      {
+        if ( iamsending )
+        {
           ctxt_.dsend(size,1,&wftmpr[0],1,0,0);
         }
       }
     }
+
+    // process the data      
     if ( ctxt_.onpe0() )
     {
-      for ( int i = 0; i < ctxt_.nprow(); i++ )
-      {
-        int size = 0;
-        ctxt_.irecv(1,1,&size,1,i,c_.pc(n));
-        int istart = ft.np0() * ft.np1() * ft.np2_first(i);
-        //cout << " task 0 (" << ctxt_.mype() << ") receiving block " << i
-        //     << " of state "
-        //     << n << " size=" << size << " istart=" << istart << endl;
-        ctxt_.drecv(size,1,&wftmpr[istart],1,i,c_.pc(n));
-      }
-      
       // wftmpr is now complete on task 0
 
       if ( encoding == "base64" )
@@ -1120,7 +1153,6 @@ void SlaterDet::print(ostream& os, string encoding)
           os << "\n";
         os << "</grid_function>\n";
       }
-
     }
   }
   if ( ctxt_.onpe0() )
@@ -1170,7 +1202,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
     // that don't have a receive posted
     ctxt_.barrier();
     
-    // check if state n resides on mype
+    // transform data on ctxt_.mycol()
     if ( c_.pc(n) == ctxt_.mycol() )
     {
       //cout << " state " << n << " is stored on column " 
@@ -1181,33 +1213,58 @@ void SlaterDet::write(FILE* outfile, string encoding)
       double *a = (double*) &wftmp[0];
       for ( int i = 0; i < ft.np012loc(); i++ )
         wftmpr[i] = a[2*i];
-        
-      for ( int i = 0; i < ctxt_.nprow(); i++ )
+    }
+    
+    // send blocks of wftmpr to pe0
+    for ( int i = 0; i < ctxt_.nprow(); i++ )
+    {
+      bool iamsending = c_.pc(n) == ctxt_.mycol() && i == ctxt_.myrow();
+      
+      // send size of wftmpr block
+      int size=-1;
+      if ( ctxt_.onpe0() )
       {
-        if ( i == ctxt_.myrow() )
+        if ( iamsending )
         {
-          int size = ft.np012loc();
-          //cout << " process " << ctxt_.mype() << " sending block " << i
-          //     << " of state "
-          //     << n << " to task 0, size = " << size << endl;
+          // sending to self, size not needed
+        }
+        else
+          ctxt_.irecv(1,1,&size,1,i,c_.pc(n));
+      }
+      else
+      {
+        if ( iamsending )
+        {
+          size = ft.np012loc();
           ctxt_.isend(1,1,&size,1,0,0);
+        }
+      }
+      
+      // send wftmpr block
+      if ( ctxt_.onpe0() )
+      {
+        if ( iamsending )
+        {
+          // do nothing, data is already in place
+        }
+        else
+        {
+          int istart = ft.np0() * ft.np1() * ft.np2_first(i);
+          ctxt_.drecv(size,1,&wftmpr[istart],1,i,c_.pc(n));
+        }
+      }
+      else
+      {
+        if ( iamsending )
+        {
           ctxt_.dsend(size,1,&wftmpr[0],1,0,0);
         }
       }
     }
+      
+    // process data
     if ( ctxt_.onpe0() )
     {
-      for ( int i = 0; i < ctxt_.nprow(); i++ )
-      {
-        int size = 0;
-        ctxt_.irecv(1,1,&size,1,i,c_.pc(n));
-        int istart = ft.np0() * ft.np1() * ft.np2_first(i);
-        //cout << " task 0 (" << ctxt_.mype() << ") receiving block " << i
-        //     << " of state "
-        //     << n << " size=" << size << " istart=" << istart << endl;
-        ctxt_.drecv(size,1,&wftmpr[istart],1,i,c_.pc(n));
-      }
-      
       // wftmpr is now complete on task 0
 
       if ( encoding == "base64" )

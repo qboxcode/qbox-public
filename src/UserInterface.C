@@ -3,7 +3,7 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.2 2003-05-23 21:51:04 fgygi Exp $
+// $Id: UserInterface.C,v 1.3 2004-11-10 22:36:50 fgygi Exp $
 
 #include "UserInterface.h"
 #include <string>
@@ -77,7 +77,6 @@ char *UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
     if ( !(ch == '\n') )
       return NULL;             /* return NULL for end of file */
   }
-  if ( echo ) cout << endl;
   
   return s;
 }

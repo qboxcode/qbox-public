@@ -3,7 +3,7 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.10 2003-12-02 20:23:55 fgygi Exp $
+// $Id: FourierTransform.C,v 1.11 2004-03-11 21:48:39 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
@@ -1079,7 +1079,7 @@ void FourierTransform::init_lib(void)
 #elif USE_FFTW
 
 #if FFTWMEASURE
-  // FFTWMEASURE
+  // FFTW_MEASURE
   fwplan0 = fftw_create_plan(np0_,FFTW_FORWARD,FFTW_MEASURE|FFTW_IN_PLACE);
   fwplan1 = fftw_create_plan(np1_,FFTW_FORWARD,FFTW_MEASURE|FFTW_IN_PLACE);
   fwplan2 = fftw_create_plan(np2_,FFTW_FORWARD,FFTW_MEASURE|FFTW_IN_PLACE);

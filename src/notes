@@ -7,6 +7,9 @@ preferrable to use a single-column context when nst is small to avoid
 memory problems.
 
 --------------------------------------------------------------------------------
+rel1_20_1
+NonLocalPotential.C: fixed index calculation (bug 38).
+--------------------------------------------------------------------------------
 rel1_20_0
 Wavefunction.C: Changed allocation of sd context to column-major order to get
 contiguous nodes in  context columns.
@@ -15,6 +18,8 @@ Nrowmax.h: add update_occ when changing nrowmax.
 Matrix.C:219 and similar: removed assert. Some valptr may be 0 on some blocks.
 SlaterDet.C: print sdcontext dimensions in SlaterDet::info.
 ChargeDensity.C: added (void*) cast to delete statements (for xlC 7.0).
+Known bug #38: incorrect forces with nrowmax=16 with 512 tasks. Occurs when 
+nrowmax <= (ntasks/nrowmax)/2.
 --------------------------------------------------------------------------------
 rel1_19_0 2004-10-04
 BOSampleStepper.C: Implemented simple charge mixing for SCF iterations.

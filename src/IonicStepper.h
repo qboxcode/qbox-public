@@ -3,7 +3,7 @@
 // IonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: IonicStepper.h,v 1.4 2004-04-20 22:09:46 fgygi Exp $
+// $Id: IonicStepper.h,v 1.5 2004-12-10 01:05:41 fgygi Exp $
 
 #ifndef IONICSTEPPER_H
 #define IONICSTEPPER_H
@@ -62,6 +62,7 @@ class IonicStepper
   virtual void compute_v0(const vector<vector< double> >& f0) = 0;
   virtual void update_r(void) = 0;
   virtual void update_v(void) = 0;
+  virtual void reset(void) {}
   double ekin(void) const { return ekin_; }
   double temp(void) const
   {

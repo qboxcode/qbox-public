@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.19 2004-12-17 23:36:54 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.20 2004-12-18 23:22:47 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -533,11 +533,11 @@ void BOSampleStepper::step(int niter)
             cout.setf(ios::fixed,ios::floatfield);
             cout.setf(ios::right,ios::adjustfield);
             cout << "  <etotal_int> " << setw(15)
-                 << ef_.etotal() << " </etotal_int>\n";
+                 << energy << " </etotal_int>\n";
             if ( compute_stress )
             {
               const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-              const double enthalpy = ef_.etotal() + pext * cell.volume();
+              const double enthalpy = energy + pext * cell.volume();
               cout << "  <enthalpy_int> " << setw(15) 
                    << enthalpy << " </enthalpy_int>\n"
                    << flush;

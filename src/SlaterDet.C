@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.23 2004-02-04 19:29:52 fgygi Exp $
+// $Id: SlaterDet.C,v 1.24 2004-03-11 21:46:46 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -60,72 +60,93 @@ void SlaterDet::byteswap_double(size_t n, double* x)
 void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell, 
   double ecut, int nst)
 {
+  if ( basis_.refcell().volume() != 0.0 && !refcell.encloses(cell) )
+  {
+    cout << " SlaterDet::resize: warning" << endl;
+    cout << " SlaterDet::resize: cell=" << cell;
+    cout << " SlaterDet::resize: refcell=" << basis_.refcell();
+    //throw SlaterDetException("could not resize: cell not in refcell");
+  }
+  
   try
   {
     tmap["resize"].start();
+    
     basis_.resize(cell,refcell,ecut);
-
     occ_.resize(nst);
     eig_.resize(nst);
     
-    int cm = ctxt_.nprow() * basis_.maxlocalsize();
-    int nb = nst/ctxt_.npcol() + (nst%ctxt_.npcol() > 0 ? 1 : 0);
-    c_.resize(cm,nst,basis_.maxlocalsize(),nb);
+    const int mb = basis_.maxlocalsize();
+    const int m = ctxt_.nprow() * mb;
+    const int nb = nst/ctxt_.npcol() + (nst%ctxt_.npcol() > 0 ? 1 : 0);
     
-    if ( nst <= basis_.size() )
-    {
-      // initialize c_
-      c_.clear();
-      const double s2i = 1.0 / sqrt(2.0);
-      
-      // for each n, find the smallest g vector and initialize
-      int ismallest = 0;
-      // on each process, basis.isort(ismallest) is the index of the smallest
-      // local g vector
-      for ( int n = 0; n < nst; n++ )
-      {
-        double value = 1.0;
-        if ( basis().real() && n != 0 )
-          value = s2i;
-          
-        // find process row holding the smallest g vector
-        double g2 = basis_.g2(basis_.isort(ismallest));
-        // cout << "smallest vector on proc " << ctxt_.mype()
-        //      << " has norm " << g2 << endl;
-        int minrow, mincol;
-        ctxt_.dmin('c',' ',1,1,&g2,1,&minrow,&mincol,1,-1,-1);
-        
-        // find column hosting state n
-        int pc = c_.pc(n);
-        int pr = minrow;
-        if ( pr == ctxt_.myrow() )
-        {
-          int iii = basis_.isort(ismallest);
-          ismallest++; // increment on entire process row
-          if ( pc == ctxt_.mycol() )
-          {
-            // cout << " n=" << n << " on process " 
-            //      << pr << "," << pc
-            //      << " vector " << basis_.idx(3*iii) << " "
-            //      << basis_.idx(3*iii+1) << " "
-            //      << basis_.idx(3*iii+2) << " norm=" 
-            //      << basis_.g2(iii) << " "
-            //      << value << endl;
-            int jjj = c_.m(n) * c_.nb() + c_.y(n);
-            int index = iii+c_.mloc()*jjj;
-            c_[index] = complex<double> (value,0.0);
-          }
-        }
-        
-      }
-        
-    }
+    // Determine if plane wave coefficients must be reset after the resize
+    // This is needed if the dimensions of the matrix c_ must be changed
+    const bool needs_reset = 
+      m!=c_.m() || nst!=c_.n() || mb!=c_.mb() || nb!=c_.nb();
+  
+    c_.resize(m,nst,mb,nb);
+    
+    if ( needs_reset )
+      reset();
+    
     tmap["resize"].stop();
   }
   catch ( bad_alloc )
   {
     cout << " bad_alloc exception caught in SlaterDet::resize" << endl;
     throw;
+  }
+}
+////////////////////////////////////////////////////////////////////////////////
+void SlaterDet::reset(void)
+{
+  // initialize coefficients with lowest plane waves
+  if ( c_.n() <= basis_.size() )
+  {
+    // initialize c_
+    c_.clear();
+    const double s2i = 1.0 / sqrt(2.0);
+ 
+    // for each n, find the smallest g vector and initialize
+    int ismallest = 0;
+    // on each process, basis.isort(ismallest) is the index of the smallest
+    // local g vector
+    for ( int n = 0; n < c_.n(); n++ )
+    {
+      double value = 1.0;
+      if ( basis().real() && n != 0 )
+        value = s2i;
+ 
+      // find process row holding the smallest g vector
+      double g2 = basis_.g2(basis_.isort(ismallest));
+      // cout << "smallest vector on proc " << ctxt_.mype()
+      //      << " has norm " << g2 << endl;
+      int minrow, mincol;
+      ctxt_.dmin('c',' ',1,1,&g2,1,&minrow,&mincol,1,-1,-1);
+ 
+      // find column hosting state n
+      int pc = c_.pc(n);
+      int pr = minrow;
+      if ( pr == ctxt_.myrow() )
+      {
+        int iii = basis_.isort(ismallest);
+        ismallest++; // increment on entire process row
+        if ( pc == ctxt_.mycol() )
+        {
+          // cout << " n=" << n << " on process "
+          //      << pr << "," << pc
+          //      << " vector " << basis_.idx(3*iii) << " "
+          //      << basis_.idx(3*iii+1) << " "
+          //      << basis_.idx(3*iii+2) << " norm="
+          //      << basis_.g2(iii) << " "
+          //      << value << endl;
+          int jjj = c_.m(n) * c_.nb() + c_.y(n);
+          int index = iii+c_.mloc()*jjj;
+          c_[index] = complex<double> (value,0.0);
+        }
+      }
+    }
   }
 }
 

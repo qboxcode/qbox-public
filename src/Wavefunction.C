@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.17 2004-10-15 18:05:03 fgygi Exp $
+// $Id: Wavefunction.C,v 1.18 2004-11-10 22:33:05 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -100,8 +100,8 @@ void Wavefunction::allocate(void)
   sd_.resize(1);
   sd_[0].resize(1);
   
-  //spincontext_[0] = new Context(ctxt_,npr,npc);
-  spincontext_[0] = new Context(ctxt_,npr,npc,'c');
+  spincontext_[0] = new Context(npr,npc);
+  //cout << *spincontext_[0];
   sdcontext_[0][0] = 0;
   sd_[0][0] = 0;
   if ( spincontext_[0]->active() )
@@ -109,192 +109,6 @@ void Wavefunction::allocate(void)
     sdcontext_[0][0] = new Context(*spincontext_[0]);
     sd_[0][0] = new SlaterDet(*sdcontext_[0][0],kpoint_[0]);
   }
-  
-#if 0
-  cout << ctxt_.mype() << ": Wavefunction::allocate: start " 
-       << "nspin = " << nspin_ << " nkp = " << nkp << endl;
-  ctxt_.barrier();
-  
-  spincontext_.resize(nspin_);
-  
-  int npr, npc; // dimensions of each sdcontext
-  
-  // create spincontext_[ispin]
-  if ( nspin_ == 1 )
-  {
-    // determine dimensions of spincontext
-    if ( ctxt_.size() >= nkp )
-    {
-      // more than one task per k point
-      // determine dimensions of sdcontext
-      assert(nrowmax_>0);
-      const int size = ctxt_.size() / nkp;
-      int npr = nrowmax_;
-      while ( size%npr != 0 ) npr--;
-      // npr now divides size
-      int npc = size/npr;
-      spincontext_[0] = new Context(ctxt_,npr,nkp*npc);
-    }
-    else
-    {
-      // less than one task per k point
-      npr = 1;
-      npc = 1;
-      spincontext_[0] = new Context(ctxt_,'r');
-    }
-  }
-  else
-  {
-    // nspin == 2
-    nst_[0] = ( nel_ + 1 ) / 2 + deltaspin_ + nempty_;
-    nst_[1] = nel_ / 2 - deltaspin_ + nempty_;
-    
-    if ( ctxt_.size() > 1 )
-    {
-      // determine dimensions of subctxt
-      if ( ctxt_.size() >= 2*nkp )
-      {
-        // more than one task per k point
-        npr = ctxt_.size() / (2*nkp);
-        npc = 1;
-//         if ( npr%2 == 0 && npr > nrowmax )
-//         {
-//           npr /= 2;
-//           npc *= 2;
-//         }
-        spincontext_[0] = new Context(ctxt_,0,npr,nkp*npc);
-        spincontext_[1] = new Context(ctxt_,nkp*npr*npc,npr,nkp*npc);
-      }
-      else
-      {
-        // less than one task per k point
-        npr = 1;
-        npc = 1;
-        Context subctxt(ctxt_,2,ctxt_.size()/2);
-        if ( subctxt.active() )
-        {
-          spincontext_[0] = new Context(subctxt,'r',0);
-          spincontext_[1] = new Context(subctxt,'r',1);
-        }
-        else
-        {
-          spincontext_[0] = 0;
-          spincontext_[1] = 0;
-        }
-      }
-    }
-    else
-    {
-      // only 1 task. both spins reside on the same node
-      // both spincontexts are copies of ctxt_
-      npr = 1;
-      npc = 1;
-      spincontext_[0] = new Context(ctxt_);
-      spincontext_[1] = new Context(ctxt_);
-    }
-  }
-  ctxt_.barrier();
-  
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
-  {
-    if ( spincontext_[ispin] != 0 )
-    {
-      cout << ctxt_.mype() << ": spincontext[" << ispin << "]: "
-           << *spincontext_[ispin];
-    }
-  }
-  ctxt_.barrier();
-
-  sdcontext_.resize(nspin_);
-  sd_.resize(nspin_);
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
-  {
-    sdcontext_[ispin].resize(nkp);
-    sd_[ispin].resize(nkp);
-  }
-    
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
-  {
-    if ( spincontext_[ispin] != 0 && spincontext_[ispin]->active() )
-    {
-      if ( spincontext_[ispin]->size() >= nkp )
-      {
-        for ( int ikp = 0; ikp < nkp; ikp++ )
-        {
-          ctxt_.barrier();
-          cout << ctxt_.mype()
-            << ": Wavefunction::allocate: creating sdcontext "
-            << " ispin=" << ispin 
-            << " ikp=" << ikp << " npr=" << npr << " npc=" << npc << endl;
-//           sdcontext_[ispin][ikp] = 
-//             new Context(*spincontext_[ispin],ikp*npr*npc,npr,npc);
-// !! note: next line works only for nkp == 1
-          sdcontext_[ispin][ikp] = 
-            new Context(*spincontext_[ispin],0,ikp*npc,npr,npc,npr,npc);
-          if ( sdcontext_[ispin][ikp]->active() )
-            sd_[ispin][ikp] =
-              new SlaterDet(*sdcontext_[ispin][ikp],kpoint_[ikp]);
-          else
-            sd_[ispin][ikp] = 0;
-        }
-      }
-      else
-      {
-        // more than one k point per task
-        // round robin allocation of ikp to contexts
-        int icol = 0;
-        const int npcol = spincontext_[ispin]->npcol(); 
-        for ( int ikp = 0; ikp < nkp; ikp++ )
-        {
-          assert( icol < npcol );
-          if ( spincontext_[ispin]->active() )
-          {
-            sdcontext_[ispin][ikp] = new Context(*spincontext_[ispin],'c',icol);
-            if ( sdcontext_[ispin][ikp]->active() )
-              sd_[ispin][ikp] =
-                new SlaterDet(*sdcontext_[ispin][ikp],kpoint_[ikp]);
-          }
-          else
-          {
-            sdcontext_[ispin][ikp] = 0;
-            sd_[ispin][ikp] = 0;
-          }
-          // loop back to 0 if past npc-1
-          icol = ( icol + 1 ) % npcol;
-        }
-      }
-      cout << ctxt_.mype() << ": Wavefunction::allocate: done"
-           << " ispin = " << ispin << " nkp = " << nkp << endl;
-    }
-    else
-    {
-      // *spincontext_[ispin] is inactive
-      for ( int ikp = 0; ikp < nkp; ikp++ )
-      {
-        sdcontext_[ispin][ikp] = 0;
-        sd_[ispin][ikp] = 0;
-      }
-    }
-  } // ispin
-  cout << ctxt_.mype() << ": Wavefunction::allocate: end " 
-       << "nspin = " << nspin_ << " nkp = " << nkp << endl;
-#endif
-
-#if 0
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
-  {
-    for ( int ikp = 0; ikp < nkp; ikp++ )
-    {
-      if ( sdcontext_[ispin][ikp] != 0 )
-      {
-        cout << "<!-- ";
-        cout << ctxt_.mype() << ": sdcontext[" << ispin << "][" << ikp << "]: "
-           << *sdcontext_[ispin][ikp];
-        cout << " -->" << endl;
-      }
-    }
-  }
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

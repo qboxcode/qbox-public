@@ -3,7 +3,7 @@
 // SaveCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.C,v 1.5 2003-10-02 17:34:29 fgygi Exp $
+// $Id: SaveCmd.C,v 1.6 2004-02-06 23:59:44 fgygi Exp $
 
 
 #include "SaveCmd.h"
@@ -136,7 +136,9 @@ int SaveCmd::action(int argc, char **argv)
 
   if ( ui->onpe0() )
     os << "</qbox:sample>" << endl;   
-#endif
 
+  os.close();
+#endif
+  
   return 0;
 }

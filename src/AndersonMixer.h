@@ -3,7 +3,7 @@
 // AndersonMixer.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.h,v 1.1 2004-12-02 22:24:16 fgygi Exp $
+// $Id: AndersonMixer.h,v 1.2 2004-12-10 01:04:06 fgygi Exp $
 
 #ifndef ANDERSONMIXER_H
 #define ANDERSONMIXER_H
@@ -16,17 +16,17 @@ using namespace std;
 
 class AndersonMixer
 {
-  int     n_;              // size of vectors
-  const   Context ctxt_;
+  int     n_;                    // size of vectors
+  const   Context* const pctxt_; // pointer to relevant Context, null if local
   double  theta_max_;
  
-  valarray<double> flast_; // last residual
-  bool extrapolate_;       // state variable
+  valarray<double> flast_;       // last residual
+  bool extrapolate_;             // state variable
 
   public:
-    
-  AndersonMixer(const int n, const Context& ctxt) :
-    n_(n), ctxt_(ctxt), extrapolate_(false), theta_max_(2.0)
+
+  AndersonMixer(const int n, const Context* const pctxt) :
+    n_(n), pctxt_(pctxt), extrapolate_(false), theta_max_(2.0)
   {
     assert( n > 0 );
     flast_.resize(n);

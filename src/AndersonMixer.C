@@ -3,7 +3,7 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.C,v 1.1 2004-12-02 22:24:16 fgygi Exp $
+// $Id: AndersonMixer.C,v 1.2 2004-12-10 01:04:06 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
@@ -34,10 +34,13 @@ void AndersonMixer::update(const double* f, double* theta, double* fbar)
       // b = delta_F * delta_F
       double b = ddot(&n_, &tmp0[0], &ione, &tmp0[0], &ione);
       
-      double work[2] = { a, b };
-      ctxt_.dsum(2,1,work,2);
-      a = work[0];
-      b = work[1];
+      if ( pctxt_ != 0 )
+      {
+        double work[2] = { a, b };
+        pctxt_->dsum(2,1,work,2);
+        a = work[0];
+        b = work[1];
+      }
 
       if ( b != 0.0 )
         *theta = - a / b;
@@ -47,7 +50,7 @@ void AndersonMixer::update(const double* f, double* theta, double* fbar)
       // test if residual has increased
       if ( *theta <= -1.0 )
       {
-        *theta = 1.0;
+        *theta = 0.0;
       }
       
       *theta = min(theta_max_,*theta);

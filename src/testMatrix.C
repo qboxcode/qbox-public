@@ -1,4 +1,4 @@
-// $Id: testMatrix.C,v 1.10 2005-02-04 22:02:09 fgygi Exp $
+// $Id: testMatrix.C,v 1.11 2005-03-17 17:18:55 fgygi Exp $
 //
 // test Matrix
 //
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
       a.axpy(-2., b);
     }
     
-    if ( a.m() == c.m() && a.n() == c.n() )
+    if ( a.m()==c.m() && a.n()==c.n() && a.mb()==c.mb() && a.nb()==c.nb() )
     {
       if(mype == 0)cout<<"DoubleMatrix::operator=..."<<endl;
       c=a;

@@ -70,14 +70,15 @@ int main(int argc, char **argv)
   Context ctxt(ctxt_global.size(),1);
   //cout << " ctxt: " << ctxt;
   //cout << " ctxt.comm(): " << ctxt.comm() << endl;
-  Basis basis(ctxt,kpoint);
-  basis.resize(cell,cell,ecut);
   
+  // start scope of wf-v transforms
+  {
   // transform and interpolate as for wavefunctions
 
+  Basis basis(ctxt,kpoint);
+  basis.resize(cell,cell,ecut);
   FourierTransform ft2(basis,2*basis.np(0),2*basis.np(1),2*basis.np(2));
   vector<complex<double> > f2(ft2.np012loc());
-
   vector<complex<double> > x(basis.localsize());
   vector<complex<double> > x1(basis.localsize());
   vector<complex<double> > x2(basis.localsize());
@@ -120,6 +121,7 @@ int main(int argc, char **argv)
   tm.start();
   ft2.forward(&f2[0],&x[0]);
   tm.stop();
+  cout << " fwd1: vgrid->wf" << endl;
   cout << " fwd1: tm_f_fft:    " << ft2.tm_f_fft.real() << endl;
   cout << " fwd1: tm_f_mpi:    " << ft2.tm_f_mpi.real() << endl;
   cout << " fwd1: tm_f_pack:   " << ft2.tm_f_pack.real() << endl;
@@ -140,6 +142,7 @@ int main(int argc, char **argv)
   tm.start();
   ft2.backward(&x[0],&f2[0]);
   tm.stop();
+  cout << " bwd1: wf->vgrid" << endl;
   cout << " bwd1: tm_b_fft:    " << ft2.tm_b_fft.real() << endl;
   cout << " bwd1: tm_b_mpi:    " << ft2.tm_b_mpi.real() << endl;
   cout << " bwd1: tm_b_pack:   " << ft2.tm_b_pack.real() << endl;
@@ -160,6 +163,7 @@ int main(int argc, char **argv)
   tm.start();
   ft2.forward(&f2[0],&x[0]);
   tm.stop();
+  cout << " fwd2: vgrid->wf" << endl;
   cout << " fwd2: tm_f_fft:    " << ft2.tm_f_fft.real() << endl;
   cout << " fwd2: tm_f_mpi:    " << ft2.tm_f_mpi.real() << endl;
   cout << " fwd2: tm_f_pack:   " << ft2.tm_f_pack.real() << endl;
@@ -183,6 +187,7 @@ int main(int argc, char **argv)
   tm.start();
   ft2.backward(&x[0],&f2[0]);
   tm.stop();
+  cout << " bwd2: wf->vgrid" << endl;
   cout << " bwd2: tm_b_fft:    " << ft2.tm_b_fft.real() << endl;
   cout << " bwd2: tm_b_mpi:    " << ft2.tm_b_mpi.real() << endl;
   cout << " bwd2: tm_b_pack:   " << ft2.tm_b_pack.real() << endl;
@@ -207,6 +212,7 @@ int main(int argc, char **argv)
   tm.start();
   ft2.forward(&f2[0],&x1[0],&x2[0]);
   tm.stop();
+  cout << " fwd3: vgrid->wf double transform" << endl;
   cout << " fwd3: tm_f_fft:    " << ft2.tm_f_fft.real() << endl;
   cout << " fwd3: tm_f_mpi:    " << ft2.tm_f_mpi.real() << endl;
   cout << " fwd3: tm_f_pack:   " << ft2.tm_f_pack.real() << endl;
@@ -227,6 +233,7 @@ int main(int argc, char **argv)
   tm.start();
   ft2.backward(&x1[0],&x2[0],&f2[0]);
   tm.stop();
+  cout << " bwd3: wf->vgrid double transform" << endl;
   cout << " bwd3: tm_b_fft:    " << ft2.tm_b_fft.real() << endl;
   cout << " bwd3: tm_b_mpi:    " << ft2.tm_b_mpi.real() << endl;
   cout << " bwd3: tm_b_pack:   " << ft2.tm_b_pack.real() << endl;
@@ -242,7 +249,63 @@ int main(int argc, char **argv)
   cout << " bwd3 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
   
-#if 1
+  } // end of scope for wf-v transforms
+  
+  ////////////////////////////////////////////////////////////
+  // v(g)->vgrid
+  Basis vbasis(ctxt,kpoint);
+  vbasis.resize(cell,cell,4.0*ecut);
+  cout << " vbasis.np() = " << vbasis.np(0) << " " << vbasis.np(1)
+       << " " << vbasis.np(2) << endl;
+  FourierTransform vft(vbasis,vbasis.np(0),vbasis.np(1),vbasis.np(2));
+  vector<complex<double> > vf(vft.np012loc());
+  vector<complex<double> > vg(vbasis.localsize());
+    
+  double vflops = 2*vbasis.nrod_loc() *      fft_flops(vft.np2()) +
+                   vft.np1()   * vft.np2() * fft_flops(vft.np0()) +
+                   vft.np0()   * vft.np2() * fft_flops(vft.np1());
+  tm.reset();
+  vft.reset_timers();
+  tm.start();
+  vft.forward(&vf[0],&vg[0]);
+  tm.stop();
+  cout << " fwd4: vgrid->v(g)" << endl;
+  cout << " fwd4: tm_b_fft:    " << vft.tm_b_fft.real() << endl;
+  cout << " fwd4: tm_b_mpi:    " << vft.tm_b_mpi.real() << endl;
+  cout << " fwd4: tm_b_pack:   " << vft.tm_b_pack.real() << endl;
+  cout << " fwd4: tm_b_unpack: " << vft.tm_b_unpack.real() << endl;
+  cout << " fwd4: tm_b_zero:   " << vft.tm_b_zero.real() << endl;
+  cout << " fwd4: tm_b_map:    " << vft.tm_b_map.real() << endl;
+  cout << " fwd4: tm_b_total:  " << vft.tm_b_fft.real() +
+                                    vft.tm_b_mpi.real() +
+                                    vft.tm_b_pack.real() +
+                                    vft.tm_b_unpack.real() +
+                                    vft.tm_b_zero.real() +
+                                    vft.tm_b_map.real() << endl;
+  cout << " fwd4 time: " << tm.cpu() << " / " << tm.real()
+  << "    " << 1.e-6*vflops/tm.real() << " MFlops" << endl;
+  
+  tm.reset();
+  vft.reset_timers();
+  tm.start();
+  vft.backward(&vg[0],&vf[0]);
+  tm.stop();
+  cout << " bwd4: v(g)->vgrid" << endl;
+  cout << " bwd4: tm_b_fft:    " << vft.tm_b_fft.real() << endl;
+  cout << " bwd4: tm_b_mpi:    " << vft.tm_b_mpi.real() << endl;
+  cout << " bwd4: tm_b_pack:   " << vft.tm_b_pack.real() << endl;
+  cout << " bwd4: tm_b_unpack: " << vft.tm_b_unpack.real() << endl;
+  cout << " bwd4: tm_b_zero:   " << vft.tm_b_zero.real() << endl;
+  cout << " bwd4: tm_b_map:    " << vft.tm_b_map.real() << endl;
+  cout << " bwd4: tm_b_total:  " << vft.tm_b_fft.real() +
+                                    vft.tm_b_mpi.real() +
+                                    vft.tm_b_pack.real() +
+                                    vft.tm_b_unpack.real() +
+                                    vft.tm_b_zero.real() +
+                                    vft.tm_b_map.real() << endl;
+  cout << " bwd4 time: " << tm.cpu() << " / " << tm.real()
+  << "    " << 1.e-6*vflops/tm.real() << " MFlops" << endl;
+#if 0
   //////////////////////////////////////////////////////////////////////////////
   // Integration of a 2-norm normalized plane wave
   //////////////////////////////////////////////////////////////////////////////
@@ -267,6 +330,7 @@ int main(int argc, char **argv)
              << f[ft.index(i,j,k)] << endl;
 #endif
              
+#if 0
   // integral of f^2 in r space must be 1.0
   double sum=0.0, tsum = 0.0;
   for ( int i = 0; i < f2.size(); i++ ) 
@@ -284,7 +348,9 @@ int main(int argc, char **argv)
     x[i] = 1.0 / sqrt(omega) * pow(2.0*M_PI*rc*rc,0.75) * 
            exp( -0.25 * g2 * rc*rc );
   }
+#endif
 
+#if 0
   // Compute norm in g space
   double gnorm = 0.0;
   for ( int i = 0; i < basis.localsize(); i++ )
@@ -295,6 +361,7 @@ int main(int argc, char **argv)
   cout << " gaussian gnorm: " << gnorm << endl;
   
   ft2.backward(&x[0],&f2[0]);
+#endif
   
 //   for ( int i = 0; i < basis.localsize(); i++ )
 //     cout << basis.kv(3*i) << " " << basis.kv(3*i+1) << " " << basis.kv(3*i+2)
@@ -315,21 +382,6 @@ int main(int argc, char **argv)
   cout << " gaussian rnorm: " << sum / ft2.np012() << endl;
 #endif
 
-  // Define ft from vbasis
-  Basis vbasis(ctxt,kpoint);
-  vbasis.resize(cell,cell,4.0*ecut);
-  cout << " vbasis.np() = " << vbasis.np(0) << " " << vbasis.np(1)
-       << " " << vbasis.np(2) << endl;
-  FourierTransform vft(basis,vbasis.np(0),vbasis.np(1),vbasis.np(2));
-  vector<complex<double> > vf(vft.np012loc());
-  vft.backward(&x[0],&vf[0]);
-  // integral of gaussian^2 in r space must be 1.0
-  tsum = 0.0;
-  for ( int i = 0; i < vf.size(); i++ ) 
-    tsum += norm(vf[i]);
-  MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
-  
-  cout << " gaussian rnorm: " << sum / vft.np012() << endl;
 
   } // Context scope
 #if USE_MPI

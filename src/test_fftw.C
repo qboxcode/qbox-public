@@ -6,6 +6,13 @@
 
 #include "Timer.h"
 
+#ifdef IA32
+#include "readTSC.h"
+#else
+long long readTSC(void) { return 0; }
+#endif
+long long clk, clk_bwd, clk_fwd;
+
 #include <iostream>
 #include <complex>
 #include <valarray>
@@ -19,7 +26,7 @@ int main(int argc, char**argv)
   const int niter = 10;
   const int np = atoi(argv[1]);
   const int nvec = atoi(argv[2]);
-  const int ldz = np + 1;
+  const int ldz = np + 4;
 
   fftw_plan fwplan, bwplan;
 
@@ -41,10 +48,12 @@ int main(int argc, char**argv)
 
   Timer t_fwd,t_bwd;
 
+  clk_bwd = 0;
+  clk_fwd = 0;
+
   for ( int iter = 0; iter < niter; iter++ )
   {
   t_bwd.start();
-
    /* 
     * void fftw(fftw_plan plan, int howmany,
     *    FFTW_COMPLEX *in, int istride, int idist,
@@ -53,12 +62,17 @@ int main(int argc, char**argv)
   int ntrans = nvec;
   int inc1 = 1;
   int inc2 = ldz;
+  clk = readTSC();
   fftw(bwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                       (FFTW_COMPLEX*)0,0,0);
+  clk_bwd += readTSC() - clk;
+
   t_bwd.stop();
   t_fwd.start();
+  clk = readTSC();
   fftw(fwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                       (FFTW_COMPLEX*)0,0,0);
+  clk_fwd += readTSC() - clk;
   t_fwd.stop();
   }
 
@@ -69,13 +83,15 @@ int main(int argc, char**argv)
 #if FFTWMEASURE
        << "(fftw-measure)"
 #endif
-       << ": " << 1.e6*t_fwd.real()/(niter*nvec) << " microseconds" << endl;
+       << ": " << 1.e6*t_fwd.real()/(niter*nvec) << " microseconds" 
+       << "  " << clk_fwd/(niter*nvec) << " cycles" << endl;
 
   cout << " bwd: time per transform (in-place,generic)" 
 #if FFTWMEASURE
        << "(fftw-measure)"
 #endif
-       << ": " << 1.e6*t_bwd.real()/(niter*nvec) << " microseconds" << endl;
+       << ": " << 1.e6*t_bwd.real()/(niter*nvec) << " microseconds" 
+       << "  " << clk_bwd/(niter*nvec) << " cycles" << endl;
 
 #if 1
   // Use out-of-place, specific plan
@@ -91,6 +107,8 @@ int main(int argc, char**argv)
     FFTW_BACKWARD,FFTW_ESTIMATE|FFTW_OUT_OF_PLACE,
     (FFTW_COMPLEX*)&zvec[0],1,(FFTW_COMPLEX*)&zvec_out[0],1);
     
+  clk_bwd = 0;
+  clk_fwd = 0;
   for ( int iter = 0; iter < niter; iter++ )
   {
 
@@ -98,13 +116,17 @@ int main(int argc, char**argv)
     int inc1 = 1;
     int inc2 = ldz;
     t_bwd.start();
+    clk = readTSC();
     fftw(bwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                        (FFTW_COMPLEX*)&zvec_out[0],inc1,inc2);
+    clk_bwd += readTSC() - clk;
     t_bwd.stop();
   
     t_fwd.start();
+    clk = readTSC();
     fftw(fwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                        (FFTW_COMPLEX*)&zvec_out[0],inc1,inc2);
+    clk_fwd += readTSC() - clk;
     t_fwd.stop();
 
   }
@@ -116,13 +138,15 @@ int main(int argc, char**argv)
 #if FFTWMEASURE
        << "(fftw-measure)"
 #endif
-       << ": " << 1.e6*t_fwd.real()/(niter*nvec) << " microseconds" << endl;
+       << ": " << 1.e6*t_fwd.real()/(niter*nvec) << " microseconds" 
+       << "  " << clk_bwd/(niter*nvec) << " cycles" << endl;
 
   cout << " bwd: time per transform (out-of-place,specific)" 
 #if FFTWMEASURE
        << "(fftw-measure)"
 #endif
-       << ": " << 1.e6*t_bwd.real()/(niter*nvec) << " microseconds" << endl;
+       << ": " << 1.e6*t_bwd.real()/(niter*nvec) << " microseconds" 
+       << "  " << clk_bwd/(niter*nvec) << " cycles" << endl;
 #endif
   return 0;
 }

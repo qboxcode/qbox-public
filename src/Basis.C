@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.12 2004-03-11 21:45:31 fgygi Exp $
+// $Id: Basis.C,v 1.13 2005-01-04 22:07:39 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -390,98 +390,105 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   const double fac = sqrt(two_ecut) / twopi;
 
   // define safe enclosing domain  
-  const int hmax_tmp = (int) ( fac * (
+  const int hmax = (int) ( fac * (
     abs(defcell.a(0).x) + abs(defcell.a(0).y) + abs(defcell.a(0).z) ) );
-  const int hmin_tmp = - hmax_tmp;
+  const int hmin = - hmax;
   
-  const int kmax_tmp = (int) ( fac * (
+  const int kmax = (int) ( fac * (
     abs(defcell.a(1).x) + abs(defcell.a(1).y) + abs(defcell.a(1).z) ) );
-  const int kmin_tmp = - kmax_tmp;
+  const int kmin = - kmax;
  
-  const int lmax_tmp = (int) ( fac * (
+  const int lmax = (int) ( fac * (
     abs(defcell.a(2).x) + abs(defcell.a(2).y) + abs(defcell.a(2).z) ) );
-  const int lmin_tmp = - lmax_tmp;
+  const int lmin = - lmax;
   
   multiset<Rod> rodset;
   
   // build rod set
   
-  int hmax_used = -10000, hmin_used = 10000;
-  int kmax_used = -10000, kmin_used = 10000;
-  int lmax_used = -10000, lmin_used = 10000;
+  int hmax_used = hmin;
+  int hmin_used = hmax;
+  int kmax_used = kmin;
+  int kmin_used = kmax;
+  int lmax_used = lmin;
+  int lmin_used = lmax;
 
   if ( real_ )
   {
     // build basis at kpoint (0,0,0)
 
     // rod(0,0,0)
-    // length of rod(0,0,0) is lmax+1
-    int lmax = (int) ( sqrt(two_ecut * b2inv2) );
-    size_ = lmax + 1;
-    rodset.insert(Rod(0,0,0,lmax+1));
+    // length of rod(0,0,0) is lend+1
+    int lend = (int) ( sqrt(two_ecut * b2inv2) );
+    size_ = lend + 1;
+    rodset.insert(Rod(0,0,0,lend+1));
     nrods_ = 1;
 
-    if ( lmax > lmax_used ) lmax_used = lmax;
+    hmax_used = 0;
     hmin_used = 0;
+    kmin_used = 0;
+    kmax_used = 0;
+    lmin_used = 0;
+    lmax_used = lend;
     
     // rods (0,k,l)
-    for ( int k = 1; k <= kmax_tmp; k++ )
+    for ( int k = 1; k <= kmax; k++ )
     {
-      const D3vector c = k * b1;
-      const double b2c = b2 * c;
-      const double delta = b2c*b2c - normb2*(norm(c)-two_ecut);
-      if ( delta >= 0.0 )
+      int lstart=lmax,lend=lmin;
+      bool found = false;
+      for ( int l = lmin; l <= lmax; l++ )
       {
-        // compute lmin, lmax for that rod
-        const double sdelta = sqrt(delta);
-        const double argm = ( b2inv2 * (-b2c - sdelta) );
-        const double argp = ( b2inv2 * (-b2c + sdelta) );
-        const int lmin = ( (int) argm ) + (( argm < 0.0 ) ?  0 : 1);
-        const int lmax = ( (int) argp ) + (( argp < 0.0 ) ? -1 : 0);
-        if ( lmin <= lmax )
+        const double two_e = norm(k*b1+l*b2);
+        if ( two_e < two_ecut )
         {
-          const int rodsize = lmax - lmin + 1;
-          size_ += rodsize;
-          rodset.insert(Rod(0,k,lmin,rodsize));
-          nrods_++;
-
-          if ( k > kmax_used ) kmax_used = k;
-          if ( k < kmin_used ) kmin_used = k;
-          if ( lmax > lmax_used ) lmax_used = lmax;
-          if ( lmin < lmin_used ) lmin_used = lmin;
+          lstart = min(l,lstart);
+          lend = max(l,lend);
+          found = true;
         }
+      }
+      if ( found )
+      {
+        // non-zero intersection was found
+        const int rodsize = lend - lstart + 1;
+        size_ += rodsize;
+        rodset.insert(Rod(0,k,lstart,rodsize));
+        nrods_++;
+        kmax_used = max(k,kmax_used);
+        kmin_used = min(k,kmin_used);
+        lmax_used = max(lend,lmax_used);
+        lmin_used = min(lstart,lmin_used);
       }
     }
     // rods (h,k,l) h>0
-    for ( int h = 1; h <= hmax_tmp; h++ )
+    for ( int h = 1; h <= hmax; h++ )
     {
-      for ( int k = kmin_tmp; k <= kmax_tmp; k++ )
+      for ( int k = kmin; k <= kmax; k++ )
       {
-        const D3vector c = h * b0 + k * b1;
-        const double b2c = b2 * c;
-        const double delta = b2c*b2c - normb2*(norm(c)-two_ecut);
-        if ( delta >= 0.0 )
+        int lstart=lmax,lend=lmin;
+        bool found = false;
+        for ( int l = lmin; l <= lmax; l++ )
         {
-          // compute lmin, lmax for that rod
-          const double sdelta = sqrt(delta);
-          const double argm = ( b2inv2 * (-b2c - sdelta) );
-          const double argp = ( b2inv2 * (-b2c + sdelta) );
-          const int lmin = ( (int) argm ) + (( argm < 0.0 ) ?  0 : 1);
-          const int lmax = ( (int) argp ) + (( argp < 0.0 ) ? -1 : 0);
-          if ( lmin <= lmax )
+          const double two_e = norm(h*b0+k*b1+l*b2);
+          if ( two_e < two_ecut )
           {
-            const int rodsize = lmax - lmin + 1;
-            size_ += rodsize;
-            rodset.insert(Rod(h,k,lmin,rodsize));
-            nrods_++;
-          
-            if ( h > hmax_used ) hmax_used = h;
-            if ( h < hmin_used ) hmin_used = h;
-            if ( k > kmax_used ) kmax_used = k;
-            if ( k < kmin_used ) kmin_used = k;
-            if ( lmax > lmax_used ) lmax_used = lmax;
-            if ( lmin < lmin_used ) lmin_used = lmin;
+            lstart = min(l,lstart);
+            lend = max(l,lend);
+            found = true;
           }
+        }
+        if ( found )
+        {
+          // non-zero intersection was found
+          const int rodsize = lend - lstart + 1;
+          size_ += rodsize;
+          rodset.insert(Rod(h,k,lstart,rodsize));
+          nrods_++;
+          hmax_used = max(h,hmax_used);
+          hmin_used = min(h,hmin_used);
+          kmax_used = max(k,kmax_used);
+          kmin_used = min(k,kmin_used);
+          lmax_used = max(lend,lmax_used);
+          lmin_used = min(lstart,lmin_used);
         }
       }
     }
@@ -493,44 +500,46 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
     size_ = 0;
     nrods_ = 0;
     // rods (h,k,l)
-    for ( int h = hmin_tmp; h <= hmax_tmp; h++ )
+    for ( int h = hmin; h <= hmax; h++ )
     {
-      for ( int k = kmin_tmp; k <= kmax_tmp; k++ )
+      for ( int k = kmin; k <= kmax; k++ )
       {
-        const D3vector c = (kpx+h) * b0 + (kpy+k) * b1 + kpz * b2;
-        const double b2c = b2 * c;
-        const double delta = b2c*b2c - normb2*(norm(c)-two_ecut);
-        if ( delta >= 0.0 )
+        int lstart=lmax,lend=lmin;
+        bool found = false;
+        for ( int l = lmin; l <= lmax; l++ )
         {
-          // compute lmin and lmax for that rod
-          const double sdelta = sqrt(delta);
-          const double argm = ( b2inv2 * (-b2c - sdelta) );
-          const double argp = ( b2inv2 * (-b2c + sdelta) );
-          const int lmin = ( (int) argm ) + (( argm < 0.0 ) ?  0 : 1);
-          const int lmax = ( (int) argp ) + (( argp < 0.0 ) ? -1 : 0);
-          
-          if ( lmin <= lmax )
+          const double two_e = norm((kpx+h)*b0 + (kpy+k)*b1 + (kpz+l)*b2);
+          if ( two_e < two_ecut )
           {
-            const int rodsize = lmax - lmin + 1;
-            size_ += rodsize;
-            rodset.insert(Rod(h,k,lmin,rodsize));
-            nrods_++;
- 
-            if ( h > hmax_used ) hmax_used = h;
-            if ( h < hmin_used ) hmin_used = h;
-            if ( k > kmax_used ) kmax_used = k;
-            if ( k < kmin_used ) kmin_used = k;
-            if ( lmax > lmax_used ) lmax_used = lmax;
-            if ( lmin < lmin_used ) lmin_used = lmin;
+            lstart = min(l,lstart);
+            lend = max(l,lend);
+            found = true;
           }
+        }
+        if ( found )
+        {
+          // non-zero intersection was found
+          const int rodsize = lend - lstart + 1;
+          size_ += rodsize;
+          rodset.insert(Rod(h,k,lstart,rodsize));
+          nrods_++;
+          hmax_used = max(h,hmax_used);
+          hmin_used = min(h,hmin_used);
+          kmax_used = max(k,kmax_used);
+          kmin_used = min(k,kmin_used);
+          lmax_used = max(lend,lmax_used);
+          lmin_used = min(lstart,lmin_used);
         }
       }
     }
   }
   
-  // cout << " hmin/hmax used: " << hmin_used << " / " << hmax_used << endl;
-  // cout << " kmin/kmax used: " << kmin_used << " / " << kmax_used << endl;
-  // cout << " lmin/lmax used: " << lmin_used << " / " << lmax_used << endl;
+  //cout << " hmin/hmax: " << hmin << " / " << hmax << endl;
+  //cout << " kmin/kmax: " << kmin << " / " << kmax << endl;
+  //cout << " lmin/lmax: " << lmin << " / " << lmax << endl;
+  //cout << " hmin/hmax used: " << hmin_used << " / " << hmax_used << endl;
+  //cout << " kmin/kmax used: " << kmin_used << " / " << kmax_used << endl;
+  //cout << " lmin/lmax used: " << lmin_used << " / " << lmax_used << endl;
 
   idxmax_[0] = hmax_used;
   idxmin_[0] = hmin_used;
@@ -541,8 +550,12 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   idxmax_[2] = lmax_used;
   idxmin_[2] = lmin_used;
   
-  assert(lmax_used <= lmax_tmp);
-  assert(lmin_used >= lmin_tmp);
+  assert(hmax_used <= hmax);
+  assert(hmin_used >= hmin);
+  assert(kmax_used <= kmax);
+  assert(kmin_used >= kmin);
+  assert(lmax_used <= lmax);
+  assert(lmin_used >= lmin);
   
   // compute good FFT sizes
   for ( int i = 0; i < 3; i++ )

@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.19 2003-11-27 01:25:22 fgygi Exp $
+# $Id: Makefile,v 1.20 2004-01-22 01:21:11 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -8,6 +8,8 @@ include $(TARGET).mk
 EXECS=qb testMatrix testFTGrid testGridFunction testBasis \
 testBlacsContext testSlaterDet testEnergyFunctional testSample \
 testChargeDensity  testFourierTransform testSpecies testContext
+
+CXXFLAGS += -DTARGET='"$(TARGET)"'
  qb:    qb.o AtomSet.o Atom.o Species.o \
         Wavefunction.o SlaterDet.o \
         EnergyFunctional.o SampleStepper.o \
@@ -113,7 +115,7 @@ SampleStepper.o EnergyFunctional.o
 	enscript -Ecpp --toc -2rGj -pqb.ps *.h *.C Makefile *.mk
 #------------------------------------------------------------------------------
  tar :
-	tar cf qbsrc.tar *.[Ch] Makefile *.mk
+	tar czf qbsrc.tgz *.[Ch] Makefile *.mk
 #------------------------------------------------------------------------------
 # DO NOT DELETE
 

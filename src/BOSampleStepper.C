@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.18 2004-12-08 19:01:20 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.19 2004-12-17 23:36:54 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -52,8 +52,6 @@ BOSampleStepper::~BOSampleStepper()
 ////////////////////////////////////////////////////////////////////////////////
 void BOSampleStepper::step(int niter)
 {
-  const bool extrapolate_wf = true;
-  const bool quad_extrapolation = false;
   const int nempty = s_.wf.nempty();
   const bool compute_eigvec = nempty > 0 || s_.ctrl.wf_diag == "T";
   enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
@@ -72,6 +70,9 @@ void BOSampleStepper::step(int niter)
   const string wf_dyn = s_.ctrl.wf_dyn;
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
+  
+  const bool extrapolate_wf = true;
+  const bool quad_extrapolation = false;
   
   const bool compute_hpsi = ( wf_dyn != "LOCKED" );
   const bool compute_forces = ( atoms_dyn != "LOCKED" );
@@ -239,7 +240,7 @@ void BOSampleStepper::step(int niter)
         }
         cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
         cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
-        cout << "  <temp_ion> " << ionic_stepper->temp() << " </temp_ion>\n";
+        cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";
       }
     }
     
@@ -571,6 +572,11 @@ void BOSampleStepper::step(int niter)
           cout << "  <!-- BOSampleStepper: end scf iteration -->" << endl;
       } // for itscf
       
+      
+      if ( !compute_forces && !compute_stress )
+        if ( s_.ctxt_.onpe0() )
+          cout << ef_;
+          
       wf_stepper->postprocess();
     }
     else

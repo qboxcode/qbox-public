@@ -3,7 +3,7 @@
 #  mcr.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.5 2004-01-22 01:17:36 fgygi Exp $
+# $Id: mcr.mk,v 1.6 2004-06-01 22:42:07 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -21,18 +21,21 @@
 
  FFTWDIR=$(HOME)/fftw/linux-pc-icc/fftw-2.1.3/fftw
  BLASDIR=/opt/intel/mkl/lib/32
+ #PAPIDIR=/usr/local/tools/papi
  
- INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
+ #INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include \
+ #          -I$(PAPIDIR)/include
+ INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include 
  
- CXXFLAGS= -O3 -xW -Zp16 -tpp7  \
+ CXXFLAGS= -O3 -xW -Zp16 \
            -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L$(BLASDIR) -L/usr/lib \
-           -L$(XERCESCLIBDIR)
+           -L$(XERCESCLIBDIR) 
   
  LIBS =  $(PLIBS) $(GCCDIR)/libg2c.a -lfftw \
-         -lmkl_lapack -lmkl -lmkl_def -lmkl_p4 -lm -lmpi -lpmpi \
+         -lmkl_p4 -lmkl_lapack -lm -lmpi -lpmpi \
          -lelan -lelan3 -openmp -lrmscall -lxerces-c
  
  LDFLAGS = $(LIBPATH) $(LIBS) 

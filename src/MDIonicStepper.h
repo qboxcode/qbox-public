@@ -3,7 +3,7 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.1 2003-11-21 20:01:06 fgygi Exp $
+// $Id: MDIonicStepper.h,v 1.2 2003-11-27 01:18:02 fgygi Exp $
 
 #ifndef MDIONICSTEPPER_H
 #define MDIONICSTEPPER_H
@@ -15,7 +15,6 @@ class MDIonicStepper : public IonicStepper
   private:
   
   vector<vector<double> > taum_;
-  double ekin_;
   double th_temp_;
   double th_time_;
   double eta_;
@@ -39,8 +38,6 @@ class MDIonicStepper : public IonicStepper
   void update(const vector<vector< double> >& fion);
   void preprocess(const vector<vector<double> >& fion) { stoermer_start(fion);}
   void postprocess(const vector<vector<double> >& fion) { stoermer_end(fion);}
-  double ekin(void) const { return ekin_; }
-  double temp(void) const;
   double eta(void) const { return eta_; }
   void set_eta(double x) { eta_ = x; }
 };

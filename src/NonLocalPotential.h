@@ -3,7 +3,7 @@
 // NonLocalPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.h,v 1.4 2004-12-17 23:32:57 fgygi Exp $
+// $Id: NonLocalPotential.h,v 1.5 2005-01-04 22:05:24 fgygi Exp $
 
 #ifndef NONLOCALPOTENTIAL_H
 #define NONLOCALPOTENTIAL_H
@@ -29,8 +29,8 @@ class NonLocalPotential
   vector<int>             lmax;     // lmax[is]
   vector<int>             lloc;     // lloc[is]
   vector<int>             na;       // na[is]
-  vector<int>             naloc;    // naloc[is]
-  vector<int>             nalocmax; // nalocmax[is]
+  //vector<int>             naloc;    // naloc[is]
+  //vector<int>             nalocmax; // nalocmax[is]
   vector<int>             npr;      // npr[is]
   vector<int>             nprna;    // nprna[is]
   vector<vector<int> >    lproj;    // lproj[is][ipr]
@@ -38,9 +38,9 @@ class NonLocalPotential
   vector<vector<double> > twnl;     // twnl[is][npr*ngwl]
   vector<vector<double> > dtwnl;    // dtwnl[is][6*npr*ngwl], ij=0,..,5
   
-  vector<DoubleMatrix*>   anl;      // anl[is][ipr*ia][ig]
-  vector<vector<double> > singr;    // singr[is][naloc*2*ngwloc]
-  vector<vector<double> > cosgr;    // cosgr[is][naloc*2*ngwloc]
+  //vector<DoubleMatrix*>   anl;      // anl[is][ipr*ia][ig]
+  //vector<vector<double> > singr;    // singr[is][naloc*2*ngwloc]
+  //vector<vector<double> > cosgr;    // cosgr[is][naloc*2*ngwloc]
   
   vector<int>             nquad;    // nquad[is]
   vector<vector<double> > rquad;    // rquad[is][iquad], iquad = 0, nquad[is]-1
@@ -56,8 +56,8 @@ class NonLocalPotential
   ~NonLocalPotential(void);
                
   void update_twnl(void);
-  void update_eigr(vector<vector<double> >& tau);
-  void update_anl(void);
+  //void update_eigr(vector<vector<double> >& tau);
+  //void update_anl(void);
   double energy(bool compute_hpsi, SlaterDet& dsd, 
     bool compute_forces, vector<vector<double> >& fion, 
     bool compute_stress, valarray<double>& sigma_enl);

@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.17 2005-01-10 22:36:08 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.18 2005-03-17 17:31:57 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
@@ -322,7 +322,72 @@ void NonLocalPotential::update_twnl(void)
               double *dt0_yz = &dtwnl[is][ngwl*(4+6*iquad)];
               double *dt0_xz = &dtwnl[is][ngwl*(5+6*iquad)];
               const double r = rquad[is][iquad];
-              for ( int ig = 0; ig < ngwl; ig++ )
+              // compute G=0 element separately to get sin(Gr)/(Gr) limit -> 1
+              if ( ctxt_.myrow() == 0 )
+              {
+                const int ig = 0;
+                // this task holds G=0 element
+                // I(l=0) = 4 pi j_l(G r) r
+                // twnl[is][ipr][l][ig] = 4 pi j_0(Gr_i) r_i Ylm
+                // j_0(Gr) * r = sin(Gr) / G
+                // Ylm = s14pi
+                const double arg = g[ig] * r;
+                // Note: for G=0, gi[0] = 0
+                
+                const double tgx = g_x[ig];
+                const double tgy = g_y[ig];
+                const double tgz = g_z[ig];
+                const double tgi = gi[ig];
+                const double tgi2 = tgi * tgi;
+                
+                const double ts = sin(arg);
+                const double tc = cos(arg);
+              
+                // next line: sin(Gr)/(Gr) replaced by 1
+                t0[ig] = fpi * s14pi * r;
+                
+                // dtwnl = fpi s14pi G_i G_j / G (r cos(Gr)/G -sin(Gr)/G^2)
+                const double tmp = fpi * s14pi * tgi2 * (r*tc - ts*tgi);
+                dt0_xx[ig] = tmp * tgx * tgx;
+                dt0_yy[ig] = tmp * tgy * tgy;
+                dt0_zz[ig] = tmp * tgz * tgz;
+                dt0_xy[ig] = tmp * tgx * tgy;
+                dt0_yz[ig] = tmp * tgy * tgz;
+                dt0_xz[ig] = tmp * tgx * tgz;
+              }
+              else
+              {
+                const int ig = 0;
+                // I(l=0) = 4 pi j_l(G r) r
+                // twnl[is][ipr][l][ig] = 4 pi j_0(Gr_i) r_i Ylm
+                // j_0(Gr) * r = sin(Gr) / G
+                // Ylm = s14pi
+                const double arg = g[ig] * r;
+                // Note: for G=0, gi[0] = 0
+                
+                const double tgx = g_x[ig];
+                const double tgy = g_y[ig];
+                const double tgz = g_z[ig];
+                const double tgi = gi[ig];
+                const double tgi2 = tgi * tgi;
+                
+                const double ts = sin(arg);
+                const double tc = cos(arg);
+              
+                t0[ig] = fpi * s14pi * ts * tgi;
+                
+                // dtwnl = fpi s14pi G_i G_j / G (r cos(Gr)/G -sin(Gr)/G^2)
+                const double tmp = fpi * s14pi * tgi2 * (r*tc - ts*tgi);
+                dt0_xx[ig] = tmp * tgx * tgx;
+                dt0_yy[ig] = tmp * tgy * tgy;
+                dt0_zz[ig] = tmp * tgz * tgz;
+                dt0_xy[ig] = tmp * tgx * tgy;
+                dt0_yz[ig] = tmp * tgy * tgz;
+                dt0_xz[ig] = tmp * tgx * tgz;
+              
+              }
+
+              for ( int ig = 1; ig < ngwl; ig++ )
               {
                 // I(l=0) = 4 pi j_l(G r) r
                 // twnl[is][ipr][l][ig] = 4 pi j_0(Gr_i) r_i Ylm

@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.28 2004-10-04 18:44:29 fgygi Exp $
+# $Id: Makefile,v 1.29 2004-10-15 18:07:44 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -32,7 +32,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  qb:    $(OBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  lib:   $(OBJECTS)
-	ar cq libqb.a $^
+	ar cr libqb.a $^
  SamplePrint: SamplePrint.o SamplePrintHandlers.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSample: testSample.o AtomSet.o Atom.o Species.o \

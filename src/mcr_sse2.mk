@@ -3,7 +3,7 @@
 #  mcr.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.7 2004-06-02 21:40:40 fgygi Exp $
+# $Id: mcr_sse2.mk,v 1.1 2004-06-02 21:40:40 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -16,7 +16,7 @@
  CXX=icc
  LD=$(CXX)
 
- PLTFLAGS += -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
+ PLTFLAGS += -DUSE_SSE2 -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
              -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
              -DAPP_NO_THREADS -DXML_USE_NO_THREADS
 
@@ -28,7 +28,7 @@
  #          -I$(PAPIDIR)/include
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include 
  
- CXXFLAGS= -O3 -xW -Zp16 \
+ CXXFLAGS= -g -O3 -xW -Zp16 \
            -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR) -L/usr/X11R6/lib \

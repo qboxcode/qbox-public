@@ -52,6 +52,11 @@ Mon May  3 16:34:49 PDT 2004
 xlC 6.0 is broken when using the -D_LARGE_FILES macro. Reverted to 
 USE_CSTDIO_LFS for large file support as on mcr.
 --------------------------------------------------------------------------------
+rel1_16_0
+Implemented l=1,l=2 non-local stress.
+Modified UnitCell.C to avoid infinite loops due to finite precision.
+Modified mcr.mk to use library mkl_p4 instead of mkl: -lmkl_p4 before -lmkl
+--------------------------------------------------------------------------------
 rel1_15_2
 Ecut.h: exit without any action if ecut is same as current value. Caused 
 zeroing of the wavefunction velocity when used in a redundant manner.

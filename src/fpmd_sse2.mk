@@ -3,7 +3,7 @@
 #  fpmd.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: fpmd.mk,v 1.3 2004-06-02 21:40:40 fgygi Exp $
+# $Id: fpmd_sse2.mk,v 1.1 2004-06-02 21:40:40 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -14,7 +14,7 @@
  CXX=icc
  LD=$(CXX)
 
- PLTFLAGS += -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
+ PLTFLAGS += -DUSE_SSE2 -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
              -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
              -DAPP_NO_THREADS -DXML_USE_NO_THREADS
 

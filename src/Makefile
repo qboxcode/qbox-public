@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.24 2004-05-20 00:21:55 fgygi Exp $
+# $Id: Makefile,v 1.25 2004-06-02 21:40:40 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -28,7 +28,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
         PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
         SDCellStepper.o ConfinementPotential.o Preconditioner.o \
-        release.o isodate.o
+        release.o isodate.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  SamplePrint: SamplePrint.o SamplePrintHandlers.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)

@@ -3,7 +3,7 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.8 2003-08-28 00:28:51 fgygi Exp $
+// $Id: AtomSet.h,v 1.9 2003-11-20 20:42:24 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
@@ -51,8 +51,8 @@ class AtomSet
   int nsp(void) const { return species_list.size(); }
   void get_positions(vector<vector<double> >& tau) const;
   void set_positions(const vector<vector<double> >& tau);
-  void get_velocities(vector<vector<double> >& tau) const;
-  void set_velocities(const vector<vector<double> >& tau);
+  void get_velocities(vector<vector<double> >& vel) const;
+  void set_velocities(const vector<vector<double> >& vel);
   int size(void);
 };
 ostream& operator << ( ostream &os, AtomSet &as );

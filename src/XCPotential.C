@@ -3,7 +3,7 @@
 // XCPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCPotential.C,v 1.5 2004-09-14 22:24:11 fgygi Exp $
+// $Id: XCPotential.C,v 1.6 2004-11-10 22:43:04 fgygi Exp $
 
 #include "XCPotential.h"
 #include "Basis.h"
@@ -14,7 +14,7 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name):
-cd_(cd), ctxt_(*cd.vcontext()), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
+cd_(cd), ctxt_(cd.vcontext()), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
 {
   if ( functional_name == "LDA" )
   {

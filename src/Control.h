@@ -3,7 +3,7 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.4 2003-11-21 19:12:59 fgygi Exp $
+// $Id: Control.h,v 1.5 2003-12-02 20:24:27 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -45,7 +45,6 @@ struct Control
   double fermi_temp;  // temperature of Fermi distribution
   double emass;       // electron mass
   double vmass;       // cell mass
-  double edamp, pdamp, vdamp;     // dynamics damping factors
   
 };
 #endif

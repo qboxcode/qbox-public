@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.12 2003-11-21 19:10:14 fgygi Exp $
+// $Id: SlaterDet.h,v 1.13 2003-11-27 01:23:54 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -64,6 +64,7 @@ class SlaterDet
   void cleanup(void);
   void gram(void);
   void riccati(SlaterDet& sd);
+  double dot(const SlaterDet& sd) const;
   double total_charge(void);
   void update_occ(int nel, int nspin);
   void update_occ(int nspin, double mu, double temp);

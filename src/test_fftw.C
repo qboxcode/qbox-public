@@ -13,9 +13,6 @@ using namespace std;
 #include <cassert>
 
 #include "fftw.h"
-extern "C" {
-  void zdscal_(int *,double *,complex<double> *,int *);
-}
 
 int main(int argc, char**argv)
 {
@@ -31,6 +28,7 @@ int main(int argc, char**argv)
   
   // initialization of FFT libs
 
+// #define FFTWMEASURE 1
 #if FFTWMEASURE
   // FFTWMEASURE
   fwplan = fftw_create_plan(np,FFTW_FORWARD,FFTW_MEASURE|FFTW_IN_PLACE);
@@ -58,38 +56,27 @@ int main(int argc, char**argv)
   fftw(bwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                       (FFTW_COMPLEX*)0,0,0);
   t_bwd.stop();
-  
-
-  // transform along z
-  
- /*
-  * void fftw(fftw_plan plan, int howmany,
-  *    FFTW_COMPLEX *in, int istride, int idist,
-  *    FFTW_COMPLEX *out, int ostride, int odist);
-  */
   t_fwd.start();
   fftw(fwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                       (FFTW_COMPLEX*)0,0,0);
   t_fwd.stop();
-
-  int len = zvec.size();
-  double fac = 3.14;
-  zdscal_(&len,&fac,&zvec[0],&inc1);
-  
   }
 
   fftw_destroy_plan(fwplan);
   fftw_destroy_plan(bwplan);
 
-  cout << " fwd: " << t_fwd.real()/niter << endl;
-  cout << " fwd: time per transform (microseconds): " 
-       << 1.e6*t_fwd.real()/(niter*nvec)
-       << endl;
-  cout << " bwd: " << t_bwd.real()/niter << endl;
-  cout << " bwd: time per transform (microseconds): " 
-       << 1.e6*t_bwd.real()/(niter*nvec)
-       << endl;
-       
+  cout << " fwd: time per transform (in-place,generic)" 
+#if FFTWMEASURE
+       << "(fftw-measure)"
+#endif
+       << ": " << 1.e6*t_fwd.real()/(niter*nvec) << " microseconds" << endl;
+
+  cout << " bwd: time per transform (in-place,generic)" 
+#if FFTWMEASURE
+       << "(fftw-measure)"
+#endif
+       << ": " << 1.e6*t_bwd.real()/(niter*nvec) << " microseconds" << endl;
+
 #if 1
   // Use out-of-place, specific plan
   
@@ -120,22 +107,22 @@ int main(int argc, char**argv)
                        (FFTW_COMPLEX*)&zvec_out[0],inc1,inc2);
     t_fwd.stop();
 
-    int len = zvec.size();
-    double fac = 3.14;
-    zdscal_(&len,&fac,&zvec[0],&inc1);
   }
 
   fftw_destroy_plan(fwplan);
   fftw_destroy_plan(bwplan);
   
-  cout << " fwd: " << t_fwd.real()/niter << endl;
-  cout << " fwd: time per transform (microseconds): " 
-       << 1.e6*t_fwd.real()/(niter*nvec)
-       << endl;
-  cout << " bwd: " << t_bwd.real()/niter << endl;
-  cout << " bwd: time per transform (microseconds): " 
-       << 1.e6*t_bwd.real()/(niter*nvec)
-       << endl;
+  cout << " fwd: time per transform (out-of-place,specific)" 
+#if FFTWMEASURE
+       << "(fftw-measure)"
+#endif
+       << ": " << 1.e6*t_fwd.real()/(niter*nvec) << " microseconds" << endl;
+
+  cout << " bwd: time per transform (out-of-place,specific)" 
+#if FFTWMEASURE
+       << "(fftw-measure)"
+#endif
+       << ": " << 1.e6*t_bwd.real()/(niter*nvec) << " microseconds" << endl;
 #endif
   return 0;
 }

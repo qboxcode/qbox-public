@@ -3,7 +3,7 @@
 // Context.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.C,v 1.8 2003-08-18 22:45:31 fgygi Exp $
+// $Id: Context.C,v 1.9 2003-11-20 20:22:33 fgygi Exp $
 
 #include <iostream>
 #include <iomanip>
@@ -280,6 +280,7 @@ struct ContextRep
   
   void string_send(string& s, int rdest, int cdest) const
   {
+#if USE_MPI
     int len = s.size();
     isend(1,1,&len,1,rdest,cdest);
     int ilen = len/(sizeof(int)/sizeof(char));
@@ -288,10 +289,12 @@ struct ContextRep
     s.copy((char*)ibuf,string::npos);
     isend(ilen,1,ibuf,1,rdest,cdest);
     delete [] ibuf;
+#endif
   }
   
   void string_recv(string& s, int rsrc, int csrc) const
   {
+#if USE_MPI
     int len = -1;
     irecv(1,1,&len,1,rsrc,csrc);
     int ilen = len/(sizeof(int)/sizeof(char));
@@ -301,10 +304,12 @@ struct ContextRep
     s.resize(len);
     s.assign((char*)ibuf,len);
     delete [] ibuf;
+#endif
   }
   
   void string_bcast(string& s, int isrc) const
   {
+#if USE_MPI
     int len;
     if ( mype() == isrc )
     {
@@ -317,6 +322,7 @@ struct ContextRep
     MPI_Bcast(buf,len+1,MPI_CHAR,isrc,comm());
     s = buf;
     delete [] buf;
+#endif
   }
  
   bool operator==(const ContextRep& c) const
@@ -785,7 +791,9 @@ ContextRep::~ContextRep()
   {
     // cout << " ContextRep destructor called on ictxt = " << ictxt_ << endl;
     Cblacs_gridexit( ictxt_ );
+#if USE_MPI
     MPI_Comm_free(&comm_);
+#endif
   }
 }
 

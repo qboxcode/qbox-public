@@ -3,7 +3,7 @@
 // EnergyFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.h,v 1.12 2004-09-14 22:24:11 fgygi Exp $
+// $Id: EnergyFunctional.h,v 1.13 2004-10-04 18:37:13 fgygi Exp $
 
 #ifndef ENERGYFUNCTIONAL_H
 #define ENERGYFUNCTIONAL_H
@@ -55,7 +55,7 @@ class EnergyFunctional
   int namax_;
   int nsp_;
   double ekin_, econf_, eps_, enl_, ehart_, 
-         ecoul_, exc_, esr_, eself_, etotal_;
+         ecoul_, exc_, esr_, eself_, ets_, etotal_;
   valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
     sigma_enl, sigma_esr, sigma;
 
@@ -78,6 +78,7 @@ class EnergyFunctional
   double exc(void) const { return exc_; }
   double esr(void) const { return esr_; }
   double eself(void) const { return eself_; }
+  double ets(void) const { return ets_; }
   
   const ConfinementPotential *confpot(int ikp) const { return cfp[ikp]; }
   

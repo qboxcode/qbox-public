@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.19 2004-09-14 22:24:11 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.20 2004-10-04 18:37:13 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -569,7 +569,14 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   tmap["nonlocal"].stop();
 
   ecoul_ = ehart_ + esr_ - eself_;
-  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_;
+  ets_ = 0.0;
+  if ( s_.ctrl.fermi_temp > 0.0 )
+  {
+    const double wf_entropy = wf.entropy();
+    const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
+    ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
+  }
+  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_;
   
   if ( compute_hpsi )
   {
@@ -916,6 +923,7 @@ void EnergyFunctional::print(ostream& os) const
      << "  <exc>    " << setw(15) << exc() << " </exc>\n"
      << "  <esr>    " << setw(15) << esr() << " </esr>\n"
      << "  <eself>  " << setw(15) << eself() << " </eself>\n"
+     << "  <ets>    " << setw(15) << ets() << " </ets>\n"
      << "  <etotal> " << setw(15) << etotal() << " </etotal>\n"
      << flush;
 }

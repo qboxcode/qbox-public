@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.8 2003-08-28 00:28:51 fgygi Exp $
+// $Id: AtomSet.C,v 1.9 2003-11-21 19:07:24 fgygi Exp $
 
 #include "AtomSet.h"
 #include "NameOf.h"
@@ -227,10 +227,12 @@ bool AtomSet::reset(void)
 ////////////////////////////////////////////////////////////////////////////////
 void AtomSet::get_positions(vector<vector<double> >& tau) const
 {
-  assert(tau.size() == atom_list.size());
+  if (tau.size() != atom_list.size())
+    tau.resize(atom_list.size());
   for ( int is = 0; is < atom_list.size(); is++ )
   {
-    assert(tau[is].size() == 3*atom_list[is].size());
+    if (tau[is].size() != 3*atom_list[is].size())
+      tau[is].resize(3*atom_list[is].size());
     int i = 0;
     for ( int ia = 0; ia < atom_list[is].size(); ia++ )
     {
@@ -262,10 +264,12 @@ void AtomSet::set_positions(const vector<vector<double> >& tau)
 ////////////////////////////////////////////////////////////////////////////////
 void AtomSet::get_velocities(vector<vector<double> >& vel) const
 {
-  assert(vel.size() == atom_list.size());
+  if (vel.size() != atom_list.size())
+    vel.resize(atom_list.size());
   for ( int is = 0; is < atom_list.size(); is++ )
   {
-    assert(vel[is].size() == 3*atom_list[is].size());
+    if (vel[is].size() != 3*atom_list[is].size())
+      vel[is].resize(3*atom_list[is].size());
     int i = 0;
     for ( int ia = 0; ia < atom_list[is].size(); ia++ )
     {

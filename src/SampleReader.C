@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.8 2003-10-02 17:38:41 fgygi Exp $
+// $Id: SampleReader.C,v 1.9 2003-11-21 19:19:43 fgygi Exp $
 
 
 // Note: the following #define's must appear before <iostream> and <cstdio>
@@ -292,7 +292,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
             if ( sd != 0 )
             {
               // receive density_matrix
-              valarray<double> dmat_tmp(sd->nst());
+              vector<double> dmat_tmp(sd->nst());
               sd->context().dbcast_recv(sd->nst(),1,&dmat_tmp[0],1,0,0);
               sd->set_occ(dmat_tmp);
                 

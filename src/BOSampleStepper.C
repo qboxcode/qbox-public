@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.14 2004-10-15 18:06:24 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.15 2004-10-28 16:56:41 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -29,6 +29,26 @@ using namespace std;
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) : 
   SampleStepper(s), cd_(s.wf), ef_(s,cd_), 
   dwf(s.wf), wfv(s.wfv), nitscf_(nitscf), nite_(nite) {}
+
+////////////////////////////////////////////////////////////////////////////////
+BOSampleStepper::~BOSampleStepper()
+{
+  for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
+  {
+    double time = (*i).second.real();
+    double tmin = time;
+    double tmax = time;
+    s_.ctxt_.dmin(1,1,&tmin,1);
+    s_.ctxt_.dmax(1,1,&tmax,1);
+    if ( s_.ctxt_.myproc()==0 )
+    {
+      cout << "<!-- timing "
+           << setw(15) << (*i).first
+           << " : " << setprecision(3) << setw(9) << tmin
+           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
+    }
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 void BOSampleStepper::step(int niter)
@@ -107,7 +127,9 @@ void BOSampleStepper::step(int niter)
     const bool compute_hpsi = false;
     const bool compute_forces = false;
     const bool compute_stress = false;
+    tmap["charge"].start();
     cd_.update_density();
+    tmap["charge"].stop();
     ef_.update_vhxc();
     double energy = ef_.energy(compute_hpsi,dwf,compute_forces,fion,
                                compute_stress,sigma_eks);
@@ -130,8 +152,11 @@ void BOSampleStepper::step(int niter)
     if ( compute_forces || compute_stress )
     {
       // compute energy and ionic forces using existing wavefunction
-    
+
+      tmap["charge"].start();
       cd_.update_density();
+      tmap["charge"].stop();
+      
       ef_.update_vhxc();
       energy =
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
@@ -357,25 +382,25 @@ void BOSampleStepper::step(int niter)
               switch ( ortho )
               {
                 case GRAM:
-                  tmap["gram"].stop();
+                  tmap["gram"].start();
                   s_.wf.sd(ispin,ikp)->gram();
                   tmap["gram"].stop();
                   break;
  
                 case LOWDIN:
-                  tmap["lowdin"].stop();
+                  tmap["lowdin"].start();
                   s_.wf.sd(ispin,ikp)->lowdin();
                   tmap["lowdin"].stop();
                   break;
  
                 case ORTHO_ALIGN:
-                  tmap["ortho_align"].stop();
+                  tmap["ortho_align"].start();
                   s_.wf.sd(ispin,ikp)->ortho_align(*s_.wfv->sd(ispin,ikp));
                   tmap["ortho_align"].stop();
                   break;
  
                 case RICCATI:
-                  tmap["riccati"].stop();
+                  tmap["riccati"].start();
                   s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));
                   tmap["riccati"].stop();
                   break;
@@ -401,7 +426,9 @@ void BOSampleStepper::step(int niter)
       {
         if ( nite_ > 1 && s_.ctxt_.onpe0() )
           cout << "  <!-- BOSampleStepper: start scf iteration -->" << endl;
+        tmap["charge"].start();
         cd_.update_density();
+        tmap["charge"].stop();
         
         // charge mixing
         
@@ -643,7 +670,9 @@ void BOSampleStepper::step(int niter)
     {
       // wf_stepper == 0, wf_dyn == LOCKED
       // evaluate and print energy
+      tmap["charge"].start();
       cd_.update_density();
+      tmap["charge"].stop();
       ef_.update_vhxc();
       double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
       if ( s_.ctxt_.onpe0() )
@@ -707,7 +736,10 @@ void BOSampleStepper::step(int niter)
     
     // compute ionic forces at last position to update velocities
     // consistently with last position
+    tmap["charge"].start();
     cd_.update_density();
+    tmap["charge"].stop();
+    
     ef_.update_vhxc();
     double energy = 
       ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);

@@ -3,7 +3,7 @@
 // WavefunctionHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.h,v 1.5 2003-10-02 17:35:51 fgygi Exp $
+// $Id: WavefunctionHandler.h,v 1.6 2003-11-21 19:15:31 fgygi Exp $
 
 #ifndef WavefunctionHANDLER_H
 #define WavefunctionHANDLER_H
@@ -23,7 +23,7 @@ class WavefunctionHandler : public StructureHandler
   DoubleMatrix& gfdata_;
   UnitCell uc;
   double ecut;
-  valarray<double> dmat;
+  vector<double> dmat;
   int nx,ny,nz;
   int current_gf_nx,current_gf_ny,current_gf_nz;
   string current_gf_encoding;

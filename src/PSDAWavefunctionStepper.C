@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.2 2003-12-19 00:35:10 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.3 2004-01-22 01:31:40 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -67,10 +67,10 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
             const int mloc = wf_.sd(ispin,ikp)->c().mloc();
             const int nloc = wf_.sd(ispin,ikp)->c().nloc();
             
-            // next line: add factor of 2 to descent direction
+            // next line: add enhancement factor to descent direction
             // since there is no instability of the Anderson iteration
             // This improves convergence in most cases
-            const double fac = 2.0;
+            const double psda_enhancement_factor = 2.0;
             for ( int n = 0; n < nloc; n++ )
             {
               // note: double mloc length for complex<double> indices
@@ -80,8 +80,8 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
                 const double g2i = g2i_ptr[i];
                 const double dt2bye = ( g2i == 0.0 ? g2i_prec :
                   ( g2i < g2i_prec ) ? g2i : g2i_prec );
-                const double f0 = -fac*dt2bye * dcn[2*i];
-                const double f1 = -fac*dt2bye * dcn[2*i+1];
+                const double f0 = -psda_enhancement_factor*dt2bye * dcn[2*i];
+                const double f1 = -psda_enhancement_factor*dt2bye * dcn[2*i+1];
                 dcn[2*i] = f0;
                 dcn[2*i+1] = f1;
               }

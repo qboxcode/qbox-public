@@ -7,6 +7,7 @@
 
 #include "Base64Transcoder.h"
 #include <iostream>
+#include <cstdio>
 #include <string>
 #include <cassert>
 using namespace std;
@@ -16,48 +17,53 @@ Base64Transcoder::Base64Transcoder()
 {
   // initialize encoding/decoding tables
   
-  for (int i = 0; i < 26; i++) {
+  for (int i = 0; i < 26; i++)
+  {
       etable[i] = 'A' + i;
       etable[26 + i] = 'a' + i;
   }
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++)
+  {
       etable[52 + i] = '0' + i;
   }
   etable[62] = '+';
   etable[63] = '/';
 
-  for (int i = 0; i < 255; i++) {
+  for (int i = 0; i < 255; i++)
+  {
       dtable[i] = 0x80;
   }
-  for (int i = 'A'; i <= 'Z'; i++) {
+  for (int i = 'A'; i <= 'Z'; i++)
+  {
       dtable[i] = 0 + (i - 'A');
   }
-  for (int i = 'a'; i <= 'z'; i++) {
+  for (int i = 'a'; i <= 'z'; i++)
+  {
       dtable[i] = 26 + (i - 'a');
   }
-  for (int i = '0'; i <= '9'; i++) {
+  for (int i = '0'; i <= '9'; i++)
+  {
       dtable[i] = 52 + (i - '0');
   }
   dtable['+'] = 62;
   dtable['/'] = 63;
   dtable['='] = 0;
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 int Base64Transcoder::encode(int nbytes, const byte* const from, char* const to)
-{  
+{
   const byte* fptr = from;
   char* tptr = to;
   
   int n3 = nbytes / 3; // number of groups of three bytes
-    
+  
   while ( n3-- > 0 )
   {
     byte ig0 = *fptr++;
     byte ig1 = *fptr++;
     byte ig2 = *fptr++;
-    
+
     *tptr++ = etable[ig0 >> 2];
     *tptr++ = etable[((ig0 & 3) << 4) | (ig1 >> 4)];
     *tptr++ = etable[((ig1 & 0xF) << 2) | (ig2 >> 6)];
@@ -282,5 +288,47 @@ int Base64Transcoder::print(int nchars, const char* const buf, ostream& o)
   
   o.write(b,nchars%72);
   o << endl;
+  return 0;
+}
+////////////////////////////////////////////////////////////////////////////////
+int Base64Transcoder::print(const string buf, FILE* outfile)
+{
+  const char* b = buf.c_str();
+  const char nlchar = '\n';
+  int nchars = buf.size();
+  int nl = nchars / 72;
+  for ( int i = 0; i < nl; i++ )
+  {
+    fwrite(b,sizeof(char),72,outfile);
+    fwrite(&nlchar,sizeof(char),1,outfile);
+    b += 72;
+  }
+  
+  if ( nchars%72 != 0 )
+  {
+    fwrite(b,sizeof(char),nchars%72,outfile);
+    fwrite(&nlchar,sizeof(char),1,outfile);
+  }
+  return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+int Base64Transcoder::print(int nchars, const char* const buf, FILE* outfile)
+{
+  const char* b = buf;
+  const char nlchar = '\n';
+  int nl = nchars / 72;
+  for ( int i = 0; i < nl; i++ )
+  {
+    fwrite(b,sizeof(char),72,outfile);
+    fwrite(&nlchar,sizeof(char),1,outfile);
+    b += 72;
+  }
+  
+  if ( nchars%72 != 0 )
+  {
+    fwrite(b,sizeof(char),nchars%72,outfile);
+    fwrite(&nlchar,sizeof(char),1,outfile);
+  }
   return 0;
 }

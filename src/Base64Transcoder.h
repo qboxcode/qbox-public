@@ -9,13 +9,14 @@
 #define BASE64TRANSCODER_H
 
 #include <iostream>
+#include <cstdio>
 #include <string>
 using namespace std;
 typedef unsigned char byte;
 
 class Base64Transcoder
 {
-  char etable[256]; // encode table
+  char etable[64]; // encode table
   byte dtable[256]; // decode table
 
   public:
@@ -27,6 +28,8 @@ class Base64Transcoder
   void byteswap_int(size_t n, int* const x);
   int print(int nchars, const char* const buf, ostream& o);
   int print(const string buf, ostream& o);
+  int print(int nchars, const char* const buf, FILE* outfile);
+  int print(const string buf, FILE* outfile);
 
   // number of chars needed to encode nbytes bytes
   int nchars(int nbytes) { return 4 * ( ( nbytes + 2 ) / 3 ); }

@@ -3,7 +3,7 @@
 // SDCellStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDCellStepper.C,v 1.2 2004-04-20 22:11:30 fgygi Exp $
+// $Id: SDCellStepper.C,v 1.3 2004-05-04 21:24:11 fgygi Exp $
 
 #include "SDCellStepper.h"
 
@@ -30,6 +30,7 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
   // deda = - omega * sigma * A^-T
   cell.compute_deda(sigma,deda);
   
+  //cout << " SDCellStepper: cell derivatives before constraints" << endl;
   //for ( int i = 0; i < 9; i++ )
   //  cout << " deda[" << i << "] = " << deda[i] << endl;
   
@@ -75,7 +76,28 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
       d = (d * e) * e;
       deda[6] = d.x; deda[7] = d.y; deda[8] = d.z;
     }
-    //cout << " cell derivatives after constraints" << endl;
+    
+    if ( cell_lock == "R" )
+    {
+      // preserve aspect ratio
+      // deda must be proportional to A
+      // All vectors are rescaled by the same constant
+      // rescale cell by coefficient alpha, i.e. 
+      // deda = alpha * A
+      // where alpha * A is the projection of dE/dA in the direction of A
+      // alpha = tr (A^T * deda) / || A ||^2  (matrix scalar product)
+      const double *a = cell.amat();
+      const double num = a[0]*deda[0] + a[1]*deda[1] + a[2]*deda[2] +
+                         a[3]*deda[3] + a[4]*deda[4] + a[5]*deda[5] +
+                         a[6]*deda[6] + a[7]*deda[7] + a[8]*deda[8];
+      const double denom = a[0]*a[0] + a[1]*a[1] + a[2]*a[2] +
+                           a[3]*a[3] + a[4]*a[4] + a[5]*a[5] +
+                           a[6]*a[6] + a[7]*a[7] + a[8]*a[8];
+      const double alpha = num / denom;
+      deda = valarray<double>(a,9);
+      deda *= alpha;
+    }
+    //cout << " SDCellStepper: cell derivatives after constraints" << endl;
     //for ( int i = 0; i < 9; i++ )
     //  cout << " deda[" << i << "] = " << deda[i] << endl;
   }

@@ -3,7 +3,7 @@
 // CellLock.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CellLock.h,v 1.2 2004-04-20 22:10:55 fgygi Exp $
+// $Id: CellLock.h,v 1.3 2004-05-04 21:24:11 fgygi Exp $
 
 #ifndef CELLLOCK_H
 #define CELLLOCK_H
@@ -36,11 +36,11 @@ class CellLock : public Var
     if ( !( v == "OFF" || v == "A" || v == "B" || v == "C" ||
             v == "AB" || v == "AC" || v == "BC" || v == "ABC" ||
             v == "S"  || v == "AS" || v == "BS" || v == "CS" ||
-            v == "ABS" || v == "ACS" || v == "BCS" ) )
+            v == "ABS" || v == "ACS" || v == "BCS" || v == "R") )
     {
       if ( ui->onpe0() )
         cout << " cell_lock must be in "
-             << "[OFF,A,B,C,AB,AC,BC,S,AS,BS,CS,ABS,ACS,BCS]" << endl;
+             << "[OFF,A,B,C,AB,AC,BC,S,AS,BS,CS,ABS,ACS,BCS,R]" << endl;
       return 1;
     }
 

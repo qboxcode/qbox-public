@@ -3,7 +3,7 @@
 #  linux-pc_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: linux-pc_mpi_icc.mk,v 1.6 2003-10-02 17:41:43 fgygi Exp $
+# $Id: linux-pc_mpi_icc.mk,v 1.7 2003-11-21 19:16:41 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -14,7 +14,7 @@
  CXX=icc
  LD=$(CXX)
 
- DFLAGS += -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+ DFLAGS += -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 
 #FFTWDIR=$(HOME)/fftw/linux-pc/fftw-1.3
  FFTWDIR=$(HOME)/fftw/fftw-2.1.3/fftw

@@ -3,17 +3,17 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.2 2003-11-27 01:23:22 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.3 2003-12-02 20:25:28 fgygi Exp $
 
 #include "MDIonicStepper.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 void MDIonicStepper::update(const vector<vector< double> >& fion)
 {
+  eta_ = 0.0;
   // Verlet update
   if ( thermostat_ )
   {
-    eta_ = 0.0;
     double ekin_ion = 0.0;
     // compute damping factor eta
     // compute ekin_ion and temp_ion before step using a first order

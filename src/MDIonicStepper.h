@@ -3,7 +3,7 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.2 2003-11-27 01:18:02 fgygi Exp $
+// $Id: MDIonicStepper.h,v 1.3 2003-12-02 20:25:28 fgygi Exp $
 
 #ifndef MDIONICSTEPPER_H
 #define MDIONICSTEPPER_H
@@ -29,7 +29,7 @@ class MDIonicStepper : public IonicStepper
     thermostat_ = ( s.ctrl.thermostat == "ON" );
     th_temp_ = s.ctrl.th_temp;
     th_time_ = s.ctrl.th_time;
-    eta_ = s.ctrl.pdamp;
+    eta_ = 0.0;
     taum_.resize(tau0_.size());
     for ( int is = 0; is < taum_.size(); is++ )
       taum_[is].resize(tau0_[is].size());
@@ -39,7 +39,6 @@ class MDIonicStepper : public IonicStepper
   void preprocess(const vector<vector<double> >& fion) { stoermer_start(fion);}
   void postprocess(const vector<vector<double> >& fion) { stoermer_end(fion);}
   double eta(void) const { return eta_; }
-  void set_eta(double x) { eta_ = x; }
 };
 
 #endif

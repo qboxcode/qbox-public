@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.13 2004-03-11 21:52:32 fgygi Exp $
+// $Id: Wavefunction.C,v 1.14 2004-04-08 15:44:11 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -791,13 +791,14 @@ void Wavefunction::info(ostream& os, string tag)
        << " nspin=\"" << nspin_ << "\""
        << " nel=\"" << nel_ << "\""
        << " nempty=\"" << nempty_ << "\">" << endl;
+    os.setf(ios::fixed,ios::floatfield);
     os << "<cell a=\""
-       << cell_.a(0) << "\"\n        b=\""
-       << cell_.a(1) << "\"\n        c=\""
+       << setprecision(6) << cell_.a(0) << "\"\n      b=\""
+       << cell_.a(1) << "\"\n      c=\""
        << cell_.a(2) << "\"/>" << endl;
     os << "<refcell a=\""
-       << refcell_.a(0) << "\"\n        b=\""
-       << refcell_.a(1) << "\"\n        c=\""
+       << refcell_.a(0) << "\"\n         b=\""
+       << refcell_.a(1) << "\"\n         c=\""
        << refcell_.a(2) << "\"/>" << endl;
     os << "<grid nx=\"" << sd_[0][0]->basis().np(0) << "\""
        <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""

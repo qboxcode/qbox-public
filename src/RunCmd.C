@@ -3,13 +3,14 @@
 // RunCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.C,v 1.2 2003-02-04 19:21:30 fgygi Exp $
+// $Id: RunCmd.C,v 1.3 2003-11-21 20:01:47 fgygi Exp $
 
 #include "RunCmd.h"
 #include<iostream>
 using namespace std;
 #include "EnergyFunctional.h"
-#include "SampleStepper.h"
+#include "BOSampleStepper.h"
+#include "CPSampleStepper.h"
 
 #include<ctime>
 #include<cassert>
@@ -17,10 +18,10 @@ using namespace std;
 int RunCmd::action(int argc, char **argv)
 {
 
-  if ( argc != 2 )
+  if ( argc < 2 || argc > 3)
   {
     if ( ui->onpe0() )
-      cout << " use: run nsteps" << endl;
+      cout << " use: run niter" << endl;
     return 1;
   }
   
@@ -32,10 +33,25 @@ int RunCmd::action(int argc, char **argv)
   }
   
   EnergyFunctional ef(*s);
-  SampleStepper stepper(*s);
+  SampleStepper* stepper;
   
   int niter = atoi(argv[1]);
-  stepper.step(ef,niter);
+  int nite = 1;
+  if ( argc == 3 )
+  {
+    // run niter nite
+    nite = atoi(argv[2]);
+  }
+  
+  if ( s->ctrl.wf_dyn == "MD" )
+    stepper = new CPSampleStepper(*s);
+  else
+    stepper = new BOSampleStepper(*s,nite);
+  
+  assert(stepper!=0);
+  
+  s->wf.info(cout,"wavefunction");
+  stepper->step(ef,niter);
   
   return 0;
 }

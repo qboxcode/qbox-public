@@ -36,7 +36,23 @@ UnitCell but was not fixed in 1.8.1. Still observe inf loops for Si432 FCC.
 
 There is no mechanism to remove s.wfv once it has been created through either
 the load command or the set wf_dyn MD command. Should implement a block_wf cmd.
+
+Note: when building for release on /usr/apps, the LD_LIBRARY_PATH var will 
+determine library search path, even if makefile specifies another path.
  
+In 1_9_0: running PSDA steps followed in the same run by MD/MD steps
+causes a seg fault.
+
+Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
+This will avoid the problem of needing libxerces-c.so when using qbox.
+--------------------------------------------------------------------------------
+rel1_10_0 (not for release)
+Complete rewrite of the SampleStepper hierarchy, including CP and BO classes.
+Runs CP and BO/SD and BO/PSD tests ok. No extrapolation of wavefunctions yet.
+Note: wavefunction extrapolation implemented yet.
+Planned work: interchange nite iterations and ionic move in BO stepper, so 
+that the wfs at the end of the iteration are the GS for the ionic positions at
+the same time.
 --------------------------------------------------------------------------------
 rel1_9_0
 Large file support (LFS): LFS is not correctly supported for <iostream> in icc

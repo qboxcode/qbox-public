@@ -3,20 +3,21 @@
 // WavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionStepper.h,v 1.1.1.1 2002-09-27 00:08:39 fgygi Exp $
+// $Id: WavefunctionStepper.h,v 1.2 2003-11-21 20:01:47 fgygi Exp $
 
 #ifndef WAVEFUNCTIONSTEPPER_H
 #define WAVEFUNCTIONSTEPPER_H
+class Wavefunction;
 
 class WavefunctionStepper
 {
   private:
-
+  
   public:
 
-  virtual void update(Wavefunction& wf, WavefunctionDerivative& dwf) = 0;
+  virtual void update(Wavefunction& dwf) = 0;
 
-  WavefunctionStepper();
-  ~WavefunctionStepper();
+  WavefunctionStepper() {}
+  virtual ~WavefunctionStepper() {}
 };
 #endif

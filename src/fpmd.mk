@@ -3,7 +3,7 @@
 #  fpmd.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: fpmd.mk,v 1.1 2004-05-20 00:26:18 fgygi Exp $
+# $Id: fpmd.mk,v 1.2 2004-06-01 22:46:21 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -23,7 +23,7 @@
  
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
  
- CXXFLAGS= -O3 -tpp6 -xW -Zp16  \
+ CXXFLAGS= -O3 -xW -Zp16  \
            -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
 
  LIBPATH = -L$(FFTWDIR) -L/usr/X11R6/lib \

@@ -1,4 +1,4 @@
-// $Id: testMatrix.C,v 1.5 2002-10-25 19:18:03 fgygi Exp $
+// $Id: testMatrix.C,v 1.6 2003-11-20 20:25:00 fgygi Exp $
 //
 // test Matrix
 //
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
           }
           
           
-       cout << " results checked" << flush << endl;
+       cout << " results checked" << endl;
     }
 
     cout << " CPU/Real: " << setw(8) << tm.cpu() 
@@ -272,18 +272,6 @@ int main(int argc, char **argv)
     a -= a2;
     norm = a.nrm2();
     if (mype == 0) cout << "Norm(a)=" << norm << endl;
-    
-    ComplexMatrix h(a.context(),2,2,2,2);
-    h[0] = 1.0;
-    //h[1] = complex<double>(0.5,0.5);
-    h[1] = complex<double>(0.5,0.0001);
-    h[2] = conj(h[1]);
-    h[3] = 1.0;
-    cout << "Hermitian 2x2 matrix: " << endl;
-    cout << h;
-    valarray<double> w(2);
-    h.heev('L',w);
-    cout << w[0] << " " << w[1] << endl;
   }
 
 #ifdef USE_MPI

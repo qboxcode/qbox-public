@@ -46,7 +46,7 @@ This will avoid the problem of needing libxerces-c.so when using qbox.
 rel1_11_1
 Fixed uninitialized var eta_ in MDIonicStepper that caused errors on AIX.
 Known problem: elan allocation failure on mcr when writing h2o64 sample
-using 140 tasks on 70 nodes.
+using 140 tasks on 70 nodes. Possible bug in SlaterDet::write if USE_CSTDIO_LFS.
 --------------------------------------------------------------------------------
 rel1_11_0
 BOSampleStepper: changed to do extrapolation and ionic move before 

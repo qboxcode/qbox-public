@@ -3,7 +3,7 @@
 // SDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDIonicStepper.h,v 1.2 2004-03-11 21:52:31 fgygi Exp $
+// $Id: SDIonicStepper.h,v 1.3 2004-12-17 23:37:25 fgygi Exp $
 
 #ifndef SDIONICSTEPPER_H
 #define SDIONICSTEPPER_H
@@ -22,8 +22,6 @@ class SDIonicStepper : public IonicStepper
   void compute_v0(const vector<vector< double> >& f0) {}
   void update_r(void);
   void update_v(void);
-  double ekin(void) const { return 0.0; }
-  double temp(void) const { return 0.0; } 
 };
 
 #endif

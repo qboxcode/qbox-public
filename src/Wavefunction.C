@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.11 2003-10-02 17:33:20 fgygi Exp $
+// $Id: Wavefunction.C,v 1.12 2003-11-21 19:11:29 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -677,24 +677,29 @@ void Wavefunction::riccati(Wavefunction& wf)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::print(ostream& os, string encoding, string tag)
 {
-  os << "<" << tag << " ecut=\"" << ecut_ << "\""
-     << " nspin=\"" << nspin_ << "\""
-     << " nel=\"" << nel_ << "\""
-     << " nempty=\"" << nempty_ << "\">" << endl;
-  os << "<domain a=\"" 
-     << cell_.a(0) << "\"\n        b=\""
-     << cell_.a(1) << "\"\n        c=\""
-     << cell_.a(2) << "\"/>" << endl;
-  os << "<grid nx=\"" << sd_[0][0]->basis().np(0) << "\""
-     <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
-     <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
+  if ( ctxt_.onpe0() )
+  {
+    os << "<" << tag << " ecut=\"" << ecut_ << "\""
+       << " nspin=\"" << nspin_ << "\""
+       << " nel=\"" << nel_ << "\""
+       << " nempty=\"" << nempty_ << "\">" << endl;
+    os << "<domain a=\""
+       << cell_.a(0) << "\"\n        b=\""
+       << cell_.a(1) << "\"\n        c=\""
+       << cell_.a(2) << "\"/>" << endl;
+    os << "<grid nx=\"" << sd_[0][0]->basis().np(0) << "\""
+       <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
+       <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
+  }
      
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       sd_[ispin][ikp]->print(os,encoding);
   }
-  os << "</" << tag << ">" << endl;
+  
+  if ( ctxt_.onpe0() )
+    os << "</" << tag << ">" << endl;
 }
 
 #if USE_CSTDIO_LFS
@@ -740,24 +745,29 @@ void Wavefunction::write(FILE* outfile, string encoding, string tag)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::info(ostream& os, string tag)
 {
-  os << "<" << tag << " ecut=\"" << ecut_ << "\""
-     << " nspin=\"" << nspin_ << "\""
-     << " nel=\"" << nel_ << "\""
-     << " nempty=\"" << nempty_ << "\">" << endl;
-  os << "<domain a=\"" 
-     << cell_.a(0) << "\"\n        b=\""
-     << cell_.a(1) << "\"\n        c=\""
-     << cell_.a(2) << "\"/>" << endl;
-  os << "<grid nx=\"" << sd_[0][0]->basis().np(0) << "\""
-     <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
-     <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
+  if ( ctxt_.onpe0() )
+  {
+    os << "<" << tag << " ecut=\"" << ecut_ << "\""
+       << " nspin=\"" << nspin_ << "\""
+       << " nel=\"" << nel_ << "\""
+       << " nempty=\"" << nempty_ << "\">" << endl;
+    os << "<domain a=\""
+       << cell_.a(0) << "\"\n        b=\""
+       << cell_.a(1) << "\"\n        c=\""
+       << cell_.a(2) << "\"/>" << endl;
+    os << "<grid nx=\"" << sd_[0][0]->basis().np(0) << "\""
+       <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
+       <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
+  }
      
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       sd_[ispin][ikp]->info(os);
   }
-  os << "</" << tag << ">" << endl;
+  
+  if ( ctxt_.onpe0() )
+    os << "</" << tag << ">" << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

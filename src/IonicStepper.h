@@ -3,7 +3,7 @@
 // IonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: IonicStepper.h,v 1.5 2004-12-10 01:05:41 fgygi Exp $
+// $Id: IonicStepper.h,v 1.6 2004-12-17 23:31:00 fgygi Exp $
 
 #ifndef IONICSTEPPER_H
 #define IONICSTEPPER_H
@@ -26,7 +26,6 @@ class IonicStepper
   vector<vector< double> >  rp_;      // rp_[nsp_][3*na_]
   vector<vector< double> >  v0_;      // v0_[nsp_][3*na_]
   vector<double>            pmass_;   // pmass_[nsp_]
-  double                    ekin_;    // kinetic energy
 
   public:
   
@@ -63,15 +62,8 @@ class IonicStepper
   virtual void update_r(void) = 0;
   virtual void update_v(void) = 0;
   virtual void reset(void) {}
-  double ekin(void) const { return ekin_; }
-  double temp(void) const
-  {
-    const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
-    if ( ndofs_ > 0.0 )
-      return 2.0 * ( ekin_ / boltz ) / ndofs_;
-    else
-      return 0.0;
-  }
+  virtual double ekin(void) const { return 0.0; }
+  virtual double temp(void) const { return 0.0; }
   
   virtual ~IonicStepper() {}
     

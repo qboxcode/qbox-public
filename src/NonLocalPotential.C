@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.12 2004-08-11 17:56:24 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.13 2004-08-18 23:58:56 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
@@ -1067,7 +1067,8 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
           const int nbs = fnl.nbs(lj);
           for ( int ii=0; ii < mbs; ii++)
           {
-            const int ipr = ii / nalocmax[is];
+            assert(mbs%npr[is]==0);
+            const int ipr = ii / (mbs/npr[is]);
             const double fac = wt[is][ipr] * omega_inv;
             for ( int jj=0; jj < nbs; jj++)
             {
@@ -1180,7 +1181,11 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               const int nbs = fnl.nbs(lj);
               for ( int ii=0; ii < mbs; ii++)
               {
-                const int ia_local = ii % nalocmax[is];
+                assert(mbs%npr[is]==0);
+                // mbs/npr[is] is the size of the ipr block
+                // mbs/npr[is] = nalocmax[is] on most tasks
+                // but possibly less on the last process row
+                const int ia_local = ii % ( mbs / npr[is] );
                 // ia_global = ia_local + myrow * nalocmax[is]
                 const int ia_global = ia_local + ia_first;
                 for ( int jj=0; jj < nbs; jj++)
@@ -1190,6 +1195,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
                   const double facn = 2.0 * occ[nglobal];
                   const int iii = ii+li*mb;
                   const int jjj = jj+lj*nb;
+                  assert(3*ia_global+j < 3*na[is]);
                   tmpfion[3*ia_global+j] -= facn *
                     f[iii+mloc*jjj] * df[iii+mloc*jjj];
                 }
@@ -1368,7 +1374,11 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               const int nbs = fnl.nbs(lj);
               for ( int ii=0; ii < mbs; ii++)
               {
-                const int ipr = ii / nalocmax[is];
+                assert(mbs%npr[is]==0);
+                // mbs/npr[is] is the size of the ipr block
+                // mbs/npr[is]==nalocmax[is] on most tasks
+                // but may be smaller on the last process row
+                const int ipr = ii / (mbs/npr[is]);
                 for ( int jj=0; jj < nbs; jj++)
                 {
                   // global index: i(li,ii), j(lj,jj)

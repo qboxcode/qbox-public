@@ -3,7 +3,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.13 2004-10-15 18:05:44 fgygi Exp $
+// $Id: Matrix.C,v 1.14 2005-02-04 22:00:23 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -45,6 +45,8 @@ using namespace std;
 #define pdpocon    pdpocon_
 #define pdsygst    pdsygst_
 #define pdsyev     pdsyev_
+#define pdsyevd    pdsyevd_
+#define pdsyevx    pdsyevx_
 #define pzheev     pzheev_
 #define pdtrtri    pdtrtri_
 #define pdlatra    pdlatra_
@@ -180,6 +182,19 @@ extern "C"
   void pdsyev(const char*, const char*, const int*, 
               double*, const int*, const int*, const int*, double*, double*,
               const int*, const int*, const int*, double*, const int*, int*);
+  void pdsyevd(const char*, const char*, const int*, 
+              double*, const int*, const int*, const int*, double*, double*,
+              const int*, const int*, const int*, double*, const int*, int*,
+              int*, int*);
+  void pdsyevx(const char* jobz, const char* range, const char* uplo,
+               const int* n, double* a, const int* ia, const int* ja, 
+               const int* desca, double* vl, double* vu,
+               const int* il, const int* iu, double* abstol,
+               int* nfound, int* nz, double* w,
+               const double* orfac, double* z, const int* iz, const int* jz,
+               const int* descz, double* work, const int* lwork,
+               int* iwork, const int* liwork, int* ifail,
+               int* icluster, double* gap, int* info);
   void pzheev(const char* jobz, const char* uplo, const int* n, 
               complex<double>* a, const int* ia, const int* ja, 
               const int* desca, double* w, complex<double> *z,
@@ -2190,20 +2205,20 @@ void DoubleMatrix::syev(char uplo, valarray<double>& w, DoubleMatrix& z)
   {
     assert(m_==n_);
     char jobz = 'V';
-
 #ifdef SCALAPACK
     int ione=1;
     int lwork=-1;
-    double tmplwork;
+    double tmpwork;
     
     pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
-           z.val, &ione, &ione, z.desc_, &tmplwork, &lwork, &info);
-           
-    lwork = (int) tmplwork + 1;
+            z.val, &ione, &ione, z.desc_, &tmpwork, &lwork, 
+            &info);
+
+    lwork = (int) (tmpwork + 0.1);
     double* work=new double[lwork];
-    
     pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
-           z.val, &ione, &ione, z.desc_, work, &lwork, &info);
+            z.val, &ione, &ione, z.desc_, work, &lwork, 
+            &info);
            
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
 #else
@@ -2230,6 +2245,139 @@ void DoubleMatrix::syev(char uplo, valarray<double>& w, DoubleMatrix& z)
 #endif
     }
     delete[] work;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// compute eigenvalues and eigenvectors of *this
+// store eigenvalues in w, eigenvectors in z
+// using the divide and conquer algorithm of Tisseur and Dongarra
+void DoubleMatrix::syevd(char uplo, valarray<double>& w, DoubleMatrix& z)
+{
+  int info;
+  if ( active_ )
+  {
+    assert(m_==n_);
+    char jobz = 'V';
+#ifdef SCALAPACK
+    int ione=1;
+    int lwork=-1;
+    double tmpwork;
+    
+    int liwork=-1;
+    int tmpiwork;
+    
+    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
+            z.val, &ione, &ione, z.desc_, &tmpwork, &lwork, 
+            &tmpiwork, &liwork, &info);
+
+    lwork = (int) (tmpwork + 0.1);
+    double* work=new double[lwork];
+    liwork = tmpiwork;
+    int* iwork = new int[liwork];
+    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
+            z.val, &ione, &ione, z.desc_, work, &lwork, iwork, &liwork, &info);
+           
+    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+#else
+    int lwork=-1;
+    double tmplwork;
+    
+    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
+    
+    lwork = (int) tmplwork + 1;
+    double* work = new double[lwork];
+    
+    z = *this;
+    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
+#endif
+    if ( info != 0 )
+    {
+      cout << " Matrix::syev requires lwork>=" << work[0] << endl;
+      cout << " Matrix::syev, lwork>=" << lwork << endl;
+      cout << " Matrix::syev, info=" << info<< endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+    delete[] work;
+    delete[] iwork;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// compute eigenvalues and eigenvectors of *this
+// store eigenvalues in w, eigenvectors in z
+// using the expert driver
+void DoubleMatrix::syevx(char uplo, valarray<double>& w, DoubleMatrix& z,
+                         double abstol)
+{
+  int info;
+  if ( active_ )
+  {
+    assert(m_==n_);
+    char jobz = 'V';
+    char range = 'A';
+#ifdef SCALAPACK
+    int ione=1;
+    int lwork=-1;
+    double tmpwork;
+    
+    int liwork=-1;
+    int tmpiwork;
+    valarray<int> ifail(n_);
+    int nfound=-1;
+    int nz=-1;
+    int il=1, iu=n_;
+    double vl=0, vu=0;
+    double orfac=-1.0;
+    valarray<int> icluster(2*ctxt_.size());
+    valarray<double> gap(ctxt_.size());
+    
+    pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_, 
+            &vl, &vu, &il, &iu, &abstol, &nfound, &nz, &w[0],
+            &orfac, z.val, &ione, &ione, z.desc_, &tmpwork, &lwork, 
+            &tmpiwork, &liwork, &ifail[0], &icluster[0], &gap[0], &info);
+            
+    assert(info==0);
+
+    lwork = (int) (tmpwork + 0.1);
+    double* work=new double[lwork];
+    liwork = tmpiwork;
+    int* iwork = new int[liwork];
+    pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_, 
+            &vl, &vu, &il, &iu, &abstol, &nfound, &nz, &w[0],
+            &orfac, z.val, &ione, &ione, z.desc_, work, &lwork, 
+            iwork, &liwork, &ifail[0], &icluster[0], &gap[0], &info);
+           
+    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+#else
+    int lwork=-1;
+    double tmplwork;
+    
+    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
+    
+    lwork = (int) tmplwork + 1;
+    double* work = new double[lwork];
+    
+    z = *this;
+    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
+#endif
+    if ( info != 0 )
+    {
+      cout << " Matrix::syev requires lwork>=" << work[0] << endl;
+      cout << " Matrix::syev, lwork>=" << lwork << endl;
+      cout << " Matrix::syev, info=" << info<< endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+    delete[] work;
+    delete[] iwork;
   }
 }
 
@@ -2284,6 +2432,67 @@ void DoubleMatrix::syev(char uplo, valarray<double>& w)
 #endif
     }
     delete[] work;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// compute eigenvalues (only) of *this
+// store eigenvalues in w
+// using the divide and conquer method of Tisseur and Dongarra
+void DoubleMatrix::syevd(char uplo, valarray<double>& w)
+{
+  int info;
+  if ( active_ )
+  {
+    assert(m_==n_);
+    char jobz = 'N';
+
+#ifdef SCALAPACK
+    int ione=1;
+    int lwork=-1;
+    double tmpwork;
+    
+    int liwork=-1;
+    int tmpiwork;
+    double *zval = 0; // zval is not referenced since jobz == 'N'
+    int * descz = 0;
+    
+    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
+            zval, &ione, &ione, descz, &tmpwork, &lwork, 
+            &tmpiwork, &liwork, &info);
+
+    lwork = (int) (tmpwork + 0.1);
+    double* work=new double[lwork];
+    liwork = tmpiwork;
+    int* iwork = new int[liwork];
+    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
+            zval, &ione, &ione, descz, work, &lwork, iwork, &liwork, &info);
+           
+    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+#else
+    int lwork=-1;
+    double tmplwork;
+    
+    dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork, &info);
+    
+    lwork = (int) tmplwork + 1;
+    double* work = new double[lwork];
+    
+    dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork, &info);
+#endif
+    if ( info != 0 )
+    {
+      cout << " Matrix::syev requires lwork>=" << work[0] << endl;
+      cout << " Matrix::syev, lwork>=" << lwork << endl;
+      cout << " Matrix::syev, info=" << info<< endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+    delete[] work;
+    delete[] iwork;
   }
 }
 

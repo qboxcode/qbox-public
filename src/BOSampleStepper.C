@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.1 2003-11-21 20:01:06 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.2 2003-11-27 01:20:21 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -12,6 +12,7 @@
 #include "WavefunctionStepper.h"
 #include "SDWavefunctionStepper.h"
 #include "PSDWavefunctionStepper.h"
+#include "PSDAWavefunctionStepper.h"
 #include "SDIonicStepper.h"
 #include "MDIonicStepper.h"
 
@@ -38,7 +39,7 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
   atoms.get_velocities(vel);
   
   const double dt = s_.ctrl.dt;
-  double ekin_ion=0.0, temp_ion=0.0, eta;
+  const double dt_inv = 1.0 / dt;
   
   const string wf_dyn = s_.ctrl.wf_dyn;
   const string atoms_dyn = s_.ctrl.atoms_dyn;
@@ -47,12 +48,6 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
   const bool compute_forces = ( atoms_dyn != "LOCKED" );
   const bool compute_stress = ( s_.ctrl.stress == "ON" );
 
-  const bool ttherm = ( s_.ctrl.thermostat == "ON" );
-  const int ndofs = 3 * s_.atoms.size();
-  const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
-  const double th_temp = s_.ctrl.th_temp;
-  const double th_time = s_.ctrl.th_time;
-  
   Timer tm_iter;
   
   WavefunctionStepper* wf_stepper = 0;
@@ -60,6 +55,8 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
     wf_stepper = new SDWavefunctionStepper(s_,tmap);
   else if ( wf_dyn == "PSD" )
     wf_stepper = new PSDWavefunctionStepper(s_,tmap);
+  else if ( wf_dyn == "PSDA" )
+    wf_stepper = new PSDAWavefunctionStepper(s_,tmap);
   assert(wf_stepper!=0);
     
   IonicStepper* ionic_stepper = 0;
@@ -68,6 +65,16 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
   else if ( atoms_dyn == "MD" )
     ionic_stepper = new MDIonicStepper(s_);
   
+  // Allocate wavefunction velocity if not available
+  if ( atoms_dyn != "LOCKED" )
+  {
+    if ( s_.wfv == 0 )
+    {
+      s_.wfv = new Wavefunction(wf);
+      s_.wfv->clear();
+    }
+  }
+      
   for ( int iter = 0; iter < niter; iter++ )
   {
     // ionic iteration
@@ -77,65 +84,43 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
     if ( s_.ctxt_.onpe0() )
       cout << "  <iteration count=\"" << iter+1 << "\">\n";
  
-    // wavefunction extrapolation
-    if ( s_.wfv != 0 && atoms_dyn != "LOCKED" )
-    {
-      //wf_stepper->extrapolate(wf,wfv);
-    }
-
-    double energy;
-    // do nite-1 electronic steps without forces
-    if ( wf_stepper != 0 )
-    {
-      for ( int ite = 0; ite < nite_-1; ite++ )
-      {
-        energy = e.energy(true,dwf,false,fion,false,dcell);
- 
-        wf_stepper->update(dwf);
- 
-        if ( s_.ctxt_.onpe0() )
-        {
-          cout.setf(ios::fixed,ios::floatfield);
-          cout.setf(ios::right,ios::adjustfield);
-          cout << "  <ekin>   " << setprecision(8)
-               << setw(15) << e.ekin() << " </ekin>\n"
-               << "  <eps>    " << setw(15) << e.eps() << " </eps>\n"
-               << "  <enl>    " << setw(15) << e.enl() << " </enl>\n"
-               << "  <ecoul>  " << setw(15) << e.ecoul() << " </ecoul>\n"
-               << "  <exc>    " << setw(15) << e.exc() << " </exc>\n"
-               << "  <esr>    " << setw(15) << e.esr() << " </esr>\n"
-               << "  <eself>  " << setw(15) << e.eself() << " </eself>\n"
-               << "  <etotal> " << setw(15) << e.etotal() << " </etotal>\n"
-               << flush;
-        }
-      }
-    }
- 
-    // last electronic iteration
-    energy =
-      e.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,dcell);
-
-    if ( s_.ctxt_.onpe0() )
-    {
-      cout.setf(ios::fixed,ios::floatfield);
-      cout.setf(ios::right,ios::adjustfield);
-      cout << "  <ekin>   " << setprecision(8)
-           << setw(15) << e.ekin() << " </ekin>\n"
-           << "  <eps>    " << setw(15) << e.eps() << " </eps>\n"
-           << "  <enl>    " << setw(15) << e.enl() << " </enl>\n"
-           << "  <ecoul>  " << setw(15) << e.ecoul() << " </ecoul>\n"
-           << "  <exc>    " << setw(15) << e.exc() << " </exc>\n"
-           << "  <esr>    " << setw(15) << e.esr() << " </esr>\n"
-           << "  <eself>  " << setw(15) << e.eself() << " </eself>\n"
-           << "  <etotal> " << setw(15) << e.etotal() << " </etotal>\n"
-           << flush;
-    }
- 
-    // make ionic step
-    
     if ( compute_forces )
     {
-      if ( s_.wf.context().onpe0() )
+      // compute energy and ionic forces using existing wavefunction
+      double energy =
+        e.energy(false,dwf,compute_forces,fion,compute_stress,dcell);
+
+      if ( s_.ctxt_.onpe0() )
+      {
+        cout.setf(ios::fixed,ios::floatfield);
+        cout.setf(ios::right,ios::adjustfield);
+        cout << "  <ekin>   " << setprecision(8)
+             << setw(15) << e.ekin() << " </ekin>\n"
+             << "  <eps>    " << setw(15) << e.eps() << " </eps>\n"
+             << "  <enl>    " << setw(15) << e.enl() << " </enl>\n"
+             << "  <ecoul>  " << setw(15) << e.ecoul() << " </ecoul>\n"
+             << "  <exc>    " << setw(15) << e.exc() << " </exc>\n"
+             << "  <esr>    " << setw(15) << e.esr() << " </esr>\n"
+             << "  <eself>  " << setw(15) << e.eself() << " </eself>\n"
+             << "  <etotal> " << setw(15) << e.etotal() << " </etotal>\n"
+             << flush;
+      }
+ 
+      if ( iter == 0 )
+        ionic_stepper->preprocess(fion);
+        
+      // save a copy of atomic positions at time t0
+      vector<vector<double> > tau0tmp = ionic_stepper->tau0();
+      
+      ionic_stepper->update(fion);
+      
+      // ekin_ion is the kinetic energy at time t0
+      const double ekin_ion = ionic_stepper->ekin();
+      const double temp_ion = ionic_stepper->temp();
+        
+      // positions, velocities and forces at time t0 are now known
+      // print velocities and forces at time t0
+      if ( s_.ctxt_.onpe0() )
       {
         for ( int is = 0; is < atoms.atom_list.size(); is++ )
         {
@@ -150,30 +135,113 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
                  << ionic_stepper->tau0(is,i) << " "
                  << ionic_stepper->tau0(is,i+1) << " " 
                  << ionic_stepper->tau0(is,i+2) << " </position>\n"
-                 << "    <force> " << fion[is][i] << " "
-                 << fion[is][i+1] << " " << fion[is][i+2]
+                 << "    <velocity> " 
+                 << ionic_stepper->vel(is,i) << " "
+                 << ionic_stepper->vel(is,i+1) << " " 
+                 << ionic_stepper->vel(is,i+2) << " </velocity>\n"
+                 << "    <force> " 
+                 << fion[is][i] << " "
+                 << fion[is][i+1] << " " 
+                 << fion[is][i+2]
                  << " </force>\n  </atom>" << endl;
  
             i += 3;
           }
         }
+        cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
+        cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
+        cout << "  <temp_ion> " << ionic_stepper->temp() << " </temp_ion>\n";
       }
- 
-      if ( iter == 0 )
-        ionic_stepper->preprocess(fion);
- 
-      ionic_stepper->update(fion);
-      ekin_ion = ionic_stepper->ekin();
- 
-      if ( iter == niter-1 )
-        ionic_stepper->postprocess(fion);
-        
+      
       e.atoms_moved();
     }
-
-    if ( s_.ctxt_.onpe0() )
+    
+    // wavefunction extrapolation
+    if ( compute_forces )
     {
-      cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
+      // extrapolate wavefunctions
+      // s_.wfv contains the wavefunction velocity
+      for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+      {
+        for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+        {
+          if ( s_.wf.sd(ispin,ikp) != 0 )
+          {
+            if ( s_.wf.sdcontext(ispin,ikp)->active() )
+            {
+              if ( iter == 0 )
+              {
+                // extrapolation using the wavefunction velocity
+                // v = c (save current c in v)
+                // c = c + dt * v
+                double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
+                double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+                const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
+                const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+                for ( int i = 0; i < 2*mloc*nloc; i++ )
+                {
+                  const double x = c[i];
+                  const double v = cv[i];
+                  c[i] = x + dt * v;
+                  cv[i] = x;
+                }
+                tmap["gram"].start();
+                s_.wf.sd(ispin,ikp)->gram();
+                tmap["gram"].stop();
+              }
+              else
+              {
+                // extrapolation using the previous wavefunction
+                // cm is stored in wfv
+                double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
+                double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+                const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
+                const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+                for ( int i = 0; i < 2*mloc*nloc; i++ )
+                {
+                  const double x = c[i];
+                  const double xm = cv[i];
+                  c[i] = 2.0 * x - xm;
+                  cv[i] = x;
+                }
+                tmap["riccati"].start();
+                s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));
+                tmap["riccati"].stop();
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // do nite electronic steps without forces
+    if ( wf_stepper != 0 )
+    {
+      wf_stepper->preprocess();
+      for ( int ite = 0; ite < nite_; ite++ )
+      {
+        // at the last nite iteration, compute ionic forces for the last
+        double energy = e.energy(true,dwf,false,fion,false,dcell);
+ 
+        wf_stepper->update(dwf);
+ 
+        if ( s_.ctxt_.onpe0() )
+        {
+          cout.setf(ios::fixed,ios::floatfield);
+          cout.setf(ios::right,ios::adjustfield);
+          cout << "  <ekin>   " << setprecision(8)
+               << setw(15) << e.ekin() << " </ekin>\n"
+               << "  <eps_int>    " << setw(15) << e.eps() << " </eps_int>\n"
+               << "  <enl_int>    " << setw(15) << e.enl() << " </enl_int>\n"
+               << "  <ecoul_int>  " << setw(15) << e.ecoul() << " </ecoul_int>\n"
+               << "  <exc_int>    " << setw(15) << e.exc() << " </exc_int>\n"
+               << "  <esr_int>    " << setw(15) << e.esr() << " </esr_int>\n"
+               << "  <eself_int>  " << setw(15) << e.eself() << " </eself_int>\n"
+               << "  <etotal_int> " << setw(15) << e.etotal() << " </etotal_int>\n"
+               << flush;
+        }
+      }
+      wf_stepper->postprocess();
     }
  
     // print iteration time
@@ -191,4 +259,49 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
       cout << "  </iteration>" << endl;
     }
   } // for iter
+  
+  if ( compute_forces )
+  {
+    // compute wavefunction velocity after last iteration
+    // s_.wfv contains the previous wavefunction
+    for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+    {
+      for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+      {
+        if ( s_.wf.sd(ispin,ikp) != 0 )
+        {
+          if ( s_.wf.sdcontext(ispin,ikp)->active() )
+          {
+            double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
+            double* cm = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+            const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
+            const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+            for ( int i = 0; i < 2*mloc*nloc; i++ )
+            {
+              const double x = c[i];
+              const double xm = cm[i];
+              cm[i] = dt_inv * ( x - xm );
+            }
+            tmap["gram"].start();
+            s_.wf.sd(ispin,ikp)->gram();
+            tmap["gram"].stop();
+          }
+        }
+      }
+    }
+    
+    // compute ionic forces at last position for postprocessing of ionic
+    // positions (Stoermer end step)
+    double energy = 
+      e.energy(false,dwf,compute_forces,fion,compute_stress,dcell); 
+    ionic_stepper->postprocess(fion);
+  }
+  else
+  {
+    // delete wavefunction velocities
+    if ( s_.wfv != 0 )
+      delete s_.wfv;
+    s_.wfv = 0;
+  }
+
 }

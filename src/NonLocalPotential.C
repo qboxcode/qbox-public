@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.16 2005-01-04 22:05:24 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.17 2005-01-10 22:36:08 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
@@ -1053,7 +1053,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
         tmap["fnl_allreduce"].start();                                       
         // Allreduce fnl partial sum                                         
         MPI_Comm basis_comm = basis_.context().comm();                       
-        double fnl_size = nprnaloc*nstloc;                                   
+        int fnl_size = nprnaloc*nstloc;                                   
         MPI_Allreduce(&fnl_loc[0],&fnl_buf[0],fnl_size,                      
                       MPI_DOUBLE,MPI_SUM,basis_comm);                        
         tmap["fnl_allreduce"].stop();                                        

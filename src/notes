@@ -7,6 +7,9 @@ preferrable to use a single-column context when nst is small to avoid
 memory problems.
 
 --------------------------------------------------------------------------------
+rel1_23_3
+NonLocalPotential.C: fixed bug: double fnl_size should be int fnl_size.
+--------------------------------------------------------------------------------
 rel1_23_2
 FourierTransform.C: Fixed bug #39: When unit cells are non-orthogonal, the
 transforms along x are not done correctly. Bounds including all non-zero 
@@ -24,7 +27,7 @@ New implementation of NonLocalPotential::energy, recomputing anl array at
 every call.
 Modified IonicStepper to make ekin and temp virtual. Implemented only in 
 MDIonicStepper.
--------------------------------------------------------------------------------- rel1_23_0 Added SDA algorithm for atoms dynamics: Anderson acceleration of SD.  New implementation of NonLocalPotential::energy, recomputing anl array at every call.  Modified IonicStepper to make ekin and temp virtual. Implemented only in MDIonicStepper.  -------------------------------------------------------------------------------- rel1_22_0 BOSampleStepper.C: new implementation of Kerker-Anderson charge mixing.  new variables charge_mix_rcut and charge_mix_coeff introduced: determine
+--------------------------------------------------------------------------------
 rel1_22_0
 BOSampleStepper.C: new implementation of Kerker-Anderson charge mixing.
 new variables charge_mix_rcut and charge_mix_coeff introduced: determine

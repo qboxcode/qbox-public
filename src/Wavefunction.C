@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.19 2004-12-02 22:19:52 fgygi Exp $
+// $Id: Wavefunction.C,v 1.20 2005-02-04 21:58:59 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -607,6 +607,7 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
             {
               DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
               h.syev('l',w,z);
+              //h.syevx('l',w,z,1.e-6);
               cp = c;
               c.gemm('n','n',1.0,cp,z,0.0);
             }

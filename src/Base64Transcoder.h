@@ -3,7 +3,7 @@
 // Base64Transcoder.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $ Id: $
+// $Id: Base64Transcoder.h,v 1.3 2004-12-08 19:02:10 fgygi Exp $
 
 #ifndef BASE64TRANSCODER_H
 #define BASE64TRANSCODER_H
@@ -16,7 +16,7 @@ typedef unsigned char byte;
 
 class Base64Transcoder
 {
-  char etable[64]; // encode table
+  char etable[64];  // encode table
   byte dtable[256]; // decode table
 
   public:

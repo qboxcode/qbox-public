@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.17 2004-12-02 22:23:55 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.18 2004-12-08 19:01:20 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -14,6 +14,7 @@
 #include "PSDWavefunctionStepper.h"
 #include "PSDAWavefunctionStepper.h"
 #include "SDIonicStepper.h"
+#include "SDAIonicStepper.h"
 #include "MDIonicStepper.h"
 #include "SDCellStepper.h"
 #include "Preconditioner.h"
@@ -101,6 +102,8 @@ void BOSampleStepper::step(int niter)
   IonicStepper* ionic_stepper = 0;
   if ( atoms_dyn == "SD" )
     ionic_stepper = new SDIonicStepper(s_);
+  else if ( atoms_dyn == "SDA" )
+    ionic_stepper = new SDAIonicStepper(s_);
   else if ( atoms_dyn == "MD" )
     ionic_stepper = new MDIonicStepper(s_);
     
@@ -416,7 +419,7 @@ void BOSampleStepper::step(int niter)
       vector<complex<double> > rhog_last(rhog_current);
       vector<complex<double> > drhog(rhog_current.size());
       vector<complex<double> > drhog_bar(rhog_current.size());
-      AndersonMixer mixer(2*rhog_current.size(),cd_.vcontext());
+      AndersonMixer mixer(2*rhog_current.size(),&cd_.vcontext());
       mixer.set_theta_max(2.0);
       
       for ( int itscf = 0; itscf < nitscf_; itscf++ )

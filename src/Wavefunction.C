@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.14 2004-04-08 15:44:11 fgygi Exp $
+// $Id: Wavefunction.C,v 1.15 2004-05-20 00:17:54 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -716,6 +716,7 @@ void Wavefunction::print(ostream& os, string encoding, string tag)
        << " nspin=\"" << nspin_ << "\""
        << " nel=\"" << nel_ << "\""
        << " nempty=\"" << nempty_ << "\">" << endl;
+    os << setprecision(10);
     os << "<domain a=\""
        << cell_.a(0) << "\"\n        b=\""
        << cell_.a(1) << "\"\n        c=\""
@@ -746,6 +747,7 @@ void Wavefunction::write(FILE* outfile, string encoding, string tag)
        << " nspin=\"" << nspin_ << "\""
        << " nel=\"" << nel_ << "\""
        << " nempty=\"" << nempty_ << "\">" << endl;
+    os << setprecision(10);
     os << "<domain a=\""
        << cell_.a(0) << "\"\n        b=\""
        << cell_.a(1) << "\"\n        c=\""

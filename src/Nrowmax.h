@@ -3,7 +3,7 @@
 // Nrowmax.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Nrowmax.h,v 1.1 2003-01-25 01:23:31 fgygi Exp $
+// $Id: Nrowmax.h,v 1.2 2004-10-15 18:06:46 fgygi Exp $
 
 #ifndef NROWMAX_H
 #define NROWMAX_H
@@ -41,6 +41,12 @@ class Nrowmax : public Var
     }
 
     s->wf.set_nrowmax(v);
+    s->wf.update_occ(0.0);
+    if ( s->wfv != 0 )
+    {
+      s->wfv->set_nrowmax(v);
+      s->wfv->clear();
+    }
     
     return 0;
   }

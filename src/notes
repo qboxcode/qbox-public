@@ -48,9 +48,18 @@ determine library search path, even if makefile specifies another path.
 Created a libxerces-c.a using objects in $XERCESCDIR/lib and linked statically.
 This will avoid the problem of needing libxerces-c.so when using qbox.
 --------------------------------------------------------------------------------
+rel1_14_3
+Fixed calculation of ekin_e in MDWavefunctionStepper.C
+--------------------------------------------------------------------------------
 rel1_14_2
 Fixed Thermostat in MDIonicStepper.C
 Fixed use of ionic velocities at first step in CPSampleStepper.C
+Known bug:
+Calculation of ekin_e in MDWavefunctionStepper.C at the first iteration uses
+the wf velocity at t=0. This is second order accurate, but not consistent with
+the calculation of ekin_e in subsequent steps, which introduces a small error
+in the printed ekin_e at the first iteration. Ekin_e should be calculated using
+a first-order expression, i.e. (wf0-wfm)/dt to be consistent.
 --------------------------------------------------------------------------------
 rel1_14_1a
 SlaterDet.C: Removed messages from resize about cell being enclosed by ref_cell.

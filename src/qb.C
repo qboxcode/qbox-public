@@ -3,9 +3,8 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.37 2004-05-06 20:41:36 fgygi Exp $
+// $Id: qb.C,v 1.38 2004-05-20 00:23:44 fgygi Exp $
 
-const char* const release = "1.15.1";
 const char* const xmlns_url = "http://www.llnl.gov/casc/fpmd/qbox/1.0";
 
 #include <iostream>
@@ -14,11 +13,13 @@ using namespace std;
 
 #include <sys/utsname.h>
 #include <unistd.h>
-#include <ctime>
 #include <cstdlib>
 #if AIX || OSF1
 #include<filehdr.h>
 #endif
+
+#include "isodate.h"
+#include "release.h"
 
 #include "Context.h"
 #include "UserInterface.h"
@@ -63,17 +64,6 @@ using namespace std;
 #include "WfDyn.h"
 #include "Xc.h"
 
-string isodate(void)
-{
-  const time_t t = time(NULL);
-  struct tm* tms = gmtime(&t);
-  char s[32];
-  const char* fmt = "%Y-%m-%dT%TZ";
-  strftime(s,32,fmt,tms);
-  string st(s);
-  return st;
-}
-
 int main(int argc, char **argv, char **envp)
 {
   Timer tm;
@@ -92,7 +82,7 @@ int main(int argc, char **argv, char **envp)
   cout << "<!--\n\n";
   cout << "                   ===========================\n";
   cout << "                   I qbox " 
-       << setw(17) << left << release << "  I\n";
+       << setw(17) << left << release() << "  I\n";
   cout << "                   I                         I\n";
   cout << "                   I                         I\n";
   cout << "                   I                         I\n";
@@ -109,7 +99,7 @@ int main(int argc, char **argv, char **envp)
   cout << "                   ===========================\n\n";
   cout << "-->\n";
   cout << "<qbox:simulation xmlns:qbox=\"" << xmlns_url << "\">" << endl;
-  cout << "<release> " << release << " " << TARGET << " </release>" << endl;
+  cout << "<release> " << release() << " " << TARGET << " </release>" << endl;
 
   // Identify executable name, checksum, size and link date
   if ( getlogin() != 0 ) 

@@ -3,7 +3,9 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.8 2003-08-22 18:01:13 fgygi Exp $
+// $Id: FourierTransform.C,v 1.9 2003-11-20 20:27:50 fgygi Exp $
+
+// The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
 #include "FourierTransform.h"
 #include "Basis.h"
@@ -23,28 +25,12 @@ using namespace std;
 typedef int MPI_Comm;
 #endif
 
-#if FFTW
+#if USE_FFTW
 #include "fftw.h"
 extern "C" {
   void zdscal_(int *,double *,complex<double> *,int *);
 }
-#endif
-
-#if LINUX
-#elif SG || IRIX64
-  void zfft3di_(int *,int *,int *,complex<double> *);
-  void zfft3d_(int *,int *,int *,int *,complex<double> *,int *,int *,complex *);
-  void zscal3d_(int *,int *,int *,double *,complex<double> *,int *,int *);
-#elif OSF1
-// definitions of fft functions are included 
-// from <dxmldef.h> in FourierTransform.h
-extern "C" {
-//  int zfft_init_3d_(int *,int *,int *,DXML_Z_FFT_STRUCTURE_3D *,int *);
-//  int zfft_apply_3d_ (char *,char *,char *,complex<double> *,
-//  complex<double> *,int *,int *,DXML_Z_FFT_STRUCTURE_3D *,int *,int *,int *);
-//  void zdscal_(int *,double *,complex<double> *,int *);
-}
-#elif AIX
+#elif USE_ESSL
 extern "C" {
   void dcft_(int *initflag, complex<double> *x, int *inc2x, int *inc3x,
             complex<double> *y, int *inc2y, int *inc3y,
@@ -59,6 +45,7 @@ extern "C" {
 #define USE_GATHER_SCATTER 1
 }
 #else
+#define NO_FFT_LIB 1
 void cfftm ( complex<double> *ain, complex<double> *aout, double scale, 
   int ntrans, int length, int ainc, int ajmp, int idir );
 #endif
@@ -75,20 +62,13 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
 FourierTransform::~FourierTransform()
 {
-#if  AIX
-#elif OSF1
-  {
-    free(fft_struct);
-  }
-#elif LINUX
+#if USE_FFTW
   fftw_destroy_plan(fwplan0);
   fftw_destroy_plan(fwplan1);
   fftw_destroy_plan(fwplan2);
   fftw_destroy_plan(bwplan0);
   fftw_destroy_plan(bwplan1);
   fftw_destroy_plan(bwplan2);
-#else
-  // no library
 #endif
 }
 
@@ -522,16 +502,14 @@ void FourierTransform::bwd(complex<double>* val)
   t_fft.start();
 #endif
 
-#if AIX
+#if USE_ESSL
   int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = -1, initflag = 0;
   double scale = 1.0;
   
   dcft_(&initflag,&zvec_[0],&inc1,&inc2,&zvec_[0],&inc1,&inc2,&np2_,&ntrans,
        &isign,&scale,&aux1zb[0],&naux1z,&aux2[0],&naux2);
 
-#elif OSF1
-#error FourierTransform::backward NOT IMPLEMENTED
-#elif LINUX
+#elif USE_FFTW
    /* 
     * void fftw(fftw_plan plan, int howmany,
     *    FFTW_COMPLEX *in, int istride, int idist,
@@ -545,7 +523,15 @@ void FourierTransform::bwd(complex<double>* val)
   fftw(bwplan2,ntrans,(FFTW_COMPLEX*)&zvec_[0],inc1,inc2,
                       (FFTW_COMPLEX*)0,0,0);
 #else
-#error FourierTransform::backward NOT IMPLEMENTED
+  // No library
+  /* Transform along z */
+  int ntrans = nvec_;
+  int length = np2_;
+  int ainc   = 1;
+  int ajmp   = np2_;
+  double scale = 1.0;
+  int idir = -1;
+  cfftm ( &zvec_[0], &zvec_[0], scale, ntrans, length, ainc, ajmp, idir );
 #endif
   
 #if TIMING
@@ -656,8 +642,8 @@ void FourierTransform::bwd(complex<double>* val)
   {
     // transform along x for non-zero vectors only
     // transform along x for y in [0,imax1] and y in [np1-imax1-1, np1-1]
-#if AIX
-#if AIX_USE_2DFFT
+#if USE_ESSL
+#if USE_ESSL_2DFFT
 
   // use 2D FFT for x and y transforms
   int inc1, inc2, istart, isign = -1, initflag = 0;
@@ -708,9 +694,7 @@ void FourierTransform::bwd(complex<double>* val)
   dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
        &length,&ntrans,&isign,&scale,&aux1yb[0],&naux1y,&aux2[0],&naux2);
 #endif  
-#elif OSF1
-#error FourierTransform::backward not implemented
-#elif LINUX
+#elif USE_FFTW
     int ntrans, inc1, inc2, istart;
     int imax1 = basis_.idxmax(1);
 
@@ -735,9 +719,32 @@ void FourierTransform::bwd(complex<double>* val)
     fftw(bwplan1,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
 #else
-#error FourierTransform::backward not implemented
+    // No library
+    // transform along x for non-zero elements
+    int imax1 = basis_.idxmax(1);
+    int ntrans = imax1+1;
+    int istart = k * np0_ * np1_;
+    int length = np0_;
+    int ainc   = 1;
+    int ajmp   = np0_;
+    double scale = 1.0;
+    int idir = -1;
+    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
+ 
+    ntrans = imax1;
+    istart = np0_ * ( (np1_-imax1) + k * np1_ );
+    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
+ 
+    // transform along y for all values of x
+    ntrans = np0_;
+    istart = k * np0_ * np1_;
+    length = np1_;
+    ainc = np0_;
+    ajmp = 1;
+    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
+
 #endif
-  }
+  } // for k
   
 #if TIMING
   t_fft.stop();
@@ -757,8 +764,8 @@ void FourierTransform::fwd(complex<double>* val)
   {
     // transform along x for non-zero vectors only
     // transform along x for y in [0,imax1] and y in [np1-imax1-1, np1-1]
-#if AIX
-#if AIX_USE_2DFFT
+#if USE_ESSL
+#if USE_ESSL_2DFFT
 
     // use 2D FFT for x and y transforms
     int inc1, inc2, istart, isign = 1, initflag = 0;
@@ -809,9 +816,7 @@ void FourierTransform::fwd(complex<double>* val)
     dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
          &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
 #endif  
-#elif OSF1
-#error FourierTransform::forward not implemented
-#elif LINUX
+#elif USE_FFTW
     int ntrans, inc1, inc2, istart;
     int imax1 = basis_.idxmax(1);
 
@@ -838,9 +843,31 @@ void FourierTransform::fwd(complex<double>* val)
                         (FFTW_COMPLEX*)0,0,0);
                         
 #else
-#error FourierTransform::forward not implemented
+    // No library
+    // transform along y for all values of x
+    int imax1 = basis_.idxmax(1);
+    int ntrans = np0_;
+    int istart = k * np0_ * np1_;
+    int length = np1_;
+    int ainc = np0_;
+    int ajmp = 1;
+    double scale = 1.0;
+    int idir = 1;
+    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
+ 
+    // transform along x for non-zero elements
+    ntrans = imax1+1;
+    istart = k * np0_ * np1_;
+    length = np0_;
+    ainc   = 1;
+    ajmp   = np0_;
+    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
+ 
+    ntrans = imax1;
+    istart = np0_ * ( (np1_-imax1) + k * np1_ );
+    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
 #endif
-  }
+  } // for k
   
   // gather val into rbuf
 
@@ -908,16 +935,14 @@ void FourierTransform::fwd(complex<double>* val)
 
   // transform along z
   
-#if AIX
+#if USE_ESSL
   int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = 1, initflag = 0;
   double scale = 1.0 / (np0_ * np1_ * np2_);
   
   dcft_(&initflag,&zvec_[0],&inc1,&inc2,&zvec_[0],&inc1,&inc2,&np2_,&ntrans,
         &isign,&scale,&aux1zf[0],&naux1z,&aux2[0],&naux2);
        
-#elif OSF1
-#error FourierTransform::forward NOT IMPLEMENTED
-#elif LINUX
+#elif USE_FFTW
  /*
   * void fftw(fftw_plan plan, int howmany,
   *    FFTW_COMPLEX *in, int istride, int idist,
@@ -934,7 +959,15 @@ void FourierTransform::fwd(complex<double>* val)
   double fac = 1.0 / ( np0_ * np1_ * np2_ );
   zdscal_(&len,&fac,&zvec_[0],&inc1);
 #else
-#error FourierTransform::forward NOT IMPLEMENTED
+  // No library
+  /* Transform along z */
+  int ntrans = nvec_;
+  int length = np2_;
+  int ainc   = 1;
+  int ajmp   = np2_;
+  double scale = 1.0 / ( np0_ * np1_ * np2_ );
+  int idir = 1;
+  cfftm ( &zvec_[0], &zvec_[0], scale, ntrans, length, ainc, ajmp, idir );
 #endif
   
 }
@@ -944,8 +977,8 @@ void FourierTransform::init_lib(void)
 {
   // initialization of FFT libs
 
-#if AIX
-#if AIX_USE_2DFFT  
+#if USE_ESSL
+#if USE_ESSL_2DFFT  
   // use 2D FFT for x and y transforms and 1D FFT for z transforms
   naux1xy = 40000 + 2.28 * (np0_+np1_);
   aux1xyf.resize(naux1xy);
@@ -1042,9 +1075,8 @@ void FourierTransform::init_lib(void)
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np2_,&ntrans,
         &isign,&scale,&aux1zf[0],&naux1z,&aux2[0],&naux2);
 
- #endif
-#elif OSF1
-#elif LINUX
+#endif
+#elif USE_FFTW
 
 #if FFTWMEASURE
   // FFTWMEASURE
@@ -1195,7 +1227,7 @@ void FourierTransform::zvec_to_doublevector(complex<double> *c1,
 }
 
 
-#if 0
+#if NO_FFT_LIB
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -1358,7 +1390,7 @@ void fftstp ( int idir, complex<double> *zin, int after,
   static const double twopi = 2 * 3.141592653589793;
   double angle;
   complex<double> omega;
-  complex<double> arg,value,tmp;
+  complex<double> arg,value;
   int ia,ib,j,k,l,in;
 
   angle = twopi/(now*after);

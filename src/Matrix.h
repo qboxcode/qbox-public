@@ -3,7 +3,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.10 2004-04-17 01:16:40 fgygi Exp $
+// $Id: Matrix.h,v 1.11 2005-02-04 21:59:30 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -241,6 +241,22 @@ class DoubleMatrix
     
     // compute eigenvalues (only) of symmetric matrix *this
     void syev(char uplo, valarray<double>& w);
+
+    // compute eigenvalues and eigenvectors of symmetric matrix *this
+    // using the divide and conquer method of Tisseur and Dongarra
+    void syevd(char uplo, valarray<double>& w, DoubleMatrix& z);
+    
+    // compute eigenvalues (only) of symmetric matrix *this
+    // using the divide and conquer method of Tisseur and Dongarra
+    void syevd(char uplo, valarray<double>& w);
+
+    // compute eigenvalues and eigenvectors of symmetric matrix *this
+    // using the expert driver
+    void syevx(char uplo, valarray<double>& w, DoubleMatrix& z, double abstol);
+    
+    // compute eigenvalues (only) of symmetric matrix *this
+    // using the divide and conquer method of Tisseur and Dongarra
+    //void syevx(char uplo, valarray<double>& w);
 };
 ostream& operator << ( ostream& os, const DoubleMatrix& a );
 

@@ -3,14 +3,10 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.9 2004-02-04 19:55:16 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.10 2004-05-06 20:41:11 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
-void gauleg(const double x1,const double x2,double *x,double *w,const int n);
-void gaujac(double x1, double x2, double *x, double *w, int n, 
-  double alf, double bet);
-double gammln(double xx);
 
 #if AIX
 extern "C" void vsincos(double *x, double *y, double *z, int *n);
@@ -117,14 +113,12 @@ void NonLocalPotential::init(void)
       
       enum quadrature_rule_type { TRAPEZOID, MODIF_TRAPEZOID, 
       TRAPEZOID_WITH_RIGHT_ENDPOINT, 
-      SIMPSON, GAUSS_LEGENDRE, GAUSS_JACOBI };
+      SIMPSON };
       
       const quadrature_rule_type quad_rule = TRAPEZOID;
       //const quadrature_rule_type quad_rule = MODIF_TRAPEZOID;
       //const quadrature_rule_type quad_rule = TRAPEZOID_WITH_RIGHT_ENDPOINT;
       //const quadrature_rule_type quad_rule = SIMPSON;
-      //const quadrature_rule_type quad_rule = GAUSS_LEGENDRE;
-      //const quadrature_rule_type quad_rule = GAUSS_JACOBI;
 
       if ( quad_rule == TRAPEZOID )
       {
@@ -184,23 +178,6 @@ void NonLocalPotential::init(void)
             wquad[is][iquad] = h * 4.0 / 3.0;
         }
         //cout << " NonLocalPotential::init: Simpson rule" << endl;
-      }
-      else if ( quad_rule == GAUSS_LEGENDRE )
-      {
-        // Generate Gauss-Legendre abscissae and weights
-        gauleg(0.0,s->rquad(),&rquad[is][0],&wquad[is][0],nquad[is]);
-        //cout << " NonLocalPotential::init: Gauss-Legendre quadrature" << endl;
-      }
-      else if ( quad_rule == GAUSS_JACOBI )
-      {
-        // Generate Gauss-Jacobi abscissae and weights
-        // int (1-x)^alpha (1+x)^beta f(x)
-        const double alpha = 0.0;
-        const double beta = 1.0;
-        gaujac(0.0,s->rquad(),&rquad[is][0],&wquad[is][0],nquad[is],
-               alpha, beta);
-        //cout << " NonLocalPotential::init: Gauss-Jacobi quadrature" << endl;
-        //cout << " alpha = " << alpha << " beta = " << beta << endl;
       }
       else
       {
@@ -384,8 +361,6 @@ void NonLocalPotential::update_twnl(void)
         }
         else if ( l == 1 )
         {
-  //!! l=1 stress not implemented
-  assert(false);
           if ( nquad[is] == 0 )
           {
             // Kleinman-Bylander
@@ -400,6 +375,9 @@ void NonLocalPotential::update_twnl(void)
             double *t2 = &twnl[is][ngwl*ipr2];
             double *t3 = &twnl[is][ngwl*ipr3];
             
+#if 0
+  //!! Note: l=1 stress not implemented
+  //!! assert statement in energy calculation
             // dtwnl[is][ipr][j][ngwl]
             // index = ig + ngwl * ( j + 3 * ipr )
             double *dt1_x = &dtwnl[is][ngwl*(0+3*ipr1)];
@@ -413,7 +391,7 @@ void NonLocalPotential::update_twnl(void)
             double *dt3_x = &dtwnl[is][ngwl*(0+3*ipr3)];
             double *dt3_y = &dtwnl[is][ngwl*(1+3*ipr3)];
             double *dt3_z = &dtwnl[is][ngwl*(2+3*ipr3)];
-            
+#endif            
             for ( int ig = 0; ig < ngwl; ig++ )
             {
               double v,dv;
@@ -437,6 +415,8 @@ void NonLocalPotential::update_twnl(void)
               t2[ig]  = y2 * v;
               t3[ig]  = y3 * v;
 
+#if 0
+  //!! Note: l=1 stress not implemented
               // dylm/dx, dylm/dy, c * dylm/dz
               const double dy1_x = s34pi * tgi * ( 1.0 - tgx2 * tgi2 );
               const double dy1_y = s34pi * tgi * ( - tgx * tgy * tgi2 );
@@ -461,6 +441,7 @@ void NonLocalPotential::update_twnl(void)
               dt3_x[ig] = - ( v * tgx * dy3_x + y3 * tgx2 * tgi * dv );
               dt3_y[ig] = - ( v * tgy * dy3_y + y3 * tgy2 * tgi * dv );
               dt3_z[ig] = - ( v * tgz * dy3_z + y3 * tgz2 * tgi * dv );
+#endif            
             }
           }
           else
@@ -477,6 +458,8 @@ void NonLocalPotential::update_twnl(void)
               double *t2 = &twnl[is][ngwl*ipr2];
               double *t3 = &twnl[is][ngwl*ipr3];
             
+#if 0
+  //!! Note: l=1 stress not implemented
               // dtwnl[is][ipr][j][ngwl]
               // index = ig + ngwl * ( j + 3 * ( iquad + nquad[is] * ilm ))
               double *dt1_x = &dtwnl[is][ngwl*(0+3*ipr1)];
@@ -490,6 +473,7 @@ void NonLocalPotential::update_twnl(void)
               double *dt3_x = &dtwnl[is][ngwl*(0+3*ipr3)];
               double *dt3_y = &dtwnl[is][ngwl*(1+3*ipr3)];
               double *dt3_z = &dtwnl[is][ngwl*(2+3*ipr3)];
+#endif            
             
               const double r = rquad[is][iquad];
               for ( int ig = 0; ig < ngwl; ig++ )
@@ -530,6 +514,8 @@ void NonLocalPotential::update_twnl(void)
                 t2[ig]  = y2 * v;
                 t3[ig]  = y3 * v;
 
+#if 0
+  //!! Note: l=1 stress not implemented
                 // dylm/dx, dylm/dy, c * dylm/dz
                 const double dy1_x = s34pi * tgi * ( 1.0 - tgx2 * tgi2 );
                 const double dy1_y = s34pi * tgi * ( - tgx * tgy * tgi2 );
@@ -554,6 +540,7 @@ void NonLocalPotential::update_twnl(void)
                 dt3_x[ig] = - ( v * tgx * dy3_x + y3 * tgx2 * tgi * dv );
                 dt3_y[ig] = - ( v * tgy * dy3_y + y3 * tgy2 * tgi * dv );
                 dt3_z[ig] = - ( v * tgz * dy3_z + y3 * tgz2 * tgi * dv );
+#endif
               } // ig
             }
           }
@@ -561,8 +548,6 @@ void NonLocalPotential::update_twnl(void)
         }
         else if ( l == 2 )
         {
-  //!! l=2 stress not implemented
-  assert(false);
           if ( nquad[is] == 0 )
           {
             // Kleinman-Bylander
@@ -578,6 +563,8 @@ void NonLocalPotential::update_twnl(void)
             double *t7 = &twnl[is][ngwl*ipr7];
             double *t8 = &twnl[is][ngwl*ipr8];
             
+#if 0
+  //!! l=2 stress not implemented
             // dtwnl[is][ipr][j][ngwl]
             // index = ig + ngwl * ( j + 3 * ipr )
             double *dt4_x = &dtwnl[is][ngwl*(0+3*ipr4)];
@@ -599,7 +586,7 @@ void NonLocalPotential::update_twnl(void)
             double *dt8_x = &dtwnl[is][ngwl*(0+3*ipr8)];
             double *dt8_y = &dtwnl[is][ngwl*(1+3*ipr8)];
             double *dt8_z = &dtwnl[is][ngwl*(2+3*ipr8)];
-            
+#endif            
             for ( int ig = 0; ig < ngwl; ig++ )
             {
               double v,dv;
@@ -625,6 +612,14 @@ void NonLocalPotential::update_twnl(void)
               const double y7 = s3 * tgy * tgz * yfac;
               const double y8 = s3 * tgz * tgx * yfac;
               
+              t4[ig]  = y4 * v;
+              t5[ig]  = y5 * v;
+              t6[ig]  = y6 * v;
+              t7[ig]  = y7 * v;
+              t8[ig]  = y8 * v;
+
+#if 0
+  //!! l=2 stress not implemented
               // dylm/dx, dylm/dy, c * dylm/dz
               
               const double tgi4 = tgi2 * tgi2;
@@ -654,12 +649,6 @@ void NonLocalPotential::update_twnl(void)
               const double dy8_y = - s54pi *s3 * tgy * 2 * tgz * tgx * tgi4;
               const double dy8_z = - s54pi *s3 * tgx * ( 2 * tgz2 - tg2 ) * tgi4;
               
-              t4[ig]  = y4 * v;
-              t5[ig]  = y5 * v;
-              t6[ig]  = y6 * v;
-              t7[ig]  = y7 * v;
-              t8[ig]  = y8 * v;
-
               dt4_x[ig] = - ( v * tgx * dy4_x + y4 * tgx2 * tgi * dv );
               dt4_y[ig] = - ( v * tgy * dy4_y + y4 * tgy2 * tgi * dv );
               dt4_z[ig] = - ( v * tgz * dy4_z + y4 * tgz2 * tgi * dv );
@@ -679,6 +668,7 @@ void NonLocalPotential::update_twnl(void)
               dt8_x[ig] = - ( v * tgx * dy8_x + y8 * tgx2 * tgi * dv );
               dt8_y[ig] = - ( v * tgy * dy8_y + y8 * tgy2 * tgi * dv );
               dt8_z[ig] = - ( v * tgz * dy8_z + y8 * tgz2 * tgi * dv );
+#endif            
             }
           }
           else
@@ -701,6 +691,8 @@ void NonLocalPotential::update_twnl(void)
               double *t7 = &twnl[is][ngwl*ipr7];
               double *t8 = &twnl[is][ngwl*ipr8];
 
+#if 0
+  //!! l=2 stress not implemented
               // dtwnl[is][ipr][j][ngwl]
               // index = ig + ngwl * ( j + 3 * ( iquad + nquad[is] * ipr ))
               double *dt4_x = &dtwnl[is][ngwl*(0+3*ipr4)];
@@ -722,7 +714,7 @@ void NonLocalPotential::update_twnl(void)
               double *dt8_x = &dtwnl[is][ngwl*(0+3*ipr8)];
               double *dt8_y = &dtwnl[is][ngwl*(1+3*ipr8)];
               double *dt8_z = &dtwnl[is][ngwl*(2+3*ipr8)];
-            
+#endif            
               const double r = rquad[is][iquad];
               for ( int ig = 0; ig < ngwl; ig++ )
               {
@@ -772,6 +764,8 @@ void NonLocalPotential::update_twnl(void)
                 t7[ig]  = y7 * v;
                 t8[ig]  = y8 * v;
 
+#if 0
+  //!! l=2 stress not implemented
                 // dylm/dx, dylm/dy, c * dylm/dz
  
                 const double tgi4 = tgi2 * tgi2;
@@ -820,6 +814,7 @@ void NonLocalPotential::update_twnl(void)
                 dt8_x[ig] = - ( v * tgx * dy8_x + y8 * tgx2 * tgi * dv );
                 dt8_y[ig] = - ( v * tgy * dy8_y + y8 * tgy2 * tgi * dv );
                 dt8_z[ig] = - ( v * tgz * dy8_z + y8 * tgz2 * tgi * dv );
+#endif
               } // ig
             } // iquad
           }
@@ -1360,167 +1355,3 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
   return enl;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-void gauleg(const double x1, const double x2, 
-  double *x, double *w, const int n)
-{
-  const double pi = 3.1415926535897932384;
-  const double eps = 1.e-14;
-
-  int m = ( n + 1 ) / 2;
-  
-  const double xm = 0.5 * ( x2 + x1 );
-  const double xl = 0.5 * ( x2 - x1 );
-  
-  for ( int i = 0; i < m; i++ )
-  {
-    double z = cos ( pi * ( i + 0.75 ) / ( n + 0.5 ) );
-    double pp, z1;
-    
-    do
-    {
-      double p1 = 1.0;
-      double p2 = 0.0;
-      double p3;
-
-      for ( int j = 0; j < n; j++ )
-      {
-        p3 = p2;
-        p2 = p1;
-        p1 = ( ( 2.0 * (j+1) - 1.0 ) * z * p2 - j * p3 ) / ( j + 1 );
-      }
-      
-      pp = n * ( z * p1 - p2 ) / ( z * z - 1.0 );
-      z1 = z;
-      z = z1 - p1 / pp;
-    } while ( fabs(z-z1) > eps );
-    
-    x[i] = xm - xl * z;
-    x[n-i-1] = xm + xl * z;
-    w[i] = 2.0 * xl / ( ( 1.0 - z * z ) * pp * pp );
-    w[n-i-1] = w[i];
-    
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void gaujac(double x1, double x2, double *x, double *w, int n, 
-  double alf, double bet)
-{
-  const double eps = 1.e-14;
-  const int maxit = 20;
-  double gammln(double xx);
-  double pp,z,z1;
-  double xm = 0.5 * ( x2 + x1 );
-  double xl = 0.5 * ( x2 - x1 );
-  for ( int i = 0; i < n; i++ )
-  {
-    if ( i == 0 )
-    {
-      double an = alf / n;
-      double bn = bet / n;
-      double r1 = (1.0+alf)*(2.78/(4.0+n*n)+0.768*an/n);
-      double r2 = 1.0+1.48*an+0.96*bn+0.452*an*an+0.83*an*bn;
-      z = 1.0 - r1/r2;
-    }
-    else if ( i == 1 )
-    {
-      double r1 = (4.1+alf)/((1.0+alf)*(1.0+0.156*alf));
-      double r2 = 1.0+0.06*(n-8.0)*(1.0+0.12*alf)/n;
-      double r3 = 1.0+0.012*bet*(1.0+0.25*fabs(alf))/n;
-      z -= (1.0-z)*r1*r2*r3;
-    }
-    else if ( i == 2 )
-    {
-      double r1 = (1.67+0.28*alf)/(1.0+0.37*alf);
-      double r2 = 1.0+0.22*(n-8.0)/n;
-      double r3 = 1.0+8.0*bet/((6.28+bet)*n*n);
-      z -= (x[0]-z)*r1*r2*r3;
-    }
-    else if ( i == n-2 )
-    {
-      double r1 = (1.0+0.235*bet)/(0.766+0.119*bet);
-      double r2 = 1.0/(1.0+0.639*(n-4.0)/(1.0+0.71*(n-4.0)));
-      double r3 = 1.0/(1.0+20.0*alf/((7.5+alf)*n*n));
-      z += (z-x[n-4])*r1*r2*r3;
-    }
-    else if ( i == n-1 )
-    {
-      double r1 = (1.0+0.37*bet)/(1.67+0.28*bet);
-      double r2 = 1.0/(1.0+0.22*(n-8.0)/n);
-      double r3 = 1.0/(1.0+8.0*alf/((6.28+alf)*n*n));
-      z += (z-x[n-3])*r1*r2*r3;
-    }
-    else
-    {
-      z = 3.0 * x[i-1] - 3.0 * x[i-2] + x[i-3];
-    }
-    
-    double alfbet = alf + bet;
-    bool done = false;
-    double temp, p1, p2, p3;
-    for ( int its = 0; its < maxit && !done; its++ )
-    {
-      temp = 2.0 + alfbet;
-      p1 = ( alf - bet + temp * z ) / 2.0;
-      p2 = 1.0;
-      p3;
-      for ( int j = 2; j <= n; j++ )
-      {
-        p3 = p2;
-        p2 = p1;
-        temp = 2 * j + alfbet;
-        double a = 2 * j * ( j + alfbet ) * ( temp - 2.0 );
-        double b = ( temp - 1.0 ) * ( alf*alf - bet*bet + temp * 
-                   ( temp - 2.0 ) * z );
-        double c = 2.0 * ( j - 1 + alf ) * ( j - 1 + bet ) * temp;
-        p1 = ( b * p2 - c * p3 ) / a;
-      }
-      
-      // p1 is now the Jacobi polynomial
-      pp = ( n * ( alf - bet - temp * z ) * p1 +
-           2.0 * ( n + alf ) * ( n + bet ) * p2 ) / ( temp * ( 1.0 - z*z ) );
-      z1 = z;
-      z = z1 - p1 / pp;
-      
-      if ( fabs(z-z1) <= eps )
-        done = true;
-    }
-    
-    if ( !done )
-    {
-      cout << " gauss-jacobi: error, more than " << maxit << " iterations"
-      << endl;
-      exit(1);
-    }
-    
-    x[i] = z;
-    w[i] = exp(gammln(alf+n)+gammln(bet+n)-gammln(n+1.0)-
-               gammln(n+alfbet+1.0)) * temp*pow(2.0,alfbet) / ( pp*p2 );
-               
-  }
-  for ( int i = 0; i < n; i++ )
-  {
-    // translate nodes to the [x1,x2]
-    x[i] = xm - xl * x[i];
-    w[i] = xl * w[i];
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-double gammln(double xx)
-{
-  static double cof[6] = 
-  {
-    76.18009172947146, -86.50532032941677, 24.01409824083091,
-    -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5
-  };
-  double y = xx;
-  double x = xx;
-  double tmp = x + 5.5;
-  tmp -= (x+0.5)*log(tmp);
-  double ser = 1.000000000190015;
-  for ( int j = 0; j <= 5; j++ ) ser += cof[j]/++y;
-  
-  return -tmp+log(2.5066282746310005*ser/x);
-}

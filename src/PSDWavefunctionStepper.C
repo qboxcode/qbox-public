@@ -3,7 +3,7 @@
 // PSDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.C,v 1.1 2003-11-21 20:01:06 fgygi Exp $
+// $Id: PSDWavefunctionStepper.C,v 1.2 2003-12-19 00:33:32 fgygi Exp $
 
 #include "PSDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -58,7 +58,9 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
  
           // dwf.sd->c() now contains the descent direction (HV-VA)
  
-          const double g2i_prec = 0.5 / s_.ctrl.ecutprec;
+          const double g2i_prec = s_.ctrl.ecutprec > 0.0 ? 
+                                  0.5 / s_.ctrl.ecutprec :
+                                  0.5 / wf_.ecut();
           const double* g2i_ptr = wf_.sd(ispin,ikp)->basis().g2i_ptr();
           double* coeff = (double*) wf_.sd(ispin,ikp)->c().valptr();
           const double* dcoeff =

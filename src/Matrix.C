@@ -3,7 +3,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.11 2004-04-17 01:17:05 fgygi Exp $
+// $Id: Matrix.C,v 1.12 2004-05-06 20:40:31 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -348,6 +348,8 @@ void DoubleMatrix::init_size(int m, int n, int mb, int nb)
   mb_ = m;
   nb_ = n;
 #endif
+  if ( mb_ == 0 ) mb_ = 1;
+  if ( nb_ == 0 ) nb_ = 1;
   ictxt_ = ctxt_.ictxt();
   nprow_ = ctxt_.nprow();
   npcol_ = ctxt_.npcol();
@@ -355,6 +357,8 @@ void DoubleMatrix::init_size(int m, int n, int mb, int nb)
   mycol_ = ctxt_.mycol();
   active_ = myrow_ >= 0;
   int isrcproc=0;
+  mloc_ = 0;
+  nloc_ = 0;
   if ( m_ != 0 )
     mloc_ = numroc(&m_,&mb_,&myrow_,&isrcproc,&nprow_);
   if ( n_ != 0 )
@@ -377,9 +381,6 @@ void DoubleMatrix::init_size(int m, int n, int mb, int nb)
     m_incomplete_ = mloc_ % mb_ != 0;
     n_incomplete_ = nloc_ % nb_ != 0;
   }
-
-  m_incomplete_ = mloc_ % mb_ != 0;
-  n_incomplete_ = nloc_ % nb_ != 0;
 
   if ( active_ )
   {
@@ -416,6 +417,8 @@ void ComplexMatrix::init_size(int m, int n, int mb, int nb)
   mb_ = m;
   nb_ = n;
 #endif
+  if ( mb_ == 0 ) mb_ = 1;
+  if ( nb_ == 0 ) nb_ = 1;
   ictxt_ = ctxt_.ictxt();
   nprow_ = ctxt_.nprow();
   npcol_ = ctxt_.npcol();

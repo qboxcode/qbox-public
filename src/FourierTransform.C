@@ -3,7 +3,7 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.14 2005-01-04 22:08:51 fgygi Exp $
+// $Id: FourierTransform.C,v 1.15 2005-01-05 01:39:26 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
@@ -1061,11 +1061,11 @@ void FourierTransform::init_lib(void)
   aux1yb.resize(naux1y);
   aux1zb.resize(naux1z);
 
-  int naux2x = (int) (20000 + 2.28 * np0_ + (256 + 2*np0_)*min(64,ntrans0));
+  int naux2x = (int) (20000 + 2.28 * np0_ + (256 + 2*np0_)*min(64,ntrans0_));
   naux2 = naux2x;
-  int naux2y = (int) (20000 + 2.28 * np1_ + (256 + 2*np1_)*min(64,ntrans1));
+  int naux2y = (int) (20000 + 2.28 * np1_ + (256 + 2*np1_)*min(64,ntrans1_));
   naux2 = max( naux2, naux2y );
-  int naux2z = (int) (20000 + 2.28 * np2_ + (256 + 2*np2_)*min(64,ntrans2));
+  int naux2z = (int) (20000 + 2.28 * np2_ + (256 + 2*np2_)*min(64,ntrans2_));
   naux2 = max( naux2, naux2z );
   aux2.resize(naux2);
   

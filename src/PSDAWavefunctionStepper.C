@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.6 2004-03-18 20:07:18 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.7 2004-04-17 01:15:55 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -60,17 +60,20 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
             double* dc = (double*) dwf.sd(ispin,ikp)->c().valptr();
             double* dc_last = (double*) dwf_last_.sd(ispin,ikp)->c().valptr();
             const int mloc = wf_.sd(ispin,ikp)->c().mloc();
+            const int ngwl = wf_.sd(ispin,ikp)->basis().localsize();
             const int nloc = wf_.sd(ispin,ikp)->c().nloc();
             
             // next line: add enhancement factor to descent direction
             // since there is no instability of the Anderson iteration
             // This improves convergence in most cases
+            
             const double psda_enhancement_factor = 2.0;
             for ( int n = 0; n < nloc; n++ )
             {
               // note: double mloc length for complex<double> indices
               double* dcn = &dc[2*mloc*n];
-              for ( int i = 0; i < mloc; i++ )
+              // loop to ngwl only since diag[i] is not defined on [0:mloc-1]
+              for ( int i = 0; i < ngwl; i++ )
               {
                 const double fac = diag[i];
                 const double f0 = -psda_enhancement_factor*fac * dcn[2*i];
@@ -81,7 +84,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
             }
             // dwf now contains the preconditioned descent
             // direction -K(HV-VA)
- 
+            
             // Anderson extrapolation
             if ( extrapolate_ )
             {
@@ -177,9 +180,9 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
             extrapolate_ = true;
             
             enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
+            //const ortho_type ortho = GRAM;
             //const ortho_type ortho = LOWDIN;
             const ortho_type ortho = ORTHO_ALIGN;
-            //const ortho_type ortho = GRAM;
  
             switch ( ortho )
             {

@@ -3,7 +3,7 @@
 // PSDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.C,v 1.4 2004-03-11 21:52:31 fgygi Exp $
+// $Id: PSDWavefunctionStepper.C,v 1.5 2004-04-17 01:15:55 fgygi Exp $
 
 #include "PSDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -62,13 +62,15 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
           const double* dcoeff =
             (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
           const int mloc = wf_.sd(ispin,ikp)->c().mloc();
+          const int ngwl = wf_.sd(ispin,ikp)->basis().localsize();
           const int nloc = wf_.sd(ispin,ikp)->c().nloc();
           for ( int n = 0; n < nloc; n++ )
           {
             // note: double mloc length for complex<double> indices
             double* c = &coeff[2*mloc*n];
             const double* dc = &dcoeff[2*mloc*n];
-            for ( int i = 0; i < mloc; i++ )
+            // loop to ngwl only since diag[i] is not defined on [0:mloc-1]
+            for ( int i = 0; i < ngwl; i++ )
             {
               const double fac = diag[i];
               const double delta_re = fac * dc[2*i];

@@ -14,6 +14,7 @@ Wavefunction.C: Changed maxiter to 500 and dmu to 2 eV in update_occ.
 Nrowmax.h: add update_occ when changing nrowmax.
 Matrix.C:219 and similar: removed assert. Some valptr may be 0 on some blocks.
 SlaterDet.C: print sdcontext dimensions in SlaterDet::info.
+ChargeDensity.C: added (void*) cast to delete statements (for xlC 7.0).
 --------------------------------------------------------------------------------
 rel1_19_0 2004-10-04
 BOSampleStepper.C: Implemented simple charge mixing for SCF iterations.

@@ -52,11 +52,19 @@ Mon May  3 16:34:49 PDT 2004
 xlC 6.0 is broken when using the -D_LARGE_FILES macro. Reverted to 
 USE_CSTDIO_LFS for large file support as on mcr.
 --------------------------------------------------------------------------------
+rel1_15_1
+Fixed bug: stop on assert in NonLocalPotential for l=1 or l=2 projectors
+Fixed bug: Matrix::init_size() with zero dimensions.
+--------------------------------------------------------------------------------
 rel1_15_0
 Added R option for the cell_lock variable: rescale unit cell only (keep aspect
 ratio fixed).
 Corrected inconsistencies between BOSampleStepper.C and CPSampleStepper.C as
 regards printing of variables during a run: unit_cell, enthalpy, pv.
+Known bugs:
+-Stops on assert in NonLocalPotential::update_twnl() for l=1 or l=2 projectors
+-Crashes when defining a species without using it, i.e. species with zero atoms.
+ Traced to incorrect initialization of sizes in Matrix.C
 --------------------------------------------------------------------------------
 rel1_14_3
 Fixed calculation of ekin_e in MDWavefunctionStepper.C to avoid small error

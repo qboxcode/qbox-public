@@ -3,7 +3,7 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.4 2004-03-11 21:52:31 fgygi Exp $
+// $Id: MDIonicStepper.h,v 1.5 2004-12-17 23:39:06 fgygi Exp $
 
 //
 // IonicStepper is used in the following way
@@ -41,9 +41,10 @@ class MDIonicStepper : public IonicStepper
   double th_temp_;
   double th_time_;
   double th_width_;
+  double ekin_;
   double eta_;
   bool thermostat_;
-  vector<vector< double> >  vhalf_;      // vhalf_[nsp_][3*na_]: v(t+dt/2)
+  vector<vector< double> >  vhalf_; // vhalf_[nsp_][3*na_]: v(t+dt/2)
 
   public:
   
@@ -54,6 +55,7 @@ class MDIonicStepper : public IonicStepper
     th_time_ = s.ctrl.th_time;
     th_width_ = s.ctrl.th_width;
     eta_ = 0.0;
+    ekin_ = 0.0;
     vhalf_.resize(nsp_);
     for ( int is = 0; is < nsp_; is++ )
     {
@@ -68,6 +70,15 @@ class MDIonicStepper : public IonicStepper
   void update_r(void);
   void update_v(void);
   double eta(void) const { return eta_; }
+  double ekin(void) const { return ekin_; }
+  double temp(void) const
+  {
+    const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
+    if ( ndofs_ > 0.0 )
+      return 2.0 * ( ekin_ / boltz ) / ndofs_;
+    else
+      return 0.0;
+  }
 };
 
 #endif

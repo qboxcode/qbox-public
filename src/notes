@@ -52,9 +52,21 @@ Mon May  3 16:34:49 PDT 2004
 xlC 6.0 is broken when using the -D_LARGE_FILES macro. Reverted to 
 USE_CSTDIO_LFS for large file support as on mcr.
 --------------------------------------------------------------------------------
+rel1_15_2
+Ecut.h: exit without any action if ecut is same as current value. Caused 
+zeroing of the wavefunction velocity when used in a redundant manner.
+Added isodate.C/isodate.h and release.C/release.h files for separate access
+to these functions from any other object.
+Added a <description> tag in the sample file in SaveCmd.C including the ISO
+date and the release of qbox that was used to create the file. 
+(Note: the tag was already allowed by the Schema specification, but the 
+save command did not write any description information.)
+--------------------------------------------------------------------------------
 rel1_15_1
 Fixed bug: stop on assert in NonLocalPotential for l=1 or l=2 projectors
 Fixed bug: Matrix::init_size() with zero dimensions.
+Known bugs:
+-wf_diag variable is ignored.
 --------------------------------------------------------------------------------
 rel1_15_0
 Added R option for the cell_lock variable: rescale unit cell only (keep aspect

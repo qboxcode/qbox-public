@@ -3,7 +3,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.8 2003-12-02 22:39:05 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.9 2004-03-11 21:47:54 fgygi Exp $
 
 #include "WavefunctionHandler.h"
 #include "Wavefunction.h"
@@ -140,13 +140,39 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     //cout << uc;
     
     // notify listening nodes
-    double buf[3];
-    buf[0] = a.x; buf[1] = a.y; buf[2] = a.z;
-    wf_.context().dbcast_send(3,1,buf,1);
-    buf[0] = b.x; buf[1] = b.y; buf[2] = b.z;
-    wf_.context().dbcast_send(3,1,buf,1);
-    buf[0] = c.x; buf[1] = c.y; buf[2] = c.z;
-    wf_.context().dbcast_send(3,1,buf,1);
+    double buf[9];
+    buf[0] = uc.a(0).x; buf[1] = uc.a(0).y; buf[2] = uc.a(0).z;
+    buf[3] = uc.a(1).x; buf[4] = uc.a(1).y; buf[5] = uc.a(1).z;
+    buf[6] = uc.a(2).x; buf[7] = uc.a(2).y; buf[8] = uc.a(2).z;
+    wf_.context().dbcast_send(9,1,buf,1);
+  }
+  else if ( locname == "reference_domain")
+  {
+    D3vector a,b,c;
+    unsigned int len = attributes.getLength();
+    for (unsigned int index = 0; index < len; index++)
+    {
+      string attrname(XMLString::transcode(attributes.getLocalName(index)));
+      string attrval(XMLString::transcode(attributes.getValue(index)));
+      istringstream stst(attrval);
+      if ( attrname == "a")
+      {
+        stst >> a;
+      }
+      else if ( attrname == "b" )
+      {
+        stst >> b;
+      }
+      else if ( attrname == "c" )
+      {
+        stst >> c;
+      }
+    }
+    
+    //cout << " WavefunctionHandler::startElement: reference_domain" << endl;
+    ruc.set(a,b,c);
+    //cout << ruc;
+    
   }
   else if ( locname == "density_matrix")
   {
@@ -218,7 +244,16 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     // notify listening nodes of ecut
     wf_.context().dbcast_send(1,1,&ecut,1);
     
-    wf_.resize(uc,uc,ecut);
+    // notify listening nodes of the reference_domain
+    // note: the reference_domain is optional in the sample file
+    // notify listening nodes
+    double buf[9];
+    buf[0] = ruc.a(0).x; buf[1] = ruc.a(0).y; buf[2] = ruc.a(0).z;
+    buf[3] = ruc.a(1).x; buf[4] = ruc.a(1).y; buf[5] = ruc.a(1).z;
+    buf[6] = ruc.a(2).x; buf[7] = ruc.a(2).y; buf[8] = ruc.a(2).z;
+    wf_.context().dbcast_send(9,1,buf,1);
+    
+    wf_.resize(uc,ruc,ecut);
   }
   else if ( locname == "slater_determinant")
   {

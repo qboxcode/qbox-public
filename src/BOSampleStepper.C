@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.2 2003-11-27 01:20:21 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.3 2003-12-01 17:57:44 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -229,8 +229,8 @@ void BOSampleStepper::step(EnergyFunctional& e, int niter)
         {
           cout.setf(ios::fixed,ios::floatfield);
           cout.setf(ios::right,ios::adjustfield);
-          cout << "  <ekin>   " << setprecision(8)
-               << setw(15) << e.ekin() << " </ekin>\n"
+          cout << "  <ekin_int>   " << setprecision(8)
+               << setw(15) << e.ekin() << " </ekin_int>\n"
                << "  <eps_int>    " << setw(15) << e.eps() << " </eps_int>\n"
                << "  <enl_int>    " << setw(15) << e.enl() << " </enl_int>\n"
                << "  <ecoul_int>  " << setw(15) << e.ecoul() << " </ecoul_int>\n"

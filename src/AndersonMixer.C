@@ -3,7 +3,7 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.C,v 1.2 2004-12-10 01:04:06 fgygi Exp $
+// $Id: AndersonMixer.C,v 1.3 2004-12-18 23:23:58 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
@@ -50,7 +50,7 @@ void AndersonMixer::update(const double* f, double* theta, double* fbar)
       // test if residual has increased
       if ( *theta <= -1.0 )
       {
-        *theta = 0.0;
+        *theta = theta_nc_;
       }
       
       *theta = min(theta_max_,*theta);

@@ -1,12 +1,13 @@
-// $Id: testMatrix.C,v 1.8 2004-11-30 23:00:09 fgygi Exp $
+// $Id: testMatrix.C,v 1.9 2004-12-10 01:06:06 fgygi Exp $
 //
 // test Matrix
 //
 // multiply a matrix a(m,k) by b(k,n) to get c(m,n)
 // using blocks of size (mb,nb) on a process grid (nprow,npcol)
 //
-// use: testMatrix nprow npcol input_file [-check] 
+// use: testMatrix input_file [-check] 
 // input_file:
+// nprow npcol
 // m_a n_a mb_a nb_a transa
 // m_b n_b mb_b nb_b transb
 // m_c n_c mb_c nb_c
@@ -31,7 +32,7 @@ using namespace std;
 #include "Context.h"
 #include "Matrix.h"
 
-int aa(int i, int j) { return i+2*j; }
+int aa(int i, int j) { return 1.0/(i+1)+2.0/(j+1); }
 int bb(int i, int j) { return i-j-3; }
 
 int main(int argc, char **argv)
@@ -47,18 +48,18 @@ int main(int argc, char **argv)
   mype=0;
 #endif
 
-  char* infilename = argv[3];
+  char* infilename = argv[1];
   ifstream infile(infilename);
 
-  assert(argc == 4 || argc == 5);
+  assert(argc == 2 || argc == 3);
   bool tcheck = false;
-  if ( argc == 5 )
+  if ( argc == 3 )
   {
-    if ( !strcmp(argv[4],"-check") )
+    if ( !strcmp(argv[2],"-check") )
       tcheck = true;
     else
     {
-      cerr << " invalid argv[4]" << endl;
+      cerr << " invalid argv[2]" << endl;
 #if USE_MPI
       MPI_Abort(MPI_COMM_WORLD,2);
 #else
@@ -66,18 +67,16 @@ int main(int argc, char **argv)
 #endif
     }
   }
-      
-  int nprow = atoi(argv[1]);
-  int npcol = atoi(argv[2]);
-  
   Timer tm;
-  
+  int nprow, npcol;
   int m_a, n_a, mb_a, nb_a;
   int m_b, n_b, mb_b, nb_b;
   int m_c, n_c, mb_c, nb_c;
   char ta, tb;
   if(mype == 0)
   {
+    infile >> nprow >> npcol;
+    cout<<"nprow="<<nprow<<", npcol="<<npcol<<endl;
     infile >> m_a >> n_a >> mb_a >> nb_a >> ta;
     cout<<"m_a="<<m_a<<", n_a="<<n_a<<endl;
     infile >> m_b >> n_b >> mb_b >> nb_b >> tb;
@@ -224,7 +223,7 @@ int main(int argc, char **argv)
       cout << "  MFlops: " 
            << (2.0e-6*m_c*n_c*kmax) / tm.real() << endl;
     }
-    
+#if 0    
     double norma=a.nrm2();
     if(mype == 0)cout<<"Norm(a)="<<norma<<endl;
     if(mype == 0)cout<<"DoubleMatrix::matgather..."<<endl;
@@ -275,18 +274,7 @@ int main(int argc, char **argv)
     a -= a2;
     norm = a.nrm2();
     if (mype == 0) cout << "Norm(a)=" << norm << endl;
-
-    if ( ctxt.nprow() >= 2 )
-    {
-      Context subctxt(2,1);
-      DoubleMatrix csub(subctxt);
-      csub.resize(c.m(),c.n());
-      csub.getsub(c,c.m(),c.n(),0,0);
-      norm = c.nrm2();
-      if (mype == 0) cout << "Norm(c)=" << norm << endl;
-      norm = csub.nrm2();
-      if (mype == 0) cout << "Norm(csub)=" << norm << endl;
-    }
+#endif
   }
 
 #ifdef USE_MPI

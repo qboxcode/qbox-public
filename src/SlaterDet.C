@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.33 2005-02-04 22:01:21 fgygi Exp $
+// $Id: SlaterDet.C,v 1.34 2005-02-08 19:32:22 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -333,6 +333,8 @@ void SlaterDet::gram(void)
     ssq.getsub(s,s.m(),s.n(),0,0);
     ssq.potrf('l'); // Cholesky decomposition: S = L * L^T
     s.getsub(ssq,s.m(),s.n(),0,0);
+#else
+    s.potrf('l'); // Cholesky decomposition: S = L * L^T
 #endif
     // solve triangular system X * L^T = C
     c_proxy.trsm('r','l','t','n',1.0,s);

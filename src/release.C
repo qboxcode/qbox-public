@@ -3,10 +3,10 @@
 // release.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: release.C,v 1.11 2004-10-15 18:07:06 fgygi Exp $
+// $Id: release.C,v 1.12 2004-10-28 16:55:20 fgygi Exp $
 
 #include "release.h"
 std::string release(void)
 {
-  return std::string("1.20.0");
+  return std::string("1.20.1");
 }

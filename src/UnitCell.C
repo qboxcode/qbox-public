@@ -3,7 +3,7 @@
 // UnitCell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.9 2004-04-20 22:10:20 fgygi Exp $
+// $Id: UnitCell.C,v 1.10 2004-06-01 22:44:31 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -133,29 +133,34 @@ bool UnitCell::in_ws(const D3vector& v) const
 ////////////////////////////////////////////////////////////////////////////////
 void UnitCell::fold_in_ws(D3vector& v) const
 {
+  const double epsilon = 1.e-10;
   bool done = false;
-  while ( !done )
+  const int maxiter = 10;
+  int iter = 0;
+  while ( !done && iter < maxiter )
   {
     done = true;
     for ( int i = 0; (i < 13) && done; i++ )
     {
       const double sp = v*an_[i];
-      if ( sp > an2h_[i] )
+      if ( sp > an2h_[i] + epsilon )
       {
         done = false;
         do
           v -= an_[i];
-        while ( v*an_[i] > an2h_[i] );
+        while ( v*an_[i] > an2h_[i] + epsilon );
       }
-      else if ( sp < -an2h_[i] )
+      else if ( sp < -an2h_[i] - epsilon )
       {
         done = false;
         do
           v += an_[i];
-        while ( v*an_[i] < -an2h_[i] );
+        while ( v*an_[i] < -an2h_[i] - epsilon );
       }
     }
+    iter++;
   }
+  assert(iter < maxiter);
 }
  
 ////////////////////////////////////////////////////////////////////////////////
@@ -174,29 +179,34 @@ bool UnitCell::in_bz(const D3vector& k) const
 ////////////////////////////////////////////////////////////////////////////////
 void UnitCell::fold_in_bz(D3vector& k) const
 {
+  const double epsilon = 1.e-10;
   bool done = false;
-  while ( !done )
+  const int maxiter = 10;
+  int iter = 0;
+  while ( !done && iter < maxiter )
   {
     done = true;
     for ( int i = 0; (i < 13) && done; i++ )
     {
       double sp = k*bn_[i];
-      if ( sp > bn2h_[i] )
+      if ( sp > bn2h_[i] + epsilon )
       {
         done = false;
         do
           k -= bn_[i];
-        while ( k*bn_[i] > bn2h_[i] );
+        while ( k*bn_[i] > bn2h_[i] + epsilon );
       }
-      else if ( sp < -bn2h_[i] )
+      else if ( sp < -bn2h_[i] - epsilon )
       {
         done = false;
         do
           k += bn_[i];
-        while ( k*bn_[i] < -bn2h_[i] );
+        while ( k*bn_[i] < -bn2h_[i] - epsilon );
       }
     }
+    iter++;
   }
+  assert(iter < maxiter);
 }
  
 ////////////////////////////////////////////////////////////////////////////////

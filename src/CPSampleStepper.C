@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.3 2004-03-11 21:52:32 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.4 2004-03-15 21:49:38 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -52,6 +52,7 @@ void CPSampleStepper::step(int niter)
   const bool compute_hpsi = true;
   const bool compute_forces = ( atoms_dyn != "LOCKED" );
   const bool compute_stress = ( s_.ctrl.stress == "ON" );
+  const bool use_confinement = ( s_.ctrl.ecuts > 0.0 );
 
   CellStepper* cell_stepper = 0;
   if ( cell_dyn == "SD" )
@@ -87,7 +88,7 @@ void CPSampleStepper::step(int niter)
       cout.setf(ios::right,ios::adjustfield);
       cout << "  <ekin>   " << setprecision(8)
            << setw(15) << ef_.ekin() << " </ekin>\n";
-      if ( compute_stress )
+      if ( use_confinement )
       {
         cout << "  <econf_int>  " << setw(15) << ef_.econf()
              << " </econf_int>\n";

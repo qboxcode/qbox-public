@@ -3,7 +3,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.6 2004-05-03 19:14:08 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.7 2004-05-20 00:20:26 fgygi Exp $
 
 #include "MDIonicStepper.h"
 
@@ -70,6 +70,7 @@ void MDIonicStepper::compute_v0(const vector<vector< double> >& f0)
   // Note: vhalf contains the velocity at t-1/2 since compute_v0 is called
   // after a call to update_r()
   
+  ekin_ = 0.0;
   for ( int is = 0; is < vhalf_.size(); is++ )
   {
     assert(pmass_[is] > 0.0);

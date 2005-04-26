@@ -3,7 +3,7 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.15 2005-01-05 01:39:26 fgygi Exp $
+// $Id: FourierTransform.C,v 1.16 2005-04-26 19:04:36 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
@@ -713,7 +713,6 @@ void FourierTransform::bwd(complex<double>* val)
 #elif USE_FFTW
     int inc1, inc2, istart;
 
-#if 1
     int ntrans = ntrans0_;
     // Transform first block along x: positive y indices
     inc1 = 1;
@@ -727,16 +726,6 @@ void FourierTransform::bwd(complex<double>* val)
     istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     fftw(bwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
-#else
-    // debug: transform along x for all values of y
-    int ntrans = np1_;
-    inc1 = 1;
-    inc2 = np0_;
-    istart = k * np0_ * np1_; 
-    fftw(bwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
-                        (FFTW_COMPLEX*)0,0,0);
-    
-#endif
                     
     // transform along y for all values of x
     ntrans = np0_;

@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.21 2005-02-04 21:59:55 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.22 2005-04-26 19:06:46 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -19,6 +19,10 @@
 #include "SDCellStepper.h"
 #include "Preconditioner.h"
 #include "AndersonMixer.h"
+
+#ifdef USE_APC
+#include "apc.h"
+#endif
 
 #include <iostream>
 #include <iomanip>
@@ -145,6 +149,9 @@ void BOSampleStepper::step(int niter)
     // ionic iteration
  
     tm_iter.start();
+#ifdef USE_APC
+    ApcStart(1);
+#endif
  
     if ( s_.ctxt_.onpe0() )
       cout << "  <iteration count=\"" << iter+1 << "\">\n";
@@ -549,9 +556,7 @@ void BOSampleStepper::step(int niter)
         if ( compute_eigvec || s_.ctrl.wf_diag == "EIGVAL" )
         {
           energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
-          tmap["diag"].start();
           s_.wf.diag(dwf,compute_eigvec);
-          tmap["diag"].stop();
         }
         
         // update occupation numbers
@@ -596,6 +601,9 @@ void BOSampleStepper::step(int niter)
       }
     }
  
+#ifdef USE_APC
+    ApcStop(1);
+#endif
     // print iteration time
     double time = tm_iter.real();
     double tmin = time;

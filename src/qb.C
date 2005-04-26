@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.43 2005-03-17 17:16:54 fgygi Exp $
+// $Id: qb.C,v 1.44 2005-04-26 19:08:46 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -15,6 +15,9 @@ using namespace std;
 #include <fstream>
 #if AIX 
 #include<filehdr.h>
+#endif
+#ifdef USE_APC
+#include "apc.h"
 #endif
 
 #include "isodate.h"
@@ -79,6 +82,9 @@ int main(int argc, char **argv, char **envp)
 #if USE_MPI
   MPI_Init(&argc,&argv);
 #endif
+#if USE_APC
+  ApcInit();
+#endif
 
 #if BGLDEBUG
   {
@@ -126,7 +132,7 @@ int main(int argc, char **argv, char **envp)
   // Identify executable name, checksum, size and link date
   if ( getlogin() != 0 ) 
     cout << "<user> " << getlogin() << " </user>" << endl;
-#if AIX 
+#if AIX || OSF1
   // read filehdr for link time
   filehdr hdr;
   FILE *fx = fopen(argv[0],"r");
@@ -261,6 +267,9 @@ int main(int argc, char **argv, char **envp)
   }
 
   } // end of Context scope
+#if USE_APC
+  ApcFinalize();
+#endif
 #if USE_MPI
   MPI_Finalize();
 #endif

@@ -7,9 +7,15 @@ preferrable to use a single-column context when nst is small to avoid
 memory problems.
 
 --------------------------------------------------------------------------------
+rel1_24_3
+FourierTransform.C: removed unused code.
+NonLocalPotential.C: cleanup calculation of G=0 in update_twnl.
+BOSampleStepper.C: added APC counters
+qb.C: added APC counters
+--------------------------------------------------------------------------------
 rel1_24_2
 NonLocalPotential.C: Fixed bug in G=0 component of l=0 non-local projector in 
-semilocal form
+semilocal form (merged bugfix from rel1_23_4)
 --------------------------------------------------------------------------------
 rel1_24_1
 SlaterDet.C: fixed bug introduced in 1.24.0: Cholesky decomp was skipped if 

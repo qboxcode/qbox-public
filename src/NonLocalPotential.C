@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.18 2005-03-17 17:31:57 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.19 2005-04-26 19:05:59 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "blas.h"
@@ -326,37 +326,27 @@ void NonLocalPotential::update_twnl(void)
               if ( ctxt_.myrow() == 0 )
               {
                 const int ig = 0;
-                // this task holds G=0 element
+                // this task holds the G=0 element
                 // I(l=0) = 4 pi j_l(G r) r
                 // twnl[is][ipr][l][ig] = 4 pi j_0(Gr_i) r_i Ylm
-                // j_0(Gr) * r = sin(Gr) / G
+                // j_0(Gr) = sin(Gr) / (Gr) == 1.0
                 // Ylm = s14pi
-                const double arg = g[ig] * r;
-                // Note: for G=0, gi[0] = 0
                 
-                const double tgx = g_x[ig];
-                const double tgy = g_y[ig];
-                const double tgz = g_z[ig];
-                const double tgi = gi[ig];
-                const double tgi2 = tgi * tgi;
-                
-                const double ts = sin(arg);
-                const double tc = cos(arg);
-              
                 // next line: sin(Gr)/(Gr) replaced by 1
                 t0[ig] = fpi * s14pi * r;
                 
                 // dtwnl = fpi s14pi G_i G_j / G (r cos(Gr)/G -sin(Gr)/G^2)
-                const double tmp = fpi * s14pi * tgi2 * (r*tc - ts*tgi);
-                dt0_xx[ig] = tmp * tgx * tgx;
-                dt0_yy[ig] = tmp * tgy * tgy;
-                dt0_zz[ig] = tmp * tgz * tgz;
-                dt0_xy[ig] = tmp * tgx * tgy;
-                dt0_yz[ig] = tmp * tgy * tgz;
-                dt0_xz[ig] = tmp * tgx * tgz;
+                // dtwnl = 0.0;
+                dt0_xx[ig] = 0.0;
+                dt0_yy[ig] = 0.0;
+                dt0_zz[ig] = 0.0;
+                dt0_xy[ig] = 0.0;
+                dt0_yz[ig] = 0.0;
+                dt0_xz[ig] = 0.0;
               }
               else
               {
+                // This task does not hold the G=0 element
                 const int ig = 0;
                 // I(l=0) = 4 pi j_l(G r) r
                 // twnl[is][ipr][l][ig] = 4 pi j_0(Gr_i) r_i Ylm

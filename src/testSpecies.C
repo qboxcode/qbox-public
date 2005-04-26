@@ -37,13 +37,13 @@ int main(int argc, char **argv)
   
   try
   {
-    cout << " s.uri() = " << s.uri() << endl;
-    cout << " testSpecies: invoking readSpecies: uri=" << uri << endl;
+    cerr << " s.uri() = " << s.uri() << endl;
+    cerr << " testSpecies: invoking readSpecies: uri=" << uri << endl;
     rdr.readSpecies(s,uri);
   }
   catch ( const SpeciesReaderException& e )
   {
-    cout << " SpeciesReaderException caught in testSpecies" << endl;
+    cerr << " SpeciesReaderException caught in testSpecies" << endl;
     throw;
   }
   cerr << " SpeciesReader::readSpecies done" << endl;
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
   }
   catch ( SpeciesInitException& e )
   {
-    cout << " Exception in Species initialization: " << e.msg << endl;
+    cerr << " Exception in Species initialization: " << e.msg << endl;
     throw;
   }
   cerr << s;

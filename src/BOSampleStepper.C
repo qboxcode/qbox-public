@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.22 2005-04-26 19:06:46 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.23 2005-04-29 18:15:29 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -56,8 +56,11 @@ BOSampleStepper::~BOSampleStepper()
 ////////////////////////////////////////////////////////////////////////////////
 void BOSampleStepper::step(int niter)
 {
-  const int nempty = s_.wf.nempty();
-  const bool compute_eigvec = nempty > 0 || s_.ctrl.wf_diag == "T";
+  // determine whether eigenvectors must be computed
+  // eigenvectors are computed if explicitly requested with wf_diag==T
+  // or if the SlaterDet has fractionally occupied states
+  const bool fractional_occ = (s_.wf.nel() != 2 * s_.wf.nst());
+  const bool compute_eigvec = fractional_occ || s_.ctrl.wf_diag == "T";
   enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
   
   AtomSet& atoms = s_.atoms;
@@ -559,8 +562,8 @@ void BOSampleStepper::step(int niter)
           s_.wf.diag(dwf,compute_eigvec);
         }
         
-        // update occupation numbers
-        if ( nempty > 0 )
+        // update occupation numbers if fractionally occupied states
+        if ( fractional_occ )
         {
           s_.wf.update_occ(s_.ctrl.fermi_temp);
           const double wf_entropy = s_.wf.entropy();

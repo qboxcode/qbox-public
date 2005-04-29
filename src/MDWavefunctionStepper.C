@@ -3,7 +3,7 @@
 // MDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.C,v 1.5 2004-11-10 22:35:23 fgygi Exp $
+// $Id: MDWavefunctionStepper.C,v 1.6 2005-04-29 18:13:48 fgygi Exp $
 
 #include "MDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -20,9 +20,8 @@ MDWavefunctionStepper::MDWavefunctionStepper(Sample& s, TimerMap& tmap) :
   const double emass = s_.ctrl.emass;
   dt2bye_ = (emass == 0.0) ? 0.5 / wf_.ecut() : dt_*dt_/emass;           
   
-  // divide dt2bye by facs coefficient if stress == ON
-  //!! next test should be if s_.ctrl.ecuts > 0.0
-  if ( s_.ctrl.stress == "ON" )
+  // divide dt2bye by facs coefficient if confinement is on (ecuts>0)
+  if ( s_.ctrl.ecuts > 0.0 )
     dt2bye_ /= s_.ctrl.facs;
 }
 

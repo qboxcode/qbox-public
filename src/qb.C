@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.44 2005-04-26 19:08:46 fgygi Exp $
+// $Id: qb.C,v 1.45 2005-04-29 18:16:01 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -59,6 +59,7 @@ using namespace std;
 #include "FermiTemp.h"
 #include "Dt.h"
 #include "Nempty.h"
+#include "NetCharge.h"
 #include "Nrowmax.h"
 #include "RefCell.h"
 #include "Stress.h"
@@ -226,6 +227,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new FermiTemp(s));
   ui.addVar(new Dt(s));
   ui.addVar(new Nempty(s));
+  ui.addVar(new NetCharge(s));
   ui.addVar(new Nrowmax(s));
   ui.addVar(new RefCell(s));
   ui.addVar(new Stress(s));

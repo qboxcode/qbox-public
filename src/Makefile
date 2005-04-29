@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.33 2005-03-17 17:30:26 fgygi Exp $
+# $Id: Makefile,v 1.34 2005-04-29 18:17:59 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -188,6 +188,7 @@ ChargeMixRcut.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 ChargeMixRcut.o: Wavefunction.h UnitCell.h Control.h
 ConfinementPotential.o: ConfinementPotential.h Basis.h D3vector.h UnitCell.h
 Context.o: Context.h
+Context_row_major.o: Context.h
 CPSampleStepper.o: CPSampleStepper.h SampleStepper.h Sample.h AtomSet.h
 CPSampleStepper.o: Context.h Atom.h D3vector.h Species.h Wavefunction.h
 CPSampleStepper.o: UnitCell.h Control.h Timer.h EnergyFunctional.h
@@ -231,6 +232,8 @@ HelpCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 IonicStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 IonicStepper.o: Wavefunction.h UnitCell.h Control.h
 isodate.o: isodate.h
+jacobi.o: Context.h Matrix.h blas.h
+jade.o: Context.h Matrix.h blas.h
 LDAFunctional.o: LDAFunctional.h XCFunctional.h
 LDAFunctional.o: XCFunctional.h
 ListAtomsCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
@@ -257,12 +260,11 @@ MDWavefunctionStepper.o: Atom.h D3vector.h Species.h Wavefunction.h
 MDWavefunctionStepper.o: UnitCell.h Control.h Timer.h
 Nempty.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 Nempty.o: Wavefunction.h UnitCell.h Control.h
+NetCharge.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
+NetCharge.o: Wavefunction.h UnitCell.h Control.h
 NonLocalPotential.o: NonLocalPotential.h AtomSet.h Context.h Atom.h
 NonLocalPotential.o: D3vector.h Species.h Basis.h UnitCell.h SlaterDet.h
 NonLocalPotential.o: Matrix.h Timer.h blas.h
-NonLocalPotential-forces-ok.o: NonLocalPotential.h AtomSet.h Context.h Atom.h
-NonLocalPotential-forces-ok.o: D3vector.h Species.h Basis.h UnitCell.h
-NonLocalPotential-forces-ok.o: SlaterDet.h Matrix.h Timer.h blas.h
 NonLocalPotential.o: AtomSet.h Context.h Atom.h D3vector.h Species.h Basis.h
 NonLocalPotential.o: UnitCell.h SlaterDet.h Matrix.h Timer.h
 Nrowmax.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
@@ -298,8 +300,8 @@ qb.o: LoadCmd.h PrintCmd.h QuitCmd.h RandomizeWfCmd.h RunCmd.h SaveCmd.h
 qb.o: SetCmd.h SpeciesCmd.h StatusCmd.h AtomsDyn.h Cell.h CellDyn.h
 qb.o: SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h ChargeMixCoeff.h
 qb.o: ChargeMixRcut.h Debug.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h
-qb.o: FermiTemp.h Dt.h Nempty.h Nrowmax.h RefCell.h Stress.h Thermostat.h
-qb.o: ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h RefCell.h Stress.h
+qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
@@ -327,6 +329,9 @@ SampleStepper.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h
 SampleStepper.o: Timer.h
 SampleStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h Species.h
 SampleStepper.o: Wavefunction.h UnitCell.h Control.h Timer.h
+SampleViewer.o: SampleViewer.h D3vector.h Sample.h AtomSet.h Context.h Atom.h
+SampleViewer.o: Species.h Wavefunction.h UnitCell.h Control.h
+SampleViewer.o: D3vector.h
 SaveCmd.o: SaveCmd.h UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 SaveCmd.o: D3vector.h Species.h Wavefunction.h UnitCell.h Control.h isodate.h
 SaveCmd.o: release.h qbox_xmlns.h
@@ -429,6 +434,8 @@ ThWidth.o: Wavefunction.h UnitCell.h Control.h
 UnitCell.o: UnitCell.h D3vector.h
 UnitCell.o: D3vector.h
 UserInterface.o: UserInterface.h
+ViewCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+ViewCmd.o: Species.h Wavefunction.h UnitCell.h Control.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SlaterDet.h Context.h
 Wavefunction.o: Basis.h Matrix.h Timer.h
 Wavefunction.o: D3vector.h UnitCell.h

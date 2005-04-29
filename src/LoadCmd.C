@@ -3,7 +3,7 @@
 // LoadCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LoadCmd.C,v 1.6 2004-09-14 22:24:11 fgygi Exp $
+// $Id: LoadCmd.C,v 1.7 2005-04-29 18:12:37 fgygi Exp $
 
 #include "LoadCmd.h"
 #include "SampleReader.h"
@@ -52,17 +52,6 @@ int LoadCmd::action(int argc, char **argv)
   
   s->ctxt_.barrier();
   
-  // If only <atomset> was read, set nel for the wavefunction
-  //cout << " LoadCmd: atoms.nel() = " << s->atoms.nel() << endl;
-  //cout << " LoadCmd: wf.nel() =    " << s->wf.nel() << endl;
-  if ( s->wf.nel() != s->atoms.nel() )
-  {
-    s->wf.set_nel(s->atoms.nel());
-    s->wf.update_occ(0.0);
-  }
-  //cout << " LoadCmd: atoms.nel() = " << s->atoms.nel() << endl;
-  //cout << " LoadCmd: wf.nel() =    " << s->wf.nel() << endl;
-
   if ( ui->onpe0() )
     cout << " -->" << endl;
     

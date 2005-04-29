@@ -3,7 +3,7 @@
 // Nempty.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Nempty.h,v 1.1 2003-01-25 01:23:31 fgygi Exp $
+// $Id: Nempty.h,v 1.2 2005-04-29 18:12:37 fgygi Exp $
 
 #ifndef NEMPTY_H
 #define NEMPTY_H
@@ -41,6 +41,10 @@ class Nempty : public Var
     }
 
     s->wf.set_nempty(v);
+    if ( s->wfv != 0 )
+    {
+      s->wfv->set_nempty(v);
+    }
     
     return 0;
   }

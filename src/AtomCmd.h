@@ -3,7 +3,7 @@
 // AtomCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomCmd.h,v 1.5 2004-09-14 22:24:11 fgygi Exp $
+// $Id: AtomCmd.h,v 1.6 2005-04-29 18:12:37 fgygi Exp $
 
 #ifndef ATOMCMD_H
 #define ATOMCMD_H
@@ -66,6 +66,7 @@ class AtomCmd : public Cmd
   
     Atom *a = new Atom(name,species,position,velocity);
     
+    const int atoms_nel_before = s->atoms.nel();    
     if ( !(s->atoms.addAtom( a ) ) )
     {
       if ( ui->onpe0() )
@@ -73,22 +74,18 @@ class AtomCmd : public Cmd
       delete a;
       return 1;
     }
+    const int atoms_nel_after = s->atoms.nel();
+    const int delta_nel = atoms_nel_after - atoms_nel_before;    
+    const int wf_nel = s->wf.nel();
     
-#if DEBUG
-cout << " dbg check "<< __FILE__ <<" "<< __LINE__ <<" mype="<< mype << endl;
-#endif
-
-    s->wf.set_nel(s->atoms.nel());
+    s->wf.set_nel(wf_nel+delta_nel);
     s->wf.update_occ(0.0);
     if ( s->wfv != 0 )
     {
-      s->wfv->set_nel(s->atoms.nel());
+      s->wfv->set_nel(wf_nel+delta_nel);
       s->wfv->clear();
     }
     
-#if DEBUG
-cout << " dbg check "<< __FILE__ <<" "<< __LINE__ <<" mype="<< mype << endl;
-#endif
     return 0;
   }
 };

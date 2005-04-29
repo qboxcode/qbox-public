@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.8 2004-10-28 16:54:28 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.9 2005-04-29 18:14:35 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -52,6 +52,19 @@ CPSampleStepper::~CPSampleStepper(void)
 ////////////////////////////////////////////////////////////////////////////////
 void CPSampleStepper::step(int niter)
 {
+  // CP dynamics is allowed only for all doubly occupied states
+  // check if states are all doubly occupied
+  const bool wf_double_occ = (s_.wf.nel() == 2 * s_.wf.nst());
+  if ( !wf_double_occ )
+  {
+    if ( s_.ctxt_.onpe0() )
+    {
+      cout << " CPSampleStepper::step:"
+              " not all states doubly occupied: cannot run" << endl;
+    }
+    return;
+  }
+  
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
   

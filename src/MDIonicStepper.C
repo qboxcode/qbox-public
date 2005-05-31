@@ -3,7 +3,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.7 2004-05-20 00:20:26 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.8 2005-05-31 18:16:02 fgygi Exp $
 
 #include "MDIonicStepper.h"
 
@@ -37,9 +37,9 @@ void MDIonicStepper::compute_rp(const vector<vector< double> >& f0)
     eta_ = tanh ( ( temp() - th_temp_ ) / th_width_ ) / th_time_;
     if ( s_.ctxt_.onpe0() )
     {
-      cout << "  <!-- Thermostat: temp=" << temp() << " -->" << endl;
-      cout << "  <!-- Thermostat: tref=" << th_temp_ << " -->" << endl;
-      cout << "  <!-- Thermostat: eta=" << eta_ << " -->" << endl;
+      cout << "  <!-- thermostat: temp=" << temp() << " -->" << endl;
+      cout << "  <!-- thermostat: tref=" << th_temp_ << " -->" << endl;
+      cout << "  <!-- thermostat: eta=" << eta_ << " -->" << endl;
     }
     
     const double fac = (1.0 - eta_ * dt_);

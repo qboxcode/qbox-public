@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.35 2005-03-17 17:18:27 fgygi Exp $
+// $Id: SlaterDet.C,v 1.36 2005-05-31 18:16:46 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -943,6 +943,8 @@ double SlaterDet::ortho_error(void)
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::randomize(double amplitude)
 {
+  if ( basis_->size() == 0 )
+    return;
   // Note: randomization results depend on the process grid size and shape
   srand48(ctxt_.myproc());
   for ( int n = 0; n < c_.nloc(); n++ )

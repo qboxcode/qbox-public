@@ -3,7 +3,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.4 2003-05-16 16:14:00 fgygi Exp $
+// $Id: Species.C,v 1.5 2005-05-31 18:14:54 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -148,14 +148,17 @@ bool Species::initialize(double rcpsval)
   // compute spline coefficients of vps_ and phi_
   for ( int l = 0; l <= lmax_; l++ )
   {
+    const double dvdr = zval_ / (rps_[ndft_-1]*rps_[ndft_-1]);
     spline(&rps_[0],&vps_[l][0],ndft_,
-           SPLINE_FLAT_BC,SPLINE_NATURAL_BC,&vps_spl_[l][0]);
+           SPLINE_FLAT_BC,dvdr,&vps_spl_[l][0]);
   }
   for ( int l = 0; l <= lmax_; l++ )
   {
     if ( l != llocal_ )
+    {
       spline(&rps_[0],&phi_[l][0],ndft_,
            SPLINE_FLAT_BC,SPLINE_NATURAL_BC,&phi_spl_[l][0]);
+    }
   }
     
   // local potential: subtract the long range part due to the smeared charge
@@ -197,7 +200,10 @@ bool Species::initialize(double rcpsval)
   {
     fint[i] = vlocr[i] * rps_[i];
   }
-  double v0 = simpsn(ndft_,&fint[0]);
+
+  const double v0 = simpsn(ndft_,&fint[0]);
+  // next line: include correction for v(g=0) to be independent of rcps
+  // const double v0 = simpsn(ndft_,&fint[0]) - M_PI*zval_*rcps_*rcps_;
 
   for ( int i = 0; i < ndft_; i++ )
   {
@@ -304,7 +310,7 @@ bool Species::initialize(double rcpsval)
           {
             fint[i] = vnlr[l][i] * rps_[i] * rps_[i];
           }
-          v0 = simpsn(ndft_, &fint[0]);
+          const double v0 = simpsn(ndft_, &fint[0]);
 
           for ( int i = 0; i < ndft_; i++ )
           {
@@ -335,7 +341,7 @@ bool Species::initialize(double rcpsval)
           //  vnlr(i,is,l) contains 4 pi dr phi_l(r) v_l(r)
 
           //  Next line: v(G=0) is zero (j_1(Gr) -> 0 as G->0 )
-          v0 = 0.0;
+          const double v0 = 0.0;
 
           //  First part: 1/G^2 \sum_r sin(Gr) vnlr
           for ( int i = 0; i < ndft_; i++ )
@@ -389,7 +395,7 @@ bool Species::initialize(double rcpsval)
           // vnlr[l][i] contains 4 pi dr phi_l(r) v_l(r)
 
           //  Next line: v(G=0) is zero (j_2(Gr) -> 0 as G->0 )
-          v0 = 0.0;
+          const double v0 = 0.0;
 
           // First part: sine transform 3/G^3 \sum_r sin(Gr)/r vnlr
           // Note: the integrand is linear near r=0 since vnlr(r) ~ r^2

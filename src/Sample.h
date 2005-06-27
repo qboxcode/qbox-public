@@ -3,12 +3,13 @@
 // Sample.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Sample.h,v 1.6 2004-02-04 19:55:16 fgygi Exp $
+// $Id: Sample.h,v 1.7 2005-06-27 22:19:31 fgygi Exp $
 
 #ifndef SAMPLE_H
 #define SAMPLE_H
 
 #include "AtomSet.h"
+#include "ConstraintSet.h"
 #include "Wavefunction.h"
 #include "Control.h"
 
@@ -23,11 +24,13 @@ class Sample
   const Context& ctxt_;
 
   AtomSet atoms;
+  ConstraintSet constraints;
   Wavefunction wf;
   Wavefunction* wfv; // wavefunction velocity
   Control ctrl;
 
-  Sample(const Context& ctxt) : ctxt_(ctxt), atoms(ctxt), wf(ctxt), wfv(0)
+  Sample(const Context& ctxt) : ctxt_(ctxt), atoms(ctxt), constraints(ctxt),
+    wf(ctxt), wfv(0)
   { ctrl.sigmas = 0.5; ctrl.facs = 2.0; }
 };
 #endif

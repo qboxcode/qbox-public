@@ -3,12 +3,13 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.15 2004-09-14 22:24:11 fgygi Exp $
+// $Id: SampleReader.C,v 1.16 2005-06-27 22:19:12 fgygi Exp $
 
 
 #include "Sample.h"
 #include "SampleReader.h"
 #include "SpeciesReader.h"
+#include "Species.h"
 #include "Basis.h"
 #include "FourierTransform.h"
 #include "SlaterDet.h"

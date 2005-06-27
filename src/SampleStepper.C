@@ -3,9 +3,10 @@
 // SampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.C,v 1.18 2004-03-11 21:52:32 fgygi Exp $
+// $Id: SampleStepper.C,v 1.19 2005-06-27 22:19:12 fgygi Exp $
 
 #include "SampleStepper.h"
+#include "Species.h"
 
 #include <iostream>
 #include <iomanip>
@@ -146,5 +147,3 @@ void SampleStepper::compute_sigma(void)
  
   sigma = sigma_eks + sigma_kin - sigma_ext;
 }
-
-

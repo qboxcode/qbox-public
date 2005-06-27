@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.45 2005-04-29 18:16:01 fgygi Exp $
+// $Id: qb.C,v 1.46 2005-06-27 22:17:38 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -29,11 +29,16 @@ using namespace std;
 #include "Sample.h"
 #include "Timer.h"
 
+#include "AngleCmd.h"
 #include "AtomCmd.h"
+#include "ConstraintCmd.h"
+#include "DistanceCmd.h"
 #include "HelpCmd.h"
 #include "ListAtomsCmd.h"
+#include "ListConstraintsCmd.h"
 #include "ListSpeciesCmd.h"
 #include "LoadCmd.h"
+#include "MoveCmd.h"
 #include "PrintCmd.h"
 #include "QuitCmd.h"
 #include "RandomizeWfCmd.h"
@@ -42,6 +47,7 @@ using namespace std;
 #include "SetCmd.h"
 #include "SpeciesCmd.h"
 #include "StatusCmd.h"
+#include "TorsionCmd.h"
 
 #include "AtomsDyn.h"
 #include "Cell.h"
@@ -197,11 +203,16 @@ int main(int argc, char **argv, char **envp)
   
   UserInterface ui;
   
+  ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
+  ui.addCmd(new ConstraintCmd(s));
+  ui.addCmd(new DistanceCmd(s));
   ui.addCmd(new HelpCmd(s));
   ui.addCmd(new ListAtomsCmd(s));
+  ui.addCmd(new ListConstraintsCmd(s));
   ui.addCmd(new ListSpeciesCmd(s));
   ui.addCmd(new LoadCmd(s));
+  ui.addCmd(new MoveCmd(s));
   ui.addCmd(new PrintCmd(s));
   ui.addCmd(new QuitCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
@@ -210,6 +221,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new SetCmd(s));
   ui.addCmd(new SpeciesCmd(s));
   ui.addCmd(new StatusCmd(s));
+  ui.addCmd(new TorsionCmd(s));
   
   ui.addVar(new AtomsDyn(s));
   ui.addVar(new Cell(s));

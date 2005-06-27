@@ -3,9 +3,10 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.10 2004-03-11 21:44:08 fgygi Exp $
+// $Id: AtomSet.C,v 1.11 2005-06-27 22:27:19 fgygi Exp $
 
 #include "AtomSet.h"
+#include "Species.h"
 #include "NameOf.h"
 #include <iostream>
 #include <algorithm>
@@ -32,6 +33,7 @@ bool AtomSet::addSpecies(Species* sp, string name)
   isp_[name] = species_list.size()-1;
   na_.insert(map<string,int>::value_type(name,0));
   atom_list.resize(atom_list.size()+1);
+  is_[name] = spname.size()-1;
   
   return true;
 }
@@ -66,6 +68,8 @@ bool AtomSet::addAtom(Atom *a)
   int is = isp(spname);
   assert ( is >= 0 );
   atom_list[is].push_back(a);
+  ia_[a->name()] = atom_list[is].size()-1;
+  is_[a->name()] = is;
 
   // update count of atoms of species spname
   // increment count
@@ -96,6 +100,12 @@ bool AtomSet::delAtom(string name)
         string spname = atom_list[is][ia]->species();
         na_[spname]--;
         delete atom_list[is][ia];
+        
+        // remove map entries ia_[name] and is_[name]
+        map<string,int>::iterator i = ia_.find(name);
+        ia_.erase(i);
+        i = is_.find(name);
+        is_.erase(i);
         
         atom_list[is].erase(pa);
         nel_ -= species_list[is]->zval();
@@ -139,10 +149,30 @@ Species *AtomSet::findSpecies(string name) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int AtomSet::isp(string name) const
+int AtomSet::isp(const string& name) const
 {
   map<string,int>::const_iterator i = isp_.find(name);
   if ( i != isp_.end() )
+    return (*i).second;
+  else
+    return -1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+int AtomSet::is(const string& atom_name) const
+{
+  map<string,int>::const_iterator i = is_.find(atom_name);
+  if ( i != is_.end() )
+    return (*i).second;
+  else
+    return -1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+int AtomSet::ia(const string& atom_name) const
+{
+  map<string,int>::const_iterator i = ia_.find(atom_name);
+  if ( i != ia_.end() )
     return (*i).second;
   else
     return -1;
@@ -176,7 +206,7 @@ void AtomSet::listSpecies(void) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int AtomSet::na(string spname) const
+int AtomSet::na(const string& spname) const
 {
   map<string,int>::const_iterator i = na_.find(spname);
   if ( i != na_.end() )
@@ -312,6 +342,44 @@ void AtomSet::reset_velocities(void)
   }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+void AtomSet::sync()
+{
+#if USE_MPI
+  // enforce consistency of positions on all tasks
+  vector<vector<double> > r,v;
+  get_positions(r);
+  get_velocities(v);
+  for ( int is = 0; is < atom_list.size(); is++ )
+  {
+    int m = r[is].size();
+    double* p = &r[is][0];
+    if ( ctxt_.onpe0() )
+    {
+      ctxt_.dbcast_send(m,1,p,m);
+    }
+    else
+    {
+      ctxt_.dbcast_recv(m,1,p,m,0,0);
+    }
+  }
+  for ( int is = 0; is < atom_list.size(); is++ )
+  {
+    int m = v[is].size();
+    double* p = &v[is][0];
+    if ( ctxt_.onpe0() )
+    {
+      ctxt_.dbcast_send(m,1,p,m);
+    }
+    else
+    {
+      ctxt_.dbcast_recv(m,1,p,m,0,0);
+    }
+  }
+#endif
+  set_positions(r);
+  set_velocities(v);
+}
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator << ( ostream &os, AtomSet &as )
 {

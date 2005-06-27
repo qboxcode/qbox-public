@@ -44,10 +44,10 @@ class TestHandler : public DefaultHandler
   void print_data()
   { 
     //cout << "TestHandler::endDocument" << endl;
-    cout << y.size() << endl;
-    cout.setf(ios::scientific,ios::floatfield);
-    for ( int i = 0; i < y.size(); i++ )
-      cout << i << " " << y[i] << endl;
+    //cout << y.size() << endl;
+    //cout.setf(ios::scientific,ios::floatfield);
+    //for ( int i = 0; i < y.size(); i++ )
+    //  cout << i << " " << y[i] << endl;
   };
 
   void startElement(const XMLCh* const uri,const XMLCh* const localname,
@@ -78,7 +78,8 @@ class TestHandler : public DefaultHandler
     //cout << "TestHandler::endElement:   " << StrX(qname) << endl;
     if ( XMLString::transcode(qname) == tag )
     {
-      y.push_back(buffer);
+      cout << buffer;
+      // y.push_back(buffer);
       read = false;
     }
   }

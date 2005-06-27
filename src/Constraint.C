@@ -1,0 +1,16 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+//  Constraint.C
+//
+////////////////////////////////////////////////////////////////////////////////
+// $Id: Constraint.C,v 1.1 2005-06-27 22:34:46 fgygi Exp $
+
+#include "Constraint.h"
+#include <iostream>
+using namespace std;
+
+ostream& operator << ( ostream &os, Constraint &c )
+{
+  return c.print(os);
+}  
+  

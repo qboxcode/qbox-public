@@ -3,10 +3,11 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.21 2005-01-04 22:07:17 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.22 2005-06-27 22:25:04 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
+#include "Species.h"
 #include "Wavefunction.h"
 #include "SlaterDet.h"
 #include "Basis.h"
@@ -100,7 +101,6 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
   rhopst.resize(ngloc);
   
   tau0.resize(nsp_);
-  taum.resize(nsp_);
   fion_esr.resize(nsp_);
   ftmp.resize(3*namax_);
   
@@ -112,7 +112,6 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
     
     const int na = atoms.na(is);
     tau0[is].resize(3*na);
-    taum[is].resize(3*na);
     fion_esr[is].resize(3*na);
     
     eself_ += na * s->eself();
@@ -783,7 +782,7 @@ void EnergyFunctional::atoms_moved(void)
   const AtomSet& atoms = s_.atoms;
   int ngloc = vbasis_->localsize();
 
-  // fill tau0, taum with values in atom_list
+  // fill tau0 with values in atom_list
   
   atoms.get_positions(tau0);
   sf.update(tau0,*vbasis_);

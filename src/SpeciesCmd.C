@@ -3,10 +3,11 @@
 // SpeciesCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesCmd.C,v 1.5 2005-04-29 18:11:31 fgygi Exp $
+// $Id: SpeciesCmd.C,v 1.6 2005-06-27 22:18:35 fgygi Exp $
 
 #include "SpeciesCmd.h"
 #include "SpeciesReader.h"
+#include "Species.h"
 using namespace std;
 
 class Species;

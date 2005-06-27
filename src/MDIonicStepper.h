@@ -3,30 +3,35 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.5 2004-12-17 23:39:06 fgygi Exp $
+// $Id: MDIonicStepper.h,v 1.6 2005-06-27 22:25:34 fgygi Exp $
 
 //
 // IonicStepper is used in the following way
 //
 // input: r0,v0
 //
+// compute forces f0(r0)
 // for ( k=0; k<n; k++ )
 // {
-//   compute forces f0(r0)
-//   if ( k > 0 ) stepper->compute_v0(f0);
-//   optional: modify velocities
-//   stepper->update_v();
-//   // new r0,v0,f0 known
-//   stepper->compute_rp(f0); // using r0, v0 and f0
-//   optional: restore constraints using rp and r0
-//   stepper->update_r(); // r0 <- rp
-//   // Note: r0 and v0 are not consistent at this point
-// }
-// compute forces f0(r0)
-// stepper->compute_v0(f0);
-// stepper->update_v();
+//   // r0,v0,f0 known
+//   stepper->compute_r(f0)
+//   {
+//     computes rp using r0, v0 and f0
+//     restores constraints on rp using rp and r0
+//     updates rm<-r0, r0<-rp and update atomset positions
+//   }
 //
-// // r0,v0,f0 consistent at this point
+//   compute f0(r0)
+//
+//   stepper->compute_v(f0)
+//   {
+//     computes v0 using r0,rm,f0
+//     restores constraints on v0 using r0, v0
+//     modifies velocities using the thermostat (rescaling)
+//     updates atomset velocities
+//   }
+// }
+// r0,v0,f0 consistent at this point
 //
 
 #ifndef MDIONICSTEPPER_H
@@ -44,7 +49,7 @@ class MDIonicStepper : public IonicStepper
   double ekin_;
   double eta_;
   bool thermostat_;
-  vector<vector< double> >  vhalf_; // vhalf_[nsp_][3*na_]: v(t+dt/2)
+  void compute_ekin(void);
 
   public:
   
@@ -56,25 +61,19 @@ class MDIonicStepper : public IonicStepper
     th_width_ = s.ctrl.th_width;
     eta_ = 0.0;
     ekin_ = 0.0;
-    vhalf_.resize(nsp_);
-    for ( int is = 0; is < nsp_; is++ )
-    {
-      const int nais = atoms_.na(is);
-      vhalf_[is].resize(3*nais);
-    }
+    atoms_.get_positions(r0_);
     atoms_.get_velocities(v0_);
+    compute_ekin();
   }
 
-  void compute_rp(const vector<vector< double> >& f0);
-  void compute_v0(const vector<vector< double> >& f0);
-  void update_r(void);
-  void update_v(void);
+  void compute_r(double e0, const vector<vector< double> >& f0);
+  void compute_v(double e0, const vector<vector< double> >& f0);
   double eta(void) const { return eta_; }
   double ekin(void) const { return ekin_; }
   double temp(void) const
   {
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
-    if ( ndofs_ > 0.0 )
+    if ( ndofs_ > 0 )
       return 2.0 * ( ekin_ / boltz ) / ndofs_;
     else
       return 0.0;

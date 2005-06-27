@@ -3,7 +3,7 @@
 // SDAIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.h,v 1.3 2004-12-18 23:21:18 fgygi Exp $
+// $Id: SDAIonicStepper.h,v 1.4 2005-06-27 22:21:32 fgygi Exp $
 
 #ifndef SDAIONICSTEPPER_H
 #define SDAIONICSTEPPER_H
@@ -15,7 +15,6 @@ class SDAIonicStepper : public IonicStepper
 {
   private:
   
-  vector<vector<double> > rm_;
   vector<double> f_;
   vector<double> fbar_;
   double theta_;
@@ -34,10 +33,8 @@ class SDAIonicStepper : public IonicStepper
     //mixer_.set_theta_nc(-0.5); // default: 0.0
   }
 
-  void compute_rp(const vector<vector< double> >& f0);
-  void compute_v0(const vector<vector< double> >& f0) {}
-  void update_r(void);
-  void update_v(void);
+  void compute_r(double e0, const vector<vector< double> >& f0);
+  void compute_v(double e0, const vector<vector< double> >& f0) {}
   void reset(void) { first_step_ = true; }
 };
 

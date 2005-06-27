@@ -3,14 +3,14 @@
 // SDAIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.C,v 1.3 2004-12-18 23:21:42 fgygi Exp $
+// $Id: SDAIonicStepper.C,v 1.4 2005-06-27 22:21:32 fgygi Exp $
 
 #include "SDAIonicStepper.h"
 #include <iostream>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-void SDAIonicStepper::compute_rp(const vector<vector< double> >& f0)
+void SDAIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
 {
   // Steepest descent step
   atoms_.get_positions(r0_);
@@ -32,12 +32,12 @@ void SDAIonicStepper::compute_rp(const vector<vector< double> >& f0)
     }
   }
   if ( s_.ctxt_.onpe0() )
-    cout << "<sda_residual> " << sum 
+    cout << " <sda_residual> " << sum 
          << "</sda_residual>" << endl;
   
   mixer_.update(&f_[0],&theta_,&fbar_[0]);
   if ( s_.ctxt_.onpe0() )
-    cout << "<sda_theta> " << theta_ 
+    cout << " <sda_theta> " << theta_ 
          << "</sda_theta>" << endl;
     
   k = 0;
@@ -52,18 +52,8 @@ void SDAIonicStepper::compute_rp(const vector<vector< double> >& f0)
     }
   }
   first_step_ = false;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void SDAIonicStepper::update_r(void)
-{
+  constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   r0_ = rp_;
   atoms_.set_positions(r0_);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void SDAIonicStepper::update_v(void)
-{
-  atoms_.reset_velocities(); // set velocities to zero
 }

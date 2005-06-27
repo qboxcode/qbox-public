@@ -3,7 +3,7 @@
 // EnergyFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.h,v 1.13 2004-10-04 18:37:13 fgygi Exp $
+// $Id: EnergyFunctional.h,v 1.14 2005-06-27 22:24:43 fgygi Exp $
 
 #ifndef ENERGYFUNCTIONAL_H
 #define ENERGYFUNCTIONAL_H
@@ -49,7 +49,7 @@ class EnergyFunctional
     rhopst, rhogt, rhoelg, vtemp;
   vector<double> ftmp;
   
-  vector<vector<double> > tau0, taum, fion_esr;
+  vector<vector<double> > tau0, fion_esr;
   vector<double> zv_, rcps_;
   vector<int> na_;
   int namax_;

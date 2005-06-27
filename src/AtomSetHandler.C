@@ -3,12 +3,13 @@
 // AtomSetHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.C,v 1.3 2004-09-14 22:24:11 fgygi Exp $
+// $Id: AtomSetHandler.C,v 1.4 2005-06-27 22:25:56 fgygi Exp $
 
 #if USE_XERCES
 
 #include "AtomSetHandler.h"
 #include "AtomSet.h"
+#include "Species.h"
 #include "SpeciesHandler.h"
 #include "SpeciesReader.h"
 #include "StrX.h"

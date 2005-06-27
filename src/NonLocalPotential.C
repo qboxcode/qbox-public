@@ -3,9 +3,10 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.19 2005-04-26 19:05:59 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.20 2005-06-27 22:22:10 fgygi Exp $
 
 #include "NonLocalPotential.h"
+#include "Species.h"
 #include "blas.h"
 #include <iomanip>
 using namespace std;

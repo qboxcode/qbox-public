@@ -3,7 +3,7 @@
 //  DistanceConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: DistanceConstraint.C,v 1.1 2005-06-27 22:34:46 fgygi Exp $
+// $Id: DistanceConstraint.C,v 1.2 2005-09-16 23:08:11 fgygi Exp $
 
 #include "DistanceConstraint.h"
 #include "AtomSet.h"
@@ -177,17 +177,17 @@ vector<vector<double> > &v0) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double DistanceConstraint::projection(const vector<vector<double> > &r0,
- const vector<vector<double> > &x) const
+void DistanceConstraint::compute_force(const vector<vector<double> > &r0,
+ const vector<vector<double> > &f)
 {
   const double* pr1 = &r0[is1_][3*ia1_];
   const double* pr2 = &r0[is2_][3*ia2_];
   D3vector r1(pr1);
   D3vector r2(pr2);
-  const double* px1 = &x[is1_][3*ia1_];
-  const double* px2 = &x[is2_][3*ia2_];
-  D3vector x1(px1);
-  D3vector x2(px2);
+  const double* pf1 = &f[is1_][3*ia1_];
+  const double* pf2 = &f[is2_][3*ia2_];
+  D3vector f1(pf1);
+  D3vector f2(pf2);
   
   // compute gradient at r
   D3vector r12(r1-r2);
@@ -197,30 +197,34 @@ double DistanceConstraint::projection(const vector<vector<double> > &r0,
   const double norm2 = g1*g1;
   assert(norm2>=0.0);
   if ( norm2 == 0.0 )
-    return 0.0;
+  {
+    force_ = 0.0;
+    return;
+  }
   const double norm = sqrt(norm2);
   
   D3vector e1(g1/norm);
   D3vector e2(-e1);
   
-  const double proj1 = x1*e1;
-  const double proj2 = x2*e2;
+  const double proj1 = f1*e1;
+  const double proj2 = f2*e2;
     
-  return 0.5*(proj1+proj2);
+  force_ = -0.5*(proj1+proj2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 ostream& DistanceConstraint::print( ostream &os )
 {
   os.setf(ios::left,ios::adjustfield);
-  os << " <!-- constraint ";
-  os << type() << " ";
-  os << setw(4) << name1_ << " ";
-  os << setw(4) << name2_ << " ";
+  os << " <constraint name=\"" << name();
+  os << "\" type=\"" << type();
+  os << "\" atoms=\"" << name1_ << " " << name2_ << "\"\n";
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
-  os << setw(10) << setprecision(6) << distance_ << " "
-     << setw(10) << setprecision(6) << velocity_ << " -->";
+  os << "  value=\"" << setprecision(6) << distance_;
+  os << "\" velocity=\"" << setprecision(6) << velocity_ << "\"\n";
+  os << "  force=\"" << setprecision(6) << force_;
+  os << "\" weight=\"" << setprecision(6) << weight_ << "\"/>";
   return os;
 }
 

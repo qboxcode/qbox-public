@@ -14,6 +14,14 @@ Include current energy e0 in arguments of IonicStepper::compute_rp, in
 addition to forces f0. Use e0 to backtrack when energy rises in the SDA alg.
 
 --------------------------------------------------------------------------------
+rel1_26_1e
+redefine constraint command and subcommands, output format.
+Introduce constraint names.
+Remove ListConstraintsCmd.h
+SDAIonicStepper.h: fixed bug: 
+Use of ndofs_ incorrect when ndofs<3*na (when constraints are defined).
+Use CHOLESKY_REMAP macro value for size of square context in SlaterDet.C (bgl).
+--------------------------------------------------------------------------------
 rel1_26_0 
 Species.C: changed spline BC for local potential.
 SlaterDet.C: randomize: return if basis size is zero.

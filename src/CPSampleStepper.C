@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.10 2005-06-27 22:30:28 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.11 2005-09-16 23:08:11 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -190,17 +190,13 @@ void CPSampleStepper::step(int niter)
           }
         }
       }
-#if 0
+#if 1
       if ( s_.constraints.size() > 0 )
       {
-        const double projected_force = 
-        s_.constraints.projection(mdionic_stepper->r0(), fion);
+        s_.constraints.compute_forces(mdionic_stepper->r0(), fion);
         if ( onpe0 )
         {
-          cout << "  <constraint_projected_force> "
-               << projected_force
-               << " </constraint_projected_force>"
-               << endl;
+          s_.constraints.list_constraints(cout);
         }
       }
 #endif

@@ -3,7 +3,7 @@
 // SpeciesCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesCmd.C,v 1.6 2005-06-27 22:18:35 fgygi Exp $
+// $Id: SpeciesCmd.C,v 1.7 2005-09-16 23:08:11 fgygi Exp $
 
 #include "SpeciesCmd.h"
 #include "SpeciesReader.h"
@@ -37,9 +37,9 @@ int SpeciesCmd::action(int argc, char **argv)
     s->atoms.addSpecies(sp,argv[1]);
     if ( s->ctxt_.onpe0() )
     {
-      cout << endl << " species " << sp->name() << ":" << endl;
+      cout << endl << " <!-- species " << sp->name() << ":" << endl;
       sp->info(cout);
-      cout << endl;
+      cout << " -->" << endl;
     }
 
   }

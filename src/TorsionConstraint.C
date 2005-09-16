@@ -3,7 +3,7 @@
 //  TorsionConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionConstraint.C,v 1.1 2005-06-27 22:34:46 fgygi Exp $
+// $Id: TorsionConstraint.C,v 1.2 2005-09-16 23:08:11 fgygi Exp $
 
 #include "TorsionConstraint.h"
 #include "AtomSet.h"
@@ -269,27 +269,27 @@ bool TorsionConstraint::enforce_v(const vector<vector<double> > &r0,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double TorsionConstraint::projection(const vector<vector<double> > &r0,
-  const vector<vector<double> > &x) const
+void TorsionConstraint::compute_force(const vector<vector<double> > &r0,
+  const vector<vector<double> > &f)
 {
   const double* pr1 = &r0[is1_][3*ia1_];
   const double* pr2 = &r0[is2_][3*ia2_];
   const double* pr3 = &r0[is3_][3*ia3_];
   const double* pr4 = &r0[is4_][3*ia4_];
-  const double* px1 = &x[is1_][3*ia1_];
-  const double* px2 = &x[is2_][3*ia2_];
-  const double* px3 = &x[is3_][3*ia3_];
-  const double* px4 = &x[is4_][3*ia4_];
+  const double* pf1 = &f[is1_][3*ia1_];
+  const double* pf2 = &f[is2_][3*ia2_];
+  const double* pf3 = &f[is3_][3*ia3_];
+  const double* pf4 = &f[is4_][3*ia4_];
   
   D3vector r1(pr1);
   D3vector r2(pr2);
   D3vector r3(pr3);
   D3vector r4(pr4);
   
-  D3vector x1(px1);
-  D3vector x2(px2);
-  D3vector x3(px3);
-  D3vector x4(px4);
+  D3vector f1(pf1);
+  D3vector f2(pf2);
+  D3vector f3(pf3);
+  D3vector f4(pf4);
   
   const double h = 0.001;
   const double fac = 0.5 / h;
@@ -303,26 +303,36 @@ double TorsionConstraint::projection(const vector<vector<double> > &r0,
   
   const double norm2 = g1*g1 + g2*g2 + g3*g3 +g4*g4;
   assert(norm2>0.0);
-  const double proj = x1*g1 + x2*g2 + x3*g3 + x4*g4;
+  const double proj = f1*g1 + f2*g2 + f3*g3 + f4*g4;
   if ( norm2 == 0.0 )
-    return 0.0;
-  return proj/sqrt(norm2);
+  {
+    force_ = 0.0;
+    return;
+  }
+  force_ = -proj/norm2;
+  // compute weight
+  const double z = m1_inv_ * g1 * g1 + 
+                   m2_inv_ * g2 * g2 +
+                   m3_inv_ * g3 * g3 +
+                   m4_inv_ * g4 * g4;
+  assert(z > 0.0);
+  weight_ = 1.0 / sqrt(z);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 ostream& TorsionConstraint::print( ostream &os )
 {
   os.setf(ios::left,ios::adjustfield);
-  os << " <!-- constraint ";
-  os << type() << " ";
-  os << setw(4) << name1_ << " ";
-  os << setw(4) << name2_ << " ";
-  os << setw(4) << name3_ << " ";
-  os << setw(4) << name4_ << " ";
+  os << " <constraint name=\"" << name();
+  os << "\" type=\"" << type();
+  os << "\" atoms=\"" << name1_ << " ";
+  os << name2_ << " " << name3_ << " " << name4_ << "\"\n";
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
-  os << setw(10) << setprecision(6) << angle_ << " "
-     << setw(10) << setprecision(6) << velocity_ << " -->";
+  os << "  value=\"" << setprecision(6) << angle_;
+  os << "\" velocity=\"" << setprecision(6) << velocity_ << "\"\n";
+  os << "  force=\"" << setprecision(6) << force_;
+  os << "\" weight=\"" << setprecision(6) << weight_ << "\"/>";
   return os;
 }
 

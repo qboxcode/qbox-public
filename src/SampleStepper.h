@@ -3,7 +3,7 @@
 // SampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.h,v 1.8 2004-03-11 21:52:31 fgygi Exp $
+// $Id: SampleStepper.h,v 1.9 2005-09-16 23:08:11 fgygi Exp $
 
 #ifndef SAMPLESTEPPER_H
 #define SAMPLESTEPPER_H
@@ -22,11 +22,6 @@ class SampleStepper
   protected:
   
   Sample& s_;
-  AtomSet& atoms_;
-  int                       nsp_;
-  int                       ndofs_;
-  vector<int>               na_;      // number of atoms per species na_[nsp_]
-  vector<double>            pmass_;   // pmass_[nsp_]
   
   vector<vector<double> > fion;
   valarray<double> sigma_eks, sigma_kin, sigma_ext, sigma;

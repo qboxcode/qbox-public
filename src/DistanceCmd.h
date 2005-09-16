@@ -3,7 +3,7 @@
 // DistanceCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: DistanceCmd.h,v 1.1 2005-06-27 22:35:26 fgygi Exp $
+// $Id: DistanceCmd.h,v 1.2 2005-09-16 23:08:11 fgygi Exp $
 
 #ifndef DISTANCECMD_H
 #define DISTANCECMD_H
@@ -66,7 +66,7 @@ class DistanceCmd : public Cmd
       cout.setf(ios::fixed,ios::floatfield);
       cout << " <!-- distance " << name1 << "-" << name2 << ": "  
            << setprecision(3)                                    
-           << d << " (a.u.) / " << 0.529177*d << " (Ang)" << endl;     
+           << d << " (a.u.) / " << 0.529177*d << " (Ang) -->" << endl;     
     }
     return 0;
   }

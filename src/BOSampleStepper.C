@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.24 2005-06-27 22:31:39 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.25 2005-09-16 23:08:11 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -255,20 +255,14 @@ void BOSampleStepper::step(int niter)
     
     if ( compute_forces )
     {
-#if 0
       if ( s_.constraints.size() > 0 )
       {
-        const double projected_force = 
-        s_.constraints.projection(ionic_stepper->r0(), fion);
+        s_.constraints.compute_forces(ionic_stepper->r0(), fion);
         if ( onpe0 )
         {
-          cout << "  <constraint_projected_force> "
-               << projected_force
-               << " </constraint_projected_force>"
-               << endl;
+          s_.constraints.list_constraints(cout);
         }
       }
-#endif
       // move atoms to new position: r0 <- r0 + v0*dt + dt2/m * fion
       ionic_stepper->compute_r(energy,fion);
       ef_.atoms_moved();

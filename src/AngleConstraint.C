@@ -3,7 +3,7 @@
 //  AngleConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleConstraint.C,v 1.1 2005-06-27 22:34:46 fgygi Exp $
+// $Id: AngleConstraint.C,v 1.2 2005-09-16 23:08:11 fgygi Exp $
 
 #include "AngleConstraint.h"
 #include "AtomSet.h"
@@ -249,15 +249,15 @@ vector<vector<double> > &v0) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double AngleConstraint::projection(const vector<vector<double> > &r0,
- const vector<vector<double> > &x) const
+void AngleConstraint::compute_force(const vector<vector<double> > &r0,
+ const vector<vector<double> > &f)
 {
   const double* pr1 = &r0[is1_][3*ia1_];
   const double* pr2 = &r0[is2_][3*ia2_];
   const double* pr3 = &r0[is3_][3*ia3_];
-  const double* px1 = &x[is1_][3*ia1_];
-  const double* px2 = &x[is2_][3*ia2_];
-  const double* px3 = &x[is3_][3*ia3_];
+  const double* pf1 = &f[is1_][3*ia1_];
+  const double* pf2 = &f[is2_][3*ia2_];
+  const double* pf3 = &f[is3_][3*ia3_];
   
   D3vector r1(pr1);
   D3vector r2(pr2);
@@ -266,16 +266,40 @@ double AngleConstraint::projection(const vector<vector<double> > &r0,
   
   grad_sigma(r1,r2,r3,g1,g2,g3);
   
-  D3vector x1(px1);
-  D3vector x2(px2);
-  D3vector x3(px3);
+  D3vector f1(pf1);
+  D3vector f2(pf2);
+  D3vector f3(pf3);
     
   const double norm2 = g1*g1 + g2*g2 + g3*g3;
   if ( norm2 == 0.0 )
-    return 0.0;
+  {
+    force_ = 0.0;
+    return;
+  }
     
-  const double proj = x1*g1 + x2*g2 + x3*g3;
-  return proj/sqrt(norm2);
+  const double proj = f1*g1 + f2*g2 + f3*g3;
+  force_ = -proj/norm2;
+  
+  // compute weight
+  const double z = m1_inv_ * g1 * g1 + 
+                   m2_inv_ * g2 * g2 +
+                   m3_inv_ * g3 * g3;
+  assert(z > 0.0);
+  weight_ = 1.0 / sqrt(z);
+#if DEBUG_CONSTRAINTS
+  // check value of z
+  const double r12s = norm(r1-r2);
+  const double r32s = norm(r3-r2);
+  const double fac = 180.0/M_PI;
+  const double cos_theta = normalized(r1-r2)*normalized(r3-r2);
+  const double zcheck = fac*fac * 
+    ( m1_inv_ / r12s +
+      m2_inv_ * ( (r12s+r32s-2*sqrt(r12s*r32s)*cos_theta) /(r12s*r32s) ) +
+      m3_inv_ / r32s 
+    );
+  cout << " <!-- AngleConstraint: z=" << z << " zcheck=" << zcheck << " -->"
+       << endl;
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -371,14 +395,15 @@ double AngleConstraint::bond_angle(D3vector a, D3vector b, D3vector c) const
 ostream& AngleConstraint::print( ostream &os )
 {
   os.setf(ios::left,ios::adjustfield);
-  os << " <!-- constraint ";
-  os << type() << " ";
-  os << setw(4) << name1_ << " ";
-  os << setw(4) << name2_ << " ";
-  os << setw(4) << name3_ << " ";
+  os << " <constraint name=\"" << name();
+  os << "\" type=\"" << type();
+  os << "\" atoms=\"" << name1_ << " ";
+  os << name2_ << " " << name3_ << "\"\n";
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
-  os << setw(10) << setprecision(6) << angle_ << " "
-     << setw(10) << setprecision(6) << velocity_ << " -->";
+  os << "  value=\"" << setprecision(6) << angle_;
+  os << "\" velocity=\"" << setprecision(6) << velocity_ << "\"\n";
+  os << "  force=\"" << setprecision(6) << force_;
+  os << "\" weight=\"" << setprecision(6) << weight_ << "\"/>";
   return os;
 }

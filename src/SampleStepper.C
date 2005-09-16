@@ -3,7 +3,7 @@
 // SampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.C,v 1.19 2005-06-27 22:19:12 fgygi Exp $
+// $Id: SampleStepper.C,v 1.20 2005-09-16 23:08:11 fgygi Exp $
 
 #include "SampleStepper.h"
 #include "Species.h"
@@ -13,7 +13,7 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-SampleStepper::SampleStepper(Sample& s) : s_(s), atoms_(s_.atoms)
+SampleStepper::SampleStepper(Sample& s) : s_(s)
 {
   fion.resize(s_.atoms.nsp());
   for ( int is = 0; is < fion.size(); is++ )
@@ -121,13 +121,13 @@ void SampleStepper::compute_sigma(void)
 {
   sigma_kin = 0.0;
   // compute kinetic contribution to stress using velocities at time t0
-  for ( int is = 0; is < atoms_.atom_list.size(); is++ )
+  for ( int is = 0; is < s_.atoms.atom_list.size(); is++ )
   {
     int i = 0;
-    double mass = atoms_.species_list[is]->mass() * 1822.89;
-    for ( int ia = 0; ia < atoms_.atom_list[is].size(); ia++ )
+    double mass = s_.atoms.species_list[is]->mass() * 1822.89;
+    for ( int ia = 0; ia < s_.atoms.atom_list[is].size(); ia++ )
     {
-      Atom* pa = atoms_.atom_list[is][ia];
+      Atom* pa = s_.atoms.atom_list[is][ia];
       D3vector v = pa->velocity();
       const double vx = v.x;
       const double vy = v.y;

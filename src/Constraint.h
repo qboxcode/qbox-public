@@ -3,7 +3,7 @@
 //  Constraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Constraint.h,v 1.1 2005-06-27 22:34:46 fgygi Exp $
+// $Id: Constraint.h,v 1.2 2005-09-16 23:08:11 fgygi Exp $
 
 #ifndef CONSTRAINT_H
 #define CONSTRAINT_H
@@ -19,6 +19,7 @@ class Constraint
 {
   protected:
   
+  string name_;          // constraint name
   vector<string> names_; // names of atoms involved in the constraint
   
   public:
@@ -26,6 +27,8 @@ class Constraint
   virtual string type(void) const = 0;
   virtual double value(void) const = 0;
   virtual double velocity(void) const = 0;
+  virtual double force(void) const = 0;
+  virtual double weight(void) const = 0;
   virtual double tolerance(void) const = 0;
   virtual void set_value(double value) = 0;
   virtual void set_velocity(double velocity) = 0;
@@ -33,12 +36,13 @@ class Constraint
                          vector<vector<double> > &rp) const = 0;
   virtual bool enforce_v(const vector<vector<double> > &r0,
                          vector<vector<double> > &v0) const = 0;
-  virtual double projection(const vector<vector<double> > &r0,
-                            const vector<vector<double> > &x) const = 0;
+  virtual void compute_force(const vector<vector<double> > &r0,
+                             const vector<vector<double> > &f) = 0;
   virtual void update(double dt) = 0;
   virtual void setup(const AtomSet& atoms) = 0;
   virtual ostream& print(ostream &os) = 0;
-  string names(int i)
+  string name(void) const { return name_; }
+  string names(int i) const
   {
     assert( i >= 0 && i < names_.size() );
     return names_[i];

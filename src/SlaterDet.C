@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.36 2005-05-31 18:16:46 fgygi Exp $
+// $Id: SlaterDet.C,v 1.37 2005-09-16 23:04:23 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -327,7 +327,8 @@ void SlaterDet::gram(void)
     s.syr('l',-1.0,c_proxy,0,'r');
 #ifdef CHOLESKY_REMAP
     // create a square context for the Cholesky decomposition
-    int nsq = (int) sqrt((double) ctxt_.size());
+    // int nsq = (int) sqrt((double) ctxt_.size());
+    int nsq = CHOLESKY_REMAP;
     Context csq(nsq,nsq);
     DoubleMatrix ssq(csq,c_.n(),c_.n(),c_.nb(),c_.nb());
     ssq.getsub(s,s.m(),s.n(),0,0);

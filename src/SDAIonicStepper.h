@@ -3,7 +3,7 @@
 // SDAIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.h,v 1.4 2005-06-27 22:21:32 fgygi Exp $
+// $Id: SDAIonicStepper.h,v 1.5 2005-09-16 23:02:49 fgygi Exp $
 
 #ifndef SDAIONICSTEPPER_H
 #define SDAIONICSTEPPER_H
@@ -24,10 +24,10 @@ class SDAIonicStepper : public IonicStepper
   public:
   
   SDAIonicStepper(Sample& s) : IonicStepper(s), first_step_(true), theta_(0),
-  mixer_(ndofs_, 0)
+  mixer_(3*atoms_.size(), 0)
   {
-    f_.resize(ndofs_);
-    fbar_.resize(ndofs_);
+    f_.resize(3*atoms_.size());
+    fbar_.resize(3*atoms_.size());
     rm_ = r0_;
     mixer_.set_theta_max(1.0);
     //mixer_.set_theta_nc(-0.5); // default: 0.0

@@ -3,7 +3,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.14 2005-02-04 22:00:23 fgygi Exp $
+// $Id: Matrix.C,v 1.15 2006-03-07 07:06:34 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -285,6 +285,10 @@ extern "C"
              complex<double>* a, const int *lda, double* w,
              complex<double>* work, const int *lwork, double* rwork, int *info);
   void dtrtri(const char*, const char*, const int*, double*, const int*, int* );
+  void dgetrf(const int* m, const int* n, double* a, const int* lda, 
+              int* ipiv, int*info);
+  void dgetri(const int* m, double* val, const int* lda, int* ipiv, 
+              double* work, int* lwork, int* info);
 }
 
 
@@ -2279,6 +2283,7 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w, DoubleMatrix& z)
             z.val, &ione, &ione, z.desc_, work, &lwork, iwork, &liwork, &info);
            
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+    delete[] iwork;
 #else
     int lwork=-1;
     double tmplwork;
@@ -2303,7 +2308,6 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w, DoubleMatrix& z)
 #endif
     }
     delete[] work;
-    delete[] iwork;
   }
 }
 
@@ -2353,6 +2357,7 @@ void DoubleMatrix::syevx(char uplo, valarray<double>& w, DoubleMatrix& z,
             iwork, &liwork, &ifail[0], &icluster[0], &gap[0], &info);
            
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+    delete[] iwork;
 #else
     int lwork=-1;
     double tmplwork;
@@ -2377,7 +2382,6 @@ void DoubleMatrix::syevx(char uplo, valarray<double>& w, DoubleMatrix& z,
 #endif
     }
     delete[] work;
-    delete[] iwork;
   }
 }
 
@@ -2469,6 +2473,7 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w)
             zval, &ione, &ione, descz, work, &lwork, iwork, &liwork, &info);
            
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+    delete[] iwork;
 #else
     int lwork=-1;
     double tmplwork;
@@ -2492,7 +2497,6 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w)
 #endif
     }
     delete[] work;
-    delete[] iwork;
   }
 }
 

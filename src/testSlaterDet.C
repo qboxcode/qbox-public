@@ -3,7 +3,7 @@
 // testSlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testSlaterDet.C,v 1.7 2003-08-18 22:43:04 fgygi Exp $
+// $Id: testSlaterDet.C,v 1.8 2006-03-07 07:10:20 fgygi Exp $
 
 #include "Context.h"
 #include "SlaterDet.h"
@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     
     Timer tm;
     
-    Context ctxt(npr,npc,'c');
+    Context ctxt(npr,npc);
     
     SlaterDet sd(ctxt,kpoint);
     cout << sd.context();
@@ -54,10 +54,6 @@ int main(int argc, char **argv)
       cout << " ngw:    " << sd.basis().size() << endl;
       cout << " nst:    " << sd.nst() << endl;
     }
-    
-    vector<double> occ(nst);
-    for ( int i = 0; i < nst; i++ )
-      occ[i] = 1.0;
     
     err = sd.ortho_error();
     if ( ctxt.myproc() == 0 )
@@ -105,7 +101,7 @@ int main(int argc, char **argv)
            << sd.localmemsize() / 1048576.0 << endl;
     }
     
-    cout << " ekin: " << setprecision(8) << sd.ekin(occ) << endl;
+    //cout << " ekin: " << setprecision(8) << sd.ekin(occ) << endl;
         
     // compute charge density in real space
     FourierTransform ft(sd.basis(),
@@ -120,7 +116,7 @@ int main(int argc, char **argv)
     
     cout << " compute_density..." << endl;
     double weight = 1.0;
-    sd.compute_density(ft,occ,weight,&rho[0]);
+    sd.compute_density(ft,weight,&rho[0]);
     
     tmrho.stop();
     cout << " compute_density: CPU/Real: " 

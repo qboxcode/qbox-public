@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.36 2005-09-16 23:08:11 fgygi Exp $
+# $Id: Makefile,v 1.37 2006-03-07 07:04:25 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -61,7 +61,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         sinft.o spline.o 
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSlaterDet: testSlaterDet.o SlaterDet.o FourierTransform.o \
-        Basis.o UnitCell.o Matrix.o Context.o
+        Basis.o UnitCell.o Matrix.o Context.o Base64Transcoder.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSpecies: testSpecies.o Species.o sinft.o spline.o Context.o \
 	SpeciesReader.o StructuredDocumentHandler.o SpeciesHandler.o

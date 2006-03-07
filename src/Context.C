@@ -3,7 +3,7 @@
 // Context.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.C,v 1.11 2004-11-10 22:34:17 fgygi Exp $
+// $Id: Context.C,v 1.12 2006-03-07 07:03:46 fgygi Exp $
 
 #include <iostream>
 #include <iomanip>
@@ -456,6 +456,7 @@ ictxt_(-1), myrow_(-1), mycol_(-1), nprow_(nprow), npcol_(npcol)
        irstart+nprow > c.nprow() || icstart+npcol > c.npcol() )
   {
     cout << " Context::Context: cut rectangle: invalid parameters" << endl;
+    cout << irstart << " " << icstart << " " << nprow << " " << npcol << endl;
     Cblacs_abort(ictxt_, 1);
   }
   pmap_.resize(nprow*npcol);

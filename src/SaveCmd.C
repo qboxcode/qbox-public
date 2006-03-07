@@ -3,7 +3,7 @@
 // SaveCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.C,v 1.8 2004-08-11 17:56:24 fgygi Exp $
+// $Id: SaveCmd.C,v 1.9 2006-03-07 07:36:57 fgygi Exp $
 
 
 #include "SaveCmd.h"
@@ -83,7 +83,7 @@ int SaveCmd::action(int argc, char **argv)
   {
     outfile = fopen(filename,"w");
     string header("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-    "<qbox:sample xmlns:qbox=\"");
+    "<fpmd:sample xmlns:fpmd=\"");
     header += qbox_xmlns();
     header += string("\"\n");
     header += string(
@@ -117,7 +117,7 @@ int SaveCmd::action(int argc, char **argv)
   
   if ( ui->onpe0() )
   {
-    char *trailer = "</qbox:sample>\n";
+    char *trailer = "</fpmd:sample>\n";
     fwrite(trailer,sizeof(char),strlen(trailer),outfile);
     fclose(outfile);
   }
@@ -131,7 +131,7 @@ int SaveCmd::action(int argc, char **argv)
     
     os 
 <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-<<"<qbox:sample xmlns:qbox=\""
+<<"<fpmd:sample xmlns:fpmd=\""
 << qbox_xmlns()
 << "\"\n" 
 <<" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
@@ -153,7 +153,7 @@ int SaveCmd::action(int argc, char **argv)
   }
 
   if ( ui->onpe0() )
-    os << "</qbox:sample>" << endl;   
+    os << "</fpmd:sample>" << endl;   
 
   os.close();
 #endif

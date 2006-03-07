@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.49 2006-03-07 07:23:36 fgygi Exp $
+// $Id: qb.C,v 1.50 2006-03-07 07:36:57 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -114,25 +114,24 @@ int main(int argc, char **argv, char **envp)
   {
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   cout << "<!--\n\n";
-  cout << "                   ===========================\n";
+  cout << "                   ============================\n";
   cout << "                   I qbox " 
-       << setw(17) << left << release() << "  I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I         F.Gygi UC Davis I\n";
-  cout << "                   I     Copyright 2005-2006 I\n";     
-  cout << "                   ===========================\n\n";
+       << setw(17) << left << release() << "   I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I         F.Gygi, UC Davis I\n";
+  cout << "                   I  Copyright (c) 2005-2006 I\n";
+  cout << "                   ============================\n\n";
   cout << "-->\n";
-  cout << "<qbox:simulation xmlns:qbox=\"" << qbox_xmlns() << "\">" << endl;
+  cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
   cout << "<release> " << release() << " " << TARGET << " </release>" << endl;
 
   // Identify executable name, checksum, size and link date
@@ -275,7 +274,7 @@ int main(int argc, char **argv, char **envp)
   {
     cout << "<real_time> " << tm.real() << " </real_time>" << endl;
     cout << "<end_time> " << isodate() << " </end_time>" << endl;
-    cout << "</qbox:simulation>" << endl;
+    cout << "</fpmd:simulation>" << endl;
   }
 
   } // end of Context scope

@@ -1,5 +1,5 @@
 //
-// xmlSpecies.C: transform a GP pseudopotential file into a qbox xml species 
+// xmlSpecies.C: transform a GP pseudopotential file into a fpmd xml species 
 //
 // use: xmlSpecies < psfile > xmlfile
 //
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
   }
   
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-  cout << "<qbox:species xmlns:qbox=\""
+  cout << "<fpmd:species xmlns:fpmd=\""
        << qbox_xmlns() 
        << "\"" << endl; 
   cout << "  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " << endl;
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
   }
   
   cout << "</norm_conserving_pseudopotential>" << endl;
-  cout << "</qbox:species>" << endl;
+  cout << "</fpmd:species>" << endl;
   
   return 0;
 }

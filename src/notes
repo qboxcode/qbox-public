@@ -14,6 +14,9 @@ Include current energy e0 in arguments of IonicStepper::compute_rp, in
 addition to forces f0. Use e0 to backtrack when energy rises in the SDA alg.
 
 --------------------------------------------------------------------------------
+rel1_28_0
+qb.C, SaveCmd.C, qbox_xmlns.C, xmlSpecies.C: change namespace to fpmd
+--------------------------------------------------------------------------------
 rel1_27_1
 minor updates to make single-node version work.
 --------------------------------------------------------------------------------

@@ -3,10 +3,10 @@
 // qbox_xmlns.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qbox_xmlns.C,v 1.1 2004-08-11 17:56:24 fgygi Exp $
+// $Id: qbox_xmlns.C,v 1.2 2006-03-07 07:36:57 fgygi Exp $
 
 #include "qbox_xmlns.h"
 std::string qbox_xmlns(void)
 {
-  return std::string("http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0");
+  return std::string("http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0");
 }

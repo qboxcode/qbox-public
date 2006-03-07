@@ -3,7 +3,7 @@
 // testContext.c
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testContext.C,v 1.5 2004-11-10 22:34:17 fgygi Exp $
+// $Id: testContext.C,v 1.6 2006-03-07 07:09:06 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -38,7 +38,8 @@ int main(int argc, char **argv)
     vector<Context*> c;
     
     c.push_back(new Context(nr,nc));
-    c.push_back(new Context(*c[0],2,2,1,1));
+    if ( nr >= 2 && nc >= 2 )
+      c.push_back(new Context(*c[0],2,2,1,1));
     for ( int icol = 0; icol < c[0]->npcol(); icol++ )
     {
       ctxt.barrier();

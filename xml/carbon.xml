@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<qbox:species xmlns:qbox="http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0" 
+<fpmd:species xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0" 
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-  xsi:schemaLocation="http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0 
+  xsi:schemaLocation="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0 
   species.xsd">
 <description>Hamann carbon PBE</description>
 <symbol>C</symbol>
@@ -2827,4 +2827,4 @@
 </radial_function>
 </projector>
 </norm_conserving_pseudopotential>
-</qbox:species>
+</fpmd:species>

@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <schema xmlns="http://www.w3.org/2001/XMLSchema" 
-  targetNamespace="http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0"
-  xmlns:qbox="http://www.llnl.gov/casc/fpmd/qbox/ns/qbox-1.0"
+  targetNamespace="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"
+  xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"
   xmlns:xlink="http://www.w3.org/1999/xlink">
   
   <annotation>
-    <documentation> $Id: species.xsd,v 1.2 2004-05-04 21:49:41 fgygi Exp $
+    <documentation> $Id: species.xsd,v 1.3 2006-03-07 07:42:46 fgygi Exp $
       Qbox atomic species specification schema. 
       Francois Gygi, Lawrence Livermore National Laboratory. 
       Copyright (c) 2003-2004 The Regents of the University of California.
@@ -14,16 +14,16 @@
   
   <import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
   
-  <element name="species" type="qbox:speciesType"/>
+  <element name="species" type="fpmd:speciesType"/>
   
   <complexType name="speciesType">
     <sequence minOccurs="0">
       <element name="description" type="string" minOccurs="0" maxOccurs="1"/>
       <element name="symbol" type="NMTOKEN"/>
       <element name="atomic_number" type="nonNegativeInteger"/>
-      <element name="mass" type="qbox:positiveDouble"/>
+      <element name="mass" type="fpmd:positiveDouble"/>
       <element name="norm_conserving_pseudopotential" minOccurs="0" maxOccurs="1"
-       type="qbox:norm_conserving_pseudopotentialType"/>
+       type="fpmd:norm_conserving_pseudopotentialType"/>
     </sequence>
     <attribute name="name" type="NMTOKEN" use="optional"/>
     <attribute ref="xlink:href" use="optional"/>
@@ -35,8 +35,8 @@
       <element name="lmax" type="nonNegativeInteger"/>
       <element name="llocal" type="nonNegativeInteger"/>
       <element name="nquad" type="nonNegativeInteger"/>
-      <element name="rquad" type="qbox:nonNegativeDouble"/>
-      <element name="mesh_spacing" type="qbox:positiveDouble"/>
+      <element name="rquad" type="fpmd:nonNegativeDouble"/>
+      <element name="mesh_spacing" type="fpmd:positiveDouble"/>
       <element name="projector" minOccurs="1" maxOccurs="unbounded">
         <complexType>
           <sequence>

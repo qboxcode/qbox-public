@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.11 2005-06-27 22:27:19 fgygi Exp $
+// $Id: AtomSet.C,v 1.12 2006-03-07 07:02:28 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -376,9 +376,9 @@ void AtomSet::sync()
       ctxt_.dbcast_recv(m,1,p,m,0,0);
     }
   }
-#endif
   set_positions(r);
   set_velocities(v);
+#endif
 }
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator << ( ostream &os, AtomSet &as )

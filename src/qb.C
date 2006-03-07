@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.48 2006-03-07 07:10:49 fgygi Exp $
+// $Id: qb.C,v 1.49 2006-03-07 07:23:36 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -128,8 +128,8 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I                         I\n";
   cout << "                   I                         I\n";
   cout << "                   I                         I\n";
-  cout << "                   I                         I\n";
-  cout << "                   I   Copyright F.Gygi 2005 I\n";     
+  cout << "                   I         F.Gygi UC Davis I\n";
+  cout << "                   I     Copyright 2005-2006 I\n";     
   cout << "                   ===========================\n\n";
   cout << "-->\n";
   cout << "<qbox:simulation xmlns:qbox=\"" << qbox_xmlns() << "\">" << endl;

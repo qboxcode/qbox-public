@@ -5,10 +5,10 @@
   xmlns:xlink="http://www.w3.org/1999/xlink">
   
   <annotation>
-    <documentation> $Id: species.xsd,v 1.3 2006-03-07 07:42:46 fgygi Exp $
-      Qbox atomic species specification schema. 
-      Francois Gygi, Lawrence Livermore National Laboratory. 
-      Copyright (c) 2003-2004 The Regents of the University of California.
+    <documentation> $Id: species.xsd,v 1.4 2006-03-09 17:33:30 fgygi Exp $
+      FPMD atomic species schema specification. 
+      Francois Gygi, University of California, Davis
+      Copyright (c) 2006 The Regents of the University of California.
     </documentation>
   </annotation>
   

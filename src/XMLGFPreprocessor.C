@@ -3,7 +3,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.5 2005-03-17 17:17:50 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.6 2006-05-13 05:39:44 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -88,8 +88,8 @@ void XMLGFPreprocessor::process(const char* const filename,
     local_size = max_local_size;
   }
  
-  string buf;
-  buf.resize(local_size);
+  // use contiguous read buffer, to be copied later to a string
+  char *rdbuf = new char[local_size];
 #if DEBUG
   cout << ctxt.mype() << ": local_size: " << local_size << endl;
 #endif
@@ -102,7 +102,7 @@ void XMLGFPreprocessor::process(const char* const filename,
     cout << "fseeko failed: offset=" << offset << " file_size=" << sz << endl;
   }
   assert(fseek_status==0);
-  size_t items_read = fread(&buf[0],sizeof(char),local_size,infile);
+  size_t items_read = fread(rdbuf,sizeof(char),local_size,infile);
   assert(items_read==local_size);
   
   //std::streampos offset = ctxt.mype()*block_size;
@@ -111,6 +111,9 @@ void XMLGFPreprocessor::process(const char* const filename,
   //assert(offset == new_offset);
   //is.read(&buf[0],local_size);
   //is.close();
+  
+  string buf(rdbuf,local_size);
+  delete [] rdbuf;
   
   tm.stop();
 
@@ -646,7 +649,7 @@ void XMLGFPreprocessor::process(const char* const filename,
            << " dbufsize=" << dbuf[iseg].size()
            << endl;
 #endif
-      int nbytes = xcdr.decode(nchars,(char*)&buf[seg_start[iseg]],
+      int nbytes = xcdr.decode(nchars,buf.data()+seg_start[iseg],
                                (byte*)&dbuf[iseg][0]);
 #if DEBUG
       cout << rctxt.mype() << ": iseg=" << iseg << " nbytes=" << nbytes

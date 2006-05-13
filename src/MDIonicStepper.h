@@ -3,18 +3,18 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.6 2005-06-27 22:25:34 fgygi Exp $
+// $Id: MDIonicStepper.h,v 1.7 2006-05-13 05:38:17 fgygi Exp $
 
 //
 // IonicStepper is used in the following way
 //
 // input: r0,v0
 //
-// compute forces f0(r0)
+// compute energy e0(r0) and forces f0(r0)
 // for ( k=0; k<n; k++ )
 // {
-//   // r0,v0,f0 known
-//   stepper->compute_r(f0)
+//   // r0,v0,e0,f0 known
+//   stepper->compute_r(e0,f0)
 //   {
 //     computes rp using r0, v0 and f0
 //     restores constraints on rp using rp and r0
@@ -23,7 +23,7 @@
 //
 //   compute f0(r0)
 //
-//   stepper->compute_v(f0)
+//   stepper->compute_v(e0,f0)
 //   {
 //     computes v0 using r0,rm,f0
 //     restores constraints on v0 using r0, v0

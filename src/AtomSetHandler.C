@@ -3,7 +3,7 @@
 // AtomSetHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.C,v 1.4 2005-06-27 22:25:56 fgygi Exp $
+// $Id: AtomSetHandler.C,v 1.5 2006-05-13 05:36:52 fgygi Exp $
 
 #if USE_XERCES
 
@@ -161,7 +161,7 @@ void AtomSetHandler::endSubHandler(const XMLCh* const uri,
     // check if only the uri was provided
     if ( current_species->uri() != "" )
     {
-      // xlink:href was found in species definition
+      // href was found in species definition
       // attempt to read the species from that uri
       
       try

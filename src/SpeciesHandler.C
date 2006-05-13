@@ -3,7 +3,7 @@
 // SpeciesHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesHandler.C,v 1.2 2004-09-14 22:24:11 fgygi Exp $
+// $Id: SpeciesHandler.C,v 1.3 2006-05-13 05:42:18 fgygi Exp $
 
 #if USE_XERCES
 
@@ -47,7 +47,7 @@ void SpeciesHandler::startElement(const XMLCh* const uri,
       else if ( attrname == "href" )
       {
         current_href = StrX(attributes.getValue(index)).localForm();
-        cout << " SpeciesHandler: found xlink in species definition" << endl
+        cout << " SpeciesHandler: found href in species definition" << endl
            << " name=" << current_name << " href=" << current_href
            << endl;
         sp_.uri_ = current_href;

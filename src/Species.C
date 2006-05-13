@@ -3,7 +3,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.5 2005-05-31 18:14:54 fgygi Exp $
+// $Id: Species.C,v 1.6 2006-05-13 05:41:54 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -554,11 +554,11 @@ double Species::rhopsg( double g )
 ostream& operator << ( ostream &os, Species &s )
 {
   // XML output of species
-  // If the uri is known, use xlink:href to refer to it
+  // If the uri is known, use href to refer to it
   if ( s.uri() != "" )
   {
     os <<"<species name=\"" << s.name() 
-       << "\" xlink:href=\"" << s.uri() << "\"/>" << endl;
+       << "\" href=\"" << s.uri() << "\"/>" << endl;
   }
   else
   {

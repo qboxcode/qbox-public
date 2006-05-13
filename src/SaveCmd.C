@@ -3,7 +3,7 @@
 // SaveCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.C,v 1.9 2006-03-07 07:36:57 fgygi Exp $
+// $Id: SaveCmd.C,v 1.10 2006-05-13 05:40:42 fgygi Exp $
 
 
 #include "SaveCmd.h"
@@ -87,8 +87,7 @@ int SaveCmd::action(int argc, char **argv)
     header += qbox_xmlns();
     header += string("\"\n");
     header += string(
-    " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-    " xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n");
+    " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n");
     header += string(" xsi:schemaLocation=\"");
     header += qbox_xmlns();
     header += string(" sample.xsd\">\n");
@@ -135,7 +134,6 @@ int SaveCmd::action(int argc, char **argv)
 << qbox_xmlns()
 << "\"\n" 
 <<" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-<<" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n"
 <<" xsi:schemaLocation=\""
 << qbox_xmlns() << " sample.xsd\">"
 << endl;

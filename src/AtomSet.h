@@ -3,7 +3,7 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.11 2005-06-27 22:29:53 fgygi Exp $
+// $Id: AtomSet.h,v 1.12 2006-05-13 05:36:08 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
@@ -33,7 +33,7 @@ class AtomSet
   
   public:
   
-  AtomSet(const Context& ctxt) : ctxt_(ctxt) {}
+  AtomSet(const Context& ctxt) : ctxt_(ctxt), nel_(0) {}
 
   vector<vector<Atom *> > atom_list; // atom_list[is][ia]
   vector<Species *> species_list;    // species_list[is]

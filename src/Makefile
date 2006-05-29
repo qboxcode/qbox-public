@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.37 2006-03-07 07:04:25 fgygi Exp $
+# $Id: Makefile,v 1.38 2006-05-29 01:16:28 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -68,7 +68,9 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testXCFunctional: testXCFunctional.o LDAFunctional.o PBEFunctional.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testMatrix: testMatrix.o Matrix.o Context.o
+ testMatrix: testMatrix.o Matrix.o Context.o pdgetri.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testjacobi: testjacobi.o jacobi.o Matrix.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testFourierTransform: testFourierTransform.o FourierTransform.o \
         Context.o Basis.o UnitCell.o 

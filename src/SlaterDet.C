@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.37 2005-09-16 23:04:23 fgygi Exp $
+// $Id: SlaterDet.C,v 1.38 2006-05-29 01:15:36 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -570,14 +570,28 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     
+#if TIMING
+    tmap["syrk"].reset();
+    tmap["syrk"].start();
+#endif
     l.clear();
     l.syrk('l','t',2.0,c_proxy,0.0); 
     l.syr('l',-1.0,c_proxy,0,'r');
+#if TIMING
+    tmap["syrk"].stop();
+#endif
     
     //cout << "SlaterDet::ortho_align: A=\n" << l << endl;
     
     // Cholesky decomposition of A=Y^T Y
+#if TIMING
+    tmap["potrf"].reset();
+    tmap["potrf"].start();
+#endif
     l.potrf('l');
+#if TIMING
+    tmap["potrf"].stop();
+#endif
     // The lower triangle of l now contains the Cholesky factor of Y^T Y
 
     //cout << "SlaterDet::ortho_align: L=\n" << l << endl;
@@ -586,15 +600,29 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     // where B = C^T sd.C
     
     // Compute B: store result in x
+#if TIMING
+    tmap["gemm"].reset();
+    tmap["gemm"].start();
+#endif
     // factor -2.0 in next line: G and -G
     x.gemm('t','n',2.0,c_proxy,sdc_proxy,0.0);
     // rank-1 update using first row of sdc_proxy() and c_proxy
     x.ger(-1.0,c_proxy,0,sdc_proxy,0);
+#if TIMING
+    tmap["gemm"].stop();
+#endif
     
     // Form the product L^-1 B, store result in x
     // triangular solve: L X = B
     // trtrs: solve op(*this) * X = Z, output in Z
+#if TIMING
+    tmap["trtrs"].reset();
+    tmap["trtrs"].start();
+#endif
     l.trtrs('l','n','n',x);
+#if TIMING
+    tmap["trtrs"].stop();
+#endif
     // x now contains L^-1 B
 
     //cout << "SlaterDet::ortho_align: L^-1 B=\n" << x << endl;
@@ -605,11 +633,25 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     const int maxiter = 20;
     int iter = 0;
  
+#if TIMING
+    tmap["transpose"].reset();
+    tmap["inverse"].reset();
+#endif
     while ( iter < maxiter && diff > epsilon )
     {
       // t = X^T
+#if TIMING
+      tmap["transpose"].start();
+#endif
       t.transpose(1.0,x,0.0);
+#if TIMING
+      tmap["transpose"].stop();
+      tmap["inverse"].start();
+#endif
       t.inverse();
+#if TIMING
+      tmap["inverse"].stop();
+#endif
       
       // t now contains X^-T
       
@@ -622,7 +664,13 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
       for ( int i = 0; i < t.size(); i++ )
         t[i] = x[i] - xp[i];
  
+#if TIMING
+      tmap["nrm2"].start();
+#endif
       diff = t.nrm2();
+#if TIMING
+      tmap["nrm2"].stop();
+#endif
       
       //cout << " SlaterDet::ortho_align: diff=" << diff << endl;
       
@@ -640,18 +688,47 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     
     // Form the product L^-T Q
     // Solve trans(L) Z = X
+#if TIMING
+    tmap["trtrs2"].reset();
+    tmap["trtrs2"].start();
+#endif
     l.trtrs('l','t','n',x);
+#if TIMING
+    tmap["trtrs2"].stop();
+#endif
     
     // x now contains L^-T Q
     
     // Multiply c by L^-T Q
+#if TIMING
+    tmap["gemm2"].reset();
+    tmap["gemm2"].start();
+#endif
     c_proxy.gemm('n','n',1.0,c_tmp_proxy,x,0.0);
+#if TIMING
+    tmap["gemm2"].stop();
+#endif
     
   }
   else
   { 
     // complex case: not implemented
     assert(false);
+  }
+  for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
+  {
+    double time = (*i).second.real();
+    double tmin = time;
+    double tmax = time;
+    ctxt_.dmin(1,1,&tmin,1);
+    ctxt_.dmax(1,1,&tmax,1);
+    if ( ctxt_.onpe0() )
+    {
+      cout << "<!-- timing "
+           << setw(15) << (*i).first
+           << " : " << setprecision(3) << setw(9) << tmin
+           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
+    }
   }
 }
 

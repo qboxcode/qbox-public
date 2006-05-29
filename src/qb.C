@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.50 2006-03-07 07:36:57 fgygi Exp $
+// $Id: qb.C,v 1.51 2006-05-29 01:21:03 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -168,6 +168,12 @@ int main(int argc, char **argv, char **envp)
   char buf[MPI_MAX_PROCESSOR_NAME];
   int namelen;
   PMPI_Get_processor_name(processor_name,&namelen);
+  // remove angle brackets from processor name for XML compatibility
+  for ( int i = 0; i < MPI_MAX_PROCESSOR_NAME; i++ )
+  {
+    if ( processor_name[i] == '<' ) processor_name[i] = '(';
+    if ( processor_name[i] == '>' ) processor_name[i] = ')';
+  }
   if ( ctxt.onpe0() )
   {
     cout << "<mpi_processes count=\"" << ctxt.size() << "\">" << endl;
@@ -189,9 +195,11 @@ int main(int argc, char **argv, char **envp)
       MPI_Send(&processor_name[0],MPI_MAX_PROCESSOR_NAME,
         MPI_CHAR,0,ctxt.mype(),ctxt.comm());
     }
-  if ( ctxt.onpe0() )
-    cout << "<process id=\"" << ip << "\"> " << buf 
-         << " </process>" << endl;
+    if ( ctxt.onpe0() )
+    {
+      cout << "<process id=\"" << ip << "\"> " << buf 
+           << " </process>" << endl;
+    }
   }
   if ( ctxt.onpe0() )
     cout << "</mpi_processes>" << endl;

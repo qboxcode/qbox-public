@@ -1,18 +1,15 @@
 <?xml version="1.0"?>
 <schema xmlns="http://www.w3.org/2001/XMLSchema" 
   targetNamespace="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"
-  xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"
-  xmlns:xlink="http://www.w3.org/1999/xlink">
+  xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
   
   <annotation>
-    <documentation> $Id: species.xsd,v 1.4 2006-03-09 17:33:30 fgygi Exp $
+    <documentation> $Id: species.xsd,v 1.5 2006-06-03 22:19:41 fgygi Exp $
       FPMD atomic species schema specification. 
       Francois Gygi, University of California, Davis
       Copyright (c) 2006 The Regents of the University of California.
     </documentation>
   </annotation>
-  
-  <import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
   
   <element name="species" type="fpmd:speciesType"/>
   
@@ -26,7 +23,7 @@
        type="fpmd:norm_conserving_pseudopotentialType"/>
     </sequence>
     <attribute name="name" type="NMTOKEN" use="optional"/>
-    <attribute ref="xlink:href" use="optional"/>
+    <attribute name="href" type="anyURI" use="optional"/>
   </complexType>
   
   <complexType name="norm_conserving_pseudopotentialType">

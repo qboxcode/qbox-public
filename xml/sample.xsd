@@ -1,18 +1,15 @@
 <?xml version="1.0"?>
 <schema xmlns="http://www.w3.org/2001/XMLSchema" 
   xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"
-  targetNamespace="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"
-  xmlns:xlink="http://www.w3.org/1999/xlink">
+  targetNamespace="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
   
   <annotation>
-    <documentation> $Id: sample.xsd,v 1.9 2006-03-09 17:33:30 fgygi Exp $
+    <documentation> $Id: sample.xsd,v 1.10 2006-06-03 22:19:41 fgygi Exp $
       FPMD sample specification schema. 
       Francois Gygi, University of California, Davis
       Copyright (c) 2006 The Regents of the University of California.
     </documentation>
   </annotation>
-  
-  <import namespace="http://www.w3.org/1999/xlink" schemaLocation="xlink.xsd"/>
   
   <include schemaLocation="species.xsd"/>
   
@@ -34,7 +31,7 @@
       <element name="atom" type="fpmd:atomType"
                minOccurs="0" maxOccurs="unbounded"/>
     </sequence>
-    <attribute ref="xlink:href" use="optional"/>
+    <attribute name="href" type="anyURI" use="optional"/>
   </complexType>
   
   <complexType name="atomType">
@@ -58,7 +55,7 @@
     <attribute name="nspin" type="fpmd:nspinType" use="required"/>
     <attribute name="nel" type="nonNegativeInteger" use="required"/>
     <attribute name="nempty" type="nonNegativeInteger" default="0"/>
-    <attribute ref="xlink:href" use="optional"/>
+    <attribute name="href" type="anyURI" use="optional"/>
   </complexType>
   
   <complexType name="domainType">
@@ -83,7 +80,7 @@
     <attribute name="kpoint" type="fpmd:d3vectorType" use="required"/>
     <attribute name="weight" type="double" use="required"/>
     <attribute name="size" type="positiveInteger" use="required"/>
-    <attribute ref="xlink:href" use="optional"/>
+    <attribute name="href" type="anyURI" use="optional"/>
   </complexType>
       
   <simpleType name="nspinType">
@@ -144,7 +141,7 @@
       <attribute name="y0" type="nonNegativeInteger" default="0"/>
       <attribute name="z0" type="nonNegativeInteger" default="0"/>
       <attribute name="encoding" type="fpmd:encodingType" use="required"/>
-      <attribute ref="xlink:href" use="optional"/>
+      <attribute name="href" type="anyURI" use="optional"/>
       </extension>
     </simpleContent>
   </complexType>
@@ -158,7 +155,7 @@
       <extension base="fpmd:doubleListType">
         <attribute name="form" type="fpmd:density_matrix_formType" use="required"/>
         <attribute name="size" type="positiveInteger" use="required"/>
-        <attribute ref="xlink:href" use="optional"/>
+        <attribute name="href" type="anyURI" use="optional"/>
       </extension>
     </simpleContent>
   </complexType>

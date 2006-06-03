@@ -1,4 +1,4 @@
-// $Id: testMatrix.C,v 1.11 2005-03-17 17:18:55 fgygi Exp $
+// $Id: testMatrix.C,v 1.12 2006-06-03 22:18:02 fgygi Exp $
 //
 // test Matrix
 //
@@ -279,6 +279,35 @@ int main(int argc, char **argv)
     if (mype == 0) cout << "Norm(a)=" << norm << endl;
 #endif
     
+#if 1
+    // Inverse of c if c is square
+    if ( c.m() == c.n() && c.mb() == c.nb() )
+    {
+      for ( int m = 0; m < c.nblocks(); m++ )
+        for ( int l = 0; l < c.mblocks(); l++ )
+          for ( int y = 0; y < c.nbs(m); y++ )
+            for ( int x = 0; x < c.mbs(l); x++ )
+            {
+              int i = c.i(l,x);
+              int j = c.j(m,y);
+              int iii = x + l*c.mb();
+              int jjj = y + m*c.nb();
+              int ival = iii + jjj * c.mloc();
+              if ( i == j )
+                c[ival] = i + 1.e-5*drand48();
+              else
+                c[ival] = 1.e-5*drand48();
+            }
+      tm.reset();
+      tm.start();
+      if (mype == 0) cout << "Inverse ... ";
+      c.inverse();
+      if (mype == 0) cout << " done" << endl;
+      tm.stop();
+      if (mype == 0) cout << "Inverse time: " << tm.real() << endl;
+    }
+#endif
+    
     // Eigenvalues and eigenvectors of c if c is square
     if ( c.m() == c.n() && c.mb() == c.nb() )
     {
@@ -302,7 +331,7 @@ int main(int argc, char **argv)
       if (mype == 0) cout << "Eigenproblem... ";
       DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
       valarray<double> w(c.m());
-      c.syev('l',w,z);
+      c.syevd('l',w,z);
       //c.syevx('l',w,z,1.e-5);
       if (mype == 0) cout << " done" << endl;
       tm.stop();

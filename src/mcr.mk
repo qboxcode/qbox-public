@@ -3,17 +3,19 @@
 #  mcr.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.10 2005-03-17 17:28:34 fgygi Exp $
+# $Id: mcr.mk,v 1.11 2006-06-03 22:18:02 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
- GCCDIR=/usr/local/tools/gnu/gcc/3.3.3_chaos_2_ia32/lib
+#GCCDIR=/usr/local/tools/gnu/gcc/3.4.4_chaos_3_x86_elan3/lib
+#GCCDIR=/usr/lib/gcc/i386-redhat-linux/3.4.4/libg2c.a
+ G2CLIB=-L /usr/local/tools/gnu/gcc/3.4.4_RH_chaos_3_x86/usr/lib -lg2c
  MPIDIR=/usr/lib/mpi
- XERCESCDIR=$(HOME)/software/xml/ia32/xerces-c-src2_2_0
- XERCESCLIBDIR=/usr/apps/qbox/lib
+ XERCESCDIR=$(HOME)/software/xml/ia32/chaos_3_x86_elan3/xerces-c-src_2_5_0
+ XERCESCLIBDIR=$(XERCESCDIR)/lib
  PLTOBJECTS = readTSC.o
 
- CXX=icc
+ CXX=icpc
  LD=$(CXX)
 
  PLTFLAGS += -DIA32 -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
@@ -31,13 +33,12 @@
 #CXXFLAGS= -g -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
  CXXFLAGS= -O3 -xW -Zp16 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
 
- LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR)/.libs -L/usr/X11R6/lib \
-           -L$(MPIDIR)/lib -L$(BLASDIR) \
-           -L$(XERCESCLIBDIR) 
+ LIBPATH = -L$(FFTWDIR)/.libs -L/usr/X11R6/lib \
+           -L$(BLASDIR) -L$(XERCESCLIBDIR) -L$(MPIDIR)/lib
   
- LIBS =  $(PLIBS) $(GCCDIR)/libg2c.a -lfftw \
+ LIBS =  $(PLIBS) $(G2CLIB) -lfftw \
         -lmkl_p4 -lmkl_lapack -lm -lmpi -lpmpi \
-        -openmp $(XERCESCDIR)/lib/libxerces-c.a
+        -openmp $(XERCESCDIR)/lib/libxerces-c.a 
  
  LDFLAGS = $(LIBPATH) $(LIBS) 
 

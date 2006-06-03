@@ -14,6 +14,23 @@ Include current energy e0 in arguments of IonicStepper::compute_rp, in
 addition to forces f0. Use e0 to backtrack when energy rises in the SDA alg.
 
 --------------------------------------------------------------------------------
+Bug in scalapack pdgetri.f (inverse of square matrix)
+Added bug fix from J.Langou into local modified copy of pdgetri.f 
+Must link to local pdgetri.o before the scalapack lib
+--------------------------------------------------------------------------------
+rel1_28_2
+AtomSet.h: initialize nel_ in ctor.
+XMLGFPreprocessor.C: use char buffer to read file.
+Include timers in SlaterDet::ortho_align with #if TIMING
+qb.C: remove <> brackets in processor names for XML compatibility (BGL)
+AtomSetHandler.C, SpeciesHandler.C: removed msg about xlink, replaced with href
+Species.C, SaveCmd.C: removed xlink namespace declaration in sample
+SlaterDet.C: added #if TIMING and timers in ortho_align
+MDIonicStepper.h: corrected comments
+--------------------------------------------------------------------------------
+rel1_28_1e{1234567} experimental versions containing
+various modifications leading to rel1_28_2
+--------------------------------------------------------------------------------
 rel1_28_0
 qb.C, SaveCmd.C, qbox_xmlns.C, xmlSpecies.C: change namespace to fpmd
 --------------------------------------------------------------------------------

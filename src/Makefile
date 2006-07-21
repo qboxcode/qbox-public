@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.38 2006-05-29 01:16:28 fgygi Exp $
+# $Id: Makefile,v 1.39 2006-07-21 17:52:50 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -24,14 +24,14 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \
         XMLGFPreprocessor.o Base64Transcoder.o \
         CPSampleStepper.o BOSampleStepper.o \
-        WavefunctionStepper.o SDWavefunctionStepper.o \
+        SDWavefunctionStepper.o \
         MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
         PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
         SDCellStepper.o ConfinementPotential.o Preconditioner.o \
         release.o qbox_xmlns.o isodate.o \
         AndersonMixer.o SDAIonicStepper.o \
         ConstraintSet.o Constraint.o DistanceConstraint.o \
-        AngleConstraint.o TorsionConstraint.o \
+        AngleConstraint.o TorsionConstraint.o jacobi.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
  $(EXEC):    $(OBJECTS)
@@ -82,6 +82,8 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testUnitCell: testUnitCell.o UnitCell.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testBasis: testBasis.o Basis.o UnitCell.o Context.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testMapping: testMapping.o Basis.o UnitCell.o Context.o ShiftMapping.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testBlacsContext: testBlacsContext.o BlacsContext.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -260,6 +262,9 @@ LDAFunctional.o: XCFunctional.h
 ListAtomsCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 ListAtomsCmd.o: D3vector.h ConstraintSet.h Wavefunction.h UnitCell.h
 ListAtomsCmd.o: Control.h
+ListConstraintsCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
+ListConstraintsCmd.o: D3vector.h ConstraintSet.h Wavefunction.h UnitCell.h
+ListConstraintsCmd.o: Control.h
 ListSpeciesCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 ListSpeciesCmd.o: D3vector.h ConstraintSet.h Wavefunction.h UnitCell.h
 ListSpeciesCmd.o: Control.h
@@ -396,6 +401,9 @@ SDWavefunctionStepper.o: Atom.h D3vector.h ConstraintSet.h Wavefunction.h
 SDWavefunctionStepper.o: UnitCell.h Control.h Timer.h
 SetCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SetCmd.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
+ShiftMapping.o: Basis.h D3vector.h UnitCell.h Context.h ShiftMapping.h
+ShiftMapping.o: BasisMapping.h
+ShiftMapping.o: BasisMapping.h
 sinft.o: sinft.h
 SlaterDet.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h Matrix.h
 SlaterDet.o: Timer.h FourierTransform.h blas.h Base64Transcoder.h
@@ -436,11 +444,17 @@ testFourierTransform.o: Context.h Basis.h D3vector.h UnitCell.h
 testFourierTransform.o: FourierTransform.h Timer.h
 testHandler.o: StrX.h
 TestHandler.o: StrX.h
+testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
 testLDAFunctional.o: LDAFunctional.h XCFunctional.h
+testMapping.o: Basis.h D3vector.h UnitCell.h Context.h ShiftMapping.h
+testMapping.o: BasisMapping.h
 testMatrix.o: Timer.h Context.h Matrix.h
 testMemParse.o: StrX.h
 testofstream.o: Context.h
 testPParse.o: StrX.h
+testreadSample.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h
+testreadSample.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
+testreadSample.o: SampleReader.h
 testSample.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
 testSample.o: Timer.h Sample.h AtomSet.h Atom.h ConstraintSet.h
 testSample.o: Wavefunction.h Control.h
@@ -476,7 +490,7 @@ UserInterface.o: UserInterface.h
 ViewCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 ViewCmd.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SlaterDet.h Context.h
-Wavefunction.o: Basis.h Matrix.h Timer.h
+Wavefunction.o: Basis.h Matrix.h Timer.h jacobi.h
 Wavefunction.o: D3vector.h UnitCell.h
 WavefunctionHandler.o: StructureHandler.h UnitCell.h D3vector.h
 WavefunctionHandler.o: Wavefunction.h SlaterDet.h Context.h Basis.h Matrix.h

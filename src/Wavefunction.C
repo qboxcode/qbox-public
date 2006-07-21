@@ -3,10 +3,11 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.20 2005-02-04 21:58:59 fgygi Exp $
+// $Id: Wavefunction.C,v 1.21 2006-07-21 17:37:26 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
+#include "jacobi.h"
 #include <vector>
 #include <iomanip>
 #if USE_CSTDIO_LFS
@@ -592,7 +593,6 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
             DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
  
             DoubleMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            valarray<double> w(h.m());
  
             // factor 2.0 in next line: G and -G
             h.gemm('t','n',2.0,c,cp,0.0);
@@ -602,7 +602,9 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
             // cout << " Hamiltonian at k = " << sd(ispin,ikp)->kpoint()
             //      << endl;
             // cout << h;
- 
+
+#if 1 
+            valarray<double> w(h.m());
             if ( eigvec )
             {
               DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
@@ -615,6 +617,17 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
             {
               h.syev('l',w);
             }
+#else
+            vector<double> w(h.m());
+            DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+            const int maxsweep = 30;
+            int nsweep = jacobi(maxsweep,1.e-6,h,z,w);
+            if ( eigvec )
+            {
+              cp = c;
+              c.gemm('n','n',1.0,cp,z,0.0);
+            }
+#endif
             if ( ctxt_.onpe0() )
             {
               const double eVolt = 2.0 * 13.6058;

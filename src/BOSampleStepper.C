@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.26 2006-07-21 17:48:23 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.27 2006-07-21 23:54:59 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -369,7 +369,6 @@ void BOSampleStepper::step(int niter)
               {
                 double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();      
                 double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();   
-                double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();     
                 const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();              
                 const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
                 const int len = 2*mloc*nloc;              

@@ -13,10 +13,27 @@ memory problems.
 Include current energy e0 in arguments of IonicStepper::compute_rp, in 
 addition to forces f0. Use e0 to backtrack when energy rises in the SDA alg.
 
+Optimal choice of alignment and orthogonalizations in BOSampleStepper.C
+
 --------------------------------------------------------------------------------
 Bug in scalapack pdgetri.f (inverse of square matrix)
 Added bug fix from J.Langou into local modified copy of pdgetri.f 
 Must link to local pdgetri.o before the scalapack lib
+--------------------------------------------------------------------------------
+rel1_29_1
+BOSampleStepper.C: use wfmm only when needed. ASP extrapolation implemented.
+Activate NTC or ASP extrapolation using debug variable.
+XMLGFPreprocessor.C: added tests to avoid div by zero if no local grid
+--------------------------------------------------------------------------------
+rel1_29_0
+BOSampleStepper.C: major rewrite:
+added a wf_stepper->preprocess before the itscf loop to 
+get correct extrapolation when ions move.
+Modified NTC extrapolation: activated if NTC_EXTRAPOLATION is found in the 
+debug variable.
+ReadTSC.h: added missing #define statement
+Debug.h: modified to take arbitrary strings
+jacobi.C: new jacobi diagonalization. activate with ifdef in Wavefunction.C
 --------------------------------------------------------------------------------
 rel1_28_2
 AtomSet.h: initialize nel_ in ctor.

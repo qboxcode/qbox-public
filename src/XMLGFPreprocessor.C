@@ -3,7 +3,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.6 2006-05-13 05:39:44 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.7 2006-07-25 01:17:42 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -714,6 +714,7 @@ void XMLGFPreprocessor::process(const char* const filename,
   // use dmax call
  
   // compute size of largest grid
+  int maxgfsize = 0;
   valarray<int> gfsize(ngf);
   gfsize = 0;
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
@@ -723,7 +724,8 @@ void XMLGFPreprocessor::process(const char* const filename,
         gfsize[i] = dbuf[iseg].size();
   }
   rctxt.isum(1,ngf,&gfsize[0],1);
-  int maxgfsize = gfsize.max();
+  if ( ngf > 0 )
+    maxgfsize = gfsize.max();
 #if DEBUG
   cout << rctxt.mype() << ": maxgfsize=" << maxgfsize << endl;
   for ( int i = 0; i < ngf; i++ )
@@ -810,7 +812,7 @@ void XMLGFPreprocessor::process(const char* const filename,
     //           ngf-k*gfnb for icol == kn
     //           0          for icol > kn
     // where kn = int(ngf/gfnb)
-    const int kn = ngf / gfnb;
+    const int kn = (gfnb>0) ? ngf / gfnb : 0;
     int nb_loc;
     if ( icol < kn )
       nb_loc = gfnb;
@@ -826,7 +828,7 @@ void XMLGFPreprocessor::process(const char* const filename,
     //           maxgfsize-k*gfmb for irow == km
     //           0                for irow > km
     // where km = int(maxgfsize/gfmb)
-    const int km = maxgfsize / gfmb;
+    const int km = (gfmb>0) ? maxgfsize / gfmb : 0;
     int mb_loc;
     if ( irow < km )
       mb_loc = gfmb;

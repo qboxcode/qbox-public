@@ -3,7 +3,7 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.7 2006-05-13 05:38:17 fgygi Exp $
+// $Id: MDIonicStepper.h,v 1.8 2006-08-22 15:16:10 fgygi Exp $
 
 //
 // IonicStepper is used in the following way
@@ -48,14 +48,14 @@ class MDIonicStepper : public IonicStepper
   double th_width_;
   double ekin_;
   double eta_;
-  bool thermostat_;
+  string thermostat_;
   void compute_ekin(void);
 
   public:
   
   MDIonicStepper(Sample& s) : IonicStepper(s)
   {
-    thermostat_ = ( s.ctrl.thermostat == "ON" );
+    thermostat_ = s.ctrl.thermostat;
     th_temp_ = s.ctrl.th_temp;
     th_time_ = s.ctrl.th_time;
     th_width_ = s.ctrl.th_width;

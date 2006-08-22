@@ -3,7 +3,7 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.12 2006-05-13 05:36:08 fgygi Exp $
+// $Id: AtomSet.h,v 1.13 2006-08-22 15:09:48 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
@@ -61,6 +61,8 @@ class AtomSet
   void set_velocities(const vector<vector<double> >& vel);
   void sync(void);
   void reset_velocities(void);
+  D3vector vcm(void) const;
+  void reset_vcm(void);
   int size(void);
 };
 ostream& operator << ( ostream &os, AtomSet &as );

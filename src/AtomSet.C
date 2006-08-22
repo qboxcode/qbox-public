@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.12 2006-03-07 07:02:28 fgygi Exp $
+// $Id: AtomSet.C,v 1.13 2006-08-22 15:09:48 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -340,6 +340,46 @@ void AtomSet::reset_velocities(void)
       i += 3;
     }
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+D3vector AtomSet::vcm(void) const
+{
+  D3vector mvsum;
+  double msum = 0.0;
+  for ( int is = 0; is < atom_list.size(); is++ )
+  {
+    double mass = species_list[is]->mass();
+    int i = 0;
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      D3vector v = atom_list[is][ia]->velocity();
+      mvsum += mass * v;
+      msum += mass;
+    }
+  }
+  if ( msum == 0.0 ) return D3vector(0,0,0);
+  return mvsum / msum;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void AtomSet::reset_vcm(void)
+{
+  D3vector vc = vcm();
+  vector<vector<double> > v;
+  get_velocities(v);
+  // subtract center of mass velocity
+  for ( int is = 0; is < v.size(); is++ )
+  {
+    int i = 0;
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      v[is][i++] -= vc.x;
+      v[is][i++] -= vc.y;
+      v[is][i++] -= vc.z;
+    }
+  }
+  set_velocities(v);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

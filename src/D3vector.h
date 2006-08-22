@@ -21,10 +21,9 @@ class D3vector
   double x, y, z; 
 
   // explicit constructor to avoid implicit conversion from double to D3vector
-  explicit D3vector(const double& xv = 0, 
-                    const double& yv = 0, 
-                    const double& zv = 0) :
-  x(xv), y(yv), z(zv) {}
+  explicit D3vector(const double& xv, const double& yv, const double& zv) :
+    x(xv), y(yv), z(zv) {}
+  explicit D3vector(void) : x(0.0), y(0.0), z(0.0) {}
   
   explicit D3vector(const double* r) : x(r[0]), y(r[1]), z(r[2]) {}
   

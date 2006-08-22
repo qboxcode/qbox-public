@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.51 2006-05-29 01:21:03 fgygi Exp $
+// $Id: qb.C,v 1.52 2006-08-22 15:14:18 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -41,6 +41,7 @@ using namespace std;
 #include "PrintCmd.h"
 #include "QuitCmd.h"
 #include "RandomizeWfCmd.h"
+#include "ResetVcmCmd.h"
 #include "RunCmd.h"
 #include "SaveCmd.h"
 #include "SetCmd.h"
@@ -221,6 +222,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new PrintCmd(s));
   ui.addCmd(new QuitCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
+  ui.addCmd(new ResetVcmCmd(s));
   ui.addCmd(new RunCmd(s));
   ui.addCmd(new SaveCmd(s));
   ui.addCmd(new SetCmd(s));

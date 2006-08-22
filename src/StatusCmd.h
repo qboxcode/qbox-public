@@ -3,7 +3,7 @@
 // StatusCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StatusCmd.h,v 1.1 2003-06-11 22:10:11 fgygi Exp $
+// $Id: StatusCmd.h,v 1.2 2006-08-22 15:12:56 fgygi Exp $
 
 #ifndef STATUSCMD_H
 #define STATUSCMD_H
@@ -41,6 +41,7 @@ class StatusCmd : public Cmd
       s->wf.info(cout,"wf");
       if ( s->wfv != 0 )
         s->wfv->info(cout,"wfv");
+      cout << "<vcm> " << s->atoms.vcm() << " </vcm>" << endl;
     }
     return 0;
   }

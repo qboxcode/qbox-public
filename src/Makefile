@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.39 2006-07-21 17:52:50 fgygi Exp $
+# $Id: Makefile,v 1.40 2006-08-22 15:23:28 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -332,12 +332,13 @@ qb.o: isodate.h release.h qbox_xmlns.h Context.h UserInterface.h Sample.h
 qb.o: AtomSet.h Atom.h D3vector.h ConstraintSet.h Wavefunction.h UnitCell.h
 qb.o: Control.h Timer.h AngleCmd.h AtomCmd.h ConstraintCmd.h DistanceCmd.h
 qb.o: HelpCmd.h ListAtomsCmd.h ListSpeciesCmd.h LoadCmd.h MoveCmd.h
-qb.o: PrintCmd.h QuitCmd.h RandomizeWfCmd.h RunCmd.h SaveCmd.h SetCmd.h
-qb.o: SpeciesCmd.h StatusCmd.h TorsionCmd.h AtomsDyn.h Cell.h CellDyn.h
-qb.o: SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h ChargeMixCoeff.h
-qb.o: ChargeMixRcut.h Debug.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h
-qb.o: FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h RefCell.h Stress.h
-qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: PrintCmd.h QuitCmd.h RandomizeWfCmd.h ResetVcmCmd.h RunCmd.h SaveCmd.h
+qb.o: SetCmd.h SpeciesCmd.h StatusCmd.h TorsionCmd.h AtomsDyn.h Cell.h
+qb.o: CellDyn.h SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h
+qb.o: ChargeMixCoeff.h ChargeMixRcut.h Debug.h Ecut.h Ecutprec.h Ecuts.h
+qb.o: Emass.h ExtStress.h FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h
+qb.o: RefCell.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h
+qb.o: WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
@@ -347,6 +348,8 @@ RandomizeWfCmd.o: Control.h
 RefCell.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h ConstraintSet.h
 RefCell.o: Wavefunction.h UnitCell.h Control.h
 release.o: release.h
+ResetVcmCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+ResetVcmCmd.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
 RunCmd.o: RunCmd.h UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 RunCmd.o: D3vector.h ConstraintSet.h Wavefunction.h UnitCell.h Control.h
 RunCmd.o: BOSampleStepper.h SampleStepper.h Timer.h EnergyFunctional.h
@@ -495,10 +498,6 @@ Wavefunction.o: D3vector.h UnitCell.h
 WavefunctionHandler.o: StructureHandler.h UnitCell.h D3vector.h
 WavefunctionHandler.o: Wavefunction.h SlaterDet.h Context.h Basis.h Matrix.h
 WavefunctionHandler.o: Timer.h
-WavefunctionStepper.o: WavefunctionStepper.h Sample.h AtomSet.h Context.h
-WavefunctionStepper.o: Atom.h D3vector.h ConstraintSet.h Wavefunction.h
-WavefunctionStepper.o: UnitCell.h Control.h Timer.h SlaterDet.h Basis.h
-WavefunctionStepper.o: Matrix.h
 WavefunctionStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h
 WavefunctionStepper.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
 WavefunctionStepper.o: Timer.h

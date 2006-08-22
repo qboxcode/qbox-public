@@ -15,10 +15,18 @@ addition to forces f0. Use e0 to backtrack when energy rises in the SDA alg.
 
 Optimal choice of alignment and orthogonalizations in BOSampleStepper.C
 
+Bug: calculation starts if ref_cell is defined but not cell. Crash in FFT.
 --------------------------------------------------------------------------------
 Bug in scalapack pdgetri.f (inverse of square matrix)
-Added bug fix from J.Langou into local modified copy of pdgetri.f 
+Added bugfix from J.Langou into local modified copy of pdgetri.f 
 Must link to local pdgetri.o before the scalapack lib
+--------------------------------------------------------------------------------
+rel1_30_0
+D3vector.h: modified ctor to avoid accidental use with only one argument.
+AtomSet.[Ch]: added functions to get/reset center of mass velocity.
+StatusCmd.h: status cmd prints center of mass velocity.
+MDIonicStepper.[Ch]: new thermostats ANDERSON LOWE. Old thermo renamed
+to SCALING.
 --------------------------------------------------------------------------------
 rel1_29_1
 BOSampleStepper.C: use wfmm only when needed. ASP extrapolation implemented.

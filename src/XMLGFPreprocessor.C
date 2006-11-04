@@ -3,7 +3,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.7 2006-07-25 01:17:42 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.8 2006-11-04 20:17:38 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -538,16 +538,20 @@ void XMLGFPreprocessor::process(const char* const filename,
       // one 4-char block encodes 24 bits
       // boundary at 8 4-char blocks = 32 chars
       assert(missing_on_left < 32);
+      
+      // Note: the number of chars missing on left can be larger than
+      // the total number of chars available in the first segment. 
+      // In that case, all characters in the first segment are sent
       string::size_type pos = 0;
-      for ( int i = 0; i < missing_on_left; i++ )
+      int n = 0;
+      while ( pos < seg_end[0] && n < missing_on_left )
       {
         char c = buf[pos++];
-        while ( !isalnum(c) && c != '+' && c != '/' && c != '=' )
+        if ( isalnum(c) || c == '+' || c == '/' || c == '=' )
         {
-          c = buf[pos++];
-          assert(pos <= seg_end[0]);
+          send_left.push_back(c);
+          n++;
         }
-        send_left.push_back(c);
       }
       // adjust start of segment offset
       seg_start[0] = pos;
@@ -569,8 +573,11 @@ void XMLGFPreprocessor::process(const char* const filename,
     if ( right_encoding == "base64" )
     {
       // compute number of missing valid chars on the right
-      // base64 data must be 192-bit aligned for double[] arrays
-      // number of missing *valid* chars is (count % 32)
+      // Request enough characters to fall on a 32-char boundary
+      // number of missing *valid* chars requested is (32 - count % 32)
+      // Note: there may not be enough chars in the first segment of the
+      // right neighbor to return that many chars. In that case, fewer
+      // chars will be received from the right neighbor
       int countmod32 = count % 32;
       if ( countmod32 != 0 )
         missing_on_right = 32 - countmod32;
@@ -603,7 +610,7 @@ void XMLGFPreprocessor::process(const char* const filename,
         rctxt.string_send(send_left,0,rctxt.mype()-1);
 #if DEBUG
         cout << rctxt.mype() << ": sent " << send_left.size()
-             << " chars to left task" << endl;
+             << " chars to left task: " << send_left << endl;
 #endif
       }
     }
@@ -702,9 +709,13 @@ void XMLGFPreprocessor::process(const char* const filename,
     
 #if DEBUG
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
-    cout << rctxt.mype() << ": seg_data[iseg=" << iseg << "]: "
-         << dbuf[iseg][0] << " " << dbuf[iseg][1]
-         << " " << dbuf[iseg][2] << endl;
+  {
+    cout << rctxt.mype() << ": seg_data[iseg=" << iseg << "]: ";
+    if ( dbuf[iseg].size() >=3 )
+      cout << dbuf[iseg][0] << " " << dbuf[iseg][1]
+           << " " << dbuf[iseg][2];
+    cout << endl;
+  }
 #endif
     
   ////////////////////////////////////////////////////////////////////////////

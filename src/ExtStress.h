@@ -3,7 +3,7 @@
 // ExtStress.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ExtStress.h,v 1.1 2004-02-04 19:52:27 fgygi Exp $
+// $Id: ExtStress.h,v 1.2 2006-11-04 20:20:52 fgygi Exp $
 
 #ifndef EXTSTRESS_H
 #define EXTSTRESS_H
@@ -50,6 +50,10 @@ class ExtStress : public Var
      return st.str();
   }
 
-  ExtStress(Sample *sample) : s(sample) {};
+  ExtStress(Sample *sample) : s(sample)
+  {
+    for ( int i = 0; i < 6; i++ )
+      s->ctrl.ext_stress[i] = 0.0;
+  };
 };
 #endif

@@ -3,7 +3,7 @@
 // jacobi.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: jacobi.C,v 1.1 2006-07-21 17:40:24 fgygi Exp $
+// $Id: jacobi.C,v 1.2 2006-11-04 20:19:02 fgygi Exp $
 
 #include <cmath>
 #include <cassert>
@@ -42,6 +42,14 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
   const int mloc = a.mloc();
   const int nloc = a.nloc();
   //cout << ctxt.mype() << ": nloc: " << nloc << endl;
+  
+  // identify the last active process column
+  // process columns beyond that column do not have any elements of a[k]
+  // compute num_nblocks = total number of column blocks
+  // if num_nblocks >= ctxt.npcol(), all process columns are active
+  // otherwise, the last active process column has index num_nblocks-1
+  const int num_nblocks = u.n() / u.nb() + ( u.n()%u.nb() == 0 ? 0 : 1 );
+  const int last_active_process_col = min(ctxt.npcol()-1, num_nblocks-1);
   
   // initialize u with the identity
   u.identity();
@@ -250,99 +258,101 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
       // all local pairs have been processed
 
       // rotate top and bot arrays
-      bot.push_back(top.back());
-      top.pop_back();
-      top.push_front(bot.front());
-      bot.pop_front();
-
-      // make rotation skip element 0 on the first process column
-      // if my process column is zero, swap top[0] and top[1]
-      if ( ctxt.mycol() == 0 )
+      if ( nploc > 0 )
       {
-        if ( nploc > 1 )
+        bot.push_back(top.back());
+        top.pop_back();
+        top.push_front(bot.front());
+        bot.pop_front();
+
+        // make rotation skip element 0 on the first process column
+        // if my process column is zero, swap top[0] and top[1]
+        if ( ctxt.mycol() == 0 )
         {
-          int tmp = top[0];
-          top[0] = top[1];
-          top[1] = tmp;
+          if ( nploc > 1 )
+          {
+            int tmp = top[0];
+            top[0] = top[1];
+            top[1] = tmp;
+          }
+          else
+          {
+            // if there is only one local pair, exchange top[0] and bot[0]
+            int tmp = top[0];
+            top[0] = bot[0];
+            bot[0] = tmp;
+          }
         }
-        else
+      
+        int rbufi_left, rbufi_right, sbufi_left, sbufi_right;
+        // send buffers contain a column of a and of u
+        vector<double> sbuf_left(2*a.mloc()), sbuf_right(2*a.mloc());
+        vector<double> rbuf_left(2*a.mloc()), rbuf_right(2*a.mloc());
+
+        // on each task except mycol==npcol-1 
+        // send jglobal[bot[nploc-1]] to the right
+        // if jglobal != -1 send vector bot[nploc-1] to the right
+
+        // on each task except mycol==npcol-1 
+        // recv jglobal from the right
+        // if jglobal != -1 recv a vector from the right into bot[nploc-1]
+        // set value of jglobal[bot[nploc-1]]
+      
+        // on each task except mycol==0 
+        // send jglobal[top[0]] to the left
+        // if jglobal != -1 send vector top[0] to the left
+
+        // on each task except mycol==0 
+        // recv jglobal from the left
+        // if jglobal != -1 recv a vector from the left into top[0]
+        // set value of jglobal[top[0]]
+
+        // exchange jglobal values first
+      
+        if ( ctxt.mycol() < last_active_process_col )
         {
-          // if there is only one local pair, exchange top[0] and bot[0]
-          int tmp = top[0];
-          top[0] = bot[0];
-          bot[0] = tmp;
+          sbufi_right = jglobal[bot[nploc-1]];
+          ctxt.isend(1,1,&sbufi_right,1,ctxt.myrow(),ctxt.mycol()+1);
+          ctxt.irecv(1,1,&rbufi_right,1,ctxt.myrow(),ctxt.mycol()+1);
+          jglobal[bot[nploc-1]] = rbufi_right;
+          //cout << ctxt.mype() << ": received jglobal=" 
+          //     << jglobal[bot[nploc-1]] << " from right" << endl;
         }
-      }
-      
-      int rbufi_left, rbufi_right, sbufi_left, sbufi_right;
-      // send buffers contain a column of a and of u
-      vector<double> sbuf_left(2*a.mloc()), sbuf_right(2*a.mloc());
-      vector<double> rbuf_left(2*a.mloc()), rbuf_right(2*a.mloc());
+        if ( ctxt.mycol() != 0 )
+        {
+          sbufi_left = jglobal[top[0]];
+          ctxt.isend(1,1,&sbufi_left,1,ctxt.myrow(),ctxt.mycol()-1);
+          ctxt.irecv(1,1,&rbufi_left,1,ctxt.myrow(),ctxt.mycol()-1);
+          jglobal[top[0]] = rbufi_left;
+          //cout << ctxt.mype() << ": received jglobal=" 
+          //     << jglobal[top[0]] << " from left" << endl;
+        }
 
-      // on each task except mycol==npcol-1 
-      // send jglobal[bot[nploc-1]] to the right
-      // if jglobal != -1 send vector bot[nploc-1] to the right
+        // exchange column vectors
 
-      // on each task except mycol==npcol-1 
-      // recv jglobal from the right
-      // if jglobal != -1 recv a vector from the right into bot[nploc-1]
-      // set value of jglobal[bot[nploc-1]]
-      
-      // on each task except mycol==0 
-      // send jglobal[top[0]] to the left
-      // if jglobal != -1 send vector top[0] to the left
-
-      // on each task except mycol==0 
-      // recv jglobal from the left
-      // if jglobal != -1 recv a vector from the left into top[0]
-      // set value of jglobal[top[0]]
-
-      // exchange jglobal values first
-      
-      if ( ctxt.mycol() != ctxt.npcol()-1 )
-      {
-        sbufi_right = jglobal[bot[nploc-1]];
-        ctxt.isend(1,1,&sbufi_right,1,ctxt.myrow(),ctxt.mycol()+1);
-        ctxt.irecv(1,1,&rbufi_right,1,ctxt.myrow(),ctxt.mycol()+1);
-        jglobal[bot[nploc-1]] = rbufi_right;
-        //cout << ctxt.mype() << ": received jglobal=" 
-        //     << jglobal[bot[nploc-1]] << " from right" << endl;
-      }
-      if ( ctxt.mycol() != 0 )
-      {
-        sbufi_left = jglobal[top[0]];
-        ctxt.isend(1,1,&sbufi_left,1,ctxt.myrow(),ctxt.mycol()-1);
-        ctxt.irecv(1,1,&rbufi_left,1,ctxt.myrow(),ctxt.mycol()-1);
-        jglobal[top[0]] = rbufi_left;
-        //cout << ctxt.mype() << ": received jglobal=" 
-        //     << jglobal[top[0]] << " from left" << endl;
-      }
-
-      // exchange column vectors
-
-      if ( ctxt.mycol() != ctxt.npcol()-1 )
-      {
-        memcpy(&sbuf_right[0],    acol[bot[nploc-1]], mloc*sizeof(double) );
-        memcpy(&sbuf_right[mloc], ucol[bot[nploc-1]], mloc*sizeof(double) );
-        ctxt.dsend(2*mloc,1,&sbuf_right[0],2*mloc,ctxt.myrow(),ctxt.mycol()+1);
-        ctxt.drecv(2*mloc,1,&rbuf_right[0],2*mloc,ctxt.myrow(),ctxt.mycol()+1);
-        memcpy(acol[bot[nploc-1]], &rbuf_right[0],    mloc*sizeof(double) );
-        memcpy(ucol[bot[nploc-1]], &rbuf_right[mloc], mloc*sizeof(double) );
-        //cout << ctxt.mype() << ": received vector jglobal=" 
-        //     << jglobal[bot[nploc-1]] << " from right" << endl;
-      }
-      if ( ctxt.mycol() != 0 )
-      {
-        memcpy(&sbuf_left[0],       acol[top[0]],     mloc*sizeof(double) );
-        memcpy(&sbuf_left[mloc],    ucol[top[0]],     mloc*sizeof(double) );
-        ctxt.dsend(2*mloc,1,&sbuf_left[0],2*mloc,ctxt.myrow(),ctxt.mycol()-1);
-        ctxt.drecv(2*mloc,1,&rbuf_left[0],2*mloc,ctxt.myrow(),ctxt.mycol()-1);
-        memcpy(acol[top[0]],       &rbuf_left[0],     mloc*sizeof(double) );
-        memcpy(ucol[top[0]],       &rbuf_left[mloc],  mloc*sizeof(double) );
-        //cout << ctxt.mype() << ": received vector jglobal=" 
-        //     << jglobal[top[0]] << " from left" << endl;
-      }
-
+        if ( ctxt.mycol() < last_active_process_col )
+        {
+          memcpy(&sbuf_right[0],    acol[bot[nploc-1]], mloc*sizeof(double) );
+          memcpy(&sbuf_right[mloc], ucol[bot[nploc-1]], mloc*sizeof(double) );
+          ctxt.dsend(2*mloc,1,&sbuf_right[0],2*mloc,ctxt.myrow(),ctxt.mycol()+1);
+          ctxt.drecv(2*mloc,1,&rbuf_right[0],2*mloc,ctxt.myrow(),ctxt.mycol()+1);
+          memcpy(acol[bot[nploc-1]], &rbuf_right[0],    mloc*sizeof(double) );
+          memcpy(ucol[bot[nploc-1]], &rbuf_right[mloc], mloc*sizeof(double) );
+          //cout << ctxt.mype() << ": received vector jglobal=" 
+          //     << jglobal[bot[nploc-1]] << " from right" << endl;
+        }
+        if ( ctxt.mycol() != 0 )
+        {
+          memcpy(&sbuf_left[0],       acol[top[0]],     mloc*sizeof(double) );
+          memcpy(&sbuf_left[mloc],    ucol[top[0]],     mloc*sizeof(double) );
+          ctxt.dsend(2*mloc,1,&sbuf_left[0],2*mloc,ctxt.myrow(),ctxt.mycol()-1);
+          ctxt.drecv(2*mloc,1,&rbuf_left[0],2*mloc,ctxt.myrow(),ctxt.mycol()-1);
+          memcpy(acol[top[0]],       &rbuf_left[0],     mloc*sizeof(double) );
+          memcpy(ucol[top[0]],       &rbuf_left[mloc],  mloc*sizeof(double) );
+          //cout << ctxt.mype() << ": received vector jglobal=" 
+          //     << jglobal[top[0]] << " from left" << endl;
+        }
+      } // if nploc > 0
       ctxt.barrier();
       // end of step
 

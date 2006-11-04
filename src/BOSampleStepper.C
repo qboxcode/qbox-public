@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.28 2006-07-25 01:17:11 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.29 2006-11-04 20:19:41 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -137,7 +137,7 @@ void BOSampleStepper::step(int niter)
       s_.wfv->clear();
     }
   }
-      
+
   if ( niter == 0 )
   {
     // evaluate and print energy
@@ -509,6 +509,7 @@ void BOSampleStepper::step(int niter)
       vector<complex<double> > drhog_bar(rhog_current.size());
       AndersonMixer mixer(2*rhog_current.size(),&cd_.vcontext());
       mixer.set_theta_max(2.0);
+      mixer.set_theta_nc(1.0);
       
       wf_stepper->preprocess();
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
@@ -529,37 +530,13 @@ void BOSampleStepper::step(int niter)
             rhog_current = cd_.rhog[0];
           }
 
-          // compute correction in drhog
+          // compute correction drhog
           for ( int i=0; i < rhog_current.size(); i++ )
           {
             drhog[i] = (cd_.rhog[0][i] - rhog_current[i]);
           }
-          double theta;
-          
-          const bool anderson_charge_mixing = true;
-          if ( anderson_charge_mixing )
-          {
-            mixer.update((double*)&drhog[0],&theta,(double*)&drhog_bar[0]);
-            if ( onpe0 )
-            {
-              cout << "  <!-- Charge mixing: Anderson theta="
-                   << theta << " -->" << endl;
-            }
-          }
-          else
-          {
-            theta = 0.0;
-            for ( int i=0; i < rhog_current.size(); i++ )
-            {
-              drhog_bar[i] = drhog[i];
-            }
-          }
- 
-          // update rhog_current                                             
-          // rhog_current = rhog_current + theta*(rhog_current-rhog_last) +  
-          //                precond(drhog_bar)                               
 
-          // Apply Kerker preconditioner to drhog_bar                        
+          // Apply Kerker preconditioner to drhog                        
           // Use Kerker preconditioning if rc_Kerker > 0.0,                  
           // no preconditioning otherwise                                    
           const double alpha = s_.ctrl.charge_mix_coeff;                     
@@ -572,25 +549,51 @@ void BOSampleStepper::step(int niter)
             const double q0_kerker2 = q0_kerker * q0_kerker;                 
             for ( int i=0; i < rhog_current.size(); i++ )                    
             {                                                                
-              drhog_bar[i] *= alpha * g2[i] / ( g2[i] + q0_kerker2 );        
+              drhog[i] *= alpha * g2[i] / ( g2[i] + q0_kerker2 );        
             }                                                                
           }                                                                  
           else                                                               
           {                                                                  
             for ( int i=0; i < rhog_current.size(); i++ )                    
             {                                                                
-              drhog_bar[i] *= alpha;                                         
+              drhog[i] *= alpha;                                         
             }                                                                
-          }                                                                  
+          }
+
+          // Anderson acceleration
+          double theta = 0.0;
+          for ( int i=0; i < rhog_current.size(); i++ )  
+          {                                              
+            drhog_bar[i] = drhog[i];                     
+          }                                              
+
+          const bool anderson_charge_mixing = true;
+          if ( anderson_charge_mixing )
+          {
+            mixer.update((double*)&drhog[0],&theta,(double*)&drhog_bar[0]);
+            if ( onpe0 )
+            {
+              cout << "  <!-- Charge mixing: Anderson theta="
+                   << theta << " -->" << endl;
+            }
+          }
+          
+          // update rhog_current 
+          // rhog_current = rhog_current + theta*(rhog_current-rhog_last)
  
           for ( int i=0; i < rhog_current.size(); i++ )
           {
             complex<double> rhotmp = rhog_current[i];
-            rhog_current[i] += theta * (rhog_current[i] - rhog_last[i]) +
-                               drhog_bar[i];
+            rhog_current[i] += theta * (rhog_current[i] - rhog_last[i]);
             rhog_last[i] = rhotmp;
           }
-          cd_.rhog[0] = rhog_current;
+
+          // Apply correction
+          for ( int i=0; i < rhog_current.size(); i++ )
+          {
+            cd_.rhog[0][i] = rhog_current[i] + drhog_bar[i]; 
+          }
+          rhog_current = cd_.rhog[0];
           cd_.update_rhor();
         } // if nite > 1
 

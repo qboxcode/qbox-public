@@ -10,6 +10,8 @@ gfdata matrix used in XMLGFPreprocessor uses a single-row context. May be
 preferrable to use a single-column context when nst is small to avoid 
 memory problems.
 
+XMLGFPreprocessor crashes at XMLGFPreprocessor.C:548 on h2o32md.xml files.
+
 Include current energy e0 in arguments of IonicStepper::compute_rp, in 
 addition to forces f0. Use e0 to backtrack when energy rises in the SDA alg.
 
@@ -20,6 +22,15 @@ Bug: calculation starts if ref_cell is defined but not cell. Crash in FFT.
 Bug in scalapack pdgetri.f (inverse of square matrix)
 Added bugfix from J.Langou into local modified copy of pdgetri.f 
 Must link to local pdgetri.o before the scalapack lib
+--------------------------------------------------------------------------------
+rel1_30_1
+Wavefunction.C: typos
+XMLGFPreprocessor.C: fixed bug in boundary adjustment.
+jacobi.C: implement special case of fewer blocks than process columns.
+BOSampleStepper.C: Moved Kerker preconditioning of charge density update
+before Anderson acceleration.
+ChargeMixCoeff.h: Changed default value to 1.0
+ExtStress.h: initialize with zero in ctor
 --------------------------------------------------------------------------------
 rel1_30_0
 D3vector.h: modified ctor to avoid accidental use with only one argument.

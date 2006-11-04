@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.40 2006-08-22 15:23:28 fgygi Exp $
+# $Id: Makefile,v 1.41 2006-11-04 20:22:01 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -47,6 +47,34 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         Basis.o FourierTransform.o Matrix.o Context.o \
         sinft.o spline.o UnitCell.o 
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testreadSample: testreadSample.o \
+         Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
+         Constraint.o ConstraintSet.o Wavefunction.o UnitCell.o Matrix.o \
+         SampleReader.o StructuredDocumentHandler.o FourierTransform.o \
+         Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
+         SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
+         Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
+         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ bisection: bisection.o \
+         Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
+         Constraint.o ConstraintSet.o Wavefunction.o UnitCell.o Matrix.o \
+         SampleReader.o StructuredDocumentHandler.o FourierTransform.o \
+         Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
+         SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
+         Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
+         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ plotSample: plotSample.o \
+         Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
+         Constraint.o ConstraintSet.o Wavefunction.o UnitCell.o Matrix.o \
+         SampleReader.o StructuredDocumentHandler.o FourierTransform.o \
+         Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
+         SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
+         Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
+         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o \
+         ChargeDensity.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testChargeDensity: testChargeDensity.o ChargeDensity.o \
         Wavefunction.o SlaterDet.o \
         Basis.o FourierTransform.o Matrix.o UnitCell.o Context.o
@@ -63,6 +91,9 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testSlaterDet: testSlaterDet.o SlaterDet.o FourierTransform.o \
         Basis.o UnitCell.o Matrix.o Context.o Base64Transcoder.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testBasisMapping: testBasisMapping.o BasisMapping.o Basis.o \
+        Context.o UnitCell.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSpecies: testSpecies.o Species.o sinft.o spline.o Context.o \
 	SpeciesReader.o StructuredDocumentHandler.o SpeciesHandler.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -71,6 +102,8 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testMatrix: testMatrix.o Matrix.o Context.o pdgetri.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testjacobi: testjacobi.o jacobi.o Matrix.o Context.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testjade: testjade.o jade.o Matrix.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testFourierTransform: testFourierTransform.o FourierTransform.o \
         Context.o Basis.o UnitCell.o 
@@ -164,6 +197,10 @@ AtomSetHandler.o: StructureHandler.h D3vector.h
 Base64Transcoder.o: Base64Transcoder.h
 Basis.o: Basis.h D3vector.h UnitCell.h Context.h
 Basis.o: D3vector.h UnitCell.h
+BasisMapping.o: Basis.h D3vector.h UnitCell.h Context.h BasisMapping.h
+bisection.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h ConstraintSet.h
+bisection.o: Wavefunction.h UnitCell.h Control.h SampleReader.h Basis.h
+bisection.o: FourierTransform.h Timer.h SlaterDet.h Matrix.h
 BLYPFunctional.o: BLYPFunctional.h XCFunctional.h
 BLYPFunctional.o: XCFunctional.h
 BOSampleStepper.o: BOSampleStepper.h SampleStepper.h Sample.h AtomSet.h
@@ -305,6 +342,10 @@ Nrowmax.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h ConstraintSet.h
 Nrowmax.o: Wavefunction.h UnitCell.h Control.h
 PBEFunctional.o: PBEFunctional.h XCFunctional.h
 PBEFunctional.o: XCFunctional.h
+plotSample.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h ConstraintSet.h
+plotSample.o: Wavefunction.h UnitCell.h Control.h SampleReader.h Basis.h
+plotSample.o: FourierTransform.h Timer.h SlaterDet.h Matrix.h Species.h
+plotSample.o: atomic_properties.h
 Preconditioner.o: Preconditioner.h EnergyFunctional.h ChargeDensity.h Timer.h
 Preconditioner.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 Preconditioner.o: D3vector.h ConstraintSet.h Wavefunction.h UnitCell.h
@@ -378,6 +419,7 @@ SaveCmd.o: D3vector.h ConstraintSet.h Wavefunction.h UnitCell.h Control.h
 SaveCmd.o: isodate.h release.h qbox_xmlns.h
 SaveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SaveCmd.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
+scansample.o: Timer.h
 SDAIonicStepper.o: SDAIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 SDAIonicStepper.o: Context.h Atom.h D3vector.h ConstraintSet.h Wavefunction.h
 SDAIonicStepper.o: UnitCell.h Control.h Species.h AndersonMixer.h
@@ -407,6 +449,9 @@ SetCmd.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
 ShiftMapping.o: Basis.h D3vector.h UnitCell.h Context.h ShiftMapping.h
 ShiftMapping.o: BasisMapping.h
 ShiftMapping.o: BasisMapping.h
+SinCosMapping.o: Basis.h D3vector.h UnitCell.h Context.h SinCosMapping.h
+SinCosMapping.o: Timer.h
+SinCosMapping.o: Timer.h
 sinft.o: sinft.h
 SlaterDet.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h Matrix.h
 SlaterDet.o: Timer.h FourierTransform.h blas.h Base64Transcoder.h
@@ -430,9 +475,12 @@ Stress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h ConstraintSet.h
 Stress.o: Wavefunction.h UnitCell.h Control.h
 StructuredDocumentHandler.o: StrX.h StructureHandler.h
 StructureFactor.o: StructureFactor.h Basis.h D3vector.h UnitCell.h
+t.o: D3vector.h
 testAndersonMixer.o: Context.h AndersonMixer.h
 testBase64Transcoder.o: Base64Transcoder.h
 testBasis.o: Basis.h D3vector.h UnitCell.h Context.h
+testBasisMapping.o: Context.h Basis.h D3vector.h UnitCell.h BasisMapping.h
+testBasisMapping.o: Timer.h
 testChargeDensity.o: Context.h Wavefunction.h D3vector.h UnitCell.h
 testChargeDensity.o: ChargeDensity.h Timer.h SlaterDet.h Basis.h Matrix.h
 testChargeDensity.o: FourierTransform.h
@@ -448,6 +496,7 @@ testFourierTransform.o: FourierTransform.h Timer.h
 testHandler.o: StrX.h
 TestHandler.o: StrX.h
 testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
+testjade.o: Timer.h Context.h Matrix.h jade.h
 testLDAFunctional.o: LDAFunctional.h XCFunctional.h
 testMapping.o: Basis.h D3vector.h UnitCell.h Context.h ShiftMapping.h
 testMapping.o: BasisMapping.h

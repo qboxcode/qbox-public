@@ -31,6 +31,7 @@ BOSampleStepper.C: Moved Kerker preconditioning of charge density update
 before Anderson acceleration.
 ChargeMixCoeff.h: Changed default value to 1.0
 ExtStress.h: initialize with zero in ctor
+MDIonicStepper.C, Thermostat.h: corrected misspelled ANDERSEN
 --------------------------------------------------------------------------------
 rel1_30_0
 D3vector.h: modified ctor to avoid accidental use with only one argument.

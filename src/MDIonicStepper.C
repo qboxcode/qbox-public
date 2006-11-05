@@ -3,7 +3,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.10 2006-08-22 15:16:10 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.11 2006-11-05 02:06:29 fgygi Exp $
 
 #include "MDIonicStepper.h"
 
@@ -71,7 +71,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
     }
     ekin_ *= fac * fac;
   }
-  else if ( thermostat_ == "ANDERSON" )
+  else if ( thermostat_ == "ANDERSEN" )
   {
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
     for ( int is = 0; is < nsp_; is++ )

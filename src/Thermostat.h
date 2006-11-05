@@ -3,7 +3,7 @@
 // Thermostat.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Thermostat.h,v 1.2 2006-08-22 15:16:10 fgygi Exp $
+// $Id: Thermostat.h,v 1.3 2006-11-05 02:06:15 fgygi Exp $
 
 #ifndef THERMOSTAT_H
 #define THERMOSTAT_H
@@ -33,10 +33,10 @@ class Thermostat : public Var
     }
     
     string v = argv[1];
-    if ( !( v == "SCALING" || v == "ANDERSON" || v == "LOWE" || v == "OFF" ) )
+    if ( !( v == "SCALING" || v == "ANDERSEN" || v == "LOWE" || v == "OFF" ) )
     {
       if ( ui->onpe0() )
-        cout << " thermostat must be SCALING or ANDERSON or LOWE or OFF" 
+        cout << " thermostat must be SCALING or ANDERSEN or LOWE or OFF" 
              << endl;
       return 1;
     }

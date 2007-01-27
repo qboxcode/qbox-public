@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.13 2006-08-22 15:09:48 fgygi Exp $
+// $Id: AtomSet.C,v 1.14 2007-01-27 23:44:59 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -223,7 +223,7 @@ int AtomSet::na(int is) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int AtomSet::size(void)
+int AtomSet::size(void) const
 {
   int n = 0;
   for ( int is = 0; is < atom_list.size(); is++ )
@@ -421,7 +421,7 @@ void AtomSet::sync()
 #endif
 }
 ////////////////////////////////////////////////////////////////////////////////
-ostream& operator << ( ostream &os, AtomSet &as )
+ostream& operator << ( ostream &os, const AtomSet &as )
 {
   if ( as.context().onpe0() )
   {

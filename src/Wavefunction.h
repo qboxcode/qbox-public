@@ -3,7 +3,7 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.13 2004-09-14 22:24:11 fgygi Exp $
+// $Id: Wavefunction.h,v 1.14 2007-01-27 23:53:44 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
@@ -101,11 +101,11 @@ class Wavefunction
   
   double dot(const Wavefunction& wf) const;
   
-  void print(ostream& os, string encoding, string tag);
+  void print(ostream& os, string encoding, string tag) const;
 #if USE_CSTDIO_LFS
-  void write(FILE* outfile, string encoding, string tag);
+  void write(FILE* outfile, string encoding, string tag) const;
 #endif
-  void info(ostream& os, string tag);
+  void info(ostream& os, string tag) const;
 };
-ostream& operator << ( ostream& os, Wavefunction& wf );
+ostream& operator << ( ostream& os, const Wavefunction& wf );
 #endif

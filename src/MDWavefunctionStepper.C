@@ -3,7 +3,7 @@
 // MDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.C,v 1.6 2005-04-29 18:13:48 fgygi Exp $
+// $Id: MDWavefunctionStepper.C,v 1.7 2007-01-27 23:46:31 fgygi Exp $
 
 #include "MDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -13,24 +13,17 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-MDWavefunctionStepper::MDWavefunctionStepper(Sample& s, TimerMap& tmap) : 
-  WavefunctionStepper(s,tmap)
+MDWavefunctionStepper::MDWavefunctionStepper(Wavefunction& wf, 
+  Wavefunction *wfv, double dt, double dt2bye, TimerMap& tmap) : 
+  wfv_(wfv), dt_(dt), dt2bye_(dt2bye), WavefunctionStepper(wf,tmap)
 {
-  dt_ = s_.ctrl.dt;
-  const double emass = s_.ctrl.emass;
-  dt2bye_ = (emass == 0.0) ? 0.5 / wf_.ecut() : dt_*dt_/emass;           
-  
-  // divide dt2bye by facs coefficient if confinement is on (ecuts>0)
-  if ( s_.ctrl.ecuts > 0.0 )
-    dt2bye_ /= s_.ctrl.facs;
+  assert(wfv!=0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void MDWavefunctionStepper::update(Wavefunction& dwf)
 {
   // Verlet update of wf using force dwf and wfm stored in *wfv
-  Wavefunction* const wfv = s_.wfv;
-  assert(wfv!=0);
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
@@ -48,7 +41,7 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
           // c = cp
           SlaterDet* sd = wf_.sd(ispin,ikp);
           double* cptr = (double*) sd->c().valptr();
-          double* cptrm = (double*) wfv->sd(ispin,ikp)->c().valptr();
+          double* cptrm = (double*) wfv_->sd(ispin,ikp)->c().valptr();
           const double* dcptr =
             (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
           const int mloc = sd->c().mloc();
@@ -79,7 +72,7 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
           tmap_["md_update_wf"].stop();
           
           tmap_["riccati"].start();
-          wf_.sd(ispin,ikp)->riccati(*(wfv->sd(ispin,ikp)));
+          wf_.sd(ispin,ikp)->riccati(*(wfv_->sd(ispin,ikp)));
           tmap_["riccati"].stop();
         }
       }
@@ -95,8 +88,6 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
   // Compute wfm for first MD step using wf, wfv and dwf (= Hpsi)
   // Replace then wfv by wfm
   
-  Wavefunction* const wfv = s_.wfv;
-  assert(wfv!=0);
   // Compute cm using c and wavefunction velocity
   // cm = c - dt * v - 0.5 * dt2/m * hpsi
   // replace wfv by wfm
@@ -112,7 +103,7 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
           SlaterDet* sd = wf_.sd(ispin,ikp);
           
           double* cptr = (double*) sd->c().valptr();
-          double* cptrv = (double*) wfv->sd(ispin,ikp)->c().valptr();
+          double* cptrv = (double*) wfv_->sd(ispin,ikp)->c().valptr();
           const double* dcptr =
             (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
           const vector<double>& occ = sd->occ();
@@ -140,7 +131,7 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
             }
           }
           tmap_["riccati"].start();
-          wfv->sd(ispin,ikp)->riccati(*wf_.sd(ispin,ikp));
+          wfv_->sd(ispin,ikp)->riccati(*wf_.sd(ispin,ikp));
           tmap_["riccati"].stop();
         }
       }
@@ -150,7 +141,7 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
   ekin_ep_ = ekin_eh();
   // Note: ekin_ep is a first-order approximation of ekin_e using wf and wfm
   // only. This makes ekin_e consistent with the following update() call
-  // Note: *wfv now contains wf(t-dt)
+  // Note: *wfv_ now contains wf(t-dt)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -158,8 +149,6 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
 {
   // Compute wfv = (wf - wfm)/dt - 0.5*dtbye*dwf
   
-  Wavefunction * const wfv = s_.wfv;
-  assert(wfv!=0);
   assert(dt_!=0.0);
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
@@ -172,7 +161,7 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
           // compute final velocity wfv
           // v = ( c - cm ) / dt - 0.5 * dt/m * hpsi
  
-          // Note: At this point, *wfv contains wf(t-dt)
+          // Note: At this point, *wfv_ contains wf(t-dt)
  
           // hpsi must be orthogonal to the subspace spanned by c
           // compute descent direction H psi - psi (psi^T H psi)
@@ -203,7 +192,7 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
           const double dt_inv = 1.0/dt_;
           const double half_dtbye = 0.5 * dt2bye_ / dt_;
           double* cptr = (double*) sd->c().valptr();
-          double* cptrv = (double*) wfv->sd(ispin,ikp)->c().valptr();
+          double* cptrv = (double*) wfv_->sd(ispin,ikp)->c().valptr();
           const double* dcptr =
             (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
           const int mloc = sd->c().mloc();
@@ -229,7 +218,7 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
                           - half_dtbye * dctmp1;
             }
           }
-          // Note: *wfv now contains the wavefunction velocity
+          // Note: *wfv_ now contains the wavefunction velocity
         }
       }
     }
@@ -242,7 +231,7 @@ double MDWavefunctionStepper::ekin_eh(void)
   // compute ekin at time t - 0.5*dt using wf and wfm
   tmap_["ekin_e"].start();
   double ekin_e = 0.0;
-  Wavefunction* const wfv = s_.wfv; // assume that wfv contains wfm
+  // assume that wfv contains wfm
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
@@ -253,7 +242,7 @@ double MDWavefunctionStepper::ekin_eh(void)
         {
           SlaterDet* sd = wf_.sd(ispin,ikp);
           double* cptr = (double*) sd->c().valptr();
-          double* cptrm = (double*) wfv->sd(ispin,ikp)->c().valptr();
+          double* cptrm = (double*) wfv_->sd(ispin,ikp)->c().valptr();
           const int mloc = sd->c().mloc();
           const int nloc = sd->c().nloc();
           // compute electronic kinetic energy at time t-1/2

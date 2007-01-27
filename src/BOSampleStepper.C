@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.29 2006-11-04 20:19:41 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.30 2007-01-27 23:46:30 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -105,11 +105,22 @@ void BOSampleStepper::step(int niter)
   
   WavefunctionStepper* wf_stepper = 0;
   if ( wf_dyn == "SD" )
-    wf_stepper = new SDWavefunctionStepper(s_,tmap);
+  {
+    const double emass = s_.ctrl.emass;
+    double dt2bye = (emass == 0.0) ? 0.5 / wf.ecut() : dt*dt/emass;
+  
+    // divide dt2bye by facs coefficient if stress == ON
+    const double facs = 2.0;
+    if ( s_.ctrl.stress == "ON" )
+    {
+      dt2bye /= facs;
+    }
+    wf_stepper = new SDWavefunctionStepper(wf,dt2bye,tmap);
+  }
   else if ( wf_dyn == "PSD" )
-    wf_stepper = new PSDWavefunctionStepper(s_,*preconditioner,tmap);
+    wf_stepper = new PSDWavefunctionStepper(wf,*preconditioner,tmap);
   else if ( wf_dyn == "PSDA" )
-    wf_stepper = new PSDAWavefunctionStepper(s_,*preconditioner,tmap);
+    wf_stepper = new PSDAWavefunctionStepper(wf,*preconditioner,tmap);
     
   // wf_stepper == 0 indicates that wf_dyn == LOCKED
     
@@ -639,13 +650,42 @@ void BOSampleStepper::step(int niter)
         {
           energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
           s_.wf.diag(dwf,compute_eigvec);
+          if ( onpe0 )                                    
+          {
+            // print eigenvalues
+            for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+            {
+              for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+              {
+                if ( wf.sd(ispin,ikp) != 0 )
+                {
+                  if ( wf.sdcontext(ispin,ikp)->active() )
+                  {
+                    const int nst = wf.sd(ispin,ikp)->nst();
+                    const double eVolt = 2.0 * 13.6058;                 
+                    cout <<    "  <eigenvalues spin=\"" << ispin        
+                         << "\" kpoint=\"" << wf.sd(ispin,ikp)->kpoint()   
+                         << "\" n=\"" << nst << "\">" << endl;          
+                    for ( int i = 0; i < nst; i++ )                   
+                    {                                                   
+                      cout << setw(12) << setprecision(5) 
+                           << wf.sd(ispin,ikp)->eig(i)*eVolt;
+                      if ( i%5 == 4 ) cout << endl;                     
+                    }                                                   
+                    if ( nst%5 != 0 ) cout << endl;                   
+                    cout << "  </eigenvalues>" << endl;
+                  }
+                }
+              }
+            }                 
+          }                                                       
         }
         
         // update occupation numbers if fractionally occupied states
         if ( fractional_occ )
         {
-          s_.wf.update_occ(s_.ctrl.fermi_temp);
-          const double wf_entropy = s_.wf.entropy();
+          wf.update_occ(s_.ctrl.fermi_temp);
+          const double wf_entropy = wf.entropy();
           if ( onpe0 )
           {
             cout << "  <!-- Wavefunction entropy: " << wf_entropy

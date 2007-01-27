@@ -3,7 +3,7 @@
 // PSDWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.h,v 1.3 2004-03-11 21:52:32 fgygi Exp $
+// $Id: PSDWavefunctionStepper.h,v 1.4 2007-01-27 23:46:31 fgygi Exp $
 
 #ifndef PSDWAVEFUNCTIONSTEPPER_H
 #define PSDWAVEFUNCTIONSTEPPER_H
@@ -21,7 +21,7 @@ class PSDWavefunctionStepper : public WavefunctionStepper
 
   void update(Wavefunction& dwf);
   
-  PSDWavefunctionStepper(Sample& s, Preconditioner& p, TimerMap& tmap);
+  PSDWavefunctionStepper(Wavefunction& wf, Preconditioner& p, TimerMap& tmap);
   ~PSDWavefunctionStepper() {};
 };
 #endif

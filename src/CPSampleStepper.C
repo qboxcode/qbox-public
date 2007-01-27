@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.11 2005-09-16 23:08:11 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.12 2007-01-27 23:46:31 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -21,7 +21,17 @@ using namespace std;
 CPSampleStepper::CPSampleStepper(Sample& s) : 
   SampleStepper(s), cd_(s.wf), ef_(s,cd_), dwf(s.wf), wfv(s.wfv)
 {
-  mdwf_stepper = new MDWavefunctionStepper(s,tmap);
+  const double emass = s.ctrl.emass;
+  const double dt = s.ctrl.dt;
+  double dt2bye = (emass == 0.0) ? 0.5 / s.wf.ecut() : dt*dt/emass;  
+  
+  // divide dt2bye by facs coefficient if stress == ON             
+  const double facs = 2.0;                                         
+  if ( s.ctrl.stress == "ON" )                                    
+  {                                                                
+    dt2bye /= facs;                                                
+  }                                                                
+  mdwf_stepper = new MDWavefunctionStepper(s.wf,s.wfv,dt,dt2bye,tmap);
   assert(mdwf_stepper!=0);
   mdionic_stepper = 0;
   if ( s.ctrl.atoms_dyn != "LOCKED" )

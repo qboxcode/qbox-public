@@ -3,12 +3,13 @@
 // PSDAWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.h,v 1.3 2004-03-11 21:52:31 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.h,v 1.4 2007-01-27 23:46:31 fgygi Exp $
 
 #ifndef PSDAWAVEFUNCTIONSTEPPER_H
 #define PSDAWAVEFUNCTIONSTEPPER_H
 
 #include "WavefunctionStepper.h"
+#include "Wavefunction.h"
 class Preconditioner;
 
 class PSDAWavefunctionStepper : public WavefunctionStepper
@@ -26,7 +27,7 @@ class PSDAWavefunctionStepper : public WavefunctionStepper
   void update(Wavefunction& dwf);
   virtual void preprocess(void) { extrapolate_ = false; }
 
-  PSDAWavefunctionStepper(Sample& s, Preconditioner& p, TimerMap& tmap);
+  PSDAWavefunctionStepper(Wavefunction& wf, Preconditioner& p, TimerMap& tmap);
   ~PSDAWavefunctionStepper() {};
 };
 #endif

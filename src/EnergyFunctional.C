@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.22 2005-06-27 22:25:04 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.23 2007-01-27 23:46:31 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -138,8 +138,10 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
       create_cfp |= wf.sd(ispin,ikp) != 0 && wf.sdcontext(ispin,ikp)->active();
     if ( create_cfp )
     {
+      const double facs = 2.0;
+      const double sigmas = 0.5;
       cfp[ikp] = 
-        new ConfinementPotential(s_.ctrl.ecuts,s_.ctrl.facs,s_.ctrl.sigmas,
+        new ConfinementPotential(s_.ctrl.ecuts,facs,sigmas,
           wf.sd(0,ikp)->basis());
     }
   }

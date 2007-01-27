@@ -3,20 +3,19 @@
 // PSDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.C,v 1.6 2004-11-10 22:35:23 fgygi Exp $
+// $Id: PSDWavefunctionStepper.C,v 1.7 2007-01-27 23:46:31 fgygi Exp $
 
 #include "PSDWavefunctionStepper.h"
 #include "Wavefunction.h"
 #include "SlaterDet.h"
-#include "Sample.h"
 #include "Preconditioner.h"
 #include <iostream>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-PSDWavefunctionStepper::PSDWavefunctionStepper(Sample& s, 
+PSDWavefunctionStepper::PSDWavefunctionStepper(Wavefunction& wf, 
   Preconditioner& p, TimerMap& tmap) : 
-  WavefunctionStepper(s,tmap), prec_(p)
+  WavefunctionStepper(wf,tmap), prec_(p)
 {}
 
 ////////////////////////////////////////////////////////////////////////////////

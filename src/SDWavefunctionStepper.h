@@ -3,7 +3,7 @@
 // SDWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDWavefunctionStepper.h,v 1.2 2004-02-04 19:55:16 fgygi Exp $
+// $Id: SDWavefunctionStepper.h,v 1.3 2007-01-27 23:46:31 fgygi Exp $
 
 #ifndef SDWAVEFUNCTIONSTEPPER_H
 #define SDWAVEFUNCTIONSTEPPER_H
@@ -14,13 +14,13 @@ class SDWavefunctionStepper : public WavefunctionStepper
 {
   private:
 
-  double dt_, dt2bye_;
+  double alpha_;
 
   public:
 
   void update(Wavefunction& dwf);
 
-  SDWavefunctionStepper(Sample& s, TimerMap& tmap);
+  SDWavefunctionStepper(Wavefunction& wf, double alpha, TimerMap& tmap);
   ~SDWavefunctionStepper() {};
 };
 #endif

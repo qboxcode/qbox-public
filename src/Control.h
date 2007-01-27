@@ -3,7 +3,7 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.9 2004-12-02 22:20:23 fgygi Exp $
+// $Id: Control.h,v 1.10 2007-01-27 23:47:56 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -37,7 +37,7 @@ struct Control
   string cell_dyn;
   string cell_lock;
   double cell_mass;
-  double ecuts,sigmas,facs; // confinement energy parameters
+  double ecuts;         // confinement potential energy cutoff
   double ext_stress[6]; // external stress tensor: xx,yy,zz,xy,yz,xz
   
   string xc;

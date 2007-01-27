@@ -3,7 +3,7 @@
 // ConfinementPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConfinementPotential.h,v 1.1 2004-03-11 21:58:10 fgygi Exp $
+// $Id: ConfinementPotential.h,v 1.2 2007-01-27 23:47:56 fgygi Exp $
 
 #ifndef CONFINEMENTPOTENTIAL_H
 #define CONFINEMENTPOTENTIAL_H
@@ -21,6 +21,10 @@ class ConfinementPotential
   valarray<double> fstress_, dfstress_;
 
   public:
+  
+  double facs(void) const { return facs_; }
+  double sigmas(void) const { return sigmas_; }
+  double ecuts(void) const { return ecuts_; }
   
   const valarray<double>& fstress(void) const { return fstress_; }
   const valarray<double>& dfstress(void) const { return dfstress_; }

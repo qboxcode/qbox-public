@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.21 2006-07-21 17:37:26 fgygi Exp $
+// $Id: Wavefunction.C,v 1.22 2007-01-27 23:52:34 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -628,20 +628,6 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
               c.gemm('n','n',1.0,cp,z,0.0);
             }
 #endif
-            if ( ctxt_.onpe0() )
-            {
-              const double eVolt = 2.0 * 13.6058;
-              cout <<    "  <eigenvalues spin=\"" << ispin
-                   << "\" kpoint=\"" << sd(ispin,ikp)->kpoint()
-                   << "\" n=\"" << h.m() << "\">" << endl;
-              for ( int i = 0; i < h.m(); i++ )
-              {
-                cout << setw(12) << setprecision(5) << w[i]*eVolt;
-                if ( i%5 == 4 ) cout << endl;
-              }
-              if ( h.m()%5 != 0 ) cout << endl;
-              cout << "  </eigenvalues>" << endl;
-            }
             // set eigenvalues in SlaterDet
             sd(ispin,ikp)->set_eig(w);
           }
@@ -679,7 +665,7 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::print(ostream& os, string encoding, string tag)
+void Wavefunction::print(ostream& os, string encoding, string tag) const
 {
   if ( ctxt_.onpe0() )
   {
@@ -709,7 +695,7 @@ void Wavefunction::print(ostream& os, string encoding, string tag)
 
 #if USE_CSTDIO_LFS
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::write(FILE* outfile, string encoding, string tag)
+void Wavefunction::write(FILE* outfile, string encoding, string tag) const
 {
   if ( ctxt_.onpe0() )
   {
@@ -756,7 +742,7 @@ void Wavefunction::write(FILE* outfile, string encoding, string tag)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::info(ostream& os, string tag)
+void Wavefunction::info(ostream& os, string tag) const
 {
   if ( ctxt_.onpe0() )
   {
@@ -789,7 +775,7 @@ void Wavefunction::info(ostream& os, string tag)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-ostream& operator<<(ostream& os, Wavefunction& wf)
+ostream& operator<<(ostream& os, const Wavefunction& wf)
 {
   wf.print(os,"text","wavefunction");
   return os;

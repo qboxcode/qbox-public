@@ -3,7 +3,7 @@
 // Sample.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Sample.h,v 1.7 2005-06-27 22:19:31 fgygi Exp $
+// $Id: Sample.h,v 1.8 2007-01-27 23:48:28 fgygi Exp $
 
 #ifndef SAMPLE_H
 #define SAMPLE_H
@@ -30,7 +30,6 @@ class Sample
   Control ctrl;
 
   Sample(const Context& ctxt) : ctxt_(ctxt), atoms(ctxt), constraints(ctxt),
-    wf(ctxt), wfv(0)
-  { ctrl.sigmas = 0.5; ctrl.facs = 2.0; }
+    wf(ctxt), wfv(0) {}
 };
 #endif

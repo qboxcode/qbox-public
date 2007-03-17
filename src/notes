@@ -23,7 +23,7 @@ Bug in scalapack pdgetri.f (inverse of square matrix)
 Added bugfix from J.Langou into local modified copy of pdgetri.f 
 Must link to local pdgetri.o before the scalapack lib
 --------------------------------------------------------------------------------
-rel1_32_0 release candidate
+rel1_32_0
 Dt.h, MDIonicStepper.C: modified to allow for negative time step.
 Removed Sample.h dependency in WavefunctionStepper and derived classes.
 Files affected are

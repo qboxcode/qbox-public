@@ -1,4 +1,4 @@
-// $Id: testjacobi.C,v 1.1 2006-07-21 17:40:24 fgygi Exp $
+// $Id: testjacobi.C,v 1.2 2007-03-17 01:09:04 fgygi Exp $
 //
 // test jacobi
 //
@@ -14,7 +14,6 @@
 #include <fstream>
 #include <valarray>
 #include <algorithm>
-using namespace std;
 
 #include "Timer.h"
 
@@ -25,6 +24,7 @@ using namespace std;
 #include "Context.h"
 #include "Matrix.h"
 #include "jacobi.h"
+using namespace std;
 
 double aa(int i, int j) { return 1.0/(i+1)+2.0*i/(j+1); }
 double frank(int n, int i, int j) { return n - max(i,j); }
@@ -109,7 +109,8 @@ int main(int argc, char **argv)
     
     const int maxsweep = 30;
     tm.start();
-    int nsweep = jacobi(maxsweep,1.e-6,a,u,e);
+    double tol = 1.e-10;
+    int nsweep = jacobi(maxsweep,tol,a,u,e);
     tm.stop();
     if ( ctxt.onpe0() ) cout << " nsweep: " << nsweep << endl;
     if (ctxt.mype() == 0) cout << "Jacobi time: " << tm.real() << endl;

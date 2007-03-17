@@ -3,13 +3,12 @@
 // StructuredDocumentHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.C,v 1.4 2004-09-14 22:24:11 fgygi Exp $
+// $Id: StructuredDocumentHandler.C,v 1.5 2007-03-17 01:14:00 fgygi Exp $
 
 #if USE_XERCES
 
 #include <xercesc/util/XMLUniDefs.hpp>
 #include <xercesc/sax2/Attributes.hpp>
-using namespace xercesc;
 #include "StructuredDocumentHandler.h"
 
 #if TIMING
@@ -19,6 +18,7 @@ using namespace xercesc;
 #include "StrX.h"
 #include <iostream>
 #include <cassert>
+using namespace xercesc;
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////

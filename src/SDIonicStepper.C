@@ -3,9 +3,10 @@
 // SDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDIonicStepper.C,v 1.3 2005-06-27 22:20:41 fgygi Exp $
+// $Id: SDIonicStepper.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #include "SDIonicStepper.h"
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 void SDIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)

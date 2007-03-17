@@ -3,11 +3,9 @@
 // XMLGFPreprocessor.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.h,v 1.1 2003-08-22 18:01:13 fgygi Exp $
+// $Id: XMLGFPreprocessor.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
 
 #include <string>
-using namespace std;
-
 #include "Matrix.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -29,5 +27,5 @@ class XMLGFPreprocessor
   public:
  
   void process(const char* const filename, 
-    DoubleMatrix& gfdata, string& xmlcontent);
+    DoubleMatrix& gfdata, std::string& xmlcontent);
 };

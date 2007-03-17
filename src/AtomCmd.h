@@ -3,7 +3,7 @@
 // AtomCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomCmd.h,v 1.6 2005-04-29 18:12:37 fgygi Exp $
+// $Id: AtomCmd.h,v 1.7 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef ATOMCMD_H
 #define ATOMCMD_H
@@ -11,8 +11,6 @@
 #include <string>
 #include <cstdlib>
 #include <iostream>
-using namespace std;
-
 #include "UserInterface.h"
 #include "Sample.h"
 

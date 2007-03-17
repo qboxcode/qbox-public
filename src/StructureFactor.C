@@ -3,12 +3,13 @@
 // StructureFactor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructureFactor.C,v 1.2 2002-11-08 17:03:23 fgygi Exp $
+// $Id: StructureFactor.C,v 1.3 2007-03-17 01:14:00 fgygi Exp $
 
 #include "StructureFactor.h"
 #include "Basis.h"
 #include "UnitCell.h"
 #include <cassert>
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 void StructureFactor::init(const vector<vector<double> >& tau, 

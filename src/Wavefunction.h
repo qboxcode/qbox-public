@@ -3,7 +3,7 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.14 2007-01-27 23:53:44 fgygi Exp $
+// $Id: Wavefunction.h,v 1.15 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
@@ -14,7 +14,6 @@
 #if USE_CSTDIO_LFS
 #include <cstdio>
 #endif
-using namespace std;
 
 class SlaterDet;
 class Context;
@@ -36,13 +35,13 @@ class Wavefunction
   UnitCell refcell_ ; // reference cell
   double   ecut_ ;    // energy cutoff
   
-  vector<double>      weight_;  // weight[ikp]
-  vector<D3vector  >  kpoint_;  // kpoint[ikp]
+  std::vector<double>    weight_;  // weight[ikp]
+  std::vector<D3vector>  kpoint_;  // kpoint[ikp]
   
-  vector<int> nst_;                       // nst_[ispin]
-  vector<Context*> spincontext_;          // spincontext[ispin]
-  vector<vector<Context*> > sdcontext_;   // sdcontext_[ispin][ikp]
-  vector<vector<SlaterDet*> > sd_;        // sd[ispin][ikp]
+  std::vector<int> nst_;                       // nst_[ispin]
+  std::vector<Context*> spincontext_;          // spincontext[ispin]
+  std::vector<std::vector<Context*> > sdcontext_;   // sdcontext_[ispin][ikp]
+  std::vector<std::vector<SlaterDet*> > sd_;        // sd[ispin][ikp]
   
   void allocate(); // create contexts and allocate SlaterDet's 
   void deallocate();
@@ -101,11 +100,11 @@ class Wavefunction
   
   double dot(const Wavefunction& wf) const;
   
-  void print(ostream& os, string encoding, string tag) const;
+  void print(std::ostream& os, std::string encoding, std::string tag) const;
 #if USE_CSTDIO_LFS
-  void write(FILE* outfile, string encoding, string tag) const;
+  void write(FILE* outfile, std::string encoding, std::string tag) const;
 #endif
-  void info(ostream& os, string tag) const;
+  void info(std::ostream& os, std::string tag) const;
 };
-ostream& operator << ( ostream& os, const Wavefunction& wf );
+std::ostream& operator << ( std::ostream& os, const Wavefunction& wf );
 #endif

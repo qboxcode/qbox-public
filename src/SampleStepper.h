@@ -3,19 +3,19 @@
 // SampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.h,v 1.9 2005-09-16 23:08:11 fgygi Exp $
+// $Id: SampleStepper.h,v 1.10 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef SAMPLESTEPPER_H
 #define SAMPLESTEPPER_H
 
-#include "Sample.h"
 #include "Timer.h"
 #include <map>
 #include <string>
+#include <vector>
 #include <valarray>
-using namespace std;
 
-typedef map<string,Timer> TimerMap;
+class Sample;
+typedef std::map<std::string,Timer> TimerMap;
 
 class SampleStepper
 {
@@ -23,8 +23,8 @@ class SampleStepper
   
   Sample& s_;
   
-  vector<vector<double> > fion;
-  valarray<double> sigma_eks, sigma_kin, sigma_ext, sigma;
+  std::vector<std::vector<double> > fion;
+  std::valarray<double> sigma_eks, sigma_kin, sigma_ext, sigma;
 
   // Do not allow construction of SampleStepper unrelated to a Sample
   SampleStepper(void);

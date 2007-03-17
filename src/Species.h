@@ -3,7 +3,7 @@
 // Species.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.h,v 1.4 2003-05-16 16:14:00 fgygi Exp $
+// $Id: Species.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef SPECIES_H
 #define SPECIES_H
@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 #include <cmath>
-using namespace std;
 #include "Context.h"
 
 class Species
@@ -23,40 +22,40 @@ class Species
   int nlm_;             // number of non-local projectors: 
   int ndft_;
   
-  vector<vector<double> > vps_spl_, phi_spl_;
-  vector<double>          gspl_, vlocg_, vlocg_spl;
-  vector<vector<double> > vnlg_, vnlg_spl;
-  vector<double> wsg_;  // wsg_[l] Kleinman-Bylander weight 1/<phi|delta_V|phi>
+  std::vector<std::vector<double> > vps_spl_, phi_spl_;
+  std::vector<double>          gspl_, vlocg_, vlocg_spl;
+  std::vector<std::vector<double> > vnlg_, vnlg_spl;
+  std::vector<double> wsg_;  // wsg_[l] Kleinman-Bylander weight 1/<phi|delta_V|phi>
   
-  vector<double> rps_;  // radial linear mesh (same for all l)
+  std::vector<double> rps_;  // radial linear mesh (same for all l)
   
-  string name_;         // name used to refer to species in current application
-  string uri_;          // uri of the resource defining the pseudopotential
+  std::string name_;         // name used to refer to species in current application
+  std::string uri_;          // uri of the resource defining the pseudopotential
 
-  string symbol_;
+  std::string symbol_;
   int atomic_number_;
   double mass_;        // mass in a.m.u (Carbon = 12.0)
   
-  string description_; // description of the pseudopotential
+  std::string description_; // description of the pseudopotential
   int zval_;           // valence charge
   int lmax_;           // largest angular momentum
   int llocal_;         // angular momentum taken as local
   int nquad_;          // number of semi-local quadrature points
   double rquad_;       // end of semi-local quadrature interval
   double deltar_;      // mesh spacing for potentials and wavefunctions
-  vector<vector<double> > vps_;  // potentials for each l
-  vector<vector<double> > phi_;  // atomic wavefunctions for each l
+  std::vector<std::vector<double> > vps_;  // potentials for each l
+  std::vector<std::vector<double> > phi_;  // atomic wavefunctions for each l
   double rcps_;        // cutoff radius of gaussian pseudocharge
   
   public:
 
-  Species(const Context& ctxt, string name);
+  Species(const Context& ctxt, std::string name);
   
   const Context& context(void) const { return ctxt_; }
-  const string& name(void) const { return name_; }
-  const string& symbol(void) const { return symbol_; }
-  const string& description(void) const { return description_; }
-  const string& uri(void) const { return uri_; }
+  const std::string& name(void) const { return name_; }
+  const std::string& symbol(void) const { return symbol_; }
+  const std::string& description(void) const { return description_; }
+  const std::string& uri(void) const { return uri_; }
   int atomic_number(void) const { return atomic_number_; }
   int zval(void) const { return zval_; }
   double mass(void) const { return mass_; }
@@ -84,21 +83,21 @@ class Species
   double wsg(int l) { return wsg_[l]; };
   double rcut_loc(double epsilon); // radius beyond which potential is local
   
-  const vector<vector<double> >& vps(void) const { return vps_; }
-  const vector<vector<double> >& phi(void) const { return phi_; }
+  const std::vector<std::vector<double> >& vps(void) const { return vps_; }
+  const std::vector<std::vector<double> >& phi(void) const { return phi_; }
   
   bool initialize(double rcps);
-  void info(ostream& os);
+  void info(std::ostream& os);
   
   friend class SpeciesReader;
   friend class SpeciesHandler;
   
 };
-ostream& operator << ( ostream &os, Species &a );
+std::ostream& operator << ( std::ostream &os, Species &a );
 class SpeciesInitException
 {
   public:
-  string msg;
-  SpeciesInitException(string s) : msg(s) {}
+  std::string msg;
+  SpeciesInitException(std::string s) : msg(s) {}
 };
 #endif

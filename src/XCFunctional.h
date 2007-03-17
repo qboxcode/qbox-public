@@ -3,7 +3,7 @@
 // XCFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCFunctional.h,v 1.2 2004-09-14 22:24:11 fgygi Exp $
+// $Id: XCFunctional.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
 
 //
 // Abstract base class for density functionals
@@ -43,7 +43,6 @@
 #define XCFUNCTIONAL_H
 
 #include <string>
-using namespace std;
 
 class XCFunctional
 {
@@ -60,7 +59,7 @@ class XCFunctional
   double *vxc2, *vxc2_upup, *vxc2_dndn, *vxc2_updn, *vxc2_dnup;
 
   virtual bool isGGA(void) = 0;
-  virtual string name(void) = 0;
+  virtual std::string name(void) = 0;
   int np(void) { return _np; };
   int nspin(void) { return _nspin; };
   

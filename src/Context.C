@@ -3,20 +3,20 @@
 // Context.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.C,v 1.12 2006-03-07 07:03:46 fgygi Exp $
+// $Id: Context.C,v 1.13 2007-03-17 01:14:00 fgygi Exp $
 
+#include "Context.h"
 #include <iostream>
 #include <iomanip>
 #include <cmath>
 #include <cassert>
-#include <string>
-using namespace std;
+#include <vector>
 
 #ifdef SCALAPACK
 #include "blacs.h"
 #endif
 
-#include "Context.h"
+using namespace std;
 
 #ifndef SCALAPACK
 void Cblacs_pinfo(int *mypnum, int *nprocs)

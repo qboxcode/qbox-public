@@ -3,14 +3,13 @@
 // ConfinementPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConfinementPotential.h,v 1.2 2007-01-27 23:47:56 fgygi Exp $
+// $Id: ConfinementPotential.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef CONFINEMENTPOTENTIAL_H
 #define CONFINEMENTPOTENTIAL_H
 
-class Basis;
 #include <valarray>
-using namespace std;
+class Basis;
 
 class ConfinementPotential
 {
@@ -18,7 +17,7 @@ class ConfinementPotential
   
   double ecuts_, facs_, sigmas_;
   const Basis& basis_;
-  valarray<double> fstress_, dfstress_;
+  std::valarray<double> fstress_, dfstress_;
 
   public:
   
@@ -26,8 +25,8 @@ class ConfinementPotential
   double sigmas(void) const { return sigmas_; }
   double ecuts(void) const { return ecuts_; }
   
-  const valarray<double>& fstress(void) const { return fstress_; }
-  const valarray<double>& dfstress(void) const { return dfstress_; }
+  const std::valarray<double>& fstress(void) const { return fstress_; }
+  const std::valarray<double>& dfstress(void) const { return dfstress_; }
   
   void update(void);
   

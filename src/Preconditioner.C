@@ -3,7 +3,7 @@
 // Preconditioner.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Preconditioner.C,v 1.3 2004-04-20 22:14:14 fgygi Exp $
+// $Id: Preconditioner.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #include "Preconditioner.h"
 #include "EnergyFunctional.h"
@@ -11,6 +11,7 @@
 #include "Basis.h"
 #include "SlaterDet.h"
 #include "ConfinementPotential.h"
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 Preconditioner::Preconditioner(const Sample& s, const EnergyFunctional& ef) : 

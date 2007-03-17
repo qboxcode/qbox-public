@@ -3,13 +3,12 @@
 //  BLAS Header file
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: blas.h,v 1.3 2004-08-11 17:56:24 fgygi Exp $
+// $Id: blas.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef BLAS_H
 #define BLAS_H
 
 #include <complex>
-using namespace std;
 
 // default value for most compilers
 #define FTN_LINK extern "C"
@@ -41,8 +40,8 @@ FTN_LINK {
 
 void dcopy(int *n, double *x, int *incx, 
 double *y, int *incy );
-void zcopy(int *n, complex<double> *x, int *incx, 
-complex<double> *y, int *incy );
+void zcopy(int *n, std::complex<double> *x, int *incx, 
+std::complex<double> *y, int *incy );
 void daxpy(int *n, double *alpha, double *x, int *incx,
 double *y, int *incy );
 double ddot(const int *n, const double *a, const int *inca, 
@@ -65,7 +64,7 @@ int idamax(int *len, double *x, int *incx);
 void dsyev(char *c1,char *c2,int *n, 
 double *a,int *lda, double *wr,
 double *wrk,int *lwrk, int *ierr);
-void zdscal_(int *n,double *alpha,complex<double> *x,int *incx);
+void zdscal_(int *n,double *alpha,std::complex<double> *x,int *incx);
 void dgbmv(char *trans, int *m, int *n,
 int *kl, int *ku, double *alpha, double *a, 
 int *lda, double *x, int *incx, double *beta,

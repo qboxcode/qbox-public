@@ -3,7 +3,7 @@
 // StructureFactor.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructureFactor.h,v 1.1 2002-10-31 00:51:50 fgygi Exp $
+// $Id: StructureFactor.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef STRUCTUREFACTOR_H
 #define STRUCTUREFACTOR_H
@@ -11,7 +11,6 @@
 #include <vector>
 #include <complex>
 #include <iostream>
-using namespace std;
 
 class Basis;
 
@@ -20,7 +19,7 @@ class StructureFactor
   private:
   
   int _nsp, _ng;
-  vector<int> _na;
+  std::vector<int> _na;
   
   int _k0max, _k1max, _k2max, 
       _k0min, _k1min, _k2min,
@@ -54,16 +53,16 @@ class StructureFactor
   // ky in [k1min, k1max]
   // kz in [k2min, k2max]
 
-  vector<vector<double> > cos0;  // cos0[is][ia*k0range-k0min+kx]
-  vector<vector<double> > cos1;  // cos1[is][ia*k1range-k1min+ky]
-  vector<vector<double> > cos2;  // cos2[is][ia*k2range-k2min+ky]
-  vector<vector<double> > sin0;  // sin0[is][ia*k0range-k0min+kx]
-  vector<vector<double> > sin1;  // sin1[is][ia*k1range-k1min+ky]
-  vector<vector<double> > sin2;  // sin2[is][ia*k2range-k2min+ky]
-  vector<vector<complex<double> > > sfac;  // sfac[is][ig]
+  std::vector<std::vector<double> > cos0;  // cos0[is][ia*k0range-k0min+kx]
+  std::vector<std::vector<double> > cos1;  // cos1[is][ia*k1range-k1min+ky]
+  std::vector<std::vector<double> > cos2;  // cos2[is][ia*k2range-k2min+ky]
+  std::vector<std::vector<double> > sin0;  // sin0[is][ia*k0range-k0min+kx]
+  std::vector<std::vector<double> > sin1;  // sin1[is][ia*k1range-k1min+ky]
+  std::vector<std::vector<double> > sin2;  // sin2[is][ia*k2range-k2min+ky]
+  std::vector<std::vector<std::complex<double> > > sfac;  // sfac[is][ig]
   
-  void init(const vector<vector<double> >& tau, const Basis& basis);
-  void update(const vector<vector<double> >& tau, const Basis& basis);
+  void init(const std::vector<std::vector<double> >& tau, const Basis& basis);
+  void update(const std::vector<std::vector<double> >& tau, const Basis& basis);
 
 };
 #endif

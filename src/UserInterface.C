@@ -3,20 +3,20 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.3 2004-11-10 22:36:50 fgygi Exp $
+// $Id: UserInterface.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #include "UserInterface.h"
 #include <string>
 #include <list>
 #include <unistd.h> // isatty
 #include <fstream>
-using namespace std;
 
 #if USE_MPI
 #include <mpi.h>
 #else
 typedef int MPI_Comm;
 #endif
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 UserInterface::UserInterface(void) : terminate_(false)

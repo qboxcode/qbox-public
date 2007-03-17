@@ -3,23 +3,22 @@
 // BLYPFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BLYPFunctional.h,v 1.2 2004-09-14 22:24:11 fgygi Exp $
+// $Id: BLYPFunctional.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef BLYPFUNCTIONAL_H
 #define BLYPFUNCTIONAL_H
 
 #include "XCFunctional.h"
 #include <vector>
-using namespace std;
 
 class BLYPFunctional : public XCFunctional
 {
   BLYPFunctional();
   
-  vector<double> _exc, _exc_up, _exc_dn;
-  vector<double> _vxc1, _vxc1_up, _vxc1_dn, 
+  std::vector<double> _exc, _exc_up, _exc_dn;
+  std::vector<double> _vxc1, _vxc1_up, _vxc1_dn, 
                  _vxc2, _vxc2_upup, _vxc2_updn, _vxc2_dnup, _vxc2_dndn;
-  vector<double> _grad_rho[3], _grad_rho_up[3], _grad_rho_dn[3];
+  std::vector<double> _grad_rho[3], _grad_rho_up[3], _grad_rho_dn[3];
   
   void excblyp(double rho, double grad, 
     double *exc, double *vxc1, double *vxc2);
@@ -32,10 +31,10 @@ class BLYPFunctional : public XCFunctional
 
   public:
   
-  BLYPFunctional(const vector<vector<double> > &rhoe);
+  BLYPFunctional(const std::vector<std::vector<double> > &rhoe);
   
   bool isGGA() { return true; };
-  string name() { return "BLYP"; };
+  std::string name() { return "BLYP"; };
   void setxc(void); 
 };
 #endif

@@ -3,13 +3,12 @@
 // SpeciesReader.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesReader.h,v 1.3 2003-05-23 21:51:04 fgygi Exp $
+// $Id: SpeciesReader.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef SPECIESREADER_H
 #define SPECIESREADER_H
 
 #include <string>
-using namespace std;
 #include "Context.h"
 
 class SpeciesReader
@@ -18,12 +17,12 @@ class SpeciesReader
   
   const Context& ctxt_;
   
-  string uri_;   // uri from which Species is read
+  std::string uri_;   // uri from which Species is read
   
   public:
 
   SpeciesReader(const Context& ctxt);
-  void readSpecies(Species& sp, const string uri);
+  void readSpecies(Species& sp, const std::string uri);
   void bcastSpecies(Species& sp);
 };
 

@@ -3,7 +3,7 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.8 2006-08-22 15:16:10 fgygi Exp $
+// $Id: MDIonicStepper.h,v 1.9 2007-03-17 01:14:00 fgygi Exp $
 
 //
 // IonicStepper is used in the following way
@@ -48,7 +48,7 @@ class MDIonicStepper : public IonicStepper
   double th_width_;
   double ekin_;
   double eta_;
-  string thermostat_;
+  std::string thermostat_;
   void compute_ekin(void);
 
   public:
@@ -66,8 +66,8 @@ class MDIonicStepper : public IonicStepper
     compute_ekin();
   }
 
-  void compute_r(double e0, const vector<vector< double> >& f0);
-  void compute_v(double e0, const vector<vector< double> >& f0);
+  void compute_r(double e0, const std::vector<std::vector< double> >& f0);
+  void compute_v(double e0, const std::vector<std::vector< double> >& f0);
   double eta(void) const { return eta_; }
   double ekin(void) const { return ekin_; }
   double temp(void) const

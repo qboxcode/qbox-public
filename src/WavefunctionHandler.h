@@ -3,7 +3,7 @@
 // WavefunctionHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.h,v 1.7 2004-03-11 21:52:32 fgygi Exp $
+// $Id: WavefunctionHandler.h,v 1.8 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef WavefunctionHANDLER_H
 #define WavefunctionHANDLER_H
@@ -24,14 +24,14 @@ class WavefunctionHandler : public StructureHandler
   UnitCell uc;
   UnitCell ruc;
   double ecut;
-  vector<double> dmat;
+  std::vector<double> dmat;
   int nx,ny,nz;
   int current_gf_nx,current_gf_ny,current_gf_nz;
-  string current_gf_encoding;
+  std::string current_gf_encoding;
   int current_ispin,current_ikp,current_n,current_igf;
   int read_from_gfdata;
   FourierTransform* ft;
-  vector<complex<double> > wftmp;
+  std::vector<std::complex<double> > wftmp;
   
   void byteswap_double(size_t n, double* x);
 
@@ -43,7 +43,7 @@ class WavefunctionHandler : public StructureHandler
 
   // End of the root element in the structure being handled
   virtual void endElement(const XMLCh* const uri, const XMLCh* const localname, 
-      const XMLCh* const qname, string& content);
+      const XMLCh* const qname, std::string& content);
   
   // start a subhandler
   virtual StructureHandler* startSubHandler(const XMLCh* const uri,

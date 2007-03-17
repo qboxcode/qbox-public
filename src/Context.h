@@ -3,15 +3,13 @@
 // Context.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.h,v 1.8 2004-11-10 22:34:17 fgygi Exp $
+// $Id: Context.h,v 1.9 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
 #include <iosfwd>
-#include <vector>
 #include <string>
-using namespace std;
 
 #if USE_MPI
 #include <mpi.h>
@@ -120,9 +118,9 @@ class Context
                    int* a, int lda,int rsrc, int csrc) const;
   void ibcast_recv(int m, int n, int* a, int lda,int rsrc, int csrc) const;
   
-  void string_send(string& s, int rdest, int cdest) const;
-  void string_recv(string& s, int rsrc, int csrc) const;
-  void string_bcast(string& s, int isrc) const;
+  void string_send(std::string& s, int rdest, int cdest) const;
+  void string_recv(std::string& s, int rsrc, int csrc) const;
+  void string_bcast(std::string& s, int isrc) const;
  
   bool operator==(const Context& ctxt) const;
  
@@ -148,8 +146,8 @@ class Context
   Context(const Context& ctxt);
   Context& operator=(const Context& rhs);
   
-  void print(ostream& os) const;
+  void print(std::ostream& os) const;
 };
-ostream& operator << ( ostream& os, const Context& ctxt );
+std::ostream& operator << ( std::ostream& os, const Context& ctxt );
 
 #endif

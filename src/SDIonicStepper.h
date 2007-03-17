@@ -3,12 +3,13 @@
 // SDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDIonicStepper.h,v 1.4 2005-06-27 22:20:10 fgygi Exp $
+// $Id: SDIonicStepper.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef SDIONICSTEPPER_H
 #define SDIONICSTEPPER_H
 
 #include "IonicStepper.h"
+#include <vector>
 
 class SDIonicStepper : public IonicStepper
 {
@@ -18,8 +19,8 @@ class SDIonicStepper : public IonicStepper
   
   SDIonicStepper(Sample& s) : IonicStepper(s) {}
 
-  void compute_r(double e0, const vector<vector< double> >& f0);
-  void compute_v(double e0, const vector<vector< double> >& f0) {}
+  void compute_r(double e0, const std::vector<std::vector< double> >& f0);
+  void compute_v(double e0, const std::vector<std::vector< double> >& f0) {}
 };
 
 #endif

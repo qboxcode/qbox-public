@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.16 2005-06-27 22:19:12 fgygi Exp $
+// $Id: SampleReader.C,v 1.17 2007-03-17 01:14:00 fgygi Exp $
 
 
 #include "Sample.h"
@@ -22,7 +22,6 @@
 #include <string>
 #include <iostream>
 #include <sys/stat.h>
-using namespace std;
 
 #if USE_XERCES
 #include "SampleHandler.h"
@@ -36,6 +35,7 @@ using namespace std;
 #include <xercesc/framework/MemBufInputSource.hpp>
 using namespace xercesc;
 #endif
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 SampleReader::SampleReader(const Context& ctxt) : ctxt_(ctxt) {}

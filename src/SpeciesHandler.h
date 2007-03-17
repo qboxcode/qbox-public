@@ -3,7 +3,7 @@
 // SpeciesHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesHandler.h,v 1.1 2003-05-16 16:14:00 fgygi Exp $
+// $Id: SpeciesHandler.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef SPECIESHANDLER_H
 #define SPECIESHANDLER_H
@@ -18,7 +18,7 @@ class SpeciesHandler : public StructureHandler
   
   Species& sp_;
   int current_l, current_size;
-  string current_name, current_href;
+  std::string current_name, current_href;
   double current_interval;
     
   public:
@@ -29,7 +29,7 @@ class SpeciesHandler : public StructureHandler
 
   // End of an element handled by SpeciesHandler
   virtual void endElement(const XMLCh* const uri, const XMLCh* const localname, 
-      const XMLCh* const qname, string& content);
+      const XMLCh* const qname, std::string& content);
   
   // start a subHandler if possible
   virtual StructureHandler* startSubHandler(const XMLCh* const uri,

@@ -3,7 +3,7 @@
 // EnergyFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.h,v 1.14 2005-06-27 22:24:43 fgygi Exp $
+// $Id: EnergyFunctional.h,v 1.15 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef ENERGYFUNCTIONAL_H
 #define ENERGYFUNCTIONAL_H
@@ -16,7 +16,6 @@
 #include "ChargeDensity.h"
 #include "StructureFactor.h"
 #include "Timer.h"
-using namespace std;
 
 class Sample;
 class Basis;
@@ -28,7 +27,7 @@ class XCPotential;
 class NonLocalPotential;
 class ConfinementPotential;
 
-typedef map<string,Timer> TimerMap;
+typedef std::map<std::string,Timer> TimerMap;
 
 class EnergyFunctional
 {
@@ -38,35 +37,35 @@ class EnergyFunctional
   const ChargeDensity& cd_;
   Basis* vbasis_;
   FourierTransform *vft;
-  vector<FourierTransform*> ft;
+  std::vector<FourierTransform*> ft;
   StructureFactor sf;
   XCPotential* xcp;
   NonLocalPotential* nlp;
-  vector<ConfinementPotential*> cfp; // cfp[ikp]
+  std::vector<ConfinementPotential*> cfp; // cfp[ikp]
   
-  vector<vector<double> > vps, dvps, rhops;
-  vector<complex<double> > tmp_r, vion_local_g, dvion_local_g, vlocal_g,
-    rhopst, rhogt, rhoelg, vtemp;
-  vector<double> ftmp;
+  std::vector<std::vector<double> > vps, dvps, rhops;
+  std::vector<std::complex<double> > tmp_r, vion_local_g, 
+    dvion_local_g, vlocal_g, rhopst, rhogt, rhoelg, vtemp;
+  std::vector<double> ftmp;
   
-  vector<vector<double> > tau0, fion_esr;
-  vector<double> zv_, rcps_;
-  vector<int> na_;
+  std::vector<std::vector<double> > tau0, fion_esr;
+  std::vector<double> zv_, rcps_;
+  std::vector<int> na_;
   int namax_;
   int nsp_;
   double ekin_, econf_, eps_, enl_, ehart_, 
          ecoul_, exc_, esr_, eself_, ets_, etotal_;
-  valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
+  std::valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
     sigma_enl, sigma_esr, sigma;
 
   public:
 
-  vector<vector<double> > v_r;
+  std::vector<std::vector<double> > v_r;
   mutable TimerMap tmap;
   
   double energy(bool compute_hpsi, Wavefunction& dwf,
-    bool compute_forces, vector<vector<double> >& fion,
-    bool compute_stress, valarray<double>& sigma);
+    bool compute_forces, std::vector<std::vector<double> >& fion,
+    bool compute_stress, std::valarray<double>& sigma);
   
   double etotal(void) const { return etotal_; }
   double ekin(void) const { return ekin_; }
@@ -87,10 +86,10 @@ class EnergyFunctional
   void atoms_moved(void);
   void cell_moved(void);
   
-  void print(ostream& os) const;
+  void print(std::ostream& os) const;
 
   EnergyFunctional(const Sample& s, const ChargeDensity& cd);
   ~EnergyFunctional();
 };
-ostream& operator << ( ostream& os, const EnergyFunctional& e );
+std::ostream& operator << ( std::ostream& os, const EnergyFunctional& e );
 #endif

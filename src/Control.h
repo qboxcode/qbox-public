@@ -3,7 +3,7 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.10 2007-01-27 23:47:56 fgygi Exp $
+// $Id: Control.h,v 1.11 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -14,34 +14,34 @@
 struct Control
 {
   // control variables
-  string debug, timing;
-  string wf_dyn, atoms_dyn; // dynamics string flags 
+  std::string debug, timing;
+  std::string wf_dyn, atoms_dyn; // dynamics string flags 
   int nite;
   double emass;       // electron mass
   
   double fermi_temp;  // temperature of Fermi distribution
   double ecutprec;
 
-  string wf_diag;
+  std::string wf_diag;
   
-  string tcp;
+  std::string tcp;
   double tcp_rcut;
   double tcp_sigma;
   
   double gms_mix; // mixing factor for generalized minimum spread functions
   
-  string thermostat;
+  std::string thermostat;
   double th_temp,th_time, th_width; // thermostat control
   
-  string stress;
-  string cell_dyn;
-  string cell_lock;
+  std::string stress;
+  std::string cell_dyn;
+  std::string cell_lock;
   double cell_mass;
   double ecuts;         // confinement potential energy cutoff
   double ext_stress[6]; // external stress tensor: xx,yy,zz,xy,yz,xz
   
-  string xc;
-  string spin;
+  std::string xc;
+  std::string spin;
   int delta_spin;
 
   double dt;

@@ -3,7 +3,7 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.16 2005-04-26 19:04:36 fgygi Exp $
+// $Id: FourierTransform.C,v 1.17 2007-03-17 01:14:00 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
@@ -14,7 +14,6 @@
 #include <complex>
 #include <algorithm>
 #include <map>
-using namespace std;
 #include <cassert>
 
 #if USE_MPI
@@ -28,16 +27,17 @@ typedef int MPI_Comm;
 #ifdef ADD_
 #define zdscal zdscal_
 #endif
-extern "C" void zdscal(int *n,double *alpha,complex<double> *x,int *incx);
+
+extern "C" void zdscal(int *n,double *alpha,std::complex<double> *x,int *incx);
 #elif USE_ESSL
 extern "C" {
-  void dcft_(int *initflag, complex<double> *x, int *inc2x, int *inc3x,
-            complex<double> *y, int *inc2y, int *inc3y,
+  void dcft_(int *initflag, std::complex<double> *x, int *inc2x, int *inc3x,
+             std::complex<double> *y, int *inc2y, int *inc3y,
              int *length, int *ntrans, int *isign,
              double *scale, double *aux1, int *naux1,
              double *aux2, int *naux2);
-  void dcft2_(int *initflag, complex<double> *x, int *inc1x, int *inc2x,
-             complex<double> *y, int *inc1y, int *inc2y,
+  void dcft2_(int *initflag, std::complex<double> *x, int *inc1x, int *inc2x,
+             std::complex<double> *y, int *inc1y, int *inc2y,
              int *n1, int *n2, int *isign,
              double *scale, double *aux1, int *naux1,
              double *aux2, int *naux2);
@@ -45,18 +45,22 @@ extern "C" {
 }
 #else
 #define NO_FFT_LIB 1
-void cfftm ( complex<double> *ain, complex<double> *aout, double scale, 
-  int ntrans, int length, int ainc, int ajmp, int idir );
+void cfftm ( std::complex<double> *ain, std::complex<double> *aout, 
+  double scale, int ntrans, int length, int ainc, int ajmp, int idir );
 #endif
 
 #if USE_GATHER_SCATTER
 extern "C" {
   // zgthr: x(i) = y(indx(i))
-  void zgthr_(int* n, complex<double>* y, complex<double>* x, int*indx);
+  void zgthr_(int* n, std::complex<double>* y, 
+              std::complex<double>* x, int*indx);
   // zsctr: y(indx(i)) = x(i)
-  void zsctr_(int* n, complex<double>* x, int* indx, complex<double>* y);
+  void zsctr_(int* n, std::complex<double>* x, int* indx, 
+              std::complex<double>* y);
 }
 #endif
+
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 FourierTransform::~FourierTransform()

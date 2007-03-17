@@ -13,7 +13,6 @@
 #include <iomanip>
 #include <list>
 #include <algorithm>
-using namespace std;
 
 class UserInterface;
 
@@ -32,21 +31,21 @@ class Var
   UserInterface *ui;
   virtual char *name ( void ) const = 0;
   virtual int set ( int argc, char **argv ) = 0;
-  virtual string print ( void ) const = 0;
+  virtual std::string print ( void ) const = 0;
 };
 
 class UserInterface
 {
   private:
   
-  char *readCmd(char *s, int max, istream &fp, bool echo);
+  char *readCmd(char *s, int max, std::istream &fp, bool echo);
   bool terminate_;
   bool onpe0_;
 
   public: 
 
-  list<Cmd*> cmdlist;
-  list<Var*> varlist;
+  std::list<Cmd*> cmdlist;
+  std::list<Var*> varlist;
 
   void addCmd(Cmd *newcmd)
   {
@@ -56,7 +55,7 @@ class UserInterface
 
   Cmd *findCmd(char *cmdname)
   {
-    list<Cmd*>::iterator cmd;
+    std::list<Cmd*>::iterator cmd;
     for ( cmd = cmdlist.begin();
           (cmd != cmdlist.end() && (strcmp((*cmd)->name(),cmdname)));
           cmd++ );
@@ -79,7 +78,7 @@ class UserInterface
 
   Var *findVar(char *varname)
   {
-    list<Var*>::iterator var;
+    std::list<Var*>::iterator var;
     for ( var = varlist.begin();
           (var != varlist.end() && (strcmp((*var)->name(),varname)));
           var++ );
@@ -94,7 +93,7 @@ class UserInterface
     }
   };
 
-  void processCmds(istream &cmdstream, char *prompt, bool echo);
+  void processCmds(std::istream &cmdstream, char *prompt, bool echo);
   
   void terminate(void) { terminate_ = true; }
   

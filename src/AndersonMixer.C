@@ -3,10 +3,11 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.C,v 1.3 2004-12-18 23:23:58 fgygi Exp $
+// $Id: AndersonMixer.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 void AndersonMixer::restart(void)

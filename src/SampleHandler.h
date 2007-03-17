@@ -3,12 +3,13 @@
 // SampleHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleHandler.h,v 1.4 2003-09-23 19:03:21 fgygi Exp $
+// $Id: SampleHandler.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef SAMPLEHANDLER_H
 #define SAMPLEHANDLER_H
 
 #include "StructureHandler.h"
+#include <string>
 class DoubleMatrix;
 class Sample;
 class Wavefunction;
@@ -31,7 +32,7 @@ class SampleHandler : public StructureHandler
 
   // End of the root element in the structure being handled
   virtual void endElement(const XMLCh* const uri, const XMLCh* const localname, 
-      const XMLCh* const qname, string& content);
+      const XMLCh* const qname, std::string& content);
   
   // start a subhandler
   virtual StructureHandler* startSubHandler(const XMLCh* const uri,

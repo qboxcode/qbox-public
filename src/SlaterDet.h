@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.18 2004-11-10 22:42:23 fgygi Exp $
+// $Id: SlaterDet.h,v 1.19 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -22,9 +22,8 @@ class FourierTransform;
 #if USE_CSTDIO_LFS
 #include <cstdio>
 #endif
-using namespace std;
 
-typedef map<string,Timer> TimerMap;
+typedef std::map<std::string,Timer> TimerMap;
 
 class SlaterDet
 {
@@ -34,8 +33,8 @@ class SlaterDet
   Context* my_col_ctxt_;
   Basis* basis_;
   ComplexMatrix c_;
-  vector<double> occ_;
-  vector<double> eig_;
+  std::vector<double> occ_;
+  std::vector<double> eig_;
   
   void byteswap_double(size_t n, double* x);
   double fermi(double e, double mu, double fermitemp);
@@ -52,8 +51,8 @@ class SlaterDet
   const D3vector kpoint(void) const { return basis_->kpoint(); }
   const ComplexMatrix& c(void) const { return c_; }
   ComplexMatrix& c(void) { return c_; }
-  const vector<double>& occ(void) const { return occ_; }
-  const vector<double>& eig(void) const { return eig_; }
+  const std::vector<double>& occ(void) const { return occ_; }
+  const std::vector<double>& eig(void) const { return eig_; }
   int nst(void) const { return c_.n(); }
   int nstloc(void) const { return c_.nloc(); }
   void resize(const UnitCell& cell, const UnitCell& refcell,
@@ -78,11 +77,11 @@ class SlaterDet
   double occ(int i) const { return occ_[i]; };
   const double* occ_ptr(void) const { return &occ_[0]; }
   const double* occ_ptr(int i) const { return &occ_[i]; }
-  void set_occ(vector<double>& occ)
+  void set_occ(std::vector<double>& occ)
     { assert(occ_.size()==occ.size()); occ_ = occ; }
-  void set_eig(vector<double>& eig)
+  void set_eig(std::vector<double>& eig)
     { assert(eig_.size()==eig.size()); eig_ = eig; }
-  void set_eig(valarray<double>& eig)
+  void set_eig(std::valarray<double>& eig)
     { assert(eig_.size()==eig.size()); 
       for ( int i = 0; i < eig.size(); i++ )
         eig_[i] = eig[i];
@@ -92,18 +91,18 @@ class SlaterDet
   double memsize(void) const;
   double localmemsize(void) const;
   SlaterDet& operator=(SlaterDet& rhs);
-  void print(ostream& os, string encoding);
+  void print(std::ostream& os, std::string encoding);
 #if USE_CSTDIO_LFS
-  void write(FILE* outfile, string encoding);
+  void write(FILE* outfile, std::string encoding);
 #endif
-  void info(ostream& os);
+  void info(std::ostream& os);
 };
-ostream& operator << ( ostream& os, SlaterDet& sd );
+std::ostream& operator << ( std::ostream& os, SlaterDet& sd );
 
 class SlaterDetException
 {
   public:
-  string msg;
-  SlaterDetException(string s) : msg(s) {}
+  std::string msg;
+  SlaterDetException(std::string s) : msg(s) {}
 };
 #endif

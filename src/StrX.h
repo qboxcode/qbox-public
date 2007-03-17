@@ -3,7 +3,7 @@
 // StrX.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StrX.h,v 1.2 2003-05-16 16:14:00 fgygi Exp $
+// $Id: StrX.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef STRX_H
 #define STRX_H
@@ -11,7 +11,6 @@
 #include <string>
 #include <iostream>
 #include <cstdlib>
-using namespace std;
 #include <xercesc/util/XMLString.hpp>
 using namespace xercesc;
 
@@ -50,7 +49,7 @@ private :
     char*   fLocalForm;
 };
 
-inline ostream& operator<<(ostream& target, const StrX& toDump)
+inline std::ostream& operator<<(std::ostream& target, const StrX& toDump)
 {
     target << toDump.localForm();
     return target;

@@ -3,13 +3,14 @@
 // AtomSetHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.h,v 1.1 2003-05-16 16:14:00 fgygi Exp $
+// $Id: AtomSetHandler.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef ATOMSETHANDLER_H
 #define ATOMSETHANDLER_H
 
 #include "StructureHandler.h"
 #include "D3vector.h"
+#include <string>
 
 class AtomSet;
 class Species;
@@ -19,8 +20,8 @@ class AtomSetHandler : public StructureHandler
   private:
   
   AtomSet& as_;
-  string current_atom_name, current_atom_species;
-  string current_species_name;
+  std::string current_atom_name, current_atom_species;
+  std::string current_species_name;
   D3vector current_atom_position, current_atom_velocity;
   Species* current_species;
 
@@ -32,7 +33,7 @@ class AtomSetHandler : public StructureHandler
 
   // End of the root element in the structure being handled
   virtual void endElement(const XMLCh* const uri, const XMLCh* const localname, 
-      const XMLCh* const qname, string& content);
+      const XMLCh* const qname, std::string& content);
   
   // start a subhandler
   virtual StructureHandler* startSubHandler(const XMLCh* const uri,

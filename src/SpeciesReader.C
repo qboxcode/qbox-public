@@ -3,7 +3,7 @@
 // SpeciesReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesReader.C,v 1.5 2004-10-04 18:36:10 fgygi Exp $
+// $Id: SpeciesReader.C,v 1.6 2007-03-17 01:14:00 fgygi Exp $
 
 #include "Species.h"
 #include "SpeciesReader.h"
@@ -11,7 +11,6 @@
 #include <string>
 #include <iostream>
 #include <vector>
-using namespace std;
 
 #if USE_XERCES
 #include "StructuredDocumentHandler.h"
@@ -27,6 +26,7 @@ using namespace xercesc;
 #include <cstdio>
 #include <sys/stat.h>
 #endif
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 SpeciesReader::SpeciesReader(const Context& ctxt) : ctxt_(ctxt) {}

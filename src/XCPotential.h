@@ -3,7 +3,7 @@
 // XCPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCPotential.h,v 1.3 2004-09-14 22:24:11 fgygi Exp $
+// $Id: XCPotential.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef XCPOTENTIAL_H
 #define XCPOTENTIAL_H
@@ -12,10 +12,10 @@
 #include "LDAFunctional.h"
 #include "PBEFunctional.h"
 #include "BLYPFunctional.h"
+#include <string>
 #include <vector>
 #include <valarray>
 #include <complex>
-using namespace std;
 
 class Basis;
 class FourierTransform;
@@ -28,9 +28,9 @@ class XCPotential
   const ChargeDensity& cd_;
   XCFunctional* xcf_;
   
-  vector<vector<double> > vxctmp;          // vxctmp[ispin][ir]
-  vector<complex<double> > tmpr;           // tmpr[ir]
-  vector<complex<double> > tmp1, tmp2;     // tmp1[ig], tmp2[ig]
+  std::vector<std::vector<double> > vxctmp;          // vxctmp[ispin][ir]
+  std::vector<std::complex<double> > tmpr;           // tmpr[ir]
+  std::vector<std::complex<double> > tmp1, tmp2;     // tmp1[ig], tmp2[ig]
   
   double exc_, dxc_, dxc0_, dxc1_, dxc2_;
   int nspin_;
@@ -43,17 +43,17 @@ class XCPotential
   public:
 
   const XCFunctional* xcf() { return xcf_; }
-  XCPotential(const ChargeDensity& cd, const string functional_name);
+  XCPotential(const ChargeDensity& cd, const std::string functional_name);
   ~XCPotential();
-  void update(vector<vector<double> >& vr);
-  void compute_stress(valarray<double>& sigma_exc);
+  void update(std::vector<std::vector<double> >& vr);
+  void compute_stress(std::valarray<double>& sigma_exc);
   double exc(void) { return exc_; }
 };
 
 class XCPotentialException
 {
   public:
-  string msg;
-  XCPotentialException(string s) : msg(s) {}
+  std::string msg;
+  XCPotentialException(std::string s) : msg(s) {}
 };
 #endif

@@ -3,7 +3,7 @@
 // Base64Transcoder.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Base64Transcoder.h,v 1.3 2004-12-08 19:02:10 fgygi Exp $
+// $Id: Base64Transcoder.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef BASE64TRANSCODER_H
 #define BASE64TRANSCODER_H
@@ -11,7 +11,7 @@
 #include <iostream>
 #include <cstdio>
 #include <string>
-using namespace std;
+
 typedef unsigned char byte;
 
 class Base64Transcoder
@@ -26,10 +26,10 @@ class Base64Transcoder
   int decode(int nchars, const char* const from, byte* const to);
   void byteswap_double(size_t n, double* const x);
   void byteswap_int(size_t n, int* const x);
-  int print(int nchars, const char* const buf, ostream& o);
-  int print(const string buf, ostream& o);
+  int print(int nchars, const char* const buf, std::ostream& o);
+  int print(const std::string buf, std::ostream& o);
   int print(int nchars, const char* const buf, FILE* outfile);
-  int print(const string buf, FILE* outfile);
+  int print(const std::string buf, FILE* outfile);
 
   // number of chars needed to encode nbytes bytes
   int nchars(int nbytes) { return 4 * ( ( nbytes + 2 ) / 3 ); }

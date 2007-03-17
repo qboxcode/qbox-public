@@ -3,7 +3,7 @@
 // CPSampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.h,v 1.3 2004-09-14 22:24:11 fgygi Exp $
+// $Id: CPSampleStepper.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef CPSAMPLESTEPPER_H
 #define CPSAMPLESTEPPER_H
@@ -15,7 +15,6 @@
 #include "Wavefunction.h"
 class MDWavefunctionStepper;
 class MDIonicStepper;
-using namespace std;
 
 class CPSampleStepper : public SampleStepper
 {

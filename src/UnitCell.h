@@ -3,14 +3,14 @@
 // UnitCell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.h,v 1.4 2004-03-11 21:52:31 fgygi Exp $
+// $Id: UnitCell.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef UNITCELL_H
 #define UNITCELL_H
 
 #include "D3vector.h"
 #include <valarray>
-using namespace std;
+#include <iosfwd>
 
 class UnitCell
 {
@@ -61,7 +61,8 @@ class UnitCell
   // where xs[0] = x00, xs[1] = x11, xs[2] = x22,
   // xs[3] = x10, xs[4] = x21, xs[5] = x20
   void smatmult3x3(const double* xs, const double* y, double *z) const;
-  void compute_deda(const valarray<double>& sigma, valarray<double>& deda) const;
+  void compute_deda(const std::valarray<double>& sigma, 
+                    std::valarray<double>& deda) const;
   
   bool in_ws(const D3vector& v) const;
   void fold_in_ws(D3vector& v) const;
@@ -71,9 +72,9 @@ class UnitCell
   bool encloses(const UnitCell& c) const;
   bool contains(D3vector v) const;
   
-  void print(ostream& os) const;  
+  void print(std::ostream& os) const;  
   bool operator==(const UnitCell& c) const;
   bool operator!=(const UnitCell& c) const;
 };
-ostream& operator << ( ostream& os, const UnitCell& cell );
+std::ostream& operator << ( std::ostream& os, const UnitCell& cell );
 #endif

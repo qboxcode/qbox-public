@@ -3,17 +3,15 @@
 // StructureHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructureHandler.h,v 1.1 2003-05-16 16:14:00 fgygi Exp $
+// $Id: StructureHandler.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef STRUCTUREHANDLER_H
 #define STRUCTUREHANDLER_H
 
 #include <xercesc/util/XMLUniDefs.hpp>
 #include <xercesc/sax2/Attributes.hpp>
-using namespace xercesc;
-
 #include <string>
-using namespace std;
+using namespace xercesc;
 
 class StructureHandler
 {
@@ -27,7 +25,7 @@ class StructureHandler
 
   // End of an element handled by the StructureHandler
   virtual void endElement(const XMLCh* const uri, const XMLCh* const localname, 
-      const XMLCh* const qname, string& content) = 0;
+      const XMLCh* const qname, std::string& content) = 0;
   
   // start a subhandler
   virtual StructureHandler* startSubHandler(const XMLCh* const uri,

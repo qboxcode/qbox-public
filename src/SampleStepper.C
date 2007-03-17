@@ -3,9 +3,10 @@
 // SampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.C,v 1.20 2005-09-16 23:08:11 fgygi Exp $
+// $Id: SampleStepper.C,v 1.21 2007-03-17 01:14:00 fgygi Exp $
 
 #include "SampleStepper.h"
+#include "Sample.h"
 #include "Species.h"
 
 #include <iostream>

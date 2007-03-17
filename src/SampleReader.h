@@ -3,12 +3,12 @@
 // SampleReader.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.h,v 1.2 2003-08-22 18:01:13 fgygi Exp $
+// $Id: SampleReader.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef SAMPLEREADER_H
 #define SAMPLEREADER_H
 
-#include "Context.h"
+class Context;
 
 class SampleReader
 {
@@ -19,14 +19,14 @@ class SampleReader
   public:
 
   SampleReader(const Context& ctxt);
-  void readSample(Sample& s, const string uri, bool serial);
+  void readSample(Sample& s, const std::string uri, bool serial);
 };
 
 class SampleReaderException
 {
   public:
-  string msg;
-  SampleReaderException(string s) : msg(s) {}
+  std::string msg;
+  SampleReaderException(std::string s) : msg(s) {}
 };
 
 #endif

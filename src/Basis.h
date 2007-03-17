@@ -3,7 +3,7 @@
 //  Basis.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.h,v 1.5 2003-02-04 19:21:30 fgygi Exp $
+// $Id: Basis.h,v 1.6 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef BASIS_H
 #define BASIS_H
@@ -89,7 +89,7 @@ class Basis
   ~Basis(void);
   
   bool resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
-  void print(ostream& os);
+  void print(std::ostream& os);
 };
-ostream& operator << ( ostream& os, Basis& b );
+std::ostream& operator << ( std::ostream& os, Basis& b );
 #endif

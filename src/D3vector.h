@@ -5,14 +5,13 @@
 // double 3-vectors
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $ Id: $
+// $Id: D3vector.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef D3VECTOR_H
 #define D3VECTOR_H
 #include <iostream>
 #include <cmath>
 #include <cassert>
-using namespace std;
 
 class D3vector
 {
@@ -141,13 +140,13 @@ class D3vector
     return a / length( a );
   }
 
-  friend ostream& operator << ( ostream& os, const D3vector& v )
+  friend std::ostream& operator << ( std::ostream& os, const D3vector& v )
   {
     os << v.x << " " << v.y << " " << v.z;
     return os;
   }
 
-  friend istream& operator >> ( istream& is, D3vector& v )
+  friend std::istream& operator >> ( std::istream& is, D3vector& v )
   {
     is >> v.x >> v.y >> v.z ;
     return is;

@@ -3,16 +3,15 @@
 // WavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionStepper.h,v 1.6 2007-01-27 23:46:31 fgygi Exp $
+// $Id: WavefunctionStepper.h,v 1.7 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef WAVEFUNCTIONSTEPPER_H
 #define WAVEFUNCTIONSTEPPER_H
 #include "Timer.h"
 #include <map>
 #include <string>
-using namespace std;
 
-typedef map<string,Timer> TimerMap;
+typedef std::map<std::string,Timer> TimerMap;
 class Wavefunction;
 
 class WavefunctionStepper

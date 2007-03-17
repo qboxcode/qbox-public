@@ -3,9 +3,10 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.11 2006-11-05 02:06:29 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.12 2007-03-17 01:14:00 fgygi Exp $
 
 #include "MDIonicStepper.h"
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 void MDIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)

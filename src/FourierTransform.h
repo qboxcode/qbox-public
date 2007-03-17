@@ -3,14 +3,13 @@
 // FourierTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.h,v 1.9 2005-01-04 22:08:51 fgygi Exp $
+// $Id: FourierTransform.h,v 1.10 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef FOURIERTRANSFORM_H
 #define FOURIERTRANSFORM_H
 
 #include <complex>
 #include <vector>
-using namespace std;
 
 #if USE_FFTW
 #include "fftw.h"
@@ -34,27 +33,27 @@ class FourierTransform
   
   int nvec_;
   
-  vector<int> np2_loc_; // np2_loc_[iproc], iproc=0, nprocs_-1
-  vector<int> np2_first_; // np2_first_[iproc], iproc=0, nprocs_-1
-  vector<complex<double> > zvec_;
+  std::vector<int> np2_loc_; // np2_loc_[iproc], iproc=0, nprocs_-1
+  std::vector<int> np2_first_; // np2_first_[iproc], iproc=0, nprocs_-1
+  std::vector<std::complex<double> > zvec_;
   
-  vector<int> scounts, sdispl, rcounts, rdispl;
-  vector<complex<double> > sbuf, rbuf;
+  std::vector<int> scounts, sdispl, rcounts, rdispl;
+  std::vector<std::complex<double> > sbuf, rbuf;
 
-  vector<int> ifftp_, ifftm_;
-  vector<int> ipack_, iunpack_;
+  std::vector<int> ifftp_, ifftm_;
+  std::vector<int> ipack_, iunpack_;
   
   void init_lib(void);
   
 #if USE_ESSL
 #if USE_ESSL_2DFFT
-  vector<double> aux1xyf;
-  vector<double> aux1xyb;
+  std::vector<double> aux1xyf;
+  std::vector<double> aux1xyb;
   int naux1xy;
 #else
-  vector<double> aux1xf, aux1yf, aux1zf;
-  vector<double> aux1xb, aux1yb, aux1zb;
-  vector<double> aux2;
+  std::vector<double> aux1xf, aux1yf, aux1zf;
+  std::vector<double> aux1xb, aux1yb, aux1zb;
+  std::vector<double> aux2;
   int naux1x,naux1y,naux1z,naux2;
 #endif
 #elif USE_FFTW || USE_FFTW3
@@ -63,13 +62,13 @@ class FourierTransform
   // no library
 #endif
 
-  void vector_to_zvec(const complex<double>* c);
-  void zvec_to_vector(complex<double>* c);
-  void doublevector_to_zvec(const complex<double>* c1,
-       const complex<double> *c2);
-  void zvec_to_doublevector(complex<double>* c1, complex<double>* c2);
-  void fwd(complex<double>* val);
-  void bwd(complex<double>* val);
+  void vector_to_zvec(const std::complex<double>* c);
+  void zvec_to_vector(std::complex<double>* c);
+  void doublevector_to_zvec(const std::complex<double>* c1,
+       const std::complex<double> *c2);
+  void zvec_to_doublevector(std::complex<double>* c1, std::complex<double>* c2);
+  void fwd(std::complex<double>* val);
+  void bwd(std::complex<double>* val);
        
   public:
 
@@ -81,16 +80,16 @@ class FourierTransform
   // forward:  Fourier analysis, compute Fourier coefficients
   // forward transform includes scaling by 1/np012
   // single transforms: c -> f, f -> c
-  void backward (const complex<double>* c, complex<double>* f);
+  void backward (const std::complex<double>* c, std::complex<double>* f);
   // Note: forward transforms overwrite the array f
-  void forward(complex<double>* f, complex<double>* c);
+  void forward(std::complex<double>* f, std::complex<double>* c);
   
   // double transforms: c1 + i*c2 -> f, f -> c1 + i*c2
-  void backward (const complex<double>* c1, const complex<double>* c2, 
-                 complex<double>* f);
+  void backward (const std::complex<double>* c1, 
+                 const std::complex<double>* c2, std::complex<double>* f);
   // Note: forward transforms overwrite the array f
-  void forward(complex<double>* f, 
-               complex<double>* c1, complex<double>* c2);
+  void forward(std::complex<double>* f, 
+               std::complex<double>* c1, std::complex<double>* c2);
   
   int np0() const { return np0_; }
   int np1() const { return np1_; }

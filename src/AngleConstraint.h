@@ -3,7 +3,7 @@
 //  AngleConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleConstraint.h,v 1.2 2005-09-16 23:08:11 fgygi Exp $
+// $Id: AngleConstraint.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef ANGLECONSTRAINT_H
 #define ANGLECONSTRAINT_H
@@ -11,11 +11,12 @@
 #include "Constraint.h"
 #include "D3vector.h"
 #include <cassert>
+
 class AtomSet;
 
 class AngleConstraint : public Constraint
 {
-  string name1_, name2_, name3_;
+  std::string name1_, name2_, name3_;
   int    ia1_, ia2_, ia3_, is1_, is2_, is3_;
   double m1_, m2_, m3_, m1_inv_, m2_inv_, m3_inv_;
   double angle_, velocity_, force_, weight_, tol_;
@@ -26,8 +27,9 @@ class AngleConstraint : public Constraint
   
   public:
   
-  AngleConstraint(string name, string name1, string name2, string name3,
-                     double angle, double velocity, double tolerance):
+  AngleConstraint(std::string name, std::string name1, 
+                  std::string name2, std::string name3,
+                  double angle, double velocity, double tolerance):
   name1_(name1), name2_(name2), name3_(name3), 
   velocity_(velocity),
   tol_(tolerance), m1_(0.0), m2_(0.0), m3_(0.0)
@@ -42,7 +44,7 @@ class AngleConstraint : public Constraint
     weight_ = 1.0;
   }
   
-  string type(void) const { return "angle"; }
+  std::string type(void) const { return "angle"; }
   double value(void) const { return angle_; }
   double velocity(void) const { return velocity_; }
   double force(void) const { return force_; }
@@ -61,13 +63,13 @@ class AngleConstraint : public Constraint
   
   void setup(const AtomSet& atoms);
   void update(double dt);
-  bool enforce_r(const vector<vector<double> > &r0,
-                 vector<vector<double> > &rp) const;
-  bool enforce_v(const vector<vector<double> > &r0,
-                 vector<vector<double> > &v0) const;
-  void compute_force(const vector<vector<double> > &r0,
-                     const vector<vector<double> > &f);
-  ostream& print( ostream& os );
+  bool enforce_r(const std::vector<std::vector<double> > &r0,
+                 std::vector<std::vector<double> > &rp) const;
+  bool enforce_v(const std::vector<std::vector<double> > &r0,
+                 std::vector<std::vector<double> > &v0) const;
+  void compute_force(const std::vector<std::vector<double> > &r0,
+                     const std::vector<std::vector<double> > &f);
+  std::ostream& print( std::ostream& os );
   
 };
 #endif

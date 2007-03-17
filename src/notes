@@ -23,6 +23,30 @@ Bug in scalapack pdgetri.f (inverse of square matrix)
 Added bugfix from J.Langou into local modified copy of pdgetri.f 
 Must link to local pdgetri.o before the scalapack lib
 --------------------------------------------------------------------------------
+rel1_32_0 release candidate
+Dt.h, MDIonicStepper.C: modified to allow for negative time step.
+Removed Sample.h dependency in WavefunctionStepper and derived classes.
+Files affected are
+BOSampleStepper.C
+SDWavefunctionStepper.C
+PSDWavefunctionStepper.C
+PSDAWavefunctionStepper.C
+EnergyFunctional.C
+CPSampleStepper.C
+MDWavefunctionStepper.C
+WavefunctionStepper.h
+SDWavefunctionStepper.h
+PSDWavefunctionStepper.h
+PSDAWavefunctionStepper.h
+MDWavefunctionStepper.h
+Removed facs, sigmas from Control.h. Moved vars to ConfinementPotential.
+Use hardwired values 2.0 and 0.5 in
+BOSampleStepper.C, CPSampleStepper.C
+Removed namespace declarations in header files.
+--------------------------------------------------------------------------------
+rel1_31_0
+Added class SampleWriter to separate write function from SaveCmd class.
+--------------------------------------------------------------------------------
 rel1_30_1
 Wavefunction.C: typos
 XMLGFPreprocessor.C: fixed bug in boundary adjustment.

@@ -3,7 +3,7 @@
 // NonLocalPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.h,v 1.5 2005-01-04 22:05:24 fgygi Exp $
+// $Id: NonLocalPotential.h,v 1.6 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef NONLOCALPOTENTIAL_H
 #define NONLOCALPOTENTIAL_H
@@ -26,25 +26,21 @@ class NonLocalPotential
   int nsp;   // number of species
   int nspnl; // number of non-local species
   
-  vector<int>             lmax;     // lmax[is]
-  vector<int>             lloc;     // lloc[is]
-  vector<int>             na;       // na[is]
-  //vector<int>             naloc;    // naloc[is]
-  //vector<int>             nalocmax; // nalocmax[is]
-  vector<int>             npr;      // npr[is]
-  vector<int>             nprna;    // nprna[is]
-  vector<vector<int> >    lproj;    // lproj[is][ipr]
-  vector<vector<double> > wt;       // wt[is][ipr]
-  vector<vector<double> > twnl;     // twnl[is][npr*ngwl]
-  vector<vector<double> > dtwnl;    // dtwnl[is][6*npr*ngwl], ij=0,..,5
+  std::vector<int>                  lmax;     // lmax[is]
+  std::vector<int>                  lloc;     // lloc[is]
+  std::vector<int>                  na;       // na[is]
+  std::vector<int>                  npr;      // npr[is]
+  std::vector<int>                  nprna;    // nprna[is]
+  std::vector<std::vector<int> >    lproj;    // lproj[is][ipr]
+  std::vector<std::vector<double> > wt;       // wt[is][ipr]
+  std::vector<std::vector<double> > twnl;     // twnl[is][npr*ngwl]
+  std::vector<std::vector<double> > dtwnl;    // dtwnl[is][6*npr*ngwl],ij=0,..,5
   
-  //vector<DoubleMatrix*>   anl;      // anl[is][ipr*ia][ig]
-  //vector<vector<double> > singr;    // singr[is][naloc*2*ngwloc]
-  //vector<vector<double> > cosgr;    // cosgr[is][naloc*2*ngwloc]
-  
-  vector<int>             nquad;    // nquad[is]
-  vector<vector<double> > rquad;    // rquad[is][iquad], iquad = 0, nquad[is]-1
-  vector<vector<double> > wquad;    // wquad[is][iquad], iquad = 0, nquad[is]-1
+  std::vector<int>             nquad;    // nquad[is]
+  // rquad[is][iquad], iquad = 0, nquad[is]-1
+  std::vector<std::vector<double> > rquad; 
+  // wquad[is][iquad], iquad = 0, nquad[is]-1
+  std::vector<std::vector<double> > wquad; 
     
   mutable TimerMap tmap;
   void init(void);
@@ -56,10 +52,8 @@ class NonLocalPotential
   ~NonLocalPotential(void);
                
   void update_twnl(void);
-  //void update_eigr(vector<vector<double> >& tau);
-  //void update_anl(void);
   double energy(bool compute_hpsi, SlaterDet& dsd, 
-    bool compute_forces, vector<vector<double> >& fion, 
-    bool compute_stress, valarray<double>& sigma_enl);
+    bool compute_forces, std::vector<std::vector<double> >& fion, 
+    bool compute_stress, std::valarray<double>& sigma_enl);
 };
 #endif

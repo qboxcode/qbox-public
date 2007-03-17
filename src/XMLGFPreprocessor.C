@@ -3,24 +3,25 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.8 2006-11-04 20:17:38 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.9 2007-03-17 01:14:00 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 #include <cstdlib>
 #include <cstdio>
 #include <valarray>
 #include <sys/stat.h>
-using namespace std;
 
 #include "Timer.h"
 #include "Context.h"
 #include "Base64Transcoder.h"
 #include "Matrix.h"
 #include "XMLGFPreprocessor.h"
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 //

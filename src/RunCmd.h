@@ -3,15 +3,15 @@
 // RunCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.h,v 1.2 2004-03-11 21:52:31 fgygi Exp $
+// $Id: RunCmd.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef RUNCMD_H
 #define RUNCMD_H
 
 #include <iostream>
 #include "UserInterface.h"
-#include "Sample.h"
 
+class Sample;
 class RunCmd : public Cmd
 {
   private:

@@ -3,7 +3,7 @@
 // BOSampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.h,v 1.4 2004-10-28 16:54:51 fgygi Exp $
+// $Id: BOSampleStepper.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef BOSAMPLESTEPPER_H
 #define BOSAMPLESTEPPER_H
@@ -12,9 +12,9 @@
 #include "EnergyFunctional.h"
 #include "Sample.h"
 #include "Wavefunction.h"
+
 class WavefunctionStepper;
 class IonicStepper;
-using namespace std;
 
 class BOSampleStepper : public SampleStepper
 {

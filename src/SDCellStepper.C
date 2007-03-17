@@ -3,9 +3,10 @@
 // SDCellStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDCellStepper.C,v 1.3 2004-05-04 21:24:11 fgygi Exp $
+// $Id: SDCellStepper.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #include "SDCellStepper.h"
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 void SDCellStepper::compute_new_cell(const valarray<double>& sigma)

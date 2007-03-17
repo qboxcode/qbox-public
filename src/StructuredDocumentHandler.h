@@ -3,20 +3,18 @@
 // StructuredDocumentHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.h,v 1.1 2003-05-16 16:14:00 fgygi Exp $
+// $Id: StructuredDocumentHandler.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef STRUCTUREDDOCUMENTHANDLER_H
 #define STRUCTUREDDOCUMENTHANDLER_H
 
 #include <xercesc/sax2/DefaultHandler.hpp>
 #include "StrX.h"
-using namespace xercesc;
 
 #include "StructureHandler.h"
 
 #include <stack>
 #include <string>
-using namespace std;
 
 class StructuredDocumentHandler : public DefaultHandler
 {
@@ -30,11 +28,11 @@ class StructuredDocumentHandler : public DefaultHandler
 
   protected:
   
-  stack<HandlerContext> contextStack;
+  std::stack<HandlerContext> contextStack;
   int nestingDepth;
   int contextDepth;
   StructureHandler* activeHandler;
-  string buffer;
+  std::string buffer;
 
   public:
 

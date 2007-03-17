@@ -3,15 +3,13 @@
 // AndersonMixer.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.h,v 1.3 2004-12-18 23:23:27 fgygi Exp $
+// $Id: AndersonMixer.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef ANDERSONMIXER_H
 #define ANDERSONMIXER_H
 
 #include <valarray>
 #include <cassert>
-using namespace std;
-
 #include "Context.h"
 
 class AndersonMixer
@@ -21,7 +19,7 @@ class AndersonMixer
   double  theta_max_; // maximum extrapolation
   double  theta_nc_;  // negative curvature value
  
-  valarray<double> flast_;       // last residual
+  std::valarray<double> flast_;       // last residual
   bool extrapolate_;             // state variable
 
   public:

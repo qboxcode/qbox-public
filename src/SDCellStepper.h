@@ -3,7 +3,7 @@
 // SDCellStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDCellStepper.h,v 1.1 2004-03-11 21:58:10 fgygi Exp $
+// $Id: SDCellStepper.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
 
 #ifndef SDCELLSTEPPER_H
 #define SDCELLSTEPPER_H
@@ -18,7 +18,7 @@ class SDCellStepper : public CellStepper
   
   SDCellStepper(Sample& s) : CellStepper(s) {}
 
-  void compute_new_cell(const valarray<double>& sigma_eks);
+  void compute_new_cell(const std::valarray<double>& sigma_eks);
   void update_cell(void);
   double ekin(void) const { return 0.0; }
 };

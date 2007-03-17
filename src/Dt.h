@@ -3,7 +3,7 @@
 // Dt.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Dt.h,v 1.1 2003-06-11 22:10:11 fgygi Exp $
+// $Id: Dt.h,v 1.2 2007-03-17 01:22:50 fgygi Exp $
 
 #ifndef DT_H
 #define DT_H
@@ -33,10 +33,10 @@ class Dt : public Var
     }
     
     double v = atof(argv[1]);
-    if ( v < 0.0 )
+    if ( v == 0.0 )
     {
       if ( ui->onpe0() )
-        cout << " dt must be non-negative" << endl;
+        cout << " dt must be non-zero" << endl;
       return 1;
     }
 

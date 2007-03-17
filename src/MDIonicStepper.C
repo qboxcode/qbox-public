@@ -3,7 +3,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.12 2007-03-17 01:14:00 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.13 2007-03-17 01:22:50 fgygi Exp $
 
 #include "MDIonicStepper.h"
 using namespace std;
@@ -39,7 +39,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
   // enforce constraints for vp
   // adjust velocities with the thermostat
   
-  assert(dt_ > 0.0);
+  assert(dt_ != 0.0);
   for ( int is = 0; is < v0_.size(); is++ )
   {
     assert(pmass_[is] > 0.0);
@@ -62,7 +62,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
       cout << "  <!-- thermostat: eta=" << eta_ << " -->" << endl;
     }
     
-    const double fac = (1.0 - eta_ * dt_);
+    const double fac = (1.0 - eta_ * fabs(dt_));
     for ( int is = 0; is < r0_.size(); is++ )
     {
       for ( int i = 0; i < r0_[is].size(); i++ )
@@ -82,7 +82,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
       for ( int ia = 0; ia < na_[is]; ia++ )  
       {                                                 
         // if th_time is zero, set probability to one
-        if ( th_time_ == 0.0 || drand48() < dt_ / th_time_ )               
+        if ( th_time_ == 0.0 || drand48() < fabs(dt_) / th_time_ )               
         {                                               
           // draw gaussian random variables                        
           double xi0 = drand48() + drand48() + drand48() +         
@@ -125,7 +125,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
           for ( int ia2 = ia2min; ia2 < na_[is2]; ia2++ )
           {
             // if th_time is zero, set probability to one
-            if ( th_time_ == 0.0 || drand48() < dt_ / th_time_ )               
+            if ( th_time_ == 0.0 || drand48() < fabs(dt_) / th_time_ )               
             {                                               
               //cout << " pair " << is1 << " " << ia1 << " "  
               //     << is2 << " " << ia2 << endl;

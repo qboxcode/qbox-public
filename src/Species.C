@@ -3,7 +3,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.6 2006-05-13 05:41:54 fgygi Exp $
+// $Id: Species.C,v 1.7 2007-08-13 21:24:50 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -149,15 +149,13 @@ bool Species::initialize(double rcpsval)
   for ( int l = 0; l <= lmax_; l++ )
   {
     const double dvdr = zval_ / (rps_[ndft_-1]*rps_[ndft_-1]);
-    spline(&rps_[0],&vps_[l][0],ndft_,
-           SPLINE_FLAT_BC,dvdr,&vps_spl_[l][0]);
+    spline(ndft_,&rps_[0],&vps_[l][0],0.0,dvdr,0,0,&vps_spl_[l][0]);
   }
   for ( int l = 0; l <= lmax_; l++ )
   {
     if ( l != llocal_ )
     {
-      spline(&rps_[0],&phi_[l][0],ndft_,
-           SPLINE_FLAT_BC,SPLINE_NATURAL_BC,&phi_spl_[l][0]);
+      spline(ndft_,&rps_[0],&phi_[l][0],0.0,0.0,0,1,&phi_spl_[l][0]);
     }
   }
     
@@ -210,7 +208,7 @@ bool Species::initialize(double rcpsval)
     vlocg_[i] = vlocr[i];
   }
 
-  sinft(&vlocg_[0],ndft_);
+  sinft(ndft_,&vlocg_[0]);
 
   //  Divide by g's
   gspl_[0] = 0.0;
@@ -225,8 +223,7 @@ bool Species::initialize(double rcpsval)
   //  Initialize cubic spline interpolation for local potential Vloc(G)
   //  Use zero first derivative at G=0 and natural (y"=0) at Gmax
 
-  spline(&gspl_[0],&vlocg_[0],ndft_,
-         SPLINE_FLAT_BC,SPLINE_NATURAL_BC,&vlocg_spl[0]);
+  spline(ndft_,&gspl_[0],&vlocg_[0],0.0,0.0,0,1,&vlocg_spl[0]);
 
   // Non-local KB projectors
   if ( nquad_ == 0 && lmax_ > 0)
@@ -275,7 +272,6 @@ bool Species::initialize(double rcpsval)
     //  compute radial Fouri_er transforms of vnlr
  
     //  Next line: vnlg_ is dimensioned ndft_+1 since it is passed to cosft1
-    //  See Numerical Recipes 2nd edition for an explanation.
  
     // Non-local potentials
     //
@@ -317,7 +313,7 @@ bool Species::initialize(double rcpsval)
             vnlg_[l][i] = vnlr[l][i] * rps_[i];
           }
  
-          sinft(&vnlg_[l][0],ndft_);
+          sinft(ndft_,&vnlg_[l][0]);
 
           vnlg_[l][0] = v0;
           // Divide by g
@@ -329,8 +325,7 @@ bool Species::initialize(double rcpsval)
           //  Initialize cubic spline interpolation
           //  Use zero first derivative at G=0 and natural (y"=0) at Gmax
 
-          spline(&gspl_[0],&vnlg_[l][0],ndft_,SPLINE_FLAT_BC,SPLINE_NATURAL_BC,
-                 &vnlg_spl[l][0]);
+          spline(ndft_,&gspl_[0],&vnlg_[l][0],0.0,0.0,0,1,&vnlg_spl[l][0]);
 
         }
         else if ( l == 1 )
@@ -349,7 +344,7 @@ bool Species::initialize(double rcpsval)
             vnlg_[l][i] = vnlr[l][i];
           }
 
-          sinft(&vnlg_[l][0],ndft_);
+          sinft(ndft_,&vnlg_[l][0]);
 
           // Divide by g**2 and store in fint */
           fint[0] = v0;
@@ -370,7 +365,7 @@ bool Species::initialize(double rcpsval)
           //  vnlg_ was dimensioned ndft_[is]+1
  
           vnlg_[l][ndft_] = 0.0;
-          cosft1(&vnlg_[l][0],ndft_);
+          cosft1(ndft_,&vnlg_[l][0]);
 
           // Divide by g and add to fint to get vnlg_
           vnlg_[l][0] = v0;
@@ -380,10 +375,9 @@ bool Species::initialize(double rcpsval)
           }
 
           // Initialize spline interpolation
-          // Use natural first derivative at G=0 and natural (y"=0) at Gmax
+          // Use natural bc (y"=0) at G=0 and natural bc (y"=0) at Gmax
 
-          spline(&gspl_[0],&vnlg_[l][0],ndft_,
-                 SPLINE_NATURAL_BC,SPLINE_NATURAL_BC,&vnlg_spl[l][0]);
+          spline(ndft_,&gspl_[0],&vnlg_[l][0],0.0,0.0,1,1,&vnlg_spl[l][0]);
         }
         else if ( l == 2 )
         {
@@ -405,7 +399,7 @@ bool Species::initialize(double rcpsval)
             vnlg_[l][i] = vnlr[l][i] / rps_[i];
           }
 
-          sinft(&vnlg_[l][0],ndft_);
+          sinft(ndft_,&vnlg_[l][0]);
 
           // multiply by 3/G^3 and store in fint */
           fint[0] = v0;
@@ -420,7 +414,7 @@ bool Species::initialize(double rcpsval)
             vnlg_[l][i] = vnlr[l][i] * rps_[i];
           }
 
-          sinft(&vnlg_[l][0],ndft_);
+          sinft(ndft_,&vnlg_[l][0]);
 
           // multiply by -1/G and accumulate in fint */
           fint[0] += v0;
@@ -441,7 +435,7 @@ bool Species::initialize(double rcpsval)
           //  vnlg_ was dimensioned ndft_[is]+1
  
           vnlg_[l][ndft_] = 0.0;
-          cosft1(&vnlg_[l][0],ndft_);
+          cosft1(ndft_,&vnlg_[l][0]);
 
           // Multiply by -3/G^2 and add to fint
           fint[0] += v0;
@@ -459,8 +453,7 @@ bool Species::initialize(double rcpsval)
           // Initialize spline interpolation
           // Use zero first derivative at G=0 and natural (y"=0) at Gmax
 
-          spline(&gspl_[0],&vnlg_[l][0],ndft_,
-                 SPLINE_FLAT_BC,SPLINE_NATURAL_BC,&vnlg_spl[l][0]);
+          spline(ndft_,&gspl_[0],&vnlg_[l][0],0.0,0.0,0,1,&vnlg_spl[l][0]);
         }
       } // l != llocal_
     } // l
@@ -476,7 +469,7 @@ void Species::vpsr(int l, double r, double &v)
   }
   else
   {
-    splint(&rps_[0],&vps_[l][0],&vps_spl_[l][0],ndft_,r,&v);
+    splint(ndft_,&rps_[0],&vps_[l][0],&vps_spl_[l][0],r,&v);
   }
 }
 
@@ -489,7 +482,7 @@ void Species::dvpsr(int l, double r, double &v, double &dv)
   }
   else
   {
-    splintd(&rps_[0],&vps_[l][0],&vps_spl_[l][0],ndft_,r,&v,&dv);
+    splintd(ndft_,&rps_[0],&vps_[l][0],&vps_spl_[l][0],r,&v,&dv);
   }
 }
 
@@ -501,7 +494,7 @@ void Species::vlocg(double g, double &v)
   }
   else
   {
-    splint(&gspl_[0],&vlocg_[0],&vlocg_spl[0],ndft_,g,&v);
+    splint(ndft_,&gspl_[0],&vlocg_[0],&vlocg_spl[0],g,&v);
   }
 }
 
@@ -514,7 +507,7 @@ void Species::dvlocg(double g, double &v, double &dv)
   }
   else
   {
-    splintd(&gspl_[0],&vlocg_[0],&vlocg_spl[0],ndft_,g,&v,&dv);
+    splintd(ndft_,&gspl_[0],&vlocg_[0],&vlocg_spl[0],g,&v,&dv);
   }
 }
 
@@ -527,7 +520,7 @@ void Species::vnlg(int l, double g, double &v)
   }
   else
   {
-    splint(&gspl_[0],&vnlg_[l][0],&vnlg_spl[l][0],ndft_,g,&v);
+    splint(ndft_,&gspl_[0],&vnlg_[l][0],&vnlg_spl[l][0],g,&v);
   }
 }
 
@@ -541,7 +534,7 @@ void Species::dvnlg(int l, double g, double &v, double &dv)
   }
   else
   {
-    splintd(&gspl_[0],&vnlg_[l][0],&vnlg_spl[l][0],ndft_,g,&v,&dv);
+    splintd(ndft_,&gspl_[0],&vnlg_[l][0],&vnlg_spl[l][0],g,&v,&dv);
   }
 }
 

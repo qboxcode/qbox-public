@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.17 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SampleReader.C,v 1.18 2007-08-13 21:24:17 fgygi Exp $
 
 
 #include "Sample.h"
@@ -191,7 +191,11 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     }
     
     read_wf = s_handler->read_wf;
+    if ( read_wf )
+      cout << " wavefunction was read" << endl;
     read_wfv = s_handler->read_wfv;
+    if ( read_wfv )
+      cout << " wavefunction velocity was read" << endl;
       
     delete s_handler;
     delete parser;

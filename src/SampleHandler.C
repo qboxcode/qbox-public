@@ -3,7 +3,7 @@
 // SampleHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleHandler.C,v 1.5 2004-09-14 22:24:11 fgygi Exp $
+// $Id: SampleHandler.C,v 1.6 2007-08-13 21:24:17 fgygi Exp $
 
 #if USE_XERCES
 
@@ -20,7 +20,7 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 SampleHandler::SampleHandler(Sample& s, DoubleMatrix& gfdata, 
   Wavefunction& wfvtmp) : 
-  s_(s), gfdata_(gfdata), read_wfv(false), wfvtmp_(wfvtmp) {}
+  s_(s), gfdata_(gfdata), read_wf(false), read_wfv(false), wfvtmp_(wfvtmp) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 SampleHandler::~SampleHandler() {}

@@ -23,6 +23,25 @@ Bug in scalapack pdgetri.f (inverse of square matrix)
 Added bugfix from J.Langou into local modified copy of pdgetri.f 
 Must link to local pdgetri.o before the scalapack lib
 --------------------------------------------------------------------------------
+Fedora 6 on melodie: rebuilt blacs and scalapack. Use gfortran instead of g77
+(g77 is not included in FC6)
+--------------------------------------------------------------------------------
+Check for potential problem in MDIonicStepper.C: random numbers used in the
+Lowe and Andersen thermostats may differ on different nodes.
+drand48() is used only in SlaterDet::randomize, where it is initialized 
+with srand48(ctxt.myproc()).
+Could reinitialize the seed in MDIonicsStepper.C using a common value identical
+on all processors.
+--------------------------------------------------------------------------------
+rel1_33_1
+MLWFTransform.C: fixed bug in MLWF calc when cell sizes in x and y direction
+differ.
+--------------------------------------------------------------------------------
+rel1_33_0 candidate
+Implemented compute_mlwf command
+Changed spline.C and sinft.C with new implementations.
+Modified Species.C to use new spline and sinft interface.
+--------------------------------------------------------------------------------
 rel1_32_0
 Dt.h, MDIonicStepper.C: modified to allow for negative time step.
 Removed Sample.h dependency in WavefunctionStepper and derived classes.

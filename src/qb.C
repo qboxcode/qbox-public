@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.52 2006-08-22 15:14:18 fgygi Exp $
+// $Id: qb.C,v 1.53 2007-08-13 21:26:04 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -31,6 +31,7 @@ using namespace std;
 
 #include "AngleCmd.h"
 #include "AtomCmd.h"
+#include "ComputeMLWFCmd.h"
 #include "ConstraintCmd.h"
 #include "DistanceCmd.h"
 #include "HelpCmd.h"
@@ -212,6 +213,7 @@ int main(int argc, char **argv, char **envp)
   
   ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
+  ui.addCmd(new ComputeMLWFCmd(s));
   ui.addCmd(new ConstraintCmd(s));
   ui.addCmd(new DistanceCmd(s));
   ui.addCmd(new HelpCmd(s));

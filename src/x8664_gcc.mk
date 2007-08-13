@@ -3,11 +3,11 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: x8664_gcc.mk,v 1.1 2006-07-21 17:56:50 fgygi Exp $
+# $Id: x8664_gcc.mk,v 1.2 2007-08-13 21:26:04 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
- GCCDIR=/usr/lib/gcc-lib/x86_64-redhat-linux/3.2.3
+#GCCDIR=/usr/lib/gcc/x86_64-redhat-linux/4.1.1
 #MPIDIR=$(HOME)/software/mpich/mpich-1.2.6
  MPIDIR=/opt/mpich-1.2.6
  XERCESCDIR=$(HOME)/software/xml/Linux_x8664/xerces-c-src_2_5_0
@@ -28,12 +28,12 @@
  CXXFLAGS= -g -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR)/.libs -L/usr/X11R6/lib \
-           -L$(MPIDIR)/lib -L$(BLASDIR) -L/usr/lib \
-           -L$(XERCESCDIR)/lib -L$(HOME)/lib
+           -L$(MPIDIR)/lib -L$(BLASDIR) \
+           -L$(XERCESCDIR)/lib 
   
- LIBS =  $(PLIBS) $(GCCDIR)/libg2c.a -lfftw \
-         -llapack -lf77blas -latlas -lm -lmpich \
-         $(XERCESCDIR)/lib/libxerces-c.a
+ LIBS =  $(PLIBS) -lfftw \
+         -llapack -lf77blas -latlas -lm -lmpich -lgfortran \
+         $(XERCESCDIR)/lib/libxerces-c.a 
  
  LDFLAGS = $(LIBPATH) $(LIBS) 
 

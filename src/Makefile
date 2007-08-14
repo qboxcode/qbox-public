@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.43 2007-08-13 21:26:04 fgygi Exp $
+# $Id: Makefile,v 1.44 2007-08-14 04:11:54 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -463,7 +463,6 @@ SDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
 SetCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SetCmd.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
 sinft.o: sinft.h
-sinftnr.o: sinftnr.h
 SlaterDet.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h Matrix.h
 SlaterDet.o: Timer.h FourierTransform.h blas.h Base64Transcoder.h
 SlaterDet.o: Context.h Basis.h D3vector.h UnitCell.h Matrix.h Timer.h
@@ -478,7 +477,6 @@ SpeciesHandler.o: StructureHandler.h
 SpeciesReader.o: Species.h Context.h SpeciesReader.h
 SpeciesReader.o: Context.h
 spline.o: spline.h
-spline_nr.o: spline.h
 StatusCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 StatusCmd.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
 Stress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h ConstraintSet.h
@@ -521,6 +519,7 @@ test_sinft.o: sinft.h readTSC.h
 testSlaterDet.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
 testSlaterDet.o: Timer.h FourierTransform.h
 testSpecies.o: Species.h Context.h SpeciesReader.h
+test_spline.o: spline.h
 testStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h ConstraintSet.h
 testStepper.o: Wavefunction.h UnitCell.h Control.h BOSampleStepper.h
 testStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h

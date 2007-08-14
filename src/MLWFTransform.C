@@ -3,7 +3,7 @@
 // MLWFTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MLWFTransform.C,v 1.1 2007-08-13 21:26:27 fgygi Exp $
+// $Id: MLWFTransform.C,v 1.2 2007-08-14 04:11:19 fgygi Exp $
 
 #include <iostream>
 #include <iomanip>
@@ -174,37 +174,6 @@ void MLWFTransform::compute_transform(void)
   a_[5]->ger(-1.0,cr,0,csz,0);                  
 
   int nsweep = jade(maxsweep,tol,a_,*u_,adiag_);
-  
-  // print Wannier center position
-  if ( ctxt_.onpe0() )
-  {
-    cout << " <mlwf_set size=\"" << adiag_[0].size() << "\">" << endl;
-    for ( int i = 0; i < adiag_[0].size(); i++ )
-    {
-      const double cx = adiag_[0][i];
-      const double sx = adiag_[1][i];
-      const double cy = adiag_[2][i];
-      const double sy = adiag_[3][i];
-      const double cz = adiag_[4][i];
-      const double sz = adiag_[5][i];
-      // Next lines: M_1_PI = 1.0/pi
-      const double t0 = 0.5 * M_1_PI * atan2(sx,cx);
-      const double t1 = 0.5 * M_1_PI * atan2(sy,cy);
-      const double t2 = 0.5 * M_1_PI * atan2(sz,cz);
-      const double x = t0*cell_.a(0).x + t1*cell_.a(1).x + t2*cell_.a(2).x;
-      const double y = t0*cell_.a(0).y + t1*cell_.a(1).y + t2*cell_.a(2).y;
-      const double z = t0*cell_.a(0).z + t1*cell_.a(1).z + t2*cell_.a(2).z;
-      D3vector ctr = center(i);
-      double sp = spread(i);
-      cout << "   <mlwf center=\"" << setprecision(6) 
-           << setw(12) << ctr.x
-           << setw(12) << ctr.y
-           << setw(12) << ctr.z
-           << "\" spread=\"" << sp << "\"/>"
-           << endl;
-    }
-    cout << " </mlwf_set>" << endl;
-  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -299,11 +268,12 @@ double MLWFTransform::spread(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-D3vector MLWFTransform::center(void)
+D3vector MLWFTransform::dipole(void)
 {
+  // total electronic dipole
   D3vector sum(0.0,0.0,0.0);
   for ( int i = 0; i < sd_.nst(); i++ )
-    sum += center(i);
+    sum -= sd_.occ(i) * center(i);
   return sum;
 }
 

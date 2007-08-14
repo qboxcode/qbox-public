@@ -3,7 +3,7 @@
 // MLWFTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MLWFTransform.h,v 1.1 2007-08-13 21:26:27 fgygi Exp $
+// $Id: MLWFTransform.h,v 1.2 2007-08-14 04:11:19 fgygi Exp $
 
 #ifndef MLWFTRANSFORM_H
 #define MLWFTRANSFORM_H
@@ -42,7 +42,7 @@ class MLWFTransform
   double spread(int i);
   double spread(void);
   D3vector center(int i);
-  D3vector center(void);
+  D3vector dipole(void);
   
   MLWFTransform(const SlaterDet& sd);
   ~MLWFTransform(void);

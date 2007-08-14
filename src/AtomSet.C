@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.14 2007-01-27 23:44:59 fgygi Exp $
+// $Id: AtomSet.C,v 1.15 2007-08-14 04:11:19 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -380,6 +380,23 @@ void AtomSet::reset_vcm(void)
     }
   }
   set_velocities(v);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+D3vector AtomSet::dipole(void) const
+{
+  D3vector sum;
+  for ( int is = 0; is < atom_list.size(); is++ )
+  {
+    double charge = species_list[is]->zval();
+    int i = 0;
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      D3vector p = atom_list[is][ia]->position();
+      sum += charge * p; 
+    }
+  }
+  return sum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

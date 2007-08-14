@@ -33,6 +33,9 @@ with srand48(ctxt.myproc()).
 Could reinitialize the seed in MDIonicsStepper.C using a common value identical
 on all processors.
 --------------------------------------------------------------------------------
+rel1_33_2
+Implemented calculation of total electronic and ionic dipole in MLWF.
+--------------------------------------------------------------------------------
 rel1_33_1
 MLWFTransform.C: fixed bug in MLWF calc when cell sizes in x and y direction
 differ.

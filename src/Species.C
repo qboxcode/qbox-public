@@ -3,7 +3,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.7 2007-08-13 21:24:50 fgygi Exp $
+// $Id: Species.C,v 1.8 2007-08-14 04:10:27 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -627,6 +627,7 @@ void Species::info(ostream &os)
   os << " lmax_ =   " << lmax() << endl;
   os << " llocal_ = " << llocal() << endl;
   os << " rcps_ =   " << rcps() << endl; 
+  os.setf(ios::right,ios::adjustfield);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -3,7 +3,7 @@
 // Species.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
+// $Id: Species.h,v 1.6 2007-09-30 04:46:11 fgygi Exp $
 
 #ifndef SPECIES_H
 #define SPECIES_H
@@ -73,6 +73,7 @@ class Species
   double eself(void)
   { return zval_ * zval_ / ( sqrt ( 2.0 * M_PI ) * rcps_ ); };
 
+  void phi(int l, double r, double &val);              // phi(l,r) in r space
   void vpsr(int l, double r, double &v);               // Vps(l,r) in r space
   void dvpsr(int l, double r, double &v, double &dv);  // Vps and dVps/dr 
   void vlocg(double q, double &v);                     // Vloc(g)

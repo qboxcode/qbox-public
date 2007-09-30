@@ -3,7 +3,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.8 2007-08-14 04:10:27 fgygi Exp $
+// $Id: Species.C,v 1.9 2007-09-30 04:46:11 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -459,6 +459,18 @@ bool Species::initialize(double rcpsval)
     } // l
   } // nquad_ == 0 && lmax_ > 0 (KB projectors)
   return true;
+}
+
+void Species::phi(int l, double r, double &val)
+{
+  if ( l > lmax_ || r > rps_[ndft_-1] )
+  {
+    val = 0.0;
+  }
+  else
+  {
+    splint(ndft_,&rps_[0],&phi_[l][0],&phi_spl_[l][0],r,&val);
+  }
 }
 
 void Species::vpsr(int l, double r, double &v)

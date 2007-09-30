@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.44 2007-08-14 04:11:54 fgygi Exp $
+# $Id: Makefile,v 1.45 2007-09-30 04:49:29 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -41,6 +41,9 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  lib:   $(OBJECTS)
 	ar cr libqb.a $^
  SamplePrint: SamplePrint.o SamplePrintHandlers.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testMatrixColumnRotation : testMatrixColumnRotation.o Matrix.o Context.o \
+        MatrixColumnRotation.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testAndersonMixer: testAndersonMixer.o AndersonMixer.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -332,6 +335,8 @@ LoadCmd.o: SampleReader.h
 LoadCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 LoadCmd.o: ConstraintSet.h Wavefunction.h UnitCell.h Control.h
 Matrix.o: Context.h Matrix.h
+MatrixColumnRotation.o: MatrixColumnRotation.h Context.h Matrix.h Timer.h
+MatrixColumnRotation.o: Context.h Matrix.h
 MDIonicStepper.o: MDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 MDIonicStepper.o: Context.h Atom.h D3vector.h ConstraintSet.h Wavefunction.h
 MDIonicStepper.o: UnitCell.h Control.h Species.h
@@ -506,6 +511,7 @@ testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h Matrix.h jade.h
 testLDAFunctional.o: LDAFunctional.h XCFunctional.h
 testMatrix.o: Timer.h Context.h Matrix.h
+testMatrixColumnRotation.o: MatrixColumnRotation.h Context.h Matrix.h Timer.h
 testMemParse.o: StrX.h
 testofstream.o: Context.h
 testPParse.o: StrX.h

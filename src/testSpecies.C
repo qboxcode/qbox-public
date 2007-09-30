@@ -74,58 +74,74 @@ int main(int argc, char **argv)
   
   for ( int l = 0; l <= s.lmax(); l++ )
   {
-    cout << n << " Vps(l=" << l << ",r) " << endl;
+    cout << "# " << n << " Vps(l=" << l << ",r) " << endl;
     for ( int i = 0; i < n; i++ )
     {
       double r = i * dr;
       s.vpsr(l,r,v);
       cout << r << " " << v << endl;
     }
+    cout << endl << endl;
 
-    cout << n << " dVps(l=" << l << ",r)/dr " << endl;
+    cout << "# " << n << " phi(l=" << l << ",r) " << endl;
+    for ( int i = 0; i < n; i++ )
+    {
+      double r = i * dr;
+      double val;
+      s.phi(l,r,val);
+      cout << r << " " << val << endl;
+    }
+    cout << endl << endl;
+
+    cout << "# " << n << " dVps(l=" << l << ",r)/dr " << endl;
     for ( int i = 0; i < n; i++ )
     {
       double r = i * dr;
       s.dvpsr(l,r,v,dv);
       cout << r << " " << dv << endl;
     }
+    cout << endl << endl;
   }
   
-  cout << n << " Vloc(g) " << endl;
+  cout << "# " << n << " Vloc(g) " << endl;
   for ( int i = 0; i < n; i++ )
   {
     double g = i * dg;
     s.vlocg(g,v);
     cout << g << " " << v << endl;
   }
+  cout << endl << endl;
   
-  cout << n << " dVloc(g)/dg " << endl;
+  cout << "# " << n << " dVloc(g)/dg " << endl;
   for ( int i = 0; i < n; i++ )
   {
     double g = i * dg;
     s.dvlocg(g,v,dv);
     cout << g << " " << dv << endl;
   }
+  cout << endl << endl;
   
   for ( int l = 0; l <= s.lmax(); l++ )
   {
     if ( l != s.llocal() )
     {
-      cout << n << " Vnl(l=" << l << ",g) " << endl;
+      cout << "# " << n << " Vnl(l=" << l << ",g) " << endl;
       for ( int i = 0; i < n; i++ )
       {
         double g = i * dg;
         s.vnlg(l,g,v);
         cout << g << " " << v << endl;
       }
+      cout << endl << endl;
    
-      cout << n << " dVnl(l=" << l << ",g)/dg " << endl;
+      cout << "# " << n << " dVnl(l=" << l << ",g)/dg " << endl;
       for ( int i = 0; i < n; i++ )
       {
         double g = i * dg;
         s.dvnlg(l,g,v,dv);
         cout << g << " " << dv << endl;
       }
+      cout << endl << endl;
     }
   }
   

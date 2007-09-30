@@ -3,7 +3,7 @@
 // ChargeMixCoeff.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeMixCoeff.h,v 1.2 2006-11-04 20:20:23 fgygi Exp $
+// $Id: ChargeMixCoeff.h,v 1.3 2007-09-30 04:44:58 fgygi Exp $
 
 #ifndef CHARGEMIXCOEFF_H
 #define CHARGEMIXCOEFF_H
@@ -53,6 +53,6 @@ class ChargeMixCoeff : public Var
      return st.str();
   }
 
-  ChargeMixCoeff(Sample *sample) : s(sample) { s->ctrl.charge_mix_coeff = 1.0; };
+  ChargeMixCoeff(Sample *sample) : s(sample) { s->ctrl.charge_mix_coeff = 0.5; };
 };
 #endif

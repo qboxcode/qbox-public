@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.30 2007-01-27 23:46:30 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.31 2007-09-30 04:45:52 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -79,6 +79,9 @@ void BOSampleStepper::step(int niter)
   const string cell_dyn = s_.ctrl.cell_dyn;
   
   const bool extrapolate_wf = true;
+
+  //const bool extrapolate_wf = !fractional_occ;
+  if ( onpe0 ) cout << " extrapolate_wf=" << extrapolate_wf << endl;
   const bool ntc_extrapolation = 
     s_.ctrl.debug.find("NTC_EXTRAPOLATION") != string::npos;
   const bool asp_extrapolation = 
@@ -465,6 +468,12 @@ void BOSampleStepper::step(int niter)
               }
               else // normal extrapolation
               {
+                if ( iter > 0 && compute_eigvec )
+                {
+                  // eigenvectors were computed, need alignment
+                  // wfv contains wfm since iter > 0
+                  s_.wfv->align(s_.wf);
+                }
                 double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();      
                 double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();   
                 const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();              
@@ -472,37 +481,37 @@ void BOSampleStepper::step(int niter)
                 const int len = 2*mloc*nloc;              
                 if ( iter == 0 )
                 {
-                  // replace velocity in cv by cm = c - dt * cv
+                  // linear extrapolation using the velocity in wfv
+                  // save the current c in in wfv
                   for ( int i = 0; i < len; i++ )
                   {
                     const double x = c[i];
                     const double v = cv[i];
-                    cv[i] = x - dt * v;
+                    c[i] = x + dt * v;
+                    cv[i] = x;
                   }
+                  tmap["lowdin"].start();                                      
+                  s_.wf.sd(ispin,ikp)->lowdin();                               
+                  tmap["lowdin"].stop();                                       
                 }
-                // linear extrapolation                                       
-                for ( int i = 0; i < len; i++ )                        
-                {                                                              
-                  const double x = c[i];
-                  const double xm = cv[i];
-                  c[i] = 2.0 * x - xm;                                       
-                  cv[i] = x;                                                 
-                }                                                              
-                tmap["gram"].start();                                        
-                s_.wf.sd(ispin,ikp)->gram();                                 
-                tmap["gram"].stop();                                         
+                else
+                {
+                  // linear extrapolation                                       
+                  for ( int i = 0; i < len; i++ )                        
+                  {
+                    const double x = c[i];
+                    const double xm = cv[i];
+                    c[i] = 2.0 * x - xm;                                       
+                    cv[i] = x;                                                 
+                  }
+                  tmap["ortho_align"].start();                                 
+                  s_.wf.sd(ispin,ikp)->ortho_align(*s_.wfv->sd(ispin,ikp));    
+                  tmap["ortho_align"].stop();                                  
  
-                //tmap["lowdin"].start();                                      
-                //s_.wf.sd(ispin,ikp)->lowdin();                               
-                //tmap["lowdin"].stop();                                       
- 
-                //tmap["ortho_align"].start();                                 
-                //s_.wf.sd(ispin,ikp)->ortho_align(*s_.wfv->sd(ispin,ikp));    
-                //tmap["ortho_align"].stop();                                  
- 
-                //tmap["riccati"].start();                                     
-                //s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));        
-                //tmap["riccati"].stop();                                      
+                  //tmap["riccati"].start();
+                  //s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));
+                  //tmap["riccati"].stop();
+                }
               }
             } // if active
           }
@@ -520,7 +529,7 @@ void BOSampleStepper::step(int niter)
       vector<complex<double> > drhog_bar(rhog_current.size());
       AndersonMixer mixer(2*rhog_current.size(),&cd_.vcontext());
       mixer.set_theta_max(2.0);
-      mixer.set_theta_nc(1.0);
+      //mixer.set_theta_nc(1.0);
       
       wf_stepper->preprocess();
       for ( int itscf = 0; itscf < nitscf_; itscf++ )

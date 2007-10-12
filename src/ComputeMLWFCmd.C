@@ -3,7 +3,7 @@
 // ComputeMLWFCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ComputeMLWFCmd.C,v 1.2 2007-08-14 04:11:19 fgygi Exp $
+// $Id: ComputeMLWFCmd.C,v 1.3 2007-10-12 19:37:44 fgygi Exp $
 
 #include "ComputeMLWFCmd.h"
 #include<iostream>
@@ -49,4 +49,5 @@ int ComputeMLWFCmd::action(int argc, char **argv)
     cout << " <total_dipole_length> " << length(idipole + edipole)
          << " </total_dipole_length>" << endl;
   }
+  delete mlwft;
 }

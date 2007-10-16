@@ -3,7 +3,7 @@
 //  BLAS Header file
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: blas.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: blas.h,v 1.5 2007-10-16 18:23:20 fgygi Exp $
 
 #ifndef BLAS_H
 #define BLAS_H
@@ -18,6 +18,7 @@
 #define zcopy  zcopy_  
 #define daxpy  daxpy_  
 #define ddot   ddot_   
+#define dnrm2  dnrm2_   
 #define drot   drot_   
 #define dasum  dasum_  
 #define dsbmv  dsbmv_  
@@ -32,6 +33,7 @@
 #define dyax   dyax_   
 #define dnaxpy dnaxpy_ 
 #define dger   dger_   
+#define zgemm  zgemm_  
 #endif
 
 #ifdef __cplusplus
@@ -46,10 +48,15 @@ void daxpy(int *n, double *alpha, double *x, int *incx,
 double *y, int *incy );
 double ddot(const int *n, const double *a, const int *inca, 
 const double *b, const int *incb);
+double dnrm2(const int *n, const double *a, const int *inca); 
 void drot(int*, double*, int*, double*, int*, double*, double*);
 void dgemm(char *ta, char *tb, int *m, int *n, int *k,
-double *alpha, double *a, int *lda, double *b, int *ldb,
-double *beta, double *c, int *ldc);
+  double *alpha, double *a, int *lda, double *b, int *ldb,
+  double *beta, double *c, int *ldc);
+void zgemm(char *ta, char *tb, int *m, int *n, int *k,
+  std::complex<double> *alpha, std::complex<double> *a, int *lda, 
+  std::complex<double> *b, int *ldb,
+  std::complex<double> *beta, std::complex<double> *c, int *ldc);
 void dgemv( char *ta, int *m, int *n,
                    double *alpha,  double *a, int *tda,
                    double *x,    int *incx,

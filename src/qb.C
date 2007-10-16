@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.53 2007-08-13 21:26:04 fgygi Exp $
+// $Id: qb.C,v 1.54 2007-10-16 18:23:20 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -129,8 +129,8 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I                          I\n";
   cout << "                   I                          I\n";
   cout << "                   I                          I\n";
-  cout << "                   I         F.Gygi, UC Davis I\n";
-  cout << "                   I  Copyright (c) 2005-2006 I\n";
+  cout << "                   I                          I\n";
+  cout << "                   I http://eslab.ucdavis.edu I\n";
   cout << "                   ============================\n\n";
   cout << "-->\n";
   cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;

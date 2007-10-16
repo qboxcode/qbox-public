@@ -33,6 +33,13 @@ with srand48(ctxt.myproc()).
 Could reinitialize the seed in MDIonicsStepper.C using a common value identical
 on all processors.
 --------------------------------------------------------------------------------
+rel1_33_4
+ComputeMLWFCmd.C: fixed memory leak.
+blas.h: added zgemm, dnrm2.
+BOSampleStepper.C: disabled Anderson acceleration of charge mixing by default, 
+can be enabled with debug="AND_CHMIX"
+AtomSet.C: removed unused variables.
+--------------------------------------------------------------------------------
 rel1_33_3
 BOSampleStepper.C: extrapolation: restored alignment before extrapolation
 ChargeMixCoeff.h: changed default value back to 0.5

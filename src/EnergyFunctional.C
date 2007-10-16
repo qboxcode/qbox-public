@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.23 2007-01-27 23:46:31 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.24 2007-10-16 18:23:20 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -711,7 +711,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
           sigma_ehart + sigma_exc + sigma_esr;
   if ( debug_stress && s_.ctxt_.onpe0() )
   {
-    const double gpa = 29421.5;
     cout.setf(ios::fixed,ios::floatfield);
     cout.setf(ios::right,ios::adjustfield);
     cout << setprecision(8);

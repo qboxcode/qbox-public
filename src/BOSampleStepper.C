@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.31 2007-09-30 04:45:52 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.32 2007-10-16 18:23:20 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -57,6 +57,10 @@ BOSampleStepper::~BOSampleStepper()
 void BOSampleStepper::step(int niter)
 {
   const bool onpe0 = s_.ctxt_.onpe0();
+
+  const bool anderson_charge_mixing = 
+    ( s_.ctrl.debug.find("AND_CHMIX") != string::npos );
+
   // determine whether eigenvectors must be computed
   // eigenvectors are computed if explicitly requested with wf_diag==T
   // or if the SlaterDet has fractionally occupied states
@@ -64,6 +68,8 @@ void BOSampleStepper::step(int niter)
   const bool compute_eigvec = fractional_occ || s_.ctrl.wf_diag == "T";
   enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
   
+  const bool extrapolate_wf = !fractional_occ;
+
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
   const int nspin = wf.nspin();
@@ -78,9 +84,6 @@ void BOSampleStepper::step(int niter)
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
   
-  const bool extrapolate_wf = true;
-
-  //const bool extrapolate_wf = !fractional_occ;
   if ( onpe0 ) cout << " extrapolate_wf=" << extrapolate_wf << endl;
   const bool ntc_extrapolation = 
     s_.ctrl.debug.find("NTC_EXTRAPOLATION") != string::npos;
@@ -88,7 +91,8 @@ void BOSampleStepper::step(int niter)
     s_.ctrl.debug.find("ASP_EXTRAPOLATION") != string::npos;
 
   Wavefunction* wfmm;
-  if ( ntc_extrapolation || asp_extrapolation ) wfmm = new Wavefunction(wf);
+  if ( extrapolate_wf && ( ntc_extrapolation || asp_extrapolation ) )
+    wfmm = new Wavefunction(wf);
   
   const bool compute_hpsi = ( wf_dyn != "LOCKED" );
   const bool compute_forces = ( atoms_dyn != "LOCKED" );
@@ -143,7 +147,7 @@ void BOSampleStepper::step(int niter)
     cell_stepper = new SDCellStepper(s_);
   
   // Allocate wavefunction velocity if not available
-  if ( atoms_dyn != "LOCKED" )
+  if ( atoms_dyn != "LOCKED" && extrapolate_wf )
   {
     if ( s_.wfv == 0 )
     {
@@ -529,7 +533,6 @@ void BOSampleStepper::step(int niter)
       vector<complex<double> > drhog_bar(rhog_current.size());
       AndersonMixer mixer(2*rhog_current.size(),&cd_.vcontext());
       mixer.set_theta_max(2.0);
-      //mixer.set_theta_nc(1.0);
       
       wf_stepper->preprocess();
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
@@ -548,6 +551,7 @@ void BOSampleStepper::step(int niter)
           if ( itscf == 0 )
           {
             rhog_current = cd_.rhog[0];
+            rhog_last = cd_.rhog[0];
           }
 
           // compute correction drhog
@@ -587,7 +591,6 @@ void BOSampleStepper::step(int niter)
             drhog_bar[i] = drhog[i];                     
           }                                              
 
-          const bool anderson_charge_mixing = true;
           if ( anderson_charge_mixing )
           {
             mixer.update((double*)&drhog[0],&theta,(double*)&drhog_bar[0]);
@@ -753,7 +756,7 @@ void BOSampleStepper::step(int niter)
       s_.constraints.update_constraints(dt);
   } // for iter
   
-  if ( compute_forces )
+  if ( compute_forces && extrapolate_wf )
   {
     // compute wavefunction velocity after last iteration
     // s_.wfv contains the previous wavefunction

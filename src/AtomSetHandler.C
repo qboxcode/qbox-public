@@ -3,7 +3,7 @@
 // AtomSetHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.C,v 1.6 2007-10-19 16:24:03 fgygi Exp $
+// $Id: AtomSetHandler.C,v 1.7 2007-10-19 17:05:17 fgygi Exp $
 
 #if USE_XERCES
 
@@ -13,6 +13,7 @@
 #include "SpeciesHandler.h"
 #include "SpeciesReader.h"
 #include "StrX.h"
+#include "SampleReader.h"
 using namespace xercesc;
 #include <iostream>
 #include <cassert>
@@ -89,8 +90,8 @@ void AtomSetHandler::endElement(const XMLCh* const uri,
     }
 
     // notify listening nodes and broadcast atom info
-    int tag = 2; // species tag
-    as_.context().ibcast_send(1,1,&tag,1);
+    event_type event = atom;
+    as_.context().ibcast_send(1,1,(int*)&event,1);
     as_.context().string_bcast(current_atom_name,0);
     as_.context().string_bcast(current_atom_species,0);
     double buf[3];
@@ -175,8 +176,8 @@ void AtomSetHandler::endSubHandler(const XMLCh* const uri,
     }
 
     // notify listening nodes and broadcast species info
-    int tag = 1; // species tag
-    as_.context().ibcast_send(1,1,&tag,1);
+    event_type event = species;
+    as_.context().ibcast_send(1,1,(int*)&event,1);
     as_.context().string_bcast(current_species_name,0);
     sp_reader.bcastSpecies(*current_species);
 

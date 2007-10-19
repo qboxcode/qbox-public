@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.16 2007-10-16 18:23:20 fgygi Exp $
+// $Id: AtomSet.C,v 1.17 2007-10-19 16:24:03 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -23,10 +23,10 @@ bool AtomSet::addSpecies(Species* sp, string name)
            << " is already defined" << endl;
     return false;
   }
-  
+
   const double rcps = 1.0;
   sp->initialize(rcps);
- 
+
   // create new entry in species list
   species_list.push_back(sp);
   spname.push_back(name);
@@ -34,7 +34,7 @@ bool AtomSet::addSpecies(Species* sp, string name)
   na_.insert(map<string,int>::value_type(name,0));
   atom_list.resize(atom_list.size()+1);
   is_[name] = spname.size()-1;
-  
+
   return true;
 }
 
@@ -63,7 +63,7 @@ bool AtomSet::addAtom(Atom *a)
            << " is undefined" << endl;
     return false;
   }
-  
+
   // add an atom to the atom_list
   int is = isp(spname);
   assert ( is >= 0 );
@@ -74,7 +74,7 @@ bool AtomSet::addAtom(Atom *a)
   // update count of atoms of species spname
   // increment count
   na_[spname]++;
-  
+
   // update total number of electrons
   nel_ = 0;
   for ( int is = 0; is < species_list.size(); is++ )
@@ -100,16 +100,16 @@ bool AtomSet::delAtom(string name)
         string spname = atom_list[is][ia]->species();
         na_[spname]--;
         delete atom_list[is][ia];
-        
+
         // remove map entries ia_[name] and is_[name]
         map<string,int>::iterator i = ia_.find(name);
         ia_.erase(i);
         i = is_.find(name);
         is_.erase(i);
-        
+
         atom_list[is].erase(pa);
         nel_ -= species_list[is]->zval();
-        
+
         return true;
       }
       pa++;
@@ -117,7 +117,7 @@ bool AtomSet::delAtom(string name)
     psa++;
     ps++;
   }
-  
+
   // this name was not found in the atom list
   if ( ctxt_.onpe0() )
     cout << " AtomSet:delAtom: no such atom: " << name << endl;
@@ -235,7 +235,7 @@ int AtomSet::size(void) const
 bool AtomSet::reset(void)
 {
   // delete all atoms and species
-  
+
   for ( int is = 0; is < species_list.size(); is++ )
   {
     for ( int ia = 0; ia < atom_list[is].size(); ia++ )
@@ -243,14 +243,14 @@ bool AtomSet::reset(void)
       delete atom_list[is][ia];
     }
     atom_list[is].resize(0);
-    
+
     delete species_list[is];
   }
   atom_list.resize(0);
   species_list.resize(0);
-  
+
   nel_ = 0;
-  
+
   return true;
 }
 
@@ -391,7 +391,7 @@ D3vector AtomSet::dipole(void) const
     for ( int ia = 0; ia < atom_list[is].size(); ia++ )
     {
       D3vector p = atom_list[is][ia]->position();
-      sum += charge * p; 
+      sum += charge * p;
     }
   }
   return sum;

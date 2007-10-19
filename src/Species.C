@@ -3,7 +3,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.9 2007-09-30 04:46:11 fgygi Exp $
+// $Id: Species.C,v 1.10 2007-10-19 16:24:05 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -26,7 +26,7 @@ static double simpsn ( int n, double *t )
                c1 * ( t[1] + t[n-2] ) +
                c2 * ( t[2] + t[n-3] ) +
                c3 * ( t[3] + t[n-4] );
-       
+
   for ( int i = 4; i < n-4; i++ )
   {
     sum += t[i];
@@ -36,19 +36,19 @@ static double simpsn ( int n, double *t )
 
 ////////////////////////////////////////////////////////////////////////////////
 Species::Species(const Context& ctxt, string name) : ctxt_(ctxt), name_(name),
-zval_(-1), mass_(0.0), lmax_(-1), deltar_(0.0), atomic_number_(0), 
+zval_(-1), mass_(0.0), lmax_(-1), deltar_(0.0), atomic_number_(0),
 llocal_(-1), nquad_(-1), rquad_(0.0),
 rcps_(0.0), uri_(""), description_("undefined"), symbol_("Undef")
 {}
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 bool Species::initialize(double rcpsval)
 {
   // initialize the Species
   rcps_ = rcpsval;
-  
+
   assert(description_ != "undefined");
-  
+
   const double fpi = 4.0 * M_PI;
 
   const int np = vps_[0].size();
@@ -56,23 +56,23 @@ bool Species::initialize(double rcpsval)
   if (rcps_ < 0.0) throw SpeciesInitException("rcps_ < 0");
   if (mass_ < 0.0) throw SpeciesInitException("mass_ < 0");
   if (lmax_ < 0 || lmax_ > 3) throw SpeciesInitException("lmax_ <0 or lmax_ >3");
-  
+
   if (vps_.size() < lmax_+1) throw SpeciesInitException("vps_.size < lmax_+1");
 
-  if (llocal_ < 0 || llocal_ > lmax_) 
+  if (llocal_ < 0 || llocal_ > lmax_)
       throw SpeciesInitException("llocal_ < 0 || llocal_ > lmax_");
-      
+
   if ( nquad_ == 0 ) // KB potential
   {
     for ( int l = 0; l <= lmax_; l++ )
       if ( l != llocal_ && phi_[l].size() == 0 )
         throw SpeciesInitException("phi_[l] undefined for non-local projector");
   }
-  
+
   if ( nquad_ < 0 ) throw SpeciesInitException("nquad < 0");
-  if ( nquad_ > 0 && rquad_ <= 0.0 ) 
+  if ( nquad_ > 0 && rquad_ <= 0.0 )
     throw SpeciesInitException("semilocal with rquad_ <= 0");
-  
+
   // compute number of non-local projectors nlm_
   nlm_ = 0;
   for ( int l = 0; l <= lmax_; l++ )
@@ -82,7 +82,7 @@ bool Species::initialize(double rcpsval)
        nlm_ += 2 * l + 1;
     }
   }
-  
+
   // compute ndft_: size of radial FFT array
   // ndft_ is the second power of 2 larger than np
   ndft_ = 1;
@@ -97,14 +97,14 @@ bool Species::initialize(double rcpsval)
     }
   }
   ndft_ *= 2;
-  
+
   rps_.resize(ndft_);
   for ( int i = 0; i < ndft_; i++ )
     rps_[i] = i * deltar_;
-    
+
   vps_spl_.resize(lmax_+1);
   phi_spl_.resize(lmax_+1);
-  
+
   for ( int l = 0; l <= lmax_; l++ )
   {
     vps_[l].resize(ndft_);
@@ -112,31 +112,31 @@ bool Species::initialize(double rcpsval)
     vps_spl_[l].resize(ndft_);
     phi_spl_[l].resize(ndft_);
   }
-  
+
   // extend rps and vps_ to full mesh (up to i==ndft_-1)
-  
+
   vector<double> fint(ndft_);
-  
+
   wsg_.resize(lmax_+1);
   gspl_.resize(ndft_);
   vlocg_.resize(ndft_);
   vlocg_spl.resize(ndft_);
-  
+
   vnlg_.resize(lmax_+1);
   vnlg_spl.resize(lmax_+1);
-  
+
   vector<double> vlocr(ndft_);
   vector<vector<double> > vnlr(lmax_+1);
-  
+
   for ( int l = 0; l <= lmax_; l++ )
   {
     vnlr[l].resize(ndft_);
     vnlg_[l].resize(ndft_+1);
     vnlg_spl[l].resize(ndft_+1);
   }
-  
+
   // Extend vps_[l][i] up to ndft_ using -zv/r
-  
+
   for ( int l = 0; l <= lmax_; l++ )
   {
     for ( int i = np; i < ndft_; i++ )
@@ -158,7 +158,7 @@ bool Species::initialize(double rcpsval)
       spline(ndft_,&rps_[0],&phi_[l][0],0.0,0.0,0,1,&phi_spl_[l][0]);
     }
   }
-    
+
   // local potential: subtract the long range part due to the smeared charge
   // Next line: constant is 2/sqrt(pi)
   // math.h: # define M_2_SQRTPI     1.12837916709551257390  /* 2/sqrt(pi) */
@@ -259,7 +259,7 @@ bool Species::initialize(double rcpsval)
         //        w_2(G) = Ylm(G) i^-2 (  3/G^3 \sum_r sin(Gr)/r  vnlr -
         //                                1/G   \sum_r sin(Gr)*r  vnlr -
         //                                3/G^2 \sum_r cos(Gr)    vnlr )
- 
+
         for ( int i = 0; i < ndft_; i++ )
         {
           vnlr[l][i] = fpi * deltar_ *
@@ -270,9 +270,9 @@ bool Species::initialize(double rcpsval)
     }
 
     //  compute radial Fouri_er transforms of vnlr
- 
+
     //  Next line: vnlg_ is dimensioned ndft_+1 since it is passed to cosft1
- 
+
     // Non-local potentials
     //
     // w(G) = Ylm(G) i^l 4 pi \int r^2 phi_l(r) j_l(Gr) v_l(r) dr
@@ -312,7 +312,7 @@ bool Species::initialize(double rcpsval)
           {
             vnlg_[l][i] = vnlr[l][i] * rps_[i];
           }
- 
+
           sinft(ndft_,&vnlg_[l][0]);
 
           vnlg_[l][0] = v0;
@@ -363,7 +363,7 @@ bool Species::initialize(double rcpsval)
           //  N.B. Next line: Initialize also vnlg_[l][ndft_] to zero
           //  since it is used and modified by cosft1
           //  vnlg_ was dimensioned ndft_[is]+1
- 
+
           vnlg_[l][ndft_] = 0.0;
           cosft1(ndft_,&vnlg_[l][0]);
 
@@ -433,7 +433,7 @@ bool Species::initialize(double rcpsval)
           //  N.B. Next line: Initialize also vnlg_[l][ndft_] to zero
           //  since it is used and modified by cosft1
           //  vnlg_ was dimensioned ndft_[is]+1
- 
+
           vnlg_[l][ndft_] = 0.0;
           cosft1(ndft_,&vnlg_[l][0]);
 
@@ -443,7 +443,7 @@ bool Species::initialize(double rcpsval)
           {
             fint[i] += - 3.0 * vnlg_[l][i] / (gspl_[i] * gspl_[i]);
           }
- 
+
           vnlg_[l][0] = v0;
           for ( int i = 1; i < ndft_; i++ )
           {
@@ -562,7 +562,7 @@ ostream& operator << ( ostream &os, Species &s )
   // If the uri is known, use href to refer to it
   if ( s.uri() != "" )
   {
-    os <<"<species name=\"" << s.name() 
+    os <<"<species name=\"" << s.name()
        << "\" href=\"" << s.uri() << "\"/>" << endl;
   }
   else
@@ -584,7 +584,7 @@ ostream& operator << ( ostream &os, Species &s )
     for ( int l = 0; l <= s.lmax(); l++ )
     {
       const int size = s.vps()[l].size();
-      os << "<projector l=\"" << l << "\" size=\"" << size 
+      os << "<projector l=\"" << l << "\" size=\"" << size
          << "\">" << endl;
       os << "<radial_potential>\n";
       for ( int i = 0; i < size; i++ )
@@ -602,7 +602,7 @@ ostream& operator << ( ostream &os, Species &s )
     os << "</norm_conserving_pseudopotential>" << endl;
     os << "</species>" << endl;
   }
-  
+
   return os;
 }
 
@@ -632,13 +632,13 @@ void Species::info(ostream &os)
     os << " local (within 1.e-4) beyond r = " << rcut_loc(1.e-4) << endl;
     os << " local (within 1.e-3) beyond r = " << rcut_loc(1.e-3) << endl;
   }
-  
+
   os << " valence charge = " << zval()
      << " / ionic mass_ = " << mass()
      << " (amu)" << endl;
   os << " lmax_ =   " << lmax() << endl;
   os << " llocal_ = " << llocal() << endl;
-  os << " rcps_ =   " << rcps() << endl; 
+  os << " rcps_ =   " << rcps() << endl;
   os.setf(ios::right,ios::adjustfield);
 }
 
@@ -663,6 +663,6 @@ double Species::rcut_loc(double epsilon)
   }
   // adjust i so that delta_v[i] < epsilon
   if ( i < ndft_-1 ) i++;
-  
+
   return rps_[i];
 }

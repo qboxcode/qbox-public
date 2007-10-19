@@ -3,7 +3,7 @@
 // SpeciesReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesReader.C,v 1.6 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SpeciesReader.C,v 1.7 2007-10-19 16:24:05 fgygi Exp $
 
 #include "Species.h"
 #include "SpeciesReader.h"
@@ -46,7 +46,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     bool schemaFullChecking = true;
     bool namespacePrefixes = false;
     SAX2XMLReader* parser = 0;
- 
+
     int ierr = 0;
     try
     {
@@ -83,10 +83,10 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
 
     int errorCount = 0;
- 
+
     int nlink = 0;
     string current_uri = uri;
- 
+
     while ( sp.description() == "undefined" && nlink++ < 5 )
     {
       try
@@ -121,7 +121,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
           delete parser;
           throw;
       }
- 
+
       if ( sp.description() == "undefined" )
         current_uri = sp.uri();
     }
@@ -130,14 +130,14 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     delete parser;
     XMLPlatformUtils::Terminate();
   }
-  
+
 #else
 
   // USE_XERCES is not defined
 
   // Simplified parsing not using Xerces
   // parse file uri
-  
+
   if ( ctxt_.onpe0() )
   {
     struct stat statbuf;
@@ -164,7 +164,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
 
     string tag, start_tag, end_tag;
     string::size_type start, end, len;
- 
+
     tag = "description";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -174,12 +174,12 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     end = buf.find(end_tag);
     pos = buf.find(">",end)+1;
     len = end - start;
- 
+
     sp.description_ = buf.substr(start,len);
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.description_
          << " -->" << endl;
- 
+
     tag = "symbol";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -196,7 +196,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.symbol_
          << " -->" << endl;
- 
+
     tag = "atomic_number";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -213,7 +213,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.atomic_number_
          << " -->" << endl;
- 
+
     tag = "mass";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -230,7 +230,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.mass_
          << " -->" << endl;
- 
+
     tag = "valence_charge";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -247,7 +247,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.zval_
          << " -->" << endl;
- 
+
     tag = "lmax";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -264,7 +264,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.lmax_
          << " -->" << endl;
- 
+
     tag = "llocal";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -281,7 +281,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.llocal_
          << " -->" << endl;
- 
+
     tag = "nquad";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -298,7 +298,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.nquad_
          << " -->" << endl;
- 
+
     tag = "rquad";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -315,7 +315,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.rquad_
          << " -->" << endl;
- 
+
     tag = "mesh_spacing";
     start_tag = string("<") + tag + string(">");
     end_tag = string("</") + tag + string(">");
@@ -332,7 +332,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
          << sp.deltar_
          << " -->" << endl;
- 
+
     for ( int l = 0; l < sp.lmax_ + 1; l++ )
     {
       // read projector
@@ -341,12 +341,12 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       start_tag = string("<") + tag;
       start = buf.find(start_tag,pos);
       assert(start != string::npos );
- 
+
       pos = buf.find("l=",pos)+3;
       start = pos;
       end = buf.find("\"",start);
       len = end - start;
-      
+
       {
         istringstream stst(buf.substr(start,len));
         int lread;
@@ -355,7 +355,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
         //cout << " l=" << l << endl;
         assert(l==lread);
       }
- 
+
       pos = buf.find("size=",pos)+6;
       start = pos;
       end = buf.find("\"",start);
@@ -366,10 +366,10 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
         // cout << " size=" << size << endl;
       }
       // read radial potential
- 
+
       sp.vps_.resize(sp.vps_.size()+1);
       sp.vps_[l].resize(size);
- 
+
       tag = "radial_potential";
       start_tag = string("<") + tag + string(">");
       end_tag = string("</") + tag + string(">");
@@ -389,12 +389,12 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       }
       cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " l="
            << l << " size=" << size << " -->" << endl;
- 
+
       sp.phi_.resize(sp.phi_.size()+1);
       sp.phi_[l].resize(size);
- 
+
       // read radial function only if the radial_function tag was found
- 
+
       tag = "radial_function";
       start_tag = string("<") + tag + string(">");
       end_tag = string("</") + tag + string(">");
@@ -404,7 +404,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
         // if l is not the local potential, there must be a radial function
         assert(start != string::npos );
       }
- 
+
       if ( start != string::npos )
       {
         start = buf.find(">",start)+1;
@@ -423,7 +423,7 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
              << l << " size=" << size << " -->" << endl;
       }
     }
- 
+
     sp.uri_ = uri;
   }
 #endif
@@ -454,15 +454,15 @@ void SpeciesReader::bcastSpecies(Species& sp)
     ctxt_.ibcast_recv(1,1,&sp.nquad_,1,0,0);
     ctxt_.dbcast_recv(1,1,&sp.rquad_,1,0,0);
     ctxt_.dbcast_recv(1,1,&sp.deltar_,1,0,0);
-    
+
     sp.vps_.resize(sp.lmax_+1);
     sp.phi_.resize(sp.lmax_+1);
   }
-  
+
   ctxt_.string_bcast(sp.symbol_,0);
   ctxt_.string_bcast(sp.description_,0);
   ctxt_.string_bcast(sp.uri_,0);
-  
+
   for ( int l = 0; l <= sp.lmax_; l++ )
   {
     int np_vps;

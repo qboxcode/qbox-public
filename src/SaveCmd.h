@@ -3,7 +3,7 @@
 // SaveCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.h,v 1.1 2003-03-27 22:05:59 fgygi Exp $
+// $Id: SaveCmd.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef SAVECMD_H
 #define SAVECMD_H
@@ -28,7 +28,7 @@ class SaveCmd : public Cmd
 
   char *help_msg(void) const
   {
-    return 
+    return
     "\n save\n\n"
     " syntax: save filename \n\n"
     "   The save command saves the sample to the file filename.\n\n";

@@ -3,7 +3,7 @@
 // testChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testChargeDensity.C,v 1.1 2003-01-25 01:23:31 fgygi Exp $
+// $Id: testChargeDensity.C,v 1.2 2007-10-19 16:24:06 fgygi Exp $
 
 #include "Context.h"
 #include "Wavefunction.h"
@@ -27,7 +27,7 @@ int main(int argc, char **argv)
   MPI_Init(&argc,&argv);
 #endif
   {
-    // use: 
+    // use:
     // testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nempty nspin nkp
     assert(argc==15);
     D3vector a(atof(argv[1]),atof(argv[2]),atof(argv[3]));
@@ -40,35 +40,35 @@ int main(int argc, char **argv)
     int nempty = atoi(argv[12]);
     int nspin = atoi(argv[13]);
     int nkp = atoi(argv[14]);
-    
+
     Timer tm;
-    
+
     Context ctxt;
     Wavefunction wf(ctxt);
-    
+
     tm.reset(); tm.start();
     wf.resize(cell,cell,ecut);
     tm.stop();
-    cout << " wf.resize: CPU/Real: " 
+    cout << " wf.resize: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
 
     tm.reset(); tm.start();
     wf.set_nel(nel);
     tm.stop();
-    cout << " wf.set_nel: CPU/Real: " 
+    cout << " wf.set_nel: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
-         
+
     tm.reset(); tm.start();
     wf.set_nspin(nspin);
     tm.stop();
-    cout << " wf.set_nspin: CPU/Real: " 
+    cout << " wf.set_nspin: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
-    
+
     for ( int ikp = 0; ikp < nkp-1; ikp++ )
     {
       wf.add_kpoint(D3vector((0.5*(ikp+1))/(nkp-1),0,0),1.0);
     }
-    
+
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
       for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
              << wf.sd(ispin,ikp)->c().m() << "x"
              << wf.sd(ispin,ikp)->c().n() << endl;
         cout << ctxt.mype() << ":"
-             << " sdcontext[" << ispin << "][" << ikp << "]: " 
+             << " sdcontext[" << ispin << "][" << ikp << "]: "
              << wf.sd(ispin,ikp)->context();
         }
       }
@@ -89,50 +89,50 @@ int main(int argc, char **argv)
     tm.start();
     wf.randomize(0.1);
     tm.stop();
-    cout << " wf.randomize: CPU/Real: " 
+    cout << " wf.randomize: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
 
     tm.reset();
     tm.start();
     wf.gram();
-    cout << " wf.gram: CPU/Real: " 
+    cout << " wf.gram: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
-         
+
     wf.update_occ();
-        
+
     // compute charge density in real space
     Timer tmrho;
     tmrho.reset();
     tmrho.start();
     cout << " ChargeDensity::ctor..." << endl;
     ChargeDensity cd(wf);
-    
+
     cout << "done" << endl;
-    
+
     tmrho.stop();
-    cout << " ChargeDensity::ctor: CPU/Real: " 
+    cout << " ChargeDensity::ctor: CPU/Real: "
          << tmrho.cpu() << " / " << tmrho.real() << endl;
-         
+
     tmrho.reset();
     tmrho.start();
     cout << " ChargeDensity::update_density..." << endl;
     cd.update_density();
     tmrho.stop();
-    cout << " ChargeDensity::update_density: CPU/Real: " 
+    cout << " ChargeDensity::update_density: CPU/Real: "
          << tmrho.cpu() << " / " << tmrho.real() << endl;
-         
+
     // print the first few Fourier coefficients of the charge density
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
       for ( int i = 0; i < cd.vbasis()->localsize(); i++ )
       {
-        cout << ctxt.mype() << ": rho(ispin=" << ispin << ",ig=" << i << " (" 
+        cout << ctxt.mype() << ": rho(ispin=" << ispin << ",ig=" << i << " ("
         << cd.vbasis()->idx(3*i) << " "
         << cd.vbasis()->idx(3*i+1) << " " << cd.vbasis()->idx(3*i+2) << ") "
         << cd.rhog[ispin][i] << endl;
       }
     }
-         
+
 #if 0
     // integral of rho in r space
     double sum = 0.0;

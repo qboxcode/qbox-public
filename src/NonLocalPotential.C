@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.21 2006-03-07 07:07:43 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.22 2007-10-19 16:24:04 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "Species.h"
@@ -48,9 +48,9 @@ void NonLocalPotential::init(void)
   const double epsilon = 1.e-4;
 
   const int ngwl = basis_.localsize();
-  
+
   nsp = atoms_.nsp();
-  
+
   lmax.resize(nsp);
   lloc.resize(nsp);
   lproj.resize(nsp);
@@ -60,19 +60,19 @@ void NonLocalPotential::init(void)
   wt.resize(nsp);
   twnl.resize(nsp);
   dtwnl.resize(nsp);
-  
+
   nquad.resize(nsp);
   rquad.resize(nsp);
   wquad.resize(nsp);
-   
+
   nspnl = 0;
   for ( int is = 0; is < nsp; is++ )
   {
     Species *s = atoms_.species_list[is];
-    
+
     npr[is] = 0;
     nprna[is] = 0;
-    
+
     if ( s->non_local() )
     {
       nspnl++;
@@ -80,7 +80,7 @@ void NonLocalPotential::init(void)
       lmax[is] = s->lmax();
       lloc[is] = s->llocal();
       nquad[is] = s->nquad();
-      
+
       // compute total number of projectors npr[is]
       // KB potentials have nlm projectors
       // semilocal potentials have nlm*nquad projectors
@@ -93,21 +93,21 @@ void NonLocalPotential::init(void)
         npr[is] = s->nlm() * nquad[is];
       }
       nprna[is] = npr[is] * na[is];
-      
+
       // l value for projector ipr
       lproj[is].resize(npr[is]);
-      
-      twnl[is].resize(npr[is]*ngwl);      
+
+      twnl[is].resize(npr[is]*ngwl);
       dtwnl[is].resize(npr[is]*6*ngwl);
-      
+
       // quadrature abcissae and weights
       rquad[is].resize(nquad[is]);
       wquad[is].resize(nquad[is]);
-      
-      enum quadrature_rule_type { TRAPEZOID, MODIF_TRAPEZOID, 
-      TRAPEZOID_WITH_RIGHT_ENDPOINT, 
+
+      enum quadrature_rule_type { TRAPEZOID, MODIF_TRAPEZOID,
+      TRAPEZOID_WITH_RIGHT_ENDPOINT,
       SIMPSON };
-      
+
       const quadrature_rule_type quad_rule = TRAPEZOID;
       //const quadrature_rule_type quad_rule = MODIF_TRAPEZOID;
       //const quadrature_rule_type quad_rule = TRAPEZOID_WITH_RIGHT_ENDPOINT;
@@ -176,11 +176,11 @@ void NonLocalPotential::init(void)
       {
         assert(false);
       }
-      
+
       // compute weights wt[is][ipr]
       wt[is].resize(npr[is]);
-      
-      // compute lproj[is][ipr] 
+
+      // compute lproj[is][ipr]
       int ipr_base = 0;
       for ( int l = 0; l <= lmax[is]; l++ )
       {
@@ -205,8 +205,8 @@ void NonLocalPotential::init(void)
             {
               const double r = rquad[is][iquad];
               double v,dv,vl,dvl;
-              s->dvpsr(l,r,v,dv); 
-              s->dvpsr(lloc[is],r,vl,dvl); 
+              s->dvpsr(l,r,v,dv);
+              s->dvpsr(lloc[is],r,vl,dvl);
               // wt[is][iquad+ipr*nquad]
               for ( int m = 0; m < 2*l+1; m++ )
               {
@@ -231,14 +231,14 @@ void NonLocalPotential::update_twnl(void)
   // following a change of cell dimensions
   // It is assumed that basis_ has been updated
   // It is assumed that nsp, npr[is], nquad[is] did not change since init
-  
+
   tmap["update_twnl"].start();
-    
+
   const int ngwl = basis_.localsize();
   const double pi = M_PI;
   const double fpi = 4.0 * pi;
   const double s14pi = sqrt(1.0/fpi);
-  const double s34pi = sqrt(3.0/fpi);  
+  const double s34pi = sqrt(3.0/fpi);
   const double s54pi = sqrt(5.0/fpi);
   const double s20pi = sqrt(20.0*pi);
   const double s20pi3 = sqrt(20.0*pi/3.0);
@@ -250,15 +250,15 @@ void NonLocalPotential::update_twnl(void)
   const double *g_x = basis_.gx_ptr(0);
   const double *g_y = basis_.gx_ptr(1);
   const double *g_z = basis_.gx_ptr(2);
-    
+
   // compute twnl and dtwnl
   for ( int is = 0; is < nsp; is++ )
   {
     Species *s = atoms_.species_list[is];
-    
+
     int ilm = 0;
     for ( int l = 0; l <= lmax[is]; l++ )
-    {      
+    {
       if ( l != lloc[is] )
       {
         if ( l == 0 )
@@ -266,12 +266,12 @@ void NonLocalPotential::update_twnl(void)
           if ( nquad[is] == 0 )
           {
             // Kleinman-Bylander
-            
+
             // twnl[is][ipr][ig]
             // ipr = ilm = 0
             // index = ig + ngwl*ipr, i.e. index = ig
             double *t0  = &twnl[is][0];
-            
+
             // dtwnl[is][ipr][ij][ngwl]
             // index = ig + ngwl * ( ij + 6 * ipr ), ipr = 0
             // i.e. index = ig + ij * ngwl
@@ -287,14 +287,14 @@ void NonLocalPotential::update_twnl(void)
               s->dvnlg(0,g[ig],v,dv);
 
               t0[ig] = s14pi * v;
-              
+
               const double tgx = g_x[ig];
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
               const double tgx2 = tgx * tgx;
               const double tgy2 = tgy * tgy;
               const double tgz2 = tgz * tgz;
-              
+
               const double tmp = gi[ig] * s14pi * dv;
               dt0_xx[ig] = tmp * tgx * tgx;
               dt0_yy[ig] = tmp * tgy * tgy;
@@ -332,10 +332,10 @@ void NonLocalPotential::update_twnl(void)
                 // twnl[is][ipr][l][ig] = 4 pi j_0(Gr_i) r_i Ylm
                 // j_0(Gr) = sin(Gr) / (Gr) == 1.0
                 // Ylm = s14pi
-                
+
                 // next line: sin(Gr)/(Gr) replaced by 1
                 t0[ig] = fpi * s14pi * r;
-                
+
                 // dtwnl = fpi s14pi G_i G_j / G (r cos(Gr)/G -sin(Gr)/G^2)
                 // dtwnl = 0.0;
                 dt0_xx[ig] = 0.0;
@@ -355,18 +355,18 @@ void NonLocalPotential::update_twnl(void)
                 // Ylm = s14pi
                 const double arg = g[ig] * r;
                 // Note: for G=0, gi[0] = 0
-                
+
                 const double tgx = g_x[ig];
                 const double tgy = g_y[ig];
                 const double tgz = g_z[ig];
                 const double tgi = gi[ig];
                 const double tgi2 = tgi * tgi;
-                
+
                 const double ts = sin(arg);
                 const double tc = cos(arg);
-              
+
                 t0[ig] = fpi * s14pi * ts * tgi;
-                
+
                 // dtwnl = fpi s14pi G_i G_j / G (r cos(Gr)/G -sin(Gr)/G^2)
                 const double tmp = fpi * s14pi * tgi2 * (r*tc - ts*tgi);
                 dt0_xx[ig] = tmp * tgx * tgx;
@@ -375,7 +375,7 @@ void NonLocalPotential::update_twnl(void)
                 dt0_xy[ig] = tmp * tgx * tgy;
                 dt0_yz[ig] = tmp * tgy * tgz;
                 dt0_xz[ig] = tmp * tgx * tgz;
-              
+
               }
 
               for ( int ig = 1; ig < ngwl; ig++ )
@@ -386,18 +386,18 @@ void NonLocalPotential::update_twnl(void)
                 // Ylm = s14pi
                 const double arg = g[ig] * r;
                 // Note: for G=0, gi[0] = 0
-                
+
                 const double tgx = g_x[ig];
                 const double tgy = g_y[ig];
                 const double tgz = g_z[ig];
                 const double tgi = gi[ig];
                 const double tgi2 = tgi * tgi;
-                
+
                 const double ts = sin(arg);
                 const double tc = cos(arg);
-              
+
                 t0[ig] = fpi * s14pi * ts * tgi;
-                
+
                 // dtwnl = fpi s14pi G_i G_j / G (r cos(Gr)/G -sin(Gr)/G^2)
                 const double tmp = fpi * s14pi * tgi2 * (r*tc - ts*tgi);
                 dt0_xx[ig] = tmp * tgx * tgx;
@@ -416,7 +416,7 @@ void NonLocalPotential::update_twnl(void)
           if ( nquad[is] == 0 )
           {
             // Kleinman-Bylander
-            
+
             // twnl[is][ipr][ig]
             // ipr = ilm
             const int ipr1 = ilm;
@@ -426,7 +426,7 @@ void NonLocalPotential::update_twnl(void)
             double *t1 = &twnl[is][ngwl*ipr1];
             double *t2 = &twnl[is][ngwl*ipr2];
             double *t3 = &twnl[is][ngwl*ipr3];
-            
+
             // dtwnl[is][ipr][ij][ngwl]
             // index = ig + ngwl * ( ij + 6 * ipr )
             double *dt1_xx = &dtwnl[is][ngwl*(0+6*ipr1)];
@@ -455,21 +455,21 @@ void NonLocalPotential::update_twnl(void)
               double v,dv;
               const double tg = g[ig];
               s->dvnlg(l,tg,v,dv);
-              
+
               const double tgx = g_x[ig];
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
               const double tgx2 = tgx * tgx;
               const double tgy2 = tgy * tgy;
               const double tgz2 = tgz * tgz;
-              
+
               const double tgi = gi[ig];
               const double tgi2 = tgi * tgi;
-              
+
               const double y1 = s34pi * tgx * tgi;
               const double y2 = s34pi * tgy * tgi;
               const double y3 = s34pi * tgz * tgi;
-              
+
               t1[ig]  = y1 * v;
               t2[ig]  = y2 * v;
               t3[ig]  = y3 * v;
@@ -482,7 +482,7 @@ void NonLocalPotential::update_twnl(void)
               dt1_xy[ig] = fac1 * tgx * tgy;
               dt1_yz[ig] = fac1 * tgy * tgz;
               dt1_xz[ig] = fac1 * tgx * tgz;
-              
+
               const double fac2 = - y2 * ( v - tg * dv ) * tgi2;
               // m=y
               dt2_xx[ig] = fac2 * tgx2;
@@ -491,7 +491,7 @@ void NonLocalPotential::update_twnl(void)
               dt2_xy[ig] = fac2 * tgx * tgy + v * y1;
               dt2_yz[ig] = fac2 * tgy * tgz;
               dt2_xz[ig] = fac2 * tgx * tgz;
-              
+
               const double fac3 = - y3 * ( v - tg * dv ) * tgi2;
               // m=z
               dt3_xx[ig] = fac3 * tgx2;
@@ -515,7 +515,7 @@ void NonLocalPotential::update_twnl(void)
               double *t1 = &twnl[is][ngwl*ipr1];
               double *t2 = &twnl[is][ngwl*ipr2];
               double *t3 = &twnl[is][ngwl*ipr3];
-            
+
               // dtwnl[is][ipr][j][ngwl]
               // index = ig + ngwl * ( ij + 6 * ipr )
               double *dt1_xx = &dtwnl[is][ngwl*(0+6*ipr1)];
@@ -538,7 +538,7 @@ void NonLocalPotential::update_twnl(void)
               double *dt3_xy = &dtwnl[is][ngwl*(3+6*ipr3)];
               double *dt3_yz = &dtwnl[is][ngwl*(4+6*ipr3)];
               double *dt3_xz = &dtwnl[is][ngwl*(5+6*ipr3)];
-            
+
               const double r = rquad[is][iquad];
               for ( int ig = 0; ig < ngwl; ig++ )
               {
@@ -552,7 +552,7 @@ void NonLocalPotential::update_twnl(void)
                   const double c = cos(z);
                   const double s = sin(z);
                   const double j1 = ( s * zi - c ) * zi;
-                  const double dj1 = 
+                  const double dj1 =
                     ( 2.0 * z * c + ( z*z - 2.0 ) * s ) * zi*zi*zi;
                   // v = 4 pi j1(Gr) r
                   v = fpi * j1 * r;
@@ -560,21 +560,21 @@ void NonLocalPotential::update_twnl(void)
                   //    = 4 pi dj1 r^2
                   dv = fpi * dj1 * r * r;
                 }
-              
+
                 const double tgx = g_x[ig];
                 const double tgy = g_y[ig];
                 const double tgz = g_z[ig];
                 const double tgx2 = tgx * tgx;
                 const double tgy2 = tgy * tgy;
                 const double tgz2 = tgz * tgz;
- 
+
                 const double tgi = gi[ig];
                 const double tgi2 = tgi * tgi;
- 
+
                 const double y1 = s34pi * tgx * tgi;
                 const double y2 = s34pi * tgy * tgi;
                 const double y3 = s34pi * tgz * tgi;
- 
+
                 t1[ig]  = y1 * v;
                 t2[ig]  = y2 * v;
                 t3[ig]  = y3 * v;
@@ -587,7 +587,7 @@ void NonLocalPotential::update_twnl(void)
                 dt1_xy[ig] = fac1 * tgx * tgy;
                 dt1_yz[ig] = fac1 * tgy * tgz;
                 dt1_xz[ig] = fac1 * tgx * tgz;
- 
+
                 const double fac2 = - y2 * ( v - tg * dv ) * tgi2;
                 // m=y
                 dt2_xx[ig] = fac2 * tgx2;
@@ -596,7 +596,7 @@ void NonLocalPotential::update_twnl(void)
                 dt2_xy[ig] = fac2 * tgx * tgy + v * y1;
                 dt2_yz[ig] = fac2 * tgy * tgz;
                 dt2_xz[ig] = fac2 * tgx * tgz;
- 
+
                 const double fac3 = - y3 * ( v - tg * dv ) * tgi2;
                 // m=z
                 dt3_xx[ig] = fac3 * tgx2;
@@ -620,13 +620,13 @@ void NonLocalPotential::update_twnl(void)
             const int ipr6 = ilm+2;
             const int ipr7 = ilm+3;
             const int ipr8 = ilm+4;
-            
+
             double *t4 = &twnl[is][ngwl*ipr4];
             double *t5 = &twnl[is][ngwl*ipr5];
             double *t6 = &twnl[is][ngwl*ipr6];
             double *t7 = &twnl[is][ngwl*ipr7];
             double *t8 = &twnl[is][ngwl*ipr8];
-            
+
             // dtwnl[is][ipr][ij][ngwl]
             // index = ig + ngwl * ( ij + 6 * ipr )
             double *dt4_xx = &dtwnl[is][ngwl*(0+6*ipr4)];
@@ -642,21 +642,21 @@ void NonLocalPotential::update_twnl(void)
             double *dt5_xy = &dtwnl[is][ngwl*(3+6*ipr5)];
             double *dt5_yz = &dtwnl[is][ngwl*(4+6*ipr5)];
             double *dt5_xz = &dtwnl[is][ngwl*(5+6*ipr5)];
-            
+
             double *dt6_xx = &dtwnl[is][ngwl*(0+6*ipr6)];
             double *dt6_yy = &dtwnl[is][ngwl*(1+6*ipr6)];
             double *dt6_zz = &dtwnl[is][ngwl*(2+6*ipr6)];
             double *dt6_xy = &dtwnl[is][ngwl*(3+6*ipr6)];
             double *dt6_yz = &dtwnl[is][ngwl*(4+6*ipr6)];
             double *dt6_xz = &dtwnl[is][ngwl*(5+6*ipr6)];
-            
+
             double *dt7_xx = &dtwnl[is][ngwl*(0+6*ipr7)];
             double *dt7_yy = &dtwnl[is][ngwl*(1+6*ipr7)];
             double *dt7_zz = &dtwnl[is][ngwl*(2+6*ipr7)];
             double *dt7_xy = &dtwnl[is][ngwl*(3+6*ipr7)];
             double *dt7_yz = &dtwnl[is][ngwl*(4+6*ipr7)];
             double *dt7_xz = &dtwnl[is][ngwl*(5+6*ipr7)];
-            
+
             double *dt8_xx = &dtwnl[is][ngwl*(0+6*ipr8)];
             double *dt8_yy = &dtwnl[is][ngwl*(1+6*ipr8)];
             double *dt8_zz = &dtwnl[is][ngwl*(2+6*ipr8)];
@@ -668,58 +668,58 @@ void NonLocalPotential::update_twnl(void)
             {
               double v,dv;
               const double tg = g[ig];
-              
+
               s->dvnlg(l,tg,v,dv);
-              
+
               const double tgx = g_x[ig];
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
               const double tgx2 = tgx * tgx;
               const double tgy2 = tgy * tgy;
               const double tgz2 = tgz * tgz;
-              
+
               const double tgi = gi[ig];
               const double tg2 = tg * tg;
               const double tgi2 = tgi * tgi;
-              
+
               const double tgxx = tgx2 * tgi2;
               const double tgyy = tgy2 * tgi2;
               const double tgzz = tgz2 * tgi2;
               const double tgxy = tgx * tgy * tgi2;
               const double tgyz = tgy * tgz * tgi2;
               const double tgxz = tgx * tgz * tgi2;
-              
+
               const double y4 = s54pi * 0.5 * (3.0 * tgzz - 1.0 );
               const double y5 = s54pi * 0.5 * s3 * ( tgxx - tgyy );
               const double y6 = s54pi * s3 * tgxy;
               const double y7 = s54pi * s3 * tgyz;
               const double y8 = s54pi * s3 * tgxz;
-              
+
               const double y1x = s34pi * tgx * tgi;
               const double y1y = s34pi * tgy * tgi;
               const double y1z = s34pi * tgz * tgi;
-              
+
               const double dx_xx = y1x * tgxx - y1x;
               const double dx_yy = y1x * tgyy;
               const double dx_zz = y1x * tgzz;
               const double dx_xy = y1x * tgxy;
               const double dx_yz = y1x * tgyz;
               const double dx_xz = y1x * tgxz;
-              
+
               const double dy_xx = y1y * tgxx;
               const double dy_yy = y1y * tgyy - y1y;
               const double dy_zz = y1y * tgzz;
               const double dy_xy = y1y * tgxy - y1x;
               const double dy_yz = y1y * tgyz;
               const double dy_xz = y1y * tgxz;
-              
+
               const double dz_xx = y1z * tgxx;
               const double dz_yy = y1z * tgyy;
               const double dz_zz = y1z * tgzz - y1z;
               const double dz_xy = y1z * tgxy;
               const double dz_yz = y1z * tgyz - y1y;
               const double dz_xz = y1z * tgxz - y1x;
-              
+
               t4[ig]  = y4 * v;
               t5[ig]  = y5 * v;
               t6[ig]  = y6 * v;
@@ -733,7 +733,7 @@ void NonLocalPotential::update_twnl(void)
               dt4_xy[ig] = -(v * s20pi * dz_xy * y1z - y4 * dv * tg * tgxy);
               dt4_yz[ig] = -(v * s20pi * dz_yz * y1z - y4 * dv * tg * tgyz);
               dt4_xz[ig] = -(v * s20pi * dz_xz * y1z - y4 * dv * tg * tgxz);
-              
+
               // y5 = s54pi sqrt(3)/2 ( x^2 - y^2 ) / r^2
               dt5_xx[ig] = -(v * s20pi3 * (y1x * dx_xx - y1y * dy_xx) - y5 * dv * tg * tgxx);
               dt5_yy[ig] = -(v * s20pi3 * (y1x * dx_yy - y1y * dy_yy) - y5 * dv * tg * tgyy);
@@ -757,7 +757,7 @@ void NonLocalPotential::update_twnl(void)
               dt7_xy[ig] = -(v * s20pi3 * (dy_xy * y1z + y1y * dz_xy) - y7 * dv * tg * tgxy);
               dt7_yz[ig] = -(v * s20pi3 * (dy_yz * y1z + y1y * dz_yz) - y7 * dv * tg * tgyz);
               dt7_xz[ig] = -(v * s20pi3 * (dy_xz * y1z + y1y * dz_xz) - y7 * dv * tg * tgxz);
-              
+
               // y8 = s54pi sqrt(3) z x / r^2
               dt8_xx[ig] = -(v * s20pi3 * (dx_xx * y1z + y1x * dz_xx) - y8 * dv * tg * tgxx);
               dt8_yy[ig] = -(v * s20pi3 * (dx_yy * y1z + y1x * dz_yy) - y8 * dv * tg * tgyy);
@@ -780,7 +780,7 @@ void NonLocalPotential::update_twnl(void)
               const int ipr6 = iquad+nquad[is]*(ilm+2);
               const int ipr7 = iquad+nquad[is]*(ilm+3);
               const int ipr8 = iquad+nquad[is]*(ilm+4);
-            
+
               double *t4 = &twnl[is][ngwl*ipr4];
               double *t5 = &twnl[is][ngwl*ipr5];
               double *t6 = &twnl[is][ngwl*ipr6];
@@ -802,21 +802,21 @@ void NonLocalPotential::update_twnl(void)
               double *dt5_xy = &dtwnl[is][ngwl*(3+6*ipr5)];
               double *dt5_yz = &dtwnl[is][ngwl*(4+6*ipr5)];
               double *dt5_xz = &dtwnl[is][ngwl*(5+6*ipr5)];
- 
+
               double *dt6_xx = &dtwnl[is][ngwl*(0+6*ipr6)];
               double *dt6_yy = &dtwnl[is][ngwl*(1+6*ipr6)];
               double *dt6_zz = &dtwnl[is][ngwl*(2+6*ipr6)];
               double *dt6_xy = &dtwnl[is][ngwl*(3+6*ipr6)];
               double *dt6_yz = &dtwnl[is][ngwl*(4+6*ipr6)];
               double *dt6_xz = &dtwnl[is][ngwl*(5+6*ipr6)];
- 
+
               double *dt7_xx = &dtwnl[is][ngwl*(0+6*ipr7)];
               double *dt7_yy = &dtwnl[is][ngwl*(1+6*ipr7)];
               double *dt7_zz = &dtwnl[is][ngwl*(2+6*ipr7)];
               double *dt7_xy = &dtwnl[is][ngwl*(3+6*ipr7)];
               double *dt7_yz = &dtwnl[is][ngwl*(4+6*ipr7)];
               double *dt7_xz = &dtwnl[is][ngwl*(5+6*ipr7)];
- 
+
               double *dt8_xx = &dtwnl[is][ngwl*(0+6*ipr8)];
               double *dt8_yy = &dtwnl[is][ngwl*(1+6*ipr8)];
               double *dt8_zz = &dtwnl[is][ngwl*(2+6*ipr8)];
@@ -830,7 +830,7 @@ void NonLocalPotential::update_twnl(void)
                 double v = 0.0, dv = 0.0;
                 // j_2(z) = (3/z^3-1/z) sin(z) - 3/z^2 cos(z)
                 // j_2(z) = (1/z)*((3/z^2-1)*sin(z) - (3/z) cos(z) )
-                
+
                 const double tg = g[ig];
                 const double z = tg * r;
                 if ( z != 0.0 )
@@ -840,64 +840,64 @@ void NonLocalPotential::update_twnl(void)
                   const double s = sin(z);
                   const double j2 = ((3.0*zi*zi - 1.0) * s - 3.0*zi * c ) * zi;
                   const double z2 = z * z;
-                  const double dj2 = 
+                  const double dj2 =
                     ( (4.0 * z2 - 9.0) * s + z*(9.0-z2) * c ) / (z2*z2) ;
                   // v = 4 pi j2(Gr) r
                   v = fpi * j2 * r;
                   // dv = d/dG v = 4 pi dj2(Gr)/d(Gr) d(Gr)/dG r
                   //    = 4 pi dj2 r^2
-                  dv = fpi * dj2 * r * r;                  
+                  dv = fpi * dj2 * r * r;
                 }
-              
+
                 const double tgx = g_x[ig];
                 const double tgy = g_y[ig];
                 const double tgz = g_z[ig];
                 const double tgx2 = tgx * tgx;
                 const double tgy2 = tgy * tgy;
                 const double tgz2 = tgz * tgz;
- 
+
                 const double tgi = gi[ig];
                 const double tg2 = tg * tg;
                 const double tgi2 = tgi * tgi;
- 
+
                 const double tgxx = tgx2 * tgi2;
                 const double tgyy = tgy2 * tgi2;
                 const double tgzz = tgz2 * tgi2;
                 const double tgxy = tgx * tgy * tgi2;
                 const double tgyz = tgy * tgz * tgi2;
                 const double tgxz = tgx * tgz * tgi2;
- 
+
                 const double y4 = s54pi * 0.5 * (3.0 * tgzz - 1.0 );
                 const double y5 = s54pi * 0.5 * s3 * ( tgxx - tgyy );
                 const double y6 = s54pi * s3 * tgxy;
                 const double y7 = s54pi * s3 * tgyz;
                 const double y8 = s54pi * s3 * tgxz;
- 
+
                 const double y1x = s34pi * tgx * tgi;
                 const double y1y = s34pi * tgy * tgi;
                 const double y1z = s34pi * tgz * tgi;
- 
+
                 const double dx_xx = y1x * tgxx - y1x;
                 const double dx_yy = y1x * tgyy;
                 const double dx_zz = y1x * tgzz;
                 const double dx_xy = y1x * tgxy;
                 const double dx_yz = y1x * tgyz;
                 const double dx_xz = y1x * tgxz;
- 
+
                 const double dy_xx = y1y * tgxx;
                 const double dy_yy = y1y * tgyy - y1y;
                 const double dy_zz = y1y * tgzz;
                 const double dy_xy = y1y * tgxy - y1x;
                 const double dy_yz = y1y * tgyz;
                 const double dy_xz = y1y * tgxz;
- 
+
                 const double dz_xx = y1z * tgxx;
                 const double dz_yy = y1z * tgyy;
                 const double dz_zz = y1z * tgzz - y1z;
                 const double dz_xy = y1z * tgxy;
                 const double dz_yz = y1z * tgyz - y1y;
                 const double dz_xz = y1z * tgxz - y1x;
- 
+
                 t4[ig]  = y4 * v;
                 t5[ig]  = y5 * v;
                 t6[ig]  = y6 * v;
@@ -911,7 +911,7 @@ void NonLocalPotential::update_twnl(void)
                 dt4_xy[ig] = -(v * s20pi * dz_xy * y1z - y4 * dv * tg * tgxy);
                 dt4_yz[ig] = -(v * s20pi * dz_yz * y1z - y4 * dv * tg * tgyz);
                 dt4_xz[ig] = -(v * s20pi * dz_xz * y1z - y4 * dv * tg * tgxz);
- 
+
                 // y5 = s54pi sqrt(3)/2 ( x^2 - y^2 ) / r^2
                 dt5_xx[ig] = -(v * s20pi3 * (y1x * dx_xx - y1y * dy_xx) - y5 * dv * tg * tgxx);
                 dt5_yy[ig] = -(v * s20pi3 * (y1x * dx_yy - y1y * dy_yy) - y5 * dv * tg * tgyy);
@@ -935,7 +935,7 @@ void NonLocalPotential::update_twnl(void)
                 dt7_xy[ig] = -(v * s20pi3 * (dy_xy * y1z + y1y * dz_xy) - y7 * dv * tg * tgxy);
                 dt7_yz[ig] = -(v * s20pi3 * (dy_yz * y1z + y1y * dz_yz) - y7 * dv * tg * tgyz);
                 dt7_xz[ig] = -(v * s20pi3 * (dy_xz * y1z + y1y * dz_xz) - y7 * dv * tg * tgxz);
- 
+
                 // y8 = s54pi sqrt(3) z x / r^2
                 dt8_xx[ig] = -(v * s20pi3 * (dx_xx * y1z + y1x * dz_xx) - y8 * dv * tg * tgxx);
                 dt8_yy[ig] = -(v * s20pi3 * (dx_yy * y1z + y1x * dz_yy) - y8 * dv * tg * tgyy);
@@ -960,8 +960,8 @@ void NonLocalPotential::update_twnl(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd, 
-    bool compute_forces, vector<vector<double> >& fion, 
+double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
+    bool compute_forces, vector<vector<double> >& fion,
     bool compute_stress, valarray<double>& sigma_enl)
 {
   const vector<double>& occ = sd_.occ();
@@ -981,440 +981,440 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
   const double omega = basis_.cell().volume();
   assert(omega != 0.0);
   const double omega_inv = 1.0 / omega;
-  
-  for ( int is = 0; is < nsp; is++ )   
-  {  
+
+  for ( int is = 0; is < nsp; is++ )
+  {
     if ( npr[is] > 0 ) // species is is non-local
     {
-      valarray<double> tmpfion(3*na[is]);      
-      tmpfion = 0.0;                           
-      // define number of atom blocks                                        
-      const int na_blocks = na[is] / na_block_size +                         
-                            ( na[is] % na_block_size == 0 ? 0 : 1 );         
-                                                                             
-      valarray<double> anl_loc(npr[is]*na_block_size*2*ngwl);                
-      const int nstloc = sd_.nstloc();                                       
-      // fnl_loc[ipra][n]                                                    
-      valarray<double> fnl_loc(npr[is]*na_block_size*nstloc);                
-      valarray<double> fnl_buf(npr[is]*na_block_size*nstloc);                
-      for ( int ia_block = 0; ia_block < na_blocks; ia_block++ )             
-      {                                                              
-        // process projectors of atoms in block ia_block             
-                                                                     
-        const int iastart = ia_block * na_block_size;                
-        const int iaend = (ia_block+1) * na_block_size < na[is] ?    
-                        (ia_block+1) * na_block_size :               
-                        na[is];                                      
-        const int ia_block_size = iaend - iastart;                   
-                                                                     
-        // compute cgr[is][ia][ig], sgr[is][ia][ig]                  
-        tmap["comp_eigr"].start();                                   
-        int k = 3;                                                   
-        double mone = -1.0, zero = 0.0;                              
-        char cn='n';                                                         
-                                                                             
-        // next line: const cast is ok since dgemm_ does not modify argument 
-        double* gx = const_cast<double*>(basis_.gx_ptr(0));                  
-        dgemm(&cn,&cn,(int*)&ngwl,(int*)&ia_block_size,&k,&mone,             
-              gx,(int*)&ngwl, &tau[is][3*iastart],&k,                        
-              &zero,&gr[0],(int*)&ngwl);                                     
+      valarray<double> tmpfion(3*na[is]);
+      tmpfion = 0.0;
+      // define number of atom blocks
+      const int na_blocks = na[is] / na_block_size +
+                            ( na[is] % na_block_size == 0 ? 0 : 1 );
 
-        int len = ia_block_size * ngwl;                                      
-#if AIX || BGL  
-        vsincos(&sgr[0],&cgr[0],&gr[0],&len);                                
+      valarray<double> anl_loc(npr[is]*na_block_size*2*ngwl);
+      const int nstloc = sd_.nstloc();
+      // fnl_loc[ipra][n]
+      valarray<double> fnl_loc(npr[is]*na_block_size*nstloc);
+      valarray<double> fnl_buf(npr[is]*na_block_size*nstloc);
+      for ( int ia_block = 0; ia_block < na_blocks; ia_block++ )
+      {
+        // process projectors of atoms in block ia_block
+
+        const int iastart = ia_block * na_block_size;
+        const int iaend = (ia_block+1) * na_block_size < na[is] ?
+                        (ia_block+1) * na_block_size :
+                        na[is];
+        const int ia_block_size = iaend - iastart;
+
+        // compute cgr[is][ia][ig], sgr[is][ia][ig]
+        tmap["comp_eigr"].start();
+        int k = 3;
+        double mone = -1.0, zero = 0.0;
+        char cn='n';
+
+        // next line: const cast is ok since dgemm_ does not modify argument
+        double* gx = const_cast<double*>(basis_.gx_ptr(0));
+        dgemm(&cn,&cn,(int*)&ngwl,(int*)&ia_block_size,&k,&mone,
+              gx,(int*)&ngwl, &tau[is][3*iastart],&k,
+              &zero,&gr[0],(int*)&ngwl);
+
+        int len = ia_block_size * ngwl;
+#if AIX || BGL
+        vsincos(&sgr[0],&cgr[0],&gr[0],&len);
 #else
-        for ( int i = 0; i < len; i++ )                                      
-        {                                                                    
-          const double arg = gr[i];                                          
-          sgr[i] = sin(arg);                                                 
-          cgr[i] = cos(arg);                                                 
-        }                                                                    
+        for ( int i = 0; i < len; i++ )
+        {
+          const double arg = gr[i];
+          sgr[i] = sin(arg);
+          cgr[i] = cos(arg);
+        }
 #endif
-        tmap["comp_eigr"].stop();                                            
+        tmap["comp_eigr"].stop();
 
-        // compute anl_loc                                                   
-        tmap["comp_anl"].start();                                            
-        for ( int ipr = 0; ipr < npr[is]; ipr++ )                            
-        {                                                                    
-          // twnl[is][ig+ngwl*ipr]                                           
-          const double * t = &twnl[is][ngwl*ipr];                            
-          const int l = lproj[is][ipr];                                      
+        // compute anl_loc
+        tmap["comp_anl"].start();
+        for ( int ipr = 0; ipr < npr[is]; ipr++ )
+        {
+          // twnl[is][ig+ngwl*ipr]
+          const double * t = &twnl[is][ngwl*ipr];
+          const int l = lproj[is][ipr];
 
-          // anl_loc[ig+ipra*ngwl]                                           
+          // anl_loc[ig+ipra*ngwl]
 
-          for ( int ia = 0; ia < ia_block_size; ia++ )                       
-          {                                                                  
-            double* a = &anl_loc[2*(ia+ipr*ia_block_size)*ngwl];             
-            const double* c = &cgr[ia*ngwl];                                 
-            const double* s = &sgr[ia*ngwl];                                 
-            if ( l == 0 )                                                    
-            {                                                                
-              for ( int ig = 0; ig < ngwl; ig++ )                            
-              {                                                              
-                a[2*ig]   = t[ig] * c[ig];                                   
-                a[2*ig+1] = t[ig] * s[ig];                                   
-              }                                                              
-            }                                                                
-            else if ( l == 1 )                                               
-            {                                                                
-              for ( int ig = 0; ig < ngwl; ig++ )                            
-              {                                                              
-                /* Next line: -i * eigr */                                   
-                /* -i * (a+i*b) = b - i*a */                                 
-                a[2*ig]   =  t[ig] * s[ig];                                  
-                a[2*ig+1] = -t[ig] * c[ig];                                  
-              }                                                              
-            }                                                                
-            else if ( l == 2 )                                               
-            {                                                                
-              for ( int ig = 0; ig < ngwl; ig++ )                            
-              {                                                              
-                // Next line: (-) sign for -eigr                             
-                a[2*ig]   = -t[ig] * c[ig];                                  
-                a[2*ig+1] = -t[ig] * s[ig];                                  
-              }                                                              
-            }                                                                
-          }                                                                  
-        } // ipr                                                             
-        tmap["comp_anl"].stop();                                             
-                                                                             
-        // array anl_loc is complete                                         
-                                                                             
-        // compute fnl[npra][nstloc] = anl^T * c                             
-        double one=1.0;                                                      
-        char ct='t';                                                         
-        int twongwl = 2 * ngwl;                                              
-        int nprnaloc = ia_block_size * npr[is];                              
-        int c_lda = 2*sd_.c().mloc();                                        
-        const complex<double>* c = sd_.c().cvalptr();                        
-        tmap["fnl_gemm"].start();                                            
-        dgemm(&ct,&cn,&nprnaloc,(int*)&nstloc,&twongwl,&one,                 
-              &anl_loc[0],&twongwl, (double*)c, &c_lda,                      
-              &zero,&fnl_loc[0],&nprnaloc);                                  
-        tmap["fnl_gemm"].stop();                                             
-                                                                             
-        // correct for double counting if ctxt_.myrow() == 0                 
-        if ( ctxt_.myrow() == 0 )                                            
-        {                                                                    
-          // rank-one update                                                 
-          // dger(m,n,alpha,x,incx,y,incy,a,lda);                            
-          // a += alpha * x * transpose(y)                                   
-          // x = first row of anl_loc                                        
-          // y^T = first row of c                                            
-          double alpha = -0.5;                                               
-          dger(&nprnaloc,(int*)&nstloc,&alpha,&anl_loc[0],&twongwl,          
-               (double*)c,&c_lda,&fnl_loc[0],&nprnaloc);                     
-        }                                                                    
-                                                                             
+          for ( int ia = 0; ia < ia_block_size; ia++ )
+          {
+            double* a = &anl_loc[2*(ia+ipr*ia_block_size)*ngwl];
+            const double* c = &cgr[ia*ngwl];
+            const double* s = &sgr[ia*ngwl];
+            if ( l == 0 )
+            {
+              for ( int ig = 0; ig < ngwl; ig++ )
+              {
+                a[2*ig]   = t[ig] * c[ig];
+                a[2*ig+1] = t[ig] * s[ig];
+              }
+            }
+            else if ( l == 1 )
+            {
+              for ( int ig = 0; ig < ngwl; ig++ )
+              {
+                /* Next line: -i * eigr */
+                /* -i * (a+i*b) = b - i*a */
+                a[2*ig]   =  t[ig] * s[ig];
+                a[2*ig+1] = -t[ig] * c[ig];
+              }
+            }
+            else if ( l == 2 )
+            {
+              for ( int ig = 0; ig < ngwl; ig++ )
+              {
+                // Next line: (-) sign for -eigr
+                a[2*ig]   = -t[ig] * c[ig];
+                a[2*ig+1] = -t[ig] * s[ig];
+              }
+            }
+          }
+        } // ipr
+        tmap["comp_anl"].stop();
+
+        // array anl_loc is complete
+
+        // compute fnl[npra][nstloc] = anl^T * c
+        double one=1.0;
+        char ct='t';
+        int twongwl = 2 * ngwl;
+        int nprnaloc = ia_block_size * npr[is];
+        int c_lda = 2*sd_.c().mloc();
+        const complex<double>* c = sd_.c().cvalptr();
+        tmap["fnl_gemm"].start();
+        dgemm(&ct,&cn,&nprnaloc,(int*)&nstloc,&twongwl,&one,
+              &anl_loc[0],&twongwl, (double*)c, &c_lda,
+              &zero,&fnl_loc[0],&nprnaloc);
+        tmap["fnl_gemm"].stop();
+
+        // correct for double counting if ctxt_.myrow() == 0
+        if ( ctxt_.myrow() == 0 )
+        {
+          // rank-one update
+          // dger(m,n,alpha,x,incx,y,incy,a,lda);
+          // a += alpha * x * transpose(y)
+          // x = first row of anl_loc
+          // y^T = first row of c
+          double alpha = -0.5;
+          dger(&nprnaloc,(int*)&nstloc,&alpha,&anl_loc[0],&twongwl,
+               (double*)c,&c_lda,&fnl_loc[0],&nprnaloc);
+        }
+
 #if USE_MPI
-        tmap["fnl_allreduce"].start();                                       
-        // Allreduce fnl partial sum                                         
-        MPI_Comm basis_comm = basis_.context().comm();                       
-        int fnl_size = nprnaloc*nstloc;                                   
-        MPI_Allreduce(&fnl_loc[0],&fnl_buf[0],fnl_size,                      
-                      MPI_DOUBLE,MPI_SUM,basis_comm);                        
-        tmap["fnl_allreduce"].stop();                                        
-                                                                             
-        // factor 2.0 in next line is: counting G, -G                        
+        tmap["fnl_allreduce"].start();
+        // Allreduce fnl partial sum
+        MPI_Comm basis_comm = basis_.context().comm();
+        int fnl_size = nprnaloc*nstloc;
+        MPI_Allreduce(&fnl_loc[0],&fnl_buf[0],fnl_size,
+                      MPI_DOUBLE,MPI_SUM,basis_comm);
+        tmap["fnl_allreduce"].stop();
+
+        // factor 2.0 in next line is: counting G, -G
         fnl_loc = 2.0 * fnl_buf;
 #else
-        // factor 2.0 in next line is: counting G, -G                        
+        // factor 2.0 in next line is: counting G, -G
         fnl_loc *= 2.0;
 #endif
-                                                                             
-        // accumulate Enl contribution                                       
-        const int nbase = ctxt_.mycol() * sd_.c().nb();                      
-        for ( int ipr = 0; ipr < npr[is]; ipr++ )                            
-        {                                                                    
-          const double fac = wt[is][ipr] * omega_inv;                        
-          for ( int n = 0; n < nstloc; n++ )                                 
-          {                                                                  
-            const double facn = fac * occ[n + nbase];                        
-            for ( int ia = 0; ia < ia_block_size; ia++ )                     
-            {                                                                
-              const int i = ia + ipr*ia_block_size + n * nprnaloc;           
-              //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia                
-              //     << ",n=" << n << "]: " << fnl_loc[i] << endl;           
-              const double tmp = fnl_loc[i];                                 
-              enl += facn * tmp * tmp;                                       
-              fnl_loc[i] = fac * tmp;                                        
-            }                                                                
-          }                                                                  
-        }                                                                    
-                                                                             
-        if ( compute_hpsi )                                                  
-        {                                                                    
-          tmap["enl_hpsi"].start();                                          
-          // compute cp += anl * fnl                                         
-          complex<double>* cp = dsd.c().valptr();                            
-          int cp_lda = 2*dsd.c().mloc();                                     
-          dgemm(&cn,&cn,&twongwl,(int*)&nstloc,&nprnaloc,&one,               
-                &anl_loc[0],&twongwl, &fnl_loc[0],&nprnaloc,                 
-                &one,(double*)cp, &cp_lda);                                  
-          tmap["enl_hpsi"].stop();                                           
-        }                                                                    
-                                                                             
-        // ionic forces                                                      
-        if ( compute_forces )                                                
-        {                                                                    
-          tmap["enl_fion"].start();                                          
- 
-          valarray<double> dfnl_loc(npr[is]*na_block_size*nstloc);           
-          for ( int j = 0; j < 3; j++ )                                      
-          {                                                                  
-            const double *const gxj = basis_.gx_ptr(j);                      
-                                                                             
-            // compute anl_loc                                               
-            for ( int ipr = 0; ipr < npr[is]; ipr++ )                        
-            {                                                                
-              // twnl[is][ig+ngwl*ipr]                                       
-              const double * t = &twnl[is][ngwl*ipr];                        
-              const int l = lproj[is][ipr];                                  
 
-              // anl_loc[ig+ipra*ngwl]                                       
+        // accumulate Enl contribution
+        const int nbase = ctxt_.mycol() * sd_.c().nb();
+        for ( int ipr = 0; ipr < npr[is]; ipr++ )
+        {
+          const double fac = wt[is][ipr] * omega_inv;
+          for ( int n = 0; n < nstloc; n++ )
+          {
+            const double facn = fac * occ[n + nbase];
+            for ( int ia = 0; ia < ia_block_size; ia++ )
+            {
+              const int i = ia + ipr*ia_block_size + n * nprnaloc;
+              //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia
+              //     << ",n=" << n << "]: " << fnl_loc[i] << endl;
+              const double tmp = fnl_loc[i];
+              enl += facn * tmp * tmp;
+              fnl_loc[i] = fac * tmp;
+            }
+          }
+        }
 
-              for ( int ia = 0; ia < ia_block_size; ia++ )                   
-              {                                                              
-                double* a = &anl_loc[2*(ia+ipr*ia_block_size)*ngwl];         
-                const double* c = &cgr[ia*ngwl];                             
-                const double* s = &sgr[ia*ngwl];                             
-                if ( l == 0 )                                                
-                {                                                            
-                  for ( int ig = 0; ig < ngwl; ig++ )                        
-                  {                                                          
-                    const double tt = gxj[ig] * t[ig];                       
-                    // Next lines: -i * ( a + ib ) = b - ia                  
-                    a[2*ig]   =  tt * s[ig];                                 
-                    a[2*ig+1] = -tt * c[ig];                                 
-                  }                                                          
-                }                                                            
-                else if ( l == 1 )                                           
-                {                                                            
-                  for ( int ig = 0; ig < ngwl; ig++ )                        
-                  {                                                          
-                    // Next lines: (-i)**2 * ( a + ib ) = - a - ib           
-                    const double tt = - gxj[ig] * t[ig];                     
-                    a[2*ig]   = tt * c[ig];                                  
-                    a[2*ig+1] = tt * s[ig];                                  
-                  }                                                          
-                }                                                            
-                else if ( l == 2 )                                           
-                {                                                            
-                  for ( int ig = 0; ig < ngwl; ig++ )                        
-                  {                                                          
-                    // Next lines: (-i) * - ( a + ib ) = i*(a+ib) = - b + ia 
-                    const double tt = gxj[ig] * t[ig];                       
-                    a[2*ig]   = -tt * s[ig];                                 
-                    a[2*ig+1] =  tt * c[ig];                                 
-                  }                                                          
-                }                                                            
-              }                                                              
-            } // ipr                                                         
- 
-            // array anl_loc is complete                                     
-                                                                             
-            // compute dfnl                                                  
-            // dfnl.gemm('t','n',2.0,anl,c_proxy,0.0);                       
-            // compute dfnl[npra][nstloc] = anl^T * c                        
-            double one=1.0;                                                  
-            char ct='t';                                                     
-            const int twongwl = 2 * ngwl;                                    
-            const int nprnaloc = ia_block_size * npr[is];                    
-            const complex<double>* c = sd_.c().cvalptr();                    
-            dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&one, 
-                  &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,       
-                  &zero,&dfnl_loc[0],(int*)&nprnaloc);                       
-                                                                             
- 
-            // Note: no need to correct for double counting of the           
-            // G=0 component which is always zero                            
+        if ( compute_hpsi )
+        {
+          tmap["enl_hpsi"].start();
+          // compute cp += anl * fnl
+          complex<double>* cp = dsd.c().valptr();
+          int cp_lda = 2*dsd.c().mloc();
+          dgemm(&cn,&cn,&twongwl,(int*)&nstloc,&nprnaloc,&one,
+                &anl_loc[0],&twongwl, &fnl_loc[0],&nprnaloc,
+                &one,(double*)cp, &cp_lda);
+          tmap["enl_hpsi"].stop();
+        }
 
-            // factor 2.0 in next line is: counting G, -G                    
-            dfnl_loc *= 2.0;                                                 
-                                                                             
-            // accumulate non-local contributions to forces                  
-            for ( int ipr = 0; ipr < npr[is]; ipr++ )                        
-            {                                                                
-              for ( int n = 0; n < nstloc; n++ )                             
-              {                                                              
-                // Factor 2.0 in next line from derivative of |Fnl|^2        
-                const double facn = 2.0 * occ[n + nbase];                    
-                for ( int ia = 0; ia < ia_block_size; ia++ )                 
-                {                                                            
-                  const int ia_global = ia + iastart;                        
-                  const int i = ia + ipr*ia_block_size + n * nprnaloc;       
-                  //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia            
-                  //     << ",n=" << n << "]: " << fnl_loc[i] << endl;       
-                  tmpfion[3*ia_global+j] -= facn *                           
-                                            fnl_loc[i] * dfnl_loc[i];        
-                }                                                            
-              }                                                              
-            }                                                                
-          } // j                                                             
- 
-          tmap["enl_fion"].stop();                                           
-        } // compute_forces                                                  
-                                                                             
-        if ( compute_stress )                                                
-        {                                                                    
-          tmap["enl_sigma"].start();                                         
-          valarray<double> dfnl_loc(npr[is]*na_block_size*nstloc);           
-                                                                             
-          for ( int ij = 0; ij < 6; ij++ )                                   
-          {                                                                  
-            // compute anl_loc                                               
-            int ipr = 0;                                                     
-            while ( ipr < npr[is] )                                          
-            {                                                                
-              // twnl[is][ig+ngwl*ipr]                                       
-              const int l = lproj[is][ipr];                                  
-              if ( l == 0 )                                                  
-              {                                                              
-                // dtwnl[is][ipr][ij][ngwl]                                  
-                // index = ig + ngwl * ( ij + 6 * ipr))                      
-                // ipr = iquad + nquad[is] * ilm, where ilm = 0              
-                const double *const dt0 = &dtwnl[is][ngwl*(ij+6*ipr)];       
-                for ( int ia = 0; ia < ia_block_size; ia++ )                 
-                {                                                            
-                  double* a0 = &anl_loc[2*(ia+ipr*ia_block_size)*ngwl];      
-                  const double* c = &cgr[ia*ngwl];                           
-                  const double* s = &sgr[ia*ngwl];                           
-                  for ( int ig = 0; ig < ngwl; ig++ )                        
-                  {                                                          
-                    const double d0 = dt0[ig];                               
-                    // Next lines: -i * ( a + ib ) = b - ia                  
-                    a0[2*ig]   =  d0 * c[ig];                                
-                    a0[2*ig+1] =  d0 * s[ig];                                
-                  }                                                          
-                }                                                            
-              }                                                              
-              else if ( l == 1 )                                             
-              {                                                              
-                const int ipr1 = ipr;                                        
-                const int ipr2 = ipr + 1;                                    
-                const int ipr3 = ipr + 2;                                    
-                // dtwnl[is][ipr][ij][ngwl]                                  
-                // index = ig + ngwl * ( ij + 6 * iprx ))                    
-                const double *dt1 = &dtwnl[is][ngwl*(ij+6*ipr1)];            
-                const double *dt2 = &dtwnl[is][ngwl*(ij+6*ipr2)];            
-                const double *dt3 = &dtwnl[is][ngwl*(ij+6*ipr3)];            
-                for ( int ia = 0; ia < ia_block_size; ia++ )                 
-                {                                                            
-                  double* a1 = &anl_loc[2*(ia+ipr1*ia_block_size)*ngwl];     
-                  double* a2 = &anl_loc[2*(ia+ipr2*ia_block_size)*ngwl];     
-                  double* a3 = &anl_loc[2*(ia+ipr3*ia_block_size)*ngwl];     
-                  const double* c = &cgr[ia*ngwl];                           
-                  const double* s = &sgr[ia*ngwl];                           
-                  for ( int ig = 0; ig < ngwl; ig++ )                        
-                  {                                                          
-                    const double d1 = dt1[ig];                               
-                    const double d2 = dt2[ig];                               
-                    const double d3 = dt3[ig];                               
-                    // Next line: (-i)^l factor is -i                        
-                    // Next line: -i * eigr                                  
-                    // -i * (a+i*b) = b - i*a                                
-                    const double tc = -c[ig]; //  -cosgr[ia][ig]             
-                    const double ts =  s[ig]; //   singr[ia][ig]             
-                    a1[2*ig]   = d1 * ts;                                    
-                    a1[2*ig+1] = d1 * tc;                                    
-                    a2[2*ig]   = d2 * ts;                                    
-                    a2[2*ig+1] = d2 * tc;                                    
-                    a3[2*ig]   = d3 * ts;                                    
-                    a3[2*ig+1] = d3 * tc;                                    
-                  }                                                          
-                }                                                            
-              }                                                               
-              else if ( l == 2 )                                              
-              {                                                               
-                const int ipr4 = ipr;                                         
-                const int ipr5 = ipr + 1;                                     
-                const int ipr6 = ipr + 2;                                     
-                const int ipr7 = ipr + 3;                                     
-                const int ipr8 = ipr + 4;                                     
-                // dtwnl[is][ipr][iquad][ij][ngwl]                            
+        // ionic forces
+        if ( compute_forces )
+        {
+          tmap["enl_fion"].start();
+
+          valarray<double> dfnl_loc(npr[is]*na_block_size*nstloc);
+          for ( int j = 0; j < 3; j++ )
+          {
+            const double *const gxj = basis_.gx_ptr(j);
+
+            // compute anl_loc
+            for ( int ipr = 0; ipr < npr[is]; ipr++ )
+            {
+              // twnl[is][ig+ngwl*ipr]
+              const double * t = &twnl[is][ngwl*ipr];
+              const int l = lproj[is][ipr];
+
+              // anl_loc[ig+ipra*ngwl]
+
+              for ( int ia = 0; ia < ia_block_size; ia++ )
+              {
+                double* a = &anl_loc[2*(ia+ipr*ia_block_size)*ngwl];
+                const double* c = &cgr[ia*ngwl];
+                const double* s = &sgr[ia*ngwl];
+                if ( l == 0 )
+                {
+                  for ( int ig = 0; ig < ngwl; ig++ )
+                  {
+                    const double tt = gxj[ig] * t[ig];
+                    // Next lines: -i * ( a + ib ) = b - ia
+                    a[2*ig]   =  tt * s[ig];
+                    a[2*ig+1] = -tt * c[ig];
+                  }
+                }
+                else if ( l == 1 )
+                {
+                  for ( int ig = 0; ig < ngwl; ig++ )
+                  {
+                    // Next lines: (-i)**2 * ( a + ib ) = - a - ib
+                    const double tt = - gxj[ig] * t[ig];
+                    a[2*ig]   = tt * c[ig];
+                    a[2*ig+1] = tt * s[ig];
+                  }
+                }
+                else if ( l == 2 )
+                {
+                  for ( int ig = 0; ig < ngwl; ig++ )
+                  {
+                    // Next lines: (-i) * - ( a + ib ) = i*(a+ib) = - b + ia
+                    const double tt = gxj[ig] * t[ig];
+                    a[2*ig]   = -tt * s[ig];
+                    a[2*ig+1] =  tt * c[ig];
+                  }
+                }
+              }
+            } // ipr
+
+            // array anl_loc is complete
+
+            // compute dfnl
+            // dfnl.gemm('t','n',2.0,anl,c_proxy,0.0);
+            // compute dfnl[npra][nstloc] = anl^T * c
+            double one=1.0;
+            char ct='t';
+            const int twongwl = 2 * ngwl;
+            const int nprnaloc = ia_block_size * npr[is];
+            const complex<double>* c = sd_.c().cvalptr();
+            dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&one,
+                  &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,
+                  &zero,&dfnl_loc[0],(int*)&nprnaloc);
+
+
+            // Note: no need to correct for double counting of the
+            // G=0 component which is always zero
+
+            // factor 2.0 in next line is: counting G, -G
+            dfnl_loc *= 2.0;
+
+            // accumulate non-local contributions to forces
+            for ( int ipr = 0; ipr < npr[is]; ipr++ )
+            {
+              for ( int n = 0; n < nstloc; n++ )
+              {
+                // Factor 2.0 in next line from derivative of |Fnl|^2
+                const double facn = 2.0 * occ[n + nbase];
+                for ( int ia = 0; ia < ia_block_size; ia++ )
+                {
+                  const int ia_global = ia + iastart;
+                  const int i = ia + ipr*ia_block_size + n * nprnaloc;
+                  //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia
+                  //     << ",n=" << n << "]: " << fnl_loc[i] << endl;
+                  tmpfion[3*ia_global+j] -= facn *
+                                            fnl_loc[i] * dfnl_loc[i];
+                }
+              }
+            }
+          } // j
+
+          tmap["enl_fion"].stop();
+        } // compute_forces
+
+        if ( compute_stress )
+        {
+          tmap["enl_sigma"].start();
+          valarray<double> dfnl_loc(npr[is]*na_block_size*nstloc);
+
+          for ( int ij = 0; ij < 6; ij++ )
+          {
+            // compute anl_loc
+            int ipr = 0;
+            while ( ipr < npr[is] )
+            {
+              // twnl[is][ig+ngwl*ipr]
+              const int l = lproj[is][ipr];
+              if ( l == 0 )
+              {
+                // dtwnl[is][ipr][ij][ngwl]
+                // index = ig + ngwl * ( ij + 6 * ipr))
+                // ipr = iquad + nquad[is] * ilm, where ilm = 0
+                const double *const dt0 = &dtwnl[is][ngwl*(ij+6*ipr)];
+                for ( int ia = 0; ia < ia_block_size; ia++ )
+                {
+                  double* a0 = &anl_loc[2*(ia+ipr*ia_block_size)*ngwl];
+                  const double* c = &cgr[ia*ngwl];
+                  const double* s = &sgr[ia*ngwl];
+                  for ( int ig = 0; ig < ngwl; ig++ )
+                  {
+                    const double d0 = dt0[ig];
+                    // Next lines: -i * ( a + ib ) = b - ia
+                    a0[2*ig]   =  d0 * c[ig];
+                    a0[2*ig+1] =  d0 * s[ig];
+                  }
+                }
+              }
+              else if ( l == 1 )
+              {
+                const int ipr1 = ipr;
+                const int ipr2 = ipr + 1;
+                const int ipr3 = ipr + 2;
+                // dtwnl[is][ipr][ij][ngwl]
+                // index = ig + ngwl * ( ij + 6 * iprx ))
+                const double *dt1 = &dtwnl[is][ngwl*(ij+6*ipr1)];
+                const double *dt2 = &dtwnl[is][ngwl*(ij+6*ipr2)];
+                const double *dt3 = &dtwnl[is][ngwl*(ij+6*ipr3)];
+                for ( int ia = 0; ia < ia_block_size; ia++ )
+                {
+                  double* a1 = &anl_loc[2*(ia+ipr1*ia_block_size)*ngwl];
+                  double* a2 = &anl_loc[2*(ia+ipr2*ia_block_size)*ngwl];
+                  double* a3 = &anl_loc[2*(ia+ipr3*ia_block_size)*ngwl];
+                  const double* c = &cgr[ia*ngwl];
+                  const double* s = &sgr[ia*ngwl];
+                  for ( int ig = 0; ig < ngwl; ig++ )
+                  {
+                    const double d1 = dt1[ig];
+                    const double d2 = dt2[ig];
+                    const double d3 = dt3[ig];
+                    // Next line: (-i)^l factor is -i
+                    // Next line: -i * eigr
+                    // -i * (a+i*b) = b - i*a
+                    const double tc = -c[ig]; //  -cosgr[ia][ig]
+                    const double ts =  s[ig]; //   singr[ia][ig]
+                    a1[2*ig]   = d1 * ts;
+                    a1[2*ig+1] = d1 * tc;
+                    a2[2*ig]   = d2 * ts;
+                    a2[2*ig+1] = d2 * tc;
+                    a3[2*ig]   = d3 * ts;
+                    a3[2*ig+1] = d3 * tc;
+                  }
+                }
+              }
+              else if ( l == 2 )
+              {
+                const int ipr4 = ipr;
+                const int ipr5 = ipr + 1;
+                const int ipr6 = ipr + 2;
+                const int ipr7 = ipr + 3;
+                const int ipr8 = ipr + 4;
+                // dtwnl[is][ipr][iquad][ij][ngwl]
                 // index = ig + ngwl * ( ij + 6 * ( iquad + nquad[is] * ipr ))
-                const double *dt4 = &dtwnl[is][ngwl*(ij+6*ipr4)];             
-                const double *dt5 = &dtwnl[is][ngwl*(ij+6*ipr5)];             
-                const double *dt6 = &dtwnl[is][ngwl*(ij+6*ipr6)];             
-                const double *dt7 = &dtwnl[is][ngwl*(ij+6*ipr7)];             
-                const double *dt8 = &dtwnl[is][ngwl*(ij+6*ipr8)];             
-                for ( int ia = 0; ia < ia_block_size; ia++ )                  
-                {                                                             
-                  double* a4 = &anl_loc[2*(ia+ipr4*ia_block_size)*ngwl];      
-                  double* a5 = &anl_loc[2*(ia+ipr5*ia_block_size)*ngwl];      
-                  double* a6 = &anl_loc[2*(ia+ipr6*ia_block_size)*ngwl];      
-                  double* a7 = &anl_loc[2*(ia+ipr7*ia_block_size)*ngwl];      
-                  double* a8 = &anl_loc[2*(ia+ipr8*ia_block_size)*ngwl];      
-                  const double* c = &cgr[ia*ngwl];                            
-                  const double* s = &sgr[ia*ngwl];                            
- 
-                  for ( int ig = 0; ig < ngwl; ig++ )                         
-                  {                                                           
-                    const double d4 = dt4[ig];                                
-                    const double d5 = dt5[ig];                                
-                    const double d6 = dt6[ig];                                
-                    const double d7 = dt7[ig];                                
-                    const double d8 = dt8[ig];                                
-                    // Next lines: (-i)^2 * ( a + ib ) =  - ( a + ib )        
-                    const double tc = -c[ig]; //  -cosgr[ia][ig]              
-                    const double ts = -s[ig]; //  -singr[ia][ig]              
-                    a4[2*ig]   = d4 * tc;                                     
-                    a4[2*ig+1] = d4 * ts;                                     
-                    a5[2*ig]   = d5 * tc;                                     
-                    a5[2*ig+1] = d5 * ts;                                     
-                    a6[2*ig]   = d6 * tc;                                     
-                    a6[2*ig+1] = d6 * ts;                                     
-                    a7[2*ig]   = d7 * tc;                                     
-                    a7[2*ig+1] = d7 * ts;                                     
-                    a8[2*ig]   = d8 * tc;                                     
-                    a8[2*ig+1] = d8 * ts;                                     
-                  }                                                           
-                }                                                             
-              }                                                               
-              else                                                            
-              {                                                               
-                assert(false);                                                
-              } // l                                                          
-              ipr += 2*l+1;                                                   
-            } // while ipr                                                    
-      
-            // array anl_loc is complete                                      
-                                                                              
-            // compute dfnl                                                   
-            // dfnl.gemm('t','n',2.0,anl,c_proxy,0.0);                        
-            // compute dfnl[npra][nstloc] = anl^T * c                         
-            double one=1.0;                                                   
-            char ct='t';                                                      
-            const int twongwl = 2 * ngwl;                                     
-            const int nprnaloc = ia_block_size * npr[is];                     
-            const complex<double>* c = sd_.c().cvalptr();                     
-            dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&one,  
-                  &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,        
-                  &zero,&dfnl_loc[0],(int*)&nprnaloc);                        
-                                                                              
-            // Note: no need to correct for double counting of the            
-            // G=0 component which is always zero                             
+                const double *dt4 = &dtwnl[is][ngwl*(ij+6*ipr4)];
+                const double *dt5 = &dtwnl[is][ngwl*(ij+6*ipr5)];
+                const double *dt6 = &dtwnl[is][ngwl*(ij+6*ipr6)];
+                const double *dt7 = &dtwnl[is][ngwl*(ij+6*ipr7)];
+                const double *dt8 = &dtwnl[is][ngwl*(ij+6*ipr8)];
+                for ( int ia = 0; ia < ia_block_size; ia++ )
+                {
+                  double* a4 = &anl_loc[2*(ia+ipr4*ia_block_size)*ngwl];
+                  double* a5 = &anl_loc[2*(ia+ipr5*ia_block_size)*ngwl];
+                  double* a6 = &anl_loc[2*(ia+ipr6*ia_block_size)*ngwl];
+                  double* a7 = &anl_loc[2*(ia+ipr7*ia_block_size)*ngwl];
+                  double* a8 = &anl_loc[2*(ia+ipr8*ia_block_size)*ngwl];
+                  const double* c = &cgr[ia*ngwl];
+                  const double* s = &sgr[ia*ngwl];
 
-            // factor 2.0 in next line is: counting G, -G                     
-            dfnl_loc *= 2.0;                                                  
-                                                                              
-            // accumulate non-local contributions to sigma_ij                 
-            for ( int n = 0; n < nstloc; n++ )                                
-            {                                                                 
-              // Factor 2.0 in next line from derivative of |Fnl|^2           
-              const double facn = 2.0 * occ[n + nbase];                       
-              for ( int ipra = 0; ipra < npr[is]*ia_block_size; ipra++ )      
-              {                                                               
-                const int i = ipra + n * nprnaloc;                            
-                tsum[ij] += facn * fnl_loc[i] * dfnl_loc[i];                  
-              }                                                               
-            }                                                                 
-          } // ij                                                             
-          tmap["enl_sigma"].stop();                                           
-        } // compute_stress                                                   
-                                                                              
-      } // ia_block                                                           
-      
+                  for ( int ig = 0; ig < ngwl; ig++ )
+                  {
+                    const double d4 = dt4[ig];
+                    const double d5 = dt5[ig];
+                    const double d6 = dt6[ig];
+                    const double d7 = dt7[ig];
+                    const double d8 = dt8[ig];
+                    // Next lines: (-i)^2 * ( a + ib ) =  - ( a + ib )
+                    const double tc = -c[ig]; //  -cosgr[ia][ig]
+                    const double ts = -s[ig]; //  -singr[ia][ig]
+                    a4[2*ig]   = d4 * tc;
+                    a4[2*ig+1] = d4 * ts;
+                    a5[2*ig]   = d5 * tc;
+                    a5[2*ig+1] = d5 * ts;
+                    a6[2*ig]   = d6 * tc;
+                    a6[2*ig+1] = d6 * ts;
+                    a7[2*ig]   = d7 * tc;
+                    a7[2*ig+1] = d7 * ts;
+                    a8[2*ig]   = d8 * tc;
+                    a8[2*ig+1] = d8 * ts;
+                  }
+                }
+              }
+              else
+              {
+                assert(false);
+              } // l
+              ipr += 2*l+1;
+            } // while ipr
+
+            // array anl_loc is complete
+
+            // compute dfnl
+            // dfnl.gemm('t','n',2.0,anl,c_proxy,0.0);
+            // compute dfnl[npra][nstloc] = anl^T * c
+            double one=1.0;
+            char ct='t';
+            const int twongwl = 2 * ngwl;
+            const int nprnaloc = ia_block_size * npr[is];
+            const complex<double>* c = sd_.c().cvalptr();
+            dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&one,
+                  &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,
+                  &zero,&dfnl_loc[0],(int*)&nprnaloc);
+
+            // Note: no need to correct for double counting of the
+            // G=0 component which is always zero
+
+            // factor 2.0 in next line is: counting G, -G
+            dfnl_loc *= 2.0;
+
+            // accumulate non-local contributions to sigma_ij
+            for ( int n = 0; n < nstloc; n++ )
+            {
+              // Factor 2.0 in next line from derivative of |Fnl|^2
+              const double facn = 2.0 * occ[n + nbase];
+              for ( int ipra = 0; ipra < npr[is]*ia_block_size; ipra++ )
+              {
+                const int i = ipra + n * nprnaloc;
+                tsum[ij] += facn * fnl_loc[i] * dfnl_loc[i];
+              }
+            }
+          } // ij
+          tmap["enl_sigma"].stop();
+        } // compute_stress
+
+      } // ia_block
+
       if ( compute_forces )
       {
         ctxt_.dsum(3*na[is],1,&tmpfion[0],3*na[is]);
@@ -1429,7 +1429,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
   } // is
 
   // reduction of enl across rows
-  ctxt_.dsum('r',1,1,&enl,1);    
+  ctxt_.dsum('r',1,1,&enl,1);
 
   sigma_enl = 0.0;
   if ( compute_stress )

@@ -3,7 +3,7 @@
 // WavefunctionHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.h,v 1.8 2007-03-17 01:14:00 fgygi Exp $
+// $Id: WavefunctionHandler.h,v 1.9 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef WavefunctionHANDLER_H
 #define WavefunctionHANDLER_H
@@ -18,7 +18,7 @@ class FourierTransform;
 class WavefunctionHandler : public StructureHandler
 {
   private:
-  
+
   Wavefunction& wf_;
   DoubleMatrix& gfdata_;
   UnitCell uc;
@@ -32,27 +32,27 @@ class WavefunctionHandler : public StructureHandler
   int read_from_gfdata;
   FourierTransform* ft;
   std::vector<std::complex<double> > wftmp;
-  
+
   void byteswap_double(size_t n, double* x);
 
   public:
-  
+
   // Start of the root element in the structure being handled
   virtual void startElement(const XMLCh* const uri,const XMLCh* const localname,
       const XMLCh* const qname, const Attributes& attributes);
 
   // End of the root element in the structure being handled
-  virtual void endElement(const XMLCh* const uri, const XMLCh* const localname, 
+  virtual void endElement(const XMLCh* const uri, const XMLCh* const localname,
       const XMLCh* const qname, std::string& content);
-  
+
   // start a subhandler
   virtual StructureHandler* startSubHandler(const XMLCh* const uri,
-    const XMLCh* const localname, const XMLCh* const qname, 
+    const XMLCh* const localname, const XMLCh* const qname,
     const Attributes& attributes);
-    
+
   // end a subhandler
   virtual void endSubHandler(const XMLCh* const uri,
-    const XMLCh* const localname, const XMLCh* const qname, 
+    const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const subHandler);
 
   WavefunctionHandler(Wavefunction& wf, DoubleMatrix& gfdata);

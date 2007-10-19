@@ -3,7 +3,7 @@
 // SpeciesHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesHandler.C,v 1.3 2006-05-13 05:42:18 fgygi Exp $
+// $Id: SpeciesHandler.C,v 1.4 2007-10-19 16:24:05 fgygi Exp $
 
 #if USE_XERCES
 
@@ -17,7 +17,7 @@ using namespace xercesc;
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-SpeciesHandler::SpeciesHandler(Species& sp) : 
+SpeciesHandler::SpeciesHandler(Species& sp) :
   sp_(sp) {}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -27,11 +27,11 @@ SpeciesHandler::~SpeciesHandler() {}
 void SpeciesHandler::startElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname,
   const Attributes& attributes)
-{  
+{
   // cout << " SpeciesHandler::startElement " << StrX(qname) << endl;
-  
+
   string locname(XMLString::transcode(localname));
-  
+
   if ( locname == "species" )
   {
     // check for the case where the species is a link to another uri
@@ -78,7 +78,7 @@ void SpeciesHandler::endElement(const XMLCh* const uri,
 {
   string locname(XMLString::transcode(localname));
   istringstream stst(content);
-  // cout << " SpeciesHandler::endElement " << StrX(qname) 
+  // cout << " SpeciesHandler::endElement " << StrX(qname)
   //      << " content=" << string(content,0,20) << endl;
 
   if ( locname == "description")
@@ -86,7 +86,7 @@ void SpeciesHandler::endElement(const XMLCh* const uri,
     // reject ambiguous case where both the href and the definition are given
     if ( current_href != "" )
     {
-      cout << " SpeciesHandler: ambiguous definition: uri=" 
+      cout << " SpeciesHandler: ambiguous definition: uri="
            << StrX(uri) << endl
            << " using local definition (href: " << current_href << " ignored)"
            << endl;
@@ -150,7 +150,7 @@ void SpeciesHandler::endElement(const XMLCh* const uri,
 
 ////////////////////////////////////////////////////////////////////////////////
 StructureHandler* SpeciesHandler::startSubHandler(const XMLCh* const uri,
-    const XMLCh* const localname, const XMLCh* const qname, 
+    const XMLCh* const localname, const XMLCh* const qname,
     const Attributes& attributes)
 {
   // check if element qname can be processed by another StructureHandler
@@ -161,12 +161,12 @@ StructureHandler* SpeciesHandler::startSubHandler(const XMLCh* const uri,
 
 ////////////////////////////////////////////////////////////////////////////////
 void SpeciesHandler::endSubHandler(const XMLCh* const uri,
-    const XMLCh* const localname, const XMLCh* const qname, 
+    const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const subHandler)
 {
   // cout << " SpeciesHandler::endSubHandler " << StrX(qname) << endl;
   // if any StructureHandler was created by startSubHandler, delete it
   // delete subHandler;
 }
-      
+
 #endif

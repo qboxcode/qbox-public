@@ -3,7 +3,7 @@
 #  aix64_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: aix64_mpi.mk,v 1.1 2005-02-27 23:17:26 fgygi Exp $
+# $Id: aix64_mpi.mk,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 PLT=AIX
 #-------------------------------------------------------------------------------
 #XERCESCDIR=${HOME}/software/xml/xerces-c-${PLT}
@@ -17,19 +17,19 @@ PLT=AIX
              -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 \
              -DUSE_CSTDIO_LFS -DUSE_XERCES -DPLT_BIG_ENDIAN
  INCLUDE = -I$(XERCESCDIR)/include
- 
+
  CXXFLAGS= -O2 -qmaxmem=-1 -DUSE_MPI -DSCALAPACK -D$(PLT) $(INCLUDE) \
            $(DFLAGS) $(PLTFLAGS)
 #CXXFLAGS= -g -qmaxmem=-1 -DUSE_MPI -DSCALAPACK -D$(PLT) $(INCLUDE) $(DFLAGS) \
            $(DFLAGS) $(PLTFLAGS)
 
- LIBPATH = -L $(XERCESCLIBDIR) 
-  
+ LIBPATH = -L $(XERCESCLIBDIR)
+
 #PLIBS = $(SCALAPACKLIB) $(PBLASLIB) $(TOOLSLIB) $(REDISTLIB) $(CBLACSLIB)
  PLIBS = $(SCALAPACKLIB) $(CBLACSLIB)
  LIBS =  $(PLIBS) -lessl -lm -lmassv -lxlf90_r $(XERCESCLIBDIR)/libxerces-c.a
- 
- LDFLAGS = -bmaxdata:0x80000000 $(LIBPATH) $(LIBS) 
+
+ LDFLAGS = -bmaxdata:0x80000000 $(LIBPATH) $(LIBS)
 
 BLACSDBGLVL   = 0
 BLACSdir      = $(HOME)/software/blacs/aix64/BLACS/LIB

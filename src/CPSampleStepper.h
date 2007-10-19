@@ -3,7 +3,7 @@
 // CPSampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: CPSampleStepper.h,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CPSAMPLESTEPPER_H
 #define CPSAMPLESTEPPER_H
@@ -19,12 +19,12 @@ class MDIonicStepper;
 class CPSampleStepper : public SampleStepper
 {
   private:
-  
+
   ChargeDensity cd_;
   EnergyFunctional ef_;
   Wavefunction dwf;
   Wavefunction* wfv;
-  
+
   MDWavefunctionStepper* mdwf_stepper;
   MDIonicStepper* mdionic_stepper;
 
@@ -34,7 +34,7 @@ class CPSampleStepper : public SampleStepper
   public:
 
   mutable TimerMap tmap;
-  
+
   void step(int niter);
 
   CPSampleStepper(Sample& s);

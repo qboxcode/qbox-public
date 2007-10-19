@@ -3,7 +3,7 @@
 //  Timer.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Timer.h,v 1.1.1.1 2002-09-27 00:08:39 fgygi Exp $
+// $Id: Timer.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef TIMER_H
 #define TIMER_H
@@ -36,7 +36,7 @@ class Timer
 
   void stop()
   {
-    if ( running_ ) 
+    if ( running_ )
     {
       total_cpu += ((double)(clock()-clk))/CLOCKS_PER_SEC;
       total_real += gtod()-t;
@@ -46,26 +46,26 @@ class Timer
 
   double cpu()
   {
-    if ( running_ ) 
+    if ( running_ )
     {
       return total_cpu + ((double)(clock()-clk))/CLOCKS_PER_SEC;
     }
     else
     {
       return total_cpu;
-    } 
+    }
   };
 
   double real()
   {
-    if ( running_ ) 
+    if ( running_ )
     {
       return total_real + gtod()-t;
     }
     else
     {
       return total_real;
-    } 
+    }
   };
 
   double gtod(void)

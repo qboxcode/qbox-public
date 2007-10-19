@@ -3,7 +3,7 @@
 // WfDiag.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WfDiag.h,v 1.2 2004-09-14 22:24:11 fgygi Exp $
+// $Id: WfDiag.h,v 1.3 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef WFDIAG_H
 #define WFDIAG_H
@@ -31,7 +31,7 @@ class WfDiag : public Var
       cout << " wf_diag takes only one value" << endl;
       return 1;
     }
-    
+
     string v = argv[1];
     if ( !( v == "T" || v == "F" || v == "EIGVAL" ) )
     {
@@ -41,7 +41,7 @@ class WfDiag : public Var
     }
 
     s->ctrl.wf_diag = v;
-    
+
     return 0;
   }
 

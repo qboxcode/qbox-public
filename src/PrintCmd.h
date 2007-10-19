@@ -3,7 +3,7 @@
 // PrintCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PrintCmd.h,v 1.1 2003-01-10 00:35:36 fgygi Exp $
+// $Id: PrintCmd.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef PRINTCMD_H
 #define PRINTCMD_H
@@ -27,7 +27,7 @@ class PrintCmd : public Cmd
 
   char *help_msg(void) const
   {
-    return 
+    return
     "\n print\n\n"
     " syntax: print variable\n\n"
     "   The print command prints the value of an interface variable.\n\n";

@@ -3,7 +3,7 @@
 // ConstraintCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintCmd.h,v 1.2 2005-09-16 23:08:11 fgygi Exp $
+// $Id: ConstraintCmd.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CONSTRAINTCMD_H
 #define CONSTRAINTCMD_H
@@ -22,7 +22,7 @@ class ConstraintCmd : public Cmd
   char *name(void) const { return "constraint"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n constraint\n\n"
     " syntax:\n\n"
     "   constraint define distance name atom1 atom2 distance [velocity]\n"
@@ -75,7 +75,7 @@ class ConstraintCmd : public Cmd
       if ( onpe0 )
         cout << help_msg();
     }
-    
+
     return 0;
   }
 };

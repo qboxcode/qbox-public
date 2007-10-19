@@ -3,7 +3,7 @@
 // SampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.h,v 1.10 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SampleStepper.h,v 1.11 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef SAMPLESTEPPER_H
 #define SAMPLESTEPPER_H
@@ -20,9 +20,9 @@ typedef std::map<std::string,Timer> TimerMap;
 class SampleStepper
 {
   protected:
-  
+
   Sample& s_;
-  
+
   std::vector<std::vector<double> > fion;
   std::valarray<double> sigma_eks, sigma_kin, sigma_ext, sigma;
 
@@ -32,7 +32,7 @@ class SampleStepper
   public:
 
   mutable TimerMap tmap;
-  
+
   virtual void step(int niter) = 0;
   void print_stress(void);
   void compute_sigma(void); // compute kinetic contribution to stress

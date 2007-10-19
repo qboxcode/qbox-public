@@ -3,7 +3,7 @@
 // CellLock.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CellLock.h,v 1.3 2004-05-04 21:24:11 fgygi Exp $
+// $Id: CellLock.h,v 1.4 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CELLLOCK_H
 #define CELLLOCK_H
@@ -31,7 +31,7 @@ class CellLock : public Var
       cout << " cell_lock takes only one value" << endl;
       return 1;
     }
-    
+
     string v = argv[1];
     if ( !( v == "OFF" || v == "A" || v == "B" || v == "C" ||
             v == "AB" || v == "AC" || v == "BC" || v == "ABC" ||
@@ -45,7 +45,7 @@ class CellLock : public Var
     }
 
     s->ctrl.cell_lock = v;
-        
+
     return 0;
   }
 

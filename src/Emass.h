@@ -3,7 +3,7 @@
 // Emass.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Emass.h,v 1.1 2003-08-28 00:28:51 fgygi Exp $
+// $Id: Emass.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef EMASS_H
 #define EMASS_H
@@ -31,7 +31,7 @@ class Emass : public Var
       cout << " emass takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v <= 0.0 )
     {

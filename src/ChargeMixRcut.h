@@ -3,7 +3,7 @@
 // ChargeMixRcut.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeMixRcut.h,v 1.1 2004-12-02 22:20:23 fgygi Exp $
+// $Id: ChargeMixRcut.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CHARGEMIXRCUT_H
 #define CHARGEMIXRCUT_H
@@ -31,7 +31,7 @@ class ChargeMixRcut : public Var
       cout << " charge_mix_rcut takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v < 0.0 )
     {

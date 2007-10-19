@@ -3,7 +3,7 @@
 // XCPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCPotential.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: XCPotential.h,v 1.5 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef XCPOTENTIAL_H
 #define XCPOTENTIAL_H
@@ -23,20 +23,20 @@ class FourierTransform;
 class XCPotential
 {
   private:
-  
-  const Context& ctxt_;  
+
+  const Context& ctxt_;
   const ChargeDensity& cd_;
   XCFunctional* xcf_;
-  
+
   std::vector<std::vector<double> > vxctmp;          // vxctmp[ispin][ir]
   std::vector<std::complex<double> > tmpr;           // tmpr[ir]
   std::vector<std::complex<double> > tmp1, tmp2;     // tmp1[ig], tmp2[ig]
-  
+
   double exc_, dxc_, dxc0_, dxc1_, dxc2_;
   int nspin_;
   int ngloc_;
   int np012loc_;
-  
+
   FourierTransform& vft_;
   Basis& vbasis_;
 

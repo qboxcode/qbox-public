@@ -3,7 +3,7 @@
 // ConstraintSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
+// $Id: ConstraintSet.h,v 1.4 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CONSTRAINTSET_H
 #define CONSTRAINTSET_H
@@ -19,10 +19,10 @@ class Context;
 class ConstraintSet
 {
   private:
-  
+
   const Context& ctxt_;
   std::vector<Constraint *> constraint_list;
-  
+
   public:
 
   ConstraintSet(const Context& ctxt) : ctxt_(ctxt) {}

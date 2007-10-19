@@ -3,7 +3,7 @@
 // PSDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.C,v 1.7 2007-01-27 23:46:31 fgygi Exp $
+// $Id: PSDWavefunctionStepper.C,v 1.8 2007-10-19 16:24:04 fgygi Exp $
 
 #include "PSDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -13,8 +13,8 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-PSDWavefunctionStepper::PSDWavefunctionStepper(Wavefunction& wf, 
-  Preconditioner& p, TimerMap& tmap) : 
+PSDWavefunctionStepper::PSDWavefunctionStepper(Wavefunction& wf,
+  Preconditioner& p, TimerMap& tmap) :
   WavefunctionStepper(wf,tmap), prec_(p)
 {}
 
@@ -30,21 +30,21 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
         if ( wf_.sdcontext(ispin,ikp)->active() )
         {
           // compute A = V^T H V  and descent direction HV - VA
- 
+
           tmap_["psd_residual"].start();
           if ( wf_.sd(ispin,ikp)->basis().real() )
           {
             // proxy real matrices c, cp
             DoubleMatrix c(wf_.sd(ispin,ikp)->c());
             DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
- 
+
             DoubleMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
- 
+
             // factor 2.0 in next line: G and -G
             a.gemm('t','n',2.0,c,cp,0.0);
             // rank-1 update correction
             a.ger(-1.0,c,0,cp,0);
- 
+
             // cp = cp - c * a
             cp.gemm('n','n',-1.0,c,a,1.0);
           }
@@ -54,12 +54,12 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
             assert(false);
           }
           tmap_["psd_residual"].stop();
- 
+
           // dwf.sd->c() now contains the descent direction (HV-VA)
- 
+
           tmap_["psd_update_wf"].start();
           const valarray<double>& diag = prec_.diag(ispin,ikp);
-          
+
           double* coeff = (double*) wf_.sd(ispin,ikp)->c().valptr();
           const double* dcoeff =
             (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
@@ -82,7 +82,7 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
             }
           }
           tmap_["psd_update_wf"].stop();
-          
+
           tmap_["gram"].start();
           wf_.sd(ispin,ikp)->gram();
           tmap_["gram"].stop();

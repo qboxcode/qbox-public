@@ -3,7 +3,7 @@
 // SpeciesReader.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesReader.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SpeciesReader.h,v 1.5 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef SPECIESREADER_H
 #define SPECIESREADER_H
@@ -14,11 +14,11 @@
 class SpeciesReader
 {
   private:
-  
+
   const Context& ctxt_;
-  
+
   std::string uri_;   // uri from which Species is read
-  
+
   public:
 
   SpeciesReader(const Context& ctxt);

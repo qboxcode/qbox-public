@@ -3,7 +3,7 @@
 // SDCellStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDCellStepper.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SDCellStepper.C,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #include "SDCellStepper.h"
 using namespace std;
@@ -14,10 +14,10 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
   //cout << " SDCellStepper::compute_new_cell" << endl;
   // multiply stress by A^T to get dE/da_ij
   valarray<double> deda(9);
-  
+
   const UnitCell& cell = s_.wf.cell();
   const double cell_mass = s_.ctrl.cell_mass;
-  
+
   if ( cell_mass <= 0.0 )
   {
     if ( s_.ctxt_.onpe0() )
@@ -27,14 +27,14 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
       return;
     }
   }
-  
+
   // deda = - omega * sigma * A^-T
   cell.compute_deda(sigma,deda);
-  
+
   //cout << " SDCellStepper: cell derivatives before constraints" << endl;
   //for ( int i = 0; i < 9; i++ )
   //  cout << " deda[" << i << "] = " << deda[i] << endl;
-  
+
   string cell_lock = s_.ctrl.cell_lock;
   if ( cell_lock != "OFF" )
   {
@@ -54,36 +54,36 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
       // vector C is locked
       deda[6] = deda[7] = deda[8] = 0.0;
     }
-    
+
     // Check is cell shape should be preserved (if "S" is present in cell_lock)
     // The only changes allowed are renormalizations of a,b,c
     if ( cell_lock.find("S") != string::npos )
     {
       // projection of d in the direction of e
       D3vector d,e;
-      
+
       d = D3vector(deda[0],deda[1],deda[2]);
       e = cell.a(0) / length(cell.a(0));
       d = (d * e) * e;
       deda[0] = d.x; deda[1] = d.y; deda[2] = d.z;
-      
+
       d = D3vector(deda[3],deda[4],deda[5]);
       e = cell.a(1) / length(cell.a(1));
       d = (d * e) * e;
       deda[3] = d.x; deda[4] = d.y; deda[5] = d.z;
-      
+
       d = D3vector(deda[6],deda[7],deda[8]);
       e = cell.a(2) / length(cell.a(2));
       d = (d * e) * e;
       deda[6] = d.x; deda[7] = d.y; deda[8] = d.z;
     }
-    
+
     if ( cell_lock == "R" )
     {
       // preserve aspect ratio
       // deda must be proportional to A
       // All vectors are rescaled by the same constant
-      // rescale cell by coefficient alpha, i.e. 
+      // rescale cell by coefficient alpha, i.e.
       // deda = alpha * A
       // where alpha * A is the projection of dE/dA in the direction of A
       // alpha = tr (A^T * deda) / || A ||^2  (matrix scalar product)
@@ -102,35 +102,35 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
     //for ( int i = 0; i < 9; i++ )
     //  cout << " deda[" << i << "] = " << deda[i] << endl;
   }
-  
+
   const double dt = s_.ctrl.dt;
   const double dt2bym = dt*dt/cell_mass;
-  
+
   // cellp = cell - deda * dt^2 / cell_mass
   D3vector a0p = cell.a(0) - dt2bym * D3vector(deda[0],deda[1],deda[2]);
   D3vector a1p = cell.a(1) - dt2bym * D3vector(deda[3],deda[4],deda[5]);
   D3vector a2p = cell.a(2) - dt2bym * D3vector(deda[6],deda[7],deda[8]);
-  
+
   cellp = UnitCell(a0p,a1p,a2p);
-  
+
   //cout << " SDCellStepper::compute_new_cell: cellp: " << endl;
   //cout << cellp;
-  
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void SDCellStepper::update_cell(void)
 {
   const UnitCell& cell = s_.wf.cell();
-  
+
   // rescale atomic positions in AtomSet
-  
+
   // r_new = A_new A_old^-1 r_old
   vector<vector<double> > r;
   s_.atoms.get_positions(r);
   const double* const ainv = cell.amat_inv();
   const double* const ap = cellp.amat();
-  
+
   double tau[3];
   for ( int is = 0; is < r.size(); is++ )
   {
@@ -145,9 +145,9 @@ void SDCellStepper::update_cell(void)
     }
   }
   s_.atoms.set_positions(r);
-  
+
   // resize wavefunction and basis sets
-  
+
   //cout << " SDCellStepper::update_cell" << endl;
   s_.wf.resize(cellp,s_.wf.refcell(),s_.wf.ecut());
   if ( s_.wfv != 0 )

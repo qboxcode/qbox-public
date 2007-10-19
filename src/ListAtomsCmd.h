@@ -3,7 +3,7 @@
 // ListAtomsCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ListAtomsCmd.h,v 1.2 2003-03-27 22:05:59 fgygi Exp $
+// $Id: ListAtomsCmd.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef LISTATOMSCMD_H
 #define LISTATOMSCMD_H
@@ -24,7 +24,7 @@ class ListAtomsCmd : public Cmd
   char *name(void) const { return "list_atoms"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n list_atoms\n\n"
     " syntax: list_atoms\n\n"
     "   The list_atoms command prints a list of all defined atoms.\n\n";

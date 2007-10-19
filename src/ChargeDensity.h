@@ -3,7 +3,7 @@
 // ChargeDensity.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
+// $Id: ChargeDensity.h,v 1.6 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CHARGEDENSITY_H
 #define CHARGEDENSITY_H
@@ -25,7 +25,7 @@ typedef std::map<std::string,Timer> TimerMap;
 class ChargeDensity
 {
   private:
-  
+
   const Context& ctxt_;
   const Context& vcontext_;
   const Wavefunction& wf_;
@@ -33,9 +33,9 @@ class ChargeDensity
   FourierTransform* vft_;
   std::vector<FourierTransform*> ft_; // ft_[ikp];
   std::valarray<std::complex<double> > rhotmp;
-  
+
   public:
-  
+
   mutable TimerMap tmap;
 
   std::vector<std::vector<double> > rhor; // rhor[ispin][i]
@@ -43,7 +43,7 @@ class ChargeDensity
 
   void update_density(void);
   void update_rhor(void);
-  
+
   Basis* vbasis(void) const { return vbasis_; }
   const Context& vcontext(void) const { return vcontext_; }
   FourierTransform* vft(void) const { return vft_; }

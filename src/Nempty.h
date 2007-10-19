@@ -3,7 +3,7 @@
 // Nempty.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Nempty.h,v 1.2 2005-04-29 18:12:37 fgygi Exp $
+// $Id: Nempty.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef NEMPTY_H
 #define NEMPTY_H
@@ -31,7 +31,7 @@ class Nempty : public Var
       cout << " nempty takes only one value" << endl;
       return 1;
     }
-    
+
     int v = atoi(argv[1]);
     if ( v < 0 )
     {
@@ -45,7 +45,7 @@ class Nempty : public Var
     {
       s->wfv->set_nempty(v);
     }
-    
+
     return 0;
   }
 

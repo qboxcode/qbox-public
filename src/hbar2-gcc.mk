@@ -3,7 +3,7 @@
 #  hbar2-gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: hbar2-gcc.mk,v 1.1 2005-03-17 23:25:55 fgygi Exp $
+# $Id: hbar2-gcc.mk,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -23,23 +23,23 @@
  PLTFLAGS = -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
             -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
             -DAPP_NO_THREADS -DXML_USE_NO_THREADS
- 
- 
+
+
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR)/include -I$(XERCESCDIR)/include
 
- CXXFLAGS= -O3 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
+ CXXFLAGS= -O3 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(FFTWDIR)/lib -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L $(ATLASDIR)/lib \
            -L$(XERCESCDIR)/lib \
            -L$(GMDIR)/lib \
 #          -L $(GCCDIR)/lib
-  
+
  LIBS =  $(PLIBS) -lfftw -llapack -lf77blas -latlas \
          -lm -lmpich -lpmpich -lmpich -lgm \
          $(XERCESCDIR)/lib/libxerces-c.a  -lg2c
- 
- LDFLAGS = $(LIBPATH) $(LIBS) 
+
+ LDFLAGS = $(LIBPATH) $(LIBS)
 
  # Blacs libraries
  BLACSDBGLVL   = 0

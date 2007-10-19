@@ -3,7 +3,7 @@
 // Debug.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Debug.h,v 1.2 2006-07-21 17:48:56 fgygi Exp $
+// $Id: Debug.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef DEBUG_H
 #define DEBUG_H
@@ -31,9 +31,9 @@ class Debug : public Var
       string vt = argv[iarg];
       v += " " + vt;
     }
-    
+
     s->ctrl.debug = v;
-    
+
     return 0;
   }
 

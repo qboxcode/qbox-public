@@ -39,7 +39,7 @@ int main(int argc, char**argv)
   // resize array zvec holding columns
   valarray<complex<double> > zvec(nvec * ldz);
   //cout << "zvec ptr: " << &zvec[0] << endl;
-  
+
   // initialization of FFT libs
 
 // #define FFTWMEASURE 1
@@ -63,7 +63,7 @@ int main(int argc, char**argv)
   {
   t_bwd.start();
 
-   /* 
+   /*
     * void fftw(fftw_plan plan, int howmany,
     *    FFTW_COMPLEX *in, int istride, int idist,
     *    FFTW_COMPLEX *out, int ostride, int odist);
@@ -107,7 +107,7 @@ int main(int argc, char**argv)
   fftw_destroy_plan(fwplan);
   fftw_destroy_plan(bwplan);
 
-  cout << " fwd: time per transform (in-place,generic)" 
+  cout << " fwd: time per transform (in-place,generic)"
 #if FFTWMEASURE
        << "(fftw-measure)"
 #endif
@@ -117,7 +117,7 @@ int main(int argc, char**argv)
 #endif
        << endl;
 
-  cout << " bwd: time per transform (in-place,generic)" 
+  cout << " bwd: time per transform (in-place,generic)"
 #if FFTWMEASURE
        << "(fftw-measure)"
 #endif
@@ -129,7 +129,7 @@ int main(int argc, char**argv)
 
 #if 1
   // Use out-of-place, specific plan
-  
+
   valarray<complex<double> > zvec_out(zvec.size());
   t_bwd.reset();
   t_fwd.reset();
@@ -140,7 +140,7 @@ int main(int argc, char**argv)
   bwplan = fftw_create_plan_specific(np,
     FFTW_BACKWARD,FFTW_ESTIMATE|FFTW_OUT_OF_PLACE,
     (FFTW_COMPLEX*)&zvec[0],1,(FFTW_COMPLEX*)&zvec_out[0],1);
-    
+
 #ifdef IA32
   clk_bwd = 0;
   clk_fwd = 0;
@@ -167,7 +167,7 @@ int main(int argc, char**argv)
   clk_bwd += readTSC() - clk;
 #endif
     t_bwd.stop();
-  
+
     t_fwd.start();
 #ifdef IA32
   clk = readTSC();
@@ -189,8 +189,8 @@ int main(int argc, char**argv)
 
   fftw_destroy_plan(fwplan);
   fftw_destroy_plan(bwplan);
-  
-  cout << " fwd: time per transform (out-of-place,specific)" 
+
+  cout << " fwd: time per transform (out-of-place,specific)"
 #if FFTWMEASURE
        << "(fftw-measure)"
 #endif
@@ -200,7 +200,7 @@ int main(int argc, char**argv)
 #endif
        << endl;
 
-  cout << " bwd: time per transform (out-of-place,specific)" 
+  cout << " bwd: time per transform (out-of-place,specific)"
 #if FFTWMEASURE
        << "(fftw-measure)"
 #endif

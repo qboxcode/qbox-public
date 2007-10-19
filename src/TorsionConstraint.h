@@ -3,7 +3,7 @@
 //  TorsionConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionConstraint.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
+// $Id: TorsionConstraint.h,v 1.4 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef TORSIONCONSTRAINT_H
 #define TORSIONCONSTRAINT_H
@@ -26,10 +26,10 @@ class TorsionConstraint : public Constraint
                     D3vector &g1, D3vector &g2,D3vector &g3,D3vector &g4) const;
   double torsion_angle(D3vector a, D3vector b,
                        D3vector c, D3vector d) const;
-  
+
   public:
-  
-  TorsionConstraint(std::string name, std::string name1, std::string name2, 
+
+  TorsionConstraint(std::string name, std::string name1, std::string name2,
                     std::string name3, std::string name4,
                     double angle, double velocity, double tolerance):
   name1_(name1), name2_(name2), name3_(name3), name4_(name4),
@@ -46,7 +46,7 @@ class TorsionConstraint : public Constraint
     force_ = 0.0;
     weight_ = 1.0;
   }
-  
+
   std::string type(void) const { return "torsion"; }
   double value(void) const { return angle_; }
   double velocity(void) const { return velocity_; }
@@ -65,7 +65,7 @@ class TorsionConstraint : public Constraint
   {
     velocity_ = velocity;
   }
-  
+
   void setup(const AtomSet& atoms);
   void update(double dt);
   bool enforce_r(const std::vector<std::vector<double> > &r0,
@@ -75,6 +75,6 @@ class TorsionConstraint : public Constraint
   void compute_force(const std::vector<std::vector<double> > &r0,
                      const std::vector<std::vector<double> > &f);
   std::ostream& print( std::ostream& os );
-  
+
 };
 #endif

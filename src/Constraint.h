@@ -3,7 +3,7 @@
 //  Constraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Constraint.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
+// $Id: Constraint.h,v 1.4 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CONSTRAINT_H
 #define CONSTRAINT_H
@@ -17,12 +17,12 @@ class AtomSet;
 class Constraint
 {
   protected:
-  
+
   std::string name_;          // constraint name
   std::vector<std::string> names_; // names of atoms involved in the constraint
-  
+
   public:
-  
+
   virtual std::string type(void) const = 0;
   virtual double value(void) const = 0;
   virtual double velocity(void) const = 0;
@@ -49,5 +49,5 @@ class Constraint
 };
 std::ostream& operator << ( std::ostream &os, Constraint &c );
 #endif
-  
-  
+
+

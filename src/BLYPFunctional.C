@@ -3,7 +3,7 @@
 // BLYPFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BLYPFunctional.C,v 1.3 2004-09-14 22:24:11 fgygi Exp $
+// $Id: BLYPFunctional.C,v 1.4 2007-10-19 16:24:04 fgygi Exp $
 
 #include <cmath>
 #include <cassert>
@@ -16,7 +16,7 @@ BLYPFunctional::BLYPFunctional(const vector<vector<double> > &rhoe)
   _nspin = rhoe.size();
   if ( _nspin > 1 ) assert(rhoe[0].size() == rhoe[1].size());
   _np = rhoe[0].size();
- 
+
   if ( _nspin == 1 )
   {
     _exc.resize(_np);
@@ -41,7 +41,7 @@ BLYPFunctional::BLYPFunctional(const vector<vector<double> > &rhoe)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void BLYPFunctional::setxc(void) 
+void BLYPFunctional::setxc(void)
 {
   if ( _np == 0 ) return;
   if ( _nspin == 1 )
@@ -97,7 +97,7 @@ void BLYPFunctional::setxc(void)
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
-void BLYPFunctional::excblyp(double rho, double grad, 
+void BLYPFunctional::excblyp(double rho, double grad,
   double *exc, double *vxc1, double *vxc2)
 {
   /* Becke exchange constants */
@@ -118,12 +118,12 @@ void BLYPFunctional::excblyp(double rho, double grad,
   const double d_third = d / 3.0;
   const double cf = 2.87123400018819; /* (3/10)*pow(3*pi*pi,2/3) */
   const double cfb = cf * b;
-  
+
   *exc = 0.0;
   *vxc1 = 0.0;
   *vxc2 = 0.0;
 
-  if ( rho < 1.e-18  ) 
+  if ( rho < 1.e-18  )
   {
     return;
   }
@@ -132,10 +132,10 @@ void BLYPFunctional::excblyp(double rho, double grad,
    * Becke's exchange
    * A.D.Becke, Phys.Rev. B38, 3098 (1988)
    */
-   
+
   const double rha = 0.5 * rho;
   const double grada = 0.5 * grad;
-  
+
   const double rha13 = pow ( rha, third );
   const double rha43 = rha * rha13;
   const double xa = grada / rha43;
@@ -145,13 +145,13 @@ void BLYPFunctional::excblyp(double rho, double grad,
   const double ga = axa - beta * xa2 * frac;
   /* N.B. in next line, ex is the energy density, hence rh13 */
   const double ex = rha13 * ga;
-  
+
   /* energy done, now the potential */
   const double gpa = ( 6.0*beta*beta*xa2 * ( xa/sqrt(xa2+1.0) - asinhxa ) - 2.0*beta*xa ) *
         frac*frac;
   const double vx1 = rha13 * fourthirds * ( ga - xa * gpa );
   const double vx2 = - 0.5 * gpa / grada;
-  
+
   /*------------------------------------------------------------*/
   /* LYP correlation */
   /* Phys. Rev. B 37, 785 (1988). */
@@ -164,35 +164,35 @@ void BLYPFunctional::excblyp(double rho, double grad,
   const double den = 1.0 + d * rhm13;
   const double deninv = 1.0 / den;
   const double cfrac = num * deninv;
-  
-  const double delta = rhm13 * ( c + d * deninv );  
+
+  const double delta = rhm13 * ( c + d * deninv );
   const double rhm53 = rhm43 * rhm13;
   const double t1 = e * deninv;
   const double t2 = rhm53;
   const double t3 = 6.0 + 14.0 * delta;
-  
+
   const double g = ab36 * t1 * t2 * t3;
-  
+
   /* next line, ec is the energy density, hence divide the energy by rho */
   const double ec = - a * cfrac + 0.25 * g * grad * grad / rho;
-  
+
   /* energy done, now the potential */
   const double de = c_third * rhm43 * e;
   const double dnum = cfb * de;
   const double dden = - d_third * rhm43;
   const double dfrac = ( dnum * den - dden * num ) * deninv * deninv;
-  
+
   const double ddelta = - third * rhm43 * ( c + d * deninv ) -
            rhm13 * d * dden * deninv * deninv;
   const double dt1 = de * deninv - e * dden * deninv * deninv;
   const double dt2 = - fivethirds * rhm53/rho;
   const double dt3 = 14.0 * ddelta;
-  
+
   const double dg = ab36 * ( dt1 * t2 * t3 + t1 * dt2 * t3 + t1 * t2 * dt3 );
-  
-  const double vc1 = - a * ( cfrac + rho * dfrac ) + 0.25 * dg * grad * grad; 
+
+  const double vc1 = - a * ( cfrac + rho * dfrac ) + 0.25 * dg * grad * grad;
   const double vc2 = -0.5 * g;
-  
+
   *exc = ex + ec;
   *vxc1 = vx1 + vc1;
   *vxc2 = vx2 + vc2;

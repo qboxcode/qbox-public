@@ -3,7 +3,7 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.16 2007-08-14 04:11:19 fgygi Exp $
+// $Id: AtomSet.h,v 1.17 2007-10-19 16:24:03 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
@@ -21,18 +21,18 @@ class Species;
 class AtomSet
 {
   private:
-  
+
   const Context& ctxt_;
-  
+
   int nel_;
   std::map<std::string,int> na_;  // na_[sp_name]: number of at. of spec. sp_name
   std::map<std::string,int> isp_; // isp_[sp_name]: index of species sp_name
   std::map<std::string,int> is_; // is_[atom_name]: is index of atom atom_name
   std::map<std::string,int> ia_; // ia_[atom_name]: ia index of atom atom_name
   std::vector<std::string> spname; // spname[is]: name of species is
-  
+
   public:
-  
+
   AtomSet(const Context& ctxt) : ctxt_(ctxt), nel_(0) {}
 
   std::vector<std::vector<Atom *> > atom_list; // atom_list[is][ia]

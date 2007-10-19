@@ -3,7 +3,7 @@
 // SDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDIonicStepper.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SDIonicStepper.h,v 1.6 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef SDIONICSTEPPER_H
 #define SDIONICSTEPPER_H
@@ -14,9 +14,9 @@
 class SDIonicStepper : public IonicStepper
 {
   private:
-  
+
   public:
-  
+
   SDIonicStepper(Sample& s) : IonicStepper(s) {}
 
   void compute_r(double e0, const std::vector<std::vector< double> >& f0);

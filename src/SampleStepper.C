@@ -3,7 +3,7 @@
 // SampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.C,v 1.21 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SampleStepper.C,v 1.22 2007-10-19 16:24:05 fgygi Exp $
 
 #include "SampleStepper.h"
 #include "Sample.h"
@@ -19,7 +19,7 @@ SampleStepper::SampleStepper(Sample& s) : s_(s)
   fion.resize(s_.atoms.nsp());
   for ( int is = 0; is < fion.size(); is++ )
     fion[is].resize(3*s_.atoms.na(is));
-    
+
   sigma_eks.resize(6);
   sigma_kin.resize(6);
   sigma_ext.resize(6);
@@ -133,18 +133,18 @@ void SampleStepper::compute_sigma(void)
       const double vx = v.x;
       const double vy = v.y;
       const double vz = v.z;
- 
+
       sigma_kin[0] += mass * vx * vx;
       sigma_kin[1] += mass * vy * vy;
       sigma_kin[2] += mass * vz * vz;
       sigma_kin[3] += mass * vx * vy;
       sigma_kin[4] += mass * vy * vz;
       sigma_kin[5] += mass * vx * vz;
- 
+
       i += 3;
     }
   }
   sigma_kin /= s_.wf.cell().volume();
- 
+
   sigma = sigma_eks + sigma_kin - sigma_ext;
 }

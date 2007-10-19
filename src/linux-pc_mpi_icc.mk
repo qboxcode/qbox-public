@@ -3,7 +3,7 @@
 #  linux-pc_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: linux-pc_mpi_icc.mk,v 1.9 2004-01-22 01:20:00 fgygi Exp $
+# $Id: linux-pc_mpi_icc.mk,v 1.10 2007-10-19 16:24:05 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -20,19 +20,19 @@
 
  FFTWDIR=$(HOME)/fftw/fftw-2.1.3/fftw
  BLASDIR=/usr/lib
- 
+
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
- 
+
  CXXFLAGS= -O3 -tpp6 -xW -Zp16  \
-           -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
+           -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L $(BLASDIR) -L $(GCCDIR)/lib -L$(XERCESCDIR)/lib
-  
+
  LIBS =  $(PLIBS) -lfftw -llapack -lblas -lm -lmpich -lpmpich -lmpich \
          -lg2c -lxerces-c
- 
- LDFLAGS = $(LIBPATH) $(LIBS) 
+
+ LDFLAGS = $(LIBPATH) $(LIBS)
 
  # Blacs libraries
  BLACSDBGLVL   = 0

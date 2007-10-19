@@ -3,7 +3,7 @@
 // SDAIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.C,v 1.4 2005-06-27 22:21:32 fgygi Exp $
+// $Id: SDAIonicStepper.C,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #include "SDAIonicStepper.h"
 #include <iostream>
@@ -14,12 +14,12 @@ void SDAIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
 {
   // Steepest descent step
   atoms_.get_positions(r0_);
-  
+
   if ( first_step_ )
   {
     rm_ = r0_;
   }
-  
+
   // copy forces f0 in linear array f_
   int k = 0;
   double sum = 0.0;
@@ -32,14 +32,14 @@ void SDAIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
     }
   }
   if ( s_.ctxt_.onpe0() )
-    cout << " <sda_residual> " << sum 
+    cout << " <sda_residual> " << sum
          << "</sda_residual>" << endl;
-  
+
   mixer_.update(&f_[0],&theta_,&fbar_[0]);
   if ( s_.ctxt_.onpe0() )
-    cout << " <sda_theta> " << theta_ 
+    cout << " <sda_theta> " << theta_
          << "</sda_theta>" << endl;
-    
+
   k = 0;
   for ( int is = 0; is < r0_.size(); is++ )
   {

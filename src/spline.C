@@ -3,7 +3,7 @@
 // spline.C
 //
 ///////////////////////////////////////////////////////////////////////////////
-// $Id: spline.C,v 1.2 2007-08-13 21:23:51 fgygi Exp $
+// $Id: spline.C,v 1.3 2007-10-19 16:24:06 fgygi Exp $
 #include "spline.h"
 #include <cassert>
 
@@ -31,7 +31,7 @@ void tridsolve(int n, double* d, double* e, double* f, double* x)
     x[i] = (x[i]-e[i]*x[i+1])/d[i];
 }
 
-void spline(int n, double *x, double *y, double yp_left, double yp_right, 
+void spline(int n, double *x, double *y, double yp_left, double yp_right,
   int bcnat_left, int bcnat_right, double *y2)
 {
   const double third = 1.0/3.0;

@@ -3,7 +3,7 @@
 // Base64Transcoder.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Base64Transcoder.C,v 1.3 2004-12-08 19:01:20 fgygi Exp $
+// $Id: Base64Transcoder.C,v 1.4 2007-10-19 16:24:04 fgygi Exp $
 
 #include "Base64Transcoder.h"
 #include <iostream>
@@ -16,7 +16,7 @@ using namespace std;
 Base64Transcoder::Base64Transcoder()
 {
   // initialize encoding/decoding tables
-  
+
   for (int i = 0; i < 26; i++)
   {
       etable[i] = 'A' + i;
@@ -55,9 +55,9 @@ int Base64Transcoder::encode(int nbytes, const byte* const from, char* const to)
 {
   const byte* fptr = from;
   char* tptr = to;
-  
+
   int n3 = nbytes / 3; // number of groups of three bytes
-  
+
   while ( n3-- > 0 )
   {
     byte ig0 = *fptr++;
@@ -67,17 +67,17 @@ int Base64Transcoder::encode(int nbytes, const byte* const from, char* const to)
     *tptr++ = etable[ig0 >> 2];
     *tptr++ = etable[((ig0 & 3) << 4) | (ig1 >> 4)];
     *tptr++ = etable[((ig1 & 0xF) << 2) | (ig2 >> 6)];
-    *tptr++ = etable[ig2 & 0x3F];    
+    *tptr++ = etable[ig2 & 0x3F];
   }
-  
+
   int nr = nbytes % 3; // remaining bytes
-  
+
   if ( nr == 2 )
   {
     byte ig0 = *fptr++;
     byte ig1 = *fptr++;
     byte ig2 = 0;
-    
+
     *tptr++ = etable[ig0 >> 2];
     *tptr++ = etable[((ig0 & 3) << 4) | (ig1 >> 4)];
     *tptr++ = etable[((ig1 & 0xF) << 2) | (ig2 >> 6)];
@@ -87,19 +87,19 @@ int Base64Transcoder::encode(int nbytes, const byte* const from, char* const to)
   {
     byte ig0 = *fptr++;
     byte ig1 = 0;
-    
+
     *tptr++ = etable[ig0 >> 2];
     *tptr++ = etable[((ig0 & 3) << 4) | (ig1 >> 4)];
     *tptr++ = '=';
     *tptr++ = '=';
   }
-  
-  return 0;  
+
+  return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int Base64Transcoder::decode(const int nchars, const char* const from, 
-  byte* const to)  
+int Base64Transcoder::decode(const int nchars, const char* const from,
+  byte* const to)
 {
   // Decode Base64 chars in array "from" into bytes in array "to"
   // White space and new lines are skipped
@@ -107,13 +107,13 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
   // ignored.
   // nchars: number of chars in array "from"
   // the number of bytes successfully translated is returned
-  
+
   byte a0,a1,a2,a3,b0,b1,b2,b3;
   int c;
   const char* fptr = from;
   const char* const fptr_end = from+nchars+1;
   byte* tptr = to;
-  
+
   while ( fptr < fptr_end-4 )
   {
     // get 4 valid characters from input string
@@ -132,7 +132,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
     }
     a0 = (byte) c;
     b0 = (byte) dtable[c];
- 
+
     do
     {
       c = *fptr++;
@@ -148,7 +148,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
     }
     a1 = (byte) c;
     b1 = (byte) dtable[c];
- 
+
     do
     {
       c = *fptr++;
@@ -164,7 +164,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
     }
     a2 = (byte) c;
     b2 = (byte) dtable[c];
- 
+
     do
     {
       c = *fptr++;
@@ -180,7 +180,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
     }
     a3 = (byte) c;
     b3 = (byte) dtable[c];
- 
+
     if ((b0|b1|b2|b3) & 0x80)
     {
 #ifdef DEBUG
@@ -189,7 +189,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
 #endif
       return tptr - to;
     }
-      
+
     if ( a3 == '=' )
     {
       if ( a2 == '=' )
@@ -211,7 +211,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
       *tptr++ = (b1 << 4) | (b2 >> 2);
       *tptr++ = (b2 << 6) | b3;
     }
-  
+
   }
 #ifdef DEBUG
   if ( fptr >= fptr_end )
@@ -220,7 +220,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
          << endl;
   }
 #endif
-  
+
   return tptr - to;
 }
 
@@ -236,10 +236,10 @@ void Base64Transcoder::byteswap_double(size_t n, double* const x)
     tmp = c[6]; c[6] = c[1]; c[1] = tmp;
     tmp = c[5]; c[5] = c[2]; c[2] = tmp;
     tmp = c[4]; c[4] = c[3]; c[3] = tmp;
-    
+
     c+=8;
   }
-}  
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 void Base64Transcoder::byteswap_int(size_t n, int* const x)
@@ -251,10 +251,10 @@ void Base64Transcoder::byteswap_int(size_t n, int* const x)
     unsigned char tmp;
     tmp = c[3]; c[3] = c[0]; c[0] = tmp;
     tmp = c[2]; c[2] = c[1]; c[1] = tmp;
-    
+
     c+=4;
   }
-} 
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 int Base64Transcoder::print(const string buf, ostream& o)
@@ -268,7 +268,7 @@ int Base64Transcoder::print(const string buf, ostream& o)
     o << endl;
     b += 72;
   }
-  
+
   o.write(b,nchars%72);
   o << endl;
   return 0;
@@ -285,7 +285,7 @@ int Base64Transcoder::print(int nchars, const char* const buf, ostream& o)
     o << endl;
     b += 72;
   }
-  
+
   o.write(b,nchars%72);
   o << endl;
   return 0;
@@ -303,7 +303,7 @@ int Base64Transcoder::print(const string buf, FILE* outfile)
     fwrite(&nlchar,sizeof(char),1,outfile);
     b += 72;
   }
-  
+
   if ( nchars%72 != 0 )
   {
     fwrite(b,sizeof(char),nchars%72,outfile);
@@ -324,7 +324,7 @@ int Base64Transcoder::print(int nchars, const char* const buf, FILE* outfile)
     fwrite(&nlchar,sizeof(char),1,outfile);
     b += 72;
   }
-  
+
   if ( nchars%72 != 0 )
   {
     fwrite(b,sizeof(char),nchars%72,outfile);

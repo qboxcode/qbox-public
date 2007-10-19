@@ -3,7 +3,7 @@
 #  bgl.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: bgl.mk,v 1.2 2005-04-26 19:08:12 fgygi Exp $
+# $Id: bgl.mk,v 1.3 2007-10-19 16:24:05 fgygi Exp $
 #
  PLT=BGL
 #-------------------------------------------------------------------------------
@@ -22,7 +22,7 @@
              -DUSE_MPI -DSCALAPACK \
              -D__linux__ -DPLT_BIG_ENDIAN -DUSE_XERCES \
              -DUSE_CSTDIO_LFS -D_LARGEFILE64_SOURCE  -D_FILE_OFFSET_BITS=64 \
-             -DUSE_APC 
+             -DUSE_APC
 
  FFTWDIR=$(HOME)/software/fftw/bgl/bglfftwgel-2.1.5.pre5
  FFTWINCLUDEDIR=$(FFTWDIR)/fftw

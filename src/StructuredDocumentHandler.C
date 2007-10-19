@@ -3,7 +3,7 @@
 // StructuredDocumentHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.C,v 1.5 2007-03-17 01:14:00 fgygi Exp $
+// $Id: StructuredDocumentHandler.C,v 1.6 2007-10-19 16:24:05 fgygi Exp $
 
 #if USE_XERCES
 
@@ -23,13 +23,13 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 void StructuredDocumentHandler::startElement(const XMLCh* const uri,
-  const XMLCh* const localname, const XMLCh* const qname, 
+  const XMLCh* const localname, const XMLCh* const qname,
   const Attributes& attributes)
 {
   // cout << " StructuredDocumentHandler::startElement " << StrX(qname) << endl;
   // cout << " nestingDepth before: " << nestingDepth << endl;
   buffer = "";
-  
+
   // attempt to start a subhandler for this element
   StructureHandler* next = activeHandler->startSubHandler(uri,localname,qname,
     attributes);
@@ -38,7 +38,7 @@ void StructuredDocumentHandler::startElement(const XMLCh* const uri,
   if ( next != 0 )
   {
     contextStack.push(HandlerContext(activeHandler,contextDepth));
- 
+
     activeHandler = next;
     contextDepth = nestingDepth;
   }
@@ -75,7 +75,7 @@ void StructuredDocumentHandler::endElement(const XMLCh* const uri,
   // cout << " nestingDepth before: " << nestingDepth << endl;
   nestingDepth--;
   activeHandler->endElement(uri,localname,qname,buffer);
-  
+
   // Check if this element was processed by a subhandler
   // If yes, pop the previous context from the Context stack
   if ( nestingDepth != 0 && nestingDepth == contextDepth )
@@ -116,7 +116,7 @@ void StructuredDocumentHandler::error(const SAXParseException& e)
 		 << ", line " << e.getLineNumber()
 		 << ", char " << e.getColumnNumber()
          << "\n  Message: " << StrX(e.getMessage()) << endl;
-         
+
     throw(e);
 }
 

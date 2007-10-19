@@ -3,7 +3,7 @@
 // NetCharge.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NetCharge.h,v 1.1 2005-04-29 18:13:12 fgygi Exp $
+// $Id: NetCharge.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef NETCHARGE_H
 #define NETCHARGE_H
@@ -31,7 +31,7 @@ class NetCharge : public Var
       cout << " net_charge takes only one value" << endl;
       return 1;
     }
-    
+
     const int v = atoi(argv[1]);
 
     // compute the current netcharge
@@ -40,7 +40,7 @@ class NetCharge : public Var
     const int netcharge_before = s->atoms.nel() - s->wf.nel();
     if ( v == netcharge_before )
       return 0;
-      
+
     // set new netcharge to v
     if ( s->atoms.nel() - v < 0 )
     {
@@ -49,14 +49,14 @@ class NetCharge : public Var
              << s->atoms.nel() << " electrons" << endl;
       return 1;
     }
-    
+
     s->wf.set_nel(s->atoms.nel() - v);
     s->wf.update_occ(0.0);
     if ( s->wfv != 0 )
     {
       s->wfv->set_nel(s->atoms.nel() - v);
     }
-    
+
     return 0;
   }
 

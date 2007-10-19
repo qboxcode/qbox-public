@@ -3,7 +3,7 @@
 // Atom.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Atom.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
+// $Id: Atom.h,v 1.4 2007-10-19 16:24:03 fgygi Exp $
 
 #ifndef ATOM_H
 #define ATOM_H
@@ -14,7 +14,7 @@
 class Atom
 {
   private:
-  
+
   std::string name_;
   std::string species_;
   D3vector position_;
@@ -22,7 +22,7 @@ class Atom
 
   public:
 
-  Atom (std::string name, std::string species, 
+  Atom (std::string name, std::string species,
         D3vector position, D3vector velocity);
   std::string name(void) { return name_; };
   std::string species(void) { return species_; };

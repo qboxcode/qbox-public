@@ -5,7 +5,7 @@
 // use: testjade nprow npcol m mb
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testjade.C,v 1.1 2007-08-13 21:26:27 fgygi Exp $
+// $Id: testjade.C,v 1.2 2007-10-19 16:24:06 fgygi Exp $
 
 #include <cassert>
 #include <cstdlib>
@@ -38,7 +38,7 @@ double bb(int i, int j) { return i-j-3; }
 
 double frank(int n, int i, int j) { return n - max(i,j); }
 double aijf(int n, int k, int i, int j)
-{  
+{
   switch ( mtype )
   {
     case FRANK :
@@ -46,13 +46,13 @@ double aijf(int n, int k, int i, int j)
         return frank(n,i,j);
       else
         return frank(n,n-i,n-j);
-      
+
     case SCALED_FRANK :
       if ( k == 0 )
         return frank(n,i,j)/(n*n);
       else
         return frank(n,n-i,n-j)/(n*n);
-  
+
     case LAPLACIAN :
       if ( i == j )
       {
@@ -62,7 +62,7 @@ double aijf(int n, int k, int i, int j)
       {
         return 1.0;
       }
-      
+
     case SMALL :
     {
       if ( k == 0 )
@@ -87,14 +87,14 @@ double aijf(int n, int k, int i, int j)
   }
   return 0.0;
 }
-  
+
 int main(int argc, char **argv)
 {
   // use: testjade nprow npcol n nb
   const int maxsweep = 30;
   const double tol = 1.e-8;
   const int nmat = 2;
-  
+
   int mype;
   int npes;
 #ifdef USE_MPI
@@ -123,14 +123,14 @@ int main(int argc, char **argv)
     cout << "tol=" << tol << endl;
   }
 #ifdef USE_MPI
-  MPI_Bcast(&nprow, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&npcol, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&m_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&n_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&mb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&nb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
+  MPI_Bcast(&nprow, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&npcol, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&m_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&n_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&mb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&nb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
-  {  
+  {
     Context ctxt(nprow,npcol);
 
     if ( mype == 0 )
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
     {
       for ( int m = 0; m < a[k]->nblocks(); m++ )
         for ( int l = 0; l < a[k]->mblocks(); l++ )
-          for ( int y = 0; y < a[k]->nbs(m); y++ )  
+          for ( int y = 0; y < a[k]->nbs(m); y++ )
             for ( int x = 0; x < a[k]->mbs(l); x++ )
             {
               int i = a[k]->i(l,x);
@@ -174,20 +174,20 @@ int main(int argc, char **argv)
       //cout << " a[" << k << "]=" << endl;
       //cout << (*a[k]);
     }
-    
+
     tm.start();
     int nsweep = jade(maxsweep,tol,a,u,adiag);
     tm.stop();
-    if ( ctxt.onpe0() ) 
+    if ( ctxt.onpe0() )
     {
-      cout << " m=" << m_a << " mb=" << mb_a 
+      cout << " m=" << m_a << " mb=" << mb_a
            << " ctxt: " << ctxt.nprow() << "x" << ctxt.npcol()
            << " nsweep=" << nsweep << " time: " << tm.real() << endl;
     }
-    
+
     for ( int k = 0; k < nmat; k++ )
       sort(adiag[k].begin(),adiag[k].end());
-    
+
     if ( nmat == 1 && (mtype == FRANK || mtype == SCALED_FRANK) )
     {
       vector<double> e_exact(adiag[0].size());
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
         }
       }
       sort(e_exact.begin(),e_exact.end());
-    
+
       if ( mype == 0 )
       {
         for ( int k = 0; k < nmat; k++ )
@@ -214,30 +214,30 @@ int main(int argc, char **argv)
             //     << "  " << e_exact[i] << endl;
             asum += fabs(adiag[k][i]-e_exact[i]);
           }
-          cout << "a[" << k << "] sum of abs eigenvalue errors: " 
+          cout << "a[" << k << "] sum of abs eigenvalue errors: "
                << asum << endl;
         }
       }
 
     }
-    
+
     if ( print )
     {
       // a[k] contains AU.
       // compute the product C = U^T A U
       DoubleMatrix c(*a[0]);
-      for ( int k = 0; k < nmat; k++ )        
-      {                                       
+      for ( int k = 0; k < nmat; k++ )
+      {
         c.gemm('t','n',1.0,u,(*a[k]),0.0);
-        if ( mype == 0 )                 
-        {                                         
+        if ( mype == 0 )
+        {
           cout << " a[" << k << "]=" << endl;
-          cout << c;                    
-        }                                     
+          cout << c;
+        }
       }
-      cout << " u=" << endl;                  
-      cout << u;              
-    }                                         
+      cout << " u=" << endl;
+      cout << u;
+    }
   }
 
 #ifdef USE_MPI

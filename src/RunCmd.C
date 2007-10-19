@@ -3,7 +3,7 @@
 // RunCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.C,v 1.5 2004-09-14 22:24:11 fgygi Exp $
+// $Id: RunCmd.C,v 1.6 2007-10-19 16:24:04 fgygi Exp $
 
 #include "RunCmd.h"
 #include<iostream>
@@ -25,7 +25,7 @@ int RunCmd::action(int argc, char **argv)
       cout << "      run niter nitscf nite" << endl;
     return 1;
   }
-  
+
   if ( s->wf.nst() == 0 )
   {
     if ( ui->onpe0() )
@@ -38,9 +38,9 @@ int RunCmd::action(int argc, char **argv)
       cout << " <!-- RunCmd: ecut = 0.0, cannot run -->" << endl;
     return 1;
   }
-  
+
   SampleStepper* stepper;
-  
+
   int niter = atoi(argv[1]);
   int nite = 1;
   int nitscf = 1;
@@ -59,13 +59,13 @@ int RunCmd::action(int argc, char **argv)
     stepper = new CPSampleStepper(*s);
   else
     stepper = new BOSampleStepper(*s,nitscf,nite);
-  
+
   assert(stepper!=0);
-  
+
   s->wf.info(cout,"wavefunction");
   stepper->step(niter);
-  
+
   delete stepper;
-  
+
   return 0;
 }

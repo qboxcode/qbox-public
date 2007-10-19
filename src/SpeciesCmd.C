@@ -3,7 +3,7 @@
 // SpeciesCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesCmd.C,v 1.7 2005-09-16 23:08:11 fgygi Exp $
+// $Id: SpeciesCmd.C,v 1.8 2007-10-19 16:24:05 fgygi Exp $
 
 #include "SpeciesCmd.h"
 #include "SpeciesReader.h"
@@ -21,15 +21,15 @@ int SpeciesCmd::action(int argc, char **argv)
       cout << "  <!-- use: species name uri -->" << endl;
     return 1;
   }
-  
+
   if ( ui->onpe0() )
     cout << "  <!-- SpeciesCmd: defining species " << argv[1]
          << " as " << argv[2] << " -->" << endl;
 
   SpeciesReader sp_reader(s->ctxt_);
-  
+
   Species* sp = new Species(s->ctxt_,argv[1]);
-  
+
   try
   {
     sp_reader.readSpecies(*sp,argv[2]);
@@ -52,6 +52,6 @@ int SpeciesCmd::action(int argc, char **argv)
   {
     cout << " SpeciesCmd: cannot define Species" << endl;
   }
-  
+
   return 0;
 }

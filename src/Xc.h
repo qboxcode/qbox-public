@@ -3,7 +3,7 @@
 // Xc.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Xc.h,v 1.2 2004-02-04 19:55:16 fgygi Exp $
+// $Id: Xc.h,v 1.3 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef XC_H
 #define XC_H
@@ -31,7 +31,7 @@ class Xc : public Var
       cout << " xc takes only one value" << endl;
       return 1;
     }
-    
+
     string v = argv[1];
     if ( !( v == "LDA" || v == "PBE" || v == "BLYP" ) )
     {
@@ -41,7 +41,7 @@ class Xc : public Var
     }
 
     s->ctrl.xc= v;
-    
+
     return 0;
   }
 

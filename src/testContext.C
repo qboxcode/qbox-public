@@ -3,14 +3,14 @@
 // testContext.c
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testContext.C,v 1.6 2006-03-07 07:09:06 fgygi Exp $
+// $Id: testContext.C,v 1.7 2007-10-19 16:24:06 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
 #include <vector>
 using namespace std;
 
-#ifdef USE_MPI  
+#ifdef USE_MPI
 #include <mpi.h>
 #endif
 
@@ -20,23 +20,23 @@ int main(int argc, char **argv)
 {
   int mype;
   int npes;
-#ifdef USE_MPI  
+#ifdef USE_MPI
 
   MPI_Init(&argc,&argv);
   MPI_Comm_size(MPI_COMM_WORLD, &npes);
   MPI_Comm_rank(MPI_COMM_WORLD, &mype);
-  
+
   int nr = atoi(argv[1]);
   int nc = atoi(argv[2]);
-  
+
   { // start Context scope
-  
+
     Context ctxt;
-    cout << mype << ":" << ctxt.mype() << ":" << ctxt.myproc() 
+    cout << mype << ":" << ctxt.mype() << ":" << ctxt.myproc()
          << " base: " << ctxt;
 
     vector<Context*> c;
-    
+
     c.push_back(new Context(nr,nc));
     if ( nr >= 2 && nc >= 2 )
       c.push_back(new Context(*c[0],2,2,1,1));
@@ -45,24 +45,24 @@ int main(int argc, char **argv)
       ctxt.barrier();
       c.push_back(new Context(*c[0],c[0]->nprow(),1,0,icol));
     }
-    
+
     for ( int i = 0; i < c.size(); i++ )
     {
       Context* pc = c[i];
       cout << mype << ":" << pc->mype() << ":" << pc->myproc()
-           << " at (" << pc->myrow() << "," << pc->mycol() << ")" 
+           << " at (" << pc->myrow() << "," << pc->mycol() << ")"
            << " in c" << i << ": " << *pc;
     }
-    
+
 #if 0
     MPI_Comm comm = c[1]->comm();
     int mype_in_c1,size_of_c1;
     MPI_Comm_rank(comm,&mype_in_c1);
     MPI_Comm_size(comm,&size_of_c1);
-    cout << mype << ": mype_in_c1: " << mype_in_c1 
+    cout << mype << ": mype_in_c1: " << mype_in_c1
          << " size_of_c1=" << size_of_c1
          << " comm[c1]=" << comm << endl;
-    
+
     // test dgsum2d function
     double a = c[1]->mype();
     cout << c[1]->mype() << ": a     = " << a << endl;
@@ -70,13 +70,13 @@ int main(int argc, char **argv)
     cout << c[1]->mype() << ": a_sum_row = " << a << endl;
     c[1]->dsum('C',1,1,&a,1);
     cout << c[1]->mype() << ": a_sum_all = " << a << endl;
-    
+
 #endif
     for ( int i = 0; i < c.size(); i++ )
     {
       delete c[i];
     }
-    
+
 //   // test reference counting
 //   if ( npes%2 == 0 && npes >= 4 )
 //   {
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 //     if ( c2 != 0 ) cout << c2->mype() << " c2: " << *c2;
 //     delete c2;
 //   }
-  
+
 #if 0
   }
 #endif

@@ -3,7 +3,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.15 2006-03-07 07:06:34 fgygi Exp $
+// $Id: Matrix.C,v 1.16 2007-10-19 16:24:04 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -99,66 +99,66 @@ extern "C"
        const double*, const int*, const int*, const int*,
        const double*, const int*, const int*, const int*,
        const double*, double*, const int*, const int*, const int*);
-  void pzsymm(const char*, const char*, const int*, const int*, 
+  void pzsymm(const char*, const char*, const int*, const int*,
        const complex<double>*,
        const complex<double>*, const int*, const int*, const int*,
        const complex<double>*, const int*, const int*, const int*,
-       const complex<double>*, complex<double>*, const int*, const int*, 
+       const complex<double>*, complex<double>*, const int*, const int*,
        const int*);
-  void pzhemm(const char*, const char*, const int*, const int*, 
+  void pzhemm(const char*, const char*, const int*, const int*,
        const complex<double>*,
        const complex<double>*, const int*, const int*, const int*,
        const complex<double>*, const int*, const int*, const int*,
-       const complex<double>*, complex<double>*, const int*, const int*, 
+       const complex<double>*, complex<double>*, const int*, const int*,
        const int*);
-  void pdgemm(const char*, const char*, const int*, 
+  void pdgemm(const char*, const char*, const int*,
        const int*, const int*, const double*,
        const double*, const int*, const int*, const int*,
        const double*, const int*, const int*, const int*,
        const double*, double*, const int*, const int*, const int*);
-  void pzgemm(const char*, const char*, const int*, 
+  void pzgemm(const char*, const char*, const int*,
        const int*, const int*, const complex<double>*,
        const complex<double>*, const int*, const int*, const int*,
        const complex<double>*, const int*, const int*, const int*,
-       const complex<double>*, complex<double>*, const int*, const int*, 
+       const complex<double>*, complex<double>*, const int*, const int*,
        const int*);
   void pdger(const int*, const int*, const double*,
        const double*, const int*, const int*, const int*, const int*,
        const double*, const int*, const int*, const int*, const int*,
        double*, const int*, const int*, const int*);
-  void pdsyr(const char*, const int*, 
+  void pdsyr(const char*, const int*,
        const double*, const double*, const int*, const int*, const int*,
        const int*, double*, const int*, const int*, const int*);
-  void pdsyrk(const char*, const char*, const int*, const int*, 
+  void pdsyrk(const char*, const char*, const int*, const int*,
        const double*, const double*, const int*, const int*, const int*,
        const double*, double*, const int*, const int*, const int*);
-  void pzherk(const char*, const char*, const int*, const int*, 
-       const complex<double>*, const complex<double>*, const int*, 
+  void pzherk(const char*, const char*, const int*, const int*,
+       const complex<double>*, const complex<double>*, const int*,
        const int*, const int*,
-       const complex<double>*, complex<double>*, const int*, 
+       const complex<double>*, complex<double>*, const int*,
        const int*, const int*);
   void pdtran(const int*,const  int*, const double*,
        const double*, const int*, const int*, const int*,
        double*, const double*, const int*, const int*, const int*);
   void pztranc(const int*, const int*, const complex<double>*,
        const complex<double>*, const int*, const int*, const int*,
-       complex<double>*, const complex<double>*, const int*, const int*, 
+       complex<double>*, const complex<double>*, const int*, const int*,
        const int*);
-  void pdtrmm(const char*, const char*, const char*, const char*, 
-       const int*, const int*, const double*, 
+  void pdtrmm(const char*, const char*, const char*, const char*,
+       const int*, const int*, const double*,
        const double*, const int*, const int*, const int*,
        double*, const int*, const int*, const int*);
-  void pdtrsm(const char*, const char*, const char*, const char*, 
-       const int*, const int*, const double*, 
+  void pdtrsm(const char*, const char*, const char*, const char*,
+       const int*, const int*, const double*,
        const double*, const int*, const int*, const int*,
        double*, const int*, const int*, const int*);
-  void pztrsm(const char*, const char*, const char*, const char*, 
-       const int*, const int*, const complex<double>*, 
+  void pztrsm(const char*, const char*, const char*, const char*,
+       const int*, const int*, const complex<double>*,
        const complex<double>*, const int*, const int*, const int*,
        complex<double>*, const int*, const int*, const int*);
   double pdlatra(const int*,const double*,const int*,const int*,const int*);
   // SCALAPACK
-  void pdtrtrs(const char*, const char*, const char*, const int*, const int*, 
+  void pdtrtrs(const char*, const char*, const char*, const int*, const int*,
                const double*, const int*, const int*, const int*,
                double*, const int*, const int*, const int*, int*);
   void pdgemr2d(const int*,const int*,
@@ -169,25 +169,25 @@ extern "C"
                 complex<double>*,const int*,const int*,const int*,const int*);
   void pdpotrf(const char*, const int*, double*, const int*,
                const int*, const int*, const int*);
-  void pzpotrf(const char*, const int*, complex<double>*, const int*, 
+  void pzpotrf(const char*, const int*, complex<double>*, const int*,
                const int*, const int*, const int*);
-  void pdpotri(const char*, const int*, double*, const int*, 
+  void pdpotri(const char*, const int*, double*, const int*,
                const int*, const int*, const int*);
-  void pdpocon(const char*, const int*, const double*, 
+  void pdpocon(const char*, const int*, const double*,
                const int*, const int*, const int*, const double*, double*,
                double*, const int*, int*, const int*, int*);
-  void pdsygst(const int*, const char*, const int*, double*, 
+  void pdsygst(const int*, const char*, const int*, double*,
                const int*, const int*, const int*, const double*, const int*,
                const int*, const int*, double*, int*);
-  void pdsyev(const char*, const char*, const int*, 
+  void pdsyev(const char*, const char*, const int*,
               double*, const int*, const int*, const int*, double*, double*,
               const int*, const int*, const int*, double*, const int*, int*);
-  void pdsyevd(const char*, const char*, const int*, 
+  void pdsyevd(const char*, const char*, const int*,
               double*, const int*, const int*, const int*, double*, double*,
               const int*, const int*, const int*, double*, const int*, int*,
               int*, int*);
   void pdsyevx(const char* jobz, const char* range, const char* uplo,
-               const int* n, double* a, const int* ia, const int* ja, 
+               const int* n, double* a, const int* ia, const int* ja,
                const int* desca, double* vl, double* vu,
                const int* il, const int* iu, double* abstol,
                int* nfound, int* nz, double* w,
@@ -195,99 +195,99 @@ extern "C"
                const int* descz, double* work, const int* lwork,
                int* iwork, const int* liwork, int* ifail,
                int* icluster, double* gap, int* info);
-  void pzheev(const char* jobz, const char* uplo, const int* n, 
-              complex<double>* a, const int* ia, const int* ja, 
+  void pzheev(const char* jobz, const char* uplo, const int* n,
+              complex<double>* a, const int* ia, const int* ja,
               const int* desca, double* w, complex<double> *z,
-              const int* iz, const int* jz, const int* descz, 
+              const int* iz, const int* jz, const int* descz,
               complex<double>* work, const int* lwork,
               double* rwork, const int* lrwork, int* info);
-  void pdtrtri(const char*, const char*, const int*, double*, 
+  void pdtrtri(const char*, const char*, const int*, double*,
                const int*, const int*, const int*, int*);
-  void pdgetrf(const int* m, const int* n, double* val, 
+  void pdgetrf(const int* m, const int* n, double* val,
                int* ia, const int* ja, const int* desca, int* ipiv, int* info);
-  void pdgetri(const int* n, double* val, 
-               const int* ia, const int* ja, int* desca, int* ipiv, 
+  void pdgetri(const int* n, double* val,
+               const int* ia, const int* ja, int* desca, int* ipiv,
                double* work, int* lwork, int* iwork, int* liwork, int* info);
 #endif
   // BLAS1
   void dscal(const int*, const double*, double*, const int*);
   void zscal(const int*, const complex<double>*, complex<double>*, const int*);
   void zdscal(const int*, const double*, complex<double>*, const int*);
-  void daxpy(const int *, const double *, const double *, const int *, 
+  void daxpy(const int *, const double *, const double *, const int *,
              double *, const int *);
-  void zaxpy(const int *, const complex<double> *, const complex<double> *, 
+  void zaxpy(const int *, const complex<double> *, const complex<double> *,
              const int *, complex<double> *, const int *);
   void dcopy(const int *, const double*, const int *, double*, const int*);
-  double ddot(const int *, const double *, const int *, 
+  double ddot(const int *, const double *, const int *,
               const double *, const int *);
-  complex<double> zdotc(const int *, const complex<double>*, const int *, 
+  complex<double> zdotc(const int *, const complex<double>*, const int *,
                         const complex<double>*, const int *);
-  complex<double> zdotu(const int *, const complex<double>*, const int *, 
+  complex<double> zdotu(const int *, const complex<double>*, const int *,
                         const complex<double>*, const int *);
   int idamax(const int *, const double*, const int*);
   // BLAS3
   void dsymm(const char*, const char*, const int*, const int *,
-             const double*, const double*, const int*, 
+             const double*, const double*, const int*,
              const double*, const int*,
              const double*, double*, const int*);
   void zsymm(const char*, const char*, const int*, const int *,
-             const complex<double>*, const complex<double>*, const int*, 
+             const complex<double>*, const complex<double>*, const int*,
              const complex<double>*, const int*,
              const complex<double>*, complex<double>*, const int*);
   void zhemm(const char*, const char*, const int*, const int *,
-             const complex<double>*, const complex<double>*, const int*, 
+             const complex<double>*, const complex<double>*, const int*,
              const complex<double>*, const int*,
              const complex<double>*, complex<double>*, const int*);
   void dgemm(const char*, const char*, const int*, const int *, const int*,
-             const double*, const double*, const int*, 
+             const double*, const double*, const int*,
              const double*, const int*,
              const double*, double*, const int*);
   void zgemm(const char*, const char*, const int*, const int *, const int*,
-             const complex<double>*, const complex<double>*, const int*, 
+             const complex<double>*, const complex<double>*, const int*,
              const complex<double>*, const int*,
              const complex<double>*, complex<double>*, const int*);
-  void dger(const int *, const int*, const double *, 
+  void dger(const int *, const int*, const double *,
             const double *, const int *, const double *, const int *,
             double*, const int*);
-  void dsyr(const char*, const int *, const double *, 
+  void dsyr(const char*, const int *, const double *,
             const double *, const int *, double *, const int *);
   void dsyrk(const char*, const char*, const int *, const int *,
-             const double *, const double *, const int *, 
+             const double *, const double *, const int *,
              const double *, double *, const int *);
   void zherk(const char* uplo, const char* trans, const int* n, const int* k,
-             const complex<double>* alpha, const complex<double>* a, 
-             const int*  lda, 
+             const complex<double>* alpha, const complex<double>* a,
+             const int*  lda,
              const complex<double>* beta, complex<double>* c, const int* ldc);
-  void dtrmm(const char*, const char*, const char*, const char*, 
-             const int*, const int *, const double*, const double*, 
+  void dtrmm(const char*, const char*, const char*, const char*,
+             const int*, const int *, const double*, const double*,
              const int*, double*, const int*);
-  void dtrsm(const char*, const char*, const char*, const char*, 
-             const int*, const int *, const double*, const double*, 
+  void dtrsm(const char*, const char*, const char*, const char*,
+             const int*, const int *, const double*, const double*,
              const int*, double*, const int*);
-  void ztrsm(const char*, const char*, const char*, const char*, 
-             const int*, const int *, const complex<double>*, 
+  void ztrsm(const char*, const char*, const char*, const char*,
+             const int*, const int *, const complex<double>*,
              const complex<double>*, const int*, complex<double>*, const int*);
   // LAPACK
-  void dtrtrs(const char*, const char*, const char*, 
-              const int*, const int*, const double*, const int*, 
+  void dtrtrs(const char*, const char*, const char*,
+              const int*, const int*, const double*, const int*,
               double*, const int*, int*);
   void dpotrf(const char*, const int*, double*, const int*, int*);
   void zpotrf(const char*, const int*, complex<double>*, const int*, int*);
   void dpotri(const char*, const int*, double*, const int*, int*);
-  void dpocon(const char*, const int *, const double *, const int *, 
+  void dpocon(const char*, const int *, const double *, const int *,
               const double *, double *, double *, const int *, int *);
-  void dsygst(const int*, const char*, const int*, 
+  void dsygst(const int*, const char*, const int*,
               double*, const int*, const double*, const int*, int*);
-  void dsyev(const char* jobz, const char* uplo, const int* n, double* a, 
+  void dsyev(const char* jobz, const char* uplo, const int* n, double* a,
              const int *lda, double *w, double*work,
              const int *lwork, int *info);
-  void zheev(const char* jobz, const char* uplo, const int *n, 
+  void zheev(const char* jobz, const char* uplo, const int *n,
              complex<double>* a, const int *lda, double* w,
              complex<double>* work, const int *lwork, double* rwork, int *info);
   void dtrtri(const char*, const char*, const int*, double*, const int*, int* );
-  void dgetrf(const int* m, const int* n, double* a, const int* lda, 
+  void dgetrf(const int* m, const int* n, double* a, const int* lda,
               int* ipiv, int*info);
-  void dgetri(const int* m, double* val, const int* lda, int* ipiv, 
+  void dgetri(const int* m, double* val, const int* lda, int* ipiv,
               double* work, int* lwork, int* info);
 }
 
@@ -333,7 +333,7 @@ ComplexMatrix::ComplexMatrix(DoubleMatrix& rhs) : ctxt_(rhs.context()),
   init_size(new_m,rhs.n(),new_mb,rhs.nb());
   val = (complex<double>*) rhs.valptr();
 }
-    
+
 ////////////////////////////////////////////////////////////////////////////////
 // reference constructor create a proxy for a const DoubleMatrix rhs
 ComplexMatrix::ComplexMatrix(const DoubleMatrix& rhs) : ctxt_(rhs.context()),
@@ -346,7 +346,7 @@ ComplexMatrix::ComplexMatrix(const DoubleMatrix& rhs) : ctxt_(rhs.context()),
   init_size(new_m,rhs.n(),new_mb,rhs.nb());
   val = (complex<double>*) rhs.cvalptr();
 }
-    
+
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::init_size(int m, int n, int mb, int nb)
 {
@@ -379,7 +379,7 @@ void DoubleMatrix::init_size(int m, int n, int mb, int nb)
   if ( n_ != 0 )
     nloc_ = numroc(&n_,&nb_,&mycol_,&isrcproc,&npcol_);
   size_ = mloc_ * nloc_;
-  
+
   // set leading dimension of val array to mloc_;
   lld_ = mloc_;
   if ( lld_ == 0 ) lld_ = 1;
@@ -415,7 +415,7 @@ void DoubleMatrix::init_size(int m, int n, int mb, int nb)
   desc_[8] = lld_;
 
 }
-    
+
 ////////////////////////////////////////////////////////////////////////////////
 void ComplexMatrix::init_size(int m, int n, int mb, int nb)
 {
@@ -443,7 +443,7 @@ void ComplexMatrix::init_size(int m, int n, int mb, int nb)
   int isrcproc=0;
   mloc_ = 0;
   nloc_ = 0;
-  
+
   if ( m_ != 0 )
     mloc_ = numroc(&m_,&mb_,&myrow_,&isrcproc,&nprow_);
   if ( n_ != 0 )
@@ -485,7 +485,7 @@ void ComplexMatrix::init_size(int m, int n, int mb, int nb)
   desc_[8] = lld_;
 
 }
-    
+
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::clear(void)
 {
@@ -583,17 +583,17 @@ void DoubleMatrix::set(char uplo, double xx)
             // << " block (" << ll << "," << mm << ")"
             // << " imin/imax=" << imin << "/" << imax
             // << " jmin/jmax=" << jmin << "/" << jmax << endl;
-            
+
             if ((imin <= jmax) && (imax >= jmin))
             {
               // block (ll,mm) holds diagonal elements
               int idiagmin = max(imin,jmin);
               int idiagmax = min(imax,jmax);
-              
+
               // cout << " process (" << myrow_ << "," << mycol_ << ")"
               // << " holds diagonal elements " << idiagmin << " to " <<
               // idiagmax << " in block (" << ll << "," << mm << ")" << endl;
-              
+
               for ( int ii = idiagmin; ii <= idiagmax; ii++ )
               {
                 // access element (ii,ii)
@@ -679,17 +679,17 @@ void ComplexMatrix::set(char uplo, complex<double> xx)
             // << " block (" << ll << "," << mm << ")"
             // << " imin/imax=" << imin << "/" << imax
             // << " jmin/jmax=" << jmin << "/" << jmax << endl;
-            
+
             if ((imin <= jmax) && (imax >= jmin))
             {
               // block (ll,mm) holds diagonal elements
               int idiagmin = max(imin,jmin);
               int idiagmax = min(imax,jmax);
-              
+
               // cout << " process (" << myrow_ << "," << mycol_ << ")"
               // << " holds diagonal elements " << idiagmin << " to " <<
               // idiagmax << " in block (" << ll << "," << mm << ")" << endl;
-              
+
               for ( int ii = idiagmin; ii <= idiagmax; ii++ )
               {
                 // access element (ii,ii)
@@ -787,7 +787,7 @@ complex<double> ComplexMatrix::dot(const ComplexMatrix &x) const
   }
 #ifdef SCALAPACK
   if ( active_ )
-    MPI_Allreduce((double*)&tsum, (double*)&sum, 2, 
+    MPI_Allreduce((double*)&tsum, (double*)&sum, 2,
                   MPI_DOUBLE, MPI_SUM, ctxt_.comm() );
 #else
   sum=tsum;
@@ -817,7 +817,7 @@ complex<double> ComplexMatrix::dotu(const ComplexMatrix &x) const
   }
 #ifdef SCALAPACK
   if ( active_ )
-    MPI_Allreduce((double*)&tsum, (double*)&sum, 2, 
+    MPI_Allreduce((double*)&tsum, (double*)&sum, 2,
                   MPI_DOUBLE, MPI_SUM, ctxt_.comm() );
 #else
   sum=tsum;
@@ -942,12 +942,12 @@ void DoubleMatrix::transpose(double alpha, const DoubleMatrix& a, double beta)
 {
   assert(this != &a);
   assert( ictxt_ == a.ictxt() );
- 
+
   if ( active() )
   {
     assert(a.m() == n_);
     assert(a.n() == m_);
- 
+
 #ifdef SCALAPACK
     int ione = 1;
     pdtran(&m_, &n_, &alpha,
@@ -957,7 +957,7 @@ void DoubleMatrix::transpose(double alpha, const DoubleMatrix& a, double beta)
     scal(beta);
     for ( int i=0; i<m_; i++ )
       for ( int j=0; j<i; j++ )
-      {    
+      {
         val[i*m_+j] += alpha * a.val[j*m_+i];
         val[j*m_+i] += alpha * a.val[i*m_+j];
       }
@@ -986,12 +986,12 @@ void ComplexMatrix::transpose(complex<double> alpha, const ComplexMatrix& a,
 {
   assert(this != &a);
   assert( ictxt_ == a.ictxt() );
- 
+
   if ( active() )
   {
     assert(a.m() == n_);
     assert(a.n() == m_);
- 
+
 #ifdef SCALAPACK
     int ione = 1;
     pztranc(&m_, &n_, &alpha,
@@ -1001,7 +1001,7 @@ void ComplexMatrix::transpose(complex<double> alpha, const ComplexMatrix& a,
     scal(beta);
     for ( int i=0; i<m_; i++ )
       for ( int j=0; j<i; j++ )
-      {    
+      {
         val[i*m_+j] += alpha * conj(a.val[j*m_+i]);
         val[j*m_+i] += alpha * conj(a.val[i*m_+j]);
       }
@@ -1028,7 +1028,7 @@ void DoubleMatrix::symmetrize(char uplo)
   // if uplo == 'l' : copy strictly lower triangle to strictly upper triangle
   // if uplo == 'u' : copy strictly upper triangle to strictly lower triangle
   // if uplo == 'n' : A = 0.5 * ( A^T + A )
-  
+
   if ( uplo == 'n' )
   {
     DoubleMatrix tmp(*this);
@@ -1063,10 +1063,10 @@ void DoubleMatrix::symmetrize(char uplo)
 void ComplexMatrix::symmetrize(char uplo)
 {
   // symmetrize
-  // uplo == 'l' : copy conjugate of strictly lower triangle to strictly upper 
-  // uplo == 'u' : copy conjugate of strictly upper triangle to strictly lower 
+  // uplo == 'l' : copy conjugate of strictly lower triangle to strictly upper
+  // uplo == 'u' : copy conjugate of strictly upper triangle to strictly lower
   // uplo == 'n' : A = 0.5 * ( A^H + A )
-  
+
   if ( uplo == 'n' )
   {
     ComplexMatrix tmp(*this);
@@ -1119,11 +1119,11 @@ void DoubleMatrix::ger(double alpha,
   assert(y.n()==n_);
 #if SCALAPACK
   int ione=1;
-  
+
   int ix = kx+1;
   int jx = 1;
   int incx = x.m();
-  
+
   int iy = ky+1;
   int jy = 1;
   int incy = y.m();
@@ -1198,7 +1198,7 @@ DoubleMatrix& DoubleMatrix::operator=(const DoubleMatrix& a)
   if ( this == &a ) return *this;
 
   // operator= works only for matrices having same distribution on same context
-  assert( a.ictxt() == ictxt_ && a.m() == m_ && a.mb() == mb_ && 
+  assert( a.ictxt() == ictxt_ && a.m() == m_ && a.mb() == mb_ &&
           a.n() == n_ && a.nb() == nb_ );
   if ( active() )
   {
@@ -1216,7 +1216,7 @@ ComplexMatrix& ComplexMatrix::operator=(const ComplexMatrix& a)
 {
   if ( this == &a ) return *this;
 
-  assert( a.ictxt() == ictxt_ && a.m() == m_ && a.mb() == mb_ && 
+  assert( a.ictxt() == ictxt_ && a.m() == m_ && a.mb() == mb_ &&
           a.n() == n_ && a.nb() == nb_ );
   if ( active() )
   {
@@ -1355,7 +1355,7 @@ void DoubleMatrix::gemm(char transa, char transb,
 {
   assert( ictxt_ == a.ictxt() );
   assert( ictxt_ == b.ictxt() );
- 
+
   if ( active() )
   {
     int m, n, k;
@@ -1381,7 +1381,7 @@ void DoubleMatrix::gemm(char transa, char transb,
       n = b.m();
       assert(k==b.n());
     }
- 
+
 #ifdef SCALAPACK
     int ione=1;
     pdgemm(&transa, &transb, &m, &n, &k, &alpha,
@@ -1389,7 +1389,7 @@ void DoubleMatrix::gemm(char transa, char transb,
          b.val, &ione, &ione, b.desc_,
          &beta, val, &ione, &ione, desc_);
 #else
-    dgemm(&transa, &transb, &m, &n, &k, &alpha, a.val, &a.lld_, 
+    dgemm(&transa, &transb, &m, &n, &k, &alpha, a.val, &a.lld_,
           b.val, &b.lld_, &beta, val, &lld_);
 #endif
   }
@@ -1405,7 +1405,7 @@ void ComplexMatrix::gemm(char transa, char transb,
 {
   assert( ictxt_ == a.ictxt() );
   assert( ictxt_ == b.ictxt() );
- 
+
   if ( active() )
   {
     int m, n, k;
@@ -1431,7 +1431,7 @@ void ComplexMatrix::gemm(char transa, char transb,
       n = b.m();
       assert(k==b.n());
     }
- 
+
 #ifdef SCALAPACK
     int ione=1;
     pzgemm(&transa, &transb, &m, &n, &k, &alpha,
@@ -1439,7 +1439,7 @@ void ComplexMatrix::gemm(char transa, char transb,
          b.val, &ione, &ione, b.desc_,
          &beta, val, &ione, &ione, desc_);
 #else
-    zgemm(&transa, &transb, &m, &n, &k, &alpha, a.val, &a.lld_, 
+    zgemm(&transa, &transb, &m, &n, &k, &alpha, a.val, &a.lld_,
           b.val, &b.lld_, &beta, val, &lld_);
 #endif
   }
@@ -1456,7 +1456,7 @@ void DoubleMatrix::symm(char side, char uplo,
 {
   assert( ictxt_ == a.ictxt() );
   assert( ictxt_ == b.ictxt() );
- 
+
   if ( active() )
   {
     assert(a.n()==a.m());
@@ -1468,7 +1468,7 @@ void DoubleMatrix::symm(char side, char uplo,
     {
       assert(a.m()==b.n());
     }
- 
+
 #ifdef SCALAPACK
     int ione=1;
     pdsymm(&side, &uplo, &m_, &n_, &alpha,
@@ -1476,7 +1476,7 @@ void DoubleMatrix::symm(char side, char uplo,
          b.val, &ione, &ione, b.desc_,
          &beta, val, &ione, &ione, desc_);
 #else
-    dsymm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_, 
+    dsymm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_,
           b.val, &b.lld_, &beta, val, &lld_);
 #endif
   }
@@ -1493,7 +1493,7 @@ void ComplexMatrix::hemm(char side, char uplo,
 {
   assert( ictxt_ == a.ictxt() );
   assert( ictxt_ == b.ictxt() );
- 
+
   if ( active() )
   {
     assert(a.n()==a.m());
@@ -1505,7 +1505,7 @@ void ComplexMatrix::hemm(char side, char uplo,
     {
       assert(a.m()==b.n());
     }
- 
+
 #ifdef SCALAPACK
     int ione=1;
     pzhemm(&side, &uplo, &m_, &n_, &alpha,
@@ -1513,7 +1513,7 @@ void ComplexMatrix::hemm(char side, char uplo,
          b.val, &ione, &ione, b.desc_,
          &beta, val, &ione, &ione, desc_);
 #else
-    zhemm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_, 
+    zhemm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_,
           b.val, &b.lld_, &beta, val, &lld_);
 #endif
   }
@@ -1530,7 +1530,7 @@ void ComplexMatrix::symm(char side, char uplo,
 {
   assert( ictxt_ == a.ictxt() );
   assert( ictxt_ == b.ictxt() );
- 
+
   if ( active() )
   {
     assert(a.n()==a.m());
@@ -1542,7 +1542,7 @@ void ComplexMatrix::symm(char side, char uplo,
     {
       assert(a.m()==b.n());
     }
- 
+
 #ifdef SCALAPACK
     int ione=1;
     pzsymm(&side, &uplo, &m_, &n_, &alpha,
@@ -1550,7 +1550,7 @@ void ComplexMatrix::symm(char side, char uplo,
          b.val, &ione, &ione, b.desc_,
          &beta, val, &ione, &ione, desc_);
 #else
-    zsymm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_, 
+    zsymm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_,
           b.val, &b.lld_, &beta, val, &lld_);
 #endif
   }
@@ -1565,7 +1565,7 @@ void ComplexMatrix::symm(char side, char uplo,
 // alpha is a scalar, *this is an m by n matrix, and A is a unit or non-unit,
 // upper- or lower-triangular matrix.
 ////////////////////////////////////////////////////////////////////////////////
-void DoubleMatrix::trmm(char side, char uplo, char trans, char diag, 
+void DoubleMatrix::trmm(char side, char uplo, char trans, char diag,
                         double alpha, const DoubleMatrix& a)
 {
   if ( active() )
@@ -1585,7 +1585,7 @@ void DoubleMatrix::trmm(char side, char uplo, char trans, char diag,
            &alpha, a.val, &ione, &ione, a.desc_,
            val, &ione, &ione, desc_);
 #else
-    dtrmm(&side, &uplo, &trans, &diag, 
+    dtrmm(&side, &uplo, &trans, &diag,
           &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
 #endif
   }
@@ -1598,7 +1598,7 @@ void DoubleMatrix::trmm(char side, char uplo, char trans, char diag,
 // alpha is a scalar, *this is an m by n matrix, and A is a unit or non-unit,
 // upper- or lower-triangular matrix.
 ////////////////////////////////////////////////////////////////////////////////
-void DoubleMatrix::trsm(char side, char uplo, char trans, char diag, 
+void DoubleMatrix::trsm(char side, char uplo, char trans, char diag,
                         double alpha, const DoubleMatrix& a)
 {
   if ( active() )
@@ -1618,7 +1618,7 @@ void DoubleMatrix::trsm(char side, char uplo, char trans, char diag,
            &alpha, a.val, &ione, &ione, a.desc_,
            val, &ione, &ione, desc_);
 #else
-    dtrsm(&side, &uplo, &trans, &diag, 
+    dtrsm(&side, &uplo, &trans, &diag,
           &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
 #endif
   }
@@ -1631,7 +1631,7 @@ void DoubleMatrix::trsm(char side, char uplo, char trans, char diag,
 // alpha is a scalar, *this is an m by n matrix, and A is a unit or non-unit,
 // upper- or lower-triangular matrix.
 ////////////////////////////////////////////////////////////////////////////////
-void ComplexMatrix::trsm(char side, char uplo, char trans, 
+void ComplexMatrix::trsm(char side, char uplo, char trans,
   char diag, complex<double> alpha, const ComplexMatrix& a)
 {
   if ( active() )
@@ -1651,7 +1651,7 @@ void ComplexMatrix::trsm(char side, char uplo, char trans,
            &alpha, a.val, &ione, &ione, a.desc_,
            val, &ione, &ione, desc_);
 #else
-    ztrsm(&side, &uplo, &trans, &diag, 
+    ztrsm(&side, &uplo, &trans, &diag,
           &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
 #endif
   }
@@ -1663,7 +1663,7 @@ void ComplexMatrix::trsm(char side, char uplo, char trans,
 // and  B  is an N-by-NRHS matrix.
 // Output in B.
 ////////////////////////////////////////////////////////////////////////////////
-void DoubleMatrix::trtrs(char uplo, char trans, char diag, 
+void DoubleMatrix::trtrs(char uplo, char trans, char diag,
                          DoubleMatrix& b) const
 {
   int info;
@@ -1673,11 +1673,11 @@ void DoubleMatrix::trtrs(char uplo, char trans, char diag,
 
 #ifdef SCALAPACK
     int ione=1;
-    pdtrtrs(&uplo, &trans, &diag, &m_, &b.n_, 
+    pdtrtrs(&uplo, &trans, &diag, &m_, &b.n_,
     val, &ione, &ione, desc_,
     b.val, &ione, &ione, b.desc_, &info);
 #else
-    dtrtrs(&uplo, &trans, &diag, &m_, &b.n_, val, &m_, 
+    dtrtrs(&uplo, &trans, &diag, &m_, &b.n_, val, &m_,
            b.val, &b.m_, &info);
 #endif
     if(info!=0)
@@ -1693,7 +1693,7 @@ void DoubleMatrix::trtrs(char uplo, char trans, char diag,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// LU decomposition of a general matrix 
+// LU decomposition of a general matrix
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::lu(valarray<int>& ipiv)
 {
@@ -1722,7 +1722,7 @@ void DoubleMatrix::lu(valarray<int>& ipiv)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// inverse of a general square matrix 
+// inverse of a general square matrix
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::inverse(void)
 {
@@ -1757,15 +1757,15 @@ void DoubleMatrix::inverse(void)
     int liwork = -1;
     // First call to compute dimensions of work arrays lwork and liwork
     // dimensions are returned in work[0] and iwork[0];
-    pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0], 
+    pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
             &work[0], &lwork, &iwork[0], &liwork, &info);
     lwork = (int) work[0] + 1;
     liwork = iwork[0];
     work.resize(lwork);
     iwork.resize(liwork);
-    
+
     // Compute inverse
-    pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0], 
+    pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
             &work[0], &lwork, &iwork[0], &liwork, &info);
 #else
     valarray<double> work(1);
@@ -1790,7 +1790,7 @@ void DoubleMatrix::inverse(void)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Real Cholesky factorization of a
-// symmetric positive definite distributed matrix 
+// symmetric positive definite distributed matrix
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::potrf(char uplo)
 {
@@ -1819,7 +1819,7 @@ void DoubleMatrix::potrf(char uplo)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Complex Cholesky factorization of a
-// hermitian positive definite distributed matrix 
+// hermitian positive definite distributed matrix
 ////////////////////////////////////////////////////////////////////////////////
 void ComplexMatrix::potrf(char uplo)
 {
@@ -1848,7 +1848,7 @@ void ComplexMatrix::potrf(char uplo)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Compute  the inverse of a real symmetric positive definite matrix
-// using the Cholesky factorization A = U**T*U or A = L*L**T computed 
+// using the Cholesky factorization A = U**T*U or A = L*L**T computed
 // by DoubleMatrix::potrf
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::potri(char uplo)
@@ -1906,7 +1906,7 @@ void DoubleMatrix::trtri(char uplo, char diag)
 
 ////////////////////////////////////////////////////////////////////////////////
 // estimate the reciprocal of the condition number (in the 1-norm) of a
-// real symmetric positive definite matrix using the Cholesky factorization  
+// real symmetric positive definite matrix using the Cholesky factorization
 // A  = U**T*U or A = L*L**T computed by DoubleMatrix::potrf
 ////////////////////////////////////////////////////////////////////////////////
 double DoubleMatrix::pocon(char uplo) const
@@ -1924,11 +1924,11 @@ double DoubleMatrix::pocon(char uplo) const
     int     liwork=mloc_;
     double* work=new double[lwork];
     int*    iwork=new int[liwork];
-    pdpocon(&uplo, &m_, val, &ione, &ione, desc_, 
+    pdpocon(&uplo, &m_, val, &ione, &ione, desc_,
             &anorm, &rcond, work, &lwork, iwork, &liwork, &info);
     if (info!=0)
     {
-        cout << "DoubleMatrix::pocon: lwork=" << lwork 
+        cout << "DoubleMatrix::pocon: lwork=" << lwork
              << ", but should be at least " << work[0] << endl;
         cout << "DoubleMatrix::pocon: liwork=" << liwork
              << ", but should be at least " << iwork[0] << endl;
@@ -1963,9 +1963,9 @@ double DoubleMatrix::pocon(char uplo) const
 void DoubleMatrix::syrk(char uplo, char trans,
                 double alpha, const DoubleMatrix& a, double beta)
 {
-  assert( ictxt_ == a.ictxt() );  
+  assert( ictxt_ == a.ictxt() );
   assert( n_ == m_ ); // *this must be a square matrix
- 
+
   if ( active() )
   {
     int n, k;
@@ -1979,7 +1979,7 @@ void DoubleMatrix::syrk(char uplo, char trans,
       n = m_;
       k = a.m();
     }
- 
+
 #ifdef SCALAPACK
     int ione = 1;
     pdsyrk(&uplo, &trans, &n, &k, &alpha,
@@ -1997,12 +1997,12 @@ void DoubleMatrix::syrk(char uplo, char trans,
 // this = beta * this + alpha * A^H * A  (trans=='c')
 ////////////////////////////////////////////////////////////////////////////////
 void ComplexMatrix::herk(char uplo, char trans,
-  complex<double> alpha, const ComplexMatrix& a, 
+  complex<double> alpha, const ComplexMatrix& a,
   complex<double> beta)
 {
-  assert( ictxt_ == a.ictxt() );  
+  assert( ictxt_ == a.ictxt() );
   assert( n_ == m_ ); // *this must be a square matrix
- 
+
   if ( active() )
   {
     int n, k;
@@ -2025,21 +2025,21 @@ void ComplexMatrix::herk(char uplo, char trans,
       exit(2);
 #endif
     }
- 
+
 #ifdef SCALAPACK
     int ione = 1;
     pzherk(&uplo, &trans, &n, &k, &alpha,
          a.val, &ione, &ione, a.desc_,
          &beta, val, &ione, &ione, desc_);
 #else
-    zherk(&uplo, &trans, &n, &k, &alpha, a.val, &a.m_, 
+    zherk(&uplo, &trans, &n, &k, &alpha, a.val, &a.m_,
           &beta, val, &m_);
 #endif
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// 
+//
 // Generate a duplicated matrix from a distributed matrix
 //
 ////////////////////////////////////////////////////////////////////////////////
@@ -2120,17 +2120,17 @@ void DoubleMatrix::initdiag(const double* const dmat)
           // << " block (" << ll << "," << mm << ")"
           // << " imin/imax=" << imin << "/" << imax
           // << " jmin/jmax=" << jmin << "/" << jmax << endl;
- 
+
           if ((imin <= jmax) && (imax >= jmin))
           {
             // block (ll,mm) holds diagonal elements
             int idiagmin = max(imin,jmin);
             int idiagmax = min(imax,jmax);
- 
+
             // cout << " process (" << myrow_ << "," << mycol_ << ")"
             // << " holds diagonal elements " << idiagmin << " to " <<
             // idiagmax << " in block (" << ll << "," << mm << ")" << endl;
- 
+
             for ( int ii = idiagmin; ii <= idiagmax; ii++ )
             {
               // access element (ii,ii)
@@ -2169,7 +2169,7 @@ double DoubleMatrix::trace(void) const
 // and A (=*this) is overwritten by inv(U**T)*A*inv(U) or inv(L)*A*inv(L**T)
 // If itype = 2 or 3, the problem is A*B*x = lambda*x or
 // B*A*x = lambda*x, and *this is overwritten by U*A*U**T or L**T*A*L.
-// B must have been previously factorized as U**T*U or L*L**T by 
+// B must have been previously factorized as U**T*U or L*L**T by
 // DoubleMatrix::dpotrf.
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::sygst(int itype, char uplo, const DoubleMatrix& b)
@@ -2182,13 +2182,13 @@ void DoubleMatrix::sygst(int itype, char uplo, const DoubleMatrix& b)
 #ifdef SCALAPACK
     int ione=1;
     double  scale;
-    pdsygst(&itype, &uplo, &m_, val, &ione, &ione, desc_, 
+    pdsygst(&itype, &uplo, &m_, val, &ione, &ione, desc_,
     b.val, &ione, &ione, b.desc_, &scale, &info);
 #else
     dsygst(&itype, &uplo, &m_, val, &m_, b.val, &b.m_, &info);
 #endif
     if ( info != 0 )
-    { 
+    {
       cout << " Matrix::sygst, info=" << info << endl;
 #ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
@@ -2213,27 +2213,27 @@ void DoubleMatrix::syev(char uplo, valarray<double>& w, DoubleMatrix& z)
     int ione=1;
     int lwork=-1;
     double tmpwork;
-    
-    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
-            z.val, &ione, &ione, z.desc_, &tmpwork, &lwork, 
+
+    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+            z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
             &info);
 
     lwork = (int) (tmpwork + 0.1);
     double* work=new double[lwork];
-    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
-            z.val, &ione, &ione, z.desc_, work, &lwork, 
+    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+            z.val, &ione, &ione, z.desc_, work, &lwork,
             &info);
-           
+
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
 #else
     int lwork=-1;
     double tmplwork;
-    
+
     dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
-    
+
     lwork = (int) tmplwork + 1;
     double* work = new double[lwork];
-    
+
     z = *this;
     dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
 #endif
@@ -2267,32 +2267,32 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w, DoubleMatrix& z)
     int ione=1;
     int lwork=-1;
     double tmpwork;
-    
+
     int liwork=-1;
     int tmpiwork;
-    
-    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
-            z.val, &ione, &ione, z.desc_, &tmpwork, &lwork, 
+
+    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+            z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
             &tmpiwork, &liwork, &info);
 
     lwork = (int) (tmpwork + 0.1);
     double* work=new double[lwork];
     liwork = tmpiwork;
     int* iwork = new int[liwork];
-    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
+    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
             z.val, &ione, &ione, z.desc_, work, &lwork, iwork, &liwork, &info);
-           
+
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
     delete[] iwork;
 #else
     int lwork=-1;
     double tmplwork;
-    
+
     dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
-    
+
     lwork = (int) tmplwork + 1;
     double* work = new double[lwork];
-    
+
     z = *this;
     dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
 #endif
@@ -2328,7 +2328,7 @@ void DoubleMatrix::syevx(char uplo, valarray<double>& w, DoubleMatrix& z,
     int ione=1;
     int lwork=-1;
     double tmpwork;
-    
+
     int liwork=-1;
     int tmpiwork;
     valarray<int> ifail(n_);
@@ -2339,34 +2339,34 @@ void DoubleMatrix::syevx(char uplo, valarray<double>& w, DoubleMatrix& z,
     double orfac=-1.0;
     valarray<int> icluster(2*ctxt_.size());
     valarray<double> gap(ctxt_.size());
-    
-    pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_, 
+
+    pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_,
             &vl, &vu, &il, &iu, &abstol, &nfound, &nz, &w[0],
-            &orfac, z.val, &ione, &ione, z.desc_, &tmpwork, &lwork, 
+            &orfac, z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
             &tmpiwork, &liwork, &ifail[0], &icluster[0], &gap[0], &info);
-            
+
     assert(info==0);
 
     lwork = (int) (tmpwork + 0.1);
     double* work=new double[lwork];
     liwork = tmpiwork;
     int* iwork = new int[liwork];
-    pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_, 
+    pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_,
             &vl, &vu, &il, &iu, &abstol, &nfound, &nz, &w[0],
-            &orfac, z.val, &ione, &ione, z.desc_, work, &lwork, 
+            &orfac, z.val, &ione, &ione, z.desc_, work, &lwork,
             iwork, &liwork, &ifail[0], &icluster[0], &gap[0], &info);
-           
+
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
     delete[] iwork;
 #else
     int lwork=-1;
     double tmplwork;
-    
+
     dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
-    
+
     lwork = (int) tmplwork + 1;
     double* work = new double[lwork];
-    
+
     z = *this;
     dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
 #endif
@@ -2402,26 +2402,26 @@ void DoubleMatrix::syev(char uplo, valarray<double>& w)
     double tmplwork;
     double *zval = 0; // zval is not referenced since jobz == 'N'
     int * descz = 0;
-    
-    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
+
+    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
            zval, &ione, &ione, descz, &tmplwork, &lwork, &info);
-           
+
     lwork = (int) tmplwork + 1;
     double* work=new double[lwork];
-    
-    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
+
+    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
            zval, &ione, &ione, descz, work, &lwork, &info);
-           
+
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
 #else
     int lwork=-1;
     double tmplwork;
-    
+
     dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork, &info);
-    
+
     lwork = (int) tmplwork + 1;
     double* work = new double[lwork];
-    
+
     dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork, &info);
 #endif
     if ( info != 0 )
@@ -2455,34 +2455,34 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w)
     int ione=1;
     int lwork=-1;
     double tmpwork;
-    
+
     int liwork=-1;
     int tmpiwork;
     double *zval = 0; // zval is not referenced since jobz == 'N'
     int * descz = 0;
-    
-    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
-            zval, &ione, &ione, descz, &tmpwork, &lwork, 
+
+    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+            zval, &ione, &ione, descz, &tmpwork, &lwork,
             &tmpiwork, &liwork, &info);
 
     lwork = (int) (tmpwork + 0.1);
     double* work=new double[lwork];
     liwork = tmpiwork;
     int* iwork = new int[liwork];
-    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0], 
+    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
             zval, &ione, &ione, descz, work, &lwork, iwork, &liwork, &info);
-           
+
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
     delete[] iwork;
 #else
     int lwork=-1;
     double tmplwork;
-    
+
     dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork, &info);
-    
+
     lwork = (int) tmplwork + 1;
     double* work = new double[lwork];
-    
+
     dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork, &info);
 #endif
     if ( info != 0 )
@@ -2515,21 +2515,21 @@ void ComplexMatrix::heev(char uplo, valarray<double>& w, ComplexMatrix& z)
     int lrwork=-1;
     complex<double> tmplwork;
     double tmplrwork;
-    
+
     // first call to get optimal lwork and lrwork sizes
-    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0], 
+    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
            z.val, &ione, &ione, z.desc_, &tmplwork, &lwork,
            &tmplrwork, &lrwork, &info);
-           
+
     lwork = (int) real(tmplwork) + 1;
     complex<double>* work=new complex<double>[lwork];
     lrwork = (int) tmplrwork + 1;
     double* rwork = new double[lrwork];
-    
-    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0], 
+
+    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
            z.val, &ione, &ione, z.desc_, work, &lwork,
            rwork, &lrwork, &info);
-           
+
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
 #else
     // request optimal lwork size
@@ -2537,13 +2537,13 @@ void ComplexMatrix::heev(char uplo, valarray<double>& w, ComplexMatrix& z)
     complex<double> tmplwork;
     int lrwork = max(1,3*n_-2);
     double* rwork = new double[lrwork];
-    
+
     zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork,
           rwork, &info);
-          
+
     lwork = (int) real(tmplwork) + 1;
     complex<double>* work = new complex<double>[lwork];
-    
+
     z=*this;
     zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork,
           rwork, &info);
@@ -2582,35 +2582,35 @@ void ComplexMatrix::heev(char uplo, valarray<double>& w)
     double tmplrwork;
     complex<double> *zval = 0;
     int *descz = 0;
-    
+
     // first call to get optimal lwork and lrwork sizes
-    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0], 
+    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
            zval, &ione, &ione, descz, &tmplwork, &lwork,
            &tmplrwork, &lrwork, &info);
     lwork = (int) real(tmplwork) + 1;
     complex<double>* work = new complex<double>[lwork];
     lrwork = (int) tmplrwork + 1;
     double* rwork = new double[lrwork];
-    
-    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0], 
+
+    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
            zval, &ione, &ione, descz, work, &lwork,
            rwork, &lrwork, &info);
-           
+
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
 #else
     // request optimal lwork size
     int lwork=-1;
     complex<double> tmplwork;
-    
+
     int lrwork = max(1,3*n_-2);
     double* rwork = new double[lrwork];
-    
+
     zheev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork,
           rwork, &info);
-          
+
     lwork = (int) real(tmplwork);
     complex<double>* work = new complex<double>[lwork];
-    
+
     zheev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork,
           rwork, &info);
 #endif
@@ -2655,7 +2655,7 @@ void DoubleMatrix::print(ostream& os) const
       {
         for ( int ii = 0; ii < m_; ii++ )
         {
-          os << "(" << ii << "," << jj+jb*maxbs << ")=" 
+          os << "(" << ii << "," << jj+jb*maxbs << ")="
              << t.val[ii+t.mloc()*jj] << endl;
         }
       }
@@ -2687,7 +2687,7 @@ void ComplexMatrix::print(ostream& os) const
       {
         for ( int ii = 0; ii < m_; ii++ )
         {
-          os << "(" << ii << "," << jj+jb*maxbs << ")=" 
+          os << "(" << ii << "," << jj+jb*maxbs << ")="
              << t.val[ii+t.mloc()*jj] << endl;
         }
       }

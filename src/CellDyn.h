@@ -3,7 +3,7 @@
 // CellDyn.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CellDyn.h,v 1.2 2004-03-11 21:52:31 fgygi Exp $
+// $Id: CellDyn.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CELLDYN_H
 #define CELLDYN_H
@@ -33,7 +33,7 @@ class CellDyn : public Var
       cout << " cell_dyn takes only one value" << endl;
       return 1;
     }
-    
+
     string v = argv[1];
     if ( !( v == "LOCKED" || v == "SD" ) )
     {
@@ -43,7 +43,7 @@ class CellDyn : public Var
     }
 
     s->ctrl.cell_dyn = v;
-        
+
     return 0;
   }
 

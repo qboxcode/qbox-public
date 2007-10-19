@@ -3,7 +3,7 @@
 // Ecutprec.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Ecutprec.h,v 1.1 2003-05-23 21:54:26 fgygi Exp $
+// $Id: Ecutprec.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef ECUTPREC_H
 #define ECUTPREC_H
@@ -31,7 +31,7 @@ class Ecutprec : public Var
       cout << " ecutprec takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v < 0.0 )
     {
@@ -41,7 +41,7 @@ class Ecutprec : public Var
     }
 
     s->ctrl.ecutprec = 0.5*v;
-    
+
     return 0;
   }
 

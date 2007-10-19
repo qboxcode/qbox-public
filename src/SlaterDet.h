@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.19 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SlaterDet.h,v 1.20 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -35,12 +35,12 @@ class SlaterDet
   ComplexMatrix c_;
   std::vector<double> occ_;
   std::vector<double> eig_;
-  
+
   void byteswap_double(size_t n, double* x);
   double fermi(double e, double mu, double fermitemp);
 
   public:
-  
+
   mutable TimerMap tmap;
 
   SlaterDet(const Context& ctxt, D3vector kpoint);
@@ -82,7 +82,7 @@ class SlaterDet
   void set_eig(std::vector<double>& eig)
     { assert(eig_.size()==eig.size()); eig_ = eig; }
   void set_eig(std::valarray<double>& eig)
-    { assert(eig_.size()==eig.size()); 
+    { assert(eig_.size()==eig.size());
       for ( int i = 0; i < eig.size(); i++ )
         eig_[i] = eig[i];
     }

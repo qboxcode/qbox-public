@@ -3,7 +3,7 @@
 // LDAFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LDAFunctional.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: LDAFunctional.h,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef LDAFUNCTIONAL_H
 #define LDAFUNCTIONAL_H
@@ -15,14 +15,14 @@
 class LDAFunctional : public XCFunctional
 {
   void xc_unpolarized(const double rh, double &ee, double &vv);
-  void xc_polarized(const double rh, double &ee, double &vv);    
+  void xc_polarized(const double rh, double &ee, double &vv);
   std::vector<double> _exc;
   std::vector<std::vector<double> > _vxc;
-  
+
   LDAFunctional();
-  
+
   public:
-  
+
   LDAFunctional(const std::vector<std::vector<double> > &rhoe)
   {
     _nspin = rhoe.size();
@@ -34,7 +34,7 @@ class LDAFunctional : public XCFunctional
     {
       _vxc[i].resize(_np);
     }
-    
+
     if ( _nspin == 1 )
     {
       rho = &rhoe[0][0];
@@ -50,7 +50,7 @@ class LDAFunctional : public XCFunctional
       vxc1_dn = &_vxc[1][0];
     }
   };
-  
+
   bool isGGA() { return false; };
   std::string name() { return "LDA"; };
   void setxc(void);

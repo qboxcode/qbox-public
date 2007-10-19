@@ -6,14 +6,14 @@
 // Ceperley & Alder, parametrized by Perdew and Zunger
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LDAFunctional.C,v 1.4 2004-08-14 00:18:34 fgygi Exp $
+// $Id: LDAFunctional.C,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #include <cmath>
 #include <cassert>
 #include <vector>
 #include "LDAFunctional.h"
 
-void LDAFunctional::setxc(void) 
+void LDAFunctional::setxc(void)
 {
   if ( _np == 0 ) return;
   if ( _nspin == 1 )
@@ -78,7 +78,7 @@ void LDAFunctional::setxc(void)
 
 void LDAFunctional::xc_unpolarized(const double rh, double &ee, double &vv)
 {
-  // compute LDA xc energy and potential, unpolarized 
+  // compute LDA xc energy and potential, unpolarized
   // const double third=1.0/3.0;
   // c1 is (3.D0/(4.D0*pi))**third
   const double c1 = 0.6203504908994001;
@@ -94,13 +94,13 @@ void LDAFunctional::xc_unpolarized(const double rh, double &ee, double &vv)
   const double b1 =  1.0529;
   const double b2 =  0.3334;
   const double G  = -0.1423;
-  
+
   // C from the PZ paper: const double C  =  0.0020;
   // D from the PZ paper: const double D  = -0.0116;
   // C and D by matching Ec and Vc at rs=1
   const double D = G / ( 1.0 + b1 + b2 ) - B;
   const double C = -A - D - G * ( (b1/2.0 + b2) / ((1.0+b1+b2)*(1.0+b1+b2)));
-  
+
   ee = 0.0;
   vv = 0.0;
 
@@ -114,7 +114,7 @@ void LDAFunctional::xc_unpolarized(const double rh, double &ee, double &vv)
     // Next line : exchange part in Hartree units
     vx = c3 / rs;
     ex = 0.75 * vx;
- 
+
     // Next lines : Ceperley & Alder correlation (Zunger & Perdew)
     if ( rs < 1.0 )
     {
@@ -150,7 +150,7 @@ void LDAFunctional::xc_polarized(const double rh, double &ee, double &vv)
   // const double c2 = -0.458165293283;
   // c3 = (4/3) * c2 = -0.610887057711
   // const double c3 = -0.610887057711;
-  // c4 = 2**third * c3 
+  // c4 = 2**third * c3
   const double c4 = -0.769669463118;
 
   const double A =  0.01555;
@@ -177,7 +177,7 @@ void LDAFunctional::xc_polarized(const double rh, double &ee, double &vv)
     // Next line : exchange part in Hartree units
     vx = c4 / rs;
     ex = 0.75 * vx;
- 
+
     // Next lines : Ceperley & Alder correlation (Zunger & Perdew)
     if ( rs < 1.0 )
     {

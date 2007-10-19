@@ -3,7 +3,7 @@
 // Cell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Cell.h,v 1.4 2003-09-16 16:24:26 fgygi Exp $
+// $Id: Cell.h,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CELL_H
 #define CELL_H
@@ -31,12 +31,12 @@ class Cell : public Var
       cout << " cell must be specified with 3 vectors (9 values)" << endl;
       return 1;
     }
-    
+
     D3vector a0(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     D3vector a1(atof(argv[4]),atof(argv[5]),atof(argv[6]));
     D3vector a2(atof(argv[7]),atof(argv[8]),atof(argv[9]));
     UnitCell cell(a0,a1,a2);
-    
+
     if ( cell.volume() < 0.0 )
     {
       if ( ui->onpe0() )
@@ -50,11 +50,11 @@ class Cell : public Var
       s->wfv->resize(cell,s->wf.refcell(),s->wf.ecut());
       s->wfv->clear();
     }
-    
+
     if ( ui->onpe0() )
     {
       cout << "  <unitcell>\n"
-           << s->wf.cell() 
+           << s->wf.cell()
            << "  </unitcell>" << endl;
     }
     return 0;

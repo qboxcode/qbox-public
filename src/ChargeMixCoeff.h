@@ -3,7 +3,7 @@
 // ChargeMixCoeff.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeMixCoeff.h,v 1.3 2007-09-30 04:44:58 fgygi Exp $
+// $Id: ChargeMixCoeff.h,v 1.4 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CHARGEMIXCOEFF_H
 #define CHARGEMIXCOEFF_H
@@ -31,7 +31,7 @@ class ChargeMixCoeff : public Var
       cout << " charge_mix_coeff takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v < 0.0 )
     {

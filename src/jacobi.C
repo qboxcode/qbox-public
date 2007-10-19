@@ -3,7 +3,7 @@
 // jacobi.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: jacobi.C,v 1.2 2006-11-04 20:19:02 fgygi Exp $
+// $Id: jacobi.C,v 1.3 2007-10-19 16:24:05 fgygi Exp $
 
 #include <cmath>
 #include <cassert>
@@ -38,11 +38,11 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
   assert(a.m()==u.m());
   assert(a.mb()==u.mb());
   assert(a.nb()==u.nb());
-  
+
   const int mloc = a.mloc();
   const int nloc = a.nloc();
   //cout << ctxt.mype() << ": nloc: " << nloc << endl;
-  
+
   // identify the last active process column
   // process columns beyond that column do not have any elements of a[k]
   // compute num_nblocks = total number of column blocks
@@ -50,10 +50,10 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
   // otherwise, the last active process column has index num_nblocks-1
   const int num_nblocks = u.n() / u.nb() + ( u.n()%u.nb() == 0 ? 0 : 1 );
   const int last_active_process_col = min(ctxt.npcol()-1, num_nblocks-1);
-  
+
   // initialize u with the identity
   u.identity();
-  
+
   // eigenvalue array
   e.resize(a.n());
 
@@ -70,7 +70,7 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
   }
 
   // compute local number of pairs nploc
-  const int nploc = (a.nloc()+1)/2; 
+  const int nploc = (a.nloc()+1)/2;
   // dimension of top and bot arrays is nploc: local number of pairs
   deque<int> top(nploc), bot(nploc);
 
@@ -88,15 +88,15 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
   for ( int i = 0; i < nploc; i++ )
     bot[nploc-i-1] = nploc+i;
   // if top[i] or bot[i] == nloc,the data resides in the array a_aux or u_aux
-  
+
   // jglobal: global column index
-  // jglobal[i] is the global column index of the column residing in 
+  // jglobal[i] is the global column index of the column residing in
   // the local vector i. If nloc_odd and i==2*nploc-1, jglobal[i] == -1
   vector<int> jglobal(2*nploc,-1);
-  for ( int jblock = 0; jblock < a.nblocks(); jblock++ )  
-    for ( int y = 0; y < a.nbs(jblock); y++ )             
+  for ( int jblock = 0; jblock < a.nblocks(); jblock++ )
+    for ( int y = 0; y < a.nbs(jblock); y++ )
       jglobal[y + jblock*a.nb()] = a.j(jblock,y);
-  
+
   // store addresses of columns of a and of u in acol and ucol
   vector<double*> acol(2*nploc);
   vector<double*> ucol(2*nploc);
@@ -110,15 +110,15 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
   // if nloc is odd, store the address of vector 2*nploc-1
   if ( nloc_odd )
     ucol[2*nploc-1] = &u_aux[0];
-    
+
   //for ( int i = 0; i < acol.size(); i++ )
   //  cout << ctxt.mype() << ": acol[" << i << "]=" << acol[i] << endl;
   //for ( int i = 0; i < ucol.size(); i++ )
   //  cout << ctxt.mype() << ": ucol[" << i << "]=" << ucol[i] << endl;
-    
+
   // the vectors of the pair (top[i],bot[i]) are located at
   // addresses acol[top[i]] and acol[bot[i]]
-  
+
   bool done = false;
   int nsweep = 0;
   while ( !done )
@@ -128,26 +128,26 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
     nsweep++;
     for ( int irot = 0; irot < 2*np-1; irot++ )
     {
-      //cout << ctxt.mype() << ": top[i]: ";        
-      //for ( int i = 0; i < nploc; i++ )        
-      //  cout << setw(3) << top[i];             
-      //cout << endl;                            
+      //cout << ctxt.mype() << ": top[i]: ";
+      //for ( int i = 0; i < nploc; i++ )
+      //  cout << setw(3) << top[i];
+      //cout << endl;
 
-      //cout << ctxt.mype() << ": bot[i]: ";        
-      //for ( int i = 0; i < nploc; i++ )        
-      //  cout << setw(3) << bot[i];             
-      //cout << endl;                            
+      //cout << ctxt.mype() << ": bot[i]: ";
+      //for ( int i = 0; i < nploc; i++ )
+      //  cout << setw(3) << bot[i];
+      //cout << endl;
 
-      //cout << ctxt.mype() << ": jglobal[top[i]]: ";    
-      //for ( int i = 0; i < nploc; i++ )        
-      //  cout << setw(3) << jglobal[top[i]];    
-      //cout << endl;                            
+      //cout << ctxt.mype() << ": jglobal[top[i]]: ";
+      //for ( int i = 0; i < nploc; i++ )
+      //  cout << setw(3) << jglobal[top[i]];
+      //cout << endl;
 
-      //cout << ctxt.mype() << ": jglobal[bot[i]]: ";    
-      //for ( int i = 0; i < nploc; i++ )        
-      //  cout << setw(3) << jglobal[bot[i]];    
-      //cout << endl;   
-                           
+      //cout << ctxt.mype() << ": jglobal[bot[i]]: ";
+      //for ( int i = 0; i < nploc; i++ )
+      //  cout << setw(3) << jglobal[bot[i]];
+      //cout << endl;
+
       // perform Jacobi rotation for all local pairs
 
       // compute off-diagonal matrix elements apq for all pairs
@@ -169,7 +169,7 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
           //cout << ctxt.mype() << ": apq ddot: top=" << top[ipair]
           //     << " bot=" << bot[ipair] << endl;
           //cout << ctxt.mype() << ": ap=" << ap << " uq=" << uq << endl;
-    
+
           //for ( int i = 0; i < mloc; i++ )
           //  cout << ap[i] << " " << uq[i] << endl;
           apq[ipair] = ddot(&mloc,ap,&one,uq,&one);
@@ -206,7 +206,7 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
       // appqq now contains partial sums of app and aqq
       ctxt.dsum('c',2*nploc,1,&appqq[0],2*nploc);
       // appqq now contains the off-diagonal elements app and aqq
- 
+
       for ( int ipair = 0; ipair < nploc; ipair++ )
       {
         // keep count of the number of pairs above threshold
@@ -215,36 +215,36 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
              fabs(apq[ipair]) > threshold )
         {
           npairs_above_threshold++;
-          
+
           // compute rotation sine and cosine
           const double app = appqq[2*ipair];
           const double aqq = appqq[2*ipair+1];
 
           // fabs(apq[ipair]) is larger than machine epsilon
           // since it is larger than the threshold (which is > macheps)
-          const double tau = ( aqq - app ) / ( 2.0 * apq[ipair]);  
-          const double sq = sqrt( 1.0 + tau*tau );                 
-          double t = 1.0 / ( fabs(tau) + sq );                     
-          if ( tau < 0.0 ) t = -t;                                 
-          double c = 1.0 / sqrt(1.0+t*t);                                   
+          const double tau = ( aqq - app ) / ( 2.0 * apq[ipair]);
+          const double sq = sqrt( 1.0 + tau*tau );
+          double t = 1.0 / ( fabs(tau) + sq );
+          if ( tau < 0.0 ) t = -t;
+          double c = 1.0 / sqrt(1.0+t*t);
           double s = t * c;
-          
+
           // the drot function computes
           // c*x + s*y -> x
           //-s*x + c*y -> y
           // call drot with args c, -s
           // change the sign of s before call to drot
           s = -s;
-          
+
           //cout << " p=" << jglobal[top[ipair]] << " q=" << jglobal[bot[ipair]]
-          //     << " app=" << app << " aqq=" << aqq 
+          //     << " app=" << app << " aqq=" << aqq
           //     << " apq=" << apq[ipair] << endl;
           //cout << " tau=" << tau << " c=" << c << " s=" << s << endl;
 
           // update columns of a and u
-          double *ap = acol[top[ipair]];  
-          double *aq = acol[bot[ipair]];  
-          double *up = ucol[top[ipair]];  
+          double *ap = acol[top[ipair]];
+          double *aq = acol[bot[ipair]];
+          double *up = ucol[top[ipair]];
           double *uq = ucol[bot[ipair]];
           int one = 1;
           int mloc = a.mloc();
@@ -254,7 +254,7 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
           //cout << " aqp_check=" << ddot(&mloc,aq,&one,up,&one) << endl;
         }
       } // for ipair
- 
+
       // all local pairs have been processed
 
       // rotate top and bot arrays
@@ -283,39 +283,39 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
             bot[0] = tmp;
           }
         }
-      
+
         int rbufi_left, rbufi_right, sbufi_left, sbufi_right;
         // send buffers contain a column of a and of u
         vector<double> sbuf_left(2*a.mloc()), sbuf_right(2*a.mloc());
         vector<double> rbuf_left(2*a.mloc()), rbuf_right(2*a.mloc());
 
-        // on each task except mycol==npcol-1 
+        // on each task except mycol==npcol-1
         // send jglobal[bot[nploc-1]] to the right
         // if jglobal != -1 send vector bot[nploc-1] to the right
 
-        // on each task except mycol==npcol-1 
+        // on each task except mycol==npcol-1
         // recv jglobal from the right
         // if jglobal != -1 recv a vector from the right into bot[nploc-1]
         // set value of jglobal[bot[nploc-1]]
-      
-        // on each task except mycol==0 
+
+        // on each task except mycol==0
         // send jglobal[top[0]] to the left
         // if jglobal != -1 send vector top[0] to the left
 
-        // on each task except mycol==0 
+        // on each task except mycol==0
         // recv jglobal from the left
         // if jglobal != -1 recv a vector from the left into top[0]
         // set value of jglobal[top[0]]
 
         // exchange jglobal values first
-      
+
         if ( ctxt.mycol() < last_active_process_col )
         {
           sbufi_right = jglobal[bot[nploc-1]];
           ctxt.isend(1,1,&sbufi_right,1,ctxt.myrow(),ctxt.mycol()+1);
           ctxt.irecv(1,1,&rbufi_right,1,ctxt.myrow(),ctxt.mycol()+1);
           jglobal[bot[nploc-1]] = rbufi_right;
-          //cout << ctxt.mype() << ": received jglobal=" 
+          //cout << ctxt.mype() << ": received jglobal="
           //     << jglobal[bot[nploc-1]] << " from right" << endl;
         }
         if ( ctxt.mycol() != 0 )
@@ -324,7 +324,7 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
           ctxt.isend(1,1,&sbufi_left,1,ctxt.myrow(),ctxt.mycol()-1);
           ctxt.irecv(1,1,&rbufi_left,1,ctxt.myrow(),ctxt.mycol()-1);
           jglobal[top[0]] = rbufi_left;
-          //cout << ctxt.mype() << ": received jglobal=" 
+          //cout << ctxt.mype() << ": received jglobal="
           //     << jglobal[top[0]] << " from left" << endl;
         }
 
@@ -338,7 +338,7 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
           ctxt.drecv(2*mloc,1,&rbuf_right[0],2*mloc,ctxt.myrow(),ctxt.mycol()+1);
           memcpy(acol[bot[nploc-1]], &rbuf_right[0],    mloc*sizeof(double) );
           memcpy(ucol[bot[nploc-1]], &rbuf_right[mloc], mloc*sizeof(double) );
-          //cout << ctxt.mype() << ": received vector jglobal=" 
+          //cout << ctxt.mype() << ": received vector jglobal="
           //     << jglobal[bot[nploc-1]] << " from right" << endl;
         }
         if ( ctxt.mycol() != 0 )
@@ -349,7 +349,7 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
           ctxt.drecv(2*mloc,1,&rbuf_left[0],2*mloc,ctxt.myrow(),ctxt.mycol()-1);
           memcpy(acol[top[0]],       &rbuf_left[0],     mloc*sizeof(double) );
           memcpy(ucol[top[0]],       &rbuf_left[mloc],  mloc*sizeof(double) );
-          //cout << ctxt.mype() << ": received vector jglobal=" 
+          //cout << ctxt.mype() << ": received vector jglobal="
           //     << jglobal[top[0]] << " from left" << endl;
         }
       } // if nploc > 0
@@ -357,52 +357,52 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
       // end of step
 
     } // for irot
- 
+
     // sweep is complete
     // accumulate number of pairs above threshold
     ctxt.isum('r',1,1,&npairs_above_threshold,1);
-    
+
     done = ( ( npairs_above_threshold == 0 ) || ( nsweep >= maxsweep ) );
- 
+
   } // while !done
   // cout << " nsweep=" << nsweep << endl;
-  
+
   // if a dummy vector was used, (i.e. if nloc_odd), the dummy vector
   // may end up anywhere in the array after all rotations are completed.
   // The array a_aux may contain a (non-dummy) vector.
-  
+
   if ( nloc_odd )
   {
-    // find position of the dummy vector and copy a_aux onto it 
+    // find position of the dummy vector and copy a_aux onto it
     int idum = 0;
     while ( jglobal[idum] != -1 && idum < 2*nploc ) idum++;
     //cout << ctxt.mype() << ": idum=" << idum << endl;
     if ( idum != 2*nploc-1 )
     {
-      memcpy(acol[idum],&a_aux[0],mloc*sizeof(double));  
+      memcpy(acol[idum],&a_aux[0],mloc*sizeof(double));
       memcpy(ucol[idum],&u_aux[0],mloc*sizeof(double));
-    } 
+    }
   }
-    
+
   // compute eigenvalues
   for ( int i = 0; i < a.n(); i++ )
     e[i] = 0.0;
-  for ( int jblock = 0; jblock < a.nblocks(); jblock++ )  
-    for ( int y = 0; y < a.nbs(jblock); y++ )           
-    {                                                
-      // j is the global column index                
-      int j = a.j(jblock,y);                         
-      int jjj = y + jblock*a.nb();                   
-      const double *ap = a.valptr(jjj*a.mloc());     
-      const double *up = u.valptr(jjj*u.mloc());     
-      int mloc = a.mloc();                           
-      int one = 1;                                   
-      e[j] = ddot(&mloc,ap,&one,up,&one);           
-    }                                                
+  for ( int jblock = 0; jblock < a.nblocks(); jblock++ )
+    for ( int y = 0; y < a.nbs(jblock); y++ )
+    {
+      // j is the global column index
+      int j = a.j(jblock,y);
+      int jjj = y + jblock*a.nb();
+      const double *ap = a.valptr(jjj*a.mloc());
+      const double *up = u.valptr(jjj*u.mloc());
+      int mloc = a.mloc();
+      int one = 1;
+      e[j] = ddot(&mloc,ap,&one,up,&one);
+    }
   // e now contains the partial sums of the diagonal elements of a
   ctxt.dsum(a.n(),1,&e[0],a.n());
   // e contains the eigenvalues of a
   // u contains the eigenvectors of a
-  
+
   return nsweep;
 }

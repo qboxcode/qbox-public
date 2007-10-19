@@ -3,7 +3,7 @@
 #  fpmd.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: fpmd.mk,v 1.6 2005-03-17 17:19:49 fgygi Exp $
+# $Id: fpmd.mk,v 1.7 2007-10-19 16:24:05 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -22,19 +22,19 @@
 
  FFTWDIR=$(HOME)/fftw/linux-pc-fpmd/fftw-2.1.3/fftw
  BLASDIR=/usr/lib
- 
+
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
- 
+
  CXXFLAGS= -O3 -xW -Zp16  \
-           -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
+           -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L $(BLASDIR) -L $(GCCDIR)/lib -L$(XERCESCDIR)/lib
-  
+
  LIBS =  $(PLIBS) -lfftw -llapack -lblas -lm -lmpich -lpmpich -lmpich \
          -lg2c -lxerces-c
- 
- LDFLAGS = $(LIBPATH) $(LIBS) 
+
+ LDFLAGS = $(LIBPATH) $(LIBS)
 
  # Blacs libraries
  BLACSDBGLVL   = 0

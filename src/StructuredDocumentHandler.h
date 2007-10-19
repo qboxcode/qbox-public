@@ -3,7 +3,7 @@
 // StructuredDocumentHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
+// $Id: StructuredDocumentHandler.h,v 1.3 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef STRUCTUREDDOCUMENTHANDLER_H
 #define STRUCTUREDDOCUMENTHANDLER_H
@@ -27,7 +27,7 @@ class StructuredDocumentHandler : public DefaultHandler
   };
 
   protected:
-  
+
   std::stack<HandlerContext> contextStack;
   int nestingDepth;
   int contextDepth;
@@ -38,9 +38,9 @@ class StructuredDocumentHandler : public DefaultHandler
 
   StructuredDocumentHandler(StructureHandler* handler) :
     activeHandler(handler), contextDepth(0), nestingDepth(0) {}
-    
+
   ~StructuredDocumentHandler() {}
-  
+
   // -----------------------------------------------------------------------
   //  Implementations of the SAX DocumentHandler interface
   // -----------------------------------------------------------------------
@@ -63,7 +63,7 @@ class StructuredDocumentHandler : public DefaultHandler
   void warning(const SAXParseException& exception);
   void error(const SAXParseException& exception);
   void fatalError(const SAXParseException& exception);
- 
+
   // -----------------------------------------------------------------------
   //  Implementation of the SAX DTDHandler interface
   // -----------------------------------------------------------------------

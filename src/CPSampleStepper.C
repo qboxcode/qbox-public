@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.12 2007-01-27 23:46:31 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.13 2007-10-19 16:24:04 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -18,19 +18,19 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-CPSampleStepper::CPSampleStepper(Sample& s) : 
+CPSampleStepper::CPSampleStepper(Sample& s) :
   SampleStepper(s), cd_(s.wf), ef_(s,cd_), dwf(s.wf), wfv(s.wfv)
 {
   const double emass = s.ctrl.emass;
   const double dt = s.ctrl.dt;
-  double dt2bye = (emass == 0.0) ? 0.5 / s.wf.ecut() : dt*dt/emass;  
-  
-  // divide dt2bye by facs coefficient if stress == ON             
-  const double facs = 2.0;                                         
-  if ( s.ctrl.stress == "ON" )                                    
-  {                                                                
-    dt2bye /= facs;                                                
-  }                                                                
+  double dt2bye = (emass == 0.0) ? 0.5 / s.wf.ecut() : dt*dt/emass;
+
+  // divide dt2bye by facs coefficient if stress == ON
+  const double facs = 2.0;
+  if ( s.ctrl.stress == "ON" )
+  {
+    dt2bye /= facs;
+  }
   mdwf_stepper = new MDWavefunctionStepper(s.wf,s.wfv,dt,dt2bye,tmap);
   assert(mdwf_stepper!=0);
   mdionic_stepper = 0;
@@ -76,18 +76,18 @@ void CPSampleStepper::step(int niter)
     }
     return;
   }
-  
+
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
-  
+
   const double dt = s_.ctrl.dt;
   double ekin_ion=0.0,ekin_e, temp_ion, eta;
-  
+
   const string wf_dyn = s_.ctrl.wf_dyn;
   assert(wf_dyn=="MD");
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
-  
+
   const bool compute_hpsi = true;
   const bool compute_forces = ( atoms_dyn != "LOCKED" );
   const bool compute_stress = ( s_.ctrl.stress == "ON" );
@@ -96,26 +96,26 @@ void CPSampleStepper::step(int niter)
   CellStepper* cell_stepper = 0;
   if ( cell_dyn == "SD" )
     cell_stepper = new SDCellStepper(s_);
-    
+
   if ( s_.wfv == 0 )
   {
     s_.wfv = new Wavefunction(wf);
     s_.wfv->clear();
   }
-  
+
   if ( mdionic_stepper )
     mdionic_stepper->setup_constraints();
-  
+
   Timer tm_iter;
-  
+
   tmap["charge"].start();
   cd_.update_density();
   tmap["charge"].stop();
-  
+
   ef_.update_vhxc();
   double energy =
     ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
- 
+
   mdwf_stepper->compute_wfm(dwf);
 
   for ( int iter = 0; iter < niter; iter++ )
@@ -124,14 +124,14 @@ void CPSampleStepper::step(int niter)
     tm_iter.start();
     if ( s_.ctxt_.mype() == 0 )
       cout << "  <iteration count=\"" << iter+1 << "\">\n";
-      
+
     if ( mdionic_stepper )
       atoms.sync();
- 
+
     mdwf_stepper->update(dwf);
-      
+
     ekin_e = mdwf_stepper->ekin();
- 
+
     if ( onpe0 )
     {
       cout.setf(ios::fixed,ios::floatfield);
@@ -161,16 +161,16 @@ void CPSampleStepper::step(int niter)
            << flush;
       }
     }
- 
+
     if ( compute_forces )
     {
-      if ( iter > 0 ) 
+      if ( iter > 0 )
       {
         mdionic_stepper->compute_v(energy,fion);
       }
       mdionic_stepper->compute_r(energy,fion);
       ekin_ion = mdionic_stepper->ekin();
-      
+
       if ( onpe0 )
       {
         for ( int is = 0; is < atoms.atom_list.size(); is++ )
@@ -182,20 +182,20 @@ void CPSampleStepper::step(int niter)
             cout << "  <atom name=\"" << pa->name() << "\""
                  << " species=\"" << pa->species()
                  << "\">\n"
-                 << "    <position> " 
+                 << "    <position> "
                  << mdionic_stepper->r0(is,i) << " "
-                 << mdionic_stepper->r0(is,i+1) << " " 
+                 << mdionic_stepper->r0(is,i+1) << " "
                  << mdionic_stepper->r0(is,i+2) << " </position>\n"
-                 << "    <velocity> " 
+                 << "    <velocity> "
                  << mdionic_stepper->v0(is,i) << " "
-                 << mdionic_stepper->v0(is,i+1) << " " 
+                 << mdionic_stepper->v0(is,i+1) << " "
                  << mdionic_stepper->v0(is,i+2) << " </velocity>\n"
-                 << "    <force> " 
+                 << "    <force> "
                  << fion[is][i] << " "
-                 << fion[is][i+1] << " " 
+                 << fion[is][i+1] << " "
                  << fion[is][i+2]
                  << " </force>\n  </atom>" << endl;
- 
+
             i += 3;
           }
         }
@@ -211,11 +211,11 @@ void CPSampleStepper::step(int niter)
       }
 #endif
     }
- 
+
     if ( onpe0 )
     {
       cout << "  <ekin_e> " << ekin_e << " </ekin_e>\n";
- 
+
       if ( compute_forces )
       {
         cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
@@ -225,35 +225,35 @@ void CPSampleStepper::step(int niter)
       cout << "  <econst> " << energy+ekin_ion+ekin_e << " </econst>\n";
       cout << "  <ekin_ec> " << energy+ekin_ion+2*ekin_e << " </ekin_ec>\n";
     }
-    
+
     if ( compute_stress )
     {
-      if ( onpe0 )            
-      {                                  
-        cout << "<unit_cell>" << endl;   
-        cout << s_.wf.cell();            
-        cout << "</unit_cell>" << endl;  
-      }                                  
+      if ( onpe0 )
+      {
+        cout << "<unit_cell>" << endl;
+        cout << s_.wf.cell();
+        cout << "</unit_cell>" << endl;
+      }
       compute_sigma();
       print_stress();
-      
+
       if ( cell_dyn != "LOCKED" )
       {
         cell_stepper->compute_new_cell(sigma);
-      
+
         // Update cell
         cell_stepper->update_cell();
-      
+
         ef_.cell_moved();
         ef_.atoms_moved();
       }
     }
-    
+
     if ( compute_forces )
     {
       ef_.atoms_moved();
     }
-    
+
     tmap["charge"].start();
     cd_.update_density();
     tmap["charge"].stop();
@@ -281,17 +281,17 @@ void CPSampleStepper::step(int niter)
     if ( compute_forces )
       s_.constraints.update_constraints(dt);
   } // iter
- 
+
   // dwf and fion now contain the forces on wavefunctions and ions at the
   // endpoint
- 
+
   mdwf_stepper->compute_wfv(dwf); // replace wfm by wfv
-  
+
   if ( compute_forces )
   {
     // Note: next line function call updates velocities in the AtomSet
     mdionic_stepper->compute_v(energy,fion);
   }
-  
+
   if ( cell_stepper != 0 ) delete cell_stepper;
 }

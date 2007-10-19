@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.38 2006-05-29 01:15:36 fgygi Exp $
+// $Id: SlaterDet.C,v 1.39 2007-10-19 16:24:05 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -22,11 +22,11 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt), 
+SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt),
  c_(ctxt)
 {
   //cout << ctxt.mype() << ": SlaterDet::SlaterDet: ctxt.mycol="
-  //     << ctxt.mycol() << " basis_->context(): " 
+  //     << ctxt.mycol() << " basis_->context(): "
   //     << basis_->context();
   my_col_ctxt_ = 0;
   for ( int icol = 0; icol < ctxt_.npcol(); icol++ )
@@ -38,18 +38,18 @@ SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt),
     else
       delete col_ctxt;
   }
-  //cout << ctxt_.mype() << ": SlaterDet::SlaterDet: my_col_ctxt: " 
+  //cout << ctxt_.mype() << ": SlaterDet::SlaterDet: my_col_ctxt: "
   //     << *my_col_ctxt_;
   basis_ = new Basis(*my_col_ctxt_,kpoint);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const SlaterDet& rhs) : ctxt_(rhs.context()),
-  basis_(new Basis(*(rhs.basis_))), 
+  basis_(new Basis(*(rhs.basis_))),
   my_col_ctxt_(new Context(*(rhs.my_col_ctxt_))) , c_(rhs.c_){}
-  
+
 ////////////////////////////////////////////////////////////////////////////////
-SlaterDet::~SlaterDet() 
+SlaterDet::~SlaterDet()
 {
   delete basis_;
   delete my_col_ctxt_;
@@ -57,7 +57,7 @@ SlaterDet::~SlaterDet()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell, 
+void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
   double ecut, int nst)
 {
   //!! Test in next line should be replaced by test on basis min/max indices
@@ -69,24 +69,24 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
     //cout << " SlaterDet::resize: refcell=" << basis_->refcell();
     //throw SlaterDetException("could not resize: cell not in refcell");
   //}
-  
+
   try
   {
     basis_->resize(cell,refcell,ecut);
     occ_.resize(nst);
     eig_.resize(nst);
-    
+
     const int mb = basis_->maxlocalsize();
     const int m = ctxt_.nprow() * mb;
     const int nb = nst/ctxt_.npcol() + (nst%ctxt_.npcol() > 0 ? 1 : 0);
-    
+
     // Determine if plane wave coefficients must be reset after the resize
     // This is needed if the dimensions of the matrix c_ must be changed
-    const bool needs_reset = 
+    const bool needs_reset =
       m!=c_.m() || nst!=c_.n() || mb!=c_.mb() || nb!=c_.nb();
-  
+
     c_.resize(m,nst,mb,nb);
-    
+
     if ( needs_reset )
       reset();
   }
@@ -105,7 +105,7 @@ void SlaterDet::reset(void)
     // initialize c_
     c_.clear();
     const double s2i = 1.0 / sqrt(2.0);
- 
+
     // for each n, find the smallest g vector and initialize
     int ismallest = 0;
     // on each process, basis.isort(ismallest) is the index of the smallest
@@ -115,14 +115,14 @@ void SlaterDet::reset(void)
       double value = 1.0;
       if ( basis().real() && n != 0 )
         value = s2i;
- 
+
       // find process row holding the smallest g vector
-      double g2 = basis_->g2(basis_->isort(ismallest));
-      // cout << "smallest vector on proc " << ctxt_.mype()
-      //      << " has norm " << g2 << endl;
+      double kpg2 = basis_->kpg2(basis_->isort(ismallest));
+      // cout << "smallest vector k+G on proc " << ctxt_.mype()
+      //      << " has norm " << kpg2 << endl;
       int minrow, mincol;
-      ctxt_.dmin('c',' ',1,1,&g2,1,&minrow,&mincol,1,-1,-1);
- 
+      ctxt_.dmin('c',' ',1,1,&kpg2,1,&minrow,&mincol,1,-1,-1);
+
       // find column hosting state n
       int pc = c_.pc(n);
       int pr = minrow;
@@ -137,7 +137,7 @@ void SlaterDet::reset(void)
           //      << " vector " << basis_->idx(3*iii) << " "
           //      << basis_->idx(3*iii+1) << " "
           //      << basis_->idx(3*iii+2) << " norm="
-          //      << basis_->g2(iii) << " "
+          //      << basis_->kpg2(iii) << " "
           //      << value << endl;
           int jjj = c_.m(n) * c_.nb() + c_.y(n);
           int index = iii+c_.mloc()*jjj;
@@ -149,18 +149,18 @@ void SlaterDet::reset(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::compute_density(FourierTransform& ft, 
+void SlaterDet::compute_density(FourierTransform& ft,
   double weight, double* rho) const
 {
   //Timer tm_ft, tm_rhosum;
   // compute density of the states residing on my column of ctxt_
   assert(occ_.size() == c_.n());
   vector<complex<double> > tmp(ft.np012loc());
-  
+
   assert(basis_->cell().volume() > 0.0);
   const double omega_inv = 1.0 / basis_->cell().volume();
   const int np012loc = ft.np012loc();
-  
+
   for ( int i = 0; i < np012loc; i++ )
     rho[i] = 0.0;
 
@@ -173,7 +173,7 @@ void SlaterDet::compute_density(FourierTransform& ft,
       const int nn = ctxt_.mycol() * c_.nb() + n;
       const double fac1 = omega_inv * occ_[nn];
       const double fac2 = omega_inv * occ_[nn+1];
-      
+
       if ( fac1 + fac2 > 0.0 )
       {
         //tm_ft.start();
@@ -199,7 +199,7 @@ void SlaterDet::compute_density(FourierTransform& ft,
       // global n index
       const int nn = ctxt_.mycol() * c_.nb() + n;
       const double fac1 = omega_inv * occ_[nn];
-      
+
       if ( fac1 > 0.0 )
       {
         ft.backward(c_.cvalptr(n*c_.mloc()),&tmp[0]);
@@ -222,7 +222,7 @@ void SlaterDet::compute_density(FourierTransform& ft,
       // global n index
       const int nn = ctxt_.mycol() * c_.nb() + n;
       const double fac = omega_inv * occ_[nn];
-      
+
       if ( fac > 0.0 )
       {
         ft.backward(c_.cvalptr(n*c_.mloc()),&tmp[0]);
@@ -231,23 +231,23 @@ void SlaterDet::compute_density(FourierTransform& ft,
       }
     }
   }
-  // cout << "SlaterDet: compute_density: ft_bwd time: " 
+  // cout << "SlaterDet: compute_density: ft_bwd time: "
   //      << tm_ft.real() << endl;
-  // cout << "SlaterDet: compute_density: rhosum time: " 
+  // cout << "SlaterDet: compute_density: rhosum time: "
   //      << tm_rhosum.real() << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::rs_mul_add(FourierTransform& ft, 
+void SlaterDet::rs_mul_add(FourierTransform& ft,
   const double* v, SlaterDet& sdp) const
 {
   // transform states to real space, multiply states by v[r] in real space
   // transform back to reciprocal space and add to sdp
   // sdp[n] += v * sd[n]
-  
+
   vector<complex<double> > tmp(ft.np012loc());
   vector<complex<double> > ctmp(2*c_.mloc());
-  
+
   const int np012loc = ft.np012loc();
   const int mloc = c_.mloc();
   double* p = (double*) &tmp[0];
@@ -311,7 +311,7 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
       daxpy(&len,&alpha,(double*)&ctmp[0],&inc1,&dcp[2*n*mloc],&inc1);
     }
   }
-  
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -323,7 +323,7 @@ void SlaterDet::gram(void)
     // create a DoubleMatrix proxy for c_
     DoubleMatrix c_proxy(c_);
     DoubleMatrix s(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    s.syrk('l','t',2.0,c_proxy,0.0); 
+    s.syrk('l','t',2.0,c_proxy,0.0);
     s.syr('l',-1.0,c_proxy,0,'r');
 #ifdef CHOLESKY_REMAP
     // create a square context for the Cholesky decomposition
@@ -361,15 +361,15 @@ void SlaterDet::riccati(SlaterDet& sd)
     DoubleMatrix r(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     s.identity();
     r.identity();
- 
+
     DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix xm(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    
+
     // DoubleMatrix proxy for c_ and sd.c()
     DoubleMatrix c_proxy(c_);
     DoubleMatrix sdc_proxy(sd.c());
-    
+
     // Factor -1.0 in next line: -0.5 from definition of s, 2.0 for G and -G
     s.syrk('l','t',-1.0,c_proxy,0.5); // s = 0.5 * ( I - A )
     // symmetric rank-1 update using first row of c_proxy
@@ -378,18 +378,18 @@ void SlaterDet::riccati(SlaterDet& sd)
     r.gemm('t','n',-2.0,sdc_proxy,c_proxy,1.0); // r = ( I - B )
     // rank-1 update using first row of sdc_proxy() and c_proxy
     r.ger(1.0,sdc_proxy,0,c_proxy,0);
- 
+
     xm = s;
     xm.symmetrize('l');
- 
+
     s.syrk('l','t',0.5,r,1.0); // s = s + 0.5 * r^T * r
     s.symmetrize('l');
- 
+
     double diff = 1.0;
     const double epsilon = 1.e-10;
     const int maxiter = 20;
     int iter = 0;
- 
+
     while ( iter < maxiter && diff > epsilon )
     {
       // x = s - 0.5 * ( r - xm )^T * ( r - xm )
@@ -397,18 +397,18 @@ void SlaterDet::riccati(SlaterDet& sd)
 
       for ( int i = 0; i < t.size(); i++ )
         t[i] = r[i] - xm[i];
- 
+
       x = s;
       x.syrk('l','t',-0.5,t,1.0);
- 
+
       // get full matrix x
       x.symmetrize('l');
- 
+
       for ( int i = 0; i < t.size(); i++ )
         t[i] = x[i] - xm[i];
- 
+
       diff = t.nrm2();
- 
+
       xm = x;
       iter++;
     }
@@ -421,28 +421,28 @@ void SlaterDet::riccati(SlaterDet& sd)
     ComplexMatrix r(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     s.identity();
     r.identity();
- 
+
     ComplexMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     ComplexMatrix xm(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     ComplexMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    
+
     // s = 0.5 * ( I - A )
     s.herk('l','c',-0.5,c_,0.5);
     // r = ( I - B )
     r.gemm('c','n',-1.0,sd.c(),c_,1.0);
- 
+
     xm = s;
     xm.symmetrize('l');
- 
+
     // s = s + 0.5 * r^H * r
     s.herk('l','c',0.5,r,1.0);
     s.symmetrize('l');
- 
+
     double diff = 1.0;
     const double epsilon = 1.e-10;
     const int maxiter = 20;
     int iter = 0;
- 
+
     while ( iter < maxiter && diff > epsilon )
     {
       // x = s - 0.5 * ( r - xm )^H * ( r - xm )
@@ -450,23 +450,23 @@ void SlaterDet::riccati(SlaterDet& sd)
 
       for ( int i = 0; i < t.size(); i++ )
         t[i] = r[i] - xm[i];
- 
+
       x = s;
       x.herk('l','c',-0.5,t,1.0);
       x.symmetrize('l');
- 
+
       for ( int i = 0; i < t.size(); i++ )
         t[i] = x[i] - xm[i];
- 
+
       diff = t.nrm2();
- 
+
       xm = x;
       iter++;
     }
     c_.hemm('r','l',1.0,x,sd.c(),1.0);
   }
 }
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::lowdin(void)
 {
@@ -480,75 +480,75 @@ void SlaterDet::lowdin(void)
     DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    
+
     l.clear();
-    l.syrk('l','t',2.0,c_proxy,0.0); 
+    l.syrk('l','t',2.0,c_proxy,0.0);
     l.syr('l',-1.0,c_proxy,0,'r');
-    
+
     //cout << "SlaterDet::lowdin: A=\n" << l << endl;
-    
+
     // Cholesky decomposition of A=Y^T Y
     l.potrf('l');
     // The lower triangle of l now contains the Cholesky factor of Y^T Y
 
     //cout << "SlaterDet::lowdin: L=\n" << l << endl;
-    
+
     // Compute the polar decomposition of R = L^T
 
     x.transpose(1.0,l,0.0);
     // x now contains R
     //cout << "SlaterDet::lowdin: R=\n" << x << endl;
-    
+
     double diff = 1.0;
     const double epsilon = 1.e-10;
     const int maxiter = 20;
     int iter = 0;
- 
+
     while ( iter < maxiter && diff > epsilon )
     {
       // t = X^T
       t.transpose(1.0,x,0.0);
       t.inverse();
-      
+
       // t now contains X^-T
-      
+
       // xp = 0.5 * ( x + x^-T );
       for ( int i = 0; i < x.size(); i++ )
         xp[i] = 0.5 * ( x[i] + t[i] );
-      
- 
+
+
       // Next lines: use t as temporary to compute || x - xp ||_F
       for ( int i = 0; i < t.size(); i++ )
         t[i] = x[i] - xp[i];
- 
+
       diff = t.nrm2();
-      
+
       //cout << " SlaterDet::lowdin: diff=" << diff << endl;
-      
+
       x = xp;
       //cout << "SlaterDet::lowdin: X=\n" << x << endl;
- 
+
       iter++;
     }
-    
-    // x now contains the orthogonal polar factor U of the 
+
+    // x now contains the orthogonal polar factor U of the
     // polar decomposition R = UH
-    
+
     //cout << " SlaterDet::lowdin: orthogonal polar factor=\n" << x << endl;
-    
+
     // Compute L^-1
     l.trtri('l','n');
     // l now contains L^-1
-    
+
     // Form the product L^-T U
     t.gemm('t','n',1.0,l,x,0.0);
-    
+
     // Multiply c by L^-T U
     c_proxy.gemm('n','n',1.0,c_tmp_proxy,t,0.0);
-    
+
   }
   else
-  { 
+  {
     // complex case: not implemented
     assert(false);
   }
@@ -569,20 +569,20 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    
+
 #if TIMING
     tmap["syrk"].reset();
     tmap["syrk"].start();
 #endif
     l.clear();
-    l.syrk('l','t',2.0,c_proxy,0.0); 
+    l.syrk('l','t',2.0,c_proxy,0.0);
     l.syr('l',-1.0,c_proxy,0,'r');
 #if TIMING
     tmap["syrk"].stop();
 #endif
-    
+
     //cout << "SlaterDet::ortho_align: A=\n" << l << endl;
-    
+
     // Cholesky decomposition of A=Y^T Y
 #if TIMING
     tmap["potrf"].reset();
@@ -595,10 +595,10 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     // The lower triangle of l now contains the Cholesky factor of Y^T Y
 
     //cout << "SlaterDet::ortho_align: L=\n" << l << endl;
-    
+
     // Compute the polar decomposition of L^-1 B
     // where B = C^T sd.C
-    
+
     // Compute B: store result in x
 #if TIMING
     tmap["gemm"].reset();
@@ -611,7 +611,7 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 #if TIMING
     tmap["gemm"].stop();
 #endif
-    
+
     // Form the product L^-1 B, store result in x
     // triangular solve: L X = B
     // trtrs: solve op(*this) * X = Z, output in Z
@@ -626,13 +626,13 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     // x now contains L^-1 B
 
     //cout << "SlaterDet::ortho_align: L^-1 B=\n" << x << endl;
-    
+
     // compute the polar decomposition of L^-1 B
     double diff = 1.0;
     const double epsilon = 1.e-10;
     const int maxiter = 20;
     int iter = 0;
- 
+
 #if TIMING
     tmap["transpose"].reset();
     tmap["inverse"].reset();
@@ -652,18 +652,18 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 #if TIMING
       tmap["inverse"].stop();
 #endif
-      
+
       // t now contains X^-T
-      
+
       // xp = 0.5 * ( x + x^-T );
       for ( int i = 0; i < x.size(); i++ )
         xp[i] = 0.5 * ( x[i] + t[i] );
-      
- 
+
+
       // Next lines: use t as temporary to compute || x - xp ||_F
       for ( int i = 0; i < t.size(); i++ )
         t[i] = x[i] - xp[i];
- 
+
 #if TIMING
       tmap["nrm2"].start();
 #endif
@@ -671,21 +671,21 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 #if TIMING
       tmap["nrm2"].stop();
 #endif
-      
+
       //cout << " SlaterDet::ortho_align: diff=" << diff << endl;
-      
+
       x = xp;
       //cout << "SlaterDet::ortho_align: X=\n" << x << endl;
- 
+
       iter++;
     }
-    
-    // x now contains the orthogonal polar factor X of the 
+
+    // x now contains the orthogonal polar factor X of the
     // polar decomposition L^-1 B = XH
-    
-    //cout << " SlaterDet::ortho_align: orthogonal polar factor=\n" 
+
+    //cout << " SlaterDet::ortho_align: orthogonal polar factor=\n"
     //     << x << endl;
-    
+
     // Form the product L^-T Q
     // Solve trans(L) Z = X
 #if TIMING
@@ -696,9 +696,9 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 #if TIMING
     tmap["trtrs2"].stop();
 #endif
-    
+
     // x now contains L^-T Q
-    
+
     // Multiply c by L^-T Q
 #if TIMING
     tmap["gemm2"].reset();
@@ -708,10 +708,10 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 #if TIMING
     tmap["gemm2"].stop();
 #endif
-    
+
   }
   else
-  { 
+  {
     // complex case: not implemented
     assert(false);
   }
@@ -746,78 +746,78 @@ void SlaterDet::align(const SlaterDet& sd)
     DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    
-    
+
+
     // Compute the polar decomposition of B
     // where B = C^T sd.C
-    
+
     // Compute B: store result in x
     // factor -2.0 in next line: G and -G
     x.gemm('t','n',2.0,c_proxy,sdc_proxy,0.0);
     // rank-1 update using first row of sdc_proxy() and c_proxy
     x.ger(-1.0,c_proxy,0,sdc_proxy,0);
-    
+
     // x now contains B
 
     //cout << "SlaterDet::align: B=\n" << x << endl;
-    
+
     // Compute the distance | c - sdc | before alignment
     //for ( int i = 0; i < c_proxy.size(); i++ )
     //  c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
     //cout << " SlaterDet::align: distance before: "
     //     << c_tmp_proxy.nrm2() << endl;
-    
+
     // compute the polar decomposition of B
     double diff = 1.0;
     const double epsilon = 1.e-10;
     const int maxiter = 20;
     int iter = 0;
- 
+
     while ( iter < maxiter && diff > epsilon )
     {
       // t = X^T
       t.transpose(1.0,x,0.0);
       t.inverse();
-      
+
       // t now contains X^-T
-      
+
       // xp = 0.5 * ( x + x^-T );
       for ( int i = 0; i < x.size(); i++ )
         xp[i] = 0.5 * ( x[i] + t[i] );
-      
- 
+
+
       // Next lines: use t as temporary to compute || x - xp ||_F
       //for ( int i = 0; i < t.size(); i++ )
       //  t[i] = x[i] - xp[i];
- 
+
       //diff = t.nrm2();
-      
+
       //cout << " SlaterDet::align: diff=" << diff << endl;
-      
+
       x = xp;
       //cout << "SlaterDet::align: X=\n" << x << endl;
- 
+
       iter++;
     }
-    
-    // x now contains the orthogonal polar factor X of the 
+
+    // x now contains the orthogonal polar factor X of the
     // polar decomposition B = XH
-    
+
     //cout << " SlaterDet::align: orthogonal polar factor=\n" << x << endl;
-        
+
     // Multiply c by X
     c_tmp_proxy = c_proxy;
     c_proxy.gemm('n','n',1.0,c_tmp_proxy,x,0.0);
-    
+
     // Compute the distance | c - sdc | after alignment
     //for ( int i = 0; i < c_proxy.size(); i++ )
     //  c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
     //cout << " SlaterDet::align: distance after:  "
     //     << c_tmp_proxy.nrm2() << endl;
-    
+
   }
   else
-  { 
+  {
     // complex case: not implemented
     assert(false);
   }
@@ -834,7 +834,7 @@ double SlaterDet::dot(const SlaterDet& sd) const
     const DoubleMatrix sdc_proxy(sd.c());
     // factor 2.0: G and -G
     double d = 2.0 * c_proxy.dot(sdc_proxy);
-    
+
     // correct double counting of first element
     double sum = 0.0;
     if ( ctxt_.myrow() == 0 )
@@ -983,36 +983,36 @@ double SlaterDet::ortho_error(void)
     // k = 0 case
     // declare a proxy DoubleMatrix for c_
     DoubleMatrix c_proxy(c_);
-    
+
     DoubleMatrix s(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    
+
     // real symmetric rank-k update
     // factor 2.0 in next line: G and -G
     s.syrk('l','t',2.0,c_proxy,0.0); // compute real overlap matrix
- 
+
     // correct for double counting of G=0
     // symmetric rank-1 update using first row of c_proxy
     s.syr('l',-1.0,c_proxy,0,'r');
- 
+
     DoubleMatrix id(ctxt_,s.m(),s.n(),s.mb(),s.nb());
     id.identity();
-    
+
     s -= id; // subtract identity matrix from S
-    
+
     error = s.nrm2();
   }
   else
   {
     // k != 0 case
-    
+
     ComplexMatrix s(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     s.herk('l','c',1.0,c_,0.0);
-    
+
     ComplexMatrix id(ctxt_,s.m(),s.n(),s.mb(),s.nb());
     id.identity();
- 
+
     s -= id; // subtract identity matrix from S
-    
+
     error = s.nrm2();
   }
   return error;
@@ -1042,11 +1042,11 @@ void SlaterDet::randomize(double amplitude)
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::cleanup(void)
 {
-  // set Im( c(G=0) ) to zero and 
+  // set Im( c(G=0) ) to zero and
   // set the empty rows of the matrix c_ to zero
-  // The empty rows are located between i = basis_->localsize() and 
-  // c_.mloc(). Empty rows are necessary to insure that the 
-  // local size c_.mloc() is the same on all processes, while the 
+  // The empty rows are located between i = basis_->localsize() and
+  // c_.mloc(). Empty rows are necessary to insure that the
+  // local size c_.mloc() is the same on all processes, while the
   // local basis size is not.
   for ( int n = 0; n < c_.nloc(); n++ )
   {
@@ -1060,7 +1060,7 @@ void SlaterDet::cleanup(void)
         izero = 0;
       else
         izero = basis_->rod_size(0)/2;
-      //cout << " izero = " << izero << " G = " << basis_->kv(3*izero) << " " 
+      //cout << " izero = " << izero << " G = " << basis_->kv(3*izero) << " "
       //     << basis_->kv(3*izero+1) << " " << basis_->kv(3*izero+2) << endl;
       p[izero] = complex<double> ( p[izero].real(), 0.0);
     }
@@ -1100,7 +1100,7 @@ void SlaterDet::print(ostream& os, string encoding)
   vector<complex<double> > wftmp(ft.np012loc());
   vector<double> wftmpr(ft.np012());
   Base64Transcoder xcdr;
-  
+
   if ( ctxt_.onpe0() )
   {
     const double weight = 1.0; //!! fixed determinant weight to 1.0
@@ -1108,8 +1108,8 @@ void SlaterDet::print(ostream& os, string encoding)
     os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
- 
-    os << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">" 
+
+    os << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">"
        << endl;
     os.setf(ios::fixed,ios::floatfield);
     os.setf(ios::right,ios::adjustfield);
@@ -1123,31 +1123,31 @@ void SlaterDet::print(ostream& os, string encoding)
       os << endl;
     os << "</density_matrix>" << endl;
   }
-  
+
   for ( int n = 0; n < nst(); n++ )
   {
-    // Barrier to limit the number of messages sent to task 0 
+    // Barrier to limit the number of messages sent to task 0
     // that don't have a receive posted
     ctxt_.barrier();
-    
+
     // transform data on ctxt_.mycol()
     if ( c_.pc(n) == ctxt_.mycol() )
     {
-      //cout << " state " << n << " is stored on column " 
+      //cout << " state " << n << " is stored on column "
       //     << ctxt_.mycol() << " local index: " << c_.y(n) << endl;
       int nloc = c_.y(n); // local index
       ft.backward(c_.cvalptr(c_.mloc()*nloc),&wftmp[0]);
-      
+
       double *a = (double*) &wftmp[0];
       for ( int i = 0; i < ft.np012loc(); i++ )
         wftmpr[i] = a[2*i];
     }
-    
+
     // send blocks of wftmpr to pe0
     for ( int i = 0; i < ctxt_.nprow(); i++ )
     {
       bool iamsending = c_.pc(n) == ctxt_.mycol() && i == ctxt_.myrow();
-      
+
       // send size of wftmpr block
       int size=-1;
       if ( ctxt_.onpe0() )
@@ -1167,7 +1167,7 @@ void SlaterDet::print(ostream& os, string encoding)
           ctxt_.isend(1,1,&size,1,0,0);
         }
       }
-      
+
       // send wftmpr block
       if ( ctxt_.onpe0() )
       {
@@ -1190,7 +1190,7 @@ void SlaterDet::print(ostream& os, string encoding)
       }
     }
 
-    // process the data      
+    // process the data
     if ( ctxt_.onpe0() )
     {
       // wftmpr is now complete on task 0
@@ -1250,7 +1250,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
   vector<double> wftmpr(ft.np012());
   Base64Transcoder xcdr;
   ostringstream os;
-  
+
   if ( ctxt_.onpe0() )
   {
     const double weight = 1.0; //!! fixed determinant weight to 1.0
@@ -1258,8 +1258,8 @@ void SlaterDet::write(FILE* outfile, string encoding)
     os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
- 
-    os << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">" 
+
+    os << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">"
        << endl;
     os.setf(ios::fixed,ios::floatfield);
     os.setf(ios::right,ios::adjustfield);
@@ -1272,36 +1272,36 @@ void SlaterDet::write(FILE* outfile, string encoding)
     if ( nst()%10 != 0 )
       os << endl;
     os << "</density_matrix>" << endl;
-    
+
     string str(os.str());
     off_t len = str.length();
     fwrite(str.c_str(),sizeof(char),len,outfile);
   }
-  
+
   for ( int n = 0; n < nst(); n++ )
   {
-    // Barrier to limit the number of messages sent to task 0 
+    // Barrier to limit the number of messages sent to task 0
     // that don't have a receive posted
     ctxt_.barrier();
-    
+
     // transform data on ctxt_.mycol()
     if ( c_.pc(n) == ctxt_.mycol() )
     {
-      //cout << " state " << n << " is stored on column " 
+      //cout << " state " << n << " is stored on column "
       //     << ctxt_.mycol() << " local index: " << c_.y(n) << endl;
       int nloc = c_.y(n); // local index
       ft.backward(c_.cvalptr(c_.mloc()*nloc),&wftmp[0]);
-      
+
       double *a = (double*) &wftmp[0];
       for ( int i = 0; i < ft.np012loc(); i++ )
         wftmpr[i] = a[2*i];
     }
-    
+
     // send blocks of wftmpr to pe0
     for ( int i = 0; i < ctxt_.nprow(); i++ )
     {
       bool iamsending = c_.pc(n) == ctxt_.mycol() && i == ctxt_.myrow();
-      
+
       // send size of wftmpr block
       int size=-1;
       if ( ctxt_.onpe0() )
@@ -1321,7 +1321,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
           ctxt_.isend(1,1,&size,1,0,0);
         }
       }
-      
+
       // send wftmpr block
       if ( ctxt_.onpe0() )
       {
@@ -1343,7 +1343,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
         }
       }
     }
-      
+
     // process data
     if ( ctxt_.onpe0() )
     {
@@ -1354,27 +1354,27 @@ void SlaterDet::write(FILE* outfile, string encoding)
         #if PLT_BIG_ENDIAN
         xcdr.byteswap_double(ft.np012(),&wftmpr[0]);
         #endif
-        
+
         int nbytes = ft.np012()*sizeof(double);
         int outlen = xcdr.nchars(nbytes);
         char* b = new char[outlen];
         assert(b!=0);
         xcdr.encode(nbytes,(byte*) &wftmpr[0],b);
-        
+
         // Note: optional x0,y0,z0 attributes not used, default is zero
         os.str("");
         os << "<grid_function type=\"double\""
            << " nx=\"" << ft.np0()
            << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
            << " encoding=\"base64\">" << endl;
-           
+
         string str(os.str());
         off_t len = str.length();
         fwrite(str.c_str(),sizeof(char),len,outfile);
-        
-        // write buffer b inserting newlines 
+
+        // write buffer b inserting newlines
         xcdr.print(outlen, b, outfile);
-        
+
         os.str("");
         os << "</grid_function>\n";
         str = os.str();
@@ -1422,7 +1422,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
 
     }
   }
-  
+
   if ( ctxt_.onpe0() )
   {
     os.str("");
@@ -1436,7 +1436,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::info(ostream& os)
-{  
+{
   if ( ctxt_.onpe0() )
   {
     const double weight = 1.0; //!! fixed determinant weight to 1.0
@@ -1451,7 +1451,7 @@ void SlaterDet::info(ostream& os)
     os << " <!-- c dimensions: "
        << c_.m() << "x" << c_.n()
        << "   (" << c_.mb() << "x" << c_.nb() << " blocks)" << " -->" << endl;
-    os << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\">" 
+    os << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\">"
        << endl;
     os << " </density_matrix>" << endl;
     os << "</slater_determinant>" << endl;

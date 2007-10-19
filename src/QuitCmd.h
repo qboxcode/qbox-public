@@ -3,7 +3,7 @@
 // QuitCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: QuitCmd.h,v 1.1 2003-01-10 00:35:36 fgygi Exp $
+// $Id: QuitCmd.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef QUITCMD_H
 #define QUITCMD_H
@@ -28,14 +28,14 @@ class QuitCmd : public Cmd
 
   char *help_msg(void) const
   {
-    return 
+    return
     "\n quit\n\n"
     " syntax: quit\n\n"
     "   The quit command exits without saving any data.\n\n";
   }
 
   int action(int argc, char **argv)
-  {      
+  {
     ui->terminate();
     return 0;
   }

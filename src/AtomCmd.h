@@ -3,7 +3,7 @@
 // AtomCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomCmd.h,v 1.7 2007-03-17 01:14:00 fgygi Exp $
+// $Id: AtomCmd.h,v 1.8 2007-10-19 16:24:03 fgygi Exp $
 
 #ifndef ATOMCMD_H
 #define ATOMCMD_H
@@ -25,7 +25,7 @@ class AtomCmd : public Cmd
   char *name(void) const { return "atom"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n atom\n\n"
     " syntax: atom name species x y z [vx vy vz]\n\n"
     "   The atom command defines a new atom and adds it to the atom list.\n"
@@ -41,7 +41,7 @@ class AtomCmd : public Cmd
     string species;
     D3vector position;
     D3vector velocity;
-  
+
     // atom must be defined with either 3 or 6 arguments
     if ( argc != 6 && argc != 9 )
     {
@@ -49,7 +49,7 @@ class AtomCmd : public Cmd
         cout << " use: atom name species x y z [vx vy vz]" << endl;
       return 1;
     }
-  
+
     name = argv[1];
     species = argv[2];
     position.x = atof(argv[3]);
@@ -61,10 +61,10 @@ class AtomCmd : public Cmd
       velocity.y = atof(argv[7]);
       velocity.z = atof(argv[8]);
     }
-  
+
     Atom *a = new Atom(name,species,position,velocity);
-    
-    const int atoms_nel_before = s->atoms.nel();    
+
+    const int atoms_nel_before = s->atoms.nel();
     if ( !(s->atoms.addAtom( a ) ) )
     {
       if ( ui->onpe0() )
@@ -73,9 +73,9 @@ class AtomCmd : public Cmd
       return 1;
     }
     const int atoms_nel_after = s->atoms.nel();
-    const int delta_nel = atoms_nel_after - atoms_nel_before;    
+    const int delta_nel = atoms_nel_after - atoms_nel_before;
     const int wf_nel = s->wf.nel();
-    
+
     s->wf.set_nel(wf_nel+delta_nel);
     s->wf.update_occ(0.0);
     if ( s->wfv != 0 )
@@ -83,7 +83,7 @@ class AtomCmd : public Cmd
       s->wfv->set_nel(wf_nel+delta_nel);
       s->wfv->clear();
     }
-    
+
     return 0;
   }
 };

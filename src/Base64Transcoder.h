@@ -3,7 +3,7 @@
 // Base64Transcoder.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Base64Transcoder.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: Base64Transcoder.h,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef BASE64TRANSCODER_H
 #define BASE64TRANSCODER_H
@@ -20,7 +20,7 @@ class Base64Transcoder
   byte dtable[256]; // decode table
 
   public:
-  
+
   Base64Transcoder();
   int encode(int nbytes, const byte* const from, char* const to);
   int decode(int nchars, const char* const from, byte* const to);

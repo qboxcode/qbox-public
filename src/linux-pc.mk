@@ -3,7 +3,7 @@
 #  linux-pc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: linux-pc.mk,v 1.2 2002-10-29 23:46:43 fgygi Exp $
+# $Id: linux-pc.mk,v 1.3 2007-10-19 16:24:05 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -17,13 +17,13 @@
  BLASDIR=/usr/lib
 
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR)
-  
+
  CXXFLAGS= -O2 -D$(PLT) -DADD_ $(INCLUDE) $(DFLAGS)
 
  LIBPATH = -L$(BLASDIR) -L$(FFTWDIR) -L$(GCCDIR)/lib
 #LIBPATH = -L$(BLASDIR) -L$(FFTWDIR) -L/usr/X11R6/lib -L$(GCCDIR)/lib
 
  LIBS = -lfftw -llapack -lblas -lm -lg2c
- 
+
  LDFLAGS = $(LIBPATH) $(LIBS)
 #-------------------------------------------------------------------------------

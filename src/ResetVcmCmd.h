@@ -3,7 +3,7 @@
 // ResetVcmCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ResetVcmCmd.h,v 1.1 2006-09-06 00:34:24 fgygi Exp $
+// $Id: ResetVcmCmd.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef RESETVCMCMD_H
 #define RESETVCMCMD_H
@@ -27,7 +27,7 @@ class ResetVcmCmd : public Cmd
   char *name(void) const { return "reset_vcm"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n reset_vcm\n\n"
     " syntax: reset_vcm \n\n"
     "   The reset_vcm command subtracts the velocity of the center\n"

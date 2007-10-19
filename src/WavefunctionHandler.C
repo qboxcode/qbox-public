@@ -3,7 +3,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.11 2005-03-17 17:16:15 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.12 2007-10-19 16:24:05 fgygi Exp $
 
 #if USE_XERCES
 
@@ -23,7 +23,7 @@ using namespace xercesc;
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-WavefunctionHandler::WavefunctionHandler(Wavefunction& wf, 
+WavefunctionHandler::WavefunctionHandler(Wavefunction& wf,
   DoubleMatrix& gfdata) : wf_(wf), gfdata_(gfdata), ecut(0.0)
 {
   // if the gfdata matrix has finite dimensions, set read_from_gfdata flag
@@ -46,25 +46,25 @@ void WavefunctionHandler::byteswap_double(size_t n, double* x)
     tmp = c[6]; c[6] = c[1]; c[1] = tmp;
     tmp = c[5]; c[5] = c[2]; c[2] = tmp;
     tmp = c[4]; c[4] = c[3]; c[3] = tmp;
-    
+
     c+=8;
   }
-}  
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 void WavefunctionHandler::startElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname,
   const Attributes& attributes)
-{  
+{
   // cout << " WavefunctionHandler::startElement " << StrX(qname) << endl;
   string locname(XMLString::transcode(localname));
-  
+
   int nspin=1, nel=0, nempty=0;
   // consider only elements that are dealt with directly by WavefunctionHandler
-  
+
   if ( locname == "wavefunction" || locname == "wavefunction_velocity" )
   {
-    
+
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
@@ -86,31 +86,31 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
         nel = atoi(StrX(attributes.getValue(index)).localForm());
       }
     }
-    
+
     cout << " WavefunctionHandler::startElement: " << locname
          << " nspin=" << nspin << " nel=" << nel << " nempty=" << nempty
          << endl;
-    
+
     current_ispin = 0;
     current_ikp = 0;
     current_n = 0;
-    
+
     wf_.set_nel(nel);
     wf_.set_nspin(nspin);
     wf_.set_nempty(nempty);
-    
+
     int tag;
     // notify listening nodes
     if ( locname == "wavefunction" )
       tag = 3;
     else
       tag = 4; // wavefunction_velocity
-    
+
     wf_.context().ibcast_send(1,1,&tag,1);
     wf_.context().ibcast_send(1,1,&nel,1);
     wf_.context().ibcast_send(1,1,&nspin,1);
     wf_.context().ibcast_send(1,1,&nempty,1);
-    
+
     // current implementation for nspin = 1 and nkpoint = 1
     assert(nspin==1);
   }
@@ -136,11 +136,11 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
         stst >> c;
       }
     }
-    
+
     //cout << " WavefunctionHandler::startElement: domain" << endl;
     uc.set(a,b,c);
     //cout << uc;
-    
+
     // notify listening nodes
     double buf[9];
     buf[0] = uc.a(0).x; buf[1] = uc.a(0).y; buf[2] = uc.a(0).z;
@@ -170,11 +170,11 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
         stst >> c;
       }
     }
-    
+
     //cout << " WavefunctionHandler::startElement: reference_domain" << endl;
     ruc.set(a,b,c);
     //cout << ruc;
-    
+
   }
   else if ( locname == "density_matrix")
   {
@@ -223,12 +223,12 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
         stst >> nz;
       }
     }
-    
+
     if ( ecut == 0.0 )
     {
       // ecut attribute was not specified. Infer from grid size
       // Ecut = max(ecut_x,ecut_y,ecut_z)
-    
+
       // When importing grids with Dirichlet b.c. grid sizes can be odd
       // round nx,ny,nz to next even number to compute ecut
       // use nx+nx%2 instead of nx
@@ -242,10 +242,10 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       ecut = max(max(ecut0,ecut1),ecut2);
       cout << " ecut=" << 2*ecut << " Ry" << endl;
     }
-    
+
     // notify listening nodes of ecut
     wf_.context().dbcast_send(1,1,&ecut,1);
-    
+
     // notify listening nodes of the reference_domain
     // note: the reference_domain is optional in the sample file
     // notify listening nodes
@@ -254,7 +254,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     buf[3] = ruc.a(1).x; buf[4] = ruc.a(1).y; buf[5] = ruc.a(1).z;
     buf[6] = ruc.a(2).x; buf[7] = ruc.a(2).y; buf[8] = ruc.a(2).z;
     wf_.context().dbcast_send(9,1,buf,1);
-    
+
     wf_.resize(uc,ruc,ecut);
   }
   else if ( locname == "slater_determinant")
@@ -293,14 +293,14 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
         stst >> current_gf_encoding;
       }
     }
-    
+
     //cout << " WavefunctionHandler::startElement: grid_function"
-    //     << " nx=" << current_gf_nx 
-    //     << " ny=" << current_gf_ny 
+    //     << " nx=" << current_gf_nx
+    //     << " ny=" << current_gf_ny
     //     << " nz=" << current_gf_nz
     //     << "\n encoding=" << current_gf_encoding
     //     << endl;
-  }   
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -314,7 +314,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
     istringstream stst(content);
     for ( int i = 0; i < dmat.size(); i++ )
       stst >> dmat[i];
-      
+
     // send dmat to listening nodes
     //!! this works only for 1 kpoint, 1 spin
     SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
@@ -328,7 +328,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
     assert(current_gf_nx==ft->np0());
     assert(current_gf_ny==ft->np1());
     assert(current_gf_nz==ft->np2());
-    
+
     if ( read_from_gfdata )
     {
       // do nothing
@@ -350,7 +350,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
               stst >> wftmpr[ii++];
             }
         // send subgrids to listening nodes
- 
+
         SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
         assert(sd != 0);
         // pcol = process column destination
@@ -366,7 +366,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
             //cout << sd->context().mype() << ": sending subgrid size to process "
             //     << "(" << prow << "," << pcol << ")" << endl;
             sd->context().isend(1,1,&size,1,prow,pcol);
- 
+
             //cout << sd->context().mype() << ": sending subgrid to process "
             //     << "(" << prow << "," << pcol << ")" << endl;
             sd->context().dsend(size,1,&wftmpr[istart],1,prow,pcol);
@@ -374,7 +374,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
             //     << endl;
           }
         }
- 
+
         // if destination column is pcol=0, copy to complex array on node 0
         // and process
         if ( pcol == 0 )
@@ -397,10 +397,10 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
         // cout << " Base64::decode time: " << tm.real() << endl;
         assert(b!=0);
         // cout << " base64 segment length: " << length << endl;
- 
+
         // use data in b
         assert(length/sizeof(double)==ft->np012());
- 
+
         double* d = (double*) b;
 #if PLT_BIG_ENDIAN
         tm.reset();
@@ -427,7 +427,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
             //cout << sd->context().mype() << ": sending subgrid size to process "
             //     << "(" << prow << "," << pcol << ")" << endl;
             sd->context().isend(1,1,&size,1,prow,pcol);
- 
+
             //cout << sd->context().mype() << ": sending subgrid to process "
             //     << "(" << prow << "," << pcol << ")" << endl;
             sd->context().dsend(size,1,&d[istart],1,prow,pcol);
@@ -437,7 +437,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
         }
         tm.stop();
         // cout << " send time: " << tm.real() << endl;
- 
+
         // if destination column is pcol=0, copy to complex array on node 0
         // and process
         if ( pcol == 0 )
@@ -472,7 +472,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
 
 ////////////////////////////////////////////////////////////////////////////////
 StructureHandler* WavefunctionHandler::startSubHandler(const XMLCh* const uri,
-    const XMLCh* const localname, const XMLCh* const qname, 
+    const XMLCh* const localname, const XMLCh* const qname,
     const Attributes& attributes)
 {
   // check if element qname can be processed by another StructureHandler
@@ -483,12 +483,12 @@ StructureHandler* WavefunctionHandler::startSubHandler(const XMLCh* const uri,
 
 ////////////////////////////////////////////////////////////////////////////////
 void WavefunctionHandler::endSubHandler(const XMLCh* const uri,
-    const XMLCh* const localname, const XMLCh* const qname, 
+    const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const last)
 {
   string locname(XMLString::transcode(localname));
   //cout << " WavefunctionHandler::endSubHandler " << locname << endl;
   delete last;
 }
-      
+
 #endif

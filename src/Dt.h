@@ -3,7 +3,7 @@
 // Dt.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Dt.h,v 1.2 2007-03-17 01:22:50 fgygi Exp $
+// $Id: Dt.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef DT_H
 #define DT_H
@@ -31,7 +31,7 @@ class Dt : public Var
       cout << " dt takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v == 0.0 )
     {

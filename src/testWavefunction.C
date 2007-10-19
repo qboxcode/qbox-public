@@ -3,7 +3,7 @@
 // testWavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testWavefunction.C,v 1.6 2003-01-25 01:25:28 fgygi Exp $
+// $Id: testWavefunction.C,v 1.7 2007-10-19 16:24:06 fgygi Exp $
 
 #include "Context.h"
 #include "Wavefunction.h"
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
   MPI_Init(&argc,&argv);
 #endif
   {
-    // use: 
+    // use:
     // testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nempty nspin nkp
     assert(argc==15);
     D3vector a(atof(argv[1]),atof(argv[2]),atof(argv[3]));
@@ -37,35 +37,35 @@ int main(int argc, char **argv)
     int nempty = atoi(argv[12]);
     int nspin = atoi(argv[13]);
     int nkp = atoi(argv[14]);
-    
+
     Context ctxt;
-    
+
     Wavefunction wf(ctxt);
     Timer tm;
-    
+
     tm.reset(); tm.start();
     wf.resize(cell,cell,ecut);
     tm.stop();
-    cout << " wf.resize: CPU/Real: " 
+    cout << " wf.resize: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
 
     tm.reset(); tm.start();
     wf.set_nel(nel);
     tm.stop();
-    cout << " wf.set_nel: CPU/Real: " 
+    cout << " wf.set_nel: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
-         
+
     tm.reset(); tm.start();
     wf.set_nspin(nspin);
     tm.stop();
-    cout << " wf.set_nspin: CPU/Real: " 
+    cout << " wf.set_nspin: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
-    
+
     for ( int ikp = 0; ikp < nkp-1; ikp++ )
     {
       wf.add_kpoint(D3vector((0.5*(ikp+1))/(nkp-1),0,0),1.0);
     }
-    
+
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
       for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
@@ -86,20 +86,20 @@ int main(int argc, char **argv)
     tm.start();
     wf.randomize(0.1);
     tm.stop();
-    cout << " wf.randomize: CPU/Real: " 
+    cout << " wf.randomize: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
 
     tm.reset();
     tm.start();
     wf.gram();
-    cout << " wf.gram: CPU/Real: " 
+    cout << " wf.gram: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
-           
+
     cout << " copy constructor...";
     Wavefunction wfm(wf);
     cout << "done" << endl;
     wfm.gram();
-    
+
 #if 0
     wf.randomize(0.1);
     wf.update_occ(false);
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
       if ( wf.sd[ikp] != 0 )
         cout << " ekin[" << ikp << "]: " << wf.sd[ikp]->ekin() << endl;
     }
-    
+
 
 #endif
   }

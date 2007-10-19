@@ -3,7 +3,7 @@
 // MLWFTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MLWFTransform.C,v 1.2 2007-08-14 04:11:19 fgygi Exp $
+// $Id: MLWFTransform.C,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #include <iostream>
 #include <iomanip>
@@ -20,7 +20,7 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-MLWFTransform::MLWFTransform(const SlaterDet& sd) : sd_(sd), 
+MLWFTransform::MLWFTransform(const SlaterDet& sd) : sd_(sd),
 cell_(sd.basis().cell()), ctxt_(sd.context()),  bm_(BasisMapping(sd.basis()))
 {
   a_.resize(6);
@@ -48,8 +48,8 @@ void MLWFTransform::compute_transform(void)
 {
   const int maxsweep = 50;
   const double tol = 1.e-8;
-  
-  SlaterDet sdcosx(sd_), sdsinx(sd_), 
+
+  SlaterDet sdcosx(sd_), sdsinx(sd_),
             sdcosy(sd_), sdsiny(sd_),
             sdcosz(sd_), sdsinz(sd_);
   const ComplexMatrix& c = sd_.c();
@@ -77,7 +77,7 @@ void MLWFTransform::compute_transform(void)
     adiag_[i].resize(c.n());
   }
   u_->resize(c.n(), c.n(), c.nb(), c.nb());
-    
+
   // loop over all local states
   const int np0 = bm_.np0();
   const int np1 = bm_.np1();
@@ -94,24 +94,24 @@ void MLWFTransform::compute_transform(void)
     complex<double>* fsy = csiny.valptr(n*c.mloc());
     complex<double>* fcz = ccosz.valptr(n*c.mloc());
     complex<double>* fsz = csinz.valptr(n*c.mloc());
-    
+
     // direction z
     // map state to array zvec_
     bm_.vector_to_zvec(&f[0],&zvec[0]);
-    
+
     for ( int ivec = 0; ivec < nvec; ivec++ )
     {
       const int ibase = ivec * np2;
       compute_sincos(np2,&zvec[ibase],&zvec_cos[ibase],&zvec_sin[ibase]);
     }
     // map back zvec_cos to sdcos and zvec_sin to sdsin
-    bm_.zvec_to_vector(&zvec_cos[0],&fcz[0]);                                 
+    bm_.zvec_to_vector(&zvec_cos[0],&fcz[0]);
     bm_.zvec_to_vector(&zvec_sin[0],&fsz[0]);
-    
-    // x direction                                   
-    // map zvec to ct                               
+
+    // x direction
+    // map zvec to ct
     bm_.transpose_fwd(&zvec[0],&ct[0]);
-    
+
     for ( int iz = 0; iz < np2loc; iz++ )
     {
       for ( int iy = 0; iy < np1; iy++ )
@@ -121,14 +121,14 @@ void MLWFTransform::compute_transform(void)
       }
     }
     // transpose back ct_cos to zvec_cos
-    bm_.transpose_bwd(&ct_cos[0],&zvec_cos[0]);                                  
+    bm_.transpose_bwd(&ct_cos[0],&zvec_cos[0]);
     // transpose back ct_sin to zvec_sin
-    bm_.transpose_bwd(&ct_sin[0],&zvec_sin[0]);                                  
-         
+    bm_.transpose_bwd(&ct_sin[0],&zvec_sin[0]);
+
     // map back zvec_cos to sdcos and zvec_sin to sdsin
-    bm_.zvec_to_vector(&zvec_cos[0],&fcx[0]);                                 
+    bm_.zvec_to_vector(&zvec_cos[0],&fcx[0]);
     bm_.zvec_to_vector(&zvec_sin[0],&fsx[0]);
-    
+
     // y direction
     vector<complex<double> > c_tmp(np1),ccos_tmp(np1),csin_tmp(np1);
     int one = 1;
@@ -146,65 +146,65 @@ void MLWFTransform::compute_transform(void)
       }
     }
     // transpose back ct_cos to zvec_cos
-    bm_.transpose_bwd(&ct_cos[0],&zvec_cos[0]);                                  
+    bm_.transpose_bwd(&ct_cos[0],&zvec_cos[0]);
     // transpose back ct_sin to zvec_sin
-    bm_.transpose_bwd(&ct_sin[0],&zvec_sin[0]);                                  
-         
+    bm_.transpose_bwd(&ct_sin[0],&zvec_sin[0]);
+
     // map back zvec_cos and zvec_sin
-    bm_.zvec_to_vector(&zvec_cos[0],&fcy[0]);                                 
+    bm_.zvec_to_vector(&zvec_cos[0],&fcy[0]);
     bm_.zvec_to_vector(&zvec_sin[0],&fsy[0]);
-  }                                 
+  }
 
-  // dot products a_[0] = <cos x>, a_[1] = <sin x>        
-  a_[0]->gemm('t','n',2.0,cr,ccx,0.0);          
-  a_[0]->ger(-1.0,cr,0,ccx,0);                  
-  a_[1]->gemm('t','n',2.0,cr,csx,0.0);          
-  a_[1]->ger(-1.0,cr,0,csx,0);                  
+  // dot products a_[0] = <cos x>, a_[1] = <sin x>
+  a_[0]->gemm('t','n',2.0,cr,ccx,0.0);
+  a_[0]->ger(-1.0,cr,0,ccx,0);
+  a_[1]->gemm('t','n',2.0,cr,csx,0.0);
+  a_[1]->ger(-1.0,cr,0,csx,0);
 
-  // dot products a_[2] = <cos y>, a_[3] = <sin y>        
-  a_[2]->gemm('t','n',2.0,cr,ccy,0.0);          
-  a_[2]->ger(-1.0,cr,0,ccy,0);                  
-  a_[3]->gemm('t','n',2.0,cr,csy,0.0);          
-  a_[3]->ger(-1.0,cr,0,csy,0);                  
+  // dot products a_[2] = <cos y>, a_[3] = <sin y>
+  a_[2]->gemm('t','n',2.0,cr,ccy,0.0);
+  a_[2]->ger(-1.0,cr,0,ccy,0);
+  a_[3]->gemm('t','n',2.0,cr,csy,0.0);
+  a_[3]->ger(-1.0,cr,0,csy,0);
 
-  // dot products a_[4] = <cos z>, a_[5] = <sin z>        
-  a_[4]->gemm('t','n',2.0,cr,ccz,0.0);          
-  a_[4]->ger(-1.0,cr,0,ccz,0);                  
-  a_[5]->gemm('t','n',2.0,cr,csz,0.0);          
-  a_[5]->ger(-1.0,cr,0,csz,0);                  
+  // dot products a_[4] = <cos z>, a_[5] = <sin z>
+  a_[4]->gemm('t','n',2.0,cr,ccz,0.0);
+  a_[4]->ger(-1.0,cr,0,ccz,0);
+  a_[5]->gemm('t','n',2.0,cr,csz,0.0);
+  a_[5]->ger(-1.0,cr,0,csz,0);
 
   int nsweep = jade(maxsweep,tol,a_,*u_,adiag_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void MLWFTransform::compute_sincos(const int n, const complex<double>* f, 
+void MLWFTransform::compute_sincos(const int n, const complex<double>* f,
   complex<double>* fc, complex<double>* fs)
 {
   // fc[i] =     0.5 * ( f[i-1] + f[i+1] )
   // fs[i] = (0.5/i) * ( f[i-1] - f[i+1] )
 
   // i = 0
-  complex<double> zp = f[n-1];                    
-  complex<double> zm = f[1];                    
-  fc[0] = 0.5 * ( zp + zm );                          
-  complex<double> zdiff = zp - zm;                          
-  fs[0] = 0.5 * complex<double>(imag(zdiff),-real(zdiff));  
+  complex<double> zp = f[n-1];
+  complex<double> zm = f[1];
+  fc[0] = 0.5 * ( zp + zm );
+  complex<double> zdiff = zp - zm;
+  fs[0] = 0.5 * complex<double>(imag(zdiff),-real(zdiff));
   for ( int i = 1; i < n-1; i++ )
   {
     const complex<double> zzp = f[i-1];
     const complex<double> zzm = f[i+1];
     fc[i] = 0.5 * ( zzp + zzm );
-    const complex<double> zzdiff = zzp - zzm;                          
+    const complex<double> zzdiff = zzp - zzm;
     fs[i] = 0.5 * complex<double>(imag(zzdiff),-real(zzdiff));
   }
   // i = n-1
-  zp = f[n-2];                    
-  zm = f[0];                    
+  zp = f[n-2];
+  zm = f[0];
   fc[n-1] = 0.5 * ( zp + zm );
-  zdiff = zp - zm;                          
+  zdiff = zp - zm;
   fs[n-1] = 0.5 * complex<double>(imag(zdiff),-real(zdiff));
 }
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 D3vector MLWFTransform::center(int i)
 {
@@ -223,7 +223,7 @@ D3vector MLWFTransform::center(int i)
   const double x = t0*cell_.a(0).x + t1*cell_.a(1).x + t2*cell_.a(2).x;
   const double y = t0*cell_.a(0).y + t1*cell_.a(1).y + t2*cell_.a(2).y;
   const double z = t0*cell_.a(0).z + t1*cell_.a(1).z + t2*cell_.a(2).z;
-  
+
   return D3vector(x,y,z);
 }
 

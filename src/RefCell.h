@@ -3,7 +3,7 @@
 // RefCell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RefCell.h,v 1.1 2004-02-04 19:52:27 fgygi Exp $
+// $Id: RefCell.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef REFCELL_H
 #define REFCELL_H
@@ -31,12 +31,12 @@ class RefCell : public Var
       cout << " ref_cell must be specified with 3 vectors (9 values)" << endl;
       return 1;
     }
-    
+
     D3vector a0(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     D3vector a1(atof(argv[4]),atof(argv[5]),atof(argv[6]));
     D3vector a2(atof(argv[7]),atof(argv[8]),atof(argv[9]));
     UnitCell ref_cell(a0,a1,a2);
-    
+
     if ( ref_cell.volume() < 0.0 )
     {
       if ( ui->onpe0() )
@@ -50,11 +50,11 @@ class RefCell : public Var
       s->wfv->resize(s->wf.cell(),s->wf.refcell(),s->wf.ecut());
       s->wfv->clear();
     }
-    
+
     if ( ui->onpe0() )
     {
       cout << "  <reference_unit_cell>\n"
-           << s->wf.refcell() 
+           << s->wf.refcell()
            << "  </reference_unit_cell>" << endl;
     }
     return 0;

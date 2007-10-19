@@ -1,11 +1,11 @@
-// $Id: testMatrix.C,v 1.12 2006-06-03 22:18:02 fgygi Exp $
+// $Id: testMatrix.C,v 1.13 2007-10-19 16:24:06 fgygi Exp $
 //
 // test Matrix
 //
 // multiply a matrix a(m,k) by b(k,n) to get c(m,n)
 // using blocks of size (mb,nb) on a process grid (nprow,npcol)
 //
-// use: testMatrix input_file [-check] 
+// use: testMatrix input_file [-check]
 // input_file:
 // nprow npcol
 // m_a n_a mb_a nb_a transa
@@ -85,24 +85,24 @@ int main(int argc, char **argv)
     cout<<"m_c="<<m_c<<", n_c="<<n_c<<endl;
   }
 #ifdef USE_MPI
-  MPI_Bcast(&nprow, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&npcol, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&m_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&n_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&mb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&nb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&m_b, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&n_b, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&mb_b, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&nb_b, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&m_c, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&n_c, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&mb_c, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&nb_c, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&ta, 1, MPI_CHAR, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&tb, 1, MPI_CHAR, 0, MPI_COMM_WORLD);    
+  MPI_Bcast(&nprow, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&npcol, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&m_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&n_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&mb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&nb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&m_b, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&n_b, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&mb_b, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&nb_b, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&m_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&n_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&mb_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&nb_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&ta, 1, MPI_CHAR, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&tb, 1, MPI_CHAR, 0, MPI_COMM_WORLD);
 #endif
-  {  
+  {
     if ( ta == 'N' ) ta = 'n';
     if ( tb == 'N' ) tb = 'n';
 
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 
     for ( int m = 0; m < a.nblocks(); m++ )
       for ( int l = 0; l < a.mblocks(); l++ )
-        for ( int y = 0; y < a.nbs(m); y++ )  
+        for ( int y = 0; y < a.nbs(m); y++ )
           for ( int x = 0; x < a.mbs(l); x++ )
           {
             int i = a.i(l,x);
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
     for ( int m = 0; m < b.nblocks(); m++ )
       for ( int l = 0; l < b.mblocks(); l++ )
-        for ( int y = 0; y < b.nbs(m); y++ )  
+        for ( int y = 0; y < b.nbs(m); y++ )
           for ( int x = 0; x < b.mbs(l); x++ )
           {
             int i = b.i(l,x);
@@ -171,14 +171,14 @@ int main(int argc, char **argv)
     cout << " checking results..." << endl;
     for ( int m = 0; m < c.nblocks(); m++ )
       for ( int l = 0; l < c.mblocks(); l++ )
-        for ( int y = 0; y < c.nbs(m); y++ )  
+        for ( int y = 0; y < c.nbs(m); y++ )
           for ( int x = 0; x < c.mbs(l); x++ )
           {
             int i = c.i(l,x);
             int j = c.j(m,y);
             double sum = 0.0;
             int kmax = ( ta == 'n' ) ? a.n() : a.m();
-            
+
             if ( ( ta == 'n' ) && ( tb == 'n' ) )
             {
               for ( int k = 0; k < kmax; k++ )
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
               for ( int k = 0; k < kmax; k++ )
                 sum += aa(k,i) * bb(j,k);
             }
-            
+
             int iii = x + l*c.mb();
             int jjj = y + m*c.nb();
             int ival = iii + jjj * c.mloc();
@@ -210,23 +210,23 @@ int main(int argc, char **argv)
               exit(1);
             }
           }
-          
-          
+
+
        cout << " results checked" << endl;
     }
 
-    cout << " CPU/Real: " << setw(8) << tm.cpu() 
+    cout << " CPU/Real: " << setw(8) << tm.cpu()
          << " / " << setw(8) << tm.real();
     if ( tm.real() > 0.0 )
     {
       int kmax = ( ta == 'n' ) ? a.n() : a.m();
-      cout << "  MFlops: " 
+      cout << "  MFlops: "
            << (2.0e-6*m_c*n_c*kmax) / tm.real() << endl;
     }
-#if 1    
+#if 1
     double norma=a.nrm2();
     if(mype == 0)cout<<"Norm(a)="<<norma<<endl;
-    
+
     double norm;
 #if 0
     if(mype == 0)cout<<"DoubleMatrix::matgather..."<<endl;
@@ -251,26 +251,26 @@ int main(int argc, char **argv)
       norm=c.nrm2();
       if(mype == 0)cout<<"Norm(c)="<<norm<<endl;
     }
-    
+
     if(mype == 0)cout<<"DoubleMatrix::scal..."<<endl;
     c.scal(0.5);
-    
+
     if ( a.m() == b.m() && a.n() == b.n() )
     {
       if(mype == 0)cout<<"DoubleMatrix::axpy..."<<endl;
       a.axpy(-2., b);
     }
-    
+
     if ( a.m()==c.m() && a.n()==c.n() && a.mb()==c.mb() && a.nb()==c.nb() )
     {
       if(mype == 0)cout<<"DoubleMatrix::operator=..."<<endl;
       c=a;
     }
-    
+
     if(mype == 0)cout<<"DoubleMatrix::nrm2..."<<endl;
     norm=c.nrm2();
     if (mype == 0) cout<<"Norm="<<norm<<endl;
-        
+
 #if 1
     a.identity();
     DoubleMatrix a2(a);
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
     norm = a.nrm2();
     if (mype == 0) cout << "Norm(a)=" << norm << endl;
 #endif
-    
+
 #if 1
     // Inverse of c if c is square
     if ( c.m() == c.n() && c.mb() == c.nb() )
@@ -307,7 +307,7 @@ int main(int argc, char **argv)
       if (mype == 0) cout << "Inverse time: " << tm.real() << endl;
     }
 #endif
-    
+
     // Eigenvalues and eigenvectors of c if c is square
     if ( c.m() == c.n() && c.mb() == c.nb() )
     {
@@ -337,11 +337,11 @@ int main(int argc, char **argv)
       tm.stop();
       if (mype == 0) cout << "Eigenproblem time: " << tm.real() << endl;
     }
-    
+
 //  Gram-Schmidt orthogonalization of matrix a
     for ( int m = 0; m < a.nblocks(); m++ )
       for ( int l = 0; l < a.mblocks(); l++ )
-        for ( int y = 0; y < a.nbs(m); y++ )  
+        for ( int y = 0; y < a.nbs(m); y++ )
           for ( int x = 0; x < a.mbs(l); x++ )
           {
             int i = a.i(l,x);
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
             int iii = x + l*a.mb();
             int jjj = y + m*a.nb();
             int ival = iii + jjj * a.mloc();
-            if ( i == j ) 
+            if ( i == j )
               a[ival] = i + 1.e-6*drand48();
             else
               a[ival] = 1.e-6*drand48();
@@ -360,20 +360,20 @@ int main(int argc, char **argv)
     tm.start();
     s.syrk('l','t',2.0,a,0.0);
     if (mype == 0) cout << "Gram syrk time: " << tm.real() << endl;
-    
+
     tm.reset();
     tm.start();
     s.syr('l',-1.0,a,0,'r');
     tm.stop();
     if (mype == 0) cout << "Gram syr time: " << tm.real() << endl;
-    
+
     // Cholesky decomposition
     tm.reset();
     tm.start();
     s.potrf('l'); // Cholesky decomposition: S = L * L^T
     tm.stop();
     if (mype == 0) cout << "Gram Cholesky time: " << tm.real() << endl;
-    
+
     // Triangular solve
     tm.reset();
     tm.start();

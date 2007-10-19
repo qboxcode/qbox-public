@@ -3,7 +3,7 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.17 2007-03-17 01:14:00 fgygi Exp $
+// $Id: FourierTransform.C,v 1.18 2007-10-19 16:24:04 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
@@ -45,17 +45,17 @@ extern "C" {
 }
 #else
 #define NO_FFT_LIB 1
-void cfftm ( std::complex<double> *ain, std::complex<double> *aout, 
+void cfftm ( std::complex<double> *ain, std::complex<double> *aout,
   double scale, int ntrans, int length, int ainc, int ajmp, int idir );
 #endif
 
 #if USE_GATHER_SCATTER
 extern "C" {
   // zgthr: x(i) = y(indx(i))
-  void zgthr_(int* n, std::complex<double>* y, 
+  void zgthr_(int* n, std::complex<double>* y,
               std::complex<double>* x, int*indx);
   // zsctr: y(indx(i)) = x(i)
-  void zsctr_(int* n, std::complex<double>* x, int* indx, 
+  void zsctr_(int* n, std::complex<double>* x, int* indx,
               std::complex<double>* y);
 }
 #endif
@@ -77,7 +77,7 @@ FourierTransform::~FourierTransform()
 
 ////////////////////////////////////////////////////////////////////////////////
 FourierTransform::FourierTransform (const Basis &basis,
-  int np0, int np1, int np2) : ctxt_(basis.context()), basis_(basis), 
+  int np0, int np1, int np2) : ctxt_(basis.context()), basis_(basis),
   np0_(np0), np1_(np1), np2_(np2)
 {
   assert(ctxt_.npcol() == 1);
@@ -91,7 +91,7 @@ FourierTransform::FourierTransform (const Basis &basis,
   np2_first_.resize(nprocs_);
 
   // Block-cyclic distribution for np2
-  // Partition np2 into nprocs_ intervals and 
+  // Partition np2 into nprocs_ intervals and
   // store local sizes in np2_loc_[iproc]
   // Use same block distribution as in ScaLAPACK
   // Blocks 0,...,nprocs_-2 have size np2_block_size
@@ -120,7 +120,7 @@ FourierTransform::FourierTransform (const Basis &basis,
   {
     np2_first_[iproc] = np2_first_[iproc-1] + np2_loc_[iproc-1];
   }
- 
+
   // number of local z vectors
   if ( basis_.real() )
   {
@@ -134,29 +134,29 @@ FourierTransform::FourierTransform (const Basis &basis,
   {
     nvec_ = basis_.nrod_loc();
   }
-  
+
   // compute number of transforms along the x,y and z directions
   // ntrans0_ is the number of transforms along x in one of the two blocks
   // of vectors corresponding to positive and negative y indices
   ntrans0_ = max(abs(basis_.idxmax(1)),abs(basis_.idxmin(1)))+1;
   ntrans1_ = np0_;
   ntrans2_ = nvec_;
-  
+
   // resize array zvec holding columns
   zvec_.resize(nvec_ * np2_);
-  
+
   // Initialize FT library auxiliary arrays
   init_lib();
-  
+
   // allocate send buffer
   sbuf.resize(nvec_ * np2_);
-  
+
   // allocate receive buffer
   if ( basis_.real() )
     rbuf.resize((2 * basis_.nrods() - 1) * np2_loc_[myproc_]);
   else
     rbuf.resize(basis_.nrods() * np2_loc_[myproc_]);
-  
+
   // compute send/receive counts and displacements in units of sizeof(double)
 
   scounts.resize(nprocs_);
@@ -191,13 +191,13 @@ FourierTransform::FourierTransform (const Basis &basis,
     sdispl[iproc] = sdispl[iproc-1] + scounts[iproc-1];
     rdispl[iproc] = rdispl[iproc-1] + rcounts[iproc-1];
   }
-  
+
   if ( basis_.real() )
   {
     // compute index arrays ifftp_ and ifftm_ for mapping vector->zvec
     ifftp_.resize(basis_.localsize());
     ifftm_.resize(basis_.localsize());
- 
+
     if ( myproc_ == 0 )
     {
       // this process holds rod(0,0)
@@ -282,7 +282,7 @@ FourierTransform::FourierTransform (const Basis &basis,
         isource += np2_;
       }
     }
- 
+
     // compute array iunpack
     // used in unpacking rbuf into val
     // val[iunpack[i]] = rbuf[i]
@@ -300,7 +300,7 @@ FourierTransform::FourierTransform (const Basis &basis,
     }
     int isource_p = np2_loc_[myproc_];
     int isource_m = 2 * np2_loc_[myproc_];
- 
+
     // all rods of pe 0
     for ( int irod = 1; irod < basis_.nrod_loc(0); irod++ )
     {
@@ -343,17 +343,17 @@ FourierTransform::FourierTransform (const Basis &basis,
         int kp = basis_.rod_k(iproc,irod);
         if ( hp < 0 ) hp += np0_;
         if ( kp < 0 ) kp += np1_;
- 
+
         int hm = -hp;
         int km = -kp;
         if ( hm < 0 ) hm += np0_;
         if ( km < 0 ) km += np1_;
- 
+
         for ( int l = 0; l < np2_loc_[myproc_]; l++ )
         {
           int idest_p = hp + np0_ * ( kp + np1_ * l );
           iunpack_[isource_p+l] = idest_p;
- 
+
           int idest_m = hm + np0_ * ( km + np1_ * l );
           iunpack_[isource_m+l] = idest_m;
         }
@@ -368,7 +368,7 @@ FourierTransform::FourierTransform (const Basis &basis,
     // compute index array ifftp_ for mapping vector->zvec
     // Note: ifftm_ is not used
     ifftp_.resize(basis_.localsize());
- 
+
     // map rods(h,k)
     // rod(h,k)   maps onto column irod*np2_ of zvec_, irod=0,..,nrods-1
     int ig = 0;
@@ -405,7 +405,7 @@ FourierTransform::FourierTransform (const Basis &basis,
         isource += np2_;
       }
     }
- 
+
     // compute array iunpack
     // used in unpacking rbuf into val
     // val[iunpack[i]] = rbuf[i]
@@ -427,24 +427,24 @@ FourierTransform::FourierTransform (const Basis &basis,
         int k = basis_.rod_k(iproc,irod);
         if ( h < 0 ) h += np0_;
         if ( k < 0 ) k += np1_;
- 
+
         for ( int l = 0; l < np2_loc_[myproc_]; l++ )
         {
           int idest = h + np0_ * ( k + np1_ * l );
           iunpack_[isource+l] = idest;
- 
+
         }
         isource += np2_loc_[myproc_];
       }
     }
   }
-  
+
   // for ( int ig = 0; ig < basis_.localsize(); ig++ )
   // {
   //   assert(ifftp_[ig] >= 0 && ifftp_[ig] < zvec_.size());
   //   assert(ifftm_[ig] >= 0 && ifftm_[ig] < zvec_.size());
   // }
-  
+
 #if USE_GATHER_SCATTER
   // shift index array by one for fortran ZGTHR and ZSCTR calls
   for ( int i = 0; i < iunpack_.size(); i++ )
@@ -485,7 +485,7 @@ void FourierTransform::forward(complex<double>* f, complex<double>* c)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void FourierTransform::backward(const complex<double>* c1, 
+void FourierTransform::backward(const complex<double>* c1,
                                const complex<double>* c2,
                                complex<double>* f)
 {
@@ -512,7 +512,7 @@ void FourierTransform::forward(complex<double>* f,
   tm_f_map.stop();
 #endif
 }
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 void FourierTransform::bwd(complex<double>* val)
 {
@@ -520,8 +520,8 @@ void FourierTransform::bwd(complex<double>* val)
   // result in val
   // The columns of zvec[nvec_ * np2_] contain the full vectors
   // to be transformed
-  // 
-  // If the basis is real: Column (h,k) is followed by column (-h,-k), 
+  //
+  // If the basis is real: Column (h,k) is followed by column (-h,-k),
   // except for (0,0)
 
 #if TIMING
@@ -531,12 +531,12 @@ void FourierTransform::bwd(complex<double>* val)
 #if USE_ESSL
   int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = -1, initflag = 0;
   double scale = 1.0;
-  
+
   dcft_(&initflag,&zvec_[0],&inc1,&inc2,&zvec_[0],&inc1,&inc2,&np2_,&ntrans,
        &isign,&scale,&aux1zb[0],&naux1z,&aux2[0],&naux2);
 
 #elif USE_FFTW
-   /* 
+   /*
     * void fftw(fftw_plan plan, int howmany,
     *    FFTW_COMPLEX *in, int istride, int idist,
     *    FFTW_COMPLEX *out, int ostride, int odist);
@@ -559,12 +559,12 @@ void FourierTransform::bwd(complex<double>* val)
   int idir = -1;
   cfftm ( &zvec_[0], &zvec_[0], scale, ntrans, length, ainc, ajmp, idir );
 #endif
-  
+
 #if TIMING
   tm_b_fft.stop();
   tm_b_pack.start();
 #endif
-  
+
   // scatter zvec_ to sbuf for transpose
 #if USE_GATHER_SCATTER
   // zsctr: y(indx(i)) = x(i)
@@ -589,9 +589,9 @@ void FourierTransform::bwd(complex<double>* val)
     ps[2*ip+1] = b;
   }
 #endif
-  
+
   // segments of z-vectors are now in sbuf
-  
+
 #if TIMING
   tm_b_pack.stop();
   tm_b_mpi.start();
@@ -611,7 +611,7 @@ void FourierTransform::bwd(complex<double>* val)
   assert(sbuf.size()==rbuf.size());
   rbuf = sbuf;
 #endif
-  
+
 #if TIMING
   tm_b_mpi.stop();
   tm_b_zero.start();
@@ -628,7 +628,7 @@ void FourierTransform::bwd(complex<double>* val)
       pv[2*i+1] = 0.0;
     }
   }
-  
+
 #if TIMING
   tm_b_zero.stop();
   tm_b_unpack.start();
@@ -658,7 +658,7 @@ void FourierTransform::bwd(complex<double>* val)
     }
   }
 #endif
-  
+
 #if TIMING
   tm_b_unpack.stop();
   tm_b_fft.start();
@@ -674,9 +674,9 @@ void FourierTransform::bwd(complex<double>* val)
   // use 2D FFT for x and y transforms
   int inc1, inc2, istart, isign = -1, initflag = 0;
   double scale = 1.0;
-  
+
   // xy transform
-  istart = k * np0_ * np1_; 
+  istart = k * np0_ * np1_;
   inc1 = 1; inc2 = np0_;
   dcft2_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
         &np0_,&np1_,&isign,&scale,&aux1xyb[0],&naux1xy,&aux2[0],&naux2);
@@ -684,7 +684,7 @@ void FourierTransform::bwd(complex<double>* val)
 #else
 
   // use multiple 1-d FFTs for x and y transforms
-  
+
   int inc1, inc2, ntrans, istart, length, isign = -1, initflag = 0;
   double scale = 1.0;
   // transform only non-zero vectors along x
@@ -696,7 +696,7 @@ void FourierTransform::bwd(complex<double>* val)
   length = np0_;
   dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
        &length,&ntrans,&isign,&scale,&aux1xb[0],&naux1x,&aux2[0],&naux2);
- 
+
   // Second block: negative y indices: [np1-ntrans0_,np1-1]
   inc1 = 1;
   inc2 = np0_;
@@ -704,7 +704,7 @@ void FourierTransform::bwd(complex<double>* val)
   length = np0_;
   dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
        &length,&ntrans,&isign,&scale,&aux1xb[0],&naux1x,&aux2[0],&naux2);
- 
+
   // transform along y for all values of x
   ntrans = np0_;
   inc1 = np0_;
@@ -713,7 +713,7 @@ void FourierTransform::bwd(complex<double>* val)
   length = np1_;
   dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
        &length,&ntrans,&isign,&scale,&aux1yb[0],&naux1y,&aux2[0],&naux2);
-#endif  
+#endif
 #elif USE_FFTW
     int inc1, inc2, istart;
 
@@ -721,7 +721,7 @@ void FourierTransform::bwd(complex<double>* val)
     // Transform first block along x: positive y indices
     inc1 = 1;
     inc2 = np0_;
-    istart = k * np0_ * np1_; 
+    istart = k * np0_ * np1_;
     fftw(bwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
     // Transform second block along x: negative y indices
@@ -730,12 +730,12 @@ void FourierTransform::bwd(complex<double>* val)
     istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     fftw(bwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
-                    
+
     // transform along y for all values of x
     ntrans = np0_;
     inc1 = np0_;
     inc2 = 1;
-    istart = k * np0_ * np1_; 
+    istart = k * np0_ * np1_;
     fftw(bwplan1,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
 #else
@@ -750,11 +750,11 @@ void FourierTransform::bwd(complex<double>* val)
     double scale = 1.0;
     int idir = -1;
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
- 
+
     // Transform second block along x: negative y indices
     istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
- 
+
     // transform along y for all values of x
     ntrans = np0_;
     istart = k * np0_ * np1_;
@@ -765,7 +765,7 @@ void FourierTransform::bwd(complex<double>* val)
 
 #endif
   } // for k
-  
+
 #if TIMING
   tm_b_fft.stop();
 #endif
@@ -787,7 +787,7 @@ void FourierTransform::fwd(complex<double>* val)
     // use 2D FFT for x and y transforms
     int inc1, inc2, istart, isign = 1, initflag = 0;
     double scale = 1.0;
- 
+
     // xy transform
     istart = k * np0_ * np1_;
     inc1 = 1; inc2 = np0_;
@@ -797,7 +797,7 @@ void FourierTransform::fwd(complex<double>* val)
 #else
 
     // use multiple 1-d FFTs for x and y transforms
- 
+
     int inc1, inc2, ntrans, istart, length, isign = 1, initflag = 0;
     double scale = 1.0;
     // transform along y for all values of x
@@ -808,7 +808,7 @@ void FourierTransform::fwd(complex<double>* val)
     length = np1_;
     dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
          &length,&ntrans,&isign,&scale,&aux1yf[0],&naux1y,&aux2[0],&naux2);
- 
+
     // transform only non-zero vectors along x
     ntrans = ntrans0_;
     inc1 = 1;
@@ -817,14 +817,14 @@ void FourierTransform::fwd(complex<double>* val)
     length = np0_;
     dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
          &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
- 
+
     inc1 = 1;
     inc2 = np0_;
     istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     length = np0_;
     dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
          &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
-#endif  
+#endif
 #elif USE_FFTW
     int inc1, inc2, istart;
 
@@ -832,15 +832,15 @@ void FourierTransform::fwd(complex<double>* val)
     int ntrans = np0_;
     inc1 = np0_;
     inc2 = 1;
-    istart = k * np0_ * np1_; 
+    istart = k * np0_ * np1_;
     fftw(fwplan1,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
-                        
+
     ntrans = ntrans0_;
     // Transform first block along x: positive y indices
     inc1 = 1;
     inc2 = np0_;
-    istart = k * np0_ * np1_; 
+    istart = k * np0_ * np1_;
     fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
     // Transform second block along x: negative y indices
@@ -849,7 +849,7 @@ void FourierTransform::fwd(complex<double>* val)
     istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
-                        
+
 #else
     // No library
     // transform along y for all values of x
@@ -861,7 +861,7 @@ void FourierTransform::fwd(complex<double>* val)
     double scale = 1.0;
     int idir = 1;
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
- 
+
     // transform along x for non-zero elements
     ntrans = ntrans0_;
     istart = k * np0_ * np1_;
@@ -869,12 +869,12 @@ void FourierTransform::fwd(complex<double>* val)
     ainc   = 1;
     ajmp   = np0_;
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
- 
+
     istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
 #endif
   } // for k
-  
+
   // gather val into rbuf
 #if TIMING
   tm_f_fft.stop();
@@ -904,7 +904,7 @@ void FourierTransform::fwd(complex<double>* val)
     pr[2*i+1] = b;
   }
 #endif
-  
+
   // transpose
 #if TIMING
   tm_f_pack.stop();
@@ -919,14 +919,14 @@ void FourierTransform::fwd(complex<double>* val)
   assert(sbuf.size()==rbuf.size());
   rbuf = sbuf;
 #endif
-  
+
   // segments of z-vectors are now in sbuf
   // gather sbuf into zvec_
 #if TIMING
   tm_f_mpi.stop();
   tm_f_unpack.start();
 #endif
-  
+
 #if USE_GATHER_SCATTER
   // zgthr: x(i) = y(indx(i))
   // void zgthr_(int* n, complex<double>* y, complex<double>* x, int*indx);
@@ -956,14 +956,14 @@ void FourierTransform::fwd(complex<double>* val)
   tm_f_unpack.stop();
   tm_f_fft.start();
 #endif
-  
+
 #if USE_ESSL
   int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = 1, initflag = 0;
   double scale = 1.0 / (np0_ * np1_ * np2_);
-  
+
   dcft_(&initflag,&zvec_[0],&inc1,&inc2,&zvec_[0],&inc1,&inc2,&np2_,&ntrans,
         &isign,&scale,&aux1zf[0],&naux1z,&aux2[0],&naux2);
-       
+
 #elif USE_FFTW
  /*
   * void fftw(fftw_plan plan, int howmany,
@@ -1003,7 +1003,7 @@ void FourierTransform::init_lib(void)
   // initialization of FFT libs
 
 #if USE_ESSL
-#if USE_ESSL_2DFFT  
+#if USE_ESSL_2DFFT
   // use 2D FFT for x and y transforms and 1D FFT for z transforms
   naux1xy = 40000 + 2.28 * (np0_+np1_);
   aux1xyf.resize(naux1xy);
@@ -1011,18 +1011,18 @@ void FourierTransform::init_lib(void)
   int r = max(np0_,np1_);
   int s = min(64,min(np0_,np1_));
   naux2 = 20000 + (2*r+256)*(s+2.28);
-  
+
   naux1z = 20000 + 2.28 * np2_;
   aux1zf.resize(naux1z);
   aux1zb.resize(naux1z);
-  
+
   int ntrans2 = nvec_;
   int naux2z = 20000 + 2.28 * np2_ + (256 + 2*np2_)*min(64,ntrans2);
   naux2 = max( naux2, naux2z );
   aux2.resize(naux2);
-  
+
   double scale = 1.0;
-  
+
   // initialize xy transforms
   int initflag = 1, inc1, inc2, isign = -1;
   inc1 = 1; inc2 = np0_;
@@ -1034,7 +1034,7 @@ void FourierTransform::init_lib(void)
 
   // initialize z transforms
   int ntrans = nvec_;
-  inc1 = 1; inc2 = np2_; 
+  inc1 = 1; inc2 = np2_;
   isign = -1;
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np2_,&ntrans,
        &isign,&scale,&aux1zb[0],&naux1z,&aux2[0],&naux2);
@@ -1043,7 +1043,7 @@ void FourierTransform::init_lib(void)
        &isign,&scale,&aux1zf[0],&naux1z,&aux2[0],&naux2);
 #else
 
-  
+
   naux1x = (int) (20000 + 2.28 * np0_);
   naux1y = (int) (20000 + 2.28 * np1_);
   naux1z = (int) (20000 + 2.28 * np2_);
@@ -1061,13 +1061,13 @@ void FourierTransform::init_lib(void)
   int naux2z = (int) (20000 + 2.28 * np2_ + (256 + 2*np2_)*min(64,ntrans2_));
   naux2 = max( naux2, naux2z );
   aux2.resize(naux2);
-  
+
   // initialize x, y and z transforms
 
   int initflag = 1, inc1, inc2, ntrans, isign;
   double scale = 1.0;
   complex<double> *p = 0;
-  
+
   // x transforms
   inc1 = 1; inc2 = np0_; ntrans = ntrans0_;
   isign = -1;
@@ -1076,7 +1076,7 @@ void FourierTransform::init_lib(void)
   isign = 1;
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np0_,&ntrans,
         &isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
-  
+
   // y transforms
   inc1 = np0_; inc2 = 1; ntrans = ntrans1_;
   isign = -1;
@@ -1085,7 +1085,7 @@ void FourierTransform::init_lib(void)
   isign = 1;
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np1_,&ntrans,
         &isign,&scale,&aux1yf[0],&naux1y,&aux2[0],&naux2);
-       
+
   // z transforms
   inc1 = 1; inc2 = np2_; ntrans = ntrans2_;
   isign = -1;
@@ -1135,7 +1135,7 @@ void FourierTransform::vector_to_zvec(const complex<double> *c)
   }
   const double* const pc = (double*) &c[0];
   if ( basis_.real() )
-  {  
+  {
     for ( int ig = 0; ig < ng; ig++ )
     {
       // zvec_[ifftp_[ig]] = c[ig];
@@ -1216,10 +1216,10 @@ void FourierTransform::doublevector_to_zvec(const complex<double> *c1,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void FourierTransform::zvec_to_doublevector(complex<double> *c1, 
+void FourierTransform::zvec_to_doublevector(complex<double> *c1,
   complex<double> *c2 )
 {
-  // Mapping of zvec onto two real functions 
+  // Mapping of zvec onto two real functions
   assert(basis_.real());
   const int ng = basis_.localsize();
   const double* const pz = (double*) &zvec_[0];
@@ -1252,8 +1252,8 @@ void FourierTransform::zvec_to_doublevector(complex<double> *c1,
 ////////////////////////////////////////////////////////////////////////////////
 //
 //     /* no library: use cfftm function */
-//     
-// 
+//
+//
 //     /* Transform along x */
 //     int i2;
 //     int ntrans = np1*np2;
@@ -1272,9 +1272,9 @@ void FourierTransform::zvec_to_doublevector(complex<double> *c1,
 //       idir = 1;
 //       scale = 1.0;
 //     }
-// 
+//
 //     cfftm ( &val[0], &val[0], scale, ntrans, length, ainc, ajmp, idir );
-// 
+//
 //     /* Transform along y */
 //     for ( i2 = 0; i2 < np2; i2++ )
 //     {
@@ -1286,7 +1286,7 @@ void FourierTransform::zvec_to_doublevector(complex<double> *c1,
 //       scale = 1.0;
 //       cfftm ( &val[ist], &val[ist], scale, ntrans, length, ainc, ajmp, idir );
 //     }
-// 
+//
 //     /* Transform along z */
 //     ntrans = np0i*np1;
 //     length = np2;
@@ -1294,7 +1294,7 @@ void FourierTransform::zvec_to_doublevector(complex<double> *c1,
 //     ajmp   = 1;
 //     scale = 1.0;
 //     cfftm ( &val[0], &val[0], scale, ntrans, length, ainc, ajmp, idir );
-// 
+//
 ////////////////////////////////////////////////////////////////////////////////
 
 /* define multiple FFT function here */
@@ -1347,8 +1347,8 @@ void cfftm ( complex<double> *ain, complex<double> *aout, double scale,
 
 /*******************************************************************************
  *
- *  Complex FFT 
- *  C version 
+ *  Complex FFT
+ *  C version
  *
  *  From: C++ Language System Release 3.0 Library Manual
  *  Transcription from 'FFT as Nested Multiplication, with a twist'
@@ -1365,12 +1365,12 @@ void cfftm ( complex<double> *ain, complex<double> *aout, double scale,
 void cfft ( int idir, complex<double> *z1, complex<double> *z2, int n,
   int *inzee )
 {
-  // Compute the discrete Fourier transform of z1 (or z2) in 
+  // Compute the discrete Fourier transform of z1 (or z2) in
   // the Cooley-Tukey way, but with a twist.
   // z1[before], z2[before]
   // *inzee == 1 means input in z1; *inzee == 2 means input in z2
 
-  void fftstp ( int idir, complex<double> *zin, int after, 
+  void fftstp ( int idir, complex<double> *zin, int after,
                 int now, int before, complex<double> *zout );
   static int prime[NEXTMX] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37 };
   int before = n;
@@ -1387,7 +1387,7 @@ void cfft ( int idir, complex<double> *z1, complex<double> *z2, int n,
       if ( ++next < NEXTMX ) continue;
       now = before;
       before = 1;
-    } 
+    }
     else
     {
       now = np;
@@ -1403,7 +1403,7 @@ void cfft ( int idir, complex<double> *z1, complex<double> *z2, int n,
 
 }
 
-void fftstp ( int idir, complex<double> *zin, int after, 
+void fftstp ( int idir, complex<double> *zin, int after,
               int now, int before, complex<double> *zout )
 {
 
@@ -1437,7 +1437,7 @@ void fftstp ( int idir, complex<double> *zin, int after,
         l = ia + j*after + ib*now*after;
         zout[l] = value;
       }
-      
+
       /* arg *= omega; */
       arg *= omega;
 

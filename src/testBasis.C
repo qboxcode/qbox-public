@@ -3,7 +3,7 @@
 // testBasis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testBasis.C,v 1.4 2005-01-04 22:08:13 fgygi Exp $
+// $Id: testBasis.C,v 1.5 2007-10-19 16:24:06 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -34,15 +34,15 @@ int main(int argc, char **argv)
     const D3vector a0(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     const D3vector a1(atof(argv[4]),atof(argv[5]),atof(argv[6]));
     const D3vector a2(atof(argv[7]),atof(argv[8]),atof(argv[9]));
-    
+
     double ecut = atof(argv[10]);
     D3vector kpoint(atof(argv[11]),atof(argv[12]),atof(argv[13]));
     int npr = atoi(argv[14]);
     int npc = atoi(argv[15]);
-    
+
     Context ctxt(npr,npc);
     UnitCell cell(a0,a1,a2);
-    
+
     Basis basis(ctxt,kpoint);
     try
     {
@@ -53,9 +53,9 @@ int main(int argc, char **argv)
       cout << " bad_alloc caught in Basis::resize" << endl;
       throw;
     }
-    
+
     cout << basis;
-    
+
     //Basis b2(basis);
     //cout << b2;
   }

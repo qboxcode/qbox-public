@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.54 2007-10-16 18:23:20 fgygi Exp $
+// $Id: qb.C,v 1.55 2007-10-19 16:24:06 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -13,7 +13,7 @@ using namespace std;
 #include <unistd.h>
 #include <cstdlib>
 #include <fstream>
-#if AIX 
+#if AIX
 #include<filehdr.h>
 #endif
 #ifdef USE_APC
@@ -111,13 +111,13 @@ int main(int argc, char **argv, char **envp)
 
   {
   Context ctxt;
-  
+
   if ( ctxt.onpe0() )
   {
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   cout << "<!--\n\n";
   cout << "                   ============================\n";
-  cout << "                   I qbox " 
+  cout << "                   I qbox "
        << setw(17) << left << release() << "   I\n";
   cout << "                   I                          I\n";
   cout << "                   I                          I\n";
@@ -137,7 +137,7 @@ int main(int argc, char **argv, char **envp)
   cout << "<release> " << release() << " " << TARGET << " </release>" << endl;
 
   // Identify executable name, checksum, size and link date
-  if ( getlogin() != 0 ) 
+  if ( getlogin() != 0 )
     cout << "<user> " << getlogin() << " </user>" << endl;
 #if AIX || OSF1
   // read filehdr for link time
@@ -151,7 +151,7 @@ int main(int argc, char **argv, char **envp)
     cout << "<linktime> " << s << " </linktime>" << endl;
   }
 #endif
-  
+
   // Identify platform
   {
     struct utsname un;
@@ -165,7 +165,7 @@ int main(int argc, char **argv, char **envp)
   }
 
 #if USE_MPI
-  // Print list of node names  
+  // Print list of node names
   char processor_name[MPI_MAX_PROCESSOR_NAME];
   char buf[MPI_MAX_PROCESSOR_NAME];
   int namelen;
@@ -179,7 +179,7 @@ int main(int argc, char **argv, char **envp)
   if ( ctxt.onpe0() )
   {
     cout << "<mpi_processes count=\"" << ctxt.size() << "\">" << endl;
-    cout << "<process id=\"" << ctxt.mype() << "\"> " << processor_name 
+    cout << "<process id=\"" << ctxt.mype() << "\"> " << processor_name
          << " </process>" << endl;
   }
   for ( int ip = 1; ip < ctxt.size(); ip++ )
@@ -199,7 +199,7 @@ int main(int argc, char **argv, char **envp)
     }
     if ( ctxt.onpe0() )
     {
-      cout << "<process id=\"" << ip << "\"> " << buf 
+      cout << "<process id=\"" << ip << "\"> " << buf
            << " </process>" << endl;
     }
   }
@@ -208,9 +208,9 @@ int main(int argc, char **argv, char **envp)
 #endif // USE_MPI
 
   Sample* s = new Sample(ctxt);
-  
+
   UserInterface ui;
-  
+
   ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
   ui.addCmd(new ComputeMLWFCmd(s));
@@ -231,7 +231,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new SpeciesCmd(s));
   ui.addCmd(new StatusCmd(s));
   ui.addCmd(new TorsionCmd(s));
-  
+
   ui.addVar(new AtomsDyn(s));
   ui.addVar(new Cell(s));
   ui.addVar(new CellDyn(s));
@@ -259,7 +259,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new WfDiag(s));
   ui.addVar(new WfDyn(s));
   ui.addVar(new Xc(s));
-  
+
   if ( argc == 2 )
   {
     // input file was given as a command line argument

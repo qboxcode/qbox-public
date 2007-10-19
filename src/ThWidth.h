@@ -3,7 +3,7 @@
 // ThWidth.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ThWidth.h,v 1.1 2004-03-11 21:58:10 fgygi Exp $
+// $Id: ThWidth.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef THWIDTH_H
 #define THWIDTH_H
@@ -31,7 +31,7 @@ class ThWidth : public Var
       cout << " th_width takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v <= 0.0 )
     {

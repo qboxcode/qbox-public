@@ -3,7 +3,7 @@
 // SpeciesCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesCmd.h,v 1.1 2003-03-27 22:05:59 fgygi Exp $
+// $Id: SpeciesCmd.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef SPECIESCMD_H
 #define SPECIESCMD_H
@@ -28,7 +28,7 @@ class SpeciesCmd : public Cmd
 
   char *help_msg(void) const
   {
-    return 
+    return
     "\n species\n\n"
     " syntax: species name uri\n\n"
     "   The species command defines a species name.\n\n";

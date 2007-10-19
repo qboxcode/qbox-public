@@ -3,7 +3,7 @@
 // MoveCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MoveCmd.h,v 1.1 2005-06-27 22:35:26 fgygi Exp $
+// $Id: MoveCmd.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef MOVECMD_H
 #define MOVECMD_H
@@ -27,7 +27,7 @@ class MoveCmd : public Cmd
   char *name(void) const { return "move"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n move\n\n"
     " syntax: move atom_name {to|by} x y z \n\n"
     "   The move command displaces an atom to a new position.\n"
@@ -44,7 +44,7 @@ class MoveCmd : public Cmd
         cout << " use: move atom_name {to|by} x y z " << endl;
       return 1;
     }
-  
+
     const string atom_name = argv[1];
     const string mode = argv[2];
     const string xs = argv[3];
@@ -65,7 +65,7 @@ class MoveCmd : public Cmd
     double x = pos.x;
     double y = pos.y;
     double z = pos.z;
- 
+
     if ( mode == "to" )
     {
       if ( xs != "*" )
@@ -74,14 +74,14 @@ class MoveCmd : public Cmd
         y = atof(argv[4]);
       if ( zs != "*" )
         z = atof(argv[5]);
-      pos = D3vector(x,y,z);      
+      pos = D3vector(x,y,z);
     }
     else if ( mode == "by" )
     {
       x += atof(argv[3]);
       y += atof(argv[4]);
       z += atof(argv[5]);
-      pos = D3vector(x,y,z);      
+      pos = D3vector(x,y,z);
     }
     else
     {
@@ -94,7 +94,7 @@ class MoveCmd : public Cmd
     if ( ui->onpe0() )
       cout << " <!-- MoveCmd: atom " << atom_name << " moved to "
            << pos << " -->" << endl;
-    
+
     return 0;
   }
 };

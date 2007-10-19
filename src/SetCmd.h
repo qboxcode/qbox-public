@@ -3,7 +3,7 @@
 // SetCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SetCmd.h,v 1.1 2003-01-10 00:35:36 fgygi Exp $
+// $Id: SetCmd.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef SETCMD_H
 #define SETCMD_H
@@ -28,7 +28,7 @@ class SetCmd : public Cmd
 
   char *help_msg(void) const
   {
-    return 
+    return
     "\n set\n\n"
     " syntax: set variable value[s]\n\n"
     "   The set command sets the value of an interface variable.\n\n";
@@ -44,7 +44,7 @@ class SetCmd : public Cmd
 
     Var* varptr = ui->findVar(argv[1]);
 
-    if ( varptr ) 
+    if ( varptr )
     {
       varptr->set(argc-1,&argv[1]);
     }

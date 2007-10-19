@@ -3,7 +3,7 @@
 // CellMass.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CellMass.h,v 1.1 2004-02-04 19:52:27 fgygi Exp $
+// $Id: CellMass.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef CELLMASS_H
 #define CELLMASS_H
@@ -31,7 +31,7 @@ class CellMass : public Var
       cout << " cell_mass takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v <= 0.0 )
     {

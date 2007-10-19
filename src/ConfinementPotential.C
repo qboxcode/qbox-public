@@ -3,13 +3,13 @@
 // ConfinementPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConfinementPotential.C,v 1.1 2004-03-11 21:58:10 fgygi Exp $
+// $Id: ConfinementPotential.C,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #include "ConfinementPotential.h"
 #include "Basis.h"
 
 ////////////////////////////////////////////////////////////////////////////////
-ConfinementPotential::ConfinementPotential(double ecuts, double facs, 
+ConfinementPotential::ConfinementPotential(double ecuts, double facs,
   double sigmas, const Basis& basis): ecuts_(ecuts), facs_(facs),
   sigmas_(sigmas), basis_(basis)
 {
@@ -25,7 +25,7 @@ void ConfinementPotential::update(void)
   // recompute confinement potential and its derivative
   const double sigmas_inv = 1.0 / sigmas_;
   const int ngwloc = basis_.localsize();
-  
+
   for ( int ig = 0; ig < ngwloc; ig++ )
   {
     const double gsq = basis_.kpg2(ig);
@@ -55,10 +55,10 @@ void ConfinementPotential::update(void)
     const double fg = facs_ * fm;
     // gfgp = G f'(G)
     const double gfgp = gsq * fg * fp * sigmas_inv;
-    
+
     // fstress[ig] = G^2 * f(G)
     fstress_[ig] = gsq * fg;
-    
+
     // dfstress =  2 f(G) + G * f'(G)
     dfstress_[ig] = 2.0 * fg + gfgp;
 

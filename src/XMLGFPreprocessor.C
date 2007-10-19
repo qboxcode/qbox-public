@@ -3,7 +3,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.9 2007-03-17 01:14:00 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.10 2007-10-19 16:24:05 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -30,18 +30,18 @@ using namespace std;
 // Input: filename, DoubleMatrix& gfdata, string xmlcontent
 // The preprocessor reads the file in parallel, processes all <grid_function>
 // elements and stores the values of the grid_functions in the matrix gfdata
-// which has dimensions (ngf,maxgridsize), where ngf is the total number of 
+// which has dimensions (ngf,maxgridsize), where ngf is the total number of
 // <grid_function> elements found in the file, and maxgridsize is the size of
 // the largest grid_function.
 // On return, the string xmlcontent contains (on task 0) the XML file
-// with <grid_function> elements reduced to empty strings. 
+// with <grid_function> elements reduced to empty strings.
 //
 ////////////////////////////////////////////////////////////////////////////////
-void XMLGFPreprocessor::process(const char* const filename, 
+void XMLGFPreprocessor::process(const char* const filename,
     DoubleMatrix& gfdata, string& xmlcontent)
 {
   cout.precision(4);
-  
+
   const Context& ctxt = gfdata.context();
   // define a global single row context for segment manipulations
   Context rctxt;
@@ -52,7 +52,7 @@ void XMLGFPreprocessor::process(const char* const filename,
     cout << "rctxt: " << rctxt;
   }
 #endif
- 
+
   Timer tm,ttm;
   ttm.start();
   string st;
@@ -76,7 +76,7 @@ void XMLGFPreprocessor::process(const char* const filename,
          << filename << " for reading" << endl;
     return;
   }
-  
+
 //  ifstream is(filename);
 
   // determine local size
@@ -88,7 +88,7 @@ void XMLGFPreprocessor::process(const char* const filename,
   {
     local_size = max_local_size;
   }
- 
+
   // use contiguous read buffer, to be copied later to a string
   char *rdbuf = new char[local_size];
 #if DEBUG
@@ -105,17 +105,17 @@ void XMLGFPreprocessor::process(const char* const filename,
   assert(fseek_status==0);
   size_t items_read = fread(rdbuf,sizeof(char),local_size,infile);
   assert(items_read==local_size);
-  
+
   //std::streampos offset = ctxt.mype()*block_size;
   //is.seekg(offset);
   //std::streampos new_offset = is.tellg();
   //assert(offset == new_offset);
   //is.read(&buf[0],local_size);
   //is.close();
-  
+
   string buf(rdbuf,local_size);
   delete [] rdbuf;
-  
+
   tm.stop();
 
   if ( ctxt.onpe0() )
@@ -129,7 +129,7 @@ void XMLGFPreprocessor::process(const char* const filename,
 
   tm.reset();
   tm.start();
- 
+
   ////////////////////////////////////////////////////////////////////////////
   // fix broken tags
   ////////////////////////////////////////////////////////////////////////////
@@ -170,7 +170,7 @@ void XMLGFPreprocessor::process(const char* const filename,
   else
   {
     // two or more brackets found
- 
+
     // process first bracket
     char bracket = buf[first_bracket_pos];
     assert(bracket=='<' || bracket=='>');
@@ -189,7 +189,7 @@ void XMLGFPreprocessor::process(const char* const filename,
       buf.erase(0,first_bracket_pos+1);
       last_bracket_pos -= first_bracket_pos+1;
     }
- 
+
     // process last bracket
     bracket = buf[last_bracket_pos];
     assert(bracket=='<' || bracket=='>');
@@ -216,11 +216,11 @@ void XMLGFPreprocessor::process(const char* const filename,
     cout << " XMLGFPreprocessor: tag fixing time: " << tm.real() << endl;
   tm.reset();
   tm.start();
- 
+
   ////////////////////////////////////////////////////////////////////////////
   // reduce data in <grid_function> elements
   ////////////////////////////////////////////////////////////////////////////
- 
+
   // locate grid_function tags
   string::size_type first_start = buf.find("<grid_function");
   string::size_type first_end = buf.find("</grid_function>");
@@ -228,7 +228,7 @@ void XMLGFPreprocessor::process(const char* const filename,
   string::size_type last_end = buf.rfind("</grid_function>");
   bool start_tag_found = ( first_start != string::npos ) ;
   bool end_tag_found = ( first_end != string::npos ) ;
- 
+
   ////////////////////////////////////////////////////////////////////////////
   // Determine if this task starts and/or ends within a grid_function element
   ////////////////////////////////////////////////////////////////////////////
@@ -242,7 +242,7 @@ void XMLGFPreprocessor::process(const char* const filename,
     // on pe > 0
     rctxt.irecv(1,1,&start_within,1,0,rctxt.mype()-1);
   }
- 
+
   if ( !start_within )
   {
     end_within =
@@ -255,15 +255,15 @@ void XMLGFPreprocessor::process(const char* const filename,
     ( ( !end_tag_found ) ||
       ( start_tag_found && end_tag_found && last_start > last_end ) );
   }
- 
+
   if ( rctxt.mype() < ctxt.size()-1 )
     rctxt.isend(1,1,&end_within,1,0,rctxt.mype()+1);
- 
+
 #if DEBUG
   cout << rctxt.mype() << ": start_within=" << start_within
        << " end_within=" << end_within << endl;
 #endif
-    
+
   ////////////////////////////////////////////////////////////////////////////
   // Determine intervals of characters to be processed
   ////////////////////////////////////////////////////////////////////////////
@@ -273,13 +273,13 @@ void XMLGFPreprocessor::process(const char* const filename,
   string::size_type pos = 0;
   bool done = false;
   vector<string::size_type> seg_start,seg_end;
- 
+
   // position of start and end tags on this task
   vector<string::size_type> local_start_tag_offset, local_end_tag_offset;
- 
+
   // node on which starting tag igf can be found: starting_node[igf]
   vector<string::size_type> starting_node, ending_node;
- 
+
   // treat first the case where the buffer starts within an element
   if ( start_within )
   {
@@ -304,7 +304,7 @@ void XMLGFPreprocessor::process(const char* const filename,
       pos = next_end+16; // size of "</grid_function>"
     }
   }
- 
+
   while (!done)
   {
     string::size_type next_start = buf.find("<grid_function",pos);
@@ -341,12 +341,12 @@ void XMLGFPreprocessor::process(const char* const filename,
       }
     }
   }
- 
+
   // compute total number of grid functions (total number of start tags)
   const int ngf_loc = local_start_tag_offset.size();
   int ngf = ngf_loc;
   rctxt.isum(1,1,&ngf,1);
- 
+
   // compute index of grid function starting at the first <grid_function> tag
   int igfmin, igfmax;
   if ( rctxt.mype() == 0 )
@@ -357,43 +357,43 @@ void XMLGFPreprocessor::process(const char* const filename,
   {
     rctxt.irecv(1,1,&igfmin,1,0,rctxt.mype()-1);
   }
- 
+
   igfmax = igfmin + local_end_tag_offset.size();
- 
+
   if ( rctxt.mype() < rctxt.size()-1 )
   {
     rctxt.isend(1,1,&igfmax,1,0,rctxt.mype()+1);
   }
- 
+
   // associate an igf value to each segment
   vector<int> igf(seg_start.size());
   for ( int i = 0; i < seg_start.size(); i++ )
     igf[i] = i+igfmin;
- 
+
   // cout << rctxt.mype() << ": igfmin=" << igfmin
   //      << " igfmax=" << igfmax << endl;
- 
+
   tm.stop();
   if ( ctxt.onpe0() )
     cout << " XMLGFPreprocessor: segment definition time: " << tm.real() << endl;
- 
+
   ////////////////////////////////////////////////////////////////////////////
   // Adjust segment boundaries to allow for transcoding
   ////////////////////////////////////////////////////////////////////////////
   // If encoding is "text", the segment boundary must fall on ' ' or '\n'
   // If encoding is "base64", the segment boundary must fall between
   // groups of 4 characters in "A-Za-z0-9+/="
- 
+
   ////////////////////////////////////////////////////////////////////////////
   // Determine encoding type of the last segment and send encoding_type
   // to right neighbour
- 
+
   string left_encoding = "none";
   if ( start_within && !rctxt.onpe0() )
   {
     rctxt.string_recv(left_encoding,0,rctxt.mype()-1);
   }
- 
+
   string right_encoding = "none";
   // find position of "encoding" string after last_start position
   if ( end_within )
@@ -411,7 +411,7 @@ void XMLGFPreprocessor::process(const char* const filename,
       right_encoding = left_encoding;
     }
   }
- 
+
   if ( end_within && rctxt.mype() < ctxt.size()-1 )
   {
     rctxt.string_send(right_encoding,0,rctxt.mype()+1);
@@ -420,7 +420,7 @@ void XMLGFPreprocessor::process(const char* const filename,
   cout << rctxt.mype() << ": left_encoding = " << left_encoding << endl;
   cout << rctxt.mype() << ": right_encoding = " << right_encoding << endl;
 #endif
-    
+
   // build table of encodings for all segments
   vector<string> encoding(seg_start.size());
   int iseg = 0;
@@ -436,7 +436,7 @@ void XMLGFPreprocessor::process(const char* const filename,
     encoding[iseg++] = buf.substr(encoding_pos,end-encoding_pos);
   }
   assert(iseg == seg_start.size() );
- 
+
   // print out table of segments [seg_start,seg_end] and corresponding igf
   assert(seg_start.size()==seg_end.size());
 #if DEBUG
@@ -449,14 +449,14 @@ void XMLGFPreprocessor::process(const char* const filename,
          << endl;
   }
 #endif
-    
+
   tm.reset();
   tm.start();
- 
+
   ////////////////////////////////////////////////////////////////////////////
   // Fix boundaries:
   ////////////////////////////////////////////////////////////////////////////
- 
+
   // first fix all text_encoded boundaries
   // on all nodes involved in a text encoded boundary
   string from_right, to_left;
@@ -465,30 +465,30 @@ void XMLGFPreprocessor::process(const char* const filename,
     if ( right_encoding == "text" )
     {
       // post string_receive from right
- 
+
       // next line: cannot have right_encoding = text on last task
       assert(rctxt.mype() < rctxt.size()-1);
- 
+
       rctxt.string_recv(from_right,0,rctxt.mype()+1);
       buf.append(from_right);
- 
+
       // adjust ending offset of last segment
       seg_end[seg_end.size()-1] += from_right.size();
- 
+
     }
     if (left_encoding == "text")
     {
       // send string up to first separator to left
       // next line: cannot have left_encoding = text on task 0
       assert(!rctxt.onpe0());
- 
+
       string::size_type pos = buf.find_first_of(" \n<",0);
       to_left = buf.substr(0,pos);
       rctxt.string_send(to_left,0,rctxt.mype()-1);
- 
+
       // adjust starting offset of first segment
       seg_start[0] = pos;
- 
+
       // remove first pos characters and shift all segment indices
       buf.erase(0,pos);
       for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
@@ -498,11 +498,11 @@ void XMLGFPreprocessor::process(const char* const filename,
       }
     }
   }
- 
+
   // at this point, all text_encoded boundaries are fixed
- 
+
   // fix base64 boundaries
- 
+
   // all nodes having a base64 encoded boundary
   if ( left_encoding == "base64" || right_encoding == "base64" )
   {
@@ -531,7 +531,7 @@ void XMLGFPreprocessor::process(const char* const filename,
       // valid chars from its left neighbour
       if ( !rctxt.onpe0() )
         rctxt.irecv(1,1,&missing_on_left,1,0,rctxt.mype()-1);
- 
+
       // search for missing_on_left valid characters in buf[0]
       // Note: it is assumed that there are always enough valid
       // characters in the first segment to align on a 128 char boundary
@@ -539,9 +539,9 @@ void XMLGFPreprocessor::process(const char* const filename,
       // one 4-char block encodes 24 bits
       // boundary at 8 4-char blocks = 32 chars
       assert(missing_on_left < 32);
-      
+
       // Note: the number of chars missing on left can be larger than
-      // the total number of chars available in the first segment. 
+      // the total number of chars available in the first segment.
       // In that case, all characters in the first segment are sent
       string::size_type pos = 0;
       int n = 0;
@@ -564,12 +564,12 @@ void XMLGFPreprocessor::process(const char* const filename,
         seg_end[iseg] -= pos;
       }
     }
- 
+
     // if the last segment is also the first (i.e. only one segment)
     // remove chars sent to left from valid char count
     if ( seg_start.size() == 1 )
       count -= missing_on_left;
- 
+
     int missing_on_right = 0;
     if ( right_encoding == "base64" )
     {
@@ -586,11 +586,11 @@ void XMLGFPreprocessor::process(const char* const filename,
       cout << rctxt.mype() << ": missing_on_right="
       << missing_on_right << endl;
 #endif
-      
+
       // each node except the last sends the number of missing chars to its
       // right neighbour (receive is already posted by other nodes)
       // each node except the last posts a string receive from the right node
- 
+
       if ( rctxt.mype() < rctxt.size()-1 )
       {
         rctxt.isend(1,1,&missing_on_right,1,0,rctxt.mype()+1);
@@ -602,7 +602,7 @@ void XMLGFPreprocessor::process(const char* const filename,
         seg_end[last_seg] += missing_chars.size();
       }
     }
- 
+
     if ( left_encoding == "base64" )
     {
       // each node except node 0 sends string "send_left" to left node
@@ -616,7 +616,7 @@ void XMLGFPreprocessor::process(const char* const filename,
       }
     }
   }
-    
+
   // print out table of segments [seg_start,seg_end] and corresponding igf
 #if DEBUG
   for ( int i = 0; i < seg_start.size(); i++ )
@@ -628,18 +628,18 @@ void XMLGFPreprocessor::process(const char* const filename,
          << endl;
   }
 #endif
-    
+
   tm.stop();
   if ( ctxt.onpe0() )
-    cout << " XMLGFPreprocessor: boundary adjustment time: " 
+    cout << " XMLGFPreprocessor: boundary adjustment time: "
          << tm.real() << endl;
   tm.reset();
   tm.start();
- 
+
   // Transcode segments
   // Instantiate a Base64Transcoder
   Base64Transcoder xcdr;
- 
+
   vector<vector<double> > dbuf;
   dbuf.resize(seg_start.size());
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
@@ -688,26 +688,26 @@ void XMLGFPreprocessor::process(const char* const filename,
 #endif
     }
   }
- 
+
   tm.stop();
   if ( ctxt.onpe0() )
     cout << " XMLGFPreprocessor: transcoding time: " << tm.real() << endl;
   tm.reset();
   tm.start();
- 
+
   ////////////////////////////////////////////////////////////////////////////
   // byte swapping on big-endian platforms
 #if PLT_BIG_ENDIAN
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
     xcdr.byteswap_double(dbuf[iseg].size(),&dbuf[iseg][0]);
- 
+
   tm.stop();
   if ( ctxt.onpe0() )
     cout << " XMLGFPreprocessor: byte swapping time: " << tm.real() << endl;
   tm.reset();
   tm.start();
 #endif
-    
+
 #if DEBUG
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
   {
@@ -718,13 +718,13 @@ void XMLGFPreprocessor::process(const char* const filename,
     cout << endl;
   }
 #endif
-    
+
   ////////////////////////////////////////////////////////////////////////////
   // Collect all data in dbuf into a DoubleMatrix of dimension maxgfdim x ngf
   // Note: the largest grid must be used to dimension the matrix.
   // Determine the largest dimension of the grid_functions
   // use dmax call
- 
+
   // compute size of largest grid
   int maxgfsize = 0;
   valarray<int> gfsize(ngf);
@@ -744,7 +744,7 @@ void XMLGFPreprocessor::process(const char* const filename,
     cout << rctxt.mype() << ": igf=" << i << " gfsize=" << gfsize[i]
          << endl;
 #endif
-    
+
   // determine block sizes of matrix gfdata
   // note: use ctxt, not rctxt
   int gfmb = maxgfsize / ctxt.nprow() +
@@ -755,21 +755,21 @@ void XMLGFPreprocessor::process(const char* const filename,
   //cout << ctxt.mype() << ": gfdata resized: (" << maxgfsize << "x" << ngf
   //<< ")  (" << gfmb << "x" << gfnb << ") blocks" << endl;
   //cout << ctxt.mype() << ": gfdata.context(): " << gfdata.context();
- 
+
   // prepare buffer sbuf for all_to_all operation
   int sbufsize = 0;
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
     sbufsize += dbuf[iseg].size();
- 
+
   valarray<double> sbuf(sbufsize);
- 
+
   // determine offset in the grid of the first element of the first
   // segment
   // Each task having start_within==true posts a receive from its left
   // task
   // Each task having end_within==true computes the offset of the last
   // element of its last segment and sends it to its right neighbour
- 
+
   int left_offset = 0;
   if ( start_within )
   {
@@ -792,11 +792,11 @@ void XMLGFPreprocessor::process(const char* const filename,
     cout << rctxt.mype() << ": right_offset=" << right_offset << endl;
 #endif
     rctxt.isend(1,1,&right_offset,1,0,rctxt.mype()+1);
-  }   
+  }
 #if DEBUG
   cout << rctxt.mype() << ": left_offset=" << left_offset << endl;
 #endif
-    
+
   // compute array sbuf
   // copy into sbuf all data to be sent
   // data going to task irow icol is in subsegment irow
@@ -810,14 +810,14 @@ void XMLGFPreprocessor::process(const char* const filename,
   //            adjust scount[itask]
   valarray<int> scounts(0,rctxt.size()), sdispl(0,rctxt.size());
   valarray<int> rcounts(0,rctxt.size()), rdispl(0,rctxt.size());
- 
+
   int sbuf_pos = 0;
   for ( int itask = 0; itask < ctxt.size(); itask++ )
   {
     // determine block sizes of the block cyclic distribution of gfdata
     const int irow = itask % ctxt.nprow();
     const int icol = itask / ctxt.nprow();
-    
+
     const int igfmin = icol * gfnb;
     // nb_loc: size of block on task icol
     // nb_loc is gfnb       for icol < kn
@@ -833,7 +833,7 @@ void XMLGFPreprocessor::process(const char* const filename,
     else
       nb_loc = 0;
     const int igfmax = igfmin + nb_loc;
-    
+
     const int min_offset = irow * gfmb;
     // mb_loc: size of block on task irow
     // mb_loc is gfmb             for irow < km
@@ -849,21 +849,21 @@ void XMLGFPreprocessor::process(const char* const filename,
     else
       mb_loc = 0;
     const int max_offset = min_offset + mb_loc;
-    
+
     sdispl[itask] = sbuf_pos;
     for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
     {
       const int segsize = dbuf[iseg].size();
- 
+
       if ( igf[iseg] >= igfmin && igf[iseg] < igfmax )
       {
         // igf falls within the states stored on itask
- 
+
         // Find if there is an intersection of this segment
         // with the range [min_offset,max_offset[ on task itask
- 
+
         int block_start, block_size = 0;
- 
+
         if ( iseg == 0 )
         {
           // On segment 0, the available range is
@@ -895,7 +895,7 @@ void XMLGFPreprocessor::process(const char* const filename,
             block_size = min(max_offset,segsize) - block_start;
           }
         }
- 
+
         if ( block_size > 0 )
         {
           // copy block to sbuf
@@ -903,7 +903,7 @@ void XMLGFPreprocessor::process(const char* const filename,
                  block_size*sizeof(double));
           sbuf_pos += block_size;
           scounts[itask] += block_size;
- 
+
 #if DEBUG
           cout << rctxt.mype() << ": sbuf: iseg=" << iseg << " sending start="
           << block_start << " size=" << block_size << " to task " << itask
@@ -925,29 +925,29 @@ void XMLGFPreprocessor::process(const char* const filename,
      MPI_INT,&rcounts[0],&a2a_rcounts[0],&a2a_rdispl[0],MPI_INT,
      rctxt.comm());
   assert(status==0);
- 
+
   rdispl[0] = 0;
   for ( int i = 1; i < ctxt.size(); i++ )
     rdispl[i] = rdispl[i-1] + rcounts[i-1];
- 
+
   // Transfer gf data
   status = MPI_Alltoallv(&sbuf[0],&scounts[0],&sdispl[0],MPI_DOUBLE,
            gfdata.valptr(),&rcounts[0],&rdispl[0],MPI_DOUBLE,rctxt.comm());
   assert(status==0);
- 
+
   tm.stop();
   if ( ctxt.onpe0() )
     cout << " XMLGFPreprocessor: data redistribution time: " << tm.real() << endl;
   tm.reset();
   tm.start();
- 
+
   // compact XML data:
   // erase <grid_function> contents from XML data
   // Note: when removing the data from <grid_function>, add
   // the attribute xsi:null="true"
   // Also add to the schema definition: nillable="true" in the
   // definition of element grid_function
- 
+
   // delete segment data
   for ( int iseg = seg_start.size()-1; iseg >= 0; iseg--)
   {
@@ -956,11 +956,11 @@ void XMLGFPreprocessor::process(const char* const filename,
     buf.erase(seg_start[iseg],seg_end[iseg]-seg_start[iseg]);
   }
   //cout << " buf.size() after erase: " << buf.size() << endl;
- 
+
   // collect all XML data on task 0
   // Distribute sizes of local strings to all tasks
   // and store in array rcounts
- 
+
   int xmlcontentsize = buf.size();
   status = MPI_Allgather(&xmlcontentsize,1,MPI_INT,&rcounts[0],1,
              MPI_INT,rctxt.comm());
@@ -969,23 +969,23 @@ void XMLGFPreprocessor::process(const char* const filename,
   int totalsize = 0;
   for ( int i = 0; i < rctxt.size(); i++ )
     totalsize += rcounts[i];
- 
+
   rdispl[0] = 0;
   for ( int i = 1; i < rctxt.size(); i++ )
     rdispl[i] = rdispl[i-1] + rcounts[i-1];
- 
+
   xmlcontent.resize(totalsize);
- 
+
   // Allgatherv xml content
   status = MPI_Allgatherv(&buf[0],xmlcontentsize,MPI_CHAR,&xmlcontent[0],
     &rcounts[0],&rdispl[0],MPI_CHAR,rctxt.comm());
- 
+
   tm.stop();
   if ( ctxt.onpe0() )
     cout << " XMLGFPreprocessor: XML compacting time: " << tm.real() << endl;
   tm.reset();
   tm.start();
- 
+
   // data is now available in the form of the DoubleMatrix gfdata
   //
   // Redistribution of the data can be done using the DoubleMatrix::getsub
@@ -995,15 +995,15 @@ void XMLGFPreprocessor::process(const char* const filename,
   //    the global context
   // 2) Use operator= to redistribute the gridfunctions to the same
   //    context as Wavefunction
- 
+
   // Fourier transforms
   // WavefunctionHandler can use the real-space data in the redistributed
   // gfdata matrix to compute Fourier coefficients, which completes the
   // load operation
- 
+
   ////////////////////////////////////////////////////////////////////////////
   // end of program
- 
+
   ctxt.barrier();
   ttm.stop();
   if ( ctxt.onpe0() )

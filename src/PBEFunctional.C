@@ -3,7 +3,7 @@
 // PBEFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PBEFunctional.C,v 1.5 2004-09-14 22:24:11 fgygi Exp $
+// $Id: PBEFunctional.C,v 1.6 2007-10-19 16:24:04 fgygi Exp $
 
 #include "PBEFunctional.h"
 #include <cmath>
@@ -17,7 +17,7 @@ PBEFunctional::PBEFunctional(const vector<vector<double> > &rhoe)
   _nspin = rhoe.size();
   if ( _nspin > 1 ) assert(rhoe[0].size() == rhoe[1].size());
   _np = rhoe[0].size();
- 
+
   if ( _nspin == 1 )
   {
     _exc.resize(_np);
@@ -50,7 +50,7 @@ PBEFunctional::PBEFunctional(const vector<vector<double> > &rhoe)
     _grad_rho_dn[0].resize(_np);
     _grad_rho_dn[1].resize(_np);
     _grad_rho_dn[2].resize(_np);
- 
+
     rho_up = &rhoe[0][0];
     rho_dn = &rhoe[1][0];
     grad_rho_up[0] = &_grad_rho_up[0][0];
@@ -70,7 +70,7 @@ PBEFunctional::PBEFunctional(const vector<vector<double> > &rhoe)
   }
 }
 
-void PBEFunctional::setxc(void) 
+void PBEFunctional::setxc(void)
 {
   if ( _np == 0 ) return;
   if ( _nspin == 1 )
@@ -125,31 +125,31 @@ void PBEFunctional::setxc(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// 
-//  excpbe: PBE exchange-correlation 
+//
+//  excpbe: PBE exchange-correlation
 //  K.Burke's modification of PW91 codes, May 14, 1996.
 //  Modified again by K.Burke, June 29, 1996, with simpler Fx(s)
 //  Translated into C and modified by F.Gygi, Dec 9, 1996.
-// 
+//
 //  input:
 //    rho:  density
 //    grad: abs(grad(rho))
 //  output:
 //    exc: exchange-correlation energy per electron
 //    vxc1, vxc2 : quantities such that the total exchange potential is:
-// 
+//
 //      vxc = vxc1 + div ( vxc2 * grad(n) )
-// 
+//
 //  References:
 //  [a] J.P.Perdew, K.Burke, and M.Ernzerhof,
-//      "Generalized gradient approximation made simple, 
+//      "Generalized gradient approximation made simple,
 //      Phys.Rev.Lett. 77, 3865, (1996).
 //  [b] J.P.Perdew and Y.Wang, Phys.Rev. B33, 8800 (1986),
 //      Phys.Rev. B40, 3399 (1989) (E).
-// 
+//
 ////////////////////////////////////////////////////////////////////////////////
-           
-void PBEFunctional::excpbe(double rho, double grad, 
+
+void PBEFunctional::excpbe(double rho, double grad,
   double *exc, double *vxc1, double *vxc2)
 {
   const double third  = 1.0 / 3.0;
@@ -177,7 +177,7 @@ void PBEFunctional::excpbe(double rho, double grad,
   *vxc1 = 0.0;
   *vxc2 = 0.0;
 
-  if ( rho < 1.e-18  ) 
+  if ( rho < 1.e-18  )
   {
     return;
   }
@@ -222,7 +222,7 @@ void PBEFunctional::excpbe(double rho, double grad,
   t = grad / ( twoks * rho );
 
   rtrs = sqrt(rs);
-  gcor2 ( 0.0310907, 0.2137, 7.5957, 3.5876, 1.6382, 0.49294, 
+  gcor2 ( 0.0310907, 0.2137, 7.5957, 3.5876, 1.6382, 0.49294,
           rtrs, &ec, &ecrs );
 
   /* LSD potential from [c] (A1) */
@@ -264,7 +264,7 @@ void PBEFunctional::excpbe(double rho, double grad,
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void PBEFunctional::excpbe_sp(double rho_up, double rho_dn, 
+void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   double grad_up, double grad_dn, double grad, double *exc_up, double *exc_dn,
   double *vxc1_up, double *vxc1_dn, double *vxc2_upup, double *vxc2_dndn,
   double *vxc2_updn, double *vxc2_dnup)
@@ -300,7 +300,7 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   *vxc2_dnup = 0.0;
   *vxc2_dndn = 0.0;
 
-  if ( rho_up < 1.e-18 && rho_dn < 1.e-18  ) 
+  if ( rho_up < 1.e-18 && rho_dn < 1.e-18  )
   {
     return;
   }
@@ -310,11 +310,11 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   ex_up = 0.0;
   vx1_up = 0.0;
   vx2_up = 0.0;
-  if ( rho_up > 1.e-18 ) 
+  if ( rho_up > 1.e-18 )
   {
     double tworho = 2.0 * rho_up;
     double gr = 2.0 * grad_up;
- 
+
     double rh13 = pow ( tworho, third );
     /* LDA exchange energy density */
     double exunif = ax * rh13;
@@ -339,11 +339,11 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   ex_dn = 0.0;
   vx1_dn = 0.0;
   vx2_dn = 0.0;
-  if ( rho_dn > 1.e-18 ) 
+  if ( rho_dn > 1.e-18 )
   {
     double tworho = 2.0 * rho_dn;
     double gr = 2.0 * grad_dn;
- 
+
     double rh13 = pow ( tworho, third );
     /* LDA exchange energy density */
     double exunif = ax * rh13;
@@ -376,19 +376,19 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   // construct ec, using [c] (8)
 
   double rhotot = rho_up + rho_dn;
-  
+
   double rh13 = pow ( rhotot, third );
   double zet = ( rho_up - rho_dn ) / rhotot;
-  double g = 0.5 * ( pow(1.0+zet, third2) + pow(1.0-zet, third2) );       
+  double g = 0.5 * ( pow(1.0+zet, third2) + pow(1.0-zet, third2) );
   double fk = pi32third * rh13;
   double rs = alpha / fk;
   double twoksg = 2.0 * sqrt( four_over_pi * fk ) *g;
   double t = grad / ( twoksg * rhotot );
 
   double rtrs = sqrt(rs);
-  gcor2 ( 0.0310907, 0.2137, 7.5957, 3.5876, 1.6382, 0.49294, 
+  gcor2 ( 0.0310907, 0.2137, 7.5957, 3.5876, 1.6382, 0.49294,
           rtrs, &eu, &eurs );
-  gcor2 ( 0.01554535, 0.20548, 14.1189, 6.1977, 3.3662, 0.62517, 
+  gcor2 ( 0.01554535, 0.20548, 14.1189, 6.1977, 3.3662, 0.62517,
           rtrs, &ep, &eprs );
   gcor2 ( 0.0168869, 0.11125, 10.357, 3.6231, 0.88026, 0.49671,
           rtrs, &alfm, &alfrsm );
@@ -438,9 +438,9 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
 
   double ccomm = h + hrs - t2 * ht * seven_sixth;
   double pref = hzed - gz * t2 * ht / g;
-  
+
   ccomm -= pref * zet;
-  
+
   vc1_up += ccomm + pref;
   vc1_dn += ccomm - pref;
   vc2 = - ht / ( rhotot * twoksg * twoksg );
@@ -456,11 +456,11 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// 
+//
 //  gcor2.c: Interpolate LSD correlation energy
 //  as given by (10) of Perdew & Wang, Phys Rev B45 13244 (1992)
 //  Translated into C by F.Gygi, Dec 9, 1996
-// 
+//
 ////////////////////////////////////////////////////////////////////////////////
 
 void PBEFunctional::gcor2(double a, double a1, double b1, double b2, double b3,

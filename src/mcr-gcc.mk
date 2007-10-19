@@ -3,7 +3,7 @@
 #  mcr-gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr-gcc.mk,v 1.1 2004-03-11 21:58:10 fgygi Exp $
+# $Id: mcr-gcc.mk,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -16,23 +16,23 @@
 
  FFTWDIR=$(HOME)/fftw/linux-pc-icc/fftw-2.1.3/fftw
  BLASDIR=/opt/intel/mkl/lib/32
- 
+
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
- 
+
  CXXFLAGS= -O3 -DUSE_MPI -DSCALAPACK -DADD_ -D$(PLT) $(INCLUDE) $(DFLAGS)
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L$(BLASDIR) -L/usr/lib \
            -L$(XERCESCDIR)/lib
-  
+
  #LIBS =  $(PLIBS) $(GCCDIR)/lib/libg2c.a -lfftw \
  #        -lmkl_lapack -lmkl -lmkl_def -lmkl_p4 -lm -lmpi -lpmpi \
  #        -lelan -lelan3 -openmp -lrmscall -lxerces-c
  LIBS =  $(PLIBS) $(GCCDIR)/lib/libg2c.a -lfftw \
          -lmkl_lapack -lmkl -lmkl_def -lguide -lpthread -lm -lmpi -lpmpi \
          -lelan -lelan3 -lrmscall -lxerces-c
- 
- LDFLAGS = $(LIBPATH) $(LIBS) 
+
+ LDFLAGS = $(LIBPATH) $(LIBS)
 
  PLAT=INTEL
  # Blacs libraries

@@ -3,7 +3,7 @@
 // RunCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
+// $Id: RunCmd.h,v 1.4 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef RUNCMD_H
 #define RUNCMD_H
@@ -25,7 +25,7 @@ class RunCmd : public Cmd
   char *name(void) const { return "run"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n run\n\n"
     " syntax: run n [nite]\n\n"
     "   The run command runs n steps of simulation. Each step\n"

@@ -3,7 +3,7 @@
 // ComputeMLWFCmd.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ComputeMLWFCmd.h,v 1.1 2007-08-13 21:26:27 fgygi Exp $
+// $Id: ComputeMLWFCmd.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef COMPUTEMLWFCMD_H
 #define COMPUTEMLWFCMD_H
@@ -19,7 +19,7 @@
 class ComputeMLWFCmd : public Cmd
 {
   private:
-  
+
   MLWFTransform* mlwft;
 
   public:
@@ -31,7 +31,7 @@ class ComputeMLWFCmd : public Cmd
 
   char *help_msg(void) const
   {
-    return 
+    return
     "\n compute_mlwf\n\n"
     " syntax: compute_mlwf\n\n"
     "   The compute_mlwf command computes maximally localized \n"

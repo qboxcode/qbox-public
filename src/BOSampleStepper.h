@@ -3,7 +3,7 @@
 // BOSampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
+// $Id: BOSampleStepper.h,v 1.6 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef BOSAMPLESTEPPER_H
 #define BOSAMPLESTEPPER_H
@@ -19,14 +19,14 @@ class IonicStepper;
 class BOSampleStepper : public SampleStepper
 {
   private:
-  
+
   Wavefunction dwf;
   Wavefunction* wfv;
   int nitscf_;
   int nite_;
   ChargeDensity cd_;
   EnergyFunctional ef_;
-  
+
   WavefunctionStepper* wf_stepper;
   IonicStepper* ionic_stepper;
 
@@ -36,7 +36,7 @@ class BOSampleStepper : public SampleStepper
   public:
 
   mutable TimerMap tmap;
-  
+
   void step(int niter);
 
   BOSampleStepper(Sample& s, int nitscf, int nite);

@@ -3,7 +3,7 @@
 // ListConstraintsCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ListConstraintsCmd.h,v 1.1 2005-06-27 22:34:46 fgygi Exp $
+// $Id: ListConstraintsCmd.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef LISTCONSTRAINTSCMD_H
 #define LISTCONSTRAINTSCMD_H
@@ -25,7 +25,7 @@ class ListConstraintsCmd : public Cmd
   char *name(void) const { return "list_constraints"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n list_constraints\n\n"
     " syntax: list_constraints\n\n"
     "   The list_constraints command prints the list"

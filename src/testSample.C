@@ -3,7 +3,7 @@
 // testSample.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testSample.C,v 1.2 2002-10-09 16:14:58 fgygi Exp $
+// $Id: testSample.C,v 1.3 2007-10-19 16:24:06 fgygi Exp $
 
 #include <iostream>
 using namespace std;
@@ -22,19 +22,19 @@ int main(int argc, char** argv)
   // the MPI_Finalize call
   {
     Context ctxt;
- 
+
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     int namelen;
     PMPI_Get_processor_name(processor_name,&namelen);
     cout << " Process " << ctxt.mype() << " on " << processor_name << endl;
- 
+
     Sample s(ctxt);
-    
+
     D3vector cell(18,18,18);
     double ecut = 25.0;
     s.wf.resize(cell,cell,ecut);
     s.wf.set_nel(12*54);
-    
+
     s.wf.randomize(1.e-4);
     s.wf.gram();
     cout << " ortho_error: " << s.wf.sd[0][0]->ortho_error() << endl;

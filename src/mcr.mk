@@ -3,7 +3,7 @@
 #  mcr.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.11 2006-06-03 22:18:02 fgygi Exp $
+# $Id: mcr.mk,v 1.12 2007-10-19 16:24:05 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -25,22 +25,22 @@
  FFTWDIR=$(HOME)/software/fftw/ia32/fftw-2.1.3/fftw
  BLASDIR=/opt/intel/mkl/lib/32
  #PAPIDIR=/usr/local/tools/papi
- 
+
  #INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include \
  #          -I$(PAPIDIR)/include
- INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include 
- 
-#CXXFLAGS= -g -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
- CXXFLAGS= -O3 -xW -Zp16 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
+ INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
+
+#CXXFLAGS= -g -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
+ CXXFLAGS= -O3 -xW -Zp16 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(FFTWDIR)/.libs -L/usr/X11R6/lib \
            -L$(BLASDIR) -L$(XERCESCLIBDIR) -L$(MPIDIR)/lib
-  
+
  LIBS =  $(PLIBS) $(G2CLIB) -lfftw \
         -lmkl_p4 -lmkl_lapack -lm -lmpi -lpmpi \
-        -openmp $(XERCESCDIR)/lib/libxerces-c.a 
- 
- LDFLAGS = $(LIBPATH) $(LIBS) 
+        -openmp $(XERCESCDIR)/lib/libxerces-c.a
+
+ LDFLAGS = $(LIBPATH) $(LIBS)
 
  PLAT=IA32
  # Blacs libraries

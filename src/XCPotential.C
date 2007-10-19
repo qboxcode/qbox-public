@@ -3,7 +3,7 @@
 // XCPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCPotential.C,v 1.6 2004-11-10 22:43:04 fgygi Exp $
+// $Id: XCPotential.C,v 1.7 2007-10-19 16:24:05 fgygi Exp $
 
 #include "XCPotential.h"
 #include "Basis.h"
@@ -35,7 +35,7 @@ cd_(cd), ctxt_(cd.vcontext()), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
   nspin_ = cd_.rhor.size();
   ngloc_ = vbasis_.localsize();
   np012loc_ = vft_.np012loc();
-  
+
   if ( xcf_->isGGA() )
   {
     tmp1.resize(ngloc_);
@@ -58,13 +58,13 @@ XCPotential::~XCPotential(void)
 void XCPotential::update(vector<vector<double> >& vr)
 {
   // compute exchange-correlation energy and add vxc potential to vr[ispin][ir]
-  
+
   // Input: total electronic density in:
   //   vector<vector<double> >           cd_.rhor[ispin][ir] (real space)
   //   vector<vector<complex<double> > > cd_.rhog[ispin][ig] (Fourier coeffs)
   // The array cd_.rhog is only used if xcf->isGGA() == true
   // to compute the density gradients
-  
+
   // Output: (through member function xcf())
   //
   // exc_, dxc, dxc0_, dxc1_, dxc2_
@@ -77,21 +77,21 @@ void XCPotential::update(vector<vector<double> >& vr)
   // GGA Functional: (through member function xcf())
   //   exc_, dxc, dxc0_, dxc1_, dxc2_
   //   spin unpolarized: xcf()->exc, xcf()->vxc1, xcf()->vxc2
-  //   spin polarized:   xcf()->exc_up, xcf()->exc_dn, 
+  //   spin polarized:   xcf()->exc_up, xcf()->exc_dn,
   //                     xcf()->vxc1_up, xcf()->vxc1_dn
-  //                     xcf()->vxc2_upup, xcf()->vxc2_dndn, 
+  //                     xcf()->vxc2_upup, xcf()->vxc2_dndn,
   //                     xcf()->vxc2_updn, xcf()->vxc2_dnup
-  
+
   if ( !xcf_->isGGA() )
   {
     // LDA functional
- 
+
     xcf_->setxc();
- 
+
     exc_ = 0.0;
     const double *const e = xcf_->exc;
     const int size = xcf_->np();
- 
+
     if ( nspin_ == 1 )
     {
       // unpolarized
@@ -110,12 +110,12 @@ void XCPotential::update(vector<vector<double> >& vr)
       const double *const rh_dn = xcf_->rho_dn;
       const double *const v_up = xcf_->vxc1_up;
       const double *const v_dn = xcf_->vxc1_dn;
-      for ( int i = 0; i < size; i++ )                          
-      {                                                         
+      for ( int i = 0; i < size; i++ )
+      {
         exc_ += (rh_up[i] + rh_dn[i]) * e[i];
         vr[0][i] += v_up[i];
         vr[1][i] += v_dn[i];
-      }                                                         
+      }
     }
     double tsum = exc_ * vbasis_.cell().volume() / vft_.np012();
     ctxt_.dsum(1,1,&tsum,1);
@@ -126,7 +126,7 @@ void XCPotential::update(vector<vector<double> >& vr)
     // GGA functional
     exc_ = 0.0;
     int size = xcf_->np();
-    
+
     // compute grad_rho
     const double omega_inv = 1.0 / vbasis_.cell().volume();
     if ( nspin_ == 1 )
@@ -158,8 +158,8 @@ void XCPotential::update(vector<vector<double> >& vr)
           const complex<double> igxj(0.0,omega_inv*gxj[ig]);
           const complex<double> c0 = *rhg0++;
           const complex<double> c1 = *rhg1++;
-          tmp1[ig] = igxj * c0; 
-          tmp2[ig] = igxj * c1; 
+          tmp1[ig] = igxj * c0;
+          tmp2[ig] = igxj * c1;
         }
         vft_.backward(&tmp1[0],&tmp2[0],&tmpr[0]);
         double *grj_up = xcf_->grad_rho_up[j];
@@ -170,9 +170,9 @@ void XCPotential::update(vector<vector<double> >& vr)
         dcopy(&np012loc_,p+1,&inc2,grj_dn,&inc1);
       } // j
     }
-    
+
     xcf_->setxc();
-    
+
     // compute xc potential
     // take divergence of grad(rho)*vxc2
 
@@ -253,7 +253,7 @@ void XCPotential::update(vector<vector<double> >& vr)
         }
       } // j
     }
-    
+
     // add xc potential to local potential in vr[i]
     // div(vxc2*grad_rho) is stored in vxctmp[ispin][ir]
 
@@ -302,14 +302,14 @@ void XCPotential::update(vector<vector<double> >& vr)
 void XCPotential::compute_stress(valarray<double>& sigma_exc)
 {
   // compute exchange-correlation contributions to the stress tensor
-  
+
   if ( !xcf_->isGGA() )
   {
     // LDA functional
- 
+
     dxc_ = 0.0;
     const double *const e = xcf_->exc;
- 
+
     if ( nspin_ == 1 )
     {
       // unpolarized
@@ -329,19 +329,19 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
       const double *const v_up = xcf_->vxc1_up;
       const double *const v_dn = xcf_->vxc1_dn;
       const int size = xcf_->np();
-      for ( int i = 0; i < size; i++ )                          
-      {                                                         
-        const double rh = rh_up[i] + rh_dn[i];                  
-        dxc_ += rh * e[i] - rh_up[i] * v_up[i] - rh_dn[i] * v_dn[i];  
-      }                                                         
+      for ( int i = 0; i < size; i++ )
+      {
+        const double rh = rh_up[i] + rh_dn[i];
+        dxc_ += rh * e[i] - rh_up[i] * v_up[i] - rh_dn[i] * v_dn[i];
+      }
     }
     const double fac = 1.0 / vft_.np012();
     double tsum;
-    // Next line: factor omega in volume element cancels 1/omega in 
+    // Next line: factor omega in volume element cancels 1/omega in
     // definition of sigma_exc
     tsum = - fac * dxc_;
     ctxt_.dsum(1,1,&tsum,1);
-    
+
     // Note: contribution to sigma_exc is a multiple of the identity
     sigma_exc[0] = tsum;
     sigma_exc[1] = tsum;
@@ -353,7 +353,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
   else
   {
     // GGA functional
-    
+
     double dsum=0.0,sum0=0.0,sum1=0.0,sum2=0.0,
            sum3=0.0,sum4=0.0,sum5=0.0;
     if ( nspin_ == 1 )
@@ -399,7 +399,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
         const double r_dn = rh_dn[ir];
         dsum += r_up * ( eup[ir] - v1_up[ir] ) +
                 r_dn * ( edn[ir] - v1_dn[ir] );
- 
+
         const double grx_up = xcf_->grad_rho_up[0][ir];
         const double gry_up = xcf_->grad_rho_up[1][ir];
         const double grz_up = xcf_->grad_rho_up[2][ir];
@@ -407,7 +407,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
         const double gry2_up = gry_up * gry_up;
         const double grz2_up = grz_up * grz_up;
         const double grad2_up = grx2_up + gry2_up + grz2_up;
- 
+
         const double grx_dn = xcf_->grad_rho_dn[0][ir];
         const double gry_dn = xcf_->grad_rho_dn[1][ir];
         const double grz_dn = xcf_->grad_rho_dn[2][ir];
@@ -415,7 +415,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
         const double gry2_dn = gry_dn * gry_dn;
         const double grz2_dn = grz_dn * grz_dn;
         const double grad2_dn = grx2_dn + gry2_dn + grz2_dn;
- 
+
         const double grad_up_grad_dn = grx_up * grx_dn +
                                        gry_up * gry_dn +
                                        grz_up * grz_dn;
@@ -429,27 +429,27 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                 v2_updn_ir * ( grad_up_grad_dn + grx_up * grx_dn ) +
                 v2_dnup_ir * ( grad_up_grad_dn + grx_dn * grx_up ) +
                 v2_dndn_ir * ( grad2_dn + grx2_dn );
- 
+
         sum1 += v2_upup_ir * ( grad2_up + gry2_up ) +
                 v2_updn_ir * ( grad_up_grad_dn + gry_up * gry_dn ) +
                 v2_dnup_ir * ( grad_up_grad_dn + gry_dn * gry_up ) +
                 v2_dndn_ir * ( grad2_dn + gry2_dn );
- 
+
         sum2 += v2_upup_ir * ( grad2_up + grz2_up ) +
                 v2_updn_ir * ( grad_up_grad_dn + grz_up * grz_dn ) +
                 v2_dnup_ir * ( grad_up_grad_dn + grz_dn * grz_up ) +
                 v2_dndn_ir * ( grad2_dn + grz2_dn );
- 
+
         sum3 += v2_upup_ir * grx_up * gry_up +
                 v2_updn_ir * grx_up * gry_dn +
                 v2_dnup_ir * grx_dn * gry_up +
                 v2_dndn_ir * grx_dn * gry_dn;
- 
+
         sum4 += v2_upup_ir * gry_up * grz_up +
                 v2_updn_ir * gry_up * grz_dn +
                 v2_dnup_ir * gry_dn * grz_up +
                 v2_dndn_ir * gry_dn * grz_dn;
- 
+
         sum5 += v2_upup_ir * grx_up * grz_up +
                 v2_updn_ir * grx_up * grz_dn +
                 v2_dnup_ir * grx_dn * grz_up +
@@ -458,7 +458,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
     }
     double fac = 1.0 / vft_.np012();
     double tsum[6];
-    // Next line: factor omega in volume element cancels 1/omega in 
+    // Next line: factor omega in volume element cancels 1/omega in
     // definition of sigma_exc
     tsum[0] = - fac * ( dsum + sum0 );
     tsum[1] = - fac * ( dsum + sum1 );
@@ -467,7 +467,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
     tsum[4] = - fac * sum4;
     tsum[5] = - fac * sum5;
     ctxt_.dsum(6,1,&tsum[0],6);
-    
+
     sigma_exc[0] = tsum[0];
     sigma_exc[1] = tsum[1];
     sigma_exc[2] = tsum[2];

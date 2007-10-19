@@ -3,7 +3,7 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: UserInterface.C,v 1.5 2007-10-19 16:24:05 fgygi Exp $
 
 #include "UserInterface.h"
 #include <string>
@@ -63,10 +63,10 @@ char *UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
 
   if ( !(ch == '\n' || ch == ';' || ch == '#') )
     return NULL;             /* return NULL for end of file */
-    
+
   // output command line if reading from a script
   if ( echo ) cout << s;
-  
+
   if ( ch == '#' )
   {
     if ( echo ) cout << '#';
@@ -77,7 +77,7 @@ char *UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
     if ( !(ch == '\n') )
       return NULL;             /* return NULL for end of file */
   }
-  
+
   return s;
 }
 
@@ -91,10 +91,10 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
   char *tok;
   const char *separators = " ;\t";
   int i,done,status;
-  
+
   if ( onpe0_ )
     cout << "<!-- " << prompt << " ";
-    
+
   // read a command terminated by '\n' or ';'
   if ( onpe0_ )
   {
@@ -105,12 +105,12 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
   MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
   MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
 #endif
-    
+
   while ( !done )
   {
     if ( onpe0_ )
       cout << " -->" << endl;
-      
+
     // cmdline contains a string of tokens terminated by '\0'
     // cout << " command line is: " << cmdline << endl;
 
@@ -159,7 +159,7 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
         av[i++] = *iarg++;
       }
       av[ntok] = 0;
-  
+
       // write arguments
       // for ( i = 0; i < ac; i++ )
       // {
@@ -168,7 +168,7 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
 
       // search cmdlist for command
 
-      tok = av[0]; 
+      tok = av[0];
 
       // check for empty command line
       if ( tok != 0 )
@@ -231,10 +231,10 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
         }
       }
       delete [] av;
-      if ( onpe0_ )      
+      if ( onpe0_ )
         cout << "<!-- " << prompt << " ";
     }
-    
+
     // read a command terminated by '\n' or ';'
     if ( onpe0_ )
     {
@@ -246,6 +246,6 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
 #endif
 
   }
-  if ( onpe0_ )          
+  if ( onpe0_ )
     cout << " -->" << endl << "<!-- end of command stream -->" << endl;
 }

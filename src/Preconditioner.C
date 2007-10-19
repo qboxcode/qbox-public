@@ -3,7 +3,7 @@
 // Preconditioner.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Preconditioner.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: Preconditioner.C,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #include "Preconditioner.h"
 #include "EnergyFunctional.h"
@@ -14,7 +14,7 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-Preconditioner::Preconditioner(const Sample& s, const EnergyFunctional& ef) : 
+Preconditioner::Preconditioner(const Sample& s, const EnergyFunctional& ef) :
   s_(s), ef_(ef)
 {
   update();
@@ -28,7 +28,7 @@ void Preconditioner::update(void)
   const Wavefunction& wf = s_.wf;
   // If ecutprec is zero, use ecut
   const double ecutpr = s_.ctrl.ecutprec> 0.0 ? s_.ctrl.ecutprec : wf.ecut();
-  
+
   diag_.resize(wf.nspin());
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
   {

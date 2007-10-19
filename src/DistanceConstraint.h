@@ -3,7 +3,7 @@
 //  DistanceConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: DistanceConstraint.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
+// $Id: DistanceConstraint.h,v 1.4 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef DISTANCECONSTRAINT_H
 #define DISTANCECONSTRAINT_H
@@ -20,12 +20,12 @@ class DistanceConstraint : public Constraint
   int    ia1_, ia2_, is1_, is2_;
   double m1_, m2_, m1_inv_, m2_inv_;
   double distance_, velocity_, force_, weight_, tol_;
-  
+
   public:
-  
+
   DistanceConstraint(std::string name, std::string name1, std::string name2,
                      double distance, double velocity, double tolerance):
-  name1_(name1), name2_(name2), distance_(distance), 
+  name1_(name1), name2_(name2), distance_(distance),
   velocity_(velocity), tol_(tolerance), m1_(0.0), m2_(0.0)
   {
     name_ = name;
@@ -35,7 +35,7 @@ class DistanceConstraint : public Constraint
     force_ = 0.0;
     weight_ = 1.0;
   }
-  
+
   std::string type(void) const { return "distance"; }
   double value(void) const { return distance_; }
   double velocity(void) const { return velocity_; }
@@ -50,7 +50,7 @@ class DistanceConstraint : public Constraint
   {
     velocity_ = velocity;
   }
-  
+
   void setup(const AtomSet& atoms);
   void update(double dt);
   bool enforce_r(const std::vector<std::vector<double> > &r0,
@@ -60,6 +60,6 @@ class DistanceConstraint : public Constraint
   void compute_force(const std::vector<std::vector<double> > &r0,
                      const std::vector<std::vector<double> > &f);
   std::ostream& print( std::ostream& os );
-  
+
 };
 #endif

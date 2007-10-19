@@ -3,7 +3,7 @@
 // LoadCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LoadCmd.C,v 1.7 2005-04-29 18:12:37 fgygi Exp $
+// $Id: LoadCmd.C,v 1.8 2007-10-19 16:24:04 fgygi Exp $
 
 #include "LoadCmd.h"
 #include "SampleReader.h"
@@ -18,10 +18,10 @@ int LoadCmd::action(int argc, char **argv)
     cout << "  <!-- use: load [-serial] uri -->" << endl;
     return 1;
   }
-  
+
   int iarg = 1;
   bool serial = false;
-  
+
   if ( !strcmp(argv[iarg],"-serial") )
   {
     serial = true;
@@ -32,10 +32,10 @@ int LoadCmd::action(int argc, char **argv)
     cout << " <!-- LoadCmd: loading from " << argv[iarg] << " -->" << endl;
 
   SampleReader s_reader(s->ctxt_);
-  
+
   if ( ui->onpe0() )
     cout << " <!--" << endl;
-    
+
   try
   {
     s_reader.readSample(*s,argv[iarg],serial);
@@ -49,11 +49,11 @@ int LoadCmd::action(int argc, char **argv)
   {
     cout << " LoadCmd: cannot load Sample" << endl;
   }
-  
+
   s->ctxt_.barrier();
-  
+
   if ( ui->onpe0() )
     cout << " -->" << endl;
-    
+
   return 0;
 }

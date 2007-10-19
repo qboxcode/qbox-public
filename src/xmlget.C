@@ -33,16 +33,16 @@ class TestHandler : public DefaultHandler
   string buffer;
 
   TestHandler(string tag_) : tag(tag_), read(false) { buffer = ""; }
-    
+
   ~TestHandler() {}
-  
+
   // -----------------------------------------------------------------------
   //  Implementations of the SAX DocumentHandler interface
   // -----------------------------------------------------------------------
   void startDocument() {}
   void endDocument() {}
   void print_data()
-  { 
+  {
     //cout << "TestHandler::endDocument" << endl;
     //cout << y.size() << endl;
     //cout.setf(ios::scientific,ios::floatfield);
@@ -52,7 +52,7 @@ class TestHandler : public DefaultHandler
 
   void startElement(const XMLCh* const uri,const XMLCh* const localname,
     const XMLCh* const qname, const Attributes& attributes)
-  { 
+  {
     //cout << "TestHandler::startElement: " << StrX(qname) << endl;
     char* buf = XMLString::transcode(qname);
     if ( buf == tag )
@@ -63,7 +63,7 @@ class TestHandler : public DefaultHandler
     XMLString::release(&buf);
   };
   void characters(const XMLCh* const chars, const unsigned int length)
-  { 
+  {
     // cout << "TestHandler::characters" << endl;
     if ( read )
     {
@@ -73,8 +73,8 @@ class TestHandler : public DefaultHandler
     }
   };
   void endElement(const XMLCh* const uri, const XMLCh* const localname,
-                  const XMLCh* const qname) 
-  { 
+                  const XMLCh* const qname)
+  {
     //cout << "TestHandler::endElement:   " << StrX(qname) << endl;
     if ( XMLString::transcode(qname) == tag )
     {
@@ -93,7 +93,7 @@ class TestHandler : public DefaultHandler
   void warning(const SAXParseException& exception) {};
   void error(const SAXParseException& exception) {};
   void fatalError(const SAXParseException& exception) {};
- 
+
   // -----------------------------------------------------------------------
   //  Implementation of the SAX DTDHandler interface
   // -----------------------------------------------------------------------
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
   SAX2XMLReader* parser = 0;
   assert(argc==3);
   string tag(argv[1]);
-  
+
   try
   {
     XMLPlatformUtils::Initialize();
@@ -134,7 +134,7 @@ int main(int argc, char** argv)
     cout << " Error during XML initialization :\n"
          << StrX(toCatch.getMessage()) << endl;
   }
-    
+
   parser = XMLReaderFactory::createXMLReader();
   if (valScheme == SAX2XMLReader::Val_Auto)
   {
@@ -160,7 +160,7 @@ int main(int argc, char** argv)
 
   int errorCount = 0;
   XMLPScanToken token;
- 
+
   try
   {
     TestHandler handler(tag);
@@ -188,9 +188,9 @@ int main(int argc, char** argv)
     }
 
     errorCount = parser->getErrorCount();
-    
+
     //cout << handler.buffer << endl;
-    
+
     handler.print_data();
   }
 
@@ -215,7 +215,7 @@ int main(int argc, char** argv)
     delete parser;
     throw;
   }
- 
+
   delete parser;
   XMLPlatformUtils::Terminate();
 }

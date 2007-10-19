@@ -3,7 +3,7 @@
 // XMLGFPreprocessor.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
+// $Id: XMLGFPreprocessor.h,v 1.3 2007-10-19 16:24:05 fgygi Exp $
 
 #include <string>
 #include "Matrix.h"
@@ -15,17 +15,17 @@
 // Input: filename, DoubleMatrix& gfdata, string xmlcontent
 // The preprocessor reads the file in parallel, processes all <grid_function>
 // elements and stores the values of the grid_functions in the matrix gfdata
-// which has dimensions (ngf,maxgridsize), where ngf is the total number of 
+// which has dimensions (ngf,maxgridsize), where ngf is the total number of
 // <grid_function> elements found in the file, and maxgridsize is the size of
 // the largest grid_function.
 // On return, the string xmlcontent contains (on task 0) the XML file
-// with <grid_function> elements reduced to empty strings. 
+// with <grid_function> elements reduced to empty strings.
 //
 ////////////////////////////////////////////////////////////////////////////////
 class XMLGFPreprocessor
 {
   public:
- 
-  void process(const char* const filename, 
+
+  void process(const char* const filename,
     DoubleMatrix& gfdata, std::string& xmlcontent);
 };

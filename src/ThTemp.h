@@ -3,7 +3,7 @@
 // ThTemp.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ThTemp.h,v 1.1 2003-08-28 00:28:51 fgygi Exp $
+// $Id: ThTemp.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef THTEMP_H
 #define THTEMP_H
@@ -31,7 +31,7 @@ class ThTemp : public Var
       cout << " th_temp takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v < 0.0 )
     {

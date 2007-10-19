@@ -3,7 +3,7 @@
 // SDAIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.h,v 1.7 2007-09-30 04:47:04 fgygi Exp $
+// $Id: SDAIonicStepper.h,v 1.8 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef SDAIONICSTEPPER_H
 #define SDAIONICSTEPPER_H
@@ -14,15 +14,15 @@
 class SDAIonicStepper : public IonicStepper
 {
   private:
-  
+
   std::vector<double> f_;
   std::vector<double> fbar_;
   double theta_;
   bool first_step_;
   AndersonMixer mixer_;
-  
+
   public:
-  
+
   SDAIonicStepper(Sample& s) : IonicStepper(s), first_step_(true), theta_(0),
   mixer_(3*atoms_.size(), 0)
   {

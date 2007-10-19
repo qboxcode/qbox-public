@@ -3,7 +3,7 @@
 // Preconditioner.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Preconditioner.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
+// $Id: Preconditioner.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef PRECONDITIONER_H
 #define PRECONDITIONER_H
@@ -17,7 +17,7 @@ class EnergyFunctional;
 class Preconditioner
 {
   private:
-  
+
   const Sample& s_;
   const EnergyFunctional& ef_;
   std::vector<std::vector<std::valarray<double> > > diag_; // diag_[ispin][ikp][ig]
@@ -25,7 +25,7 @@ class Preconditioner
   public:
 
   void update(void);
-  
+
   const std::valarray<double>& diag(int ispin, int ikp) const
   { return diag_[ispin][ikp]; }
 

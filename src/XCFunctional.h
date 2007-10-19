@@ -3,7 +3,7 @@
 // XCFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCFunctional.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
+// $Id: XCFunctional.h,v 1.4 2007-10-19 16:24:05 fgygi Exp $
 
 //
 // Abstract base class for density functionals
@@ -14,13 +14,13 @@
 //
 // Exc = int{ rho[i] * exc[i] + rho_up[i] * exc_up[i] + rho_dn[i] * exc_dn[i] }
 //
-// It is assumed that exchange correlation potentials can be 
+// It is assumed that exchange correlation potentials can be
 // written as:
-// 
+//
 // vxc_up = vxc1 + vxc1_up +
 //          div ( vxc2_upup grad_rho_up ) + div ( vxc2_updn grad_rho_dn )
-// 
-// vxc_dn = vxc1 + vxc1_dn + 
+//
+// vxc_dn = vxc1 + vxc1_dn +
 //          div ( vxc2_dndn grad_rho_dn ) + div ( vxc2_dnup grad_rho_up )
 //
 // Not all input quantities are needed, and not all output quantities are
@@ -49,9 +49,9 @@ class XCFunctional
   protected:
 
   int _np, _nspin;
- 
+
   public:
-  
+
   const double *rho, *rho_up, *rho_dn;
   double *grad_rho[3], *grad_rho_up[3], *grad_rho_dn[3];
   double *exc, *exc_up, *exc_dn;
@@ -62,7 +62,7 @@ class XCFunctional
   virtual std::string name(void) = 0;
   int np(void) { return _np; };
   int nspin(void) { return _nspin; };
-  
+
   XCFunctional()
   {
     rho = rho_up = rho_dn = 0;
@@ -76,7 +76,7 @@ class XCFunctional
 
   // virtual destructor needed to ensure proper deallocation
   virtual ~XCFunctional() {}
-  
-  virtual void setxc(void) = 0; 
+
+  virtual void setxc(void) = 0;
 };
 #endif

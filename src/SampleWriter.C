@@ -3,7 +3,7 @@
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.1 2007-01-27 23:43:55 fgygi Exp $
+// $Id: SampleWriter.C,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 
 #include "SampleWriter.h"
@@ -29,7 +29,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
   // set default encoding
   string encoding =  base64 ? "base64" : "text";
   const char* filename_cstr = filename.c_str();
-  
+
 #if USE_CSTDIO_LFS
   // This section for compilers with broken large file support
   // As of 2003-09-30, this includes gcc-3.2, icc-7.0, pgCC-5.0
@@ -50,11 +50,11 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     header += string(" sample.xsd\">\n");
     off_t len = header.size();
     fwrite(header.c_str(),sizeof(char),len,outfile);
-    
+
     string desc = string("<description> ") +
       description +
       string(" </description>\n");
-    
+
     ostringstream ss("");
     ss << desc;
     ss << s.atoms;
@@ -63,14 +63,14 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     len = str.length();
     fwrite(buf,sizeof(char),len,outfile);
   }
-  
+
   if ( !atomsonly )
   {
     s.wf.write(outfile,encoding,"wavefunction");
     if ( s.wfv != 0 )
       s.wfv->write(outfile,encoding,"wavefunction_velocity");
   }
-  
+
   if ( ctxt_.onpe0() )
   {
     char *trailer = "</fpmd:sample>\n";
@@ -82,24 +82,24 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
   if ( ctxt_.onpe0() )
   {
     os.open(filename_cstr);
-    cout << "  <!-- SaveCmd: saving to file " << filename 
+    cout << "  <!-- SaveCmd: saving to file " << filename
          << ", encoding=" << encoding << " -->" << endl;
-    
-    os 
+
+    os
 <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 <<"<fpmd:sample xmlns:fpmd=\""
 << qbox_xmlns()
-<< "\"\n" 
+<< "\"\n"
 <<" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
 <<" xsi:schemaLocation=\""
 << qbox_xmlns() << " sample.xsd\">"
 << endl;
 
-    os << "<description> " << description     
+    os << "<description> " << description
        << " </description>" << endl;
     os << s.atoms;
   }
-    
+
   if ( !atomsonly )
   {
     s.wf.print(os,encoding,"wavefunction");
@@ -108,7 +108,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
   }
 
   if ( ctxt_.onpe0() )
-    os << "</fpmd:sample>" << endl;   
+    os << "</fpmd:sample>" << endl;
 
   os.close();
 #endif

@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.h,v 1.4 2007-01-27 23:46:31 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.h,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef PSDAWAVEFUNCTIONSTEPPER_H
 #define PSDAWAVEFUNCTIONSTEPPER_H
@@ -21,7 +21,7 @@ class PSDAWavefunctionStepper : public WavefunctionStepper
 
   // Anderson acceleration flag
   bool extrapolate_;
-  
+
   public:
 
   void update(Wavefunction& dwf);

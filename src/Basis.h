@@ -3,7 +3,7 @@
 //  Basis.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.h,v 1.6 2007-03-17 01:14:00 fgygi Exp $
+// $Id: Basis.h,v 1.7 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef BASIS_H
 #define BASIS_H
@@ -16,11 +16,11 @@ class Context;
 class Basis
 {
   private:
-  
+
   struct BasisImpl* pimpl_;
-  
+
   public:
-  
+
   const Context& context(void) const; // context on which Basis is defined
 
   const UnitCell& cell() const;   // cell dimensions
@@ -31,17 +31,17 @@ class Basis
   int idxmax(int i) const;       // largest index in direction i
   double ecut() const;           // energy cutoff in Hartree
   bool real() const;             // return true if kpoint == (0,0,0)
-  
+
   int size() const;              // total number of g vectors
   int localsize() const;         // local number of g vectors on current process
   int localsize(int ipe) const;  // local number of g vectors on process ipe
   int maxlocalsize() const;      // largest local size
   int minlocalsize() const;      // smallest local size
-  
+
   int nrods() const;             // total number of rods
   int nrod_loc() const;          // local number of rods on current process
   int nrod_loc(int ipe) const;   // local number of rods on process ipe
-  
+
   int rod_h(int irod) const;     // h-position of rod irod on current process
   int rod_h(int ipe, int irod) const; // h-position of rod irod on process ipe
 
@@ -52,13 +52,13 @@ class Basis
   int rod_lmin(int ipe, int irod) const; // lmin-pos. of rod irod on process ipe
 
   // size of rod irod
-  int rod_size(int irod) const;  
+  int rod_size(int irod) const;
   int rod_size(int ipe, int irod) const;
 
-  // local position of first elem. of rod irod  
-  int rod_first(int irod) const; 
+  // local position of first elem. of rod irod
+  int rod_first(int irod) const;
   int rod_first(int ipe, int irod) const;
-  
+
   int    idx(int i) const;   // integer indices of vectors idx[i*3+j]
   double g(int i) const;     // norm of g vectors g[i]
   double kpg(int i) const;   // norm of k+g vectors kpg[i]
@@ -68,9 +68,9 @@ class Basis
   double g2i(int i) const;   // inverse square norm of g g2i[i]
   double gx(int i) const;    // g vectors gx[i+localsize*j],j=0,1,2
   double gx2(int i) const;   // g vectors components^2 gx2[i+localsize*j]
-  
+
   int isort(int i) const;    // index of vectors locally sorted by norm
-  
+
   const int*    idx_ptr(void) const;
   const double* g_ptr(void) const;
   const double* kpg_ptr(void) const;
@@ -80,14 +80,14 @@ class Basis
   const double* g2i_ptr(void) const;
   const double* gx_ptr(int j) const;
   const double* gx2_ptr(int j) const;
-  
+
   double memsize(void) const;
   double localmemsize(void) const;
 
   Basis(const Context &ctxt, D3vector kpoint);
   Basis(const Basis &b);
   ~Basis(void);
-  
+
   bool resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
   void print(std::ostream& os);
 };

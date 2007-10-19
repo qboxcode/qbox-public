@@ -3,7 +3,7 @@
 // Ecuts.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Ecuts.h,v 1.1 2004-02-04 19:52:27 fgygi Exp $
+// $Id: Ecuts.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef ECUTS_H
 #define ECUTS_H
@@ -31,7 +31,7 @@ class Ecuts : public Var
       cout << " ecuts takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v < 0.0 )
     {
@@ -41,7 +41,7 @@ class Ecuts : public Var
     }
 
     s->ctrl.ecuts = 0.5 * v;
-    
+
     return 0;
   }
 

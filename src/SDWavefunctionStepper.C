@@ -3,7 +3,7 @@
 // SDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDWavefunctionStepper.C,v 1.4 2007-01-27 23:46:31 fgygi Exp $
+// $Id: SDWavefunctionStepper.C,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #include "SDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -14,7 +14,7 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 SDWavefunctionStepper::SDWavefunctionStepper(Wavefunction& wf, double alpha,
-  TimerMap& tmap) : 
+  TimerMap& tmap) :
   alpha_(alpha), WavefunctionStepper(wf,tmap)
 {}
 

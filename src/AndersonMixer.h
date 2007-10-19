@@ -3,7 +3,7 @@
 // AndersonMixer.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.h,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: AndersonMixer.h,v 1.5 2007-10-19 16:24:03 fgygi Exp $
 
 #ifndef ANDERSONMIXER_H
 #define ANDERSONMIXER_H
@@ -18,7 +18,7 @@ class AndersonMixer
   const   Context* const pctxt_; // pointer to relevant Context, null if local
   double  theta_max_; // maximum extrapolation
   double  theta_nc_;  // negative curvature value
- 
+
   std::valarray<double> flast_;       // last residual
   bool extrapolate_;             // state variable
 

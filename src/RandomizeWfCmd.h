@@ -3,7 +3,7 @@
 // RandomizeWfCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RandomizeWfCmd.h,v 1.2 2003-03-27 22:05:59 fgygi Exp $
+// $Id: RandomizeWfCmd.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef RANDOMIZEWFCMD_H
 #define RANDOMIZEWFCMD_H
@@ -24,7 +24,7 @@ class RandomizeWfCmd : public Cmd
   char *name(void) const { return "randomize_wf"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n randomize_wf\n\n"
     " syntax: randomize_wf [amplitude]\n\n"
     "   The randomize_wf command adds random amplitudes to\n"

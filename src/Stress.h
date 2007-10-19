@@ -3,7 +3,7 @@
 // Stress.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Stress.h,v 1.1 2004-02-04 19:52:27 fgygi Exp $
+// $Id: Stress.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef STRESS_H
 #define STRESS_H
@@ -31,7 +31,7 @@ class Stress : public Var
       cout << " stress takes only one value" << endl;
       return 1;
     }
-    
+
     string v = argv[1];
     if ( !( v == "ON" || v == "OFF" ) )
     {
@@ -41,7 +41,7 @@ class Stress : public Var
     }
 
     s->ctrl.stress = v;
-    
+
     return 0;
   }
 

@@ -3,7 +3,7 @@
 // blacs.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: blacs.h,v 1.3 2003-03-27 22:05:59 fgygi Exp $
+// $Id: blacs.h,v 1.4 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef BLACS_H
 #define BLACS_H
@@ -14,7 +14,7 @@ void sgesd2d(int*,int*,int*, double*, int*,int*,int*);
 void igerv2d(int*,int*,int*, int*, int*,int*,int*);
 void sgerv2d(int*,int*,int*, double*, int*,int*,int*);
 void sgsum2d(int*,char*,char*,int*,int*,double*,int*,int*,int*);
-void igamn2d(int*,char*,char*, int*, 
+void igamn2d(int*,char*,char*, int*,
      int*,int*,int*, int*, int*,int*,int*, int*);
 void blacs_pinfo(int*, int*);
 void blacs_get(int*, int*, int*);

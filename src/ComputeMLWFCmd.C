@@ -3,7 +3,7 @@
 // ComputeMLWFCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ComputeMLWFCmd.C,v 1.4 2007-10-16 18:23:20 fgygi Exp $
+// $Id: ComputeMLWFCmd.C,v 1.5 2007-10-19 16:24:04 fgygi Exp $
 
 #include "ComputeMLWFCmd.h"
 #include<iostream>
@@ -15,9 +15,9 @@ int ComputeMLWFCmd::action(int argc, char **argv)
 {
   Wavefunction& wf = s->wf;
   SlaterDet& sd = *(wf.sd(0,0));
-  
+
   mlwft = new MLWFTransform(sd);
-  
+
   mlwft->compute_transform();
   mlwft->apply_transform(sd);
 
@@ -30,7 +30,7 @@ int ComputeMLWFCmd::action(int argc, char **argv)
       double sp = mlwft->spread(i);
       cout.setf(ios::fixed, ios::floatfield);
       cout.setf(ios::right, ios::adjustfield);
-      cout << "   <mlwf center=\"" << setprecision(6) 
+      cout << "   <mlwf center=\"" << setprecision(6)
            << setw(12) << ctr.x
            << setw(12) << ctr.y
            << setw(12) << ctr.z

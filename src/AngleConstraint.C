@@ -3,7 +3,7 @@
 //  AngleConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleConstraint.C,v 1.2 2005-09-16 23:08:11 fgygi Exp $
+// $Id: AngleConstraint.C,v 1.3 2007-10-19 16:24:03 fgygi Exp $
 
 #include "AngleConstraint.h"
 #include "AtomSet.h"
@@ -26,7 +26,7 @@ void AngleConstraint::setup(const AtomSet& atoms)
   m1_    = atoms.species_list[is1_]->mass() * 1822.89;
   assert(m1_>0.0);
   m1_inv_ = 1.0 / m1_;
-  
+
   is2_ = atoms.is(name2_);
   ia2_ = atoms.ia(name2_);
   assert(is2_>=0);
@@ -34,7 +34,7 @@ void AngleConstraint::setup(const AtomSet& atoms)
   m2_    = atoms.species_list[is2_]->mass() * 1822.89;
   assert(m2_>0.0);
   m2_inv_ = 1.0 / m2_;
-  
+
   is3_ = atoms.is(name3_);
   ia3_ = atoms.ia(name3_);
   assert(is3_>=0);
@@ -63,7 +63,7 @@ vector<vector<double> > &rp) const
   double* pr1p  = &rp[is1_][3*ia1_];
   double* pr2p  = &rp[is2_][3*ia2_];
   double* pr3p  = &rp[is3_][3*ia3_];
-  
+
   D3vector r1(pr1);
   D3vector r2(pr2);
   D3vector r3(pr3);
@@ -72,7 +72,7 @@ vector<vector<double> > &rp) const
   const double a = bond_angle(r1,r2,r3);
   double ng = g1*g1 + g2*g2 + g3*g3;
   assert(ng>=0.0);
-  
+
   D3vector r1p(pr1p);
   D3vector r2p(pr2p);
   D3vector r3p(pr3p);
@@ -81,7 +81,7 @@ vector<vector<double> > &rp) const
   const double ap = bond_angle(r1p,r2p,r3p);
   const double ngp = g1p*g1p + g2p*g2p + g3p*g3p;
   assert(ngp>=0.0);
-  
+
   const double err = fabs(ap-angle_);
 
   if ( ng == 0.0 )
@@ -119,25 +119,25 @@ vector<vector<double> > &rp) const
       // no action necessary
     }
   }
-  
+
   // test alignment of the gradient at r and at rp
   // compute scalar product of normalized gradients
   const double sp = ( g1*g1p + g2*g2p + g3*g3p ) / sqrt( ng * ngp );
-  
+
   if ( fabs(sp) < 0.5*sqrt(3.0) )
   {
-    g1 = g1p;  
-    g2 = g2p;  
-    g3 = g3p;  
+    g1 = g1p;
+    g2 = g2p;
+    g3 = g3p;
   }
-  
-  const double den = m1_inv_ * g1 * g1p + 
+
+  const double den = m1_inv_ * g1 * g1p +
                      m2_inv_ * g2 * g2p +
                      m3_inv_ * g3 * g3p;
-                     
+
 #if DEBUG_CONSTRAINTS
   cout << " <!-- ";
-  cout << " AngleConstraint::enforce_r: " 
+  cout << " AngleConstraint::enforce_r: "
        << name1_ << " " << name2_ << " " << name3_
        << " angle = " << ap << endl;
   cout << " AngleConstraint::enforce_r:  r1  = " << r1 << endl;
@@ -159,25 +159,25 @@ vector<vector<double> > &rp) const
   cout << " -->" << endl;
 #endif
   if ( err < tol_ ) return true;
-  
+
   // make one shake iteration
-  
+
   assert(fabs(den)>0.0);
-  
+
   const double lambda = - sigma(r1p,r2p,r3p) / den;
-  
+
   pr1p[0] += m1_inv_ * lambda * g1.x;
   pr1p[1] += m1_inv_ * lambda * g1.y;
   pr1p[2] += m1_inv_ * lambda * g1.z;
- 
+
   pr2p[0] += m2_inv_ * lambda * g2.x;
   pr2p[1] += m2_inv_ * lambda * g2.y;
   pr2p[2] += m2_inv_ * lambda * g2.z;
- 
+
   pr3p[0] += m3_inv_ * lambda * g3.x;
   pr3p[1] += m3_inv_ * lambda * g3.y;
   pr3p[2] += m3_inv_ * lambda * g3.z;
- 
+
   return false;
 }
 
@@ -191,30 +191,30 @@ vector<vector<double> > &v0) const
   double* pv1 = &v0[is1_][3*ia1_];
   double* pv2 = &v0[is2_][3*ia2_];
   double* pv3 = &v0[is3_][3*ia3_];
-  
+
   D3vector r1(pr1);
   D3vector r2(pr2);
   D3vector r3(pr3);
-  
+
   D3vector g1,g2,g3;
-  
+
   grad_sigma(r1,r2,r3,g1,g2,g3);
-  
+
   D3vector v1(pv1);
   D3vector v2(pv2);
   D3vector v3(pv3);
-    
+
   const double proj = v1*g1 + v2*g2 + v3*g3;
   const double norm2 = g1*g1 + g2*g2 + g3*g3;
-  
+
   // if the gradient is too small, do not attempt correction
   if ( norm2 < 1.e-6 ) return true;
 
   const double err = fabs(proj)/sqrt(norm2);
-  
+
 #if DEBUG_CONSTRAINTS
   cout << " <!-- ";
-  cout << " AngleConstraint::enforce_v: " 
+  cout << " AngleConstraint::enforce_v: "
        << name1_ << " " << name2_ << " " << name3_ << endl;
   cout << " AngleConstraint::enforce_v: tol = " << tol_ << endl;
   cout << " AngleConstraint::enforce_v: err = " << err << endl;
@@ -224,27 +224,27 @@ vector<vector<double> > &v0) const
   cout << " -->" << endl;
 #endif
   if ( err < tol_ ) return true;
-  
+
   // make one shake iteration
-  const double den = m1_inv_ * g1 * g1 + 
+  const double den = m1_inv_ * g1 * g1 +
                      m2_inv_ * g2 * g2 +
                      m3_inv_ * g3 * g3;
   assert(den>0.0);
-  
+
   const double eta = -proj / den;
-  
+
   pv1[0] += m1_inv_ * eta * g1.x;
   pv1[1] += m1_inv_ * eta * g1.y;
   pv1[2] += m1_inv_ * eta * g1.z;
- 
+
   pv2[0] += m2_inv_ * eta * g2.x;
   pv2[1] += m2_inv_ * eta * g2.y;
   pv2[2] += m2_inv_ * eta * g2.z;
- 
+
   pv3[0] += m3_inv_ * eta * g3.x;
   pv3[1] += m3_inv_ * eta * g3.y;
   pv3[2] += m3_inv_ * eta * g3.z;
- 
+
   return false;
 }
 
@@ -258,30 +258,30 @@ void AngleConstraint::compute_force(const vector<vector<double> > &r0,
   const double* pf1 = &f[is1_][3*ia1_];
   const double* pf2 = &f[is2_][3*ia2_];
   const double* pf3 = &f[is3_][3*ia3_];
-  
+
   D3vector r1(pr1);
   D3vector r2(pr2);
   D3vector r3(pr3);
   D3vector g1,g2,g3;
-  
+
   grad_sigma(r1,r2,r3,g1,g2,g3);
-  
+
   D3vector f1(pf1);
   D3vector f2(pf2);
   D3vector f3(pf3);
-    
+
   const double norm2 = g1*g1 + g2*g2 + g3*g3;
   if ( norm2 == 0.0 )
   {
     force_ = 0.0;
     return;
   }
-    
+
   const double proj = f1*g1 + f2*g2 + f3*g3;
   force_ = -proj/norm2;
-  
+
   // compute weight
-  const double z = m1_inv_ * g1 * g1 + 
+  const double z = m1_inv_ * g1 * g1 +
                    m2_inv_ * g2 * g2 +
                    m3_inv_ * g3 * g3;
   assert(z > 0.0);
@@ -292,10 +292,10 @@ void AngleConstraint::compute_force(const vector<vector<double> > &r0,
   const double r32s = norm(r3-r2);
   const double fac = 180.0/M_PI;
   const double cos_theta = normalized(r1-r2)*normalized(r3-r2);
-  const double zcheck = fac*fac * 
+  const double zcheck = fac*fac *
     ( m1_inv_ / r12s +
       m2_inv_ * ( (r12s+r32s-2*sqrt(r12s*r32s)*cos_theta) /(r12s*r32s) ) +
-      m3_inv_ / r32s 
+      m3_inv_ / r32s
     );
   cout << " <!-- AngleConstraint: z=" << z << " zcheck=" << zcheck << " -->"
        << endl;
@@ -310,7 +310,7 @@ double AngleConstraint::sigma(D3vector a, D3vector b, D3vector c) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void AngleConstraint::grad_sigma(const D3vector &r1, const D3vector &r2, 
+void AngleConstraint::grad_sigma(const D3vector &r1, const D3vector &r2,
                 const D3vector &r3,
                 D3vector &g1, D3vector &g2, D3vector &g3) const
 {
@@ -321,7 +321,7 @@ void AngleConstraint::grad_sigma(const D3vector &r1, const D3vector &r2,
   D3vector e12(normalized(r12));
   D3vector e32(normalized(r32));
   const double ss = length(e12^e32);
-  
+
   // use simplified expression if the angle is smaller than 0.2 degrees
   if ( ss < sin(0.2*(M_PI/180.0) ) )
   {
@@ -351,43 +351,43 @@ void AngleConstraint::grad_sigma(const D3vector &r1, const D3vector &r2,
   {
     // angle is large enough. Use finite differences
     //cout << " ========= grad_sigma using finite differences" << endl;
-  
+
     const double r12_inv = 1.0/length(r12);
     const double r32_inv = 1.0/length(r32);
     const double a = bond_angle(r1,r2,r3);
-  
+
     const double l12 = length(r1-r2);
     const double l32 = length(r3-r2);
     // displacement h causes changes in angle of less than 0.05 degrees
     const double h = 0.05 * (M_PI/180.0) * min(l12,l32);
     const double fac = 0.5 / h;
     D3vector dx(h,0,0), dy(0,h,0), dz(0,0,h);
-  
+
     // compute gradient at r
-  
+
     g1.x = fac * ( sigma(r1+dx,r2,r3) - sigma(r1-dx,r2,r3) );
     g1.y = fac * ( sigma(r1+dy,r2,r3) - sigma(r1-dy,r2,r3) );
     g1.z = fac * ( sigma(r1+dz,r2,r3) - sigma(r1-dz,r2,r3) );
-  
+
     g2.x = fac * ( sigma(r1,r2+dx,r3) - sigma(r1,r2-dx,r3) );
     g2.y = fac * ( sigma(r1,r2+dy,r3) - sigma(r1,r2-dy,r3) );
     g2.z = fac * ( sigma(r1,r2+dz,r3) - sigma(r1,r2-dz,r3) );
-  
+
     g3.x = fac * ( sigma(r1,r2,r3+dx) - sigma(r1,r2,r3-dx) );
     g3.y = fac * ( sigma(r1,r2,r3+dy) - sigma(r1,r2,r3-dy) );
     g3.z = fac * ( sigma(r1,r2,r3+dz) - sigma(r1,r2,r3-dz) );
-  }             
+  }
 }
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 double AngleConstraint::bond_angle(D3vector a, D3vector b, D3vector c) const
 {
   // compute the bond angle defined by vectors a,b,c
   D3vector e12(normalized(a-b));
   D3vector e32(normalized(c-b));
-  const double ss = length(e12^e32);             
-  const double cc = e12*e32;             
-  double an = (180.0/M_PI) * atan2(ss,cc);                 
+  const double ss = length(e12^e32);
+  const double cc = e12*e32;
+  double an = (180.0/M_PI) * atan2(ss,cc);
   return an;
 }
 

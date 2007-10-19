@@ -3,7 +3,7 @@
 // Nrowmax.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Nrowmax.h,v 1.2 2004-10-15 18:06:46 fgygi Exp $
+// $Id: Nrowmax.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef NROWMAX_H
 #define NROWMAX_H
@@ -31,7 +31,7 @@ class Nrowmax : public Var
       cout << " nrowmax takes only one value" << endl;
       return 1;
     }
-    
+
     int v = atoi(argv[1]);
     if ( v <= 0 )
     {
@@ -47,7 +47,7 @@ class Nrowmax : public Var
       s->wfv->set_nrowmax(v);
       s->wfv->clear();
     }
-    
+
     return 0;
   }
 

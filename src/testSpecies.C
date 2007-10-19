@@ -21,20 +21,20 @@ int main(int argc, char **argv)
   MPI_Init(&argc,&argv);
 #endif
   {
-  
+
   Context ctxt;
   if ( argc != 2 )
   {
     cerr << "use: testSpecies uri" << endl;
     return 1;
   }
-  
+
   Species s(ctxt,"unknown_name");
-  
+
   SpeciesReader rdr(ctxt);
-  
+
   string uri(argv[1]);
-  
+
   try
   {
     cerr << " s.uri() = " << s.uri() << endl;
@@ -47,9 +47,9 @@ int main(int argc, char **argv)
     throw;
   }
   cerr << " SpeciesReader::readSpecies done" << endl;
-  
+
   const double rcps = 1.0;
-  
+
   try
   {
     s.initialize(rcps);
@@ -60,18 +60,18 @@ int main(int argc, char **argv)
     throw;
   }
   cerr << s;
-  
+
 #if 1
-  
+
   if ( ctxt.onpe0() )
   {
-  
+
   double dr = 0.01;
   double dg = 0.02;
   double v,dv;
 
   int n = 1000;
-  
+
   for ( int l = 0; l <= s.lmax(); l++ )
   {
     cout << "# " << n << " Vps(l=" << l << ",r) " << endl;
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
     }
     cout << endl << endl;
   }
-  
+
   cout << "# " << n << " Vloc(g) " << endl;
   for ( int i = 0; i < n; i++ )
   {
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     cout << g << " " << v << endl;
   }
   cout << endl << endl;
-  
+
   cout << "# " << n << " dVloc(g)/dg " << endl;
   for ( int i = 0; i < n; i++ )
   {
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     cout << g << " " << dv << endl;
   }
   cout << endl << endl;
-  
+
   for ( int l = 0; l <= s.lmax(); l++ )
   {
     if ( l != s.llocal() )
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
         cout << g << " " << v << endl;
       }
       cout << endl << endl;
-   
+
       cout << "# " << n << " dVnl(l=" << l << ",g)/dg " << endl;
       for ( int i = 0; i < n; i++ )
       {
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
       cout << endl << endl;
     }
   }
-  
+
   } // onpe0
 #endif
 

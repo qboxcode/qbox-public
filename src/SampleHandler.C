@@ -3,7 +3,7 @@
 // SampleHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleHandler.C,v 1.6 2007-08-13 21:24:17 fgygi Exp $
+// $Id: SampleHandler.C,v 1.7 2007-10-19 16:24:04 fgygi Exp $
 
 #if USE_XERCES
 
@@ -18,8 +18,8 @@ using namespace xercesc;
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-SampleHandler::SampleHandler(Sample& s, DoubleMatrix& gfdata, 
-  Wavefunction& wfvtmp) : 
+SampleHandler::SampleHandler(Sample& s, DoubleMatrix& gfdata,
+  Wavefunction& wfvtmp) :
   s_(s), gfdata_(gfdata), read_wf(false), read_wfv(false), wfvtmp_(wfvtmp) {}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ SampleHandler::~SampleHandler() {}
 void SampleHandler::startElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname,
   const Attributes& attributes)
-{  
+{
   // cout << " SampleHandler::startElement " << StrX(qname) << endl;
 }
 
@@ -44,13 +44,13 @@ void SampleHandler::endElement(const XMLCh* const uri,
 
 ////////////////////////////////////////////////////////////////////////////////
 StructureHandler* SampleHandler::startSubHandler(const XMLCh* const uri,
-    const XMLCh* const localname, const XMLCh* const qname, 
+    const XMLCh* const localname, const XMLCh* const qname,
     const Attributes& attributes)
 {
   // check if element qname can be processed by another StructureHandler
   // If it can, return a pointer to the StructureHandler, otherwise return 0
   // cout << " SampleHandler::startSubHandler " << StrX(qname) << endl;
-  
+
   string qnm = XMLString::transcode(qname);
   if ( qnm == "atomset" )
   {
@@ -74,7 +74,7 @@ StructureHandler* SampleHandler::startSubHandler(const XMLCh* const uri,
 
 ////////////////////////////////////////////////////////////////////////////////
 void SampleHandler::endSubHandler(const XMLCh* const uri,
-    const XMLCh* const localname, const XMLCh* const qname, 
+    const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const subHandler)
 {
   // cout << " SampleHandler::endSubHandler " << StrX(qname) << endl;

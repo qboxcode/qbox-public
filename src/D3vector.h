@@ -5,7 +5,7 @@
 // double 3-vectors
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: D3vector.h,v 1.5 2007-03-17 01:14:00 fgygi Exp $
+// $Id: D3vector.h,v 1.6 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef D3VECTOR_H
 #define D3VECTOR_H
@@ -17,15 +17,15 @@ class D3vector
 {
   public:
 
-  double x, y, z; 
+  double x, y, z;
 
   // explicit constructor to avoid implicit conversion from double to D3vector
   explicit D3vector(const double& xv, const double& yv, const double& zv) :
     x(xv), y(yv), z(zv) {}
   explicit D3vector(void) : x(0.0), y(0.0), z(0.0) {}
-  
+
   explicit D3vector(const double* r) : x(r[0]), y(r[1]), z(r[2]) {}
-  
+
   double& operator[](const int &i)
   {
     assert(i>=0 && i <3);
@@ -33,12 +33,12 @@ class D3vector
     else if ( i == 1 ) return y;
     else return z;
   }
-  
+
   bool operator==(const D3vector &rhs) const
   {
     return x == rhs.x && y == rhs.y && z == rhs.z;
   }
-  
+
   bool operator!=(const D3vector &rhs) const
   {
     return x != rhs.x || y != rhs.y || z != rhs.z;

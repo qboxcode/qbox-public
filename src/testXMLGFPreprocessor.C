@@ -3,7 +3,7 @@
 // testXMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testXMLGFPreprocessor.C,v 1.1 2003-08-22 18:01:13 fgygi Exp $
+// $Id: testXMLGFPreprocessor.C,v 1.2 2007-10-19 16:24:06 fgygi Exp $
 
 
 #include <iostream>
@@ -28,26 +28,26 @@ int main(int argc, char** argv)
     const int nr = atoi(argv[1]);
     const int nc = atoi(argv[2]);
     const char* const filename = argv[3];
-  
+
     Context ctxt(nr,nc,'c'); // context on which gfdata is defined
     DoubleMatrix gfdata(ctxt);
     string xmlcontent;
-    
+
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     int namelen;
     PMPI_Get_processor_name(processor_name,&namelen);
-    cout << " Process " << gfdata.context().mype() 
+    cout << " Process " << gfdata.context().mype()
          << " on " << processor_name << endl;
 
     XMLGFPreprocessor xmlgfp;
     xmlgfp.process(filename,gfdata,xmlcontent);
-    
+
 #if 0
     // write all gfdata on file
     ofstream gf_file("gf.dat");
     gf_file << gfdata;
 #endif
-    
+
     if ( ctxt.onpe0() )
     {
       ofstream xmlfile("xml.dat");

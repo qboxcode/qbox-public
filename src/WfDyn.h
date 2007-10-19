@@ -3,7 +3,7 @@
 // WfDyn.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WfDyn.h,v 1.5 2004-03-11 21:52:32 fgygi Exp $
+// $Id: WfDyn.h,v 1.6 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef WFDYN_H
 #define WFDYN_H
@@ -33,9 +33,9 @@ class WfDyn : public Var
       cout << " wf_dyn takes only one value" << endl;
       return 1;
     }
-    
+
     string v = argv[1];
-    if ( !( v == "LOCKED" || v == "SD" || v == "PSD" || 
+    if ( !( v == "LOCKED" || v == "SD" || v == "PSD" ||
             v == "PSDA" || v == "MD" ) )
     {
       if ( ui->onpe0() )
@@ -44,7 +44,7 @@ class WfDyn : public Var
     }
 
     s->ctrl.wf_dyn = v;
-    
+
 //     if ( v == "MD" )
 //     {
 //       if ( s->wfv == 0 )
@@ -58,7 +58,7 @@ class WfDyn : public Var
 //       delete s->wfv;
 //       s->wfv = 0;
 //     }
-    
+
     return 0;
   }
 

@@ -3,7 +3,7 @@
 #  mcr.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr_sse2.mk,v 1.1 2004-06-02 21:40:40 fgygi Exp $
+# $Id: mcr_sse2.mk,v 1.2 2007-10-19 16:24:06 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------
@@ -23,23 +23,23 @@
  FFTWDIR=$(HOME)/fftw/linux-pc-icc/fftw-2.1.3/fftw
  BLASDIR=/opt/intel/mkl/lib/32
  #PAPIDIR=/usr/local/tools/papi
- 
+
  #INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include \
  #          -I$(PAPIDIR)/include
- INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include 
- 
+ INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
+
  CXXFLAGS= -g -O3 -xW -Zp16 \
-           -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS) 
+           -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR) -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L$(BLASDIR) -L/usr/lib \
-           -L$(XERCESCLIBDIR) 
-  
+           -L$(XERCESCLIBDIR)
+
  LIBS =  $(PLIBS) $(GCCDIR)/libg2c.a -lfftw \
          -lmkl_p4 -lmkl_lapack -lm -lmpi -lpmpi \
          -lelan -lelan3 -openmp -lrmscall -lxerces-c
- 
- LDFLAGS = $(LIBPATH) $(LIBS) 
+
+ LDFLAGS = $(LIBPATH) $(LIBS)
 
  PLAT=INTEL
  # Blacs libraries

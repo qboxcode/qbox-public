@@ -3,7 +3,7 @@
 // IonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: IonicStepper.h,v 1.8 2007-03-17 01:14:00 fgygi Exp $
+// $Id: IonicStepper.h,v 1.9 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef IONICSTEPPER_H
 #define IONICSTEPPER_H
@@ -15,7 +15,7 @@
 class IonicStepper
 {
   protected:
-  
+
   Sample& s_;
   AtomSet& atoms_;
   ConstraintSet& constraints_;
@@ -23,15 +23,15 @@ class IonicStepper
   int                       nsp_;
   int                       ndofs_;
   std::vector<int>               na_;  // number of atoms per species na_[nsp_]
-  std::vector<std::vector< double> >  r0_; // r0_[nsp_][3*na_]     
-  std::vector<std::vector< double> >  rp_; // rp_[nsp_][3*na_]     
-  std::vector<std::vector< double> >  rm_; // rm_[nsp_][3*na_]     
-  std::vector<std::vector< double> >  v0_; // v0_[nsp_][3*na_]     
+  std::vector<std::vector< double> >  r0_; // r0_[nsp_][3*na_]
+  std::vector<std::vector< double> >  rp_; // rp_[nsp_][3*na_]
+  std::vector<std::vector< double> >  rm_; // rm_[nsp_][3*na_]
+  std::vector<std::vector< double> >  v0_; // v0_[nsp_][3*na_]
   std::vector<double>            pmass_;   // pmass_[nsp_]
 
   public:
-  
-  IonicStepper (Sample& s) : s_(s), atoms_(s.atoms), 
+
+  IonicStepper (Sample& s) : s_(s), atoms_(s.atoms),
     constraints_(s.constraints), dt_(s.ctrl.dt)
   {
     ndofs_ = 3 * atoms_.size() - constraints_.size();
@@ -55,26 +55,26 @@ class IonicStepper
     atoms_.get_positions(r0_);
     atoms_.get_velocities(v0_);
   }
-  
+
   double r0(int is, int i) const { return r0_[is][i]; }
   double v0(int is, int i) const { return v0_[is][i]; }
   const std::vector<std::vector<double> >& r0(void) const { return r0_; }
   const std::vector<std::vector<double> >& v0(void) const { return v0_; }
   const std::vector<double>& pmass(void) const { return pmass_; }
-  
+
   void setup_constraints(void)
   {
     constraints_.setup(atoms_);
   }
-  virtual void compute_r(double e0, 
+  virtual void compute_r(double e0,
     const std::vector<std::vector< double> >& f0) = 0;
-  virtual void compute_v(double e0, 
+  virtual void compute_v(double e0,
     const std::vector<std::vector< double> >& f0) = 0;
   virtual void reset(void) {}
   virtual double ekin(void) const { return 0.0; }
   virtual double temp(void) const { return 0.0; }
-  
+
   virtual ~IonicStepper() {}
-    
+
 };
 #endif

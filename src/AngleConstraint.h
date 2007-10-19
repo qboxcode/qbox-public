@@ -3,7 +3,7 @@
 //  AngleConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleConstraint.h,v 1.3 2007-03-17 01:14:00 fgygi Exp $
+// $Id: AngleConstraint.h,v 1.4 2007-10-19 16:24:03 fgygi Exp $
 
 #ifndef ANGLECONSTRAINT_H
 #define ANGLECONSTRAINT_H
@@ -24,16 +24,16 @@ class AngleConstraint : public Constraint
   void grad_sigma(const D3vector &r1, const D3vector &r2, const D3vector &r3,
                   D3vector &g1, D3vector &g2,D3vector &g3) const;
   double bond_angle(D3vector a, D3vector b, D3vector c) const;
-  
+
   public:
-  
-  AngleConstraint(std::string name, std::string name1, 
+
+  AngleConstraint(std::string name, std::string name1,
                   std::string name2, std::string name3,
                   double angle, double velocity, double tolerance):
-  name1_(name1), name2_(name2), name3_(name3), 
+  name1_(name1), name2_(name2), name3_(name3),
   velocity_(velocity),
   tol_(tolerance), m1_(0.0), m2_(0.0), m3_(0.0)
-  { 
+  {
     set_value(angle);
     name_ = name;
     names_.resize(3);
@@ -43,7 +43,7 @@ class AngleConstraint : public Constraint
     force_ = 0.0;
     weight_ = 1.0;
   }
-  
+
   std::string type(void) const { return "angle"; }
   double value(void) const { return angle_; }
   double velocity(void) const { return velocity_; }
@@ -60,7 +60,7 @@ class AngleConstraint : public Constraint
   {
     velocity_ = velocity;
   }
-  
+
   void setup(const AtomSet& atoms);
   void update(double dt);
   bool enforce_r(const std::vector<std::vector<double> > &r0,
@@ -70,6 +70,6 @@ class AngleConstraint : public Constraint
   void compute_force(const std::vector<std::vector<double> > &r0,
                      const std::vector<std::vector<double> > &f);
   std::ostream& print( std::ostream& os );
-  
+
 };
 #endif

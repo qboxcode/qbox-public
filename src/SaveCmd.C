@@ -3,7 +3,7 @@
 // SaveCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.C,v 1.11 2007-01-27 23:49:41 fgygi Exp $
+// $Id: SaveCmd.C,v 1.12 2007-10-19 16:24:05 fgygi Exp $
 
 
 #include "SaveCmd.h"
@@ -19,21 +19,21 @@ int SaveCmd::action(int argc, char **argv)
   if ( !(argc>=2 && argc<=4 ) )
   {
     if ( ui->onpe0() )
-      cout << "  <!-- use: save [-text|-base64] [-atomsonly] filename -->" 
+      cout << "  <!-- use: save [-text|-base64] [-atomsonly] filename -->"
            << endl;
     return 1;
   }
-  
+
   // set default encoding
   bool base64 = true;
   bool atomsonly = false;
   char* filename = 0;
-  
+
   // check for -text or -base64 or -atomsonly arguments
   for ( int i = 1; i < argc; i++ )
   {
     string arg(argv[i]);
-    
+
     if ( arg=="-text" )
     {
       base64 = false;
@@ -49,16 +49,16 @@ int SaveCmd::action(int argc, char **argv)
     else
     {
       if ( ui->onpe0() )
-        cout << "  <!-- use: save [-text|-base64] [-atomsonly] filename -->" 
+        cout << "  <!-- use: save [-text|-base64] [-atomsonly] filename -->"
              << endl;
       return 1;
     }
   }
-  
+
   if ( filename == 0 )
   {
     if ( ui->onpe0() )
-      cout << "  <!-- use: save [-text|-base64] [-atomsonly] filename -->" 
+      cout << "  <!-- use: save [-text|-base64] [-atomsonly] filename -->"
            << endl;
     return 1;
   }

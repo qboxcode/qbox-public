@@ -1,5 +1,5 @@
 //
-// xmlSpecies.C: transform a GP pseudopotential file into a fpmd xml species 
+// xmlSpecies.C: transform a GP pseudopotential file into a fpmd xml species
 //
 // use: xmlSpecies < psfile > xmlfile
 //
@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 {
   int np, zion,lloc,nquad,lmax1,lmax;
   double rcut,pmass,radius,covradius;
-  
+
   char buf[256];
   char psname_buf[256];
   char color_buf[256];
@@ -25,16 +25,16 @@ int main(int argc, char **argv)
   {
     while ( cin.get() != '\n' );
   }
- 
+
   cin.getline(&buf[0],256);
- 
+
   ntokens =
     sscanf(&buf[0]," %d %d %lf %lf %d %s %s %lf %lf %d %d",
     &np, &zion, &rcut, &pmass, &lmax1, &psname_buf[0],
     &color_buf[0], &radius, &covradius, &lloc, &nquad );
 
   lmax = lmax1 - 1;
-  
+
   if ( ntokens == 9 )
   {
     // lloc and nquad were not read: use default values
@@ -43,11 +43,11 @@ int main(int argc, char **argv)
     // default value of nquad is 0 (Kleinman-Bylander)
     nquad = 0;
   }
-  
+
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   cout << "<fpmd:species xmlns:fpmd=\""
-       << qbox_xmlns() 
-       << "\"" << endl; 
+       << qbox_xmlns()
+       << "\"" << endl;
   cout << "  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " << endl;
   cout << "  xsi:schemaLocation=\"";
   cout << qbox_xmlns();
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
       while ( cin.get() != '\n' );
     }
     cout << "</radial_potential>" << endl;
-    
+
     // read phi except if l == lmax && lloc == lmax_
     if ( !( l == lmax && lloc == lmax ) )
     {
@@ -110,9 +110,9 @@ int main(int argc, char **argv)
     }
     cout << "</projector>" << endl;
   }
-  
+
   cout << "</norm_conserving_pseudopotential>" << endl;
   cout << "</fpmd:species>" << endl;
-  
+
   return 0;
 }

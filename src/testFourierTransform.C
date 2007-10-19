@@ -32,7 +32,7 @@ int main(int argc, char **argv)
   // extra scope to ensure that Context objects get destructed before
   // the MPI_Finalize call
   {
-  
+
   char processor_name[MPI_MAX_PROCESSOR_NAME];
   int namelen;
   PMPI_Get_processor_name(processor_name,&namelen);
@@ -71,13 +71,13 @@ int main(int argc, char **argv)
   }
   UnitCell cell(a,b,c);
   const double omega = cell.volume();
-  
+
   //cout << " ctxt_global: " << ctxt_global;
   //cout << " ctxt_global.comm(): " << ctxt_global.comm() << endl;
   Context ctxt(ctxt_global.size(),1);
   //cout << " ctxt: " << ctxt;
   //cout << " ctxt.comm(): " << ctxt.comm() << endl;
-  
+
   // start scope of wf-v transforms
   {
   // transform and interpolate as for wavefunctions
@@ -101,14 +101,14 @@ int main(int argc, char **argv)
     cout << " flop count: " << flops << endl;
   }
   cout << " wfbasis.nrod_loc(): " << basis.nrod_loc() << endl;
-  cout << " zvec.size: " 
+  cout << " zvec.size: "
        << 2*basis.nrod_loc()*ft2.np2() * sizeof(complex<double>)
        << endl;
 
   cout.setf(ios::fixed,ios::floatfield);
   cout.setf(ios::right,ios::adjustfield);
   cout << setprecision(6);
-  
+
   const double rc = 1.0;
 #if 1
   // Initialize with Fourier coefficients of a normalized gaussian distribution
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
                                     ft2.tm_b_map.real() << endl;
   cout << " bwd1 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
-  
+
   tm.reset();
   ft2.reset_timers();
   tm.start();
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
   //     << " " << 2*basis.np(2) << " ";
   cout << " bwd2 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
-  
+
   // double transform
   tm.reset();
   ft2.reset_timers();
@@ -291,9 +291,9 @@ int main(int argc, char **argv)
                                     ft2.tm_b_map.real() << endl;
   cout << " bwd3 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
-  
+
   } // end of scope for wf-v transforms
-  
+
   ////////////////////////////////////////////////////////////
   // v(g)->vgrid
   Basis vbasis(ctxt,kpoint);
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
   FourierTransform vft(vbasis,vbasis.np(0),vbasis.np(1),vbasis.np(2));
   vector<complex<double> > vf(vft.np012loc());
   vector<complex<double> > vg(vbasis.localsize());
-    
+
   double vflops = 2*vbasis.nrod_loc() *      fft_flops(vft.np2()) +
                    vft.np1()   * vft.np2() * fft_flops(vft.np0()) +
                    vft.np0()   * vft.np2() * fft_flops(vft.np1());
@@ -333,7 +333,7 @@ int main(int argc, char **argv)
                                     vft.tm_b_map.real() << endl;
   cout << " fwd4 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*vflops/tm.real() << " MFlops" << endl;
-  
+
   tm.reset();
   vft.reset_timers();
   tm.start();
@@ -364,13 +364,13 @@ int main(int argc, char **argv)
   //////////////////////////////////////////////////////////////////////////////
   // Integration of a 2-norm normalized plane wave
   //////////////////////////////////////////////////////////////////////////////
-  
+
   for ( int i = 0; i < basis.localsize(); i++ )
   {
     x[i] = 0.0;
   }
   if ( ctxt.myproc() == 0 ) x[1] = 1.0/sqrt(2.0);
-  
+
   ft2.backward(&x[0],&f2[0]);
 
 #if 0
@@ -384,23 +384,23 @@ int main(int argc, char **argv)
              << i << " " << j << " " << k+ft.np2_first() << " "
              << f[ft.index(i,j,k)] << endl;
 #endif
-             
+
 #if 0
   // integral of f^2 in r space must be 1.0
   double sum=0.0, tsum = 0.0;
-  for ( int i = 0; i < f2.size(); i++ ) 
+  for ( int i = 0; i < f2.size(); i++ )
     tsum += norm(f2[i]);
   MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
-  
+
   cout << " sum pw^2: " << sum / ft2.np012() << endl;
-  
+
   //////////////////////////////////////////////////////////////////////////////
   // Integration of a 2-norm normalized gaussian
   //////////////////////////////////////////////////////////////////////////////
   for ( int i = 0; i < basis.localsize(); i++ )
   {
     double g2 = basis.g2(i);
-    x[i] = 1.0 / sqrt(omega) * pow(2.0*M_PI*rc*rc,0.75) * 
+    x[i] = 1.0 / sqrt(omega) * pow(2.0*M_PI*rc*rc,0.75) *
            exp( -0.25 * g2 * rc*rc );
   }
 #endif
@@ -414,10 +414,10 @@ int main(int argc, char **argv)
     gnorm -= norm(x[0]);
   ctxt.dsum(1,1,&gnorm,1);
   cout << " gaussian gnorm: " << gnorm << endl;
-  
+
   ft2.backward(&x[0],&f2[0]);
 #endif
-  
+
 //   for ( int i = 0; i < basis.localsize(); i++ )
 //     cout << basis.kv(3*i) << " " << basis.kv(3*i+1) << " " << basis.kv(3*i+2)
 //          << "     " << x[i] << endl;
@@ -427,13 +427,13 @@ int main(int argc, char **argv)
 //         cout << mype << ": "
 //              << i << " " << j << " " << k+ft2.np2_first() << " "
 //              << f2[ft2.index(i,j,k)] << endl;
-             
+
   // integral of gaussian^2 in r space must be 1.0
   tsum = 0.0;
-  for ( int i = 0; i < f2.size(); i++ ) 
+  for ( int i = 0; i < f2.size(); i++ )
     tsum += norm(f2[i]);
   MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
-  
+
   cout << " gaussian rnorm: " << sum / ft2.np012() << endl;
 #endif
 

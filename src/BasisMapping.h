@@ -3,7 +3,7 @@
 //  BasisMapping.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BasisMapping.h,v 1.1 2007-08-13 21:26:27 fgygi Exp $
+// $Id: BasisMapping.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef BASISMAPPING_H
 #define BASISMAPPING_H
@@ -24,16 +24,16 @@ class BasisMapping
 
   int np0_, np1_, np2_, np012_, np012loc_;
   int nvec_;
-  
+
   std::vector<int> np2_loc_;   // np2_loc_[iproc], iproc=0, nprocs_-1
   std::vector<int> np2_first_; // np2_first_[iproc], iproc=0, nprocs_-1
-  
+
   std::vector<int> scounts, sdispl, rcounts, rdispl;
   std::vector<std::complex<double> > sbuf, rbuf;
 
   std::vector<int> ip_, im_;
   std::vector<int> ipack_, iunpack_;
-  
+
   public:
 
   BasisMapping (const Basis &basis);
@@ -47,17 +47,17 @@ class BasisMapping
   int zvec_size(void) const { return nvec_ * np2_; }
 
   const Context& context(void) const { return ctxt_; }
-  
+
   // map a function c(G) to zvec_
-  void vector_to_zvec(const std::complex<double> *c, 
+  void vector_to_zvec(const std::complex<double> *c,
                       std::complex<double> *zvec);
   // map zvec_ to a function c(G)
-  void zvec_to_vector(const std::complex<double> *zvec, 
+  void zvec_to_vector(const std::complex<double> *zvec,
                       std::complex<double> *c);
-  
-  void transpose_fwd(const std::complex<double> *zvec, 
+
+  void transpose_fwd(const std::complex<double> *zvec,
                      std::complex<double> *ct);
-  void transpose_bwd(const std::complex<double> *ct, 
+  void transpose_bwd(const std::complex<double> *ct,
                      std::complex<double> *zvec);
 };
 #endif

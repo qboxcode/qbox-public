@@ -3,7 +3,7 @@
 // FermiTemp.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FermiTemp.h,v 1.1 2004-10-04 19:55:39 fgygi Exp $
+// $Id: FermiTemp.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef FERMITEMP_H
 #define FERMITEMP_H
@@ -31,7 +31,7 @@ class FermiTemp : public Var
       cout << " fermi_temp takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v < 0.0 )
     {

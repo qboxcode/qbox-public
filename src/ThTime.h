@@ -3,7 +3,7 @@
 // ThTime.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ThTime.h,v 1.1 2003-08-28 00:28:51 fgygi Exp $
+// $Id: ThTime.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef THTIME_H
 #define THTIME_H
@@ -31,7 +31,7 @@ class ThTime : public Var
       cout << " th_time takes only one value" << endl;
       return 1;
     }
-    
+
     double v = atof(argv[1]);
     if ( v < 0.0 )
     {

@@ -3,7 +3,7 @@
 // ListSpeciesCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ListSpeciesCmd.h,v 1.1 2003-03-27 22:05:59 fgygi Exp $
+// $Id: ListSpeciesCmd.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef LISTSPECIESCMD_H
 #define LISTSPECIESCMD_H
@@ -24,7 +24,7 @@ class ListSpeciesCmd : public Cmd
   char *name(void) const { return "list_species"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n list_species\n\n"
     " syntax: list_species\n\n"
     "   The list_species command prints a list of all defined species.\n\n";

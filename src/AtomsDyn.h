@@ -3,7 +3,7 @@
 // AtomsDyn.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomsDyn.h,v 1.2 2004-12-10 01:07:48 fgygi Exp $
+// $Id: AtomsDyn.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef ATOMSDYN_H
 #define ATOMSDYN_H
@@ -31,7 +31,7 @@ class AtomsDyn : public Var
       cout << " atoms_dyn takes only one value" << endl;
       return 1;
     }
-    
+
     string v = argv[1];
     if ( !( v == "LOCKED" || v == "SD" || v == "SDA" || v == "MD" ) )
     {
@@ -41,7 +41,7 @@ class AtomsDyn : public Var
     }
 
     s->ctrl.atoms_dyn = v;
-    
+
     return 0;
   }
 

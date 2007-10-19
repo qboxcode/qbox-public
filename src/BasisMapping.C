@@ -3,7 +3,7 @@
 //  BasisMapping.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BasisMapping.C,v 1.1 2007-08-13 21:26:27 fgygi Exp $
+// $Id: BasisMapping.C,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -14,14 +14,14 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()), 
+BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
  basis_(basis)
-  
+
 {
   assert(ctxt_.npcol() == 1);
   nprocs_ = ctxt_.size();
   myproc_ = ctxt_.myproc();
-  
+
   np0_ = basis.np(0);
   np1_ = basis.np(1);
   np2_ = basis.np(2);
@@ -31,7 +31,7 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
   np2_first_.resize(nprocs_);
 
   // Block-cyclic distribution for np2
-  // Partition np2 into nprocs_ intervals and 
+  // Partition np2 into nprocs_ intervals and
   // store local sizes in np2_loc_[iproc]
   // Use same block distribution as in ScaLAPACK
   // Blocks 0,...,nprocs_-2 have size np2_block_size
@@ -75,16 +75,16 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
   {
     nvec_ = basis_.nrod_loc();
   }
-  
+
   // allocate send buffer
   sbuf.resize(nvec_ * np2_);
-  
+
   // allocate receive buffer
   if ( basis_.real() )
     rbuf.resize((2 * basis_.nrods() - 1) * np2_loc_[myproc_]);
   else
     rbuf.resize(basis_.nrods() * np2_loc_[myproc_]);
-  
+
   // compute send/receive counts and displacements in units of sizeof(double)
 
   scounts.resize(nprocs_);
@@ -119,13 +119,13 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
     sdispl[iproc] = sdispl[iproc-1] + scounts[iproc-1];
     rdispl[iproc] = rdispl[iproc-1] + rcounts[iproc-1];
   }
-  
+
   if ( basis_.real() )
   {
     // compute index arrays ip_ and im_ for mapping vector->zvec
     ip_.resize(basis_.localsize());
     im_.resize(basis_.localsize());
- 
+
     if ( myproc_ == 0 )
     {
       // this process holds rod(0,0)
@@ -210,7 +210,7 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
         isource += np2_;
       }
     }
- 
+
     // compute array iunpack
     // used in unpacking rbuf into val
     // val[iunpack[i]] = rbuf[i]
@@ -228,7 +228,7 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
     }
     int isource_p = np2_loc_[myproc_];
     int isource_m = 2 * np2_loc_[myproc_];
- 
+
     // all rods of pe 0
     for ( int irod = 1; irod < basis_.nrod_loc(0); irod++ )
     {
@@ -271,17 +271,17 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
         int kp = basis_.rod_k(iproc,irod);
         if ( hp < 0 ) hp += np0_;
         if ( kp < 0 ) kp += np1_;
- 
+
         int hm = -hp;
         int km = -kp;
         if ( hm < 0 ) hm += np0_;
         if ( km < 0 ) km += np1_;
- 
+
         for ( int l = 0; l < np2_loc_[myproc_]; l++ )
         {
           int idest_p = hp + np0_ * ( kp + np1_ * l );
           iunpack_[isource_p+l] = idest_p;
- 
+
           int idest_m = hm + np0_ * ( km + np1_ * l );
           iunpack_[isource_m+l] = idest_m;
         }
@@ -296,7 +296,7 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
     // compute index array ip_ for mapping vector->zvec
     // Note: im_ is not used
     ip_.resize(basis_.localsize());
- 
+
     // map rods(h,k)
     // rod(h,k)   maps onto column irod*np2_ of zvec_, irod=0,..,nrods-1
     int ig = 0;
@@ -333,7 +333,7 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
         isource += np2_;
       }
     }
- 
+
     // compute array iunpack
     // used in unpacking rbuf into val
     // val[iunpack[i]] = rbuf[i]
@@ -355,18 +355,18 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
         int k = basis_.rod_k(iproc,irod);
         if ( h < 0 ) h += np0_;
         if ( k < 0 ) k += np1_;
- 
+
         for ( int l = 0; l < np2_loc_[myproc_]; l++ )
         {
           int idest = h + np0_ * ( k + np1_ * l );
           iunpack_[isource+l] = idest;
- 
+
         }
         isource += np2_loc_[myproc_];
       }
     }
   }
-  
+
 #if USE_GATHER_SCATTER
   // shift index array by one for fortran ZGTHR and ZSCTR calls
   for ( int i = 0; i < iunpack_.size(); i++ )
@@ -381,7 +381,7 @@ BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void BasisMapping::transpose_fwd(const complex<double> *zvec, 
+void BasisMapping::transpose_fwd(const complex<double> *zvec,
   complex<double> *ct)
 {
   // Transpose zvec to ct
@@ -409,9 +409,9 @@ void BasisMapping::transpose_fwd(const complex<double> *zvec,
     ps[2*ip+1] = b;
   }
 #endif
-  
+
   // segments of z-vectors are now in sbuf
-  
+
   // transpose
 #if USE_MPI
   int status = MPI_Alltoallv((double*)&sbuf[0],&scounts[0],&sdispl[0],
@@ -426,7 +426,7 @@ void BasisMapping::transpose_fwd(const complex<double> *zvec,
   assert(sbuf.size()==rbuf.size());
   rbuf = sbuf;
 #endif
-  
+
   // copy from rbuf to ct
   // scatter index array iunpack
   {
@@ -438,7 +438,7 @@ void BasisMapping::transpose_fwd(const complex<double> *zvec,
       pv[2*i+1] = 0.0;
     }
   }
-  
+
 #if USE_GATHER_SCATTER
   // zsctr(n,x,indx,y): y(indx(i)) = x(i)
   {
@@ -466,9 +466,9 @@ void BasisMapping::transpose_fwd(const complex<double> *zvec,
 
   // coefficients are now in ct
 }
-  
+
 ////////////////////////////////////////////////////////////////////////////////
-void BasisMapping::transpose_bwd(const complex<double> *ct, 
+void BasisMapping::transpose_bwd(const complex<double> *ct,
   complex<double> *zvec)
 {
   // transpose back distributed array ct into zvec
@@ -496,7 +496,7 @@ void BasisMapping::transpose_bwd(const complex<double> *ct,
     pr[2*i+1] = b;
   }
 #endif
-  
+
   // transpose
 #if USE_MPI
   int status = MPI_Alltoallv((double*)&rbuf[0],&rcounts[0],&rdispl[0],
@@ -507,10 +507,10 @@ void BasisMapping::transpose_bwd(const complex<double> *ct,
   assert(sbuf.size()==rbuf.size());
   rbuf = sbuf;
 #endif
-  
+
   // segments of z-vectors are now in sbuf
   // gather sbuf into zvec_
-  
+
 #if USE_GATHER_SCATTER
   // zgthr: x(i) = y(indx(i))
   // void zgthr_(int* n, complex<double>* y, complex<double>* x, int*indx);
@@ -537,7 +537,7 @@ void BasisMapping::transpose_bwd(const complex<double> *ct,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void BasisMapping::vector_to_zvec(const complex<double> *c, 
+void BasisMapping::vector_to_zvec(const complex<double> *c,
   complex<double> *zvec)
 {
   // map coefficients from the basis order to a zvec
@@ -551,7 +551,7 @@ void BasisMapping::vector_to_zvec(const complex<double> *c,
   }
   const double* const pc = (const double*) c;
   if ( basis_.real() )
-  {  
+  {
     for ( int ig = 0; ig < ng; ig++ )
     {
       // zvec[ip_[ig]] = c[ig];
@@ -578,7 +578,7 @@ void BasisMapping::vector_to_zvec(const complex<double> *c,
     }
 }
 ////////////////////////////////////////////////////////////////////////////////
-void BasisMapping::zvec_to_vector(const complex<double> *zvec, 
+void BasisMapping::zvec_to_vector(const complex<double> *zvec,
   complex<double> *c)
 {
   const int ng = basis_.localsize();

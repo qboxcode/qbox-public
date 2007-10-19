@@ -3,7 +3,7 @@
 // FourierTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.h,v 1.10 2007-03-17 01:14:00 fgygi Exp $
+// $Id: FourierTransform.h,v 1.11 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef FOURIERTRANSFORM_H
 #define FOURIERTRANSFORM_H
@@ -30,21 +30,21 @@ class FourierTransform
 
   int np0_,np1_,np2_;
   int ntrans0_,ntrans1_,ntrans2_;
-  
+
   int nvec_;
-  
+
   std::vector<int> np2_loc_; // np2_loc_[iproc], iproc=0, nprocs_-1
   std::vector<int> np2_first_; // np2_first_[iproc], iproc=0, nprocs_-1
   std::vector<std::complex<double> > zvec_;
-  
+
   std::vector<int> scounts, sdispl, rcounts, rdispl;
   std::vector<std::complex<double> > sbuf, rbuf;
 
   std::vector<int> ifftp_, ifftm_;
   std::vector<int> ipack_, iunpack_;
-  
+
   void init_lib(void);
-  
+
 #if USE_ESSL
 #if USE_ESSL_2DFFT
   std::vector<double> aux1xyf;
@@ -69,13 +69,13 @@ class FourierTransform
   void zvec_to_doublevector(std::complex<double>* c1, std::complex<double>* c2);
   void fwd(std::complex<double>* val);
   void bwd(std::complex<double>* val);
-       
+
   public:
 
   FourierTransform (const Basis &basis, int np0, int np1, int np2);
   ~FourierTransform ();
   const Context& context(void) const { return ctxt_; }
-  
+
   // backward: Fourier synthesis, compute real-space function
   // forward:  Fourier analysis, compute Fourier coefficients
   // forward transform includes scaling by 1/np012
@@ -83,14 +83,14 @@ class FourierTransform
   void backward (const std::complex<double>* c, std::complex<double>* f);
   // Note: forward transforms overwrite the array f
   void forward(std::complex<double>* f, std::complex<double>* c);
-  
+
   // double transforms: c1 + i*c2 -> f, f -> c1 + i*c2
-  void backward (const std::complex<double>* c1, 
+  void backward (const std::complex<double>* c1,
                  const std::complex<double>* c2, std::complex<double>* f);
   // Note: forward transforms overwrite the array f
-  void forward(std::complex<double>* f, 
+  void forward(std::complex<double>* f,
                std::complex<double>* c1, std::complex<double>* c2);
-  
+
   int np0() const { return np0_; }
   int np1() const { return np1_; }
   int np2() const { return np2_; }
@@ -102,7 +102,7 @@ class FourierTransform
   int np012loc(int iproc) const { return np0_ * np1_ * np2_loc_[iproc]; }
   int np012loc() const { return np0_ * np1_ * np2_loc_[myproc_]; }
   int index(int i, int j, int k) const
-  { return i + np0_ * ( j +  np1_ * k ); } 
+  { return i + np0_ * ( j +  np1_ * k ); }
 
   void reset_timers(void);
   Timer tm_f_map, tm_f_fft, tm_f_pack, tm_f_mpi, tm_f_zero, tm_f_unpack,

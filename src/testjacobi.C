@@ -1,8 +1,8 @@
-// $Id: testjacobi.C,v 1.2 2007-03-17 01:09:04 fgygi Exp $
+// $Id: testjacobi.C,v 1.3 2007-10-19 16:24:06 fgygi Exp $
 //
 // test jacobi
 //
-// use: testjacobi 
+// use: testjacobi
 //
 
 #include <cassert>
@@ -64,14 +64,14 @@ int main(int argc, char **argv)
     cout<<"m_a="<<m_a<<", n_a="<<n_a<<endl;
   }
 #ifdef USE_MPI
-  MPI_Bcast(&nprow, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&npcol, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&m_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&n_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&mb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
-  MPI_Bcast(&nb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);    
+  MPI_Bcast(&nprow, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&npcol, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&m_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&n_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&mb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&nb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
-  {  
+  {
     Context ctxt(nprow,npcol);
 
     if ( mype == 0 )
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 
     for ( int m = 0; m < a.nblocks(); m++ )
       for ( int l = 0; l < a.mblocks(); l++ )
-        for ( int y = 0; y < a.nbs(m); y++ )  
+        for ( int y = 0; y < a.nbs(m); y++ )
           for ( int x = 0; x < a.mbs(l); x++ )
           {
             int i = a.i(l,x);
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
             a[ival] = aij;
           }
     //cout << a;
-    
+
     const int maxsweep = 30;
     tm.start();
     double tol = 1.e-10;
@@ -114,16 +114,16 @@ int main(int argc, char **argv)
     tm.stop();
     if ( ctxt.onpe0() ) cout << " nsweep: " << nsweep << endl;
     if (ctxt.mype() == 0) cout << "Jacobi time: " << tm.real() << endl;
-    
+
     sort(e.begin(),e.end());
-    
+
     vector<double> e_exact(e.size());
     for ( int i = 0; i < e_exact.size(); i++ )
     {
       e_exact[i] = 1.0 / ( 2.0 * ( 1.0 - cos( ((2*i+1)*M_PI)/(2*a.n()+1)) ) );
     }
     sort(e_exact.begin(),e_exact.end());
-    
+
     double asum = 0.0;
     for ( int i = 0; i < e.size(); i++ )
     {
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
     //cout << " au=" << endl;
     //cout << a;
 
-#if 1    
+#if 1
     // Eigenvalues and eigenvectors of c if c is square
     if ( a.m() == a.n() && a.mb() == a.nb() )
     {

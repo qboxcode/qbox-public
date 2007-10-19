@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.18 2007-08-13 21:24:17 fgygi Exp $
+// $Id: SampleReader.C,v 1.19 2007-10-19 16:24:04 fgygi Exp $
 
 
 #include "Sample.h"
@@ -20,6 +20,7 @@
 
 #include <cassert>
 #include <string>
+#include <fstream>
 #include <iostream>
 #include <sys/stat.h>
 
@@ -54,11 +55,11 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   bool schemaFullChecking = true;
   bool namespacePrefixes = false;
   SAX2XMLReader* parser = 0;
-  
+
   Wavefunction wfvtmp(s.wf);
-  
+
   MemBufInputSource* memBufIS = 0;
-  
+
   // XMLPlatformUtils initialization on task 0 only
   int ierr = 0;
   if ( ctxt_.onpe0() )
@@ -83,14 +84,14 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   //cout << ctxt_.mype() <<": SampleReader: ierr=" << ierr << endl;
   if ( ierr > 0 )
     throw SampleReaderException("error in XMLPlatformUtils::Initialize");
-    
+
   // Determine if uri is a local file
   struct stat statbuf;
   bool read_from_file = !stat(uri.c_str(),&statbuf);
-  
+
   // check for serial override
   read_from_file &= !serial;
-  
+
   string xmlcontent;
   DoubleMatrix gfdata(ctxt_);
   if ( read_from_file )
@@ -100,25 +101,25 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       cout << " SampleReader: reading from file "
            << filename << " size: "
            << statbuf.st_size << endl;
-         
+
     XMLGFPreprocessor xmlgfp;
-    
+
     xmlgfp.process(filename,gfdata,xmlcontent);
-    
+
     if ( ctxt_.onpe0() )
     {
-      // cout << ctxt_.mype() << ": xmlcontent.size(): " << xmlcontent.size() 
+      // cout << ctxt_.mype() << ": xmlcontent.size(): " << xmlcontent.size()
       //      << endl;
       // cout << ctxt_.mype() << ": xmlcontent: " << xmlcontent << endl;
       memBufIS = new MemBufInputSource
         ( (const XMLByte*) &xmlcontent[0], xmlcontent.size(), "buf_id", false);
     }
   }
-    
+
   bool read_wf = false;
   bool read_wfv = false;
   // initialize wavefunction_velocity in case it appears in the sample file
-  
+
   if ( ctxt_.onpe0() )
   {
     parser = XMLReaderFactory::createXMLReader();
@@ -146,7 +147,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
 
     int errorCount = 0;
     SampleHandler* s_handler = new SampleHandler(s,gfdata,wfvtmp);
-    
+
     try
     {
       StructuredDocumentHandler handler(s_handler);
@@ -164,7 +165,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       else
         parser->parse(uri.c_str());
       cout << " XML parsing done" << endl;
- 
+
       errorCount = parser->getErrorCount();
     }
 
@@ -189,29 +190,29 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         //delete parser;
         //throw;
     }
-    
+
     read_wf = s_handler->read_wf;
     if ( read_wf )
       cout << " wavefunction was read" << endl;
     read_wfv = s_handler->read_wfv;
     if ( read_wfv )
       cout << " wavefunction velocity was read" << endl;
-      
+
     delete s_handler;
     delete parser;
     XMLPlatformUtils::Terminate();
-    
+
     // parsing of sample is complete, send end of sample tag to tasks > 0
     int tag = 0;
     ctxt_.ibcast_send(1,1,&tag,1);
-    
+
   } // onpe0
   else
   {
     // tasks > 0
     // listen for Sample events
     // cout << ctxt_.mype() << ": listening..." << endl;
-    
+
     bool done = false;
     int tag = -1;
     while ( !done )
@@ -230,7 +231,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         SpeciesReader sp_reader(ctxt_);
         sp_reader.bcastSpecies(*sp);
         s.atoms.addSpecies(sp,curr_name);
-      }        
+      }
       else if ( tag == 2 )
       {
         // Atom
@@ -261,7 +262,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         s.wf.set_nel(nel);
         s.wf.set_nspin(nspin);
         s.wf.set_nempty(nempty);
-        
+
         // domain
         double buf[9];
         ctxt_.dbcast_recv(9,1,buf,1,0,0);
@@ -269,26 +270,26 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         D3vector b(buf[3],buf[4],buf[5]);
         D3vector c(buf[6],buf[7],buf[8]);
         UnitCell uc(a,b,c);
-        
+
         // grid
         // receive only computed ecut
         double ecut;
         ctxt_.dbcast_recv(1,1,&ecut,1,0,0);
-        
+
         // reference_domain
         ctxt_.dbcast_recv(9,1,buf,1,0,0);
         D3vector ar(buf[0],buf[1],buf[2]);
         D3vector br(buf[3],buf[4],buf[5]);
         D3vector cr(buf[6],buf[7],buf[8]);
         UnitCell ruc(ar,br,cr);
-        
+
         s.wf.resize(uc,ruc,ecut);
-        
+
         //cout << ctxt_.mype() << ": wf resized, ecut=" << ecut << endl;
-        
+
         //!! nkpoint fixed = 1
         const int nkpoint = 1;
-        
+
         for ( int ispin = 0; ispin < nspin; ispin++ )
         {
           for ( int ikp = 0; ikp < nkpoint; ikp++ )
@@ -300,7 +301,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
               vector<double> dmat_tmp(sd->nst());
               sd->context().dbcast_recv(sd->nst(),1,&dmat_tmp[0],1,0,0);
               sd->set_occ(dmat_tmp);
-                
+
               if ( !read_from_file )
               {
                 const Basis& basis = sd->basis();
@@ -322,7 +323,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
                   //cout << sd->context().mype()
                   //     << ": grid_function nloc=" << nloc
                   //     << "received" << endl;
- 
+
                   // copy to complex array
                   for ( int i = 0; i < size; i++ )
                   {
@@ -353,7 +354,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         wfvtmp.set_nel(nel);
         wfvtmp.set_nspin(nspin);
         wfvtmp.set_nempty(nempty);
-        
+
         // domain
         double buf[9];
         ctxt_.dbcast_recv(9,1,buf,1,0,0);
@@ -361,26 +362,26 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         D3vector b(buf[3],buf[4],buf[5]);
         D3vector c(buf[6],buf[7],buf[8]);
         UnitCell uc(a,b,c);
-        
+
         // grid
         // receive only computed ecut
         double ecut;
         ctxt_.dbcast_recv(1,1,&ecut,1,0,0);
-        
+
         // reference_domain
         ctxt_.dbcast_recv(9,1,buf,1,0,0);
         D3vector ar(buf[0],buf[1],buf[2]);
         D3vector br(buf[3],buf[4],buf[5]);
         D3vector cr(buf[6],buf[7],buf[8]);
         UnitCell ruc(ar,br,cr);
-        
+
         wfvtmp.resize(uc,ruc,ecut);
-        
+
         //cout << ctxt_.mype() << ": wfv resized, ecut=" << ecut << endl;
-        
+
         //!! nkpoint fixed = 1
         const int nkpoint = 1;
-        
+
         for ( int ispin = 0; ispin < nspin; ispin++ )
         {
           for ( int ikp = 0; ikp < nkpoint; ikp++ )
@@ -392,7 +393,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
               vector<double> dmat_tmp(sd->nst());
               sd->context().dbcast_recv(sd->nst(),1,&dmat_tmp[0],1,0,0);
               sd->set_occ(dmat_tmp);
-                
+
               if ( !read_from_file )
               {
                 const Basis& basis = sd->basis();
@@ -414,7 +415,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
                   //cout << sd->context().mype()
                   //     << ": grid_function nloc=" << nloc
                   //     << "received" << endl;
- 
+
                   // copy to complex array
                   for ( int i = 0; i < size; i++ )
                   {
@@ -434,26 +435,29 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     }
   } // if-else onpe0
 
+  cout << "SampleReader: after if-else onpe0" << endl;
   // This part is now executing on all tasks
   if ( read_from_file )
   {
     if ( read_wf )
     {
+      ofstream gffile("gf.dat");
+      gffile << gfdata;
       // transfer data from the gfdata matrix to the SlaterDets
-      //cout << ctxt_.mype() << ": mapping gfdata matrix..." 
+      //cout << ctxt_.mype() << ": mapping gfdata matrix..."
       //     << endl;
       //cout << ctxt_.mype() << ": gfdata: (" << gfdata.m() << "x" << gfdata.n()
       //<< ") (" << gfdata.mb() << "x" << gfdata.nb() << ") blocks" << endl;
       //cout << ctxt_.mype() << ": gfdata.mloc()=" << gfdata.mloc()
       //<< " gfdata.nloc()=" << gfdata.nloc() << endl;
-           
+
       //!! Next lines work for 1 kpoint, 1 spin only
       SlaterDet* sd = s.wf.sd(0,0);
       const Basis& basis = sd->basis();
       FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
       //cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
       //cout << ctxt_.mype() << ": ft.context(): " << ft.context();
-      
+
       ComplexMatrix& c = sd->c();
       DoubleMatrix wftmpr(sd->context(),ft.np012(),sd->nst(),
         ft.np012loc(0),c.nb());
@@ -462,16 +466,16 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       //cout << ctxt_.mype() << ": wftmpr.mloc()=" << wftmpr.mloc()
       //<< " wftmpr.nloc()=" << wftmpr.nloc() << endl;
 
-      vector<complex<double> > wftmp(ft.np012loc());      
+      vector<complex<double> > wftmp(ft.np012loc());
       wftmpr.getsub(gfdata,ft.np012(),sd->nst(),0,0);
-      
+
 #if 0
       // Check orthogonality by computing overlap matrix
       DoubleMatrix smat(sd->context(),sd->nst(),sd->nst(),c.nb(),c.nb());
       smat.syrk('l','t',1.0,wftmpr,0.0);
       cout << smat;
 #endif
-      
+
       for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
       {
         // copy to complex array
@@ -481,24 +485,24 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         ft.forward(&wftmp[0],c.valptr(c.mloc()*nloc));
       }
     } // if read_wf
-    
+
     if ( read_wfv )
     {
       // transfer wfv data from the gfdata matrix to the SlaterDets
-      //cout << ctxt_.mype() << ": mapping gfdata matrix..." 
+      //cout << ctxt_.mype() << ": mapping gfdata matrix..."
       //     << endl;
       //cout << ctxt_.mype() << ": gfdata: (" << gfdata.m() << "x" << gfdata.n()
       //<< ") (" << gfdata.mb() << "x" << gfdata.nb() << ") blocks" << endl;
       //cout << ctxt_.mype() << ": gfdata.mloc()=" << gfdata.mloc()
       //<< " gfdata.nloc()=" << gfdata.nloc() << endl;
-           
+
       //!! Next lines work for 1 kpoint, 1 spin only
       SlaterDet* sd = wfvtmp.sd(0,0);
       const Basis& basis = sd->basis();
       FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
       //cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
       //cout << ctxt_.mype() << ": ft.context(): " << ft.context();
-      
+
       ComplexMatrix& c = sd->c();
       DoubleMatrix wftmpr(sd->context(),ft.np012(),sd->nst(),
         ft.np012loc(0),c.nb());
@@ -507,9 +511,9 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       //cout << ctxt_.mype() << ": wftmpr.mloc()=" << wftmpr.mloc()
       //<< " wftmpr.nloc()=" << wftmpr.nloc() << endl;
 
-      vector<complex<double> > wftmp(ft.np012loc());      
+      vector<complex<double> > wftmp(ft.np012loc());
       wftmpr.getsub(gfdata,ft.np012(),sd->nst(),0,sd->nst());
-      
+
       for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
       {
         // copy to complex array
@@ -520,7 +524,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       }
     }
   }
-  
+
   // check if wavefunction_velocity element was read, if not, delete wfvtmp
   if ( s.wfv != 0 )
   {

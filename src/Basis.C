@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.13 2005-01-04 22:07:39 fgygi Exp $
+// $Id: Basis.C,v 1.14 2007-10-19 16:24:04 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -23,13 +23,13 @@ struct BasisImpl
 {
   Context ctxt_;
   int nprow_, myrow_;
-  
+
   UnitCell cell_;         // cell dimensions
   UnitCell refcell_;      // reference cell dimensions
   D3vector kpoint_;       // k-point in units of b0,b1,b2
   double ecut_;           // energy cutoff of wavefunctions in Rydberg
-  int idxmin_[3];          // minimum index in each direction 
-  int idxmax_[3];          // maximum index in each direction 
+  int idxmin_[3];          // minimum index in each direction
+  int idxmax_[3];          // maximum index in each direction
   int size_;              // basis size
   int nrods_;             // total number of rods
   vector<int> localsize_; // localsize_[ipe]
@@ -40,7 +40,7 @@ struct BasisImpl
   vector<vector<int> > rod_lmin_;
   vector<vector<int> > rod_size_;
   vector<vector<int> > rod_first_;
-  
+
   vector<int>    idx_;   // 3-d index of vectors idx[i*3+j]
   vector<double> g_;     // norm of g vectors g[localsize]
   vector<double> kpg_;   // norm of g vectors g[localsize]
@@ -53,21 +53,21 @@ struct BasisImpl
   vector<double> gx2_;   // g vectors components^2 gx2[j*localsize+i], j=0,1,2
   vector<int> isort_loc; // index array to access locally sorted vectors
                          // g2_[isort_loc[i]] < g2_[isort_loc[j]] if i < j
-  bool real_;            // true if k=0 
-  
+  bool real_;            // true if k=0
+
   bool resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
-  
+
   BasisImpl(const Context &ctxt, D3vector kpoint);
   ~BasisImpl(void);
-  
+
   void update_g(void);
-  
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 double Basis::localmemsize(void) const
-{ 
-  return 
+{
+  return
   5.0 * (pimpl_->nprow_*pimpl_->nrods_*sizeof(int)) // x[ipe][irod]
   + pimpl_->localsize_[pimpl_->myrow_] * (3.0*sizeof(int) + 10 * sizeof(double));
 }
@@ -136,21 +136,21 @@ const double* Basis::gi_ptr(void) const   { return &(pimpl_->gi_[0]); }
 const double* Basis::g2_ptr(void) const   { return &(pimpl_->g2_[0]); }
 const double* Basis::kpg2_ptr(void) const { return &(pimpl_->kpg2_[0]); }
 const double* Basis::g2i_ptr(void) const  { return &(pimpl_->g2i_[0]); }
-const double* Basis::gx_ptr(int j) const 
+const double* Basis::gx_ptr(int j) const
 { return &(pimpl_->gx_[j*pimpl_->localsize_[pimpl_->myrow_]]); }
-const double* Basis::gx2_ptr(int j) const 
+const double* Basis::gx2_ptr(int j) const
 { return &(pimpl_->gx2_[j*pimpl_->localsize_[pimpl_->myrow_]]); }
 
 ////////////////////////////////////////////////////////////////////////////////
 inline bool factorizable(int n)
 {
   // next lines: use AIX criterion for all platforms (AIX and fftw)
-  
+
 //#if AIX
 
   // Acceptable lengths for FFTs in the ESSL library:
-  // n = (2^h) (3^i) (5^j) (7^k) (11^m) for n <= 37748736 
-  // where: 
+  // n = (2^h) (3^i) (5^j) (7^k) (11^m) for n <= 37748736
+  // where:
   //  h = 1, 2, ..., 25
   //  i = 0, 1, 2
   //  j, k, m = 0, 1
@@ -163,7 +163,7 @@ inline bool factorizable(int n)
   // memory allocation problems
   while ( ( n % 2 == 0 ) ) n /= 2;
   return ( n == 1 );
-  
+
 // #else
 //   while ( n % 5 == 0 ) n /= 5;
 //   while ( n % 3 == 0 ) n /= 3;
@@ -188,11 +188,11 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell, double ecut)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-Basis::Basis(const Context& ctxt, D3vector kpoint) : 
+Basis::Basis(const Context& ctxt, D3vector kpoint) :
   pimpl_(new BasisImpl(ctxt,kpoint)) {}
 
 ////////////////////////////////////////////////////////////////////////////////
-Basis::Basis(const Basis& b) : 
+Basis::Basis(const Basis& b) :
   pimpl_(new BasisImpl(b.context(),b.kpoint()))
 {
   resize(b.cell(),b.refcell(),b.ecut());
@@ -209,11 +209,11 @@ class Rod
 {
   // z-column of non-zero reciprocal lattice vectors
   int h_, k_, lmin_, size_;
-  
+
   public:
-  Rod(int h, int k, int lmin, int size) : h_(h), k_(k), 
+  Rod(int h, int k, int lmin, int size) : h_(h), k_(k),
   lmin_(lmin), size_(size) {}
-  
+
   int h(void) const { return h_; }
   int k(void) const { return k_; }
   int lmin(void) const { return lmin_; }
@@ -228,15 +228,15 @@ class Rod
 class Node
 {
   int id_, nrods_, size_;
-  
+
   public:
   Node() : id_(0), nrods_(0), size_(0) {}
   Node(int id) : id_(id), nrods_(0), size_(0) {}
-  
+
   int id(void) const { return id_; }
   int nrods(void) const { return nrods_; }
   int size(void) const { return size_; }
-  
+
   void addrod(const Rod& r)
   {
     nrods_++;
@@ -275,7 +275,7 @@ struct VectorLess
     return a_[i] < a_[j];
   }
 };
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 BasisImpl::BasisImpl(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt)
 {
@@ -287,7 +287,7 @@ BasisImpl::BasisImpl(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt)
   ecut_ = 0.0;
   kpoint_ = kpoint;
   real_ = ( kpoint == D3vector(0.0,0.0,0.0) );
-  
+
   localsize_.resize(nprow_);
   nrod_loc_.resize(nprow_);
   rod_h_.resize(nprow_);
@@ -295,7 +295,7 @@ BasisImpl::BasisImpl(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt)
   rod_lmin_.resize(nprow_);
   rod_size_.resize(nprow_);
   rod_first_.resize(nprow_);
-  
+
   // resize with zero cutoff to initialize empty Basis
   resize(cell_,refcell_,0.0);
 }
@@ -304,13 +304,13 @@ BasisImpl::BasisImpl(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt)
 BasisImpl::~BasisImpl(void) {}
 
 ////////////////////////////////////////////////////////////////////////////////
-bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell, 
+bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   double ecut)
 {
   assert(ecut>=0.0);
   assert(cell.volume() >= 0.0);
   assert(refcell.volume() >= 0.0);
-  
+
   if ( ecut == ecut_ && refcell == refcell_ && refcell_.volume() != 0.0 )
   {
     cell_ = cell;
@@ -318,11 +318,11 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
     update_g();
     return true;
   }
-  
+
   ecut_ = ecut;
   cell_ = cell;
   refcell_ = refcell;
-  
+
   if ( ecut == 0.0 || cell.volume() == 0.0)
   {
     idxmax_[0] = 0;
@@ -331,7 +331,7 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
     idxmin_[0] = 0;
     idxmin_[1] = 0;
     idxmin_[2] = 0;
- 
+
     size_ = 0;
     nrods_ = 0;
     for ( int ipe = 0; ipe < nprow_; ipe++ )
@@ -353,14 +353,14 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
     isort_loc.resize(localsize_[myrow_]);
     return true;
   }
-  
+
   const double two_ecut = 2.0 * ecut;
   const double twopi = 2.0 * M_PI;
 
   const double kpx = kpoint_.x;
   const double kpy = kpoint_.y;
   const double kpz = kpoint_.z;
-  
+
   UnitCell defcell;
   // defcell: cell used to define which vectors are contained in the Basis
   // if refcell is defined, defcell = refcell
@@ -373,39 +373,39 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   {
     defcell = refcell;
   }
-  
+
   const D3vector b0 = defcell.b(0);
   const D3vector b1 = defcell.b(1);
   const D3vector b2 = defcell.b(2);
-  
+
   const double normb2 = norm(b2);
   const double b2inv2 = 1.0 / normb2;
-  
+
   const D3vector kp = kpx*b0 + kpy*b1 + kpz*b2;
-  
+
   if ( !cell.in_bz(kp) )
     cout << " Basis::resize: warning: " << kpoint_
          << " out of the BZ: " << kp << endl;
 
   const double fac = sqrt(two_ecut) / twopi;
 
-  // define safe enclosing domain  
+  // define safe enclosing domain
   const int hmax = (int) ( fac * (
     abs(defcell.a(0).x) + abs(defcell.a(0).y) + abs(defcell.a(0).z) ) );
   const int hmin = - hmax;
-  
+
   const int kmax = (int) ( fac * (
     abs(defcell.a(1).x) + abs(defcell.a(1).y) + abs(defcell.a(1).z) ) );
   const int kmin = - kmax;
- 
+
   const int lmax = (int) ( fac * (
     abs(defcell.a(2).x) + abs(defcell.a(2).y) + abs(defcell.a(2).z) ) );
   const int lmin = - lmax;
-  
+
   multiset<Rod> rodset;
-  
+
   // build rod set
-  
+
   int hmax_used = hmin;
   int hmin_used = hmax;
   int kmax_used = kmin;
@@ -430,7 +430,7 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
     kmax_used = 0;
     lmin_used = 0;
     lmax_used = lend;
-    
+
     // rods (0,k,l)
     for ( int k = 1; k <= kmax; k++ )
     {
@@ -533,7 +533,7 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
       }
     }
   }
-  
+
   //cout << " hmin/hmax: " << hmin << " / " << hmax << endl;
   //cout << " kmin/kmax: " << kmin << " / " << kmax << endl;
   //cout << " lmin/lmax: " << lmin << " / " << lmax << endl;
@@ -543,20 +543,20 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
 
   idxmax_[0] = hmax_used;
   idxmin_[0] = hmin_used;
-  
+
   idxmax_[1] = kmax_used;
   idxmin_[1] = kmin_used;
-  
+
   idxmax_[2] = lmax_used;
   idxmin_[2] = lmin_used;
-  
+
   assert(hmax_used <= hmax);
   assert(hmin_used >= hmin);
   assert(kmax_used <= kmax);
   assert(kmin_used >= kmin);
   assert(lmax_used <= lmax);
   assert(lmin_used >= lmin);
-  
+
   // compute good FFT sizes
   for ( int i = 0; i < 3; i++ )
   {
@@ -568,9 +568,9 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   // Distribute the basis on nprow_ processors
 
   // build a min-heap of Nodes
- 
+
   vector<Node*> nodes(nprow_);
- 
+
   for ( int ipe = 0; ipe < nprow_; ipe++ )
   {
     nodes[ipe] = new Node(ipe);
@@ -583,7 +583,7 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   }
 
   // nodes contains a valid min-heap of zero-size Nodes
- 
+
   // insert rods into the min-heap
   // keep track of where rod(0,0,0) goes
   int pe_rod0 = -1, rank_rod0 = -1;
@@ -592,7 +592,7 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   {
     // pop smallest element
     pop_heap(nodes.begin(), nodes.end(), ptr_greater<Node>());
-    
+
     // add rod size to smaller element
     nodes[nprow_-1]->addrod(*p);
     int ipe = nodes[nprow_-1]->id();
@@ -612,20 +612,20 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
 
     // push modified element back in the heap
     push_heap(nodes.begin(), nodes.end(), ptr_greater<Node>());
-    
+
     p++;
   }
-  
-  maxlocalsize_ = (*max_element(nodes.begin(), nodes.end(), 
+
+  maxlocalsize_ = (*max_element(nodes.begin(), nodes.end(),
     ptr_less<Node>()))->size();
-  minlocalsize_ = (*min_element(nodes.begin(), nodes.end(), 
+  minlocalsize_ = (*min_element(nodes.begin(), nodes.end(),
     ptr_less<Node>()))->size();
- 
+
   for ( int ipe = 0; ipe < nprow_; ipe++ )
   {
     delete nodes[ipe];
   }
-  
+
   // swap node pe_rod0 with node 0 in order to have rod(0,0,0) on node 0
   swap(nrod_loc_[0], nrod_loc_[pe_rod0]);
   rod_h_[pe_rod0].swap(rod_h_[0]);
@@ -633,15 +633,15 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   rod_lmin_[pe_rod0].swap(rod_lmin_[0]);
   rod_size_[pe_rod0].swap(rod_size_[0]);
   swap(localsize_[0], localsize_[pe_rod0]);
-  //Node *tmpnodeptr = nodes[0]; nodes[0] = nodes[pe_rod0]; 
+  //Node *tmpnodeptr = nodes[0]; nodes[0] = nodes[pe_rod0];
   //  nodes[pe_rod0]=tmpnodeptr;
-    
+
   // reorder rods on node 0 so that rod(0,0,0) comes first
   swap(rod_h_[0][rank_rod0], rod_h_[0][0]);
   swap(rod_k_[0][rank_rod0], rod_k_[0][0]);
   swap(rod_lmin_[0][rank_rod0], rod_lmin_[0][0]);
   swap(rod_size_[0][rank_rod0], rod_size_[0][0]);
-  
+
   // compute position of first element of rod (ipe,irod)
   for ( int ipe = 0; ipe < nprow_; ipe++ )
   {
@@ -653,7 +653,7 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
       rod_first_[ipe][irod] = rod_first_[ipe][irod-1] + rod_size_[ipe][irod-1];
     }
   }
-  
+
   // local arrays idx, g, gi, g2i, g2, gx, gx2
   idx_.resize(3*localsize_[myrow_]);
   int i = 0;
@@ -664,11 +664,11 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
       idx_[3*i]   = rod_h_[myrow_][irod];
       idx_[3*i+1] = rod_k_[myrow_][irod];
       idx_[3*i+2] = rod_lmin_[myrow_][irod] + l;
-      
+
       i++;
     }
   }
-  
+
   g_.resize(localsize_[myrow_]);
   kpg_.resize(localsize_[myrow_]);
   gi_.resize(localsize_[myrow_]);
@@ -678,11 +678,11 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   gx_.resize(3*localsize_[myrow_]);
   gx2_.resize(3*localsize_[myrow_]);
   isort_loc.resize(localsize_[myrow_]);
-  
+
   update_g();
-  
+
   // basis set construction is complete
-  
+
   return true;
 }
 
@@ -691,33 +691,33 @@ void BasisImpl::update_g(void)
 {
   // compute the values of g, kpg, gi, g2i, g2, kpg2, gx, gx2
   // N.B. use the values of cell (not defcell)
-  
+
   const int locsize = localsize_[myrow_];
   for ( int i = 0; i < locsize; i++ )
   {
     D3vector gt = idx_[3*i+0] * cell_.b(0) +
                   idx_[3*i+1] * cell_.b(1) +
                   idx_[3*i+2] * cell_.b(2);
-                  
+
     D3vector kpgt = (kpoint_.x + idx_[3*i+0]) * cell_.b(0) +
                     (kpoint_.y + idx_[3*i+1]) * cell_.b(1) +
                     (kpoint_.z + idx_[3*i+2]) * cell_.b(2);
- 
+
     gx_[i] = gt.x;
     gx_[locsize+i] = gt.y;
     gx_[locsize+locsize+i] = gt.z;
 
     g2_[i] = norm(gt);
     g_[i] = sqrt( g2_[i] );
- 
+
     kpg2_[i] = norm(kpgt);
     kpg_[i] = sqrt( kpg2_[i] );
- 
+
     gi_[i] = g_[i] > 0.0 ? 1.0 / g_[i] : 0.0;
     g2i_[i] = gi_[i] * gi_[i];
     isort_loc[i] = i;
   }
-  
+
   VectorLess<double> g2_less(g2_);
   sort(isort_loc.begin(), isort_loc.end(), g2_less);
 #if DEBUG
@@ -738,7 +738,7 @@ void Basis::print(ostream& os)
                               << kpoint().y << " * b1 + "
                               << kpoint().z << " * b2" << endl;
   os << context().mype() << ": ";
-  os << " Basis.kpoint():   " << kpoint().x * cell().b(0) + 
+  os << " Basis.kpoint():   " << kpoint().x * cell().b(0) +
                                  kpoint().y * cell().b(1) +
                                  kpoint().z * cell().b(2) << endl;
   os << context().mype() << ": ";
@@ -768,23 +768,23 @@ void Basis::print(ostream& os)
   os << " Basis total mem size: " << memsize() / 1048576 << endl;
   os << context().mype() << ": ";
   os << " Basis local mem size: " << localmemsize() / 1048576 << endl;
-  
+
   os << context().mype() << ": ";
-  os << "   ig      i   j   k        gx      gy      gz       |k+g|^2" 
+  os << "   ig      i   j   k        gx      gy      gz       |k+g|^2"
      << endl;
   os << context().mype() << ": ";
-  os << "   --      -   -   -        --      --      --       -------" 
+  os << "   --      -   -   -        --      --      --       -------"
      << endl;
   for ( int i = 0; i < localsize(); i++ )
   {
     os << context().mype() << ": ";
-    os << setw(5) << i << "   " 
-       << setw(4) << idx(3*i) 
-       << setw(4) << idx(3*i+1) 
+    os << setw(5) << i << "   "
+       << setw(4) << idx(3*i)
+       << setw(4) << idx(3*i+1)
        << setw(4) << idx(3*i+2)
        << "    "
-       << setw(8) << gx(i) 
-       << setw(8) << gx(i+localsize()) 
+       << setw(8) << gx(i)
+       << setw(8) << gx(i+localsize())
        << setw(8) << gx(i+2*localsize())
        << setw(12) << setprecision(4) << 0.5 * kpg2(i)
        << endl;

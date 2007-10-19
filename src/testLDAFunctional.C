@@ -6,7 +6,7 @@
 
 // Test the LDA functional by computing the xc energy of a gaussian
 // of width 0.1 a.u. in a cube of side 1.0 a.u.
-// With a cube of side 1.0 and 32x32x32 points, 
+// With a cube of side 1.0 and 32x32x32 points,
 // The xc energy must be -2.8105 a.u.
 // dExc/da must be 0.911682
 
@@ -33,12 +33,12 @@ int main(int argc, char **argv)
   double *vxc = new double[n3];
   double *exc = new double[n3];
   double excsum = 0.0, dxcsum = 0.0;
-  
+
   double rc = 0.1 * a;
   double pi = 4.0 * atan(1.0);
   double fac = 1.0 / ( pow(pi,1.5) * rc*rc*rc );
   double sum = 0.0;
-  
+
   for ( int i = 0; i < n; i++ )
   {
     double x = ( i * a ) / n - a/2;
@@ -55,26 +55,26 @@ int main(int argc, char **argv)
       }
     }
   }
-  sum = sum * omega / n3;   
+  sum = sum * omega / n3;
   // the density should be normalized
-  cout << " Integrated density: " << sum << endl;  
-      
+  cout << " Integrated density: " << sum << endl;
+
   LDAFunctional xcf;
-  
+
   int nspin = 1;
   xcf.rho = rh;
   xcf.vxc1 = vxc;
   xcf.exc = exc;
-  
+
   xcf.setxc(n3,nspin);
-  
+
   for ( int i = 0; i < n3; i++ )
     excsum += rh[i] * exc[i];
   for ( int i = 0; i < n3; i++ )
     dxcsum += rh[i] * ( exc[i] - vxc[i] );
-  
+
   cout << " Total LDA xc energy: " << excsum * omega / n3 << endl;
-  
+
   // Note: the energy variation is 3 * dExc/da * delta(a)
   cout << " dExc/da: " << dxcsum * omega / ( n3 * a ) << endl;
 

@@ -3,7 +3,7 @@
 // StructureFactor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructureFactor.C,v 1.3 2007-03-17 01:14:00 fgygi Exp $
+// $Id: StructureFactor.C,v 1.4 2007-10-19 16:24:05 fgygi Exp $
 
 #include "StructureFactor.h"
 #include "Basis.h"
@@ -12,7 +12,7 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-void StructureFactor::init(const vector<vector<double> >& tau, 
+void StructureFactor::init(const vector<vector<double> >& tau,
   const Basis& basis)
 {
   _k0min = basis.idxmin(0);
@@ -24,12 +24,12 @@ void StructureFactor::init(const vector<vector<double> >& tau,
   _k0range = _k0max - _k0min + 1;
   _k1range = _k1max - _k1min + 1;
   _k2range = _k2max - _k2min + 1;
-  
+
   // get dimensions of tau[nsp][3*na[is]]
-  
+
   _nsp = tau.size();
   _na.resize(_nsp);
-  
+
   cos0.resize(_nsp);
   cos1.resize(_nsp);
   cos2.resize(_nsp);
@@ -37,9 +37,9 @@ void StructureFactor::init(const vector<vector<double> >& tau,
   sin1.resize(_nsp);
   sin2.resize(_nsp);
   sfac.resize(_nsp);
-  
+
   _ng = basis.localsize();
-  
+
   for ( int is = 0; is < _nsp; is++ )
   {
     assert( tau[is].size() % 3 == 0 );
@@ -55,18 +55,18 @@ void StructureFactor::init(const vector<vector<double> >& tau,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void StructureFactor::update(const vector<vector<double> >& tau, 
+void StructureFactor::update(const vector<vector<double> >& tau,
   const Basis& basis)
 {
-  // it is assumed that the dimensions of tau and the basis have 
+  // it is assumed that the dimensions of tau and the basis have
   // not changed since the last call to StructureFactor::init
-  
-  // check that number of species has not changed  
-  assert(tau.size() == _nsp);  
+
+  // check that number of species has not changed
+  assert(tau.size() == _nsp);
   assert(basis.localsize() == _ng);
-  
+
   const int * const idx = basis.idx_ptr();
-  
+
   const UnitCell& cell = basis.cell();
   const D3vector b0 = cell.b(0);
   const D3vector b1 = cell.b(1);
@@ -76,7 +76,7 @@ void StructureFactor::update(const vector<vector<double> >& tau,
   {
     assert( 3 * _na[is] == tau[is].size() );
     memset( (void*)&sfac[is][0], 0, 2*_ng*sizeof(double) );
-    
+
     for ( int ia = 0; ia < _na[is]; ia++ )
     {
       double *c0 = cos0_ptr(is,ia);
@@ -85,11 +85,11 @@ void StructureFactor::update(const vector<vector<double> >& tau,
       double *s0 = sin0_ptr(is,ia);
       double *s1 = sin1_ptr(is,ia);
       double *s2 = sin2_ptr(is,ia);
-      
+
       const double * const tauptr = &tau[is][3*ia];
-      
+
       const D3vector t(tauptr[0],tauptr[1],tauptr[2]);
-      
+
       /* x direction */
       const double fac0 = b0 * t;
 
@@ -119,31 +119,31 @@ void StructureFactor::update(const vector<vector<double> >& tau,
         c2[i] = cos(arg);
         s2[i] = sin(arg);
       }
-      
-      // compute sfac[is][i] 
- 
+
+      // compute sfac[is][i]
+
       for ( int i = 0; i < _ng; i++ )
       {
         const int iii = i+i+i;
         const int kx = idx[iii];
         const int ky = idx[iii+1];
         const int kz = idx[iii+2];
-        
+
         const double cos_a = c0[kx];
         const double cos_b = c1[ky];
         const double cos_c = c2[kz];
-        
+
         const double sin_a = s0[kx];
         const double sin_b = s1[ky];
         const double sin_c = s2[kz];
-        
-        // Next line: exp(-i*gr) = 
+
+        // Next line: exp(-i*gr) =
         // (cos_a - I sin_a)*(cos_b - I sin_b)*(cos_c - I sin_c)
         sfac[is][i] += complex<double>(
-        cos_a*cos_b*cos_c - sin_a*sin_b*cos_c - 
+        cos_a*cos_b*cos_c - sin_a*sin_b*cos_c -
         sin_a*cos_b*sin_c - cos_a*sin_b*sin_c,
-        sin_a*sin_b*sin_c - sin_a*cos_b*cos_c - 
-        cos_a*sin_b*cos_c - cos_a*cos_b*sin_c );         
+        sin_a*sin_b*sin_c - sin_a*cos_b*cos_c -
+        cos_a*sin_b*cos_c - cos_a*cos_b*sin_c );
       }
     }
   }

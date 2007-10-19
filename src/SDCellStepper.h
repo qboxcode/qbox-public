@@ -3,7 +3,7 @@
 // SDCellStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDCellStepper.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SDCellStepper.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef SDCELLSTEPPER_H
 #define SDCELLSTEPPER_H
@@ -13,9 +13,9 @@
 class SDCellStepper : public CellStepper
 {
   private:
-  
+
   public:
-  
+
   SDCellStepper(Sample& s) : CellStepper(s) {}
 
   void compute_new_cell(const std::valarray<double>& sigma_eks);

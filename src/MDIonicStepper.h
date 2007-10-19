@@ -3,7 +3,7 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.9 2007-03-17 01:14:00 fgygi Exp $
+// $Id: MDIonicStepper.h,v 1.10 2007-10-19 16:24:04 fgygi Exp $
 
 //
 // IonicStepper is used in the following way
@@ -42,7 +42,7 @@
 class MDIonicStepper : public IonicStepper
 {
   private:
-  
+
   double th_temp_;
   double th_time_;
   double th_width_;
@@ -52,7 +52,7 @@ class MDIonicStepper : public IonicStepper
   void compute_ekin(void);
 
   public:
-  
+
   MDIonicStepper(Sample& s) : IonicStepper(s)
   {
     thermostat_ = s.ctrl.thermostat;

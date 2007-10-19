@@ -3,7 +3,7 @@
 // LoadCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LoadCmd.h,v 1.2 2003-10-02 17:39:32 fgygi Exp $
+// $Id: LoadCmd.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef LOADCMD_H
 #define LOADCMD_H
@@ -28,7 +28,7 @@ class LoadCmd : public Cmd
 
   char *help_msg(void) const
   {
-    return 
+    return
     "\n load\n\n"
     " syntax: load [-serial] filename \n\n"
     "   The load command loads a sample from the file filename.\n"

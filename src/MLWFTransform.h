@@ -3,7 +3,7 @@
 // MLWFTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MLWFTransform.h,v 1.2 2007-08-14 04:11:19 fgygi Exp $
+// $Id: MLWFTransform.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef MLWFTRANSFORM_H
 #define MLWFTRANSFORM_H
@@ -21,18 +21,18 @@ class MLWFTransform
   private:
 
   const SlaterDet& sd_;
-  const UnitCell& cell_;  
+  const UnitCell& cell_;
   const Context& ctxt_;
 
   BasisMapping bm_;
   std::vector<DoubleMatrix*> a_;  // cosine and sine matrices
   DoubleMatrix* u_;               // orthogonal transformation
   std::vector<std::vector<double> > adiag_; // diagonal elements
-                                                                          
+
   public:
-  
+
   void compute_transform(void);
-  void compute_sincos(const int n, const std::complex<double>* f, 
+  void compute_sincos(const int n, const std::complex<double>* f,
     std::complex<double>* fc, std::complex<double>* fs);
   void apply_transform(SlaterDet& sd);
 
@@ -43,7 +43,7 @@ class MLWFTransform
   double spread(void);
   D3vector center(int i);
   D3vector dipole(void);
-  
+
   MLWFTransform(const SlaterDet& sd);
   ~MLWFTransform(void);
 };

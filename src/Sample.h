@@ -3,7 +3,7 @@
 // Sample.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Sample.h,v 1.8 2007-01-27 23:48:28 fgygi Exp $
+// $Id: Sample.h,v 1.9 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef SAMPLE_H
 #define SAMPLE_H
@@ -18,9 +18,9 @@ class Context;
 class Sample
 {
   private:
-  
+
   public:
-  
+
   const Context& ctxt_;
 
   AtomSet atoms;

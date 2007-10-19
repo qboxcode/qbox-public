@@ -3,7 +3,7 @@
 // ExtStress.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ExtStress.h,v 1.2 2006-11-04 20:20:52 fgygi Exp $
+// $Id: ExtStress.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef EXTSTRESS_H
 #define EXTSTRESS_H
@@ -28,14 +28,14 @@ class ExtStress : public Var
     if ( argc != 7 )
     {
       if ( ui->onpe0() )
-      cout << " ext_stress must be specified as s_xx,s_yy,s_zz,s_xy,s_yz,s_xz" 
+      cout << " ext_stress must be specified as s_xx,s_yy,s_zz,s_xy,s_yz,s_xz"
            << endl;
       return 1;
     }
-    
+
     for ( int i = 0; i < 6; i++ )
       s->ctrl.ext_stress[i] = atof(argv[i+1]);
-      
+
     return 0;
   }
 

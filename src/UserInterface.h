@@ -37,12 +37,12 @@ class Var
 class UserInterface
 {
   private:
-  
+
   char *readCmd(char *s, int max, std::istream &fp, bool echo);
   bool terminate_;
   bool onpe0_;
 
-  public: 
+  public:
 
   std::list<Cmd*> cmdlist;
   std::list<Var*> varlist;
@@ -94,11 +94,11 @@ class UserInterface
   };
 
   void processCmds(std::istream &cmdstream, char *prompt, bool echo);
-  
+
   void terminate(void) { terminate_ = true; }
-  
+
   bool onpe0(void) const { return onpe0_; }
- 
+
   UserInterface(void);
 };
 #endif

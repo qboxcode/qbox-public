@@ -3,7 +3,7 @@
 // testEnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testEnergyFunctional.C,v 1.4 2003-01-25 01:25:28 fgygi Exp $
+// $Id: testEnergyFunctional.C,v 1.5 2007-10-19 16:24:06 fgygi Exp $
 
 #include "Context.h"
 #include "Sample.h"
@@ -34,9 +34,9 @@ int main(int argc, char **argv)
     UnitCell cell(a,b,c);
     double ecut = atof(argv[10]);
     int nel = atoi(argv[11]);
-    
+
     Timer tm;
-    
+
     Context ctxt;
     cout << " initial context: " << ctxt;
     Sample s(ctxt);
@@ -44,15 +44,15 @@ int main(int argc, char **argv)
       new Atom("G","gaussium",D3vector(0.2,0.3,0),D3vector(0,0,0)));
     s.atoms.listAtoms();
     s.atoms.listSpecies();
-    
+
     s.wf.resize(cell,cell,ecut);
     s.wf.set_nel(nel);
-    
+
     if ( ctxt.onpe0() ) cout << " nel: " << s.wf.nel() << endl;
 
     s.wf.update_occ();
     //s.wf.randomize(0.05);
-    
+
     tm.reset();
     tm.start();
     s.wf.gram();
@@ -63,14 +63,14 @@ int main(int argc, char **argv)
     tm.start();
     EnergyFunctional ef(s);
     tm.stop();
-    cout << " EnergyFunctional:ctor: CPU/Real: " 
+    cout << " EnergyFunctional:ctor: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
-    
+
     tm.reset();
     tm.start();
     cout << " ef.energy(): " << ef.energy() << endl;
     tm.stop();
-    cout << " EnergyFunctional:energy: CPU/Real: " 
+    cout << " EnergyFunctional:energy: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
   }
 #if USE_MPI

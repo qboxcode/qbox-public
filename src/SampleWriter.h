@@ -3,7 +3,7 @@
 // SampleWriter.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.h,v 1.2 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SampleWriter.h,v 1.3 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef SAMPLEWRITER_H
 #define SAMPLEWRITER_H
@@ -16,7 +16,7 @@ class SampleWriter
   private:
 
   const Context& ctxt_;
-  
+
   public:
 
   SampleWriter(const Context& ctxt);

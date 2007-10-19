@@ -3,7 +3,7 @@
 // AngleCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleCmd.h,v 1.1 2005-06-27 22:35:26 fgygi Exp $
+// $Id: AngleCmd.h,v 1.2 2007-10-19 16:24:03 fgygi Exp $
 
 #ifndef ANGLECMD_H
 #define ANGLECMD_H
@@ -24,7 +24,7 @@ class AngleCmd : public Cmd
   char *name(void) const { return "angle"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n angle\n\n"
     " syntax: angle name1 name2 name3\n\n"
     "   The angle command prints the angle defined by three atoms.\n\n";
@@ -40,15 +40,15 @@ class AngleCmd : public Cmd
       }
       return 1;
     }
-    
-    string name1(argv[1]);                
-    string name2(argv[2]);                
-    string name3(argv[3]);                
-    Atom* a1 = s->atoms.findAtom(name1);  
-    Atom* a2 = s->atoms.findAtom(name2);  
-    Atom* a3 = s->atoms.findAtom(name3);  
-    if ( a1 == 0 || a2 == 0 || a3 == 0 )             
-    {                                     
+
+    string name1(argv[1]);
+    string name2(argv[2]);
+    string name3(argv[3]);
+    Atom* a1 = s->atoms.findAtom(name1);
+    Atom* a2 = s->atoms.findAtom(name2);
+    Atom* a3 = s->atoms.findAtom(name3);
+    if ( a1 == 0 || a2 == 0 || a3 == 0 )
+    {
       if ( ui->onpe0() )
       {
         if ( a1 == 0 )
@@ -63,28 +63,28 @@ class AngleCmd : public Cmd
       }
       return 1;
     }
-    
-    if ( a1 == a2 || a2 == a3 || a3 == a1 )             
-    {                                     
+
+    if ( a1 == a2 || a2 == a3 || a3 == a1 )
+    {
       if ( ui->onpe0() )
       {
-        cout << " <!-- AngleCmd: replicated atoms in " << name1   
-             << " " << name2 << " " << name3 << " -->" << endl;   
+        cout << " <!-- AngleCmd: replicated atoms in " << name1
+             << " " << name2 << " " << name3 << " -->" << endl;
       }
       return 1;
     }
-    
+
     D3vector r12(a1->position()-a2->position());
     D3vector r32(a3->position()-a2->position());
     if ( norm(r12) == 0.0 || norm(r32) == 0.0 )
-    {                                     
+    {
       if ( ui->onpe0() )
       {
         cout << " <!-- AngleCmd: atoms are too close -->" << endl;
       }
       return 1;
     }
-    
+
     const double sp = normalized(r12) * normalized(r32);
     const double c = max(-1.0,min(1.0,sp));
     const double a = (180.0/M_PI)*acos(c);
@@ -92,9 +92,9 @@ class AngleCmd : public Cmd
     {
       cout.setf(ios::fixed,ios::floatfield);
       cout << " <!-- angle " << name1 << "-" << name2  << "-" << name3
-           << ": "  
-           << setprecision(3)                                    
-           << a << " (deg) -->" << endl;     
+           << ": "
+           << setprecision(3)
+           << a << " (deg) -->" << endl;
     }
     return 0;
   }

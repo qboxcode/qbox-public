@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.22 2007-01-27 23:52:34 fgygi Exp $
+// $Id: Wavefunction.C,v 1.23 2007-10-19 16:24:05 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -17,8 +17,8 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-Wavefunction::Wavefunction(const Context& ctxt) : ctxt_(ctxt), nel_(0), 
-nempty_(0), nspin_(1), deltaspin_(0), ecut_(0.0), nrowmax_(32) 
+Wavefunction::Wavefunction(const Context& ctxt) : ctxt_(ctxt), nel_(0),
+nempty_(0), nspin_(1), deltaspin_(0), ecut_(0.0), nrowmax_(32)
 {
   // create a default wavefunction: one k point, k=0
   kpoint_.resize(1);
@@ -30,33 +30,33 @@ nempty_(0), nspin_(1), deltaspin_(0), ecut_(0.0), nrowmax_(32)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-Wavefunction::Wavefunction(const Wavefunction& wf) : ctxt_(wf.ctxt_), 
-nel_(wf.nel_), nempty_(wf.nempty_), nspin_(wf.nspin_), 
-deltaspin_(wf.deltaspin_), nrowmax_(wf.nrowmax_), 
+Wavefunction::Wavefunction(const Wavefunction& wf) : ctxt_(wf.ctxt_),
+nel_(wf.nel_), nempty_(wf.nempty_), nspin_(wf.nspin_),
+deltaspin_(wf.deltaspin_), nrowmax_(wf.nrowmax_),
 cell_(wf.cell_), refcell_(wf.refcell_),
 ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
 {
   // Create a Wavefunction using the dimensions of the argument
-  
+
   compute_nst();
-  
-  // Next lines: do special allocation of contexts to ensure that 
+
+  // Next lines: do special allocation of contexts to ensure that
   // contexts are same as those of wf
-  
+
   // create sd contexts and SlaterDets
   const int nkp = kpoint_.size();
-  
+
   assert(ctxt_.active());
-  
+
   assert(nspin_ == 1);
   assert(nkp == 1);
-  
+
   spincontext_.resize(1);
   sdcontext_.resize(1);
   sdcontext_[0].resize(1);
   sd_.resize(1);
   sd_[0].resize(1);
-  
+
   spincontext_[0] = new Context(*wf.spincontext_[0]);
   sdcontext_[0][0] = 0;
   sd_[0][0] = 0;
@@ -65,7 +65,7 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
     sdcontext_[0][0] = new Context(*wf.spincontext_[0]);
     sd_[0][0] = new SlaterDet(*sdcontext_[0][0],kpoint_[0]);
   }
-  
+
   resize(cell_,refcell_,ecut_);
   reset();
 }
@@ -81,12 +81,12 @@ void Wavefunction::allocate(void)
 {
   // create sd contexts and SlaterDets
   const int nkp = kpoint_.size();
-  
+
   assert(ctxt_.active());
-  
+
   assert(nspin_ == 1);
   assert(nkp == 1);
-  
+
   // determine dimensions of sdcontext
   assert(nrowmax_>0);
   const int size = ctxt_.size();
@@ -100,7 +100,7 @@ void Wavefunction::allocate(void)
   sdcontext_[0].resize(1);
   sd_.resize(1);
   sd_[0].resize(1);
-  
+
   spincontext_[0] = new Context(npr,npc);
   //cout << *spincontext_[0];
   sdcontext_[0][0] = 0;
@@ -150,14 +150,14 @@ void Wavefunction::clear(void)
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
-int Wavefunction::nkp(void) const { return kpoint_.size(); } 
+int Wavefunction::nkp(void) const { return kpoint_.size(); }
 
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::nel() const { return nel_; } // total number of electrons
 
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::nst() const
-{ 
+{
   if ( nspin_ == 1 )
     return nst_[0];
   else
@@ -178,7 +178,7 @@ int Wavefunction::nempty() const { return nempty_; } // number of empty states
 int Wavefunction::nspin() const { return nspin_; } // number of empty states
 
 ////////////////////////////////////////////////////////////////////////////////
-double Wavefunction::entropy(void) const 
+double Wavefunction::entropy(void) const
 {
   assert(nspin_==1);
   assert(kpoint_.size()==1);
@@ -186,7 +186,7 @@ double Wavefunction::entropy(void) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell, 
+void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell,
   double ecut)
 {
   try
@@ -218,9 +218,9 @@ void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell,
     cout << " Wavefunction: insufficient memory for resize operation" << endl;
     return;
   }
-  
+
 }
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::reset(void)
 {
@@ -236,7 +236,7 @@ void Wavefunction::reset(void)
     }
   }
 }
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::compute_nst(void)
 {
@@ -264,13 +264,13 @@ void Wavefunction::set_nel(int nel)
     cout << " Wavefunction::set_nel: nel < 0" << endl;
     return;
   }
-  
+
   nel_ = nel;
   compute_nst();
   resize(cell_,refcell_,ecut_);
   reset();
 }
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::set_nempty(int nempty)
 {
@@ -291,12 +291,12 @@ void Wavefunction::set_nspin(int nspin)
 {
   assert(nspin==1 || nspin==2);
   if ( nspin == nspin_ ) return;
-  
+
   deallocate();
   cout << " Wavefunction::set_nspin: " << nspin << " deallocate done" << endl;
-  
+
   nspin_ = nspin;
-  
+
   compute_nst();
   allocate();
   cout << " Wavefunction::set_nspin: " << nspin << " allocate done" << endl;
@@ -312,7 +312,7 @@ void Wavefunction::set_nrowmax(int n)
     cout << " Wavefunction::set_nrowmax: nrowmax > ctxt_.size()" << endl;
     return;
   }
-  
+
   deallocate();
   nrowmax_ = n;
   compute_nst();
@@ -320,7 +320,7 @@ void Wavefunction::set_nrowmax(int n)
   resize(cell_,refcell_,ecut_);
   reset();
 }
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::add_kpoint(D3vector kpoint, double weight)
 {
@@ -328,18 +328,18 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
   {
     if ( kpoint == kpoint_[i] )
     {
-      cout << " Wavefunction::add_kpoint: warning: kpoint already defined" 
+      cout << " Wavefunction::add_kpoint: warning: kpoint already defined"
            << endl;
       //!! return;
     }
   }
-  
+
   deallocate();
   cout << " Wavefunction::add_kpoint: " << kpoint << " deallocate done" << endl;
-  
+
   kpoint_.push_back(kpoint);
   weight_.push_back(weight);
-  
+
   allocate();
   cout << " Wavefunction::add_kpoint: " << kpoint << " allocate done" << endl;
   resize(cell_,refcell_,ecut_);
@@ -408,7 +408,7 @@ void Wavefunction::update_occ(double temp)
     // finite temperature
     const double eVolt = 0.036749023; // 1 eV in Hartree
     const int maxiter = 500;
- 
+
     // loop to find value of mu
     double mu = 0.0;
     double dmu = 2.0 * eVolt;
@@ -433,7 +433,7 @@ void Wavefunction::update_occ(double temp)
         assert(kpoint_.size()==1);
       }
     }
- 
+
     int niter = 0;
     while ( niter < maxiter && fabs(rhosum - nel_) > 1.e-10 )
     {
@@ -467,7 +467,7 @@ void Wavefunction::update_occ(double temp)
         }
       }
     }
- 
+
     if ( niter == maxiter )
     {
       cout << "Wavefunction::update_occ: mu did not converge in "
@@ -485,7 +485,7 @@ void Wavefunction::update_occ(double temp)
 
       cout.setf(ios::right,ios::adjustfield);
       cout.setf(ios::fixed,ios::floatfield);
- 
+
       cout << " <!-- Wavefunction::update_occ: occupation numbers" << endl;
       for ( int ispin = 0; ispin < nspin_; ispin++ )
       {
@@ -575,7 +575,7 @@ double Wavefunction::dot(const Wavefunction& wf) const
 void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
 {
   // subspace diagonalization of <*this | dwf>
-  // if eigvec==true, eigenvectors are computed and stored in *this, dwf is 
+  // if eigvec==true, eigenvectors are computed and stored in *this, dwf is
   // overwritten
   for ( int ispin = 0; ispin < nspin(); ispin++ )
   {
@@ -591,19 +591,19 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
             // proxy real matrices c, cp
             DoubleMatrix c(sd(ispin,ikp)->c());
             DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
- 
+
             DoubleMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
- 
+
             // factor 2.0 in next line: G and -G
             h.gemm('t','n',2.0,c,cp,0.0);
             // rank-1 update correction
             h.ger(-1.0,c,0,cp,0);
- 
+
             // cout << " Hamiltonian at k = " << sd(ispin,ikp)->kpoint()
             //      << endl;
             // cout << h;
 
-#if 1 
+#if 1
             valarray<double> w(h.m());
             if ( eigvec )
             {
@@ -638,14 +638,14 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
             #if 0
             ComplexMatrix& c(wf.sd[ikp]->c());
             ComplexMatrix& cp(dwf.sd[ikp]->c());
- 
+
             ComplexMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
- 
+
             h.gemm('c','n',1.0,c,cp,0.0);
- 
+
             //cout << " Hamiltonian at k = " << sd[ikp]->kpoint() << endl;
             //cout << h;
- 
+
             valarray<double> w(h.m());
 
             h.heev('l',w);
@@ -682,13 +682,13 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
        <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
   }
-     
+
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       sd_[ispin][ikp]->print(os,encoding);
   }
-  
+
   if ( ctxt_.onpe0() )
     os << "</" << tag << ">" << endl;
 }
@@ -729,7 +729,7 @@ void Wavefunction::write(FILE* outfile, string encoding, string tag) const
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       sd_[ispin][ikp]->write(outfile,encoding);
   }
-  
+
   if ( ctxt_.onpe0() )
   {
     ostringstream os;
@@ -763,13 +763,13 @@ void Wavefunction::info(ostream& os, string tag) const
        <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
   }
-     
+
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       sd_[ispin][ikp]->info(os);
   }
-  
+
   if ( ctxt_.onpe0() )
     os << "</" << tag << ">" << endl;
 }
@@ -794,10 +794,10 @@ Wavefunction& Wavefunction::operator=(const Wavefunction& wf)
   assert(cell_ == wf.cell_);
   assert(refcell_ == wf.refcell_);
   assert(ecut_ == wf.ecut_);
-  
+
   weight_ = wf.weight_;
   kpoint_ = wf.kpoint_;
-  
+
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )

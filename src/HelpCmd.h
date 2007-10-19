@@ -3,7 +3,7 @@
 // HelpCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: HelpCmd.h,v 1.1 2003-01-10 00:35:36 fgygi Exp $
+// $Id: HelpCmd.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
 
 #ifndef HELPCMD_H
 #define HELPCMD_H
@@ -28,7 +28,7 @@ class HelpCmd : public Cmd
 
   char *help_msg(void) const
   {
-    return 
+    return
     "\n help\n\n"
     " syntax: help [command_name]\n\n"
     "   The help command gives a short description of a command. If used\n"

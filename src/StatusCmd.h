@@ -3,7 +3,7 @@
 // StatusCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StatusCmd.h,v 1.2 2006-08-22 15:12:56 fgygi Exp $
+// $Id: StatusCmd.h,v 1.3 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef STATUSCMD_H
 #define STATUSCMD_H
@@ -27,7 +27,7 @@ class StatusCmd : public Cmd
   char *name(void) const { return "status"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n run\n\n"
     " syntax: status \n\n"
     "   The status command print information about the current\n"

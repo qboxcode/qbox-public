@@ -3,7 +3,7 @@
 #  aix_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: aix_mpi_gcc.mk,v 1.1 2004-03-11 21:58:10 fgygi Exp $
+# $Id: aix_mpi_gcc.mk,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 PLT=AIX
 #-------------------------------------------------------------------------------
  XERCESCDIR=${HOME}/software/xml/xerces-c-${PLT}
@@ -14,21 +14,21 @@ PLT=AIX
  CXX=$(GCCDIR)/bin/g++
  LD=$(CXX)
 
- DFLAGS += -DUSE_ESSL -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
+ DFLAGS += -DUSE_ESSL -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
  INCLUDE = -I$(XERCESCDIR)/include -I$(MPIDIR)/include
- 
+
 #CXXFLAGS= -O2 -DUSE_MPI -DSCALAPACK -D$(PLT) $(INCLUDE) $(DFLAGS)
  CXXFLAGS= -g  -DUSE_MPI -DSCALAPACK -D$(PLT) $(INCLUDE) $(DFLAGS)
 
  LIBPATH = -L$(GCCDIR)/lib -L$(GCCDIR)/lib/gcc-lib/powerpc-ibm-aix5.1.0.0/3.1 \
            -L $(XERCESCLIBDIR)  -L $(MPIDIR)/lib
-  
+
  PLIBS = $(SCALAPACKLIB) $(PBLASLIB) $(TOOLSLIB) $(REDISTLIB) $(CBLACSLIB)
  LIBS =  $(PLIBS) -lessl -lm -lmassv -lxlf90_r \
          $(XERCESCLIBDIR)/libxerces-c.so -lmpich \
          $(GCCDIR)/lib/libg2c.a
- 
- LDFLAGS = $(LIBPATH) $(LIBS) 
+
+ LDFLAGS = $(LIBPATH) $(LIBS)
 
 #
 #  BLACS setup.  All version need the debug level (0 or 1),

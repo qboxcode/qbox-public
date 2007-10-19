@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.45 2007-09-30 04:49:29 fgygi Exp $
+# $Id: Makefile,v 1.46 2007-10-19 16:24:36 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -50,7 +50,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testSample: testSample.o AtomSet.o Atom.o Species.o \
         Wavefunction.o SlaterDet.o \
         Basis.o FourierTransform.o Matrix.o Context.o \
-        sinft.o spline.o UnitCell.o 
+        sinft.o spline.o UnitCell.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testreadSample: testreadSample.o \
          Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
@@ -92,7 +92,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 	SlaterDet.o Matrix.o UnitCell.o Context.o FourierTransform.o \
         Wavefunction.o Species.o Atom.o AtomSet.o StructureFactor.o \
         ChargeDensity.o \
-        sinft.o spline.o 
+        sinft.o spline.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSlaterDet: testSlaterDet.o SlaterDet.o FourierTransform.o \
         Basis.o UnitCell.o Matrix.o Context.o Base64Transcoder.o
@@ -106,14 +106,14 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testXCFunctional: testXCFunctional.o LDAFunctional.o PBEFunctional.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
 #testMatrix: testMatrix.o Matrix.o Context.o pdgetri.o
- testMatrix: testMatrix.o Matrix.o Context.o 
+ testMatrix: testMatrix.o Matrix.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testjacobi: testjacobi.o jacobi.o Matrix.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testjade: testjade.o jade.o Matrix.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testFourierTransform: testFourierTransform.o FourierTransform.o \
-        Context.o Basis.o UnitCell.o 
+        Context.o Basis.o UnitCell.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testFTGrid: testFTGrid.o FTGrid.o BlacsContext.o Basis.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -139,10 +139,10 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  xmlget: xmlget.o
 	$(LD) -o xmlget xmlget.C -I$(XERCESCDIR)/include \
-        -L$(XERCESCDIR)/lib -lxerces-c 
+        -L$(XERCESCDIR)/lib -lxerces-c
  xmlextract: xmlextract.o
 	$(LD) -o xmlextract xmlextract.C -I$(XERCESCDIR)/include \
-        -L$(XERCESCDIR)/lib -lxerces-c 
+        -L$(XERCESCDIR)/lib -lxerces-c
  testXMLGFPreprocessor: testXMLGFPreprocessor.o XMLGFPreprocessor.o Context.o \
         Base64Transcoder.o Matrix.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -151,7 +151,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testStepper: testStepper.o AtomSet.o Context.o MDIonicStepper.o \
 Wavefunction.o Species.o SlaterDet.o spline.o sinft.o Basis.o Matrix.o \
 FourierTransform.o UnitCell.o Atom.o BOSampleStepper.o \
-SampleStepper.o EnergyFunctional.o 
+SampleStepper.o EnergyFunctional.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  test_fftw: test_fftw.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)

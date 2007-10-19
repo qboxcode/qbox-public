@@ -3,7 +3,7 @@
 #  aix_mpip.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: aix_mpip.mk,v 1.3 2003-05-16 16:14:00 fgygi Exp $
+# $Id: aix_mpip.mk,v 1.4 2007-10-19 16:24:05 fgygi Exp $
 PLT=AIX
 #-------------------------------------------------------------------------------
  XERCESCDIR=${HOME}/software/xml/xerces-c-${PLT}
@@ -12,18 +12,18 @@ PLT=AIX
  LD=$(CXX)
 
  INCLUDE = -I$(XERCESCDIR)/include
- 
+
  CXXFLAGS= -O3 -qmaxmem=-1 -DUSE_MPI -DSCALAPACK -D$(PLT) $(INCLUDE) $(DFLAGS)
 #CXXFLAGS= -g -qmaxmem=-1 -DUSE_MPI -DSCALAPACK -D$(PLT) $(INCLUDE) $(DFLAGS)
 
  LIBPATH = -L$(XERCESCDIR)/lib  -L/usr/local/mpiP/lib
-  
+
  PLIBS = $(SCALAPACKLIB) $(PBLASLIB) $(TOOLSLIB) $(REDISTLIB) $(CBLACSLIB)
  LIBS =  $(PLIBS) -lessl -lm -lmassv \
          -lxlf90_r -lmpiP -lbfd -liberty -lintl \
          ${XERCESCDIR}/lib/libxerces-c.so
- 
- LDFLAGS = -bmaxdata:0x80000000 $(LIBPATH) $(LIBS) 
+
+ LDFLAGS = -bmaxdata:0x80000000 $(LIBPATH) $(LIBS)
 
 #
 #  BLACS setup.  All version need the debug level (0 or 1),

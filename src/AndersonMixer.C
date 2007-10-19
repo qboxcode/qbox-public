@@ -3,7 +3,7 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: AndersonMixer.C,v 1.5 2007-10-19 16:24:03 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
@@ -28,13 +28,13 @@ void AndersonMixer::update(const double* f, double* theta, double* fbar)
       // tmp0 = delta_F = f - flast
       for ( int i = 0; i < n_; i++ )
         tmp0[i] = f[i] - flast_[i];
-      
+
       // a = delta_F * F
       double a = ddot(&n_, &tmp0[0], &ione, f, &ione);
-        
+
       // b = delta_F * delta_F
       double b = ddot(&n_, &tmp0[0], &ione, &tmp0[0], &ione);
-      
+
       if ( pctxt_ != 0 )
       {
         double work[2] = { a, b };
@@ -47,16 +47,16 @@ void AndersonMixer::update(const double* f, double* theta, double* fbar)
         *theta = - a / b;
       else
         *theta = 0.0;
-      
+
       // test if residual has increased
       if ( *theta <= -1.0 )
       {
         *theta = theta_nc_;
       }
-      
+
       *theta = min(theta_max_,*theta);
     }
-    
+
     // fbar = f + theta * ( f - flast )
     // flast_ = f_
     for ( int i = 0; i < n_; i++ )
@@ -64,6 +64,6 @@ void AndersonMixer::update(const double* f, double* theta, double* fbar)
       const double ftmp = f[i];
       fbar[i] = ftmp + *theta * ( ftmp - flast_[i] );
       flast_[i] = ftmp;
-    } 
+    }
     extrapolate_ = true;
 }

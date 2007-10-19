@@ -3,7 +3,7 @@
 // TorsionCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionCmd.h,v 1.1 2005-06-27 22:35:26 fgygi Exp $
+// $Id: TorsionCmd.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
 
 #ifndef TORSIONCMD_H
 #define TORSIONCMD_H
@@ -24,7 +24,7 @@ class TorsionCmd : public Cmd
   char *name(void) const { return "torsion"; }
   char *help_msg(void) const
   {
-    return 
+    return
     "\n torsion\n\n"
     " syntax: torsion name1 name2 name3 name4\n\n"
     "   The torsion command prints the dihedral defined by four atoms.\n\n";
@@ -40,17 +40,17 @@ class TorsionCmd : public Cmd
       }
       return 1;
     }
-    
-    string name1(argv[1]);                
-    string name2(argv[2]);                
-    string name3(argv[3]);                
-    string name4(argv[4]);                
-    Atom* a1 = s->atoms.findAtom(name1);  
-    Atom* a2 = s->atoms.findAtom(name2);  
-    Atom* a3 = s->atoms.findAtom(name3);  
-    Atom* a4 = s->atoms.findAtom(name4);  
-    if ( a1 == 0 || a2 == 0 || a3 == 0 || a4 == 0 )             
-    {                                     
+
+    string name1(argv[1]);
+    string name2(argv[2]);
+    string name3(argv[3]);
+    string name4(argv[4]);
+    Atom* a1 = s->atoms.findAtom(name1);
+    Atom* a2 = s->atoms.findAtom(name2);
+    Atom* a3 = s->atoms.findAtom(name3);
+    Atom* a4 = s->atoms.findAtom(name4);
+    if ( a1 == 0 || a2 == 0 || a3 == 0 || a4 == 0 )
+    {
       if ( ui->onpe0() )
       {
         if ( a1 == 0 )
@@ -68,39 +68,39 @@ class TorsionCmd : public Cmd
       }
       return 1;
     }
-    
-    if ( a1 == a2 || a1 == a3 || a1 == a4 || 
-         a2 == a3 || a2 == a4 || a3 == a4 )             
-    {                                     
+
+    if ( a1 == a2 || a1 == a3 || a1 == a4 ||
+         a2 == a3 || a2 == a4 || a3 == a4 )
+    {
       if ( ui->onpe0() )
       {
-        cout << " <!-- TorsionCmd: replicated atoms in " 
-             << name1 << " " << name2 << " "   
-             << name3 << " " << name4 << " -->" << endl;   
+        cout << " <!-- TorsionCmd: replicated atoms in "
+             << name1 << " " << name2 << " "
+             << name3 << " " << name4 << " -->" << endl;
       }
       return 1;
     }
-    
+
     D3vector r12(a1->position()-a2->position());
     D3vector r32(a3->position()-a2->position());
     D3vector r43(a4->position()-a3->position());
     if ( norm(r12) == 0.0 || norm(r32) == 0.0 || norm(r43) == 0.0 )
-    {                                     
+    {
       if ( ui->onpe0() )
       {
         cout << " <!-- TorsionCmd: atoms are too close -->" << endl;
       }
       return 1;
     }
-    
+
     D3vector e12(normalized(r12));
     D3vector e32(normalized(r32));
     D3vector e23(-e32);
     D3vector e43(normalized(r43));
-    
+
     const double sin123 = length(e12^e32);
     const double sin234 = length(e23^e43);
-    
+
     double a = 0;
     if ( sin123 != 0.0 && sin234 != 0.0 )
     {
@@ -110,14 +110,14 @@ class TorsionCmd : public Cmd
       double ss = max(min((e123^e234)*e32,1.0),-1.0);
       a = (180.0/M_PI) * atan2(ss,cc);
     }
-    
+
     if ( ui->onpe0() )
     {
       cout.setf(ios::fixed,ios::floatfield);
-      cout << " <!-- torsion " 
-           << name1 << "-" << name2 << "-"  
-           << name3 << "-" << name4 << ": "  
-           << setprecision(3) << a << " (deg) -->" << endl;                                    
+      cout << " <!-- torsion "
+           << name1 << "-" << name2 << "-"
+           << name3 << "-" << name4 << ": "
+           << setprecision(3) << a << " (deg) -->" << endl;
     }
     return 0;
   }

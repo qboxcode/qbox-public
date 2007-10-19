@@ -3,7 +3,7 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.16 2007-10-19 16:24:05 fgygi Exp $
+// $Id: Wavefunction.h,v 1.17 2007-10-19 17:37:06 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
@@ -11,6 +11,7 @@
 #include "D3vector.h"
 #include "UnitCell.h"
 #include <vector>
+#include <complex>
 #if USE_CSTDIO_LFS
 #include <cstdio>
 #endif
@@ -38,10 +39,11 @@ class Wavefunction
   std::vector<double>    weight_;  // weight[ikp]
   std::vector<D3vector>  kpoint_;  // kpoint[ikp]
 
-  std::vector<int> nst_;                       // nst_[ispin]
-  std::vector<Context*> spincontext_;          // spincontext[ispin]
-  std::vector<std::vector<Context*> > sdcontext_;   // sdcontext_[ispin][ikp]
-  std::vector<std::vector<SlaterDet*> > sd_;        // sd[ispin][ikp]
+  std::vector<int> nst_;  // nst_[ispin]
+  const Context* spincontext_;   // context used for spin reductions
+  const Context* kpcontext_;     // context used for kp reductions
+  const Context* sdcontext_;     // context of local SlaterDet instances
+  std::vector<std::vector<SlaterDet*> > sd_;  // local SlaterDets sd_[ispin][ikp]
 
   void allocate(); // create contexts and allocate SlaterDet's
   void deallocate();
@@ -62,10 +64,10 @@ class Wavefunction
   double weight(int ikp) const { return weight_[ikp]; }
   double ecut(void) const { return ecut_; }
   SlaterDet* sd(int ispin, int ikp) const { return sd_[ispin][ikp]; }
-  const Context* sdcontext(int ispin, int ikp) const
-    { return sdcontext_[ispin][ikp]; }
-  const Context* spincontext(int ispin) const
-    { return spincontext_[ispin]; }
+
+  const Context* spincontext(void) const { return spincontext_; }
+  const Context* kpcontext(void) const { return kpcontext_; }
+  const Context* sdcontext(void) const { return sdcontext_; }
   int nkp(void) const;            // number of k points
   int nel(void) const;            // total number of electrons
   int nst(int ispin) const;       // number of states of spin ispin
@@ -98,7 +100,7 @@ class Wavefunction
   void align(Wavefunction& wf);
   void diag(Wavefunction& dwf, bool eigvec);
 
-  double dot(const Wavefunction& wf) const;
+  std::complex<double> dot(const Wavefunction& wf) const;
 
   void print(std::ostream& os, std::string encoding, std::string tag) const;
 #if USE_CSTDIO_LFS

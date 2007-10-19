@@ -3,7 +3,7 @@
 // WavefunctionHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.h,v 1.9 2007-10-19 16:24:05 fgygi Exp $
+// $Id: WavefunctionHandler.h,v 1.10 2007-10-19 17:37:06 fgygi Exp $
 
 #ifndef WavefunctionHANDLER_H
 #define WavefunctionHANDLER_H
@@ -24,11 +24,15 @@ class WavefunctionHandler : public StructureHandler
   UnitCell uc;
   UnitCell ruc;
   double ecut;
-  std::vector<double> dmat;
+  // dmat[ispin][ikp][i]
+  std::vector<std::vector<std::vector<double> > > &dmat_;
   int nx,ny,nz;
   int current_gf_nx,current_gf_ny,current_gf_nz;
   std::string current_gf_encoding;
   int current_ispin,current_ikp,current_n,current_igf;
+  std::vector<double> dmat_tmp;
+  double current_kx, current_ky, current_kz, current_weight;
+  int current_size;
   int read_from_gfdata;
   FourierTransform* ft;
   std::vector<std::complex<double> > wftmp;
@@ -55,7 +59,8 @@ class WavefunctionHandler : public StructureHandler
     const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const subHandler);
 
-  WavefunctionHandler(Wavefunction& wf, DoubleMatrix& gfdata);
+  WavefunctionHandler(Wavefunction& wf, DoubleMatrix& gfdata,
+    std::vector<std::vector<std::vector<double> > > &dmat);
   ~WavefunctionHandler();
 };
 #endif

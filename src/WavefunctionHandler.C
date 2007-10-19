@@ -3,7 +3,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.12 2007-10-19 16:24:05 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.13 2007-10-19 17:37:06 fgygi Exp $
 
 #if USE_XERCES
 
@@ -11,6 +11,7 @@
 #include "Wavefunction.h"
 #include "FourierTransform.h"
 #include "Timer.h"
+#include "SampleReader.h"
 
 #include "StrX.h"
 // XML transcoding for loading grid_functions
@@ -24,8 +25,12 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 WavefunctionHandler::WavefunctionHandler(Wavefunction& wf,
-  DoubleMatrix& gfdata) : wf_(wf), gfdata_(gfdata), ecut(0.0)
+  DoubleMatrix& gfdata,
+  vector<vector<vector<double> > > &dmat) :
+  wf_(wf), gfdata_(gfdata), dmat_(dmat), ecut(0.0)
 {
+  // if the data is read from a file, gfdata has a finite size
+  // since the grid functions were processed by XMLGFPreprocessor
   // if the gfdata matrix has finite dimensions, set read_from_gfdata flag
   read_from_gfdata = ( gfdata.n() > 0 );
   current_igf = 0;
@@ -60,6 +65,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
   string locname(XMLString::transcode(localname));
 
   int nspin=1, nel=0, nempty=0;
+  event_type event = invalid;
   // consider only elements that are dealt with directly by WavefunctionHandler
 
   if ( locname == "wavefunction" || locname == "wavefunction_velocity" )
@@ -95,23 +101,20 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     current_ikp = 0;
     current_n = 0;
 
-    wf_.set_nel(nel);
-    wf_.set_nspin(nspin);
-    wf_.set_nempty(nempty);
-
-    int tag;
     // notify listening nodes
     if ( locname == "wavefunction" )
-      tag = 3;
+      event = wavefunction;
     else
-      tag = 4; // wavefunction_velocity
+      event = wavefunction_velocity;
 
-    wf_.context().ibcast_send(1,1,&tag,1);
+    wf_.context().ibcast_send(1,1,(int*)&event,1);
     wf_.context().ibcast_send(1,1,&nel,1);
     wf_.context().ibcast_send(1,1,&nspin,1);
     wf_.context().ibcast_send(1,1,&nempty,1);
 
-    // current implementation for nspin = 1 and nkpoint = 1
+    wf_.set_nel(nel);
+    wf_.set_nspin(nspin);
+    wf_.set_nempty(nempty);
     assert(nspin==1);
   }
   else if ( locname == "domain")
@@ -200,7 +203,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       cout << "WavefunctionHandler: density_matrix must be diagonal" << endl;
       wf_.context().abort(1);
     }
-    dmat.resize(dmat_size);
+    dmat_tmp.resize(dmat_size);
   }
   else if ( locname == "grid")
   {
@@ -259,7 +262,43 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
   }
   else if ( locname == "slater_determinant")
   {
+    unsigned int len = attributes.getLength();
+    for (unsigned int index = 0; index < len; index++)
+    {
+      string attrname(XMLString::transcode(attributes.getLocalName(index)));
+      string attrval(XMLString::transcode(attributes.getValue(index)));
+      istringstream stst(attrval);
+      if ( attrname == "kpoint")
+      {
+        stst >> current_kx >> current_ky >> current_kz;
+        cout << " read <slater_determinant> kpoint=" << current_kx
+             << " " << current_ky << " " << current_kz;
+      }
+      else if ( attrname == "weight" )
+      {
+        stst >> current_weight;
+        cout << " weight=" << current_weight;
+      }
+      else if ( attrname == "size" )
+      {
+        stst >> current_size;
+        cout << " size=" << current_size << endl;
+      }
+    }
+    // notify listening nodes: slater_determinant
+    event = slater_determinant;
+    wf_.context().ibcast_send(1,1,(int*)&event,1);
+
+    // send kpoint and weight to listening nodes
+    double buf[4];
+    buf[0] = current_kx; buf[1] = current_ky; buf[2] = current_kz;
+    buf[3] = current_weight;
+    wf_.context().dbcast_send(4,1,buf,1);
+    wf_.add_kpoint(D3vector(current_kx,current_ky,current_kz),current_weight);
+    assert(current_size==wf_.sd(current_ispin,current_ikp)->nst());
+
     const Basis& basis = wf_.sd(current_ispin,current_ikp)->basis();
+
     // check the size of the basis generated
     //cout << " sd basis: np0,np1,np2 = " << basis.np(0)
     //     << " " << basis.np(1)
@@ -312,15 +351,12 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
   if ( locname == "density_matrix")
   {
     istringstream stst(content);
-    for ( int i = 0; i < dmat.size(); i++ )
-      stst >> dmat[i];
+    for ( int i = 0; i < dmat_tmp.size(); i++ )
+      stst >> dmat_tmp[i];
 
     // send dmat to listening nodes
-    //!! this works only for 1 kpoint, 1 spin
-    SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
-    assert(sd != 0);
-    sd->context().dbcast_send(dmat.size(),1,&dmat[0],1);
-    sd->set_occ(dmat);
+    dmat_[current_ispin].push_back(dmat_tmp);
+    wf_.context().dbcast_send(dmat_tmp.size(),1,&dmat_tmp[0],1);
   }
   else if ( locname == "grid_function")
   {
@@ -338,127 +374,81 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
     }
     else
     {
+      const Basis& basis = wf_.sd(current_ispin,current_ikp)->basis();
+      int wftmpr_size = current_gf_nx*current_gf_ny*current_gf_nz;
+      // if basis is complex, double the size of wftmpr
+      if ( !basis.real() )
+        wftmpr_size *= 2;
+
+      valarray<double> wftmpr(wftmpr_size);
+
       if ( current_gf_encoding == "text" )
       {
         istringstream stst(content);
-        valarray<double> wftmpr(current_gf_nx*current_gf_ny*current_gf_nz);
-        int ii = 0;
-        for ( int k = 0; k < current_gf_nz; k++ )
-          for ( int j = 0; j < current_gf_ny; j++ )
-            for ( int i = 0; i < current_gf_nx; i++ )
-            {
-              stst >> wftmpr[ii++];
-            }
-        // send subgrids to listening nodes
-
-        SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
-        assert(sd != 0);
-        // pcol = process column destination
-        int pcol = sd->c().pc(current_n);
-        for ( int prow = 0; prow < sd->context().nprow(); prow++ )
-        {
-          int size = ft->np2_loc(prow) * ft->np0() * ft->np1();
-          int istart = ft->np2_first(prow) * ft->np0() * ft->np1();
-          // send subgrid to node (prow,pcol)
-          if ( !(prow==0 && pcol==0) )
-          {
-            //cout << sd->context();
-            //cout << sd->context().mype() << ": sending subgrid size to process "
-            //     << "(" << prow << "," << pcol << ")" << endl;
-            sd->context().isend(1,1,&size,1,prow,pcol);
-
-            //cout << sd->context().mype() << ": sending subgrid to process "
-            //     << "(" << prow << "," << pcol << ")" << endl;
-            sd->context().dsend(size,1,&wftmpr[istart],1,prow,pcol);
-            //cout << sd->context().mype() << ": subgrid sent "
-            //     << endl;
-          }
-        }
-
-        // if destination column is pcol=0, copy to complex array on node 0
-        // and process
-        if ( pcol == 0 )
-        {
-          for ( int i = 0; i < ft->np012loc(); i++ )
-          {
-            wftmp[i] = wftmpr[i];
-          }
-          ComplexMatrix& c = wf_.sd(current_ispin,current_ikp)->c();
-          ft->forward(&wftmp[0],c.valptr(c.mloc()*current_n));
-        }
+        for ( int i = 0; i < wftmpr_size; i++ )
+          stst >> wftmpr[i];
       }
       else if ( current_gf_encoding == "base64" )
       {
+        // base64 encoding
         unsigned int length;
-        Timer tm;
-        tm.start();
         XMLByte* b = Base64::decode((XMLByte*)content.c_str(), &length);
-        tm.stop();
-        // cout << " Base64::decode time: " << tm.real() << endl;
         assert(b!=0);
-        // cout << " base64 segment length: " << length << endl;
-
         // use data in b
-        assert(length/sizeof(double)==ft->np012());
-
-        double* d = (double*) b;
+        assert(length/sizeof(double)==wftmpr_size);
 #if PLT_BIG_ENDIAN
-        tm.reset();
-        tm.start();
-        byteswap_double(ft->np012(),d);
-        tm.stop();
-        // cout << " byteswap time: " << tm.real() << endl;
+        byteswap_double(wftmpr_size,d);
 #endif
-
-        SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
-        assert(sd != 0);
-        // pcol = process column destination
-        tm.reset();
-        tm.start();
-        int pcol = sd->c().pc(current_n);
-        for ( int prow = 0; prow < sd->context().nprow(); prow++ )
-        {
-          int size = ft->np2_loc(prow) * ft->np0() * ft->np1();
-          int istart = ft->np2_first(prow) * ft->np0() * ft->np1();
-          // send subgrid to node (prow,pcol)
-          if ( !(prow==0 && pcol==0) )
-          {
-            //cout << sd->context();
-            //cout << sd->context().mype() << ": sending subgrid size to process "
-            //     << "(" << prow << "," << pcol << ")" << endl;
-            sd->context().isend(1,1,&size,1,prow,pcol);
-
-            //cout << sd->context().mype() << ": sending subgrid to process "
-            //     << "(" << prow << "," << pcol << ")" << endl;
-            sd->context().dsend(size,1,&d[istart],1,prow,pcol);
-            //cout << sd->context().mype() << ": subgrid sent "
-            //     << endl;
-          }
-        }
-        tm.stop();
-        // cout << " send time: " << tm.real() << endl;
-
-        // if destination column is pcol=0, copy to complex array on node 0
-        // and process
-        if ( pcol == 0 )
-        {
-          tm.reset();
-          tm.start();
-          for ( int i = 0; i < ft->np012loc(); i++ )
-          {
-            wftmp[i] = d[i];
-          }
-          XMLString::release(&b);
-          ComplexMatrix& c = wf_.sd(current_ispin,current_ikp)->c();
-          ft->forward(&wftmp[0],c.valptr(c.mloc()*current_n));
-          tm.stop();
-          // cout << " process time: " << tm.real() << endl;
-        }
+        memcpy(&wftmpr[0],b,wftmpr_size*sizeof(double));
+        XMLString::release(&b);
       }
       else
       {
         cout << "WavefunctionHandler: unknown grid_function encoding" << endl;
         return;
+      }
+
+      // wftmpr now contains the grid function
+
+      // send subgrids to listening nodes
+
+      SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
+      assert(sd != 0);
+      // pcol = process column destination
+      int pcol = sd->c().pc(current_n);
+      for ( int prow = 0; prow < sd->context().nprow(); prow++ )
+      {
+        int size = ft->np2_loc(prow) * ft->np0() * ft->np1();
+        int istart = ft->np2_first(prow) * ft->np0() * ft->np1();
+        if ( !basis.real() )
+        {
+          size *= 2;
+          istart *= 2;
+        }
+        // send subgrid to node (prow,pcol)
+        if ( !(prow==0 && pcol==0) )
+        {
+          sd->context().isend(1,1,&size,1,prow,pcol);
+          sd->context().dsend(size,1,&wftmpr[istart],1,prow,pcol);
+        }
+      }
+
+      // if destination column is pcol=0, copy to complex array on node 0
+      // and process
+      if ( pcol == 0 )
+      {
+        if ( basis.real() )
+        {
+          for ( int i = 0; i < ft->np012loc(); i++ )
+            wftmp[i] = wftmpr[i];
+        }
+        else
+        {
+          for ( int i = 0; i < ft->np012loc(); i++ )
+            wftmp[i] = complex<double>(wftmpr[2*i],wftmpr[2*i+1]);
+        }
+        ComplexMatrix& c = wf_.sd(current_ispin,current_ikp)->c();
+        ft->forward(&wftmp[0],c.valptr(c.mloc()*current_n));
       }
     }
     //cout << " grid_function read n=" << current_n << endl;
@@ -466,6 +456,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
   }
   else if ( locname == "slater_determinant")
   {
+    current_ikp++;
     delete ft;
   }
 }

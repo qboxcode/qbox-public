@@ -3,7 +3,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.10 2007-10-19 16:24:05 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.11 2007-10-19 17:37:06 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -711,7 +711,7 @@ void XMLGFPreprocessor::process(const char* const filename,
 #if DEBUG
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
   {
-    cout << rctxt.mype() << ": seg_data[iseg=" << iseg << "]: ";
+    cout << rctxt.mype() << ": seg_data[iseg=" << iseg << "]: size=" << dbuf[iseg].size() << "  ";
     if ( dbuf[iseg].size() >=3 )
       cout << dbuf[iseg][0] << " " << dbuf[iseg][1]
            << " " << dbuf[iseg][2];
@@ -752,9 +752,36 @@ void XMLGFPreprocessor::process(const char* const filename,
   int gfnb = ngf / ctxt.npcol() +
            ( ngf % ctxt.npcol() != 0 ? 1 : 0 );
   gfdata.resize(maxgfsize,ngf,gfmb,gfnb);
-  //cout << ctxt.mype() << ": gfdata resized: (" << maxgfsize << "x" << ngf
-  //<< ")  (" << gfmb << "x" << gfnb << ") blocks" << endl;
-  //cout << ctxt.mype() << ": gfdata.context(): " << gfdata.context();
+#if DEBUG
+  cout << ctxt.mype() << ": gfdata resized: (" << maxgfsize << "x" << ngf
+       << ")  (" << gfmb << "x" << gfnb << ") blocks" << endl;
+  cout << ctxt.mype() << ": gfdata.context(): " << gfdata.context();
+#endif
+
+  // If the data in dbuf segments corresponds to real functions (kpoint==0)
+  // and if there are also complex functions (kpoint!=0), then
+  // for real functions: gfsize[igf[iseg]] == maxgfsize/2
+  // for complex functions: gfsize[igf[iseg] == maxgfsize
+
+  // If both real and complex functions are present, the real functions
+  // are converted to complex functions before redistribution of data
+  // This is done by resizing dbuf[iseg] and copying the data with stride 2
+  for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
+  {
+    if ( maxgfsize == 2*gfsize[igf[iseg]] )
+    {
+      // the function is real and there are also complex functions
+      // resize dbuf[iseg] to double its size
+      const int ndoubles = dbuf[iseg].size();
+      dbuf[iseg].resize(2*ndoubles);
+      // redistribute the data in the array
+      for ( int i = ndoubles-1; i >= 0; i-- )
+      {
+        dbuf[iseg][2*i] = dbuf[iseg][i];
+        dbuf[iseg][2*i+1] = 0.0;
+      }
+    }
+  }
 
   // prepare buffer sbuf for all_to_all operation
   int sbufsize = 0;

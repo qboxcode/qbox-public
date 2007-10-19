@@ -3,13 +3,14 @@
 // SampleHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleHandler.h,v 1.6 2007-10-19 16:24:04 fgygi Exp $
+// $Id: SampleHandler.h,v 1.7 2007-10-19 17:37:06 fgygi Exp $
 
 #ifndef SAMPLEHANDLER_H
 #define SAMPLEHANDLER_H
 
 #include "StructureHandler.h"
 #include <string>
+#include <vector>
 class DoubleMatrix;
 class Sample;
 class Wavefunction;
@@ -19,6 +20,7 @@ class SampleHandler : public StructureHandler
   private:
 
   Sample& s_;
+  std::vector<std::vector<std::vector<double> > > &dmat_;
   DoubleMatrix& gfdata_;
   Wavefunction& wfvtmp_;
 
@@ -44,7 +46,9 @@ class SampleHandler : public StructureHandler
     const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const subHandler);
 
-  SampleHandler(Sample& s, DoubleMatrix& gfdata, Wavefunction& wfvtmp);
+  SampleHandler(Sample& s, DoubleMatrix& gfdata,
+                std::vector<std::vector<std::vector<double> > > &dmat,
+                Wavefunction& wfvtmp);
   ~SampleHandler();
 };
 #endif

@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.39 2007-10-19 16:24:05 fgygi Exp $
+// $Id: SlaterDet.C,v 1.40 2007-10-19 17:37:06 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -118,8 +118,8 @@ void SlaterDet::reset(void)
 
       // find process row holding the smallest g vector
       double kpg2 = basis_->kpg2(basis_->isort(ismallest));
-      // cout << "smallest vector k+G on proc " << ctxt_.mype()
-      //      << " has norm " << kpg2 << endl;
+      // cout << "smallest vector on proc " << ctxt_.mype()
+      //      << " has norm " << g2 << endl;
       int minrow, mincol;
       ctxt_.dmin('c',' ',1,1,&kpg2,1,&minrow,&mincol,1,-1,-1);
 
@@ -137,7 +137,7 @@ void SlaterDet::reset(void)
           //      << " vector " << basis_->idx(3*iii) << " "
           //      << basis_->idx(3*iii+1) << " "
           //      << basis_->idx(3*iii+2) << " norm="
-          //      << basis_->kpg2(iii) << " "
+          //      << basis_->g2(iii) << " "
           //      << value << endl;
           int jjj = c_.m(n) * c_.nb() + c_.y(n);
           int index = iii+c_.mloc()*jjj;
@@ -161,9 +161,6 @@ void SlaterDet::compute_density(FourierTransform& ft,
   const double omega_inv = 1.0 / basis_->cell().volume();
   const int np012loc = ft.np012loc();
 
-  for ( int i = 0; i < np012loc; i++ )
-    rho[i] = 0.0;
-
   if ( basis_->real() )
   {
     // transform two states at a time
@@ -171,8 +168,8 @@ void SlaterDet::compute_density(FourierTransform& ft,
     {
       // global n index
       const int nn = ctxt_.mycol() * c_.nb() + n;
-      const double fac1 = omega_inv * occ_[nn];
-      const double fac2 = omega_inv * occ_[nn+1];
+      const double fac1 = weight * omega_inv * occ_[nn];
+      const double fac2 = weight * omega_inv * occ_[nn+1];
 
       if ( fac1 + fac2 > 0.0 )
       {
@@ -198,7 +195,7 @@ void SlaterDet::compute_density(FourierTransform& ft,
       const int n = nstloc()-1;
       // global n index
       const int nn = ctxt_.mycol() * c_.nb() + n;
-      const double fac1 = omega_inv * occ_[nn];
+      const double fac1 = weight * omega_inv * occ_[nn];
 
       if ( fac1 > 0.0 )
       {
@@ -221,7 +218,7 @@ void SlaterDet::compute_density(FourierTransform& ft,
     {
       // global n index
       const int nn = ctxt_.mycol() * c_.nb() + n;
-      const double fac = omega_inv * occ_[nn];
+      const double fac = weight * omega_inv * occ_[nn];
 
       if ( fac > 0.0 )
       {
@@ -352,7 +349,7 @@ void SlaterDet::gram(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::riccati(SlaterDet& sd)
+void SlaterDet::riccati(const SlaterDet& sd)
 {
   if ( basis_->real() )
   {
@@ -550,7 +547,10 @@ void SlaterDet::lowdin(void)
   else
   {
     // complex case: not implemented
-    assert(false);
+    if ( ctxt_.onpe0() )
+      cout << " SlaterDet::lowdin: not implemented, reverting to Gram-Schmidt"
+           << endl;
+    gram();
   }
 }
 
@@ -713,8 +713,12 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
   else
   {
     // complex case: not implemented
-    assert(false);
+    if ( ctxt_.onpe0() )
+      cout << " SlaterDet::lowdin: not implemented, reverting to riccati"
+           << endl;
+    riccati(sd);
   }
+#if TIMING
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
     double time = (*i).second.real();
@@ -730,6 +734,7 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
            << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
     }
   }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -819,14 +824,17 @@ void SlaterDet::align(const SlaterDet& sd)
   else
   {
     // complex case: not implemented
-    assert(false);
+    if ( ctxt_.onpe0() )
+      cout << " SlaterDet::align: not implemented, alignment skipped"
+           << endl;
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double SlaterDet::dot(const SlaterDet& sd) const
+complex<double> SlaterDet::dot(const SlaterDet& sd) const
 {
-  // dot product of Slater determinants: dot = tr (V^T W)
+  // dot product of Slater determinants at the same kpoint: dot = tr (V^T W)
+  assert(basis_->kpoint() == sd.kpoint());
   if ( basis_->real() )
   {
     // DoubleMatrix proxy for c_ and sd.c()
@@ -852,8 +860,7 @@ double SlaterDet::dot(const SlaterDet& sd) const
   }
   else
   {
-    assert(false);
-    return 0.0;
+    return c_.dot(sd.c());
   }
 }
 
@@ -1094,18 +1101,23 @@ double SlaterDet::localmemsize(void) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::print(ostream& os, string encoding)
+void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
+  int nspin)
 {
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
-  vector<double> wftmpr(ft.np012());
+  const bool real_basis = basis_->real();
+  const int wftmpr_size = real_basis ? ft.np012loc() : 2*ft.np012loc();
+  vector<double> wftmpr(wftmpr_size);
   Base64Transcoder xcdr;
 
   if ( ctxt_.onpe0() )
   {
-    const double weight = 1.0; //!! fixed determinant weight to 1.0
-    //!! no spin attribute written
-    os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\"\n"
+    string spin = (ispin > 0) ? "down" : "up";
+    os << "<slater_determinant";
+    if ( nspin == 2 )
+      os << " spin=\"" << spin << "\"";
+    os << " kpoint=\"" << basis_->kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
 
@@ -1138,9 +1150,16 @@ void SlaterDet::print(ostream& os, string encoding)
       int nloc = c_.y(n); // local index
       ft.backward(c_.cvalptr(c_.mloc()*nloc),&wftmp[0]);
 
-      double *a = (double*) &wftmp[0];
-      for ( int i = 0; i < ft.np012loc(); i++ )
-        wftmpr[i] = a[2*i];
+      if ( real_basis )
+      {
+        double *a = (double*) &wftmp[0];
+        for ( int i = 0; i < ft.np012loc(); i++ )
+          wftmpr[i] = a[2*i];
+      }
+      else
+      {
+        memcpy((void*)&wftmpr[0],(void*)&wftmp[0],wftmpr_size*sizeof(double));
+      }
     }
 
     // send blocks of wftmpr to pe0
@@ -1163,7 +1182,7 @@ void SlaterDet::print(ostream& os, string encoding)
       {
         if ( iamsending )
         {
-          size = ft.np012loc();
+          size = wftmpr_size;
           ctxt_.isend(1,1,&size,1,0,0);
         }
       }
@@ -1178,6 +1197,8 @@ void SlaterDet::print(ostream& os, string encoding)
         else
         {
           int istart = ft.np0() * ft.np1() * ft.np2_first(i);
+          if ( !real_basis )
+            istart *= 2;
           ctxt_.drecv(size,1,&wftmpr[istart],1,i,c_.pc(n));
         }
       }
@@ -1194,19 +1215,22 @@ void SlaterDet::print(ostream& os, string encoding)
     if ( ctxt_.onpe0() )
     {
       // wftmpr is now complete on task 0
+      // wftmpr contains either a real of a complex array
+
+      const string element_type = real_basis ? "double" : "complex";
 
       if ( encoding == "base64" )
       {
         #if PLT_BIG_ENDIAN
-        xcdr.byteswap_double(ft.np012(),&wftmpr[0]);
+        xcdr.byteswap_double(wftmpr_size,&wftmpr[0]);
         #endif
-        int nbytes = ft.np012()*sizeof(double);
+        int nbytes = wftmpr_size*sizeof(double);
         int outlen = xcdr.nchars(nbytes);
         char* b = new char[outlen];
         assert(b!=0);
         xcdr.encode(nbytes,(byte*) &wftmpr[0],b);
         // Note: optional x0,y0,z0 attributes not used, default is zero
-        os << "<grid_function type=\"double\""
+        os << "<grid_function type=\"" << element_type << "\""
            << " nx=\"" << ft.np0()
            << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
            << " encoding=\"base64\">" << endl;
@@ -1218,7 +1242,7 @@ void SlaterDet::print(ostream& os, string encoding)
       {
         // encoding == "text" or unknown encoding
         // Note: optional x0,y0,z0 attributes not used, default is zero
-        os << "<grid_function type=\"double\""
+        os << "<grid_function type=\"" << element_type << "\""
            << " nx=\"" << ft.np0()
            << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
            << " encoding=\"text\">" << endl;
@@ -1227,7 +1251,11 @@ void SlaterDet::print(ostream& os, string encoding)
           for ( int j = 0; j < ft.np1(); j++ )
             for ( int i = 0; i < ft.np0(); i++ )
             {
-              os << " " << wftmpr[ft.index(i,j,k)];
+              int index = ft.index(i,j,k);
+              if ( real_basis )
+                os << " " << wftmpr[index];
+              else
+                os << " " << wftmpr[2*index] << " " << wftmpr[2*index+1];
               if ( count++%4 == 3)
                 os << "\n";
             }
@@ -1243,19 +1271,24 @@ void SlaterDet::print(ostream& os, string encoding)
 
 #if USE_CSTDIO_LFS
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::write(FILE* outfile, string encoding)
+void SlaterDet::write(FILE* outfile, string encoding, double weight, int ispin,
+  int nspin)
 {
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
-  vector<double> wftmpr(ft.np012());
+  const bool real_basis = basis_->real();
+  const int wftmpr_size = real_basis ? ft.np012loc() : 2*ft.np012loc();
+  vector<double> wftmpr(wftmpr_size);
   Base64Transcoder xcdr;
   ostringstream os;
 
   if ( ctxt_.onpe0() )
   {
-    const double weight = 1.0; //!! fixed determinant weight to 1.0
-    //!! no spin attribute written
-    os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\"\n"
+    string spin = (ispin > 0) ? "down" : "up";
+    os << "<slater_determinant";
+    if ( nspin == 2 )
+      os << " spin=\"" << spin << "\"";
+    os << " kpoint=\"" << basis_->kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
 
@@ -1292,9 +1325,16 @@ void SlaterDet::write(FILE* outfile, string encoding)
       int nloc = c_.y(n); // local index
       ft.backward(c_.cvalptr(c_.mloc()*nloc),&wftmp[0]);
 
-      double *a = (double*) &wftmp[0];
-      for ( int i = 0; i < ft.np012loc(); i++ )
-        wftmpr[i] = a[2*i];
+      if ( real_basis )
+      {
+        double *a = (double*) &wftmp[0];
+        for ( int i = 0; i < ft.np012loc(); i++ )
+          wftmpr[i] = a[2*i];
+      }
+      else
+      {
+        memcpy((void*)&wftmpr[0],(void*)&wftmp[0],wftmpr_size*sizeof(double));
+      }
     }
 
     // send blocks of wftmpr to pe0
@@ -1317,7 +1357,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
       {
         if ( iamsending )
         {
-          size = ft.np012loc();
+          size = wftmpr_size;
           ctxt_.isend(1,1,&size,1,0,0);
         }
       }
@@ -1332,6 +1372,8 @@ void SlaterDet::write(FILE* outfile, string encoding)
         else
         {
           int istart = ft.np0() * ft.np1() * ft.np2_first(i);
+          if ( !real_basis )
+            istart *= 2;
           ctxt_.drecv(size,1,&wftmpr[istart],1,i,c_.pc(n));
         }
       }
@@ -1348,14 +1390,16 @@ void SlaterDet::write(FILE* outfile, string encoding)
     if ( ctxt_.onpe0() )
     {
       // wftmpr is now complete on task 0
+      // wftmpr contains either a real of a complex array
 
+      const string element_type = basis_->real() ? "double" : "complex";
       if ( encoding == "base64" )
       {
         #if PLT_BIG_ENDIAN
-        xcdr.byteswap_double(ft.np012(),&wftmpr[0]);
+        xcdr.byteswap_double(wftmpr_size,&wftmpr[0]);
         #endif
 
-        int nbytes = ft.np012()*sizeof(double);
+        int nbytes = wftmpr_size*sizeof(double);
         int outlen = xcdr.nchars(nbytes);
         char* b = new char[outlen];
         assert(b!=0);
@@ -1363,7 +1407,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
 
         // Note: optional x0,y0,z0 attributes not used, default is zero
         os.str("");
-        os << "<grid_function type=\"double\""
+        os << "<grid_function type=\"" << element_type << "\""
            << " nx=\"" << ft.np0()
            << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
            << " encoding=\"base64\">" << endl;
@@ -1387,7 +1431,7 @@ void SlaterDet::write(FILE* outfile, string encoding)
         // encoding == "text" or unknown encoding
         // Note: optional x0,y0,z0 attributes not used, default is zero
         os.str("");
-        os << "<grid_function type=\"double\""
+        os << "<grid_function type=\"" << element_type << "\""
            << " nx=\"" << ft.np0()
            << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
            << " encoding=\"text\">" << endl;
@@ -1402,7 +1446,11 @@ void SlaterDet::write(FILE* outfile, string encoding)
           {
             for ( int i = 0; i < ft.np0(); i++ )
             {
-              os << " " << wftmpr[ft.index(i,j,k)];
+              int index = ft.index(i,j,k);
+              if ( real_basis )
+                os << " " << wftmpr[index];
+              else
+                os << " " << wftmpr[2*index] << " " << wftmpr[2*index+1];
               if ( count++%4 == 3)
                 os << "\n";
             }
@@ -1419,7 +1467,6 @@ void SlaterDet::write(FILE* outfile, string encoding)
         len = str.length();
         fwrite(str.c_str(),sizeof(char),len,outfile);
       }
-
     }
   }
 
@@ -1439,10 +1486,8 @@ void SlaterDet::info(ostream& os)
 {
   if ( ctxt_.onpe0() )
   {
-    const double weight = 1.0; //!! fixed determinant weight to 1.0
     //!! no spin attribute written
-    os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\"\n"
-       << "  weight=\"" << weight << "\""
+    os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\""
        << " size=\"" << nst() << "\">" << endl;
     os << " <!-- sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << " -->"
        << endl;
@@ -1461,6 +1506,7 @@ void SlaterDet::info(ostream& os)
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator<<(ostream& os, SlaterDet& sd)
 {
-  sd.print(os,"text");
+  //!! next line: weight and spin information not included in output
+  sd.print(os,"text",0.0,0,1);
   return os;
 }

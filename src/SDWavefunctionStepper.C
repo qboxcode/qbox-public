@@ -3,7 +3,7 @@
 // SDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDWavefunctionStepper.C,v 1.5 2007-10-19 16:24:04 fgygi Exp $
+// $Id: SDWavefunctionStepper.C,v 1.6 2007-10-19 17:37:06 fgygi Exp $
 
 #include "SDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -25,19 +25,13 @@ void SDWavefunctionStepper::update(Wavefunction& dwf)
   {
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
-      if ( wf_.sd(ispin,ikp) != 0 )
-      {
-        if ( wf_.sdcontext(ispin,ikp)->active() )
-        {
-          // c = c - dt2bye * hpsi
-          tmap_["sd_update_wf"].start();
-          wf_.sd(ispin,ikp)->c().axpy(-alpha_,dwf.sd(ispin,ikp)->c());
-          tmap_["sd_update_wf"].stop();
-          tmap_["gram"].start();
-          wf_.sd(ispin,ikp)->gram();
-          tmap_["gram"].stop();
-        }
-      }
+      // c = c - dt2bye * hpsi
+      tmap_["sd_update_wf"].start();
+      wf_.sd(ispin,ikp)->c().axpy(-alpha_,dwf.sd(ispin,ikp)->c());
+      tmap_["sd_update_wf"].stop();
+      tmap_["gram"].start();
+      wf_.sd(ispin,ikp)->gram();
+      tmap_["gram"].stop();
     }
   }
 }

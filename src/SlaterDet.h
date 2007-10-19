@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.20 2007-10-19 16:24:05 fgygi Exp $
+// $Id: SlaterDet.h,v 1.21 2007-10-19 17:37:06 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -63,11 +63,11 @@ class SlaterDet
   void cleanup(void);
   void reset(void);
   void gram(void);
-  void riccati(SlaterDet& sd);
+  void riccati(const SlaterDet& sd);
   void lowdin(void);
   void align(const SlaterDet& sd);
   void ortho_align(const SlaterDet& sd);
-  double dot(const SlaterDet& sd) const;
+  std::complex<double> dot(const SlaterDet& sd) const;
   double total_charge(void);
   void update_occ(int nel, int nspin);
   void update_occ(int nspin, double mu, double temp);
@@ -91,9 +91,11 @@ class SlaterDet
   double memsize(void) const;
   double localmemsize(void) const;
   SlaterDet& operator=(SlaterDet& rhs);
-  void print(std::ostream& os, std::string encoding);
+  void print(std::ostream& os, std::string encoding, double weight, int ispin,
+    int nspin);
 #if USE_CSTDIO_LFS
-  void write(FILE* outfile, std::string encoding);
+  void write(FILE* outfile, std::string encoding, double weight, int ispin,
+    int nspin);
 #endif
   void info(std::ostream& os);
 };

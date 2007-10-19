@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.55 2007-10-19 16:24:06 fgygi Exp $
+// $Id: qb.C,v 1.56 2007-10-19 17:37:06 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -35,6 +35,7 @@ using namespace std;
 #include "ConstraintCmd.h"
 #include "DistanceCmd.h"
 #include "HelpCmd.h"
+#include "KpointCmd.h"
 #include "ListAtomsCmd.h"
 #include "ListSpeciesCmd.h"
 #include "LoadCmd.h"
@@ -217,6 +218,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new ConstraintCmd(s));
   ui.addCmd(new DistanceCmd(s));
   ui.addCmd(new HelpCmd(s));
+  ui.addCmd(new KpointCmd(s));
   ui.addCmd(new ListAtomsCmd(s));
   ui.addCmd(new ListSpeciesCmd(s));
   ui.addCmd(new LoadCmd(s));

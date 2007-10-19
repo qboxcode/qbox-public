@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.23 2007-10-19 16:24:05 fgygi Exp $
+// $Id: Wavefunction.C,v 1.24 2007-10-19 17:37:06 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -49,22 +49,17 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
   assert(ctxt_.active());
 
   assert(nspin_ == 1);
-  assert(nkp == 1);
 
-  spincontext_.resize(1);
-  sdcontext_.resize(1);
-  sdcontext_[0].resize(1);
-  sd_.resize(1);
-  sd_[0].resize(1);
+  sd_.resize(nspin_);
+  sd_[0].resize(nkp);
 
-  spincontext_[0] = new Context(*wf.spincontext_[0]);
-  sdcontext_[0][0] = 0;
-  sd_[0][0] = 0;
-  if ( spincontext_[0]->active() )
-  {
-    sdcontext_[0][0] = new Context(*wf.spincontext_[0]);
-    sd_[0][0] = new SlaterDet(*sdcontext_[0][0],kpoint_[0]);
-  }
+  sdcontext_ = &ctxt_;
+  kpcontext_ = &ctxt_;
+  spincontext_ = &ctxt_;
+
+  // replace with sd_[ispin][ikp]
+  for ( int ikp = 0; ikp < nkp; ikp++ )
+    sd_[0][ikp] = new SlaterDet(*sdcontext_,kpoint_[ikp]);
 
   resize(cell_,refcell_,ecut_);
   reset();
@@ -82,10 +77,7 @@ void Wavefunction::allocate(void)
   // create sd contexts and SlaterDets
   const int nkp = kpoint_.size();
 
-  assert(ctxt_.active());
-
   assert(nspin_ == 1);
-  assert(nkp == 1);
 
   // determine dimensions of sdcontext
   assert(nrowmax_>0);
@@ -95,21 +87,14 @@ void Wavefunction::allocate(void)
   // npr now divides size
   int npc = size/npr;
 
-  spincontext_.resize(1);
-  sdcontext_.resize(1);
-  sdcontext_[0].resize(1);
-  sd_.resize(1);
-  sd_[0].resize(1);
+  sd_.resize(nspin_);
+  sd_[0].resize(nkp);
 
-  spincontext_[0] = new Context(npr,npc);
-  //cout << *spincontext_[0];
-  sdcontext_[0][0] = 0;
-  sd_[0][0] = 0;
-  if ( spincontext_[0]->active() )
-  {
-    sdcontext_[0][0] = new Context(*spincontext_[0]);
-    sd_[0][0] = new SlaterDet(*sdcontext_[0][0],kpoint_[0]);
-  }
+  spincontext_ = &ctxt_;
+  kpcontext_ = &ctxt_;
+  sdcontext_ = &ctxt_;
+  for ( int ikp = 0; ikp < nkp; ikp++ )
+    sd_[0][ikp] = new SlaterDet(*sdcontext_,kpoint_[ikp]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -117,17 +102,9 @@ void Wavefunction::deallocate(void)
 {
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
-    if ( spincontext_[ispin] != 0 )
+    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-      {
-        if ( sdcontext_[ispin][ikp] != 0 )
-        {
-          delete sd_[ispin][ikp];
-          delete sdcontext_[ispin][ikp];
-        }
-      }
-      delete spincontext_[ispin];
+      delete sd_[ispin][ikp];
     }
   }
 }
@@ -139,16 +116,11 @@ void Wavefunction::clear(void)
   {
     for ( int ikp = 0; ikp < nkp(); ikp++ )
     {
-      if ( sd(ispin,ikp) != 0 )
-      {
-        if ( sdcontext(ispin,ikp)->active() )
-        {
-          sd(ispin,ikp)->c().clear();
-        }
-      }
+      sd(ispin,ikp)->c().clear();
     }
   }
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::nkp(void) const { return kpoint_.size(); }
 
@@ -175,14 +147,20 @@ int Wavefunction::nst(int ispin) const
 int Wavefunction::nempty() const { return nempty_; } // number of empty states
 
 ////////////////////////////////////////////////////////////////////////////////
-int Wavefunction::nspin() const { return nspin_; } // number of empty states
+int Wavefunction::nspin() const { return nspin_; } // number of spin components
 
 ////////////////////////////////////////////////////////////////////////////////
 double Wavefunction::entropy(void) const
 {
-  assert(nspin_==1);
-  assert(kpoint_.size()==1);
-  return sd(0,0)->entropy(nspin_);
+  double sum = 0.0;
+  for ( int ispin = 0; ispin < nspin(); ispin++ )
+  {
+    for ( int ikp = 0; ikp < nkp(); ikp++ )
+    {
+      sum += sd(ispin,ikp)->entropy(nspin_);
+    }
+  }
+  return sum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -196,10 +174,7 @@ void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell,
     {
       for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       {
-        if ( sdcontext_[ispin][ikp]!= 0 && sdcontext_[ispin][ikp]->active() )
-        {
-          sd_[ispin][ikp]->resize(cell,refcell,ecut,nst_[ispin]);
-        }
+        sd_[ispin][ikp]->resize(cell,refcell,ecut,nst_[ispin]);
       }
     }
     cell_ = cell;
@@ -229,10 +204,7 @@ void Wavefunction::reset(void)
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      if ( sdcontext_[ispin][ikp]!= 0 && sdcontext_[ispin][ikp]->active() )
-      {
-        sd_[ispin][ikp]->reset();
-      }
+      sd_[ispin][ikp]->reset();
     }
   }
 }
@@ -326,31 +298,57 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
 {
   for ( int i = 0; i < kpoint_.size(); i++ )
   {
-    if ( kpoint == kpoint_[i] )
+    if ( length(kpoint - kpoint_[i]) < 1.e-6 )
     {
-      cout << " Wavefunction::add_kpoint: warning: kpoint already defined"
+      if ( ctxt_.onpe0() )
+        cout << " Wavefunction::add_kpoint: kpoint already defined"
            << endl;
-      //!! return;
+      return;
     }
   }
 
   deallocate();
-  cout << " Wavefunction::add_kpoint: " << kpoint << " deallocate done" << endl;
-
   kpoint_.push_back(kpoint);
   weight_.push_back(weight);
 
   allocate();
-  cout << " Wavefunction::add_kpoint: " << kpoint << " allocate done" << endl;
   resize(cell_,refcell_,ecut_);
   reset();
+  update_occ(0.0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::del_kpoint(D3vector kpoint)
 {
-  cout << " Wavefunction::del_kpoint: not implemented" << endl;
-  assert(false);
+  bool found = false;
+  vector<D3vector>::iterator pk = kpoint_.begin();
+  vector<double>::iterator pw = weight_.begin();
+  while ( !found && pk != kpoint_.end() )
+  {
+    if ( length(kpoint - *pk) < 1.e-6 )
+    {
+      found = true;
+    }
+    else
+    {
+      pk++;
+      pw++;
+    }
+  }
+  if ( !found )
+  {
+    if ( ctxt_.onpe0() )
+      cout << " Wavefunction::del_kpoint: no such kpoint"
+         << endl;
+    return;
+  }
+  deallocate();
+  kpoint_.erase(pk);
+  weight_.erase(pw);
+  allocate();
+  resize(cell_,refcell_,ecut_);
+  reset();
+  update_occ(0.0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -360,10 +358,7 @@ void Wavefunction::randomize(double amplitude)
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
-      {
-        sd_[ispin][ikp]->randomize(amplitude);
-      }
+      sd_[ispin][ikp]->randomize(amplitude);
     }
   }
 }
@@ -379,10 +374,7 @@ void Wavefunction::update_occ(double temp)
     {
       for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       {
-        if ( sd_[0][ikp] != 0 && sdcontext_[0][ikp]->active() )
-        {
-          sd_[0][ikp]->update_occ(nel_,nspin_);
-        }
+        sd_[0][ikp]->update_occ(nel_,nspin_);
       }
     }
     else if ( nspin_ == 2 )
@@ -391,10 +383,8 @@ void Wavefunction::update_occ(double temp)
       const int nocc_dn = nel_/2 - deltaspin_;
       for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       {
-        if ( sd_[0][ikp] != 0 && sdcontext_[0][ikp]->active() )
-          sd_[0][ikp]->update_occ(nocc_up,nspin_);
-        if ( sd_[1][ikp] != 0 && sdcontext_[1][ikp]->active() )
-          sd_[1][ikp]->update_occ(nocc_dn,nspin_);
+        sd_[0][ikp]->update_occ(nocc_up,nspin_);
+        sd_[1][ikp]->update_occ(nocc_dn,nspin_);
       }
     }
     else
@@ -412,7 +402,6 @@ void Wavefunction::update_occ(double temp)
     // loop to find value of mu
     double mu = 0.0;
     double dmu = 2.0 * eVolt;
-    //!! double totalcharge = (double) ( nel_ + netcharge_ );
     const double totalcharge = (double) nel_;
     enum direction { up, down };
     direction dir = up;
@@ -422,15 +411,8 @@ void Wavefunction::update_occ(double temp)
     {
       for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       {
-        if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
-        {
-          sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
-          rhosum += sd_[ispin][ikp]->total_charge();
-        }
-        //!! rhosum must be reduced on pe 0 of each sdcontext only
-        //!! without reduction, works only if nspin_==1 and nkp_==1
-        assert(nspin_==1);
-        assert(kpoint_.size()==1);
+        sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
+        rhosum += sd_[ispin][ikp]->total_charge();
       }
     }
 
@@ -455,15 +437,8 @@ void Wavefunction::update_occ(double temp)
       {
         for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
         {
-          if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
-          {
-            sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
-            rhosum += sd_[ispin][ikp]->total_charge();
-          }
-          //!! rhosum must be reduced on pe 0 of each sdcontext only
-          //!! without reduction, works only if nspin_==1 and nkp_==1
-          assert(nspin_==1);
-          assert(kpoint_.size()==1);
+          sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
+          rhosum += sd_[ispin][ikp]->total_charge();
         }
       }
     }
@@ -477,7 +452,6 @@ void Wavefunction::update_occ(double temp)
 
     if ( ctxt_.onpe0() )
     {
-      //!! print on one process only
       cout << " <!-- Wavefunction::update_occ: sum = "
            << rhosum << " -->" << endl;
       cout << " <!-- Wavefunction::update_occ: mu = "
@@ -491,13 +465,10 @@ void Wavefunction::update_occ(double temp)
       {
         for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
         {
-          if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
+          for ( int n = 0; n < sd_[ispin][ikp]->nst(); n++ )
           {
-            for ( int n = 0; n < sd_[ispin][ikp]->nst(); n++ )
-            {
-              cout << setw(7) << setprecision(4) << sd_[ispin][ikp]->occ(n);
-              if ( ( n%10 ) == 9 ) cout << endl;
-            }
+            cout << setw(7) << setprecision(4) << sd_[ispin][ikp]->occ(n);
+            if ( ( n%10 ) == 9 ) cout << endl;
           }
         }
         cout << "  -->" << endl;
@@ -513,10 +484,7 @@ void Wavefunction::gram(void)
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
-      {
-        sd_[ispin][ikp]->gram();
-      }
+      sd_[ispin][ikp]->gram();
     }
   }
 }
@@ -529,10 +497,7 @@ void Wavefunction::riccati(Wavefunction& wf)
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
-      {
-        sd_[ispin][ikp]->riccati(*wf.sd_[ispin][ikp]);
-      }
+      sd_[ispin][ikp]->riccati(*wf.sd_[ispin][ikp]);
     }
   }
 }
@@ -545,27 +510,21 @@ void Wavefunction::align(Wavefunction& wf)
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
-      {
-        sd_[ispin][ikp]->align(*wf.sd_[ispin][ikp]);
-      }
+      sd_[ispin][ikp]->align(*wf.sd_[ispin][ikp]);
     }
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double Wavefunction::dot(const Wavefunction& wf) const
+complex<double> Wavefunction::dot(const Wavefunction& wf) const
 {
   assert(wf.context() == ctxt_);
-  double sum = 0.0;
+  complex<double> sum = 0.0;
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
-      {
-        sum += sd_[ispin][ikp]->dot(*wf.sd_[ispin][ikp]);
-      }
+      sum += sd_[ispin][ikp]->dot(*wf.sd_[ispin][ikp]);
     }
   }
   return sum;
@@ -581,84 +540,73 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
   {
     for ( int ikp = 0; ikp < nkp(); ikp++ )
     {
-      if ( sd(ispin,ikp) != 0 )
+      // compute eigenvalues
+      if ( sd(ispin,ikp)->basis().real() )
       {
-        if ( sdcontext(ispin,ikp)->active() )
-        {
-          // compute eigenvalues
-          if ( sd(ispin,ikp)->basis().real() )
-          {
-            // proxy real matrices c, cp
-            DoubleMatrix c(sd(ispin,ikp)->c());
-            DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
+        // proxy real matrices c, cp
+        DoubleMatrix c(sd(ispin,ikp)->c());
+        DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
 
-            DoubleMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        DoubleMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
 
-            // factor 2.0 in next line: G and -G
-            h.gemm('t','n',2.0,c,cp,0.0);
-            // rank-1 update correction
-            h.ger(-1.0,c,0,cp,0);
+        // factor 2.0 in next line: G and -G
+        h.gemm('t','n',2.0,c,cp,0.0);
+        // rank-1 update correction
+        h.ger(-1.0,c,0,cp,0);
 
-            // cout << " Hamiltonian at k = " << sd(ispin,ikp)->kpoint()
-            //      << endl;
-            // cout << h;
+        // cout << " Hamiltonian at k = " << sd(ispin,ikp)->kpoint()
+        //      << endl;
+        // cout << h;
 
 #if 1
-            valarray<double> w(h.m());
-            if ( eigvec )
-            {
-              DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
-              h.syev('l',w,z);
-              //h.syevx('l',w,z,1.e-6);
-              cp = c;
-              c.gemm('n','n',1.0,cp,z,0.0);
-            }
-            else
-            {
-              h.syev('l',w);
-            }
-#else
-            vector<double> w(h.m());
-            DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            const int maxsweep = 30;
-            int nsweep = jacobi(maxsweep,1.e-6,h,z,w);
-            if ( eigvec )
-            {
-              cp = c;
-              c.gemm('n','n',1.0,cp,z,0.0);
-            }
-#endif
-            // set eigenvalues in SlaterDet
-            sd(ispin,ikp)->set_eig(w);
-          }
-          else
-          {
-            // complex case not implemented
-            assert(false);
-            #if 0
-            ComplexMatrix& c(wf.sd[ikp]->c());
-            ComplexMatrix& cp(dwf.sd[ikp]->c());
-
-            ComplexMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
-
-            h.gemm('c','n',1.0,c,cp,0.0);
-
-            //cout << " Hamiltonian at k = " << sd[ikp]->kpoint() << endl;
-            //cout << h;
-
-            valarray<double> w(h.m());
-
-            h.heev('l',w);
-            cout << " Eigenvalues at k = " << sd[ikp]->kpoint() << endl;
-            const double eVolt = 2.0 * 13.6058;
-            for ( int i = 0; i < h.m(); i++ )
-            {
-              cout << "%" << setw(3) << ikp
-                   << setw(10) << setprecision(5) << w[i]*eVolt << endl;;
-            }
-            #endif
-          }
+        valarray<double> w(h.m());
+        if ( eigvec )
+        {
+          DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          h.syev('l',w,z);
+          //h.syevx('l',w,z,1.e-6);
+          cp = c;
+          c.gemm('n','n',1.0,cp,z,0.0);
         }
+        else
+        {
+          h.syev('l',w);
+        }
+#else
+        vector<double> w(h.m());
+        DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        const int maxsweep = 30;
+        int nsweep = jacobi(maxsweep,1.e-6,h,z,w);
+        if ( eigvec )
+        {
+          cp = c;
+          c.gemm('n','n',1.0,cp,z,0.0);
+        }
+#endif
+        // set eigenvalues in SlaterDet
+        sd(ispin,ikp)->set_eig(w);
+      }
+      else
+      {
+        ComplexMatrix& c(sd(ispin,ikp)->c());
+        ComplexMatrix& cp(dwf.sd(ispin,ikp)->c());
+        ComplexMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        h.gemm('c','n',1.0,c,cp,0.0);
+        //cout << " Hamiltonian at k = " << sd[ikp]->kpoint() << endl;
+        //cout << h;
+        valarray<double> w(h.m());
+        h.heev('l',w);
+#if 0
+        cout << " Eigenvalues at k = " << sd(ispin,ikp)->kpoint() << endl;
+        const double eVolt = 2.0 * 13.6058;
+        for ( int i = 0; i < h.m(); i++ )
+        {
+          cout << "%" << setw(3) << ikp
+               << setw(10) << setprecision(5) << w[i]*eVolt << endl;;
+        }
+#endif
+        // set eigenvalues in SlaterDet
+        sd(ispin,ikp)->set_eig(w);
       }
     }
   }
@@ -686,7 +634,7 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-      sd_[ispin][ikp]->print(os,encoding);
+      sd_[ispin][ikp]->print(os,encoding,weight_[ikp],ispin,nspin_);
   }
 
   if ( ctxt_.onpe0() )
@@ -727,7 +675,7 @@ void Wavefunction::write(FILE* outfile, string encoding, string tag) const
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-      sd_[ispin][ikp]->write(outfile,encoding);
+      sd_[ispin][ikp]->write(outfile,encoding,weight_[ikp],ispin,nspin_);
   }
 
   if ( ctxt_.onpe0() )
@@ -755,6 +703,12 @@ void Wavefunction::info(ostream& os, string tag) const
        << setprecision(6) << cell_.a(0) << "\"\n      b=\""
        << cell_.a(1) << "\"\n      c=\""
        << cell_.a(2) << "\"/>" << endl;
+    os << "<-- reciprocal lattice vectors" << endl
+       << setprecision(6)
+       << " " << cell_.b(0) << endl
+       << " " << cell_.b(1) << endl
+       << " " << cell_.b(2) << endl
+       << "-->" << endl;
     os << "<refcell a=\""
        << refcell_.a(0) << "\"\n         b=\""
        << refcell_.a(1) << "\"\n         c=\""
@@ -767,7 +721,11 @@ void Wavefunction::info(ostream& os, string tag) const
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    {
+      cout << "<-- kpoint: " << kpoint_[ikp] << " weight: " << weight_[ikp]
+           << " -->" << endl;
       sd_[ispin][ikp]->info(os);
+    }
   }
 
   if ( ctxt_.onpe0() )
@@ -802,10 +760,7 @@ Wavefunction& Wavefunction::operator=(const Wavefunction& wf)
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      if ( sd_[ispin][ikp] != 0 && sdcontext_[ispin][ikp]->active() )
-      {
-        *sd_[ispin][ikp] = *wf.sd_[ispin][ikp];
-      }
+      *sd_[ispin][ikp] = *wf.sd_[ispin][ikp];
     }
   }
   return *this;

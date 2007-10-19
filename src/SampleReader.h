@@ -3,12 +3,16 @@
 // SampleReader.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.h,v 1.4 2007-10-19 16:24:05 fgygi Exp $
+// $Id: SampleReader.h,v 1.5 2007-10-19 17:37:06 fgygi Exp $
 
 #ifndef SAMPLEREADER_H
 #define SAMPLEREADER_H
 
+enum event_type { species, atom, wavefunction, wavefunction_velocity,
+                  slater_determinant, end, invalid };
+
 class Context;
+class Sample;
 
 class SampleReader
 {

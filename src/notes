@@ -33,6 +33,12 @@ with srand48(ctxt.myproc()).
 Could reinitialize the seed in MDIonicsStepper.C using a common value identical
 on all processors.
 --------------------------------------------------------------------------------
+rel1_34_0
+Added kpoints
+--------------------------------------------------------------------------------
+rel1_33_5
+removed trailing blanks in *.[Ch] *.mk Makefile
+--------------------------------------------------------------------------------
 rel1_33_4
 ComputeMLWFCmd.C: fixed memory leak.
 blas.h: added zgemm, dnrm2.

@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.19 2007-10-19 16:24:04 fgygi Exp $
+// $Id: SampleReader.C,v 1.20 2007-10-19 17:37:06 fgygi Exp $
 
 
 #include "Sample.h"
@@ -20,8 +20,8 @@
 
 #include <cassert>
 #include <string>
-#include <fstream>
 #include <iostream>
+#include <fstream>
 #include <sys/stat.h>
 
 #if USE_XERCES
@@ -57,6 +57,12 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   SAX2XMLReader* parser = 0;
 
   Wavefunction wfvtmp(s.wf);
+  Wavefunction& current_wf = s.wf;
+  vector<vector<vector<double> > > dmat;
+  const int nspin = 1;
+  const int current_ispin = 0;
+  int current_ikp;
+  dmat.resize(nspin);
 
   MemBufInputSource* memBufIS = 0;
 
@@ -108,9 +114,11 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
 
     if ( ctxt_.onpe0() )
     {
-      // cout << ctxt_.mype() << ": xmlcontent.size(): " << xmlcontent.size()
-      //      << endl;
-      // cout << ctxt_.mype() << ": xmlcontent: " << xmlcontent << endl;
+      cout << " xmlcontent.size(): " << xmlcontent.size()
+           << endl;
+#if DEBUG
+      cout << ctxt_.mype() << ": xmlcontent: " << xmlcontent << endl;
+#endif
       memBufIS = new MemBufInputSource
         ( (const XMLByte*) &xmlcontent[0], xmlcontent.size(), "buf_id", false);
     }
@@ -119,6 +127,11 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   bool read_wf = false;
   bool read_wfv = false;
   // initialize wavefunction_velocity in case it appears in the sample file
+
+  assert(sizeof(event_type)==sizeof(int));
+  // remove default kpoint in wf
+  s.wf.del_kpoint(D3vector(0.0,0.0,0.0));
+  wfvtmp.del_kpoint(D3vector(0.0,0.0,0.0));
 
   if ( ctxt_.onpe0() )
   {
@@ -146,18 +159,13 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
 
     int errorCount = 0;
-    SampleHandler* s_handler = new SampleHandler(s,gfdata,wfvtmp);
+    SampleHandler* s_handler = new SampleHandler(s,gfdata,dmat,wfvtmp);
 
     try
     {
       StructuredDocumentHandler handler(s_handler);
       parser->setContentHandler(&handler);
       parser->setErrorHandler(&handler);
-
-#if 0
-      //!!LocalFileInputSource localfile(XMLString::transcode(uri.c_str()));
-      //!!parser->parse(localfile);
-#endif
 
       cout << " Starting XML parsing" << endl;
       if ( read_from_file )
@@ -203,8 +211,8 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     XMLPlatformUtils::Terminate();
 
     // parsing of sample is complete, send end of sample tag to tasks > 0
-    int tag = 0;
-    ctxt_.ibcast_send(1,1,&tag,1);
+    event_type event = end;
+    ctxt_.ibcast_send(1,1,(int*)&event,1);
 
   } // onpe0
   else
@@ -214,14 +222,13 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     // cout << ctxt_.mype() << ": listening..." << endl;
 
     bool done = false;
-    int tag = -1;
+    event_type event = invalid;
     while ( !done )
     {
-      ctxt_.ibcast_recv(1,1,&tag,1,0,0);
-      // cout << ctxt_.mype() << ": received tag " << tag << endl;
-      if ( tag == 0 )
+      ctxt_.ibcast_recv(1,1,(int*)&event,1,0,0);
+      if ( event == end )
         done = true;
-      else if ( tag == 1 )
+      else if ( event == species )
       {
         // Species
         string curr_name;
@@ -232,7 +239,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         sp_reader.bcastSpecies(*sp);
         s.atoms.addSpecies(sp,curr_name);
       }
-      else if ( tag == 2 )
+      else if ( event == atom )
       {
         // Atom
         string curr_atom_name,curr_atom_species;
@@ -249,19 +256,22 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
                            curr_position, curr_velocity);
         s.atoms.addAtom(a);
       }
-      else if ( tag == 3 )
+      else if ( event == wavefunction )
       {
+        current_ikp = 0;
         // Wavefunction
         read_wf = true;
         int nel,nspin,nempty;
         ctxt_.ibcast_recv(1,1,&nel,1,0,0);
         ctxt_.ibcast_recv(1,1,&nspin,1,0,0);
         ctxt_.ibcast_recv(1,1,&nempty,1,0,0);
-        //cout << ctxt_.mype() << ": receiving wf nel=" << nel
+        //cout << ctxt_.mype() << ": SampleReader: receiving wf nel=" << nel
         //     << " nspin=" << nspin << " nempty=" << nempty << endl;
         s.wf.set_nel(nel);
         s.wf.set_nspin(nspin);
         s.wf.set_nempty(nempty);
+        //cout << ctxt_.mype() << ": SampleReader: nel=" << s.wf.nel()
+        //     << " nst=" << s.wf.nst() << endl;
 
         // domain
         double buf[9];
@@ -287,62 +297,13 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
 
         //cout << ctxt_.mype() << ": wf resized, ecut=" << ecut << endl;
 
-        //!! nkpoint fixed = 1
-        const int nkpoint = 1;
-
-        for ( int ispin = 0; ispin < nspin; ispin++ )
-        {
-          for ( int ikp = 0; ikp < nkpoint; ikp++ )
-          {
-            SlaterDet* sd = s.wf.sd(ispin,ikp);
-            if ( sd != 0 )
-            {
-              // receive density_matrix
-              vector<double> dmat_tmp(sd->nst());
-              sd->context().dbcast_recv(sd->nst(),1,&dmat_tmp[0],1,0,0);
-              sd->set_occ(dmat_tmp);
-
-              if ( !read_from_file )
-              {
-                const Basis& basis = sd->basis();
-                FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
-                valarray<double> wftmpr(ft.np012loc());
-                vector<complex<double> > wftmp(ft.np012loc());
-                int size = -1;
-                for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
-                {
-                  // read grid_function nloc fragment
-                  //cout << sd->context();
-                  //cout << sd->context().mype()
-                  //     << ": wf receiving nloc=" << nloc << endl;
-                  sd->context().irecv(1,1,&size,1,0,0);
-                  //cout << sd->context().mype()
-                  //     << ": received size=" << size << endl;
-                  assert(size==ft.np012loc());
-                  sd->context().drecv(size,1,&wftmpr[0],1,0,0);
-                  //cout << sd->context().mype()
-                  //     << ": grid_function nloc=" << nloc
-                  //     << "received" << endl;
-
-                  // copy to complex array
-                  for ( int i = 0; i < size; i++ )
-                  {
-                    wftmp[i] = wftmpr[i];
-                  }
-
-                  ComplexMatrix& c = sd->c();
-                  ft.forward(&wftmp[0],c.valptr(c.mloc()*nloc));
-                  //cout << sd->context().mype()
-                  //     << ": grid_function read for nloc=" << nloc << endl;
-                }
-              }
-            }
-          }
-        }
       }
-      else if ( tag == 4 )
+      else if ( event == wavefunction_velocity )
       {
-        // cout << ctxt_.mype() << ": SampleReader received tag 4" << endl;
+        current_wf = wfvtmp; // set reference used by the slater det section
+        current_ikp = 0;
+        // cout << ctxt_.mype()
+        //      << ": SampleReader received wavefunction_velocity" << endl;
         read_wfv = true;
         // Wavefunction velocity
         int nel,nspin,nempty;
@@ -375,114 +336,162 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         D3vector cr(buf[6],buf[7],buf[8]);
         UnitCell ruc(ar,br,cr);
 
-        wfvtmp.resize(uc,ruc,ecut);
+        current_wf.resize(uc,ruc,ecut);
 
         //cout << ctxt_.mype() << ": wfv resized, ecut=" << ecut << endl;
 
-        //!! nkpoint fixed = 1
-        const int nkpoint = 1;
+      }
+      else if ( event == slater_determinant )
+      {
+        // process SlaterDet
+        // receive kpoint and weight
+        double buf[4];
+        ctxt_.dbcast_recv(4,1,buf,1,0,0);
+        current_wf.add_kpoint(D3vector(buf[0],buf[1],buf[2]),buf[3]);
 
-        for ( int ispin = 0; ispin < nspin; ispin++ )
+        // receive density_matrix
+        vector<double> dmat_tmp(current_wf.nst());
+        s.wf.context().dbcast_recv(s.wf.nst(),1,&dmat_tmp[0],1,0,0);
+        dmat[current_ispin].push_back(dmat_tmp);
+
+        if ( !read_from_file )
         {
-          for ( int ikp = 0; ikp < nkpoint; ikp++ )
+          // receive grid_functions
+          SlaterDet* sd = current_wf.sd(current_ispin,current_ikp);
+          const Basis& basis = sd->basis();
+          FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
+          const int wftmpr_size = basis.real() ? ft.np012loc() :
+            2*ft.np012loc();
+          valarray<double> wftmpr(wftmpr_size);
+          vector<complex<double> > wftmp(ft.np012loc());
+          int size = -1;
+          for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
           {
-            SlaterDet* sd = wfvtmp.sd(ispin,ikp);
-            if ( sd != 0 )
+            // read grid_function nloc fragment
+            //cout << sd->context();
+            //cout << sd->context().mype()
+            //     << ": wf receiving nloc=" << nloc << endl;
+            sd->context().irecv(1,1,&size,1,0,0);
+            //cout << sd->context().mype()
+            //     << ": received size=" << size << endl;
+            assert(size==wftmpr_size);
+            sd->context().drecv(size,1,&wftmpr[0],1,0,0);
+            //cout << sd->context().mype()
+            //     << ": grid_function nloc=" << nloc
+            //     << "received" << endl;
+
+            // copy to complex array
+            if ( basis.real() )
             {
-              // receive density_matrix
-              vector<double> dmat_tmp(sd->nst());
-              sd->context().dbcast_recv(sd->nst(),1,&dmat_tmp[0],1,0,0);
-              sd->set_occ(dmat_tmp);
-
-              if ( !read_from_file )
+              for ( int i = 0; i < size; i++ )
               {
-                const Basis& basis = sd->basis();
-                FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
-                valarray<double> wftmpr(ft.np012loc());
-                vector<complex<double> > wftmp(ft.np012loc());
-                int size = -1;
-                for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
-                {
-                  // read grid_function nloc fragment
-                  //cout << sd->context();
-                  //cout << sd->context().mype()
-                  //     << ": wfv receiving nloc=" << nloc << endl;
-                  sd->context().irecv(1,1,&size,1,0,0);
-                  //cout << sd->context().mype()
-                  //     << ": received size=" << size << endl;
-                  assert(size==ft.np012loc());
-                  sd->context().drecv(size,1,&wftmpr[0],1,0,0);
-                  //cout << sd->context().mype()
-                  //     << ": grid_function nloc=" << nloc
-                  //     << "received" << endl;
-
-                  // copy to complex array
-                  for ( int i = 0; i < size; i++ )
-                  {
-                    wftmp[i] = wftmpr[i];
-                  }
-
-                  ComplexMatrix& c = sd->c();
-                  ft.forward(&wftmp[0],c.valptr(c.mloc()*nloc));
-                  //cout << sd->context().mype()
-                  //     << ": grid_function read for nloc=" << nloc << endl;
-                }
+                wftmp[i] = wftmpr[i];
               }
             }
+            else
+            {
+              memcpy((void*)&wftmp[0],(void*)&wftmpr[0],wftmpr_size*
+                sizeof(double));
+            }
+
+            ComplexMatrix& c = sd->c();
+            ft.forward(&wftmp[0],c.valptr(c.mloc()*nloc));
+            //cout << sd->context().mype()
+            //     << ": grid_function read for nloc=" << nloc << endl;
           }
         }
       }
-    }
+    } // while !done receiving events from node 0
   } // if-else onpe0
 
-  cout << "SampleReader: after if-else onpe0" << endl;
   // This part is now executing on all tasks
   if ( read_from_file )
   {
+    // ofstream gffile("gf.dat");
+    // gffile << gfdata;
     if ( read_wf )
     {
-      ofstream gffile("gf.dat");
-      gffile << gfdata;
       // transfer data from the gfdata matrix to the SlaterDets
-      //cout << ctxt_.mype() << ": mapping gfdata matrix..."
-      //     << endl;
-      //cout << ctxt_.mype() << ": gfdata: (" << gfdata.m() << "x" << gfdata.n()
-      //<< ") (" << gfdata.mb() << "x" << gfdata.nb() << ") blocks" << endl;
-      //cout << ctxt_.mype() << ": gfdata.mloc()=" << gfdata.mloc()
-      //<< " gfdata.nloc()=" << gfdata.nloc() << endl;
-
-      //!! Next lines work for 1 kpoint, 1 spin only
-      SlaterDet* sd = s.wf.sd(0,0);
-      const Basis& basis = sd->basis();
-      FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
-      //cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
-      //cout << ctxt_.mype() << ": ft.context(): " << ft.context();
-
-      ComplexMatrix& c = sd->c();
-      DoubleMatrix wftmpr(sd->context(),ft.np012(),sd->nst(),
-        ft.np012loc(0),c.nb());
-      //cout << ctxt_.mype() << ": wftmpr: (" << wftmpr.m() << "x" << wftmpr.n()
-      //<< ") (" << wftmpr.mb() << "x" << wftmpr.nb() << ") blocks" << endl;
-      //cout << ctxt_.mype() << ": wftmpr.mloc()=" << wftmpr.mloc()
-      //<< " wftmpr.nloc()=" << wftmpr.nloc() << endl;
-
-      vector<complex<double> > wftmp(ft.np012loc());
-      wftmpr.getsub(gfdata,ft.np012(),sd->nst(),0,0);
-
-#if 0
-      // Check orthogonality by computing overlap matrix
-      DoubleMatrix smat(sd->context(),sd->nst(),sd->nst(),c.nb(),c.nb());
-      smat.syrk('l','t',1.0,wftmpr,0.0);
-      cout << smat;
+#if DEBUG
+      cout << ctxt_.mype() << ": mapping gfdata matrix..."
+           << endl;
+      cout << ctxt_.mype() << ": gfdata: (" << gfdata.m() << "x" << gfdata.n()
+      << ") (" << gfdata.mb() << "x" << gfdata.nb() << ") blocks" << endl;
+      cout << ctxt_.mype() << ": gfdata.mloc()=" << gfdata.mloc()
+      << " gfdata.nloc()=" << gfdata.nloc() << endl;
 #endif
 
-      for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
+      assert(dmat[0].size() == s.wf.nkp() );
+      for ( int ispin = 0; ispin < s.wf.nspin(); ispin++ )
       {
-        // copy to complex array
-        double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
-        for ( int i = 0; i < ft.np012loc(); i++ )
-          wftmp[i] = p[i];
-        ft.forward(&wftmp[0],c.valptr(c.mloc()*nloc));
+        for ( int ikp = 0; ikp < s.wf.nkp(); ikp++ )
+        {
+          SlaterDet* sd = s.wf.sd(ispin,ikp);
+#if DEBUG
+          cout << "SampleReader: ikp=" << ikp << " nst = " << sd->nst() << endl;
+          cout << "SampleReader: ikp=" << ikp << " dmat_list size = "
+               << dmat[ispin][ikp].size() << endl;
+#endif
+
+          // copy density matrix information
+          sd->set_occ(dmat[ispin][ikp]);
+          const Basis& basis = sd->basis();
+          FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
+          //cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
+          //cout << ctxt_.mype() << ": ft.context(): " << ft.context();
+
+          ComplexMatrix& c = sd->c();
+          // copy wf values
+          // Determine the size of the temporary real matrix wftmpr
+          int wftmpr_size, wftmpr_locsize;
+          if ( basis.real() && ( ft.np012() == gfdata.m() ) )
+          {
+            // all functions are real
+            wftmpr_size = ft.np012();
+            wftmpr_locsize = ft.np012loc();
+          }
+          else
+          {
+            // there is either 1) a mix of real and complex functions
+            // or 2) only complex functions
+            wftmpr_size = 2*ft.np012();
+            wftmpr_locsize = 2*ft.np012loc();
+          }
+          DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
+            wftmpr_locsize,c.nb());
+
+          wftmpr.getsub(gfdata,wftmpr_size,sd->nst(),0,ikp*sd->nst());
+
+#if 0
+          // Check orthogonality by computing overlap matrix
+          DoubleMatrix smat(sd->context(),sd->nst(),sd->nst(),c.nb(),c.nb());
+          smat.syrk('l','t',1.0,wftmpr,0.0);
+          cout << smat;
+#endif
+
+          vector<complex<double> > wftmp(ft.np012loc());
+          for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
+          {
+            // copy column of wftmpr to complex array wftmp
+            if ( wftmpr_size == ft.np012() )
+            {
+              // function is real and must be expanded
+              double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
+              for ( int i = 0; i < ft.np012loc(); i++ )
+                wftmp[i] = p[i];
+            }
+            else
+            {
+              // function is complex
+              double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
+              for ( int i = 0; i < ft.np012loc(); i++ )
+                wftmp[i] = complex<double>(p[2*i],p[2*i+1]);
+            }
+            ft.forward(&wftmp[0],c.valptr(c.mloc()*nloc));
+          }
+          // cout << " c matrix: ikp=" << ikp << endl;
+          // cout << c;
+        }
       }
     } // if read_wf
 
@@ -496,31 +505,59 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       //cout << ctxt_.mype() << ": gfdata.mloc()=" << gfdata.mloc()
       //<< " gfdata.nloc()=" << gfdata.nloc() << endl;
 
-      //!! Next lines work for 1 kpoint, 1 spin only
-      SlaterDet* sd = wfvtmp.sd(0,0);
-      const Basis& basis = sd->basis();
-      FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
-      //cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
-      //cout << ctxt_.mype() << ": ft.context(): " << ft.context();
-
-      ComplexMatrix& c = sd->c();
-      DoubleMatrix wftmpr(sd->context(),ft.np012(),sd->nst(),
-        ft.np012loc(0),c.nb());
-      //cout << ctxt_.mype() << ": wftmpr: (" << wftmpr.m() << "x" << wftmpr.n()
-      //<< ") (" << wftmpr.mb() << "x" << wftmpr.nb() << ") blocks" << endl;
-      //cout << ctxt_.mype() << ": wftmpr.mloc()=" << wftmpr.mloc()
-      //<< " wftmpr.nloc()=" << wftmpr.nloc() << endl;
-
-      vector<complex<double> > wftmp(ft.np012loc());
-      wftmpr.getsub(gfdata,ft.np012(),sd->nst(),0,sd->nst());
-
-      for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
+      for ( int ispin = 0; ispin < s.wf.nspin(); ispin++ )
       {
-        // copy to complex array
-        double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
-        for ( int i = 0; i < ft.np012loc(); i++ )
-          wftmp[i] = p[i];
-        ft.forward(&wftmp[0],c.valptr(c.mloc()*nloc));
+        for ( int ikp = 0; ikp < s.wf.nkp(); ikp++ )
+        {
+          SlaterDet* sd = wfvtmp.sd(ispin,ikp);
+          const Basis& basis = sd->basis();
+          FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
+          //cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
+          //cout << ctxt_.mype() << ": ft.context(): " << ft.context();
+
+          ComplexMatrix& c = sd->c();
+          // copy wf values
+          // Determine the size of the temporary real matrix wftmpr
+          int wftmpr_size, wftmpr_locsize;
+          if ( basis.real() && ( ft.np012() == gfdata.m() ) )
+          {
+            // all functions are real
+            wftmpr_size = ft.np012();
+            wftmpr_locsize = ft.np012loc();
+          }
+          else
+          {
+            // there is either 1) a mix of real and complex functions
+            // or 2) only complex functions
+            wftmpr_size = 2*ft.np012();
+            wftmpr_locsize = 2*ft.np012loc();
+          }
+          DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
+            wftmpr_locsize,c.nb());
+
+          wftmpr.getsub(gfdata,wftmpr_size,sd->nst(),0,ikp*sd->nst());
+
+          vector<complex<double> > wftmp(ft.np012loc());
+          for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
+          {
+            // copy column of wftmpr to complex array wftmp
+            if ( wftmpr_size == ft.np012() )
+            {
+              // function is real and must be expanded
+              double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
+              for ( int i = 0; i < ft.np012loc(); i++ )
+                wftmp[i] = p[i];
+            }
+            else
+            {
+              // function is complex
+              double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
+              for ( int i = 0; i < ft.np012loc(); i++ )
+                wftmp[i] = complex<double>(p[2*i],p[2*i+1]);
+            }
+            ft.forward(&wftmp[0],c.valptr(c.mloc()*nloc));
+          }
+        }
       }
     }
   }

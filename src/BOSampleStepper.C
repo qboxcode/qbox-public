@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.33 2007-10-19 16:24:04 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.34 2007-10-19 17:06:28 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -84,7 +84,6 @@ void BOSampleStepper::step(int niter)
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
 
-  if ( onpe0 ) cout << " extrapolate_wf=" << extrapolate_wf << endl;
   const bool ntc_extrapolation =
     s_.ctrl.debug.find("NTC_EXTRAPOLATION") != string::npos;
   const bool asp_extrapolation =
@@ -326,198 +325,192 @@ void BOSampleStepper::step(int niter)
       {
         for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
         {
-          if ( s_.wf.sd(ispin,ikp) != 0 )
+          if ( ntc_extrapolation )
           {
-            if ( s_.wf.sdcontext(ispin,ikp)->active() )
+            double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
+            double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+            double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
+            const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
+            const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+            const int len = 2*mloc*nloc;
+            if ( iter == 0 )
             {
-              if ( ntc_extrapolation )
+              for ( int i = 0; i < len; i++ )
               {
-                double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
-                double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
-                double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
-                const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
-                const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
-                const int len = 2*mloc*nloc;
-                if ( iter == 0 )
-                {
-                  for ( int i = 0; i < len; i++ )
-                  {
-                    const double x = c[i];
-                    const double v = cv[i];
-                    // extrapolation using velocity in cv
-                    c[i] = x + dt * v;
-                    cv[i] = x;
-                  }
-                  tmap["gram"].start();
-                  s_.wf.sd(ispin,ikp)->gram();
-                  tmap["gram"].stop();
-                }
-                else if ( iter == 1 )
-                {
-                  s_.wfv->align(s_.wf);
-                  for ( int i = 0; i < len; i++ )
-                  {
-                    const double x = c[i];
-                    const double xm = cv[i];
-                    c[i] = 2.0 * x - xm;
-                    cv[i] = x;
-                    cmm[i] = xm;
-                  }
-                  tmap["gram"].start();
-                  s_.wf.sd(ispin,ikp)->gram();
-                  tmap["gram"].stop();
-                }
-                else
-                {
-                  // align wf with wfmm before extrapolation
-                  // s_.wf.align(*wfmm);
-                  wfmm->align(s_.wf);
-
-                  // extrapolate
-                  for ( int i = 0; i < len; i++ )
-                  {
-                    const double x = c[i];   // current wf (scf converged) at t
-                    const double xm = cv[i]; // extrapolated wf at t
-                    const double xmm = cmm[i]; // extrapolated wf at t-dt
-                    c[i] = 2.0 * x - xmm;
-                    // save extrapolated value at t in cmm
-                    cmm[i] = xm;
-                  }
-
-                  // orthogonalize the extrapolated value
-                  tmap["gram"].start();
-                  s_.wf.sd(ispin,ikp)->gram();
-                  tmap["gram"].stop();
-                  //tmap["lowdin"].start();
-                  //s_.wf.sd(ispin,ikp)->lowdin();
-                  //tmap["lowdin"].stop();
-
-                  // c[i] now contains the extrapolated value
-                  // save a copy in cv[i]
-                  for ( int i = 0; i < len; i++ )
-                  {
-                    cv[i] = c[i];
-                  }
-                }
-                // c[i] is now ready for electronic iterations
+                const double x = c[i];
+                const double v = cv[i];
+                // extrapolation using velocity in cv
+                c[i] = x + dt * v;
+                cv[i] = x;
               }
-              else if ( asp_extrapolation )
+              tmap["gram"].start();
+              s_.wf.sd(ispin,ikp)->gram();
+              tmap["gram"].stop();
+            }
+            else if ( iter == 1 )
+            {
+              s_.wfv->align(s_.wf);
+              for ( int i = 0; i < len; i++ )
               {
-                double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
-                double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
-                double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
-                const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
-                const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
-                const int len = 2*mloc*nloc;
-                if ( iter == 0 )
-                {
-                  for ( int i = 0; i < len; i++ )
-                  {
-                    const double x = c[i];
-                    const double v = cv[i];
-                    // extrapolation using velocity in cv
-                    c[i] = x + dt * v;
-                    cv[i] = x;
-                  }
-                  tmap["gram"].start();
-                  s_.wf.sd(ispin,ikp)->gram();
-                  tmap["gram"].stop();
-                }
-                else if ( iter == 1 )
-                {
-                  //s_.wfv->align(s_.wf);
-                  for ( int i = 0; i < len; i++ )
-                  {
-                    const double x = c[i];
-                    const double xm = cv[i];
-                    c[i] = 2.0 * x - xm;
-                    cv[i] = x;
-                    cmm[i] = xm;
-                  }
-                  tmap["gram"].start();
-                  s_.wf.sd(ispin,ikp)->gram();
-                  tmap["gram"].stop();
-                }
-                else
-                {
-                  // align wf with wfmm before extrapolation
-                  // s_.wf.align(*wfmm);
-                  // wfmm->align(s_.wf);
-
-                  // extrapolate
-                  for ( int i = 0; i < len; i++ )
-                  {
-                    const double x = c[i];   // current wf (scf converged) at t
-                    const double xm = cv[i]; // extrapolated wf at t
-                    const double xmm = cmm[i]; // extrapolated wf at t-dt
-                    const double asp_a1 = 0.5;
-                    c[i] = 2.0 * x - xm +
-                           asp_a1 * ( x - 2.0 * xm + xmm );
-                    //c[i] = 2.5 * x - 2.0 * xm + 0.5 * xmm;
-                    cmm[i] = xm;
-                    cv[i] = x;
-                  }
-
-                  // orthogonalize the extrapolated value
-                  tmap["gram"].start();
-                  s_.wf.sd(ispin,ikp)->gram();
-                  tmap["gram"].stop();
-                  //tmap["lowdin"].start();
-                  //s_.wf.sd(ispin,ikp)->lowdin();
-                  //tmap["lowdin"].stop();
-
-                  // c[i] now contains the extrapolated value
-                }
-                // c[i] is now ready for electronic iterations
+                const double x = c[i];
+                const double xm = cv[i];
+                c[i] = 2.0 * x - xm;
+                cv[i] = x;
+                cmm[i] = xm;
               }
-              else // normal extrapolation
+              tmap["gram"].start();
+              s_.wf.sd(ispin,ikp)->gram();
+              tmap["gram"].stop();
+            }
+            else
+            {
+              // align wf with wfmm before extrapolation
+              // s_.wf.align(*wfmm);
+              wfmm->align(s_.wf);
+
+              // extrapolate
+              for ( int i = 0; i < len; i++ )
               {
-                if ( iter > 0 && compute_eigvec )
-                {
-                  // eigenvectors were computed, need alignment
-                  // wfv contains wfm since iter > 0
-                  s_.wfv->align(s_.wf);
-                }
-                double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
-                double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
-                const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
-                const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
-                const int len = 2*mloc*nloc;
-                if ( iter == 0 )
-                {
-                  // linear extrapolation using the velocity in wfv
-                  // save the current c in in wfv
-                  for ( int i = 0; i < len; i++ )
-                  {
-                    const double x = c[i];
-                    const double v = cv[i];
-                    c[i] = x + dt * v;
-                    cv[i] = x;
-                  }
-                  tmap["lowdin"].start();
-                  s_.wf.sd(ispin,ikp)->lowdin();
-                  tmap["lowdin"].stop();
-                }
-                else
-                {
-                  // linear extrapolation
-                  for ( int i = 0; i < len; i++ )
-                  {
-                    const double x = c[i];
-                    const double xm = cv[i];
-                    c[i] = 2.0 * x - xm;
-                    cv[i] = x;
-                  }
-                  tmap["ortho_align"].start();
-                  s_.wf.sd(ispin,ikp)->ortho_align(*s_.wfv->sd(ispin,ikp));
-                  tmap["ortho_align"].stop();
-
-                  //tmap["riccati"].start();
-                  //s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));
-                  //tmap["riccati"].stop();
-                }
+                const double x = c[i];   // current wf (scf converged) at t
+                const double xm = cv[i]; // extrapolated wf at t
+                const double xmm = cmm[i]; // extrapolated wf at t-dt
+                c[i] = 2.0 * x - xmm;
+                // save extrapolated value at t in cmm
+                cmm[i] = xm;
               }
-            } // if active
+
+              // orthogonalize the extrapolated value
+              tmap["gram"].start();
+              s_.wf.sd(ispin,ikp)->gram();
+              tmap["gram"].stop();
+              //tmap["lowdin"].start();
+              //s_.wf.sd(ispin,ikp)->lowdin();
+              //tmap["lowdin"].stop();
+
+              // c[i] now contains the extrapolated value
+              // save a copy in cv[i]
+              for ( int i = 0; i < len; i++ )
+              {
+                cv[i] = c[i];
+              }
+            }
+            // c[i] is now ready for electronic iterations
+          }
+          else if ( asp_extrapolation )
+          {
+            double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
+            double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+            double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
+            const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
+            const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+            const int len = 2*mloc*nloc;
+            if ( iter == 0 )
+            {
+              for ( int i = 0; i < len; i++ )
+              {
+                const double x = c[i];
+                const double v = cv[i];
+                // extrapolation using velocity in cv
+                c[i] = x + dt * v;
+                cv[i] = x;
+              }
+              tmap["gram"].start();
+              s_.wf.sd(ispin,ikp)->gram();
+              tmap["gram"].stop();
+            }
+            else if ( iter == 1 )
+            {
+              //s_.wfv->align(s_.wf);
+              for ( int i = 0; i < len; i++ )
+              {
+                const double x = c[i];
+                const double xm = cv[i];
+                c[i] = 2.0 * x - xm;
+                cv[i] = x;
+                cmm[i] = xm;
+              }
+              tmap["gram"].start();
+              s_.wf.sd(ispin,ikp)->gram();
+              tmap["gram"].stop();
+            }
+            else
+            {
+              // align wf with wfmm before extrapolation
+              // s_.wf.align(*wfmm);
+              // wfmm->align(s_.wf);
+
+              // extrapolate
+              for ( int i = 0; i < len; i++ )
+              {
+                const double x = c[i];   // current wf (scf converged) at t
+                const double xm = cv[i]; // extrapolated wf at t
+                const double xmm = cmm[i]; // extrapolated wf at t-dt
+                const double asp_a1 = 0.5;
+                c[i] = 2.0 * x - xm +
+                       asp_a1 * ( x - 2.0 * xm + xmm );
+                //c[i] = 2.5 * x - 2.0 * xm + 0.5 * xmm;
+                cmm[i] = xm;
+                cv[i] = x;
+              }
+
+              // orthogonalize the extrapolated value
+              tmap["gram"].start();
+              s_.wf.sd(ispin,ikp)->gram();
+              tmap["gram"].stop();
+              //tmap["lowdin"].start();
+              //s_.wf.sd(ispin,ikp)->lowdin();
+              //tmap["lowdin"].stop();
+
+              // c[i] now contains the extrapolated value
+            }
+            // c[i] is now ready for electronic iterations
+          }
+          else // normal extrapolation
+          {
+            if ( iter > 0 && compute_eigvec )
+            {
+              // eigenvectors were computed, need alignment
+              // wfv contains wfm since iter > 0
+              s_.wfv->align(s_.wf);
+            }
+            double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
+            double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+            const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
+            const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+            const int len = 2*mloc*nloc;
+            if ( iter == 0 )
+            {
+              // linear extrapolation using the velocity in wfv
+              // save the current c in in wfv
+              for ( int i = 0; i < len; i++ )
+              {
+                const double x = c[i];
+                const double v = cv[i];
+                c[i] = x + dt * v;
+                cv[i] = x;
+              }
+              tmap["lowdin"].start();
+              s_.wf.sd(ispin,ikp)->lowdin();
+              tmap["lowdin"].stop();
+            }
+            else
+            {
+              // linear extrapolation
+              for ( int i = 0; i < len; i++ )
+              {
+                const double x = c[i];
+                const double xm = cv[i];
+                c[i] = 2.0 * x - xm;
+                cv[i] = x;
+              }
+              tmap["ortho_align"].start();
+              s_.wf.sd(ispin,ikp)->ortho_align(*s_.wfv->sd(ispin,ikp));
+              tmap["ortho_align"].stop();
+
+              //tmap["riccati"].start();
+              //s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));
+              //tmap["riccati"].stop();
+            }
           }
         }
       }
@@ -633,7 +626,9 @@ void BOSampleStepper::step(int niter)
           // to measure convergence of the subspace update
           // compute trace of the Hamiltonian matrix Y^T H Y
           // scalar product of Y and (HY): tr Y^T (HY) = sum_ij Y_ij (HY)_ij
-          const double eigenvalue_sum = s_.wf.dot(dwf);
+          // Note: since the hamiltonian is hermitian and dwf=H*wf
+          // the dot product in the following line is real
+          const double eigenvalue_sum = real(s_.wf.dot(dwf));
           if ( onpe0 )
             cout << "  <eigenvalue_sum> "
                  << eigenvalue_sum << " </eigenvalue_sum>" << endl;
@@ -669,25 +664,19 @@ void BOSampleStepper::step(int niter)
             {
               for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
               {
-                if ( wf.sd(ispin,ikp) != 0 )
+                const int nst = wf.sd(ispin,ikp)->nst();
+                const double eVolt = 2.0 * 13.6058;
+                cout <<    "  <eigenvalues spin=\"" << ispin
+                     << "\" kpoint=\"" << wf.sd(ispin,ikp)->kpoint()
+                     << "\" n=\"" << nst << "\">" << endl;
+                for ( int i = 0; i < nst; i++ )
                 {
-                  if ( wf.sdcontext(ispin,ikp)->active() )
-                  {
-                    const int nst = wf.sd(ispin,ikp)->nst();
-                    const double eVolt = 2.0 * 13.6058;
-                    cout <<    "  <eigenvalues spin=\"" << ispin
-                         << "\" kpoint=\"" << wf.sd(ispin,ikp)->kpoint()
-                         << "\" n=\"" << nst << "\">" << endl;
-                    for ( int i = 0; i < nst; i++ )
-                    {
-                      cout << setw(12) << setprecision(5)
-                           << wf.sd(ispin,ikp)->eig(i)*eVolt;
-                      if ( i%5 == 4 ) cout << endl;
-                    }
-                    if ( nst%5 != 0 ) cout << endl;
-                    cout << "  </eigenvalues>" << endl;
-                  }
+                  cout << setw(12) << setprecision(5)
+                       << wf.sd(ispin,ikp)->eig(i)*eVolt;
+                  if ( i%5 == 4 ) cout << endl;
                 }
+                if ( nst%5 != 0 ) cout << endl;
+                cout << "  </eigenvalues>" << endl;
               }
             }
           }
@@ -771,41 +760,35 @@ void BOSampleStepper::step(int niter)
     {
       for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
       {
-        if ( s_.wf.sd(ispin,ikp) != 0 )
+        double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
+        double* cm = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+        const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
+        const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+        const int len = 2*mloc*nloc;
+        if ( ntc_extrapolation )
         {
-          if ( s_.wf.sdcontext(ispin,ikp)->active() )
+          double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
+          for ( int i = 0; i < len; i++ )
           {
-            double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
-            double* cm = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
-            const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
-            const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
-            const int len = 2*mloc*nloc;
-            if ( ntc_extrapolation )
-            {
-              double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
-              for ( int i = 0; i < len; i++ )
-              {
-                const double x = c[i];
-                const double xmm = cmm[i];
-                cm[i] = dt_inv * ( x - xmm );
-              }
-              tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
-              tmap["gram"].stop();
-            }
-            else // normal extrapolation or asp_extrapolation
-            {
-              for ( int i = 0; i < len; i++ )
-              {
-                const double x = c[i];
-                const double xm = cm[i];
-                cm[i] = dt_inv * ( x - xm );
-              }
-              tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
-              tmap["gram"].stop();
-            }
+            const double x = c[i];
+            const double xmm = cmm[i];
+            cm[i] = dt_inv * ( x - xmm );
           }
+          tmap["gram"].start();
+          s_.wf.sd(ispin,ikp)->gram();
+          tmap["gram"].stop();
+        }
+        else // normal extrapolation or asp_extrapolation
+        {
+          for ( int i = 0; i < len; i++ )
+          {
+            const double x = c[i];
+            const double xm = cm[i];
+            cm[i] = dt_inv * ( x - xm );
+          }
+          tmap["gram"].start();
+          s_.wf.sd(ispin,ikp)->gram();
+          tmap["gram"].stop();
         }
       }
     }

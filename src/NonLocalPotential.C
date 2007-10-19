@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.22 2007-10-19 16:24:04 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.23 2007-10-19 17:15:23 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "Species.h"
@@ -19,10 +19,7 @@ extern "C" void vsincos(double *x, double *y, double *z, int *n);
 ////////////////////////////////////////////////////////////////////////////////
 NonLocalPotential::~NonLocalPotential(void)
 {
-  //for ( int is = 0; is < anl.size(); is++ )
-  //{
-  //  delete anl[is];
-  //}
+#if TIMING
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
     double time = (*i).second.real();
@@ -38,15 +35,12 @@ NonLocalPotential::~NonLocalPotential(void)
            << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
     }
   }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void NonLocalPotential::init(void)
 {
-
-  // max deviation from locality at upper quadrature point rcutloc[is]
-  const double epsilon = 1.e-4;
-
   const int ngwl = basis_.localsize();
 
   nsp = atoms_.nsp();
@@ -152,7 +146,7 @@ void NonLocalPotential::init(void)
           wquad[is][iquad] = h;
         }
         wquad[is][nquad[is]-1] = 0.5 * h;
-        //cout << " NonLocalPotential::init: trapezoidal rule with right endpoint"
+        //cout << " NonLocalPotential::init: trapezoidal rule, right endpoint"
         //     << endl;
       }
       else if ( quad_rule == SIMPSON )
@@ -244,12 +238,12 @@ void NonLocalPotential::update_twnl(void)
   const double s20pi3 = sqrt(20.0*pi/3.0);
   const double s3 = sqrt(3.0);
 
-  const double *g   = basis_.g_ptr();
-  const double *g2  = basis_.g2_ptr();
-  const double *gi  = basis_.gi_ptr();
-  const double *g_x = basis_.gx_ptr(0);
-  const double *g_y = basis_.gx_ptr(1);
-  const double *g_z = basis_.gx_ptr(2);
+  const double *kpg   = basis_.kpg_ptr();
+  const double *kpg2  = basis_.kpg2_ptr();
+  const double *kpgi  = basis_.kpgi_ptr();
+  const double *kpg_x = basis_.kpgx_ptr(0);
+  const double *kpg_y = basis_.kpgx_ptr(1);
+  const double *kpg_z = basis_.kpgx_ptr(2);
 
   // compute twnl and dtwnl
   for ( int is = 0; is < nsp; is++ )
@@ -281,21 +275,22 @@ void NonLocalPotential::update_twnl(void)
             double *dt0_xy = &dtwnl[is][3*ngwl];
             double *dt0_yz = &dtwnl[is][4*ngwl];
             double *dt0_xz = &dtwnl[is][5*ngwl];
+            // Special case k=G=0 is ok since kpgi[0] = 0.0 at k=G=0
             for ( int ig = 0; ig < ngwl; ig++ )
             {
               double v,dv;
-              s->dvnlg(0,g[ig],v,dv);
+              s->dvnlg(0,kpg[ig],v,dv);
 
               t0[ig] = s14pi * v;
 
-              const double tgx = g_x[ig];
-              const double tgy = g_y[ig];
-              const double tgz = g_z[ig];
+              const double tgx = kpg_x[ig];
+              const double tgy = kpg_y[ig];
+              const double tgz = kpg_z[ig];
               const double tgx2 = tgx * tgx;
               const double tgy2 = tgy * tgy;
               const double tgz2 = tgz * tgz;
 
-              const double tmp = gi[ig] * s14pi * dv;
+              const double tmp = kpgi[ig] * s14pi * dv;
               dt0_xx[ig] = tmp * tgx * tgx;
               dt0_yy[ig] = tmp * tgy * tgy;
               dt0_zz[ig] = tmp * tgz * tgz;
@@ -323,9 +318,12 @@ void NonLocalPotential::update_twnl(void)
               double *dt0_yz = &dtwnl[is][ngwl*(4+6*iquad)];
               double *dt0_xz = &dtwnl[is][ngwl*(5+6*iquad)];
               const double r = rquad[is][iquad];
-              // compute G=0 element separately to get sin(Gr)/(Gr) limit -> 1
-              if ( ctxt_.myrow() == 0 )
+
+              // G=0 element must be treated separately if k=0
+              if ( basis_.real() && ctxt_.myrow() == 0)
               {
+                // compute G=0 element separately to get
+                // sin(Gr)/(Gr) limit -> 1
                 const int ig = 0;
                 // this task holds the G=0 element
                 // I(l=0) = 4 pi j_l(G r) r
@@ -347,19 +345,19 @@ void NonLocalPotential::update_twnl(void)
               }
               else
               {
-                // This task does not hold the G=0 element
+                // Use the normal procedure
                 const int ig = 0;
                 // I(l=0) = 4 pi j_l(G r) r
                 // twnl[is][ipr][l][ig] = 4 pi j_0(Gr_i) r_i Ylm
                 // j_0(Gr) * r = sin(Gr) / G
                 // Ylm = s14pi
-                const double arg = g[ig] * r;
+                const double arg = kpg[ig] * r;
                 // Note: for G=0, gi[0] = 0
 
-                const double tgx = g_x[ig];
-                const double tgy = g_y[ig];
-                const double tgz = g_z[ig];
-                const double tgi = gi[ig];
+                const double tgx = kpg_x[ig];
+                const double tgy = kpg_y[ig];
+                const double tgz = kpg_z[ig];
+                const double tgi = kpgi[ig];
                 const double tgi2 = tgi * tgi;
 
                 const double ts = sin(arg);
@@ -367,7 +365,8 @@ void NonLocalPotential::update_twnl(void)
 
                 t0[ig] = fpi * s14pi * ts * tgi;
 
-                // dtwnl = fpi s14pi G_i G_j / G (r cos(Gr)/G -sin(Gr)/G^2)
+                // dtwnl = fpi s14pi k+G_i k+G_j / k+G
+                // (r cos(k+Gr)/k+G -sin(k+Gr)/k+G^2)
                 const double tmp = fpi * s14pi * tgi2 * (r*tc - ts*tgi);
                 dt0_xx[ig] = tmp * tgx * tgx;
                 dt0_yy[ig] = tmp * tgy * tgy;
@@ -375,22 +374,20 @@ void NonLocalPotential::update_twnl(void)
                 dt0_xy[ig] = tmp * tgx * tgy;
                 dt0_yz[ig] = tmp * tgy * tgz;
                 dt0_xz[ig] = tmp * tgx * tgz;
-
               }
 
               for ( int ig = 1; ig < ngwl; ig++ )
               {
-                // I(l=0) = 4 pi j_l(G r) r
-                // twnl[is][ipr][l][ig] = 4 pi j_0(Gr_i) r_i Ylm
-                // j_0(Gr) * r = sin(Gr) / G
+                // I(l=0) = 4 pi j_l(|k+G| r) r
+                // twnl[is][ipr][l][ig] = 4 pi j_0(|k+G|r_i) r_i Ylm
+                // j_0(|k+G|r) * r = sin(|k+G|r) / |k+G|
                 // Ylm = s14pi
-                const double arg = g[ig] * r;
-                // Note: for G=0, gi[0] = 0
+                const double arg = kpg[ig] * r;
 
-                const double tgx = g_x[ig];
-                const double tgy = g_y[ig];
-                const double tgz = g_z[ig];
-                const double tgi = gi[ig];
+                const double tgx = kpg_x[ig];
+                const double tgy = kpg_y[ig];
+                const double tgz = kpg_z[ig];
+                const double tgi = kpgi[ig];
                 const double tgi2 = tgi * tgi;
 
                 const double ts = sin(arg);
@@ -398,7 +395,8 @@ void NonLocalPotential::update_twnl(void)
 
                 t0[ig] = fpi * s14pi * ts * tgi;
 
-                // dtwnl = fpi s14pi G_i G_j / G (r cos(Gr)/G -sin(Gr)/G^2)
+                // dtwnl = fpi s14pi (k+G)_i (k+G)_j /
+                // |k+G| (r cos(|k+G|r)/|k+G| -sin(|k+G|r)/|k+G|^2)
                 const double tmp = fpi * s14pi * tgi2 * (r*tc - ts*tgi);
                 dt0_xx[ig] = tmp * tgx * tgx;
                 dt0_yy[ig] = tmp * tgy * tgy;
@@ -407,7 +405,7 @@ void NonLocalPotential::update_twnl(void)
                 dt0_yz[ig] = tmp * tgy * tgz;
                 dt0_xz[ig] = tmp * tgx * tgz;
               }
-            }
+            } // for iquad
           }
           ilm += 2*l+1;
         }
@@ -453,17 +451,17 @@ void NonLocalPotential::update_twnl(void)
             for ( int ig = 0; ig < ngwl; ig++ )
             {
               double v,dv;
-              const double tg = g[ig];
+              const double tg = kpg[ig];
               s->dvnlg(l,tg,v,dv);
 
-              const double tgx = g_x[ig];
-              const double tgy = g_y[ig];
-              const double tgz = g_z[ig];
+              const double tgx = kpg_x[ig];
+              const double tgy = kpg_y[ig];
+              const double tgz = kpg_z[ig];
               const double tgx2 = tgx * tgx;
               const double tgy2 = tgy * tgy;
               const double tgz2 = tgz * tgz;
 
-              const double tgi = gi[ig];
+              const double tgi = kpgi[ig];
               const double tgi2 = tgi * tgi;
 
               const double y1 = s34pi * tgx * tgi;
@@ -544,7 +542,7 @@ void NonLocalPotential::update_twnl(void)
               {
                 double v = 0.0, dv = 0.0;
                 // j_1(Gr) = (1/(Gr))*(sin(Gr)/(Gr)-cos(Gr))
-                const double tg = g[ig];
+                const double tg = kpg[ig];
                 const double z = tg * r;
                 if ( z != 0.0 )
                 {
@@ -561,14 +559,14 @@ void NonLocalPotential::update_twnl(void)
                   dv = fpi * dj1 * r * r;
                 }
 
-                const double tgx = g_x[ig];
-                const double tgy = g_y[ig];
-                const double tgz = g_z[ig];
+                const double tgx = kpg_x[ig];
+                const double tgy = kpg_y[ig];
+                const double tgz = kpg_z[ig];
                 const double tgx2 = tgx * tgx;
                 const double tgy2 = tgy * tgy;
                 const double tgz2 = tgz * tgz;
 
-                const double tgi = gi[ig];
+                const double tgi = kpgi[ig];
                 const double tgi2 = tgi * tgi;
 
                 const double y1 = s34pi * tgx * tgi;
@@ -667,18 +665,18 @@ void NonLocalPotential::update_twnl(void)
             for ( int ig = 0; ig < ngwl; ig++ )
             {
               double v,dv;
-              const double tg = g[ig];
+              const double tg = kpg[ig];
 
               s->dvnlg(l,tg,v,dv);
 
-              const double tgx = g_x[ig];
-              const double tgy = g_y[ig];
-              const double tgz = g_z[ig];
+              const double tgx = kpg_x[ig];
+              const double tgy = kpg_y[ig];
+              const double tgz = kpg_z[ig];
               const double tgx2 = tgx * tgx;
               const double tgy2 = tgy * tgy;
               const double tgz2 = tgz * tgz;
 
-              const double tgi = gi[ig];
+              const double tgi = kpgi[ig];
               const double tg2 = tg * tg;
               const double tgi2 = tgi * tgi;
 
@@ -831,7 +829,7 @@ void NonLocalPotential::update_twnl(void)
                 // j_2(z) = (3/z^3-1/z) sin(z) - 3/z^2 cos(z)
                 // j_2(z) = (1/z)*((3/z^2-1)*sin(z) - (3/z) cos(z) )
 
-                const double tg = g[ig];
+                const double tg = kpg[ig];
                 const double z = tg * r;
                 if ( z != 0.0 )
                 {
@@ -849,14 +847,14 @@ void NonLocalPotential::update_twnl(void)
                   dv = fpi * dj2 * r * r;
                 }
 
-                const double tgx = g_x[ig];
-                const double tgy = g_y[ig];
-                const double tgz = g_z[ig];
+                const double tgx = kpg_x[ig];
+                const double tgy = kpg_y[ig];
+                const double tgz = kpg_z[ig];
                 const double tgx2 = tgx * tgx;
                 const double tgy2 = tgy * tgy;
                 const double tgz2 = tgz * tgz;
 
-                const double tgi = gi[ig];
+                const double tgi = kpgi[ig];
                 const double tg2 = tg * tg;
                 const double tgi2 = tgi * tgi;
 
@@ -995,8 +993,11 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
       valarray<double> anl_loc(npr[is]*na_block_size*2*ngwl);
       const int nstloc = sd_.nstloc();
       // fnl_loc[ipra][n]
-      valarray<double> fnl_loc(npr[is]*na_block_size*nstloc);
-      valarray<double> fnl_buf(npr[is]*na_block_size*nstloc);
+      // fnl is real if basis is real, complex otherwise
+      const int fnl_loc_size = basis_.real() ? npr[is]*na_block_size*nstloc :
+        2*npr[is]*na_block_size*nstloc;
+      valarray<double> fnl_loc(fnl_loc_size);
+      valarray<double> fnl_buf(fnl_loc_size);
       for ( int ia_block = 0; ia_block < na_blocks; ia_block++ )
       {
         // process projectors of atoms in block ia_block
@@ -1014,9 +1015,9 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
         char cn='n';
 
         // next line: const cast is ok since dgemm_ does not modify argument
-        double* gx = const_cast<double*>(basis_.gx_ptr(0));
+        double* kpgx = const_cast<double*>(basis_.kpgx_ptr(0));
         dgemm(&cn,&cn,(int*)&ngwl,(int*)&ia_block_size,&k,&mone,
-              gx,(int*)&ngwl, &tau[is][3*iastart],&k,
+              kpgx,(int*)&ngwl, &tau[is][3*iastart],&k,
               &zero,&gr[0],(int*)&ngwl);
 
         int len = ia_block_size * ngwl;
@@ -1081,77 +1082,137 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
         // array anl_loc is complete
 
         // compute fnl[npra][nstloc] = anl^T * c
-        double one=1.0;
-        char ct='t';
-        int twongwl = 2 * ngwl;
         int nprnaloc = ia_block_size * npr[is];
-        int c_lda = 2*sd_.c().mloc();
-        const complex<double>* c = sd_.c().cvalptr();
-        tmap["fnl_gemm"].start();
-        dgemm(&ct,&cn,&nprnaloc,(int*)&nstloc,&twongwl,&one,
-              &anl_loc[0],&twongwl, (double*)c, &c_lda,
-              &zero,&fnl_loc[0],&nprnaloc);
-        tmap["fnl_gemm"].stop();
-
-        // correct for double counting if ctxt_.myrow() == 0
-        if ( ctxt_.myrow() == 0 )
+        if ( basis_.real() )
         {
-          // rank-one update
-          // dger(m,n,alpha,x,incx,y,incy,a,lda);
-          // a += alpha * x * transpose(y)
-          // x = first row of anl_loc
-          // y^T = first row of c
-          double alpha = -0.5;
-          dger(&nprnaloc,(int*)&nstloc,&alpha,&anl_loc[0],&twongwl,
-               (double*)c,&c_lda,&fnl_loc[0],&nprnaloc);
+          double one=1.0;
+          char ct='t';
+          int twongwl = 2 * ngwl;
+          int c_lda = 2*sd_.c().mloc();
+          const complex<double>* c = sd_.c().cvalptr();
+          tmap["fnl_gemm"].start();
+          dgemm(&ct,&cn,&nprnaloc,(int*)&nstloc,&twongwl,&one,
+                &anl_loc[0],&twongwl, (double*)c, &c_lda,
+                &zero,&fnl_loc[0],&nprnaloc);
+          tmap["fnl_gemm"].stop();
+
+          // correct for double counting if ctxt_.myrow() == 0
+          if ( ctxt_.myrow() == 0 )
+          {
+            // rank-one update
+            // dger(m,n,alpha,x,incx,y,incy,a,lda);
+            // a += alpha * x * transpose(y)
+            // x = first row of anl_loc
+            // y^T = first row of c
+            double alpha = -0.5;
+            dger(&nprnaloc,(int*)&nstloc,&alpha,&anl_loc[0],&twongwl,
+                 (double*)c,&c_lda,&fnl_loc[0],&nprnaloc);
+          }
+        }
+        else
+        {
+          // fnl is complex
+          complex<double> cone=1.0;
+          complex<double> czero=0.0;
+          char cc='c';
+          int c_lda = sd_.c().mloc();
+          const complex<double>* c = sd_.c().cvalptr();
+          tmap["fnl_zemm"].start();
+          zgemm(&cc,&cn,&nprnaloc,(int*)&nstloc,(int*)&ngwl,&cone,
+                (complex<double>*) &anl_loc[0],(int*)&ngwl,
+                (complex<double>*) c, &c_lda,&czero,
+                (complex<double>*)&fnl_loc[0],&nprnaloc);
+          tmap["fnl_zemm"].stop();
         }
 
-#if USE_MPI
         tmap["fnl_allreduce"].start();
         // Allreduce fnl partial sum
         MPI_Comm basis_comm = basis_.context().comm();
-        int fnl_size = nprnaloc*nstloc;
+        int fnl_size = basis_.real() ? nprnaloc*nstloc : 2*nprnaloc*nstloc;
         MPI_Allreduce(&fnl_loc[0],&fnl_buf[0],fnl_size,
                       MPI_DOUBLE,MPI_SUM,basis_comm);
         tmap["fnl_allreduce"].stop();
 
         // factor 2.0 in next line is: counting G, -G
-        fnl_loc = 2.0 * fnl_buf;
-#else
-        // factor 2.0 in next line is: counting G, -G
-        fnl_loc *= 2.0;
-#endif
+        if ( basis_.real() )
+          fnl_loc = 2.0 * fnl_buf;
+        else
+          fnl_loc = fnl_buf;
 
         // accumulate Enl contribution
         const int nbase = ctxt_.mycol() * sd_.c().nb();
-        for ( int ipr = 0; ipr < npr[is]; ipr++ )
+        if ( basis_.real() )
         {
-          const double fac = wt[is][ipr] * omega_inv;
-          for ( int n = 0; n < nstloc; n++ )
+          for ( int ipr = 0; ipr < npr[is]; ipr++ )
           {
-            const double facn = fac * occ[n + nbase];
-            for ( int ia = 0; ia < ia_block_size; ia++ )
+            const double fac = wt[is][ipr] * omega_inv;
+            for ( int n = 0; n < nstloc; n++ )
             {
-              const int i = ia + ipr*ia_block_size + n * nprnaloc;
-              //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia
-              //     << ",n=" << n << "]: " << fnl_loc[i] << endl;
-              const double tmp = fnl_loc[i];
-              enl += facn * tmp * tmp;
-              fnl_loc[i] = fac * tmp;
+              const double facn = fac * occ[n + nbase];
+              for ( int ia = 0; ia < ia_block_size; ia++ )
+              {
+                const int i = ia + ipr*ia_block_size + n * nprnaloc;
+                //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia
+                //     << ",n=" << n << "]: " << fnl_loc[i] << endl;
+                const double tmp = fnl_loc[i];
+                enl += facn * tmp * tmp;
+                fnl_loc[i] = fac * tmp;
+              }
+            }
+          }
+        }
+        else
+        {
+          // fnl is complex
+          for ( int ipr = 0; ipr < npr[is]; ipr++ )
+          {
+            const double fac = wt[is][ipr] * omega_inv;
+            for ( int n = 0; n < nstloc; n++ )
+            {
+              const double facn = fac * occ[n + nbase];
+              for ( int ia = 0; ia < ia_block_size; ia++ )
+              {
+                const int i = ia + ipr*ia_block_size + n * nprnaloc;
+                //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia
+                //     << ",n=" << n << "]: " << fnl_loc[i] << endl;
+                const double f_re = fnl_loc[2*i];
+                const double f_im = fnl_loc[2*i+1];
+                enl += facn * (f_re*f_re + f_im*f_im);
+                fnl_loc[2*i] = fac * f_re;
+                fnl_loc[2*i+1] = fac * f_im;
+              }
             }
           }
         }
 
         if ( compute_hpsi )
         {
-          tmap["enl_hpsi"].start();
-          // compute cp += anl * fnl
-          complex<double>* cp = dsd.c().valptr();
-          int cp_lda = 2*dsd.c().mloc();
-          dgemm(&cn,&cn,&twongwl,(int*)&nstloc,&nprnaloc,&one,
-                &anl_loc[0],&twongwl, &fnl_loc[0],&nprnaloc,
-                &one,(double*)cp, &cp_lda);
-          tmap["enl_hpsi"].stop();
+          if ( basis_.real() )
+          {
+            tmap["enl_hpsi"].start();
+            // compute cp += anl * fnl
+            complex<double>* cp = dsd.c().valptr();
+            int cp_lda = 2*dsd.c().mloc();
+            int twongwl = 2 * ngwl;
+            double one = 1.0;
+            dgemm(&cn,&cn,&twongwl,(int*)&nstloc,&nprnaloc,&one,
+                  &anl_loc[0],&twongwl, &fnl_loc[0],&nprnaloc,
+                  &one,(double*)cp, &cp_lda);
+            tmap["enl_hpsi"].stop();
+          }
+          else
+          {
+            tmap["enl_hpsi"].start();
+            // compute cp += anl * fnl
+            complex<double>* cp = dsd.c().valptr();
+            complex<double> cone = 1.0;
+            int cp_lda = dsd.c().mloc();
+            zgemm(&cn,&cn,(int*)&ngwl,(int*)&nstloc,&nprnaloc,&cone,
+                  (complex<double>*) &anl_loc[0],(int*)&ngwl,
+                  (complex<double>*) &fnl_loc[0],&nprnaloc,
+                  &cone,cp, &cp_lda);
+            tmap["enl_hpsi"].stop();
+          }
         }
 
         // ionic forces
@@ -1159,10 +1220,10 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
         {
           tmap["enl_fion"].start();
 
-          valarray<double> dfnl_loc(npr[is]*na_block_size*nstloc);
+          valarray<double> dfnl_loc(fnl_loc_size);
           for ( int j = 0; j < 3; j++ )
           {
-            const double *const gxj = basis_.gx_ptr(j);
+            const double *const kpgxj = basis_.kpgx_ptr(j);
 
             // compute anl_loc
             for ( int ipr = 0; ipr < npr[is]; ipr++ )
@@ -1182,7 +1243,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
                 {
                   for ( int ig = 0; ig < ngwl; ig++ )
                   {
-                    const double tt = gxj[ig] * t[ig];
+                    const double tt = kpgxj[ig] * t[ig];
                     // Next lines: -i * ( a + ib ) = b - ia
                     a[2*ig]   =  tt * s[ig];
                     a[2*ig+1] = -tt * c[ig];
@@ -1193,7 +1254,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
                   for ( int ig = 0; ig < ngwl; ig++ )
                   {
                     // Next lines: (-i)**2 * ( a + ib ) = - a - ib
-                    const double tt = - gxj[ig] * t[ig];
+                    const double tt = - kpgxj[ig] * t[ig];
                     a[2*ig]   = tt * c[ig];
                     a[2*ig+1] = tt * s[ig];
                   }
@@ -1203,7 +1264,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
                   for ( int ig = 0; ig < ngwl; ig++ )
                   {
                     // Next lines: (-i) * - ( a + ib ) = i*(a+ib) = - b + ia
-                    const double tt = gxj[ig] * t[ig];
+                    const double tt = kpgxj[ig] * t[ig];
                     a[2*ig]   = -tt * s[ig];
                     a[2*ig+1] =  tt * c[ig];
                   }
@@ -1213,40 +1274,78 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
 
             // array anl_loc is complete
 
-            // compute dfnl
-            // dfnl.gemm('t','n',2.0,anl,c_proxy,0.0);
             // compute dfnl[npra][nstloc] = anl^T * c
-            double one=1.0;
-            char ct='t';
-            const int twongwl = 2 * ngwl;
-            const int nprnaloc = ia_block_size * npr[is];
-            const complex<double>* c = sd_.c().cvalptr();
-            dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&one,
-                  &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,
-                  &zero,&dfnl_loc[0],(int*)&nprnaloc);
-
-
-            // Note: no need to correct for double counting of the
-            // G=0 component which is always zero
-
-            // factor 2.0 in next line is: counting G, -G
-            dfnl_loc *= 2.0;
+            if ( basis_.real() )
+            {
+              // factor 2.0 in next line is: counting G, -G
+              // Note: no need to correct for double counting of the
+              // G=0 component which is always zero
+              double two=1.0;
+              char ct='t';
+              const int twongwl = 2 * ngwl;
+              const int nprnaloc = ia_block_size * npr[is];
+              int c_lda = 2*sd_.c().mloc();
+              const complex<double>* c = sd_.c().cvalptr();
+              dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&two,
+                    &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,
+                    &zero,&dfnl_loc[0],(int*)&nprnaloc);
+            }
+            else
+            {
+              complex<double> cone=1.0;
+              complex<double> czero=0.0;
+              char cc='c';
+              const int nprnaloc = ia_block_size * npr[is];
+              int c_lda = sd_.c().mloc();
+              const complex<double>* c = sd_.c().cvalptr();
+              zgemm(&cc,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&ngwl,&cone,
+                    (complex<double>*) &anl_loc[0],(int*)&ngwl,
+                    (complex<double>*) c,(int*)&c_lda,
+                    &czero,(complex<double>*)&dfnl_loc[0],(int*)&nprnaloc);
+            }
 
             // accumulate non-local contributions to forces
-            for ( int ipr = 0; ipr < npr[is]; ipr++ )
+            if ( basis_.real() )
             {
-              for ( int n = 0; n < nstloc; n++ )
+              for ( int ipr = 0; ipr < npr[is]; ipr++ )
               {
-                // Factor 2.0 in next line from derivative of |Fnl|^2
-                const double facn = 2.0 * occ[n + nbase];
-                for ( int ia = 0; ia < ia_block_size; ia++ )
+                for ( int n = 0; n < nstloc; n++ )
                 {
-                  const int ia_global = ia + iastart;
-                  const int i = ia + ipr*ia_block_size + n * nprnaloc;
-                  //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia
-                  //     << ",n=" << n << "]: " << fnl_loc[i] << endl;
-                  tmpfion[3*ia_global+j] -= facn *
-                                            fnl_loc[i] * dfnl_loc[i];
+                  // Factor 2.0 in next line from derivative of |Fnl|^2
+                  const double facn = 2.0 * occ[n + nbase];
+                  for ( int ia = 0; ia < ia_block_size; ia++ )
+                  {
+                    const int ia_global = ia + iastart;
+                    const int i = ia + ipr*ia_block_size + n * nprnaloc;
+                    //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia
+                    //     << ",n=" << n << "]: " << fnl_loc[i] << endl;
+                    tmpfion[3*ia_global+j] -= facn *
+                                              fnl_loc[i] * dfnl_loc[i];
+                  }
+                }
+              }
+            }
+            else
+            {
+              for ( int ipr = 0; ipr < npr[is]; ipr++ )
+              {
+                for ( int n = 0; n < nstloc; n++ )
+                {
+                  // Factor 2.0 in next line from derivative of |Fnl|^2
+                  const double facn = 2.0 * occ[n + nbase];
+                  for ( int ia = 0; ia < ia_block_size; ia++ )
+                  {
+                    const int ia_global = ia + iastart;
+                    const int i = ia + ipr*ia_block_size + n * nprnaloc;
+                    //cout << "fnl_loc[ipr=" << ipr << ",ia=" << ia
+                    //     << ",n=" << n << "]: " << fnl_loc[i] << endl;
+                    double f_re = fnl_loc[2*i];
+                    double f_im = fnl_loc[2*i+1];
+                    double df_re = dfnl_loc[2*i];
+                    double df_im = dfnl_loc[2*i+1];
+                    tmpfion[3*ia_global+j] -=
+                      facn * ( f_re * df_re + f_im * df_im );
+                  }
                 }
               }
             }
@@ -1258,7 +1357,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
         if ( compute_stress )
         {
           tmap["enl_sigma"].start();
-          valarray<double> dfnl_loc(npr[is]*na_block_size*nstloc);
+          valarray<double> dfnl_loc(fnl_loc_size);
 
           for ( int ij = 0; ij < 6; ij++ )
           {
@@ -1380,33 +1479,65 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
 
             // array anl_loc is complete
 
-            // compute dfnl
-            // dfnl.gemm('t','n',2.0,anl,c_proxy,0.0);
             // compute dfnl[npra][nstloc] = anl^T * c
-            double one=1.0;
-            char ct='t';
-            const int twongwl = 2 * ngwl;
-            const int nprnaloc = ia_block_size * npr[is];
-            const complex<double>* c = sd_.c().cvalptr();
-            dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&one,
-                  &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,
-                  &zero,&dfnl_loc[0],(int*)&nprnaloc);
-
-            // Note: no need to correct for double counting of the
-            // G=0 component which is always zero
-
-            // factor 2.0 in next line is: counting G, -G
-            dfnl_loc *= 2.0;
+            if ( basis_.real() )
+            {
+              // factor 2.0 in next line is: counting G, -G
+              // Note: no need to correct for double counting of the
+              // G=0 component which is always zero
+              double two=2.0;
+              char ct='t';
+              const int twongwl = 2 * ngwl;
+              const int nprnaloc = ia_block_size * npr[is];
+              int c_lda = 2*sd_.c().mloc();
+              const complex<double>* c = sd_.c().cvalptr();
+              dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&two,
+                    &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,
+                    &zero,&dfnl_loc[0],(int*)&nprnaloc);
+            }
+            else
+            {
+              complex<double> cone=1.0;
+              complex<double> czero=0.0;
+              char cc='c';
+              const int nprnaloc = ia_block_size * npr[is];
+              int c_lda = sd_.c().mloc();
+              const complex<double>* c = sd_.c().cvalptr();
+              zgemm(&cc,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&ngwl,&cone,
+                    (complex<double>*)&anl_loc[0],(int*)&ngwl,
+                    (complex<double>*)c,(int*)&c_lda,
+                    &czero,(complex<double>*)&dfnl_loc[0],(int*)&nprnaloc);
+            }
 
             // accumulate non-local contributions to sigma_ij
-            for ( int n = 0; n < nstloc; n++ )
+            if ( basis_.real() )
             {
-              // Factor 2.0 in next line from derivative of |Fnl|^2
-              const double facn = 2.0 * occ[n + nbase];
-              for ( int ipra = 0; ipra < npr[is]*ia_block_size; ipra++ )
+              for ( int n = 0; n < nstloc; n++ )
               {
-                const int i = ipra + n * nprnaloc;
-                tsum[ij] += facn * fnl_loc[i] * dfnl_loc[i];
+                // Factor 2.0 in next line from derivative of |Fnl|^2
+                const double facn = 2.0 * occ[n + nbase];
+                for ( int ipra = 0; ipra < npr[is]*ia_block_size; ipra++ )
+                {
+                  const int i = ipra + n * nprnaloc;
+                  tsum[ij] += facn * fnl_loc[i] * dfnl_loc[i];
+                }
+              }
+            }
+            else
+            {
+              for ( int n = 0; n < nstloc; n++ )
+              {
+                // Factor 2.0 in next line from derivative of |Fnl|^2
+                const double facn = 2.0 * occ[n + nbase];
+                for ( int ipra = 0; ipra < npr[is]*ia_block_size; ipra++ )
+                {
+                  const int i = ipra + n * nprnaloc;
+                  double f_re = fnl_loc[2*i];
+                  double f_im = fnl_loc[2*i+1];
+                  double df_re = dfnl_loc[2*i];
+                  double df_im = dfnl_loc[2*i+1];
+                  tsum[ij] += facn * ( f_re * df_re + f_im * df_im );
+                }
               }
             }
           } // ij

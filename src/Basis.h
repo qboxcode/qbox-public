@@ -3,7 +3,7 @@
 //  Basis.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.h,v 1.7 2007-10-19 16:24:04 fgygi Exp $
+// $Id: Basis.h,v 1.8 2007-10-19 17:10:58 fgygi Exp $
 
 #ifndef BASIS_H
 #define BASIS_H
@@ -63,11 +63,13 @@ class Basis
   double g(int i) const;     // norm of g vectors g[i]
   double kpg(int i) const;   // norm of k+g vectors kpg[i]
   double gi(int i) const;    // inverse norm of g vectors gi[i]
+  double kpgi(int i) const;  // inverse norm of k+g vectors kpgi[i]
   double g2(int i) const;    // 2-norm of g vectors g2[i]
   double kpg2(int i) const;  // 2-norm of k+g vectors kpg[i]
   double g2i(int i) const;   // inverse square norm of g g2i[i]
+  double kpg2i(int i) const; // inverse square norm of k+g kpg2i[i]
   double gx(int i) const;    // g vectors gx[i+localsize*j],j=0,1,2
-  double gx2(int i) const;   // g vectors components^2 gx2[i+localsize*j]
+  double kpgx(int i) const;  // k+g vectors kpgx[i+localsize*j],j=0,1,2
 
   int isort(int i) const;    // index of vectors locally sorted by norm
 
@@ -75,11 +77,13 @@ class Basis
   const double* g_ptr(void) const;
   const double* kpg_ptr(void) const;
   const double* gi_ptr(void) const;
+  const double* kpgi_ptr(void) const;
   const double* g2_ptr(void) const;
   const double* kpg2_ptr(void) const;
   const double* g2i_ptr(void) const;
+  const double* kpg2i_ptr(void) const;
   const double* gx_ptr(int j) const;
-  const double* gx2_ptr(int j) const;
+  const double* kpgx_ptr(int j) const;
 
   double memsize(void) const;
   double localmemsize(void) const;

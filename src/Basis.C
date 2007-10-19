@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.14 2007-10-19 16:24:04 fgygi Exp $
+// $Id: Basis.C,v 1.15 2007-10-19 17:10:58 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -45,14 +45,16 @@ struct BasisImpl
   vector<double> g_;     // norm of g vectors g[localsize]
   vector<double> kpg_;   // norm of g vectors g[localsize]
   vector<double> gi_;    // inverse norm of g vectors gi[localsize]
+  vector<double> kpgi_;  // inverse norm of k+g vectors kpgi[localsize]
   vector<double> g2_;    // 2-norm of g vectors g2[localsize]
   vector<double> kpg2_;  // 2-norm of g vectors g2[localsize]
   vector<double> g2i_;   // inverse square norm of g vectors g2i[localsize]
+  vector<double> kpg2i_; // inverse square norm of k+g vectors kpg2i[localsize]
   int np_[3];            // cache for the function np
   vector<double> gx_;    // g vectors components gx[j*localsize+i], j=0,1,2
-  vector<double> gx2_;   // g vectors components^2 gx2[j*localsize+i], j=0,1,2
+  vector<double> kpgx_;  // k+g vectors components kpgx[j*localsize+i], j=0,1,2
   vector<int> isort_loc; // index array to access locally sorted vectors
-                         // g2_[isort_loc[i]] < g2_[isort_loc[j]] if i < j
+                         // kpg2_[isort_loc[i]] < kpg2_[isort_loc[j]] if i < j
   bool real_;            // true if k=0
 
   bool resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
@@ -119,27 +121,31 @@ int Basis::rod_first(int ipe, int irod) const
 { return pimpl_->rod_first_[ipe][irod]; }
 
 int    Basis::idx(int i) const   { return pimpl_->idx_[i]; }
-double Basis::g(int i) const    { return pimpl_->g_[i]; }
-double Basis::kpg(int i) const  { return pimpl_->kpg_[i]; }
-double Basis::gi(int i) const   { return pimpl_->gi_[i]; }
-double Basis::g2(int i) const   { return pimpl_->g2_[i]; }
-double Basis::kpg2(int i) const { return pimpl_->kpg2_[i]; }
-double Basis::g2i(int i) const  { return pimpl_->g2i_[i]; }
-double Basis::gx(int i) const   { return pimpl_->gx_[i]; }
-double Basis::gx2(int i) const  { return pimpl_->gx2_[i]; }
+double Basis::g(int i) const     { return pimpl_->g_[i]; }
+double Basis::kpg(int i) const   { return pimpl_->kpg_[i]; }
+double Basis::gi(int i) const    { return pimpl_->gi_[i]; }
+double Basis::kpgi(int i) const  { return pimpl_->kpgi_[i]; }
+double Basis::g2(int i) const    { return pimpl_->g2_[i]; }
+double Basis::kpg2(int i) const  { return pimpl_->kpg2_[i]; }
+double Basis::g2i(int i) const   { return pimpl_->g2i_[i]; }
+double Basis::kpg2i(int i) const { return pimpl_->kpg2i_[i]; }
+double Basis::gx(int i) const    { return pimpl_->gx_[i]; }
+double Basis::kpgx(int i) const  { return pimpl_->kpgx_[i]; }
 int    Basis::isort(int i) const { return pimpl_->isort_loc[i]; }
 
 const int*    Basis::idx_ptr(void) const   { return &(pimpl_->idx_[0]); }
-const double* Basis::g_ptr(void)  const   { return &(pimpl_->g_[0]); }
-const double* Basis::kpg_ptr(void)  const { return &(pimpl_->kpg_[0]); }
-const double* Basis::gi_ptr(void) const   { return &(pimpl_->gi_[0]); }
-const double* Basis::g2_ptr(void) const   { return &(pimpl_->g2_[0]); }
-const double* Basis::kpg2_ptr(void) const { return &(pimpl_->kpg2_[0]); }
-const double* Basis::g2i_ptr(void) const  { return &(pimpl_->g2i_[0]); }
+const double* Basis::g_ptr(void)  const    { return &(pimpl_->g_[0]); }
+const double* Basis::kpg_ptr(void)  const  { return &(pimpl_->kpg_[0]); }
+const double* Basis::gi_ptr(void) const    { return &(pimpl_->gi_[0]); }
+const double* Basis::kpgi_ptr(void) const  { return &(pimpl_->kpgi_[0]); }
+const double* Basis::g2_ptr(void) const    { return &(pimpl_->g2_[0]); }
+const double* Basis::kpg2_ptr(void) const  { return &(pimpl_->kpg2_[0]); }
+const double* Basis::g2i_ptr(void) const   { return &(pimpl_->g2i_[0]); }
+const double* Basis::kpg2i_ptr(void) const { return &(pimpl_->kpg2i_[0]); }
 const double* Basis::gx_ptr(int j) const
 { return &(pimpl_->gx_[j*pimpl_->localsize_[pimpl_->myrow_]]); }
-const double* Basis::gx2_ptr(int j) const
-{ return &(pimpl_->gx2_[j*pimpl_->localsize_[pimpl_->myrow_]]); }
+const double* Basis::kpgx_ptr(int j) const
+{ return &(pimpl_->kpgx_[j*pimpl_->localsize_[pimpl_->myrow_]]); }
 
 ////////////////////////////////////////////////////////////////////////////////
 inline bool factorizable(int n)
@@ -345,11 +351,13 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
     g_.resize(localsize_[myrow_]);
     kpg_.resize(localsize_[myrow_]);
     gi_.resize(localsize_[myrow_]);
+    kpgi_.resize(localsize_[myrow_]);
     g2_.resize(localsize_[myrow_]);
     kpg2_.resize(localsize_[myrow_]);
     g2i_.resize(localsize_[myrow_]);
+    kpg2i_.resize(localsize_[myrow_]);
     gx_.resize(3*localsize_[myrow_]);
-    gx2_.resize(3*localsize_[myrow_]);
+    kpgx_.resize(3*localsize_[myrow_]);
     isort_loc.resize(localsize_[myrow_]);
     return true;
   }
@@ -654,7 +662,7 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
     }
   }
 
-  // local arrays idx, g, gi, g2i, g2, gx, gx2
+  // local arrays idx, g, gi, g2i, g2, gx
   idx_.resize(3*localsize_[myrow_]);
   int i = 0;
   for ( int irod = 0; irod < nrod_loc_[myrow_]; irod++ )
@@ -672,11 +680,13 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   g_.resize(localsize_[myrow_]);
   kpg_.resize(localsize_[myrow_]);
   gi_.resize(localsize_[myrow_]);
+  kpgi_.resize(localsize_[myrow_]);
   g2_.resize(localsize_[myrow_]);
   kpg2_.resize(localsize_[myrow_]);
   g2i_.resize(localsize_[myrow_]);
+  kpg2i_.resize(localsize_[myrow_]);
   gx_.resize(3*localsize_[myrow_]);
-  gx2_.resize(3*localsize_[myrow_]);
+  kpgx_.resize(3*localsize_[myrow_]);
   isort_loc.resize(localsize_[myrow_]);
 
   update_g();
@@ -689,7 +699,7 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
 ////////////////////////////////////////////////////////////////////////////////
 void BasisImpl::update_g(void)
 {
-  // compute the values of g, kpg, gi, g2i, g2, kpg2, gx, gx2
+  // compute the values of g, kpg, gi, g2i, g2, kpg2, gx
   // N.B. use the values of cell (not defcell)
 
   const int locsize = localsize_[myrow_];
@@ -706,6 +716,9 @@ void BasisImpl::update_g(void)
     gx_[i] = gt.x;
     gx_[locsize+i] = gt.y;
     gx_[locsize+locsize+i] = gt.z;
+    kpgx_[i] = kpgt.x;
+    kpgx_[locsize+i] = kpgt.y;
+    kpgx_[locsize+locsize+i] = kpgt.z;
 
     g2_[i] = norm(gt);
     g_[i] = sqrt( g2_[i] );
@@ -714,7 +727,9 @@ void BasisImpl::update_g(void)
     kpg_[i] = sqrt( kpg2_[i] );
 
     gi_[i] = g_[i] > 0.0 ? 1.0 / g_[i] : 0.0;
+    kpgi_[i] = kpg_[i] > 0.0 ? 1.0 / kpg_[i] : 0.0;
     g2i_[i] = gi_[i] * gi_[i];
+    kpg2i_[i] = kpgi_[i] * kpgi_[i];
     isort_loc[i] = i;
   }
 

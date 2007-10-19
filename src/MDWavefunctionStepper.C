@@ -3,7 +3,7 @@
 // MDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.C,v 1.8 2007-10-19 16:24:04 fgygi Exp $
+// $Id: MDWavefunctionStepper.C,v 1.9 2007-10-19 17:12:02 fgygi Exp $
 
 #include "MDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -28,10 +28,6 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
   {
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
-      if ( wf_.sd(ispin,ikp) != 0 )
-      {
-        if ( wf_.sdcontext(ispin,ikp)->active() )
-        {
           tmap_["md_update_wf"].start();
           // Verlet update of wf
           // cp = c + (c - cm) - dt2/m * hpsi
@@ -74,8 +70,6 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
           tmap_["riccati"].start();
           wf_.sd(ispin,ikp)->riccati(*(wfv_->sd(ispin,ikp)));
           tmap_["riccati"].stop();
-        }
-      }
     }
   }
   ekin_em_ = ekin_ep_;
@@ -96,10 +90,6 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
   {
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
-      if ( wf_.sd(ispin,ikp) != 0 )
-      {
-        if ( wf_.sdcontext(ispin,ikp)->active() )
-        {
           SlaterDet* sd = wf_.sd(ispin,ikp);
 
           double* cptr = (double*) sd->c().valptr();
@@ -133,8 +123,6 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
           tmap_["riccati"].start();
           wfv_->sd(ispin,ikp)->riccati(*wf_.sd(ispin,ikp));
           tmap_["riccati"].stop();
-        }
-      }
     }
   }
   ekin_em_ = 0.0;
@@ -154,10 +142,6 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
   {
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
-      if ( wf_.sd(ispin,ikp) != 0 )
-      {
-        if ( wf_.sdcontext(ispin,ikp)->active() )
-        {
           // compute final velocity wfv
           // v = ( c - cm ) / dt - 0.5 * dt/m * hpsi
 
@@ -219,8 +203,6 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
             }
           }
           // Note: *wfv_ now contains the wavefunction velocity
-        }
-      }
     }
   }
 }
@@ -236,10 +218,6 @@ double MDWavefunctionStepper::ekin_eh(void)
   {
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
-      if ( wf_.sd(ispin,ikp) != 0 )
-      {
-        if ( wf_.sdcontext(ispin,ikp)->active() )
-        {
           SlaterDet* sd = wf_.sd(ispin,ikp);
           double* cptr = (double*) sd->c().valptr();
           double* cptrm = (double*) wfv_->sd(ispin,ikp)->c().valptr();
@@ -277,8 +255,6 @@ double MDWavefunctionStepper::ekin_eh(void)
             // Note: 2 in next line: from (G,-G)
             ekin_e += ( 2.0 * occn / dt2bye_ ) * tmpsum;
           }
-        }
-      }
     }
   }
   wf_.context().dsum(1,1,&ekin_e,1);

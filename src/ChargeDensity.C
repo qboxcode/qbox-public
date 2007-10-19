@@ -3,7 +3,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.C,v 1.12 2007-10-19 16:24:04 fgygi Exp $
+// $Id: ChargeDensity.C,v 1.13 2007-10-19 17:10:58 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -44,11 +44,18 @@ wf_(wf), vcontext_(wf.sd(0,0)->basis().context())
   {
     for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
     {
-      if ( wf.sd(ispin,ikp) != 0 )
-        ft_[ikp] =
-          new FourierTransform(wf.sd(ispin,ikp)->basis(),np0v,np1v,np2v);
-      else
-        ft_[ikp] = 0;
+      // check that twice the wf basis fits into np0v,np1v,np2v at each kpoint
+      const Basis& b = wf.sd(ispin,ikp)->basis();
+#if DEBUG
+      cout << " ChargeDensity: ikp=" << ikp << " basis: " << endl;
+      cout << " idxmin: " << b.idxmin(0) << "/" << b.idxmin(1)
+           << "/" << b.idxmin(2) << endl;
+      cout << " idxmax: " << b.idxmax(0) << "/" << b.idxmax(1)
+           << "/" << b.idxmax(2) << endl;
+      cout << " ftgrid: " << np0v << "/" << np1v
+           << "/" << np2v << endl;
+#endif
+      ft_[ikp] = new FourierTransform(b,np0v,np1v,np2v);
     }
   }
 }
@@ -85,58 +92,53 @@ void ChargeDensity::update_density(void)
 
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
-    if ( wf_.spincontext(ispin)->active())
+    assert(rhor[ispin].size() == vft_->np012loc() );
+    assert(rhotmp.size() == vft_->np012loc() );
+    const int rhor_size = rhor[ispin].size();
+    tmap["charge_compute"].start();
+    double *p = &rhor[ispin][0];
+    for ( int i = 0; i < rhor_size; i++ )
+      p[i] = 0.0;
+    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
-      assert(rhor[ispin].size() == vft_->np012loc() );
-      assert(rhotmp.size() == vft_->np012loc() );
-      tmap["charge_compute"].start();
-      for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
-      {
-        if ( wf_.sd(ispin,ikp) != 0 && wf_.sdcontext(ispin,ikp)->active() )
-        {
-
-          wf_.sd(ispin,ikp)->compute_density(*ft_[ikp],
-            wf_.weight(ikp), &rhor[ispin][0]);
-
-        }
-      }
-      tmap["charge_compute"].stop();
-
-      // sum across rows of spincontext[ispin] context
-      tmap["charge_rowsum"].start();
-      wf_.spincontext(ispin)->dsum('r',vft_->np012loc(),1,
-        &rhor[ispin][0],vft_->np012loc());
-      tmap["charge_rowsum"].stop();
-
-      // check integral of charge density
-      // compute Fourier coefficients of the charge density
-      double sum = 0.0;
-      const int rhor_size = rhor[ispin].size();
-      const double *const prhor = &rhor[ispin][0];
-      tmap["charge_integral"].start();
-      #pragma ivdep
-      for ( int i = 0; i < rhor_size; i++ )
-      {
-        const double prh = prhor[i];
-        sum += prh;
-        rhotmp[i] = complex<double>(omega * prh, 0.0);
-      }
-      sum *= omega / vft_->np012();
-
-      wf_.spincontext(ispin)->dsum('c',1,1,&sum,1);
-      tmap["charge_integral"].stop();
-      if ( ctxt_.onpe0() )
-      {
-        cout.setf(ios::fixed,ios::floatfield);
-        cout.setf(ios::right,ios::adjustfield);
-        cout << "  <!-- total_electronic_charge: " << setprecision(8) << sum
-             << " -->" << endl;
-      }
-
-      tmap["charge_vft"].start();
-      vft_->forward(&rhotmp[0],&rhog[ispin][0]);
-      tmap["charge_vft"].stop();
+      wf_.sd(ispin,ikp)->compute_density(*ft_[ikp],
+          wf_.weight(ikp), &rhor[ispin][0]);
     }
+    tmap["charge_compute"].stop();
+
+    // sum over kpoints: sum along rows of kpcontext
+    tmap["charge_rowsum"].start();
+    wf_.kpcontext()->dsum('r',vft_->np012loc(),1,
+      &rhor[ispin][0],vft_->np012loc());
+    tmap["charge_rowsum"].stop();
+
+    // check integral of charge density
+    // compute Fourier coefficients of the charge density
+    double sum = 0.0;
+    const double *const prhor = &rhor[ispin][0];
+    tmap["charge_integral"].start();
+    for ( int i = 0; i < rhor_size; i++ )
+    {
+      const double prh = prhor[i];
+      sum += prh;
+      rhotmp[i] = complex<double>(omega * prh, 0.0);
+    }
+    sum *= omega / vft_->np012();
+
+    // sum on all indices except spin: sum along columns of spincontext
+    wf_.spincontext()->dsum('c',1,1,&sum,1);
+    tmap["charge_integral"].stop();
+    if ( ctxt_.onpe0() )
+    {
+      cout.setf(ios::fixed,ios::floatfield);
+      cout.setf(ios::right,ios::adjustfield);
+      cout << "  <!-- total_electronic_charge: " << setprecision(8) << sum
+           << " -->" << endl;
+    }
+
+    tmap["charge_vft"].start();
+    vft_->forward(&rhotmp[0],&rhog[ispin][0]);
+    tmap["charge_vft"].stop();
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -150,20 +152,16 @@ void ChargeDensity::update_rhor(void)
 
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
-    if ( wf_.spincontext(ispin)->active())
+    assert(rhor[ispin].size() == vft_->np012loc() );
+    assert(rhotmp.size() == vft_->np012loc() );
+
+    vft_->backward(&rhog[ispin][0],&rhotmp[0]);
+
+    const int rhor_size = rhor[ispin].size();
+    double *const prhor = &rhor[ispin][0];
+    for ( int i = 0; i < rhor_size; i++ )
     {
-      assert(rhor[ispin].size() == vft_->np012loc() );
-      assert(rhotmp.size() == vft_->np012loc() );
-
-      vft_->backward(&rhog[ispin][0],&rhotmp[0]);
-
-      const int rhor_size = rhor[ispin].size();
-      double *const prhor = &rhor[ispin][0];
-      #pragma ivdep
-      for ( int i = 0; i < rhor_size; i++ )
-      {
-        prhor[i] = rhotmp[i].real() * omega_inv;
-      }
+      prhor[i] = rhotmp[i].real() * omega_inv;
     }
   }
 }

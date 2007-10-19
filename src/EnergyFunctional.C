@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.25 2007-10-19 16:24:04 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.26 2007-10-19 17:10:58 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -90,7 +90,11 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
   }
 
   xcp = new XCPotential(cd_,s_.ctrl.xc);
-  nlp = new NonLocalPotential(s_.atoms, *wf.sd(0,0));
+  nlp.resize(wf.nkp());
+  for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+  {
+    nlp[ikp] = new NonLocalPotential(s_.atoms, *wf.sd(0,ikp));
+  }
 
   vion_local_g.resize(ngloc);
   dvion_local_g.resize(ngloc);
@@ -133,17 +137,11 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
   for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
   {
     cfp[ikp] = 0;
-    bool create_cfp = false;
-    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-      create_cfp |= wf.sd(ispin,ikp) != 0 && wf.sdcontext(ispin,ikp)->active();
-    if ( create_cfp )
-    {
-      const double facs = 2.0;
-      const double sigmas = 0.5;
-      cfp[ikp] =
-        new ConfinementPotential(s_.ctrl.ecuts,facs,sigmas,
-          wf.sd(0,ikp)->basis());
-    }
+    const double facs = 2.0;
+    const double sigmas = 0.5;
+    cfp[ikp] =
+      new ConfinementPotential(s_.ctrl.ecuts,facs,sigmas,
+        wf.sd(0,ikp)->basis());
   }
 
   sf.init(tau0,*vbasis_);
@@ -158,7 +156,11 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
 EnergyFunctional::~EnergyFunctional(void)
 {
   delete xcp;
-  delete nlp;
+  for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+  {
+    delete cfp[ikp];
+    delete nlp[ikp];
+  }
 
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
@@ -327,107 +329,99 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
     {
       const double weight = wf.weight(ikp);
-      if ( wf.sd(ispin,ikp) != 0 && wf.sdcontext(ispin,ikp)->active() )
+      const SlaterDet& sd = *(wf.sd(ispin,ikp));
+      const Basis& wfbasis = sd.basis();
+      const D3vector kp = wfbasis.kpoint();
+      // factor fac in next lines: 2.0 for G and -G (if basis is real) and
+      // 0.5 from 1/(2m)
+      const double fac = wfbasis.real() ? 1.0 : 0.5;
+      const ComplexMatrix& c = sd.c();
+      const Context& sdctxt = sd.context();
+
+      // compute psi2sum(G) = fac * sum_G occ(n) psi2(n,G)
+      const int ngwloc = wfbasis.localsize();
+      valarray<double> psi2sum(ngwloc);
+      const complex<double>* p = c.cvalptr();
+      const int mloc = c.mloc();
+      const int nloc = c.nloc();
+      // nn = global n index
+      const int nnbase = sdctxt.mycol() * c.nb();
+      const double * const occ = sd.occ_ptr(nnbase);
+      for ( int ig = 0; ig < ngwloc; ig++ )
       {
-        const SlaterDet& sd = *(wf.sd(ispin,ikp));
-        const Basis& wfbasis = wf.sd(ispin,ikp)->basis();
-        // factor fac in next lines: 2.0 for G and -G (if basis is real) and
-        // 0.5 from 1/(2m)
-        // note: if basis is real, the factor of 2.0 for G=0 need not be
-        // corrected since G^2 = 0
-        // Note: the calculation of fac in next line is valid only for nkp=1
-        // If k!=0, kpg2(0) !=0 and the ig=0 coefficient must be dealt with
-        // separately
-        const double fac = wfbasis.real() ? 1.0 : 0.5;
-        const ComplexMatrix& c = sd.c();
-        const Context& sdctxt = sd.context();
-
-        // compute psi2sum(G) = fac * sum_G occ(n) psi2(n,G)
-        const int ngwloc = wfbasis.localsize();
-        valarray<double> psi2sum(ngwloc);
-        const complex<double>* p = c.cvalptr();
-        const int mloc = c.mloc();
-        const int nloc = c.nloc();
-          // nn = global n index
-        const int nnbase = sdctxt.mycol() * c.nb();
-        const double * const occ = sd.occ_ptr(nnbase);
-        for ( int ig = 0; ig < ngwloc; ig++ )
+        double tmpsum = 0.0;
+        for ( int n = 0; n < nloc; n++ )
         {
-          double tmpsum = 0.0;
-          for ( int n = 0; n < nloc; n++ )
-          {
-            const double psi2 = norm(p[ig+n*mloc]);
-            tmpsum += fac * occ[n] * psi2;
-          }
-          psi2sum[ig] = tmpsum;
+          const double psi2 = norm(p[ig+n*mloc]);
+          tmpsum += fac * occ[n] * psi2;
         }
+        psi2sum[ig] = tmpsum;
+      }
 
-        // accumulate contributions to ekin,econf,sigma_ekin,sigma_econf in tsum
-        // Note: next lines to be changed to kpg_ptr for nkp>1
-        const double *const g2  = wfbasis.g2_ptr();
-        const double *const g_x = wfbasis.gx_ptr(0);
-        const double *const g_y = wfbasis.gx_ptr(1);
-        const double *const g_z = wfbasis.gx_ptr(2);
-        tsum = 0.0;
+      // accumulate contributions to ekin,econf,sigma_ekin,sigma_econf in tsum
+      const double *const kpg2  = wfbasis.kpg2_ptr();
+      const double *const kpg_x = wfbasis.kpgx_ptr(0);
+      const double *const kpg_y = wfbasis.kpgx_ptr(1);
+      const double *const kpg_z = wfbasis.kpgx_ptr(2);
+      tsum = 0.0;
 
+      for ( int ig = 0; ig < ngwloc; ig++ )
+      {
+        const double psi2s = psi2sum[ig];
+
+        // tsum[0]: ekin partial sum
+        tsum[0] += psi2s * kpg2[ig];
+
+        if ( compute_stress )
+        {
+          const double tkpgx = kpg_x[ig];
+          const double tkpgy = kpg_y[ig];
+          const double tkpgz = kpg_z[ig];
+
+          const double fac_ekin = 2.0 * psi2s;
+
+          tsum[1]  += fac_ekin * tkpgx * tkpgx;
+          tsum[2]  += fac_ekin * tkpgy * tkpgy;
+          tsum[3]  += fac_ekin * tkpgz * tkpgz;
+          tsum[4]  += fac_ekin * tkpgx * tkpgy;
+          tsum[5]  += fac_ekin * tkpgy * tkpgz;
+          tsum[6]  += fac_ekin * tkpgx * tkpgz;
+
+        }
+        // tsum[0-6] contains the contributions to
+        // ekin, sigma_ekin, from vector ig
+      } // ig
+
+      if ( use_confinement )
+      {
+        const valarray<double>& fstress = cfp[ikp]->fstress();
+        const valarray<double>& dfstress = cfp[ikp]->dfstress();
         for ( int ig = 0; ig < ngwloc; ig++ )
         {
           const double psi2s = psi2sum[ig];
-
-          // tsum[0]: ekin partial sum
-          tsum[0] += psi2s * g2[ig];
+          // tsum[7]: econf partial sum
+          tsum[7] += psi2s * fstress[ig];
 
           if ( compute_stress )
           {
-            const double tgx = g_x[ig];
-            const double tgy = g_y[ig];
-            const double tgz = g_z[ig];
+            const double tkpgx = kpg_x[ig];
+            const double tkpgy = kpg_y[ig];
+            const double tkpgz = kpg_z[ig];
 
-            const double fac_ekin = 2.0 * psi2s;
-
-            tsum[1]  += fac_ekin * tgx * tgx;
-            tsum[2]  += fac_ekin * tgy * tgy;
-            tsum[3]  += fac_ekin * tgz * tgz;
-            tsum[4]  += fac_ekin * tgx * tgy;
-            tsum[5]  += fac_ekin * tgy * tgz;
-            tsum[6]  += fac_ekin * tgx * tgz;
-
+            const double fac_econf = psi2s * dfstress[ig];
+            tsum[8]  += fac_econf * tkpgx * tkpgx;
+            tsum[9]  += fac_econf * tkpgy * tkpgy;
+            tsum[10] += fac_econf * tkpgz * tkpgz;
+            tsum[11] += fac_econf * tkpgx * tkpgy;
+            tsum[12] += fac_econf * tkpgy * tkpgz;
+            tsum[13] += fac_econf * tkpgx * tkpgz;
           }
-          // tsum[0-6] contains the contributions to
-          // ekin, sigma_ekin, from vector ig
+          // tsum[7-13] contains the contributions to
+          // econf,sigma_econf from vector ig
         } // ig
-
-        if ( use_confinement )
-        {
-          const valarray<double>& fstress = cfp[ikp]->fstress();
-          const valarray<double>& dfstress = cfp[ikp]->dfstress();
-          for ( int ig = 0; ig < ngwloc; ig++ )
-          {
-            const double psi2s = psi2sum[ig];
-            // tsum[7]: econf partial sum
-            tsum[7] += psi2s * fstress[ig];
-
-            if ( compute_stress )
-            {
-              const double tgx = g_x[ig];
-              const double tgy = g_y[ig];
-              const double tgz = g_z[ig];
-
-              const double fac_econf = psi2s * dfstress[ig];
-              tsum[8]  += fac_econf * tgx * tgx;
-              tsum[9]  += fac_econf * tgy * tgy;
-              tsum[10] += fac_econf * tgz * tgz;
-              tsum[11] += fac_econf * tgx * tgy;
-              tsum[12] += fac_econf * tgy * tgz;
-              tsum[13] += fac_econf * tgx * tgz;
-            }
-            // tsum[7-13] contains the contributions to
-            // econf,sigma_econf from vector ig
-          } // ig
-        }
-
-        sum += weight * tsum;
       }
+
+      sum += weight * tsum;
     } // ikp
   } // ispin
 
@@ -563,10 +557,13 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   }
 
   // Non local energy
-  // Note: next line for nspin==0, nkp==0 only
   tmap["nonlocal"].start();
-  enl_ = nlp->energy(compute_hpsi,*dwf.sd(0,0),
-    compute_forces, fion, compute_stress, sigma_enl);
+  // modify next loop to span only local ikp
+  enl_ = 0.0;
+  for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+    enl_ += wf.weight(ikp) * nlp[ikp]->energy(compute_hpsi,*dwf.sd(0,ikp),
+            compute_forces, fion, compute_stress, sigma_enl);
+  // add here sum of enl across rows of kpcontext
   tmap["nonlocal"].stop();
 
   ecoul_ = ehart_ + esr_ - eself_;
@@ -587,43 +584,39 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     {
       for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
       {
-        if ( wf.sd(ispin,ikp) != 0 )
-        {
-          const SlaterDet& sd = *(wf.sd(ispin,ikp));
-          SlaterDet& sdp = *(dwf.sd(ispin,ikp));
-          const ComplexMatrix& c = sd.c();
-          const Basis& wfbasis = sd.basis();
-          ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
-          const int mloc = cp.mloc();
-          const double* kpg2 = wfbasis.kpg2_ptr();
-          const int ngwloc = wfbasis.localsize();
+        const SlaterDet& sd = *(wf.sd(ispin,ikp));
+        SlaterDet& sdp = *(dwf.sd(ispin,ikp));
+        const ComplexMatrix& c = sd.c();
+        const Basis& wfbasis = sd.basis();
+        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
+        const int mloc = cp.mloc();
+        const double* kpg2 = wfbasis.kpg2_ptr();
+        const int ngwloc = wfbasis.localsize();
 
-          // Laplacian
-          if ( use_confinement )
+        // Laplacian
+        if ( use_confinement )
+        {
+          for ( int n = 0; n < sd.nstloc(); n++ )
           {
-            for ( int n = 0; n < sd.nstloc(); n++ )
+            const valarray<double>& fstress = cfp[ikp]->fstress();
+            for ( int ig = 0; ig < ngwloc; ig++ )
             {
-              assert(cfp[ikp]!=0); // cfp must be non-zero if this ikp active
-              const valarray<double>& fstress = cfp[ikp]->fstress();
-              for ( int ig = 0; ig < ngwloc; ig++ )
-              {
-                cp[ig+mloc*n] += 0.5 * ( kpg2[ig] + fstress[ig] ) *
-                                 c[ig+mloc*n];
-              }
+              cp[ig+mloc*n] += 0.5 * ( kpg2[ig] + fstress[ig] ) *
+                               c[ig+mloc*n];
             }
           }
-          else
+        }
+        else
+        {
+          for ( int n = 0; n < sd.nstloc(); n++ )
           {
-            for ( int n = 0; n < sd.nstloc(); n++ )
+            for ( int ig = 0; ig < ngwloc; ig++ )
             {
-              for ( int ig = 0; ig < ngwloc; ig++ )
-              {
-                cp[ig+mloc*n] += 0.5 * kpg2[ig] * c[ig+mloc*n];
-              }
+              cp[ig+mloc*n] += 0.5 * kpg2[ig] * c[ig+mloc*n];
             }
           }
-          sd.rs_mul_add(*ft[ikp], &v_r[ispin][0], sdp);
-        } // if sd(ispin,ikp) != 0
+        }
+        sd.rs_mul_add(*ft[ikp], &v_r[ispin][0], sdp);
       }
     }
     tmap["hpsi"].stop();
@@ -711,6 +704,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
           sigma_ehart + sigma_exc + sigma_esr;
   if ( debug_stress && s_.ctxt_.onpe0() )
   {
+    const double gpa = 29421.5;
     cout.setf(ios::fixed,ios::floatfield);
     cout.setf(ios::right,ios::adjustfield);
     cout << setprecision(8);
@@ -893,17 +887,12 @@ void EnergyFunctional::cell_moved(void)
     }
   }
 
-  // Update confinement potentials
+  // Update confinement potentials and non-local potentials
   for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
   {
-    if ( cfp[ikp] != 0 )
-    {
-      cfp[ikp]->update();
-    }
+    cfp[ikp]->update();
+    nlp[ikp]->update_twnl();
   }
-
-  // update non-local potential
-  nlp->update_twnl();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

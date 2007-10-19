@@ -3,7 +3,7 @@
 // EnergyFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.h,v 1.16 2007-10-19 16:24:04 fgygi Exp $
+// $Id: EnergyFunctional.h,v 1.17 2007-10-19 17:10:58 fgygi Exp $
 
 #ifndef ENERGYFUNCTIONAL_H
 #define ENERGYFUNCTIONAL_H
@@ -40,7 +40,7 @@ class EnergyFunctional
   std::vector<FourierTransform*> ft;
   StructureFactor sf;
   XCPotential* xcp;
-  NonLocalPotential* nlp;
+  std::vector<NonLocalPotential*> nlp;    // nlp[ikp]
   std::vector<ConfinementPotential*> cfp; // cfp[ikp]
 
   std::vector<std::vector<double> > vps, dvps, rhops;

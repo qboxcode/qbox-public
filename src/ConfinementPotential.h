@@ -3,7 +3,7 @@
 // ConfinementPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConfinementPotential.h,v 1.4 2007-10-19 16:24:04 fgygi Exp $
+// $Id: ConfinementPotential.h,v 1.5 2007-10-19 17:08:22 fgygi Exp $
 
 #ifndef CONFINEMENTPOTENTIAL_H
 #define CONFINEMENTPOTENTIAL_H
@@ -34,6 +34,6 @@ class ConfinementPotential
 
   ConfinementPotential(double ecuts, double facs, double sigmas,
     const Basis& basis);
-  ~ConfinementPotential();
+  ~ConfinementPotential() {}
 };
 #endif

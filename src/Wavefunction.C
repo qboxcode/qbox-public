@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.24 2007-10-19 17:37:06 fgygi Exp $
+// $Id: Wavefunction.C,v 1.25 2007-10-31 05:10:56 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -53,9 +53,9 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
   sd_.resize(nspin_);
   sd_[0].resize(nkp);
 
-  sdcontext_ = &ctxt_;
-  kpcontext_ = &ctxt_;
-  spincontext_ = &ctxt_;
+  spincontext_ = new Context(*wf.spincontext_);
+  kpcontext_ = spincontext_;
+  sdcontext_ = kpcontext_;
 
   // replace with sd_[ispin][ikp]
   for ( int ikp = 0; ikp < nkp; ikp++ )
@@ -90,9 +90,11 @@ void Wavefunction::allocate(void)
   sd_.resize(nspin_);
   sd_[0].resize(nkp);
 
-  spincontext_ = &ctxt_;
-  kpcontext_ = &ctxt_;
-  sdcontext_ = &ctxt_;
+  // create a spincontext from the global context
+  // assume that the spincontext is global
+  spincontext_ = new Context(npr,npc);
+  kpcontext_ = spincontext_;
+  sdcontext_ = kpcontext_;
   for ( int ikp = 0; ikp < nkp; ikp++ )
     sd_[0][ikp] = new SlaterDet(*sdcontext_,kpoint_[ikp]);
 }
@@ -107,6 +109,7 @@ void Wavefunction::deallocate(void)
       delete sd_[ispin][ikp];
     }
   }
+  delete spincontext_;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -592,19 +595,40 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
         ComplexMatrix& cp(dwf.sd(ispin,ikp)->c());
         ComplexMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
         h.gemm('c','n',1.0,c,cp,0.0);
-        //cout << " Hamiltonian at k = " << sd[ikp]->kpoint() << endl;
-        //cout << h;
+        // cout << " Hamiltonian at k = "
+        //      << sd(ispin,ikp)->kpoint() << endl;
+        // cout << h;
         valarray<double> w(h.m());
-        h.heev('l',w);
-#if 0
-        cout << " Eigenvalues at k = " << sd(ispin,ikp)->kpoint() << endl;
-        const double eVolt = 2.0 * 13.6058;
-        for ( int i = 0; i < h.m(); i++ )
+        if ( eigvec )
         {
-          cout << "%" << setw(3) << ikp
-               << setw(10) << setprecision(5) << w[i]*eVolt << endl;;
-        }
+#if DEBUG
+          ComplexMatrix hcopy(h);
 #endif
+          ComplexMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          h.heev('l',w,z);
+          cp = c;
+          c.gemm('n','n',1.0,cp,z,0.0);
+#if DEBUG
+          // check that z contains eigenvectors of h
+          // diagonal matrix with eigenvalues on diagonal
+          ComplexMatrix d(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          // the following test works only on one task
+          assert(ctxt_.size()==1);
+          for ( int i = 0; i < d.m(); i++ )
+            d[i+d.n()*i] = w[i];
+          ComplexMatrix dz(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          dz.gemm('n','c',1.0,d,z,0.0);
+          ComplexMatrix zdz(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          zdz.gemm('n','n',1.0,z,dz,0.0);
+          // zdz should be equal to hcopy
+          zdz -= hcopy;
+          cout << " heev: norm of error: " << zdz.nrm2() << endl;
+#endif
+        }
+        else
+        {
+          h.heev('l',w);
+        }
         // set eigenvalues in SlaterDet
         sd(ispin,ikp)->set_eig(w);
       }
@@ -722,8 +746,9 @@ void Wavefunction::info(ostream& os, string tag) const
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      cout << "<-- kpoint: " << kpoint_[ikp] << " weight: " << weight_[ikp]
-           << " -->" << endl;
+      if ( ctxt_.onpe0() )
+        cout << "<-- kpoint: " << kpoint_[ikp] << " weight: " << weight_[ikp]
+             << " -->" << endl;
       sd_[ispin][ikp]->info(os);
     }
   }

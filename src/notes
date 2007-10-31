@@ -10,8 +10,6 @@ gfdata matrix used in XMLGFPreprocessor uses a single-row context. May be
 preferrable to use a single-column context when nst is small to avoid 
 memory problems.
 
-XMLGFPreprocessor crashes at XMLGFPreprocessor.C:548 on h2o32md.xml files.
-
 Include current energy e0 in arguments of IonicStepper::compute_rp, in 
 addition to forces f0. Use e0 to backtrack when energy rises in the SDA alg.
 
@@ -22,6 +20,12 @@ Bug: calculation starts if ref_cell is defined but not cell. Crash in FFT.
 Bug in scalapack pdgetri.f (inverse of square matrix)
 Added bugfix from J.Langou into local modified copy of pdgetri.f 
 Must link to local pdgetri.o before the scalapack lib
+Note: this is fixed in the new scalapack-1.8.0
+--------------------------------------------------------------------------------
+A bug in pzheev makes the calculation of lrwork incorrect: crashes with 
+"xmmrd2 out of memory" message. Need to use
+an explicit formula instead of querying by calling first with lrwork=-1
+lrwork= 1 + 9*n_ + 3*mloc_*nloc_;
 --------------------------------------------------------------------------------
 Fedora 6 on melodie: rebuilt blacs and scalapack. Use gfortran instead of g77
 (g77 is not included in FC6)
@@ -33,8 +37,13 @@ with srand48(ctxt.myproc()).
 Could reinitialize the seed in MDIonicsStepper.C using a common value identical
 on all processors.
 --------------------------------------------------------------------------------
-rel1_34_0
-Added kpoints
+rel1_34_1
+Several bug fixes for kpoint functionality.
+CPSampleStepper.C: create wfv if absent.
+ChargeDensity.C: increased grid size to avoid aliasing with k!=0
+--------------------------------------------------------------------------------
+rel1_34_0 (not for distribution)
+Added kpoints. This release still has bugs. Not for distribution.
 --------------------------------------------------------------------------------
 rel1_33_5
 removed trailing blanks in *.[Ch] *.mk Makefile

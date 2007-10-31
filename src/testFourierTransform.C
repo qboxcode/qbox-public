@@ -17,7 +17,7 @@ using namespace std;
 
 int fft_flops(int n)
 {
-  return 5.0 * n * log((double) n) / log(2.0);
+  return (int) (5.0 * n * log((double) n) / log(2.0));
 }
 
 int main(int argc, char **argv)

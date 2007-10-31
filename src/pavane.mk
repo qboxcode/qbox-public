@@ -3,7 +3,7 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: pavane.mk,v 1.4 2007-10-20 01:00:23 fgygi Exp $
+# $Id: pavane.mk,v 1.5 2007-10-31 05:13:04 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
@@ -19,24 +19,26 @@
  PLTFLAGS += -DIA32 -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
              -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
              -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES
-	     
+
  FFTWDIR=$(HOME)/software/fftw/Linux_x8664/fftw-2.1.5/fftw
 #BLASDIR=$(HOME)/software/atlas/ATLAS/lib/Linux_x8664
- BLASDIR=$(HOME)/software/atlas/ATLAS/lib/Linux_HAMMER64SSE2
- 
+#BLASDIR=$(HOME)/software/atlas/ATLAS/lib/Linux_HAMMER64SSE2
+ BLASDIR=/usr/lib64
+ LAPACKDIR=/usr/lib64
+
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
- 
- CXXFLAGS= -O4 -Wunused -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
+
+ CXXFLAGS= -g -Wunused -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR)/.libs -L/usr/X11R6/lib \
-           -L$(MPIDIR)/lib -L$(BLASDIR) -L/usr/lib \
+           -L$(MPIDIR)/lib -L$(BLASDIR) -L$(LAPACKDIR) \
            -L$(XERCESCDIR)/lib -L$(HOME)/lib
-  
+
  LIBS =  $(PLIBS) $(GCCDIR)/libg2c.a -lfftw \
-         -llapack -lf77blas -latlas -lm -lmpich \
+         -llapack -lblas -lm -lmpich \
          $(XERCESCDIR)/lib/libxerces-c.a
- 
- LDFLAGS = $(LIBPATH) $(LIBS) 
+
+ LDFLAGS = $(LIBPATH) $(LIBS)
 
  PLAT=Linux_x8664
  # Blacs libraries
@@ -50,7 +52,8 @@
  FBLACSLIB     = $(BLACSFINIT) $(BLACSLIB) $(BLACSFINIT)
 
  # Scalapack libraries
- SCALAPACK_DIR = $(HOME)/software/scalapack/Linux_x8664/SCALAPACK
+#SCALAPACK_DIR = $(HOME)/software/scalapack/Linux_x8664/SCALAPACK
+ SCALAPACK_DIR = $(HOME)/software/scalapack/Linux_x8664/scalapack-1.8.0
 #PBLASLIB      = $(SCALAPACK_DIR)/pblas_$(PLAT).a
  SCALAPACKLIB  = $(SCALAPACK_DIR)/libscalapack.a
 #TOOLSLIB      = $(SCALAPACK_DIR)/tools_$(PLAT).a

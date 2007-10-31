@@ -3,7 +3,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.14 2007-10-19 16:24:04 fgygi Exp $
+// $Id: Matrix.h,v 1.15 2007-10-31 05:05:05 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -494,6 +494,12 @@ class ComplexMatrix
     void heev(char uplo, std::valarray<double>& w, ComplexMatrix& z);
     // compute eigenvalues (only) of hermitian matrix *this
     void heev(char uplo, std::valarray<double>& w);
+
+    // eigenvalues/eigenvectors using the divide and conquer method
+    // compute eigenvalues and eigenvectors of hermitian matrix *this
+    void heevd(char uplo, std::valarray<double>& w, ComplexMatrix& z);
+    // compute eigenvalues (only) of hermitian matrix *this
+    void heevd(char uplo, std::valarray<double>& w);
 };
 std::ostream& operator << ( std::ostream& os, const ComplexMatrix& a );
 #endif

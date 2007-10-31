@@ -3,7 +3,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.16 2007-10-19 16:24:04 fgygi Exp $
+// $Id: Matrix.C,v 1.17 2007-10-31 05:04:40 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -48,6 +48,7 @@ using namespace std;
 #define pdsyevd    pdsyevd_
 #define pdsyevx    pdsyevx_
 #define pzheev     pzheev_
+#define pzheevd    pzheevd_
 #define pdtrtri    pdtrtri_
 #define pdlatra    pdlatra_
 #define pdlacp2    pdlacp2_
@@ -193,14 +194,21 @@ extern "C"
                int* nfound, int* nz, double* w,
                const double* orfac, double* z, const int* iz, const int* jz,
                const int* descz, double* work, const int* lwork,
-               int* iwork, const int* liwork, int* ifail,
+               int* iwork, int* liwork, int* ifail,
                int* icluster, double* gap, int* info);
   void pzheev(const char* jobz, const char* uplo, const int* n,
               complex<double>* a, const int* ia, const int* ja,
               const int* desca, double* w, complex<double> *z,
               const int* iz, const int* jz, const int* descz,
-              complex<double>* work, const int* lwork,
-              double* rwork, const int* lrwork, int* info);
+              complex<double>* work, int* lwork,
+              double* rwork, int* lrwork, int* info);
+  void pzheevd(const char* jobz, const char* uplo, const int* n,
+               complex<double>* a, const int* ia, const int* ja,
+               const int* desca, double* w, complex<double> *z,
+               const int* iz, const int* jz, const int* descz,
+               complex<double>* work, int* lwork,
+               double* rwork, const int* lrwork,
+               int* iwork, int* liwork, int* info);
   void pdtrtri(const char*, const char*, const int*, double*,
                const int*, const int*, const int*, int*);
   void pdgetrf(const int* m, const int* n, double* val,
@@ -280,10 +288,10 @@ extern "C"
               double*, const int*, const double*, const int*, int*);
   void dsyev(const char* jobz, const char* uplo, const int* n, double* a,
              const int *lda, double *w, double*work,
-             const int *lwork, int *info);
+             int *lwork, int *info);
   void zheev(const char* jobz, const char* uplo, const int *n,
              complex<double>* a, const int *lda, double* w,
-             complex<double>* work, const int *lwork, double* rwork, int *info);
+             complex<double>* work, int *lwork, double* rwork, int *info);
   void dtrtri(const char*, const char*, const int*, double*, const int*, int* );
   void dgetrf(const int* m, const int* n, double* a, const int* lda,
               int* ipiv, int*info);
@@ -2518,17 +2526,19 @@ void ComplexMatrix::heev(char uplo, valarray<double>& w, ComplexMatrix& z)
 
     // first call to get optimal lwork and lrwork sizes
     pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-           z.val, &ione, &ione, z.desc_, &tmplwork, &lwork,
-           &tmplrwork, &lrwork, &info);
+            z.val, &ione, &ione, z.desc_, &tmplwork, &lwork,
+            &tmplrwork, &lrwork, &info);
 
     lwork = (int) real(tmplwork) + 1;
     complex<double>* work=new complex<double>[lwork];
     lrwork = (int) tmplrwork + 1;
+    // direct calculation of lrwork to avoid bug in pzheev
+    lrwork = 1 + 9*n_ + 3*mloc_*nloc_;
     double* rwork = new double[lrwork];
 
     pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-           z.val, &ione, &ione, z.desc_, work, &lwork,
-           rwork, &lrwork, &info);
+            z.val, &ione, &ione, z.desc_, work, &lwork,
+            rwork, &lrwork, &info);
 
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
 #else
@@ -2561,6 +2571,76 @@ void ComplexMatrix::heev(char uplo, valarray<double>& w, ComplexMatrix& z)
     }
     delete[] work;
     delete[] rwork;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ComplexMatrix::heevd(char uplo, valarray<double>& w, ComplexMatrix& z)
+{
+  int info;
+  if ( active_ )
+  {
+    assert(m_==n_);
+    char jobz = 'V';
+
+#ifdef SCALAPACK
+    int ione=1;
+    int lwork=-1;
+    int lrwork=-1;
+    int liwork=-1;
+    complex<double> tmplwork;
+    double tmplrwork;
+    int tmpliwork;
+
+    // first call to get optimal lwork and lrwork sizes
+    pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+            z.val, &ione, &ione, z.desc_, &tmplwork, &lwork,
+            &tmplrwork, &lrwork, &tmpliwork, &liwork, &info);
+
+    lwork = (int) real(tmplwork) + 1;
+    complex<double>* work=new complex<double>[lwork];
+    lrwork = (int) tmplrwork + 1;
+    double* rwork = new double[lrwork];
+    liwork = tmpliwork;
+    int* iwork = new int[liwork];
+
+    pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+            z.val, &ione, &ione, z.desc_, work, &lwork,
+            rwork, &lrwork, iwork, &liwork, &info);
+
+    //MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+#else
+    // request optimal lwork size
+    int lwork=-1;
+    complex<double> tmplwork;
+    int lrwork = max(1,3*n_-2);
+    double* rwork = new double[lrwork];
+
+    zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork,
+          rwork, &info);
+
+    lwork = (int) real(tmplwork) + 1;
+    complex<double>* work = new complex<double>[lwork];
+
+    z=*this;
+    zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork,
+          rwork, &info);
+#endif
+    if ( info != 0 )
+    {
+      cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
+      cout << " Matrix::heevd, lwork>=" << lwork << endl;
+      cout << " Matrix::heevd, liwork>=" << liwork << endl;
+      cout << " Matrix::heevd, info=" << info<< endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+    delete[] work;
+    delete[] rwork;
+    delete[] iwork;
   }
 }
 
@@ -2627,6 +2707,79 @@ void ComplexMatrix::heev(char uplo, valarray<double>& w)
     }
     delete[] work;
     delete[] rwork;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// compute eigenvalues (only) of hermitian matrix *this
+void ComplexMatrix::heevd(char uplo, valarray<double>& w)
+{
+  int info;
+  if ( active_ )
+  {
+    assert(m_==n_);
+    char jobz = 'N';
+
+#ifdef SCALAPACK
+    int ione=1;
+    int lwork=-1;
+    int lrwork=-1;
+    int liwork=-1;
+    complex<double> tmplwork;
+    double tmplrwork;
+    int tmpliwork;
+    complex<double> *zval = 0;
+    int *descz = 0;
+
+    // first call to get optimal lwork and lrwork sizes
+    pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+           zval, &ione, &ione, descz, &tmplwork, &lwork,
+           &tmplrwork, &lrwork, &tmpliwork, &liwork, &info);
+    lwork = (int) real(tmplwork) + 1;
+    complex<double>* work = new complex<double>[lwork];
+    lrwork = (int) tmplrwork + 1;
+    liwork = tmpliwork;
+    double* rwork = new double[lrwork];
+    int* iwork = new int[liwork];
+
+    pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+           zval, &ione, &ione, descz, work, &lwork,
+           rwork, &lrwork, iwork, &liwork, &info);
+
+    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+#else
+    // request optimal lwork size
+    int lwork=-1;
+    complex<double> tmplwork;
+
+    int lrwork = max(1,3*n_-2);
+    double* rwork = new double[lrwork];
+
+    zheev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork,
+          rwork, &info);
+
+    lwork = (int) real(tmplwork);
+    complex<double>* work = new complex<double>[lwork];
+
+    zheev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork,
+          rwork, &info);
+#endif
+    if ( info != 0 )
+    {
+      cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
+      cout << " Matrix::heevd, lwork>=" << lwork << endl;
+      cout << " Matrix::heevd, lrwork>=" << lrwork << endl;
+      cout << " Matrix::heevd, liwork>=" << liwork << endl;
+      cout << " Matrix::heevd, info=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+    delete[] work;
+    delete[] rwork;
+    delete[] iwork;
   }
 }
 

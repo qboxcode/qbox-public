@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.13 2007-10-19 16:24:04 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.14 2007-10-31 04:54:14 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -30,6 +30,11 @@ CPSampleStepper::CPSampleStepper(Sample& s) :
   if ( s.ctrl.stress == "ON" )
   {
     dt2bye /= facs;
+  }
+  if ( s.wfv == 0 )
+  {
+    s.wfv = new Wavefunction(s.wf);
+    s.wfv->clear();
   }
   mdwf_stepper = new MDWavefunctionStepper(s.wf,s.wfv,dt,dt2bye,tmap);
   assert(mdwf_stepper!=0);

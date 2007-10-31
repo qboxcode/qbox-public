@@ -3,7 +3,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.C,v 1.13 2007-10-19 17:10:58 fgygi Exp $
+// $Id: ChargeDensity.C,v 1.14 2007-10-31 04:58:52 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -21,12 +21,23 @@ wf_(wf), vcontext_(wf.sd(0,0)->basis().context())
 {
   vbasis_ = new Basis(vcontext_, D3vector(0,0,0));
   vbasis_->resize(wf.cell(),wf.refcell(),4.0*wf.ecut());
+  const Basis& vb = *vbasis_;
 
   // define vft_, FT on vbasis context for transforming the density
 
-  int np0v = vbasis_->np(0);
-  int np1v = vbasis_->np(1);
-  int np2v = vbasis_->np(2);
+  // add 2 to grid size to avoid aliasing when using non-zero k-points
+  // adding 1 would suffice, but add 2 to keep even numbers
+  int np0v = vbasis_->np(0)+2;
+  int np1v = vbasis_->np(1)+2;
+  int np2v = vbasis_->np(2)+2;
+#if 1
+  cout << " ChargeDensity: vbasis: " << endl;
+  cout << " idxmin: " << vb.idxmin(0) << "/" << vb.idxmin(1)
+       << "/" << vb.idxmin(2) << endl;
+  cout << " idxmax: " << vb.idxmax(0) << "/" << vb.idxmax(1)
+       << "/" << vb.idxmax(2) << endl;
+  cout << " vft grid: " << np0v << "/" << np1v << "/" << np2v << endl;
+#endif
   vft_ = new FourierTransform(*vbasis_,np0v,np1v,np2v);
 
   rhor.resize(wf.nspin());
@@ -44,18 +55,23 @@ wf_(wf), vcontext_(wf.sd(0,0)->basis().context())
   {
     for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
     {
-      // check that twice the wf basis fits into np0v,np1v,np2v at each kpoint
-      const Basis& b = wf.sd(ispin,ikp)->basis();
+      const Basis& wb = wf.sd(ispin,ikp)->basis();
 #if DEBUG
-      cout << " ChargeDensity: ikp=" << ikp << " basis: " << endl;
-      cout << " idxmin: " << b.idxmin(0) << "/" << b.idxmin(1)
-           << "/" << b.idxmin(2) << endl;
-      cout << " idxmax: " << b.idxmax(0) << "/" << b.idxmax(1)
-           << "/" << b.idxmax(2) << endl;
-      cout << " ftgrid: " << np0v << "/" << np1v
-           << "/" << np2v << endl;
+      cout << " ChargeDensity: ikp=" << ikp << " wbasis: " << endl;
+      cout << " idxmin: " << wb.idxmin(0) << "/" << wb.idxmin(1)
+           << "/" << wb.idxmin(2) << endl;
+      cout << " idxmax: " << wb.idxmax(0) << "/" << wb.idxmax(1)
+           << "/" << wb.idxmax(2) << endl;
 #endif
-      ft_[ikp] = new FourierTransform(b,np0v,np1v,np2v);
+      // check that no aliasing error can occur
+      assert(2*np0v > 2*wb.idxmax(0)+vb.idxmax(0));
+      assert(2*np1v > 2*wb.idxmax(1)+vb.idxmax(1));
+      assert(2*np2v > 2*wb.idxmax(2)+vb.idxmax(2));
+      assert(2*np0v > -2*wb.idxmin(0)-vb.idxmin(0));
+      assert(2*np1v > -2*wb.idxmin(1)-vb.idxmin(1));
+      assert(2*np2v > -2*wb.idxmin(2)-vb.idxmin(2));
+
+      ft_[ikp] = new FourierTransform(wb,np0v,np1v,np2v);
     }
   }
 }
@@ -101,6 +117,7 @@ void ChargeDensity::update_density(void)
       p[i] = 0.0;
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
+      assert(rhor[ispin].size()==ft_[ikp]->np012loc());
       wf_.sd(ispin,ikp)->compute_density(*ft_[ikp],
           wf_.weight(ikp), &rhor[ispin][0]);
     }

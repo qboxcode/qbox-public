@@ -3,7 +3,7 @@
 // UnitCell.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.13 2007-10-19 16:24:05 fgygi Exp $
+// $Id: UnitCell.C,v 1.14 2007-10-31 05:08:30 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -351,7 +351,7 @@ void UnitCell::compute_deda(const valarray<double>& sigma,
   assert(sigma.size()==6);
   assert(deda.size()==9);
 
-  //!! local copy of sigma to circumvent bug in icc compiler
+  // local copy of sigma to circumvent bug in icc compiler
   valarray<double> sigma_loc(6);
   sigma_loc = sigma;
 

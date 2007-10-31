@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.15 2007-10-19 17:10:58 fgygi Exp $
+// $Id: Basis.C,v 1.16 2007-10-31 04:56:57 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -780,9 +780,9 @@ void Basis::print(ostream& os)
   os << context().mype() << ": ";
   os << " Basis.real():     " << real() << endl;
   os << context().mype() << ": ";
-  os << " Basis total mem size: " << memsize() / 1048576 << endl;
+  os << " Basis total mem size (MB): " << memsize() / 1048576 << endl;
   os << context().mype() << ": ";
-  os << " Basis local mem size: " << localmemsize() / 1048576 << endl;
+  os << " Basis local mem size (MB): " << localmemsize() / 1048576 << endl;
 
   os << context().mype() << ": ";
   os << "   ig      i   j   k        gx      gy      gz       |k+g|^2"
@@ -798,9 +798,9 @@ void Basis::print(ostream& os)
        << setw(4) << idx(3*i+1)
        << setw(4) << idx(3*i+2)
        << "    "
-       << setw(8) << gx(i)
-       << setw(8) << gx(i+localsize())
-       << setw(8) << gx(i+2*localsize())
+       << setw(8) << setprecision(4) << gx(i)
+       << setw(8) << setprecision(4) << gx(i+localsize())
+       << setw(8) << setprecision(4) << gx(i+2*localsize())
        << setw(12) << setprecision(4) << 0.5 * kpg2(i)
        << endl;
   }

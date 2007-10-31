@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.26 2007-10-19 17:10:58 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.27 2007-10-31 05:02:37 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -47,10 +47,10 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
 
   // define FT's on vbasis contexts
 
-  int np0v = vbasis_->np(0);
-  int np1v = vbasis_->np(1);
-  int np2v = vbasis_->np(2);
   vft = cd_.vft();
+  int np0v = vft->np0();
+  int np1v = vft->np1();
+  int np2v = vft->np2();
 
   v_r.resize(wf.nspin());
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
@@ -709,54 +709,96 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     cout.setf(ios::right,ios::adjustfield);
     cout << setprecision(8);
     cout << " <stress_tensor unit=\"atomic_units\">\n"
-         << "   <sigma_ekin_xx> " << setw(12) << sigma_ekin[0] << " </sigma_ekin_xx>\n"
-         << "   <sigma_ekin_yy> " << setw(12) << sigma_ekin[1] << " </sigma_ekin_yy>\n"
-         << "   <sigma_ekin_zz> " << setw(12) << sigma_ekin[2] << " </sigma_ekin_zz>\n"
-         << "   <sigma_ekin_xy> " << setw(12) << sigma_ekin[3] << " </sigma_ekin_xy>\n"
-         << "   <sigma_ekin_yz> " << setw(12) << sigma_ekin[4] << " </sigma_ekin_yz>\n"
-         << "   <sigma_ekin_xz> " << setw(12) << sigma_ekin[5] << " </sigma_ekin_xz>\n"
+         << "   <sigma_ekin_xx> " << setw(12)
+         << sigma_ekin[0] << " </sigma_ekin_xx>\n"
+         << "   <sigma_ekin_yy> " << setw(12)
+         << sigma_ekin[1] << " </sigma_ekin_yy>\n"
+         << "   <sigma_ekin_zz> " << setw(12)
+         << sigma_ekin[2] << " </sigma_ekin_zz>\n"
+         << "   <sigma_ekin_xy> " << setw(12)
+         << sigma_ekin[3] << " </sigma_ekin_xy>\n"
+         << "   <sigma_ekin_yz> " << setw(12)
+         << sigma_ekin[4] << " </sigma_ekin_yz>\n"
+         << "   <sigma_ekin_xz> " << setw(12)
+         << sigma_ekin[5] << " </sigma_ekin_xz>\n"
          << endl
-         << "   <sigma_econf_xx> " << setw(12) << sigma_econf[0] << " </sigma_econf_xx>\n"
-         << "   <sigma_econf_yy> " << setw(12) << sigma_econf[1] << " </sigma_econf_yy>\n"
-         << "   <sigma_econf_zz> " << setw(12) << sigma_econf[2] << " </sigma_econf_zz>\n"
-         << "   <sigma_econf_xy> " << setw(12) << sigma_econf[3] << " </sigma_econf_xy>\n"
-         << "   <sigma_econf_yz> " << setw(12) << sigma_econf[4] << " </sigma_econf_yz>\n"
-         << "   <sigma_econf_xz> " << setw(12) << sigma_econf[5] << " </sigma_econf_xz>\n"
+         << "   <sigma_econf_xx> " << setw(12)
+         << sigma_econf[0] << " </sigma_econf_xx>\n"
+         << "   <sigma_econf_yy> " << setw(12)
+         << sigma_econf[1] << " </sigma_econf_yy>\n"
+         << "   <sigma_econf_zz> " << setw(12)
+         << sigma_econf[2] << " </sigma_econf_zz>\n"
+         << "   <sigma_econf_xy> " << setw(12)
+         << sigma_econf[3] << " </sigma_econf_xy>\n"
+         << "   <sigma_econf_yz> " << setw(12)
+         << sigma_econf[4] << " </sigma_econf_yz>\n"
+         << "   <sigma_econf_xz> " << setw(12)
+         << sigma_econf[5] << " </sigma_econf_xz>\n"
          << endl
-         << "   <sigma_eps_xx> " << setw(12) << sigma_eps[0] << " </sigma_eps_xx>\n"
-         << "   <sigma_eps_yy> " << setw(12) << sigma_eps[1] << " </sigma_eps_yy>\n"
-         << "   <sigma_eps_zz> " << setw(12) << sigma_eps[2] << " </sigma_eps_zz>\n"
-         << "   <sigma_eps_xy> " << setw(12) << sigma_eps[3] << " </sigma_eps_xy>\n"
-         << "   <sigma_eps_yz> " << setw(12) << sigma_eps[4] << " </sigma_eps_yz>\n"
-         << "   <sigma_eps_xz> " << setw(12) << sigma_eps[5] << " </sigma_eps_xz>\n"
+         << "   <sigma_eps_xx> " << setw(12)
+         << sigma_eps[0] << " </sigma_eps_xx>\n"
+         << "   <sigma_eps_yy> " << setw(12)
+         << sigma_eps[1] << " </sigma_eps_yy>\n"
+         << "   <sigma_eps_zz> " << setw(12)
+         << sigma_eps[2] << " </sigma_eps_zz>\n"
+         << "   <sigma_eps_xy> " << setw(12)
+         << sigma_eps[3] << " </sigma_eps_xy>\n"
+         << "   <sigma_eps_yz> " << setw(12)
+         << sigma_eps[4] << " </sigma_eps_yz>\n"
+         << "   <sigma_eps_xz> " << setw(12)
+         << sigma_eps[5] << " </sigma_eps_xz>\n"
          << endl
-         << "   <sigma_enl_xx> " << setw(12) << sigma_enl[0] << " </sigma_enl_xx>\n"
-         << "   <sigma_enl_yy> " << setw(12) << sigma_enl[1] << " </sigma_enl_yy>\n"
-         << "   <sigma_enl_zz> " << setw(12) << sigma_enl[2] << " </sigma_enl_zz>\n"
-         << "   <sigma_enl_xy> " << setw(12) << sigma_enl[3] << " </sigma_enl_xy>\n"
-         << "   <sigma_enl_yz> " << setw(12) << sigma_enl[4] << " </sigma_enl_yz>\n"
-         << "   <sigma_enl_xz> " << setw(12) << sigma_enl[5] << " </sigma_enl_xz>\n"
+         << "   <sigma_enl_xx> " << setw(12)
+         << sigma_enl[0] << " </sigma_enl_xx>\n"
+         << "   <sigma_enl_yy> " << setw(12)
+         << sigma_enl[1] << " </sigma_enl_yy>\n"
+         << "   <sigma_enl_zz> " << setw(12)
+         << sigma_enl[2] << " </sigma_enl_zz>\n"
+         << "   <sigma_enl_xy> " << setw(12)
+         << sigma_enl[3] << " </sigma_enl_xy>\n"
+         << "   <sigma_enl_yz> " << setw(12)
+         << sigma_enl[4] << " </sigma_enl_yz>\n"
+         << "   <sigma_enl_xz> " << setw(12)
+         << sigma_enl[5] << " </sigma_enl_xz>\n"
          << endl
-         << "   <sigma_ehart_xx> " << setw(12) << sigma_ehart[0] << " </sigma_ehart_xx>\n"
-         << "   <sigma_ehart_yy> " << setw(12) << sigma_ehart[1] << " </sigma_ehart_yy>\n"
-         << "   <sigma_ehart_zz> " << setw(12) << sigma_ehart[2] << " </sigma_ehart_zz>\n"
-         << "   <sigma_ehart_xy> " << setw(12) << sigma_ehart[3] << " </sigma_ehart_xy>\n"
-         << "   <sigma_ehart_yz> " << setw(12) << sigma_ehart[4] << " </sigma_ehart_yz>\n"
-         << "   <sigma_ehart_xz> " << setw(12) << sigma_ehart[5] << " </sigma_ehart_xz>\n"
+         << "   <sigma_ehart_xx> " << setw(12)
+         << sigma_ehart[0] << " </sigma_ehart_xx>\n"
+         << "   <sigma_ehart_yy> " << setw(12)
+         << sigma_ehart[1] << " </sigma_ehart_yy>\n"
+         << "   <sigma_ehart_zz> " << setw(12)
+         << sigma_ehart[2] << " </sigma_ehart_zz>\n"
+         << "   <sigma_ehart_xy> " << setw(12)
+         << sigma_ehart[3] << " </sigma_ehart_xy>\n"
+         << "   <sigma_ehart_yz> " << setw(12)
+         << sigma_ehart[4] << " </sigma_ehart_yz>\n"
+         << "   <sigma_ehart_xz> " << setw(12)
+         << sigma_ehart[5] << " </sigma_ehart_xz>\n"
          << endl
-         << "   <sigma_exc_xx> " << setw(12) << sigma_exc[0] << " </sigma_exc_xx>\n"
-         << "   <sigma_exc_yy> " << setw(12) << sigma_exc[1] << " </sigma_exc_yy>\n"
-         << "   <sigma_exc_zz> " << setw(12) << sigma_exc[2] << " </sigma_exc_zz>\n"
-         << "   <sigma_exc_xy> " << setw(12) << sigma_exc[3] << " </sigma_exc_xy>\n"
-         << "   <sigma_exc_yz> " << setw(12) << sigma_exc[4] << " </sigma_exc_yz>\n"
-         << "   <sigma_exc_xz> " << setw(12) << sigma_exc[5] << " </sigma_exc_xz>\n"
+         << "   <sigma_exc_xx> " << setw(12)
+         << sigma_exc[0] << " </sigma_exc_xx>\n"
+         << "   <sigma_exc_yy> " << setw(12)
+         << sigma_exc[1] << " </sigma_exc_yy>\n"
+         << "   <sigma_exc_zz> " << setw(12)
+         << sigma_exc[2] << " </sigma_exc_zz>\n"
+         << "   <sigma_exc_xy> " << setw(12)
+         << sigma_exc[3] << " </sigma_exc_xy>\n"
+         << "   <sigma_exc_yz> " << setw(12)
+         << sigma_exc[4] << " </sigma_exc_yz>\n"
+         << "   <sigma_exc_xz> " << setw(12)
+         << sigma_exc[5] << " </sigma_exc_xz>\n"
          << endl
-         << "   <sigma_esr_xx> " << setw(12) << sigma_esr[0] << " </sigma_esr_xx>\n"
-         << "   <sigma_esr_yy> " << setw(12) << sigma_esr[1] << " </sigma_esr_yy>\n"
-         << "   <sigma_esr_zz> " << setw(12) << sigma_esr[2] << " </sigma_esr_zz>\n"
-         << "   <sigma_esr_xy> " << setw(12) << sigma_esr[3] << " </sigma_esr_xy>\n"
-         << "   <sigma_esr_yz> " << setw(12) << sigma_esr[4] << " </sigma_esr_yz>\n"
-         << "   <sigma_esr_xz> " << setw(12) << sigma_esr[5] << " </sigma_esr_xz>\n"
+         << "   <sigma_esr_xx> " << setw(12)
+         << sigma_esr[0] << " </sigma_esr_xx>\n"
+         << "   <sigma_esr_yy> " << setw(12)
+         << sigma_esr[1] << " </sigma_esr_yy>\n"
+         << "   <sigma_esr_zz> " << setw(12)
+         << sigma_esr[2] << " </sigma_esr_zz>\n"
+         << "   <sigma_esr_xy> " << setw(12)
+         << sigma_esr[3] << " </sigma_esr_xy>\n"
+         << "   <sigma_esr_yz> " << setw(12)
+         << sigma_esr[4] << " </sigma_esr_yz>\n"
+         << "   <sigma_esr_xz> " << setw(12)
+         << sigma_esr[5] << " </sigma_esr_xz>\n"
          << endl
          << "   <sigma_eks_xx> " << setw(12) << sigma[0] << " </sigma_eks_xx>\n"
          << "   <sigma_eks_yy> " << setw(12) << sigma[1] << " </sigma_eks_yy>\n"

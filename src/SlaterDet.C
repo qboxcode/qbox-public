@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.40 2007-10-19 17:37:06 fgygi Exp $
+// $Id: SlaterDet.C,v 1.41 2007-10-31 05:08:07 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -60,11 +60,10 @@ SlaterDet::~SlaterDet()
 void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
   double ecut, int nst)
 {
-  //!! Test in next line should be replaced by test on basis min/max indices
-  //!! to signal change in basis vectors
+  // Test in next line should be replaced by test on basis min/max indices
+  // to signal change in basis vectors
   //if ( basis_->refcell().volume() != 0.0 && !refcell.encloses(cell) )
   //{
-    //!! << " SlaterDet::resize: warning" << endl;
     //cout << " SlaterDet::resize: cell=" << cell;
     //cout << " SlaterDet::resize: refcell=" << basis_->refcell();
     //throw SlaterDetException("could not resize: cell not in refcell");
@@ -342,8 +341,8 @@ void SlaterDet::gram(void)
     // k != 0 case
     ComplexMatrix s(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     s.herk('l','c',1.0,c_,1.0);
-    s.potrf('l'); // Cholesky decomposition: S = L * L^T
-    // solve triangular system X * L^T = C
+    s.potrf('l'); // Cholesky decomposition: S = L * L^H
+    // solve triangular system X * L^H = C
     c_.trsm('r','l','c','n',1.0,s);
   }
 }
@@ -1107,7 +1106,7 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
   const bool real_basis = basis_->real();
-  const int wftmpr_size = real_basis ? ft.np012loc() : 2*ft.np012loc();
+  const int wftmpr_size = real_basis ? ft.np012() : 2*ft.np012();
   vector<double> wftmpr(wftmpr_size);
   Base64Transcoder xcdr;
 
@@ -1158,7 +1157,8 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
       }
       else
       {
-        memcpy((void*)&wftmpr[0],(void*)&wftmp[0],wftmpr_size*sizeof(double));
+        memcpy((void*)&wftmpr[0],(void*)&wftmp[0],
+               ft.np012loc()*sizeof(complex<double>));
       }
     }
 
@@ -1182,7 +1182,7 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
       {
         if ( iamsending )
         {
-          size = wftmpr_size;
+          size = ft.np012loc();
           ctxt_.isend(1,1,&size,1,0,0);
         }
       }
@@ -1277,7 +1277,7 @@ void SlaterDet::write(FILE* outfile, string encoding, double weight, int ispin,
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
   const bool real_basis = basis_->real();
-  const int wftmpr_size = real_basis ? ft.np012loc() : 2*ft.np012loc();
+  const int wftmpr_size = real_basis ? ft.np012() : 2*ft.np012();
   vector<double> wftmpr(wftmpr_size);
   Base64Transcoder xcdr;
   ostringstream os;
@@ -1333,7 +1333,8 @@ void SlaterDet::write(FILE* outfile, string encoding, double weight, int ispin,
       }
       else
       {
-        memcpy((void*)&wftmpr[0],(void*)&wftmp[0],wftmpr_size*sizeof(double));
+        memcpy((void*)&wftmpr[0],(void*)&wftmp[0],
+               ft.np012loc()*sizeof(complex<double>));
       }
     }
 
@@ -1357,7 +1358,7 @@ void SlaterDet::write(FILE* outfile, string encoding, double weight, int ispin,
       {
         if ( iamsending )
         {
-          size = wftmpr_size;
+          size = ft.np012loc();
           ctxt_.isend(1,1,&size,1,0,0);
         }
       }
@@ -1486,7 +1487,6 @@ void SlaterDet::info(ostream& os)
 {
   if ( ctxt_.onpe0() )
   {
-    //!! no spin attribute written
     os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\""
        << " size=\"" << nst() << "\">" << endl;
     os << " <!-- sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << " -->"
@@ -1506,7 +1506,6 @@ void SlaterDet::info(ostream& os)
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator<<(ostream& os, SlaterDet& sd)
 {
-  //!! next line: weight and spin information not included in output
   sd.print(os,"text",0.0,0,1);
   return os;
 }

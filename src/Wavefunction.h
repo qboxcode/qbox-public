@@ -3,7 +3,7 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.17 2007-10-19 17:37:06 fgygi Exp $
+// $Id: Wavefunction.h,v 1.18 2007-11-29 08:28:10 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
@@ -43,9 +43,10 @@ class Wavefunction
   const Context* spincontext_;   // context used for spin reductions
   const Context* kpcontext_;     // context used for kp reductions
   const Context* sdcontext_;     // context of local SlaterDet instances
-  std::vector<std::vector<SlaterDet*> > sd_;  // local SlaterDets sd_[ispin][ikp]
+  std::vector<std::vector<SlaterDet*> > sd_; // local SlaterDets sd_[ispin][ikp]
 
-  void allocate(); // create contexts and allocate SlaterDet's
+  void create_contexts();
+  void allocate(); // allocate SlaterDet's
   void deallocate();
   void compute_nst();
   void resize(); // resize SlaterDets if ecut,cell,refcell,or nst have changed

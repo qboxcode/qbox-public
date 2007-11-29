@@ -3,7 +3,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.23 2007-10-19 17:15:23 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.24 2007-11-29 08:17:28 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "Species.h"
@@ -959,7 +959,7 @@ void NonLocalPotential::update_twnl(void)
 
 ////////////////////////////////////////////////////////////////////////////////
 double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
-    bool compute_forces, vector<vector<double> >& fion,
+    bool compute_forces, vector<vector<double> >& fion_enl,
     bool compute_stress, valarray<double>& sigma_enl)
 {
   const vector<double>& occ = sd_.occ();
@@ -974,6 +974,9 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
 
   double enl = 0.0;
   double tsum[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  for ( int is = 0; is < fion_enl.size(); is++ )
+    for ( int i = 0; i < fion_enl[is].size(); i++ )
+       fion_enl[is][i] = 0.0;
 
   if ( nspnl == 0 ) return 0.0;
   const double omega = basis_.cell().volume();
@@ -1280,7 +1283,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               // factor 2.0 in next line is: counting G, -G
               // Note: no need to correct for double counting of the
               // G=0 component which is always zero
-              double two=1.0;
+              double two=2.0;
               char ct='t';
               const int twongwl = 2 * ngwl;
               const int nprnaloc = ia_block_size * npr[is];
@@ -1551,9 +1554,9 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
         ctxt_.dsum(3*na[is],1,&tmpfion[0],3*na[is]);
         for ( int ia = 0; ia < na[is]; ia++ )
         {
-          fion[is][3*ia+0] += tmpfion[3*ia];
-          fion[is][3*ia+1] += tmpfion[3*ia+1];
-          fion[is][3*ia+2] += tmpfion[3*ia+2];
+          fion_enl[is][3*ia+0] += tmpfion[3*ia];
+          fion_enl[is][3*ia+1] += tmpfion[3*ia+1];
+          fion_enl[is][3*ia+2] += tmpfion[3*ia+2];
         }
       }
     } // npr[is]>0

@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.41 2007-10-31 05:08:07 fgygi Exp $
+// $Id: SlaterDet.C,v 1.42 2007-11-29 08:23:35 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -1107,6 +1107,7 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
   vector<complex<double> > wftmp(ft.np012loc());
   const bool real_basis = basis_->real();
   const int wftmpr_size = real_basis ? ft.np012() : 2*ft.np012();
+  const int wftmpr_loc_size = real_basis ? ft.np012loc() : 2*ft.np012loc();
   vector<double> wftmpr(wftmpr_size);
   Base64Transcoder xcdr;
 
@@ -1182,7 +1183,7 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
       {
         if ( iamsending )
         {
-          size = ft.np012loc();
+          size = wftmpr_loc_size;
           ctxt_.isend(1,1,&size,1,0,0);
         }
       }
@@ -1278,6 +1279,7 @@ void SlaterDet::write(FILE* outfile, string encoding, double weight, int ispin,
   vector<complex<double> > wftmp(ft.np012loc());
   const bool real_basis = basis_->real();
   const int wftmpr_size = real_basis ? ft.np012() : 2*ft.np012();
+  const int wftmpr_loc_size = real_basis ? ft.np012loc() : 2*ft.np012loc();
   vector<double> wftmpr(wftmpr_size);
   Base64Transcoder xcdr;
   ostringstream os;
@@ -1358,7 +1360,7 @@ void SlaterDet::write(FILE* outfile, string encoding, double weight, int ispin,
       {
         if ( iamsending )
         {
-          size = ft.np012loc();
+          size = wftmpr_loc_size;
           ctxt_.isend(1,1,&size,1,0,0);
         }
       }

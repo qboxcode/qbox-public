@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.47 2007-10-31 05:15:42 fgygi Exp $
+# $Id: Makefile,v 1.48 2007-11-29 08:37:13 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -138,8 +138,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  xmlSpecies: xmlSpecies.o qbox_xmlns.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  xmlget: xmlget.o
-	$(LD) -o xmlget xmlget.C -I$(XERCESCDIR)/include \
-        -L$(XERCESCDIR)/lib -lxerces-c
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  xmlextract: xmlextract.o
 	$(LD) -o xmlextract xmlextract.C -I$(XERCESCDIR)/include \
         -L$(XERCESCDIR)/lib -lxerces-c

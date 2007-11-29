@@ -3,7 +3,7 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: x8664_gcc.mk,v 1.4 2007-10-31 05:11:47 fgygi Exp $
+# $Id: x8664_gcc.mk,v 1.5 2007-11-29 08:32:38 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
@@ -21,8 +21,8 @@
              -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES
 
  FFTWDIR=$(HOME)/software/fftw/Linux_x8664/fftw-2.1.3/fftw
-#BLASDIR=$(HOME)/software/atlas/ATLAS/lib/Linux_P4E64SSE3
- BLASDIR=/usr/lib64
+ BLASDIR=$(HOME)/software/atlas/ATLAS/Linux_P4E64SSE3/lib
+#BLASDIR=/usr/lib64
  LAPACKDIR=$(HOME)/software/lapack/LAPACK
 
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
@@ -34,7 +34,7 @@
            -L$(XERCESCDIR)/lib
 
  LIBS =  $(PLIBS) -lfftw \
-         -llapack -lblas -lm -lmpich -lgfortran  \
+         -llapack -lf77blas -latlas -lm -lmpich -lgfortran  \
          $(XERCESCDIR)/lib/libxerces-c.a
 
  LDFLAGS = $(LIBPATH) $(LIBS)

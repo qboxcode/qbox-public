@@ -84,7 +84,9 @@ int main(int argc, char **argv)
 
   Basis basis(ctxt,kpoint);
   basis.resize(cell,cell,ecut);
+  FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
   FourierTransform ft2(basis,2*basis.np(0),2*basis.np(1),2*basis.np(2));
+  vector<complex<double> > f1(ft.np012loc());
   vector<complex<double> > f2(ft2.np012loc());
   vector<complex<double> > x(basis.localsize());
   vector<complex<double> > x1(basis.localsize());
@@ -122,6 +124,17 @@ int main(int argc, char **argv)
     // x[i] = complex<double>(y,y);
   }
 #endif
+
+  // test ft (small grid)
+  cout << ctxt.mype() << ": ft.np2_loc(): " << ft.np2_loc() << endl;
+  cout << " test ft: "; 
+  ft.forward(&f1[0],&x[0]);
+  cout << " forward done ";
+  ft.backward(&x[0],&f1[0]);
+  cout << " backward done " << endl;
+  ctxt.barrier();
+
+#if 0
 
   tm.reset();
   ft2.reset_timers();
@@ -292,8 +305,10 @@ int main(int argc, char **argv)
   cout << " bwd3 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
 
+#endif
   } // end of scope for wf-v transforms
 
+#if 0
   ////////////////////////////////////////////////////////////
   // v(g)->vgrid
   Basis vbasis(ctxt,kpoint);
@@ -436,7 +451,7 @@ int main(int argc, char **argv)
 
   cout << " gaussian rnorm: " << sum / ft2.np012() << endl;
 #endif
-
+#endif
 
   } // Context scope
 #if USE_APC

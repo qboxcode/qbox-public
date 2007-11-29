@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.20 2007-10-19 17:37:06 fgygi Exp $
+// $Id: SampleReader.C,v 1.21 2007-11-29 08:21:51 fgygi Exp $
 
 
 #include "Sample.h"
@@ -56,8 +56,8 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   bool namespacePrefixes = false;
   SAX2XMLReader* parser = 0;
 
-  Wavefunction wfvtmp(s.wf);
-  Wavefunction& current_wf = s.wf;
+  Wavefunction* wfvtmp = new Wavefunction(s.wf);
+  Wavefunction* current_wf = &s.wf;
   vector<vector<vector<double> > > dmat;
   const int nspin = 1;
   const int current_ispin = 0;
@@ -131,7 +131,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   assert(sizeof(event_type)==sizeof(int));
   // remove default kpoint in wf
   s.wf.del_kpoint(D3vector(0.0,0.0,0.0));
-  wfvtmp.del_kpoint(D3vector(0.0,0.0,0.0));
+  wfvtmp->del_kpoint(D3vector(0.0,0.0,0.0));
 
   if ( ctxt_.onpe0() )
   {
@@ -159,7 +159,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
 
     int errorCount = 0;
-    SampleHandler* s_handler = new SampleHandler(s,gfdata,dmat,wfvtmp);
+    SampleHandler* s_handler = new SampleHandler(s,gfdata,dmat,*wfvtmp);
 
     try
     {
@@ -300,10 +300,10 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       }
       else if ( event == wavefunction_velocity )
       {
-        current_wf = wfvtmp; // set reference used by the slater det section
+        current_wf = wfvtmp; // set ptr used by the slater det section
         current_ikp = 0;
-        // cout << ctxt_.mype()
-        //      << ": SampleReader received wavefunction_velocity" << endl;
+        //cout << ctxt_.mype()
+        //     << ": SampleReader received wavefunction_velocity" << endl;
         read_wfv = true;
         // Wavefunction velocity
         int nel,nspin,nempty;
@@ -312,9 +312,9 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         ctxt_.ibcast_recv(1,1,&nempty,1,0,0);
         //cout << ctxt_.mype() << ": receiving wf nel=" << nel
         //     << " nspin=" << nspin << " nempty=" << nempty << endl;
-        wfvtmp.set_nel(nel);
-        wfvtmp.set_nspin(nspin);
-        wfvtmp.set_nempty(nempty);
+        wfvtmp->set_nel(nel);
+        wfvtmp->set_nspin(nspin);
+        wfvtmp->set_nempty(nempty);
 
         // domain
         double buf[9];
@@ -336,7 +336,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         D3vector cr(buf[6],buf[7],buf[8]);
         UnitCell ruc(ar,br,cr);
 
-        current_wf.resize(uc,ruc,ecut);
+        current_wf->resize(uc,ruc,ecut);
 
         //cout << ctxt_.mype() << ": wfv resized, ecut=" << ecut << endl;
 
@@ -347,17 +347,17 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         // receive kpoint and weight
         double buf[4];
         ctxt_.dbcast_recv(4,1,buf,1,0,0);
-        current_wf.add_kpoint(D3vector(buf[0],buf[1],buf[2]),buf[3]);
+        current_wf->add_kpoint(D3vector(buf[0],buf[1],buf[2]),buf[3]);
 
         // receive density_matrix
-        vector<double> dmat_tmp(current_wf.nst());
+        vector<double> dmat_tmp(current_wf->nst());
         s.wf.context().dbcast_recv(s.wf.nst(),1,&dmat_tmp[0],1,0,0);
         dmat[current_ispin].push_back(dmat_tmp);
 
         if ( !read_from_file )
         {
           // receive grid_functions
-          SlaterDet* sd = current_wf.sd(current_ispin,current_ikp);
+          SlaterDet* sd = current_wf->sd(current_ispin,current_ikp);
           const Basis& basis = sd->basis();
           FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
           const int wftmpr_size = basis.real() ? ft.np012loc() :
@@ -407,6 +407,13 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   // This part is now executing on all tasks
   if ( read_from_file )
   {
+    // dmat may contain two sets of density matrices if wfv was read
+    // Only the first set of density matrices is used
+    if ( read_wfv )
+      assert(dmat[0].size() == 2 * s.wf.nkp() );
+    else
+      assert(dmat[0].size() == s.wf.nkp() );
+
     // ofstream gffile("gf.dat");
     // gffile << gfdata;
     if ( read_wf )
@@ -421,7 +428,6 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       << " gfdata.nloc()=" << gfdata.nloc() << endl;
 #endif
 
-      assert(dmat[0].size() == s.wf.nkp() );
       for ( int ispin = 0; ispin < s.wf.nspin(); ispin++ )
       {
         for ( int ikp = 0; ikp < s.wf.nkp(); ikp++ )
@@ -429,7 +435,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
           SlaterDet* sd = s.wf.sd(ispin,ikp);
 #if DEBUG
           cout << "SampleReader: ikp=" << ikp << " nst = " << sd->nst() << endl;
-          cout << "SampleReader: ikp=" << ikp << " dmat_list size = "
+          cout << "SampleReader: ikp=" << ikp << " dmat size = "
                << dmat[ispin][ikp].size() << endl;
 #endif
 
@@ -443,22 +449,22 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
           ComplexMatrix& c = sd->c();
           // copy wf values
           // Determine the size of the temporary real matrix wftmpr
-          int wftmpr_size, wftmpr_locsize;
+          int wftmpr_size, wftmpr_block_size;
           if ( basis.real() && ( ft.np012() == gfdata.m() ) )
           {
             // all functions are real
             wftmpr_size = ft.np012();
-            wftmpr_locsize = ft.np012loc();
+            wftmpr_block_size = ft.np012loc(0);
           }
           else
           {
             // there is either 1) a mix of real and complex functions
             // or 2) only complex functions
             wftmpr_size = 2*ft.np012();
-            wftmpr_locsize = 2*ft.np012loc();
+            wftmpr_block_size = 2*ft.np012loc(0);
           }
           DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
-            wftmpr_locsize,c.nb());
+            wftmpr_block_size,c.nb());
 
           wftmpr.getsub(gfdata,wftmpr_size,sd->nst(),0,ikp*sd->nst());
 
@@ -509,7 +515,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       {
         for ( int ikp = 0; ikp < s.wf.nkp(); ikp++ )
         {
-          SlaterDet* sd = wfvtmp.sd(ispin,ikp);
+          SlaterDet* sd = wfvtmp->sd(ispin,ikp);
           const Basis& basis = sd->basis();
           FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
           //cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
@@ -518,24 +524,25 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
           ComplexMatrix& c = sd->c();
           // copy wf values
           // Determine the size of the temporary real matrix wftmpr
-          int wftmpr_size, wftmpr_locsize;
+          int wftmpr_size, wftmpr_block_size;
           if ( basis.real() && ( ft.np012() == gfdata.m() ) )
           {
             // all functions are real
             wftmpr_size = ft.np012();
-            wftmpr_locsize = ft.np012loc();
+            wftmpr_block_size = ft.np012loc(0);
           }
           else
           {
             // there is either 1) a mix of real and complex functions
             // or 2) only complex functions
             wftmpr_size = 2*ft.np012();
-            wftmpr_locsize = 2*ft.np012loc();
+            wftmpr_block_size = 2*ft.np012loc(0);
           }
           DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
-            wftmpr_locsize,c.nb());
+            wftmpr_block_size,c.nb());
 
-          wftmpr.getsub(gfdata,wftmpr_size,sd->nst(),0,ikp*sd->nst());
+          wftmpr.getsub(gfdata,wftmpr_size,sd->nst(),0,
+            (ikp+s.wf.nkp())*sd->nst());
 
           vector<complex<double> > wftmp(ft.np012loc());
           for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
@@ -570,8 +577,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   }
   if ( read_wfv )
   {
-    s.wfv = new Wavefunction(s.wf);
-    *s.wfv = wfvtmp;
+    s.wfv = wfvtmp;
   }
 #else
   // USE_XERCES was not defined

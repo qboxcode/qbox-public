@@ -10,17 +10,20 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
-using namespace std;
 
+#include "SampleHandler.h"
+#include "StructuredDocumentHandler.h"
 #include <xercesc/util/XMLUniDefs.hpp>
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/sax2/SAX2XMLReader.hpp>
+#include <xercesc/framework/LocalFileInputSource.hpp>
 #include <xercesc/sax2/XMLReaderFactory.hpp>
-#include "StrX.h"
-
+#include <xercesc/framework/MemBufInputSource.hpp>
 #include <xercesc/sax2/DefaultHandler.hpp>
+#include "StrX.h"
 using namespace xercesc;
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 class TestHandler : public DefaultHandler

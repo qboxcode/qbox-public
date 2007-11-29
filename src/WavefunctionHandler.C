@@ -3,7 +3,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.13 2007-10-19 17:37:06 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.14 2007-11-29 08:29:47 fgygi Exp $
 
 #if USE_XERCES
 
@@ -397,7 +397,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
         // use data in b
         assert(length/sizeof(double)==wftmpr_size);
 #if PLT_BIG_ENDIAN
-        byteswap_double(wftmpr_size,d);
+        byteswap_double(wftmpr_size,(double*)b);
 #endif
         memcpy(&wftmpr[0],b,wftmpr_size*sizeof(double));
         XMLString::release(&b);

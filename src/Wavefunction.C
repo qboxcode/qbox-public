@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.25 2007-10-31 05:10:56 fgygi Exp $
+// $Id: Wavefunction.C,v 1.26 2007-11-29 08:26:51 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -26,6 +26,7 @@ nempty_(0), nspin_(1), deltaspin_(0), ecut_(0.0), nrowmax_(32)
   weight_.resize(1);
   weight_[0] = 1.0;
   compute_nst();
+  create_contexts();
   allocate();
 }
 
@@ -42,24 +43,11 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
 
   // Next lines: do special allocation of contexts to ensure that
   // contexts are same as those of wf
-
-  // create sd contexts and SlaterDets
-  const int nkp = kpoint_.size();
-
-  assert(ctxt_.active());
-
-  assert(nspin_ == 1);
-
-  sd_.resize(nspin_);
-  sd_[0].resize(nkp);
-
   spincontext_ = new Context(*wf.spincontext_);
-  kpcontext_ = spincontext_;
-  sdcontext_ = kpcontext_;
+  kpcontext_ = new Context(*wf.kpcontext_);
+  sdcontext_ = new Context(*wf.sdcontext_);
 
-  // replace with sd_[ispin][ikp]
-  for ( int ikp = 0; ikp < nkp; ikp++ )
-    sd_[0][ikp] = new SlaterDet(*sdcontext_,kpoint_[ikp]);
+  allocate();
 
   resize(cell_,refcell_,ecut_);
   reset();
@@ -69,32 +57,20 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
 Wavefunction::~Wavefunction()
 {
   deallocate();
+  delete spincontext_;
+  delete kpcontext_;
+  delete sdcontext_;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::allocate(void)
 {
-  // create sd contexts and SlaterDets
+  // create SlaterDets using kpoint list
   const int nkp = kpoint_.size();
-
   assert(nspin_ == 1);
-
-  // determine dimensions of sdcontext
-  assert(nrowmax_>0);
-  const int size = ctxt_.size();
-  int npr = nrowmax_;
-  while ( size%npr != 0 ) npr--;
-  // npr now divides size
-  int npc = size/npr;
-
   sd_.resize(nspin_);
   sd_[0].resize(nkp);
 
-  // create a spincontext from the global context
-  // assume that the spincontext is global
-  spincontext_ = new Context(npr,npc);
-  kpcontext_ = spincontext_;
-  sdcontext_ = kpcontext_;
   for ( int ikp = 0; ikp < nkp; ikp++ )
     sd_[0][ikp] = new SlaterDet(*sdcontext_,kpoint_[ikp]);
 }
@@ -102,14 +78,12 @@ void Wavefunction::allocate(void)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::deallocate(void)
 {
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  assert (nspin_==1);
+  for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-    {
-      delete sd_[ispin][ikp];
-    }
+    delete sd_[0][ikp];
   }
-  delete spincontext_;
+  sd_[0].resize(0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -160,7 +134,7 @@ double Wavefunction::entropy(void) const
   {
     for ( int ikp = 0; ikp < nkp(); ikp++ )
     {
-      sum += sd(ispin,ikp)->entropy(nspin_);
+      sum += weight_[ikp] * sd(ispin,ikp)->entropy(nspin_);
     }
   }
   return sum;
@@ -280,16 +254,37 @@ void Wavefunction::set_nspin(int nspin)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void Wavefunction::create_contexts(void)
+{
+  // determine dimensions of sdcontext
+  assert(nrowmax_>0);
+  const int size = ctxt_.size();
+  int npr = nrowmax_;
+  while ( size%npr != 0 ) npr--;
+  // npr now divides size
+  int npc = size/npr;
+
+  spincontext_ = new Context(npr,npc);
+  kpcontext_ = new Context(*spincontext_);
+  sdcontext_ = new Context(*kpcontext_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::set_nrowmax(int n)
 {
   if ( n > ctxt_.size() )
   {
-    cout << " Wavefunction::set_nrowmax: nrowmax > ctxt_.size()" << endl;
+    if ( ctxt_.onpe0() )
+      cout << " Wavefunction::set_nrowmax: nrowmax > ctxt_.size()" << endl;
     return;
   }
 
   deallocate();
+  delete spincontext_;
+  delete kpcontext_;
+  delete sdcontext_;
   nrowmax_ = n;
+  create_contexts();
   compute_nst();
   allocate();
   resize(cell_,refcell_,ecut_);
@@ -415,7 +410,7 @@ void Wavefunction::update_occ(double temp)
       for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
       {
         sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
-        rhosum += sd_[ispin][ikp]->total_charge();
+        rhosum += weight_[ikp] * sd_[ispin][ikp]->total_charge();
       }
     }
 
@@ -441,7 +436,7 @@ void Wavefunction::update_occ(double temp)
         for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
         {
           sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
-          rhosum += sd_[ispin][ikp]->total_charge();
+          rhosum += weight_[ikp] * sd_[ispin][ikp]->total_charge();
         }
       }
     }
@@ -468,13 +463,16 @@ void Wavefunction::update_occ(double temp)
       {
         for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
         {
+          cout << " k = " << kpoint_[ikp] << endl;
           for ( int n = 0; n < sd_[ispin][ikp]->nst(); n++ )
           {
             cout << setw(7) << setprecision(4) << sd_[ispin][ikp]->occ(n);
             if ( ( n%10 ) == 9 ) cout << endl;
           }
+          if ( sd_[ispin][ikp]->nst() % 10 != 0 )
+            cout << endl;
         }
-        cout << "  -->" << endl;
+        cout << " -->" << endl;
       }
     }
   }
@@ -780,6 +778,10 @@ Wavefunction& Wavefunction::operator=(const Wavefunction& wf)
 
   weight_ = wf.weight_;
   kpoint_ = wf.kpoint_;
+
+  assert(*spincontext_ == *wf.spincontext_);
+  assert(*kpcontext_   == *wf.kpcontext_);
+  assert(*sdcontext_   == *wf.sdcontext_);
 
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {

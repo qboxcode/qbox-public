@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.27 2007-10-31 05:02:37 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.28 2007-11-29 08:11:29 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -556,13 +556,29 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     xcp->compute_stress(sigma_exc);
   }
 
-  // Non local energy
+  // Non local energy and forces
   tmap["nonlocal"].start();
   // modify next loop to span only local ikp
   enl_ = 0.0;
+  vector<vector<double> > fion_enl;
+  fion_enl.resize(nsp_);
+  for ( int is = 0; is < nsp_; is++ )
+    fion_enl[is].resize(3*na_[is]);
+  valarray<double> sigma_enl_kp(6);
+  sigma_enl = 0.0;
   for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+  {
     enl_ += wf.weight(ikp) * nlp[ikp]->energy(compute_hpsi,*dwf.sd(0,ikp),
-            compute_forces, fion, compute_stress, sigma_enl);
+            compute_forces, fion_enl, compute_stress, sigma_enl_kp);
+
+    if ( compute_forces )
+      for ( int is = 0; is < nsp_; is++ )
+        for ( int i = 0; i < 3*na_[is]; i++ )
+          fion[is][i] += wf.weight(ikp) * fion_enl[is][i];
+
+    if ( compute_stress )
+      sigma_enl += wf.weight(ikp) * sigma_enl_kp;
+  }
   // add here sum of enl across rows of kpcontext
   tmap["nonlocal"].stop();
 

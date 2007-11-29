@@ -3,7 +3,7 @@
 // PSDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.C,v 1.9 2007-10-19 17:37:06 fgygi Exp $
+// $Id: PSDWavefunctionStepper.C,v 1.10 2007-11-29 08:19:26 fgygi Exp $
 
 #include "PSDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -46,8 +46,8 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
       }
       else
       {
-        ComplexMatrix c(wf_.sd(ispin,ikp)->c());
-        ComplexMatrix cp(dwf.sd(ispin,ikp)->c());
+        ComplexMatrix& c = wf_.sd(ispin,ikp)->c();
+        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
         ComplexMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
         a.gemm('c','n',1.0,c,cp,0.0);
         // cp = cp - c * a
@@ -71,7 +71,7 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
         // note: double mloc length for complex<double> indices
         double* c = &coeff[2*mloc*n];
         const double* dc = &dcoeff[2*mloc*n];
-        // loop to ngwl only since diag[i] is not defined on [0:mloc-1]
+        // loop to ngwl only since diag[i] is defined on [0:mloc-1]
         for ( int i = 0; i < ngwl; i++ )
         {
           const double fac = diag[i];

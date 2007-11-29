@@ -37,6 +37,19 @@ with srand48(ctxt.myproc()).
 Could reinitialize the seed in MDIonicsStepper.C using a common value identical
 on all processors.
 --------------------------------------------------------------------------------
+rel1_34_2
+WavefunctionHandler.C: fixed for compilation on BG/L
+SampleReader.C: fixed for case where loading multiple k-points with wfv
+NonLocalPotential.C: fixed calc of forces with multiple k-points
+EnergyFunctional.C: fixed forces and stress with multiple k-points
+MDWavefunctionStepper.C: fixed CP dynamics with k-points
+MLWFTransform.C: changed syntax of blas call (zcopy instead of zcopy_)
+NonLocalPotential.C: fix forces with k-point, fix bug introduced in 1.34.0.
+SampleReader.C: multiple k-point and wf velocity functionality.
+SlaterDet.C: fixed print() and write().
+Wavefunction.C: changed context allocation. Fix update_occ, entropy.
+PSDWavefunctionStepper.C: fixed complex case (k!=0)
+--------------------------------------------------------------------------------
 rel1_34_1
 Several bug fixes for kpoint functionality.
 CPSampleStepper.C: create wfv if absent.

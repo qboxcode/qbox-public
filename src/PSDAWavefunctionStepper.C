@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.13 2007-10-19 17:37:06 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.14 2007-11-29 08:18:20 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -70,7 +70,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
         {
           // note: double mloc length for complex<double> indices
           double* dcn = &dc[2*mloc*n];
-          // loop to ngwl only since diag[i] is not defined on [0:mloc-1]
+          // loop to ngwl only since diag[i] is defined on [0:mloc-1]
           for ( int i = 0; i < ngwl; i++ )
           {
             const double fac = diag[i];

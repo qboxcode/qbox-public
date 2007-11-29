@@ -3,7 +3,7 @@
 // MLWFTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MLWFTransform.C,v 1.3 2007-10-19 16:24:04 fgygi Exp $
+// $Id: MLWFTransform.C,v 1.4 2007-11-29 08:13:53 fgygi Exp $
 
 #include <iostream>
 #include <iomanip>
@@ -139,10 +139,10 @@ void MLWFTransform::compute_transform(void)
       for ( int ix = 0; ix < np0; ix++ )
       {
         const int ibase = iz * np01 + ix;
-        zcopy_(&len,&ct[ibase],&stride,&c_tmp[0],&one);
+        zcopy(&len,&ct[ibase],&stride,&c_tmp[0],&one);
         compute_sincos(np1,&c_tmp[0],&ccos_tmp[0],&csin_tmp[0]);
-        zcopy_(&len,&ccos_tmp[0],&one,&ct_cos[ibase],&stride);
-        zcopy_(&len,&csin_tmp[0],&one,&ct_sin[ibase],&stride);
+        zcopy(&len,&ccos_tmp[0],&one,&ct_cos[ibase],&stride);
+        zcopy(&len,&csin_tmp[0],&one,&ct_sin[ibase],&stride);
       }
     }
     // transpose back ct_cos to zvec_cos

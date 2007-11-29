@@ -3,7 +3,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.10 2007-10-19 16:24:05 fgygi Exp $
+// $Id: Species.C,v 1.11 2007-11-29 08:24:17 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -181,7 +181,7 @@ bool Species::initialize(double rcpsval)
     vlocr[i] *= fpi * rps_[i] * deltar_;
   }
   //  Local potential
-  //  Compute Fouri_er coefficients of the local potential
+  //  Compute Fourier coefficients of the local potential
   //  vlocr[i] contains 4 pi r dr vpsr(lmax_)
   //  v(G) = 4 pi \int r^2 vpsr(r) sin(Gr)/(Gr) dr
   //       = 1/G \sum_r sin(Gr) vlocr
@@ -269,7 +269,7 @@ bool Species::initialize(double rcpsval)
       }
     }
 
-    //  compute radial Fouri_er transforms of vnlr
+    //  compute radial Fourier transforms of vnlr
 
     //  Next line: vnlg_ is dimensioned ndft_+1 since it is passed to cosft1
 

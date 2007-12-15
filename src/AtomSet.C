@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.17 2007-10-19 16:24:03 fgygi Exp $
+// $Id: AtomSet.C,v 1.18 2007-12-15 00:56:20 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -35,6 +35,12 @@ bool AtomSet::addSpecies(Species* sp, string name)
   atom_list.resize(atom_list.size()+1);
   is_[name] = spname.size()-1;
 
+  if ( ctxt_.onpe0() )
+  {
+    cout << endl << " <!-- species " << sp->name() << ":" << endl;
+    sp->info(cout);
+    cout << " -->" << endl;
+  }
   return true;
 }
 

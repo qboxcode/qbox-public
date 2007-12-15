@@ -1,41 +1,9 @@
 --------------------------------------------------------------------------------
-Functions such as Context::dbcast_send take int arguments that are not const.
-This precludes invoking dbcast_send with an argument declared const int.
-Must modify all Context members to have const int arguments.
-
-XMLGFPreprocessor uses Allgather to send xmlcontent to all tasks, which is 
-unnecessary since the parser is only created on task 0 (for now)
-
-gfdata matrix used in XMLGFPreprocessor uses a single-row context. May be
-preferrable to use a single-column context when nst is small to avoid 
-memory problems.
-
-Include current energy e0 in arguments of IonicStepper::compute_rp, in 
-addition to forces f0. Use e0 to backtrack when energy rises in the SDA alg.
-
-Optimal choice of alignment and orthogonalizations in BOSampleStepper.C
-
-Bug: calculation starts if ref_cell is defined but not cell. Crash in FFT.
---------------------------------------------------------------------------------
-Bug in scalapack pdgetri.f (inverse of square matrix)
-Added bugfix from J.Langou into local modified copy of pdgetri.f 
-Must link to local pdgetri.o before the scalapack lib
-Note: this is fixed in the new scalapack-1.8.0
---------------------------------------------------------------------------------
-A bug in pzheev makes the calculation of lrwork incorrect: crashes with 
-"xmmrd2 out of memory" message. Need to use
-an explicit formula instead of querying by calling first with lrwork=-1
-lrwork= 1 + 9*n_ + 3*mloc_*nloc_;
---------------------------------------------------------------------------------
-Fedora 6 on melodie: rebuilt blacs and scalapack. Use gfortran instead of g77
-(g77 is not included in FC6)
---------------------------------------------------------------------------------
-Check for potential problem in MDIonicStepper.C: random numbers used in the
-Lowe and Andersen thermostats may differ on different nodes.
-drand48() is used only in SlaterDet::randomize, where it is initialized 
-with srand48(ctxt.myproc()).
-Could reinitialize the seed in MDIonicsStepper.C using a common value identical
-on all processors.
+rel1_34_3
+Wavefunction.C: fixed incorrect XML comments
+Basis.C: fixed warning message printed by all tasks when k out of BZ.
+AtomSet.C, SpeciesCmd.C: modif to always print species info when a species is
+defined, i.e. also when loading from a sample file.
 --------------------------------------------------------------------------------
 rel1_34_2
 WavefunctionHandler.C: fixed for compilation on BG/L

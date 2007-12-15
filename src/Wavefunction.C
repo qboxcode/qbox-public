@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.26 2007-11-29 08:26:51 fgygi Exp $
+// $Id: Wavefunction.C,v 1.27 2007-12-15 00:57:03 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -725,7 +725,7 @@ void Wavefunction::info(ostream& os, string tag) const
        << setprecision(6) << cell_.a(0) << "\"\n      b=\""
        << cell_.a(1) << "\"\n      c=\""
        << cell_.a(2) << "\"/>" << endl;
-    os << "<-- reciprocal lattice vectors" << endl
+    os << "<!-- reciprocal lattice vectors" << endl
        << setprecision(6)
        << " " << cell_.b(0) << endl
        << " " << cell_.b(1) << endl
@@ -745,7 +745,7 @@ void Wavefunction::info(ostream& os, string tag) const
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
       if ( ctxt_.onpe0() )
-        cout << "<-- kpoint: " << kpoint_[ikp] << " weight: " << weight_[ikp]
+        cout << "<!-- kpoint: " << kpoint_[ikp] << " weight: " << weight_[ikp]
              << " -->" << endl;
       sd_[ispin][ikp]->info(os);
     }

@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.16 2007-10-31 04:56:57 fgygi Exp $
+// $Id: Basis.C,v 1.17 2007-12-15 00:57:41 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -392,8 +392,11 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
   const D3vector kp = kpx*b0 + kpy*b1 + kpz*b2;
 
   if ( !cell.in_bz(kp) )
-    cout << " Basis::resize: warning: " << kpoint_
-         << " out of the BZ: " << kp << endl;
+  {
+    if ( ctxt_.onpe0() )
+      cout << " Basis::resize: warning: " << kpoint_
+           << " out of the BZ: " << kp << endl;
+  }
 
   const double fac = sqrt(two_ecut) / twopi;
 

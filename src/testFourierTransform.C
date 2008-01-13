@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
   // test ft (small grid)
   cout << ctxt.mype() << ": ft.np2_loc(): " << ft.np2_loc() << endl;
-  cout << " test ft: "; 
+  cout << " test ft: ";
   ft.forward(&f1[0],&x[0]);
   cout << " forward done ";
   ft.backward(&x[0],&f1[0]);

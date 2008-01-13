@@ -1,4 +1,10 @@
 --------------------------------------------------------------------------------
+rel1_34_4
+Base64Transcoder.C: modif print functions to use larger string buffer for I/O.
+SampleReader.C, SampleWriter.C: added timer.
+Corrected lda arg in various BLACS calls. Did cause errors on
+AIX/pessl. (Not a bug when using blacs lib compiled from netlib distribution).
+--------------------------------------------------------------------------------
 rel1_34_3
 Wavefunction.C: fixed incorrect XML comments
 Basis.C: fixed warning message printed by all tasks when k out of BZ.

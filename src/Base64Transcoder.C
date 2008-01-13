@@ -3,7 +3,7 @@
 // Base64Transcoder.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Base64Transcoder.C,v 1.4 2007-10-19 16:24:04 fgygi Exp $
+// $Id: Base64Transcoder.C,v 1.5 2008-01-13 23:05:16 fgygi Exp $
 
 #include "Base64Transcoder.h"
 #include <iostream>
@@ -259,19 +259,7 @@ void Base64Transcoder::byteswap_int(size_t n, int* const x)
 ////////////////////////////////////////////////////////////////////////////////
 int Base64Transcoder::print(const string buf, ostream& o)
 {
-  const char* b = buf.c_str();
-  int nchars = buf.size();
-  int nl = nchars / 72;
-  for ( int i = 0; i < nl; i++ )
-  {
-    o.write(b,72);
-    o << endl;
-    b += 72;
-  }
-
-  o.write(b,nchars%72);
-  o << endl;
-  return 0;
+  return print(buf.size(),buf.c_str(),o);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -279,56 +267,71 @@ int Base64Transcoder::print(int nchars, const char* const buf, ostream& o)
 {
   const char* b = buf;
   int nl = nchars / 72;
-  for ( int i = 0; i < nl; i++ )
-  {
-    o.write(b,72);
-    o << endl;
-    b += 72;
-  }
 
-  o.write(b,nchars%72);
-  o << endl;
-  return 0;
-}
-////////////////////////////////////////////////////////////////////////////////
-int Base64Transcoder::print(const string buf, FILE* outfile)
-{
-  const char* b = buf.c_str();
-  const char nlchar = '\n';
-  int nchars = buf.size();
-  int nl = nchars / 72;
+  // compute total size of output string including newline chars
+  int outstr_size = nchars + nl;
+  if ( nchars%72 != 0 )
+    outstr_size++;
+  char* outstr = new char[outstr_size];
+  char* p = outstr;
+
+  // assemble output string
   for ( int i = 0; i < nl; i++ )
   {
-    fwrite(b,sizeof(char),72,outfile);
-    fwrite(&nlchar,sizeof(char),1,outfile);
+    memcpy(p,b,72*sizeof(char));
+    p[72] = '\n';
     b += 72;
+    p += 73;
   }
 
   if ( nchars%72 != 0 )
   {
-    fwrite(b,sizeof(char),nchars%72,outfile);
-    fwrite(&nlchar,sizeof(char),1,outfile);
+    int size = nchars%72;
+    memcpy(p,b,size*sizeof(char));
+    p[size] = '\n';
   }
+
+  o.write(outstr,outstr_size);
+  delete [] outstr;
   return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+int Base64Transcoder::print(const string buf, FILE* outfile)
+{
+  return print(buf.size(),buf.c_str(),outfile);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 int Base64Transcoder::print(int nchars, const char* const buf, FILE* outfile)
 {
   const char* b = buf;
-  const char nlchar = '\n';
   int nl = nchars / 72;
+
+  // compute total size of output string including newline chars
+  int outstr_size = nchars + nl;
+  if ( nchars%72 != 0 )
+    outstr_size++;
+  char* outstr = new char[outstr_size];
+  char* p = outstr;
+
+  // assemble output string
   for ( int i = 0; i < nl; i++ )
   {
-    fwrite(b,sizeof(char),72,outfile);
-    fwrite(&nlchar,sizeof(char),1,outfile);
+    memcpy(p,b,72*sizeof(char));
+    p[72] = '\n';
     b += 72;
+    p += 73;
   }
 
   if ( nchars%72 != 0 )
   {
-    fwrite(b,sizeof(char),nchars%72,outfile);
-    fwrite(&nlchar,sizeof(char),1,outfile);
+    int size = nchars%72;
+    memcpy(p,b,size*sizeof(char));
+    p[size] = '\n';
   }
+
+  fwrite(outstr,sizeof(char),outstr_size,outfile);
+  delete [] outstr;
   return 0;
 }

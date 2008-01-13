@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.42 2007-11-29 08:23:35 fgygi Exp $
+// $Id: SlaterDet.C,v 1.43 2008-01-13 23:04:46 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -1200,14 +1200,14 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
           int istart = ft.np0() * ft.np1() * ft.np2_first(i);
           if ( !real_basis )
             istart *= 2;
-          ctxt_.drecv(size,1,&wftmpr[istart],1,i,c_.pc(n));
+          ctxt_.drecv(size,1,&wftmpr[istart],size,i,c_.pc(n));
         }
       }
       else
       {
         if ( iamsending )
         {
-          ctxt_.dsend(size,1,&wftmpr[0],1,0,0);
+          ctxt_.dsend(size,1,&wftmpr[0],size,0,0);
         }
       }
     }
@@ -1377,14 +1377,14 @@ void SlaterDet::write(FILE* outfile, string encoding, double weight, int ispin,
           int istart = ft.np0() * ft.np1() * ft.np2_first(i);
           if ( !real_basis )
             istart *= 2;
-          ctxt_.drecv(size,1,&wftmpr[istart],1,i,c_.pc(n));
+          ctxt_.drecv(size,1,&wftmpr[istart],size,i,c_.pc(n));
         }
       }
       else
       {
         if ( iamsending )
         {
-          ctxt_.dsend(size,1,&wftmpr[0],1,0,0);
+          ctxt_.dsend(size,1,&wftmpr[0],size,0,0);
         }
       }
     }

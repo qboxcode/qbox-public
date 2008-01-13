@@ -3,7 +3,7 @@
 // AtomSetHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.C,v 1.7 2007-10-19 17:05:17 fgygi Exp $
+// $Id: AtomSetHandler.C,v 1.8 2008-01-13 23:04:46 fgygi Exp $
 
 #if USE_XERCES
 
@@ -98,11 +98,11 @@ void AtomSetHandler::endElement(const XMLCh* const uri,
     buf[0] = current_atom_position.x;
     buf[1] = current_atom_position.y;
     buf[2] = current_atom_position.z;
-    as_.context().dbcast_send(3,1,buf,1);
+    as_.context().dbcast_send(3,1,buf,3);
     buf[0] = current_atom_velocity.x;
     buf[1] = current_atom_velocity.y;
     buf[2] = current_atom_velocity.z;
-    as_.context().dbcast_send(3,1,buf,1);
+    as_.context().dbcast_send(3,1,buf,3);
 
   }
   else if ( locname == "position" )

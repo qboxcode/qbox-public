@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.21 2007-11-29 08:21:51 fgygi Exp $
+// $Id: SampleReader.C,v 1.22 2008-01-13 23:04:46 fgygi Exp $
 
 
 #include "Sample.h"
@@ -44,6 +44,8 @@ SampleReader::SampleReader(const Context& ctxt) : ctxt_(ctxt) {}
 ////////////////////////////////////////////////////////////////////////////////
 void SampleReader::readSample (Sample& s, const string uri, bool serial)
 {
+  Timer tm;
+  tm.start();
 #if USE_XERCES
   const char* encodingName = "UTF-8";
   //SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Auto;
@@ -247,9 +249,9 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         ctxt_.string_bcast(curr_atom_name,0);
         ctxt_.string_bcast(curr_atom_species,0);
         double buf[3];
-        ctxt_.dbcast_recv(3,1,buf,1,0,0);
+        ctxt_.dbcast_recv(3,1,buf,3,0,0);
         curr_position = D3vector(buf[0],buf[1],buf[2]);
-        ctxt_.dbcast_recv(3,1,buf,1,0,0);
+        ctxt_.dbcast_recv(3,1,buf,3,0,0);
         curr_velocity = D3vector(buf[0],buf[1],buf[2]);
         //cout << ctxt_.mype() << ": receiving atom " << curr_atom_name << endl;
         Atom* a = new Atom(curr_atom_name, curr_atom_species,
@@ -275,7 +277,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
 
         // domain
         double buf[9];
-        ctxt_.dbcast_recv(9,1,buf,1,0,0);
+        ctxt_.dbcast_recv(9,1,buf,9,0,0);
         D3vector a(buf[0],buf[1],buf[2]);
         D3vector b(buf[3],buf[4],buf[5]);
         D3vector c(buf[6],buf[7],buf[8]);
@@ -287,7 +289,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         ctxt_.dbcast_recv(1,1,&ecut,1,0,0);
 
         // reference_domain
-        ctxt_.dbcast_recv(9,1,buf,1,0,0);
+        ctxt_.dbcast_recv(9,1,buf,9,0,0);
         D3vector ar(buf[0],buf[1],buf[2]);
         D3vector br(buf[3],buf[4],buf[5]);
         D3vector cr(buf[6],buf[7],buf[8]);
@@ -318,7 +320,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
 
         // domain
         double buf[9];
-        ctxt_.dbcast_recv(9,1,buf,1,0,0);
+        ctxt_.dbcast_recv(9,1,buf,9,0,0);
         D3vector a(buf[0],buf[1],buf[2]);
         D3vector b(buf[3],buf[4],buf[5]);
         D3vector c(buf[6],buf[7],buf[8]);
@@ -330,7 +332,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         ctxt_.dbcast_recv(1,1,&ecut,1,0,0);
 
         // reference_domain
-        ctxt_.dbcast_recv(9,1,buf,1,0,0);
+        ctxt_.dbcast_recv(9,1,buf,9,0,0);
         D3vector ar(buf[0],buf[1],buf[2]);
         D3vector br(buf[3],buf[4],buf[5]);
         D3vector cr(buf[6],buf[7],buf[8]);
@@ -346,12 +348,12 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         // process SlaterDet
         // receive kpoint and weight
         double buf[4];
-        ctxt_.dbcast_recv(4,1,buf,1,0,0);
+        ctxt_.dbcast_recv(4,1,buf,4,0,0);
         current_wf->add_kpoint(D3vector(buf[0],buf[1],buf[2]),buf[3]);
 
         // receive density_matrix
         vector<double> dmat_tmp(current_wf->nst());
-        s.wf.context().dbcast_recv(s.wf.nst(),1,&dmat_tmp[0],1,0,0);
+        s.wf.context().dbcast_recv(s.wf.nst(),1,&dmat_tmp[0],s.wf.nst(),0,0);
         dmat[current_ispin].push_back(dmat_tmp);
 
         if ( !read_from_file )
@@ -375,7 +377,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
             //cout << sd->context().mype()
             //     << ": received size=" << size << endl;
             assert(size==wftmpr_size);
-            sd->context().drecv(size,1,&wftmpr[0],1,0,0);
+            sd->context().drecv(size,1,&wftmpr[0],size,0,0);
             //cout << sd->context().mype()
             //     << ": grid_function nloc=" << nloc
             //     << "received" << endl;
@@ -587,4 +589,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
          << endl;
   }
 #endif
+  tm.stop();
+  if ( ctxt_.onpe0() )
+    cout << " <!-- SampleReader: read time: " << tm.real() << " s -->" << endl;
 }

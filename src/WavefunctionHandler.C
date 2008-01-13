@@ -3,7 +3,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.14 2007-11-29 08:29:47 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.15 2008-01-13 23:04:46 fgygi Exp $
 
 #if USE_XERCES
 
@@ -149,7 +149,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     buf[0] = uc.a(0).x; buf[1] = uc.a(0).y; buf[2] = uc.a(0).z;
     buf[3] = uc.a(1).x; buf[4] = uc.a(1).y; buf[5] = uc.a(1).z;
     buf[6] = uc.a(2).x; buf[7] = uc.a(2).y; buf[8] = uc.a(2).z;
-    wf_.context().dbcast_send(9,1,buf,1);
+    wf_.context().dbcast_send(9,1,buf,9);
   }
   else if ( locname == "reference_domain")
   {
@@ -256,7 +256,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     buf[0] = ruc.a(0).x; buf[1] = ruc.a(0).y; buf[2] = ruc.a(0).z;
     buf[3] = ruc.a(1).x; buf[4] = ruc.a(1).y; buf[5] = ruc.a(1).z;
     buf[6] = ruc.a(2).x; buf[7] = ruc.a(2).y; buf[8] = ruc.a(2).z;
-    wf_.context().dbcast_send(9,1,buf,1);
+    wf_.context().dbcast_send(9,1,buf,9);
 
     wf_.resize(uc,ruc,ecut);
   }
@@ -293,7 +293,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     double buf[4];
     buf[0] = current_kx; buf[1] = current_ky; buf[2] = current_kz;
     buf[3] = current_weight;
-    wf_.context().dbcast_send(4,1,buf,1);
+    wf_.context().dbcast_send(4,1,buf,4);
     wf_.add_kpoint(D3vector(current_kx,current_ky,current_kz),current_weight);
     assert(current_size==wf_.sd(current_ispin,current_ikp)->nst());
 
@@ -356,7 +356,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
 
     // send dmat to listening nodes
     dmat_[current_ispin].push_back(dmat_tmp);
-    wf_.context().dbcast_send(dmat_tmp.size(),1,&dmat_tmp[0],1);
+    wf_.context().dbcast_send(dmat_tmp.size(),1,&dmat_tmp[0],dmat_tmp.size());
   }
   else if ( locname == "grid_function")
   {
@@ -429,7 +429,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
         if ( !(prow==0 && pcol==0) )
         {
           sd->context().isend(1,1,&size,1,prow,pcol);
-          sd->context().dsend(size,1,&wftmpr[istart],1,prow,pcol);
+          sd->context().dsend(size,1,&wftmpr[istart],size,prow,pcol);
         }
       }
 

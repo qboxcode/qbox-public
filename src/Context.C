@@ -3,7 +3,7 @@
 // Context.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.C,v 1.14 2007-10-19 16:24:04 fgygi Exp $
+// $Id: Context.C,v 1.15 2008-01-13 23:04:46 fgygi Exp $
 
 #include "Context.h"
 #include <iostream>
@@ -287,7 +287,7 @@ struct ContextRep
     if ( len%(sizeof(int)/sizeof(char)) != 0 ) ilen++;
     int* ibuf = new int[ilen];
     s.copy((char*)ibuf,string::npos);
-    isend(ilen,1,ibuf,1,rdest,cdest);
+    isend(ilen,1,ibuf,ilen,rdest,cdest);
     delete [] ibuf;
 #endif
   }
@@ -300,7 +300,7 @@ struct ContextRep
     int ilen = len/(sizeof(int)/sizeof(char));
     if ( len%(sizeof(int)/sizeof(char)) != 0 ) ilen++;
     int* ibuf = new int[ilen];
-    irecv(ilen,1,ibuf,1,rsrc,csrc);
+    irecv(ilen,1,ibuf,ilen,rsrc,csrc);
     s.resize(len);
     s.assign((char*)ibuf,len);
     delete [] ibuf;

@@ -3,13 +3,14 @@
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.2 2007-10-19 16:24:05 fgygi Exp $
+// $Id: SampleWriter.C,v 1.3 2008-01-13 23:04:46 fgygi Exp $
 
 
 #include "SampleWriter.h"
 #include "Sample.h"
 #include "fstream"
 #include "qbox_xmlns.h"
+#include "Timer.h"
 
 #ifdef USE_CSTDIO_LFS
 #include <cstdio>
@@ -26,6 +27,8 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
                               string description,
                               bool base64, bool atomsonly)
 {
+  Timer tm;
+  tm.start();
   // set default encoding
   string encoding =  base64 ? "base64" : "text";
   const char* filename_cstr = filename.c_str();
@@ -112,4 +115,8 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
 
   os.close();
 #endif
+  tm.stop();
+  if ( ctxt_.onpe0() )
+    cout << " <!-- SampleWriter: write time: " << tm.real() << " s -->"
+         << endl;
 }

@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.14 2007-11-29 08:18:20 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.15 2008-01-13 23:04:46 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -122,7 +122,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
 
           // a and b contain the partial sums of a and b
           double tmpvec[2] = { a, b };
-          wf_.sdcontext()->dsum(2,1,&tmpvec[0],1);
+          wf_.sdcontext()->dsum(2,1,&tmpvec[0],2);
           a = tmpvec[0];
           b = tmpvec[1];
 

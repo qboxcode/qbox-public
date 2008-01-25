@@ -3,7 +3,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.15 2007-10-31 05:05:05 fgygi Exp $
+// $Id: Matrix.h,v 1.16 2008-01-25 06:05:07 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -342,6 +342,11 @@ class ComplexMatrix
     // (i,j) is the global index of element (x,y) of block (l,m)
     int i(int l, int x) const { return (l * nprow_ + myrow_) * mb_ + x; }
     int j(int m, int y) const { return (m * npcol_ + mycol_) * nb_ + y; }
+
+    int iglobal(int ilocal) const
+    { return mb_*(nprow_*(ilocal/mb_)+myrow_)+ilocal%mb_; }
+    int jglobal(int jlocal) const
+    { return nb_*(npcol_*(jlocal/nb_)+mycol_)+jlocal%nb_; }
 
     // store element a(ii,jj) (where ii,jj are global indices)
     // in array val:

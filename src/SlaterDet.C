@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.43 2008-01-13 23:04:46 fgygi Exp $
+// $Id: SlaterDet.C,v 1.44 2008-01-26 01:34:11 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -15,10 +15,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
-#if USE_CSTDIO_LFS
 #include <sstream>
-#include <cstdio>
-#endif
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1270,9 +1267,8 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
     os << "</slater_determinant>" << endl;
 }
 
-#if USE_CSTDIO_LFS
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::write(FILE* outfile, string encoding, double weight, int ispin,
+void SlaterDet::write(MPI_File&  fh, string encoding, double weight, int ispin,
   int nspin)
 {
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
@@ -1282,207 +1278,336 @@ void SlaterDet::write(FILE* outfile, string encoding, double weight, int ispin,
   const int wftmpr_loc_size = real_basis ? ft.np012loc() : 2*ft.np012loc();
   vector<double> wftmpr(wftmpr_size);
   Base64Transcoder xcdr;
-  ostringstream os;
 
+  ostringstream ostr;
   if ( ctxt_.onpe0() )
   {
     string spin = (ispin > 0) ? "down" : "up";
-    os << "<slater_determinant";
+    ostr << "<slater_determinant";
     if ( nspin == 2 )
-      os << " spin=\"" << spin << "\"";
-    os << " kpoint=\"" << basis_->kpoint() << "\"\n"
+      ostr << " spin=\"" << spin << "\"";
+    ostr << " kpoint=\"" << basis_->kpoint() << "\"\n"
        << "  weight=\"" << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
 
-    os << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">"
+    ostr << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">"
        << endl;
-    os.setf(ios::fixed,ios::floatfield);
-    os.setf(ios::right,ios::adjustfield);
+    ostr.setf(ios::fixed,ios::floatfield);
+    ostr.setf(ios::right,ios::adjustfield);
     for ( int i = 0; i < nst(); i++ )
     {
-      os << " " << setprecision(8) << occ_[i];
+      ostr << " " << setprecision(8) << occ_[i];
       if ( i%10 == 9 )
-        os << endl;
+        ostr << endl;
     }
     if ( nst()%10 != 0 )
-      os << endl;
-    os << "</density_matrix>" << endl;
-
-    string str(os.str());
-    off_t len = str.length();
-    fwrite(str.c_str(),sizeof(char),len,outfile);
+      ostr << endl;
+    ostr << "</density_matrix>" << endl;
   }
 
-  for ( int n = 0; n < nst(); n++ )
+  // serialize all local columns of c and store in segments seg[n]
+  vector<string> seg(nstloc());
+
+  for ( int n = 0; n < nstloc(); n++ )
   {
-    // Barrier to limit the number of messages sent to task 0
-    // that don't have a receive posted
-    ctxt_.barrier();
+    //cout << " state " << n << " is stored on column "
+    //     << ctxt_.mycol() << " local index: " << c_.y(n) << endl;
+    ft.backward(c_.cvalptr(c_.mloc()*n),&wftmp[0]);
 
-    // transform data on ctxt_.mycol()
-    if ( c_.pc(n) == ctxt_.mycol() )
+    if ( real_basis )
     {
-      //cout << " state " << n << " is stored on column "
-      //     << ctxt_.mycol() << " local index: " << c_.y(n) << endl;
-      int nloc = c_.y(n); // local index
-      ft.backward(c_.cvalptr(c_.mloc()*nloc),&wftmp[0]);
-
-      if ( real_basis )
-      {
-        double *a = (double*) &wftmp[0];
-        for ( int i = 0; i < ft.np012loc(); i++ )
-          wftmpr[i] = a[2*i];
-      }
-      else
-      {
-        memcpy((void*)&wftmpr[0],(void*)&wftmp[0],
-               ft.np012loc()*sizeof(complex<double>));
-      }
+      double *a = (double*) &wftmp[0];
+      for ( int i = 0; i < ft.np012loc(); i++ )
+        wftmpr[i] = a[2*i];
+    }
+    else
+    {
+      memcpy((void*)&wftmpr[0],(void*)&wftmp[0],
+             ft.np012loc()*sizeof(complex<double>));
     }
 
-    // send blocks of wftmpr to pe0
-    for ( int i = 0; i < ctxt_.nprow(); i++ )
+    // find index of last process holding some data
+    int lastproc = ctxt_.nprow()-1;
+    while ( lastproc >= 0 && ft.np2_loc(lastproc) == 0 ) lastproc--;
+    assert(lastproc>=0);
+
+    // Adjust number of values on each task to have a number of values
+    // divisible by three. This is necessary in order to have base64
+    // encoding without trailing '=' characters.
+    // The last node in the process column may have a number of values
+    // not divisible by 3.
+
+    // data now resides in wftmpr, distributed on ctxt_.mycol()
+    // All nodes in the process column except the last have the
+    // same wftmpr_loc_size
+    // Use group-of-three redistribution algorithm to make all sizes
+    // multiples of 3. In the group-of-three algorithm, nodes are divided
+    // into groups of three nodes. In each group, the left and right members
+    // send 1 or 2 values to the center member so that all three members
+    // end up with a number of values divisible by three.
+
+    // Determine how many values must be sent to the center-of-three node
+    int ndiff;
+    const int myrow = ctxt_.myrow();
+    if ( myrow == 0 )
     {
-      bool iamsending = c_.pc(n) == ctxt_.mycol() && i == ctxt_.myrow();
+      ndiff = wftmpr_loc_size % 3;
+      ctxt_.ibcast_send('c',1,1,&ndiff,1);
+    }
+    else
+    {
+      ctxt_.ibcast_recv('c',1,1,&ndiff,1,0,ctxt_.mycol());
+    }
+    // assume that all nodes have at least ndiff values
+    if ( myrow <= lastproc ) assert(wftmpr_loc_size >= ndiff);
 
-      // send size of wftmpr block
-      int size=-1;
-      if ( ctxt_.onpe0() )
-      {
-        if ( iamsending )
-        {
-          // sending to self, size not needed
-        }
-        else
-          ctxt_.irecv(1,1,&size,1,i,c_.pc(n));
-      }
-      else
-      {
-        if ( iamsending )
-        {
-          size = wftmpr_loc_size;
-          ctxt_.isend(1,1,&size,1,0,0);
-        }
-      }
-
-      // send wftmpr block
-      if ( ctxt_.onpe0() )
-      {
-        if ( iamsending )
-        {
-          // do nothing, data is already in place
-        }
-        else
-        {
-          int istart = ft.np0() * ft.np1() * ft.np2_first(i);
-          if ( !real_basis )
-            istart *= 2;
-          ctxt_.drecv(size,1,&wftmpr[istart],size,i,c_.pc(n));
-        }
-      }
-      else
-      {
-        if ( iamsending )
-        {
-          ctxt_.dsend(size,1,&wftmpr[0],size,0,0);
-        }
-      }
+    // Compute number of values to be sent to neighbors
+    int nsend_left=0, nsend_right=0, nrecv_left=0, nrecv_right=0;
+    if ( myrow % 3 == 0 )
+    {
+      // mype is the left member of a group of three
+      // send ndiff values to the right if not on the last node
+      if ( myrow < lastproc )
+        nsend_right = ndiff;
+    }
+    else if ( myrow % 3 == 1 )
+    {
+      // mype is the center member of a group of three
+      if ( myrow <= lastproc )
+        nrecv_left = ndiff;
+      if ( myrow <= lastproc-1 )
+        nrecv_right = ndiff;
+    }
+    else if ( myrow % 3 == 2 )
+    {
+      // mype is the right member of a group of three
+      // send ndiff values to the left if not on the first or last node
+      if ( myrow <= lastproc && myrow > 0 )
+        nsend_left = ndiff;
     }
 
-    // process data
-    if ( ctxt_.onpe0() )
+    double rbuf_left[2], rbuf_right[2], sbuf_left[2], sbuf_right[2];
+    int tmpr_size = wftmpr_loc_size;
+    if ( nsend_left > 0 )
     {
-      // wftmpr is now complete on task 0
-      // wftmpr contains either a real of a complex array
+      for ( int i = 0; i < ndiff; i++ )
+        sbuf_left[i] = wftmpr[i];
+      ctxt_.dsend(ndiff,1,sbuf_left,ndiff,ctxt_.myrow()-1,ctxt_.mycol());
+      tmpr_size -= ndiff;
+    }
+    if ( nsend_right > 0 )
+    {
+      for ( int i = 0; i < ndiff; i++)
+        sbuf_right[i] = wftmpr[wftmpr_loc_size-ndiff+i];
+      ctxt_.dsend(ndiff,1,sbuf_right,ndiff,ctxt_.myrow()+1,ctxt_.mycol());
+      tmpr_size -= ndiff;
+    }
+    if ( nrecv_left > 0 )
+    {
+      ctxt_.drecv(ndiff,1,rbuf_left,ndiff,ctxt_.myrow()-1,ctxt_.mycol());
+      tmpr_size += ndiff;
+    }
+    if ( nrecv_right > 0 )
+    {
+      ctxt_.drecv(ndiff,1,rbuf_right,ndiff,ctxt_.myrow()+1,ctxt_.mycol());
+      tmpr_size += ndiff;
+    }
 
-      const string element_type = basis_->real() ? "double" : "complex";
-      if ( encoding == "base64" )
+    // check that size is a multiple of 3 (except on last node)
+    // cout << ctxt_.mype() << ": tmpr_size: " << tmpr_size << endl;
+    if ( ctxt_.myrow() != lastproc )
+      assert(tmpr_size%3 == 0);
+    vector<double> tmpr(tmpr_size);
+
+    // Note: all nodes either receive data or send data, not both
+    if ( nrecv_left > 0 || nrecv_right > 0 )
+    {
+      // this node is a receiver
+      int index = 0;
+      if ( nrecv_left > 0 )
       {
-        #if PLT_BIG_ENDIAN
-        xcdr.byteswap_double(wftmpr_size,&wftmpr[0]);
-        #endif
+        for ( int i = 0; i < ndiff; i++ )
+          tmpr[index++] = rbuf_left[i];
+      }
+      for ( int i = 0; i < wftmpr_loc_size; i++ )
+        tmpr[index++] = wftmpr[i];
+      if ( nrecv_right > 0 )
+      {
+        for ( int i = 0; i < ndiff; i++ )
+          tmpr[index++] = rbuf_right[i];
+      }
+      assert(index==tmpr_size);
+    }
+    else if ( nsend_left > 0 || nsend_right > 0 )
+    {
+      // this node is a sender
+      int index = 0;
+      int istart=0, iend=wftmpr_loc_size;
+      if ( nsend_left > 0 )
+        istart = ndiff;
+      if ( nsend_right > 0 )
+        iend = wftmpr_loc_size - ndiff;
+      for ( int i = istart; i < iend; i++ )
+          tmpr[index++] = wftmpr[i];
+      assert(index==tmpr_size);
+    }
+    else
+    {
+      // no send and no recv
+      for ( int i = 0; i < wftmpr_loc_size; i++ )
+        tmpr[i] = wftmpr[i];
+      assert(tmpr_size==wftmpr_loc_size);
+    }
 
-        int nbytes = wftmpr_size*sizeof(double);
-        int outlen = xcdr.nchars(nbytes);
-        char* b = new char[outlen];
-        assert(b!=0);
-        xcdr.encode(nbytes,(byte*) &wftmpr[0],b);
+    // All nodes (except the last) now have a number of values
+    // divisible by 3 in tmpr[]
 
-        // Note: optional x0,y0,z0 attributes not used, default is zero
-        os.str("");
-        os << "<grid_function type=\"" << element_type << "\""
+    if ( ctxt_.myrow()!=lastproc ) assert(tmpr_size%3==0);
+
+    // convert local data to base64 and write to outfile
+
+    // tmpr contains either a real or a complex array
+
+    #if PLT_BIG_ENDIAN
+    xcdr.byteswap_double(tmpr_size,&tmpr[0]);
+    #endif
+
+    const string element_type = real_basis ? "double" : "complex";
+
+    if ( encoding == "base64" )
+    {
+      #if PLT_BIG_ENDIAN
+      xcdr.byteswap_double(tmpr_size,&tmpr[0]);
+      #endif
+      int nbytes = tmpr_size*sizeof(double);
+      int outlen = xcdr.nchars(nbytes);
+      char* b = new char[outlen];
+      assert(b!=0);
+      xcdr.encode(nbytes,(byte*) &tmpr[0],b);
+      // Note: optional x0,y0,z0 attributes not used, default is zero
+      if ( ctxt_.myrow() == 0 )
+      {
+        // if on first row, write grid function header
+        ostr << "<grid_function type=\"" << element_type << "\""
            << " nx=\"" << ft.np0()
            << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
            << " encoding=\"base64\">" << endl;
-
-        string str(os.str());
-        off_t len = str.length();
-        fwrite(str.c_str(),sizeof(char),len,outfile);
-
-        // write buffer b inserting newlines
-        xcdr.print(outlen, b, outfile);
-
-        os.str("");
-        os << "</grid_function>\n";
-        str = os.str();
-        len = str.length();
-        fwrite(str.c_str(),sizeof(char),len,outfile);
-        delete [] b;
       }
-      else
-      {
-        // encoding == "text" or unknown encoding
-        // Note: optional x0,y0,z0 attributes not used, default is zero
-        os.str("");
-        os << "<grid_function type=\"" << element_type << "\""
-           << " nx=\"" << ft.np0()
-           << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
-           << " encoding=\"text\">" << endl;
-        string str(os.str());
-        off_t len = str.length();
-        fwrite(str.c_str(),sizeof(char),len,outfile);
-        int count = 0;
-        for ( int k = 0; k < ft.np2(); k++ )
-        {
-          os.str("");
-          for ( int j = 0; j < ft.np1(); j++ )
-          {
-            for ( int i = 0; i < ft.np0(); i++ )
-            {
-              int index = ft.index(i,j,k);
-              if ( real_basis )
-                os << " " << wftmpr[index];
-              else
-                os << " " << wftmpr[2*index] << " " << wftmpr[2*index+1];
-              if ( count++%4 == 3)
-                os << "\n";
-            }
-          }
-          str = os.str();
-          len = str.length();
-          fwrite(str.c_str(),sizeof(char),len,outfile);
-        }
-        os.str("");
-        if ( count%4 != 0 )
-          os << "\n";
-        os << "</grid_function>\n";
-        str = os.str();
-        len = str.length();
-        fwrite(str.c_str(),sizeof(char),len,outfile);
-      }
+      xcdr.print(outlen,(char*) b, ostr);
+      if ( ctxt_.myrow() == lastproc )
+        ostr << "</grid_function>\n";
+      delete [] b;
     }
+    else
+    {
+      // encoding == "text" or unknown encoding
+      // Note: optional x0,y0,z0 attributes not used, default is zero
+      if ( ctxt_.myrow() == 0 )
+      {
+        // if on first row, write grid function header
+        ostr << "<grid_function type=\"" << element_type << "\""
+             << " nx=\"" << ft.np0()
+             << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
+             << " encoding=\"text\">" << endl;
+      }
+      int count = 0;
+      for ( int k = 0; k < ft.np2(); k++ )
+        for ( int j = 0; j < ft.np1(); j++ )
+          for ( int i = 0; i < ft.np0(); i++ )
+          {
+            int index = ft.index(i,j,k);
+            if ( real_basis )
+              ostr << " " << tmpr[index];
+            else
+              ostr << " " << tmpr[2*index] << " " << tmpr[2*index+1];
+            if ( count++%4 == 3)
+              ostr << "\n";
+          }
+      if ( count%4 != 0 )
+        ostr << "\n";
+      if ( ctxt_.myrow() == lastproc )
+        ostr << "</grid_function>\n";
+    }
+    // copy contents of ostr stringstream to segment
+    seg[n] += ostr.str();
+    // cout << ctxt_.mype() << ": segment " << n << " size: " << seg[n].size()
+    //      << endl;
+    ostr.str("");
+  } // for n
+
+  // All segments are defined
+
+  // redistribute segments to tasks within each process column
+  string wbuf;
+
+  // There are nprow*nstloc segments in the process column
+  // Determine the destination of each segment
+  // Segment nloc on process iprow is sent to row (nloc*nprow+iprow)/(nprow)
+  const Context& colctxt = basis_->context();
+  const int nprow = ctxt_.nprow();
+  vector<int> scounts(nprow), sdispl(nprow), rcounts(nprow), rdispl(nprow);
+
+  for ( int nloc = 0; nloc < nstloc(); nloc++ )
+  {
+    for ( int i = 0; i < nprow; i++ )
+    {
+      scounts[i] = 0;
+      sdispl[i] = 0;
+      rcounts[i] = 0;
+      rdispl[i] = 0;
+    }
+
+    int idest = (nloc*nprow+ctxt_.myrow())/nstloc();
+    scounts[idest] = seg[nloc].size();
+
+    // send sendcounts to all procs
+    MPI_Alltoall(&scounts[0],1,MPI_INT,&rcounts[0],1,MPI_INT,colctxt.comm());
+
+    // dimension receive buffer
+    int rbufsize = rcounts[0];
+    rdispl[0] = 0;
+    for ( int i = 1; i < ctxt_.nprow(); i++ )
+    {
+      rbufsize += rcounts[i];
+      rdispl[i] = rdispl[i-1] + rcounts[i-1];
+    }
+    char* rbuf = new char[rbufsize];
+
+    int err = MPI_Alltoallv((void*)seg[nloc].c_str(),&scounts[0],&sdispl[0],
+              MPI_CHAR,rbuf,&rcounts[0],&rdispl[0],MPI_CHAR,colctxt.comm());
+
+    wbuf.append(rbuf,rbufsize);
+    delete [] rbuf;
   }
+  // wbuf now contains the data to be written in the correct order
+
+  MPI_Status status;
+
+  // write wbuf from all tasks, ordered
+  int err = MPI_File_write_ordered(fh,(void*)wbuf.c_str(),wbuf.size(),
+                               MPI_CHAR,&status);
+  if ( err != 0 )
+    cout << ctxt_.mype()
+         << " error in MPI_File_write_ordered" << endl;
+
+  MPI_File_sync(fh);
+  ctxt_.barrier();
+  MPI_File_sync(fh);
 
   if ( ctxt_.onpe0() )
   {
-    os.str("");
-    os << "</slater_determinant>" << endl;
-    string str(os.str());
-    off_t len = str.length();
-    fwrite(str.c_str(),sizeof(char),len,outfile);
+    string s("</slater_determinant>\n");
+    int err = MPI_File_write_shared(fh,(void*) s.c_str(),
+              s.size(),MPI_CHAR,&status);
+    if ( err != 0 )
+      cout << ctxt_.mype()
+           << " error in MPI_File_write_shared, slater_determinant trailer"
+           << endl;
   }
+  MPI_File_sync(fh);
+  ctxt_.barrier();
+  MPI_File_sync(fh);
 }
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::info(ostream& os)

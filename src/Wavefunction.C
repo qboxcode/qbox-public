@@ -3,17 +3,14 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.27 2007-12-15 00:57:03 fgygi Exp $
+// $Id: Wavefunction.C,v 1.28 2008-01-26 01:34:11 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
 #include "jacobi.h"
 #include <vector>
 #include <iomanip>
-#if USE_CSTDIO_LFS
 #include <sstream>
-#include <cstdio>
-#endif
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -663,9 +660,8 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
     os << "</" << tag << ">" << endl;
 }
 
-#if USE_CSTDIO_LFS
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::write(FILE* outfile, string encoding, string tag) const
+void Wavefunction::write(MPI_File& fh, string encoding, string tag) const
 {
   if ( ctxt_.onpe0() )
   {
@@ -690,14 +686,23 @@ void Wavefunction::write(FILE* outfile, string encoding, string tag) const
        <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
     string str(os.str());
-    off_t len = str.length();
-    fwrite(str.c_str(),sizeof(char),len,outfile);
+    int len = str.size();
+    MPI_Status status;
+    int err = MPI_File_write_shared(fh,(void*)str.c_str(),len,MPI_CHAR,&status);
+    if ( err != 0 )
+      cout << " Wavefunction::write: error in MPI_File_write_shared" << endl;
   }
+
+  MPI_File_sync(fh);
+  ctxt_.barrier();
+  MPI_File_sync(fh);
 
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-      sd_[ispin][ikp]->write(outfile,encoding,weight_[ikp],ispin,nspin_);
+    {
+      sd_[ispin][ikp]->write(fh,encoding,weight_[ikp],ispin,nspin_);
+    }
   }
 
   if ( ctxt_.onpe0() )
@@ -705,11 +710,18 @@ void Wavefunction::write(FILE* outfile, string encoding, string tag) const
     ostringstream os;
     os << "</" << tag << ">" << endl;
     string str(os.str());
-    off_t len = str.length();
-    fwrite(str.c_str(),sizeof(char),len,outfile);
+    int len = str.size();
+    MPI_Status status;
+    int err = MPI_File_write_shared(fh,(void*)str.c_str(),len,MPI_CHAR,&status);
+    if ( err != 0 )
+      cout << " Wavefunction::write: error in MPI_File_write_shared" << endl;
   }
+
+  MPI_File_sync(fh);
+  ctxt_.barrier();
+  MPI_File_sync(fh);
+
 }
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::info(ostream& os, string tag) const

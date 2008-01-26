@@ -3,7 +3,7 @@
 // SaveCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
+// $Id: SaveCmd.h,v 1.3 2008-01-26 01:34:11 fgygi Exp $
 
 #ifndef SAVECMD_H
 #define SAVECMD_H
@@ -30,8 +30,10 @@ class SaveCmd : public Cmd
   {
     return
     "\n save\n\n"
-    " syntax: save filename \n\n"
-    "   The save command saves the sample to the file filename.\n\n";
+    " syntax: save [-serial] [-text] filename \n\n"
+    "   The save command saves the sample to the file filename.\n\n"
+    "   When using the -serial option, I/O is performed from the \n"
+    "   head node only. \n\n";
   }
 
   int action(int argc, char **argv);

@@ -3,7 +3,7 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: pavane.mk,v 1.5 2007-10-31 05:13:04 fgygi Exp $
+# $Id: pavane.mk,v 1.6 2008-01-26 01:34:11 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
@@ -16,7 +16,7 @@
  CXX=/usr/bin/g++
  LD=$(CXX)
 
- PLTFLAGS += -DIA32 -DUSE_FFTW -DUSE_CSTDIO_LFS -D_LARGEFILE_SOURCE \
+ PLTFLAGS += -DIA32 -DUSE_FFTW -D_LARGEFILE_SOURCE \
              -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
              -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES
 

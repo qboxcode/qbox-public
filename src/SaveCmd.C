@@ -3,7 +3,7 @@
 // SaveCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.C,v 1.12 2007-10-19 16:24:05 fgygi Exp $
+// $Id: SaveCmd.C,v 1.13 2008-01-26 01:34:11 fgygi Exp $
 
 
 #include "SaveCmd.h"
@@ -16,20 +16,21 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 int SaveCmd::action(int argc, char **argv)
 {
+  string usage("  <!-- use: save [-text|-base64] [-atomsonly] [-serial] filename -->");
   if ( !(argc>=2 && argc<=4 ) )
   {
     if ( ui->onpe0() )
-      cout << "  <!-- use: save [-text|-base64] [-atomsonly] filename -->"
-           << endl;
+      cout << usage << endl;
     return 1;
   }
 
   // set default encoding
   bool base64 = true;
   bool atomsonly = false;
+  bool serial = false;
   char* filename = 0;
 
-  // check for -text or -base64 or -atomsonly arguments
+  // check for -text or -base64 or -atomsonly or -serial arguments
   for ( int i = 1; i < argc; i++ )
   {
     string arg(argv[i]);
@@ -42,6 +43,10 @@ int SaveCmd::action(int argc, char **argv)
     {
       atomsonly = true;
     }
+    else if ( arg=="-serial" )
+    {
+      serial = true;
+    }
     else if ( arg[0] != '-' && i == argc-1 )
     {
       filename = argv[i];
@@ -49,8 +54,7 @@ int SaveCmd::action(int argc, char **argv)
     else
     {
       if ( ui->onpe0() )
-        cout << "  <!-- use: save [-text|-base64] [-atomsonly] filename -->"
-             << endl;
+        cout << usage << endl;
       return 1;
     }
   }
@@ -58,14 +62,13 @@ int SaveCmd::action(int argc, char **argv)
   if ( filename == 0 )
   {
     if ( ui->onpe0() )
-      cout << "  <!-- use: save [-text|-base64] [-atomsonly] filename -->"
-           << endl;
+      cout << usage << endl;
     return 1;
   }
   SampleWriter swriter(s->ctxt_);
   string description = string(" Created ") + isodate() +
                        string(" by qbox-") + release() + string(" ");
-  swriter.writeSample(*s, filename, description, base64, atomsonly);
+  swriter.writeSample(*s, filename, description, base64, atomsonly, serial);
 
   return 0;
 }

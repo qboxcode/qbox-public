@@ -3,7 +3,7 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.18 2007-11-29 08:28:10 fgygi Exp $
+// $Id: Wavefunction.h,v 1.19 2008-01-26 01:34:11 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
@@ -12,9 +12,7 @@
 #include "UnitCell.h"
 #include <vector>
 #include <complex>
-#if USE_CSTDIO_LFS
-#include <cstdio>
-#endif
+#include "mpi.h"
 
 class SlaterDet;
 class Context;
@@ -104,9 +102,7 @@ class Wavefunction
   std::complex<double> dot(const Wavefunction& wf) const;
 
   void print(std::ostream& os, std::string encoding, std::string tag) const;
-#if USE_CSTDIO_LFS
-  void write(FILE* outfile, std::string encoding, std::string tag) const;
-#endif
+  void write(MPI_File& fh, std::string encoding, std::string tag) const;
   void info(std::ostream& os, std::string tag) const;
 };
 std::ostream& operator << ( std::ostream& os, const Wavefunction& wf );

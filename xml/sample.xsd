@@ -4,7 +4,7 @@
   targetNamespace="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
   
   <annotation>
-    <documentation> $Id: sample.xsd,v 1.10 2006-06-03 22:19:41 fgygi Exp $
+    <documentation> $Id: sample.xsd,v 1.11 2008-01-26 01:36:07 fgygi Exp $
       FPMD sample specification schema. 
       Francois Gygi, University of California, Davis
       Copyright (c) 2006 The Regents of the University of California.
@@ -26,6 +26,8 @@
   
   <complexType name="atomsetType">
     <sequence minOccurs="0">
+      <element name="unit_cell" type="fpmd:domainType"
+               minOccurs="0"/>
       <element name="species" type="fpmd:speciesType" 
                minOccurs="0" maxOccurs="unbounded"/>
       <element name="atom" type="fpmd:atomType"

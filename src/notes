@@ -1,4 +1,14 @@
 --------------------------------------------------------------------------------
+rel1_36_0
+Added unit cell to the sample schema. Modified AtomSet to contain a unit cell.
+Included unit cell in saved samples.
+--------------------------------------------------------------------------------
+rel1_35_0
+Implemented parallel I/O for writing sample files. Uses MPI-IO.
+This does not work on BG/L with PVFS since PVFS does not support the 
+collective calls MPI_File_write_ordered and MPI_File_write_shared.
+Option -serial added to the save command to use the old serial mode.
+--------------------------------------------------------------------------------
 rel1_34_4
 Base64Transcoder.C: modif print functions to use larger string buffer for I/O.
 SampleReader.C, SampleWriter.C: added timer.

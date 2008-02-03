@@ -3,7 +3,7 @@
 // AtomSetHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.C,v 1.8 2008-01-13 23:04:46 fgygi Exp $
+// $Id: AtomSetHandler.C,v 1.9 2008-02-03 22:53:54 fgygi Exp $
 
 #if USE_XERCES
 
@@ -37,7 +37,32 @@ void AtomSetHandler::startElement(const XMLCh* const uri,
 
   // consider only elements that are dealt with directly by AtomSetHandler
   // i.e. "atom". The "species" element is delegated to a SpeciesHandler
-  if ( locname == "atom")
+  if ( locname == "unit_cell")
+  {
+    D3vector a,b,c;
+    unsigned int len = attributes.getLength();
+    for (unsigned int index = 0; index < len; index++)
+    {
+      string attrname(XMLString::transcode(attributes.getLocalName(index)));
+      string attrval(XMLString::transcode(attributes.getValue(index)));
+      istringstream stst(attrval);
+      if ( attrname == "a")
+      {
+        stst >> a;
+      }
+      else if ( attrname == "b" )
+      {
+        stst >> b;
+      }
+      else if ( attrname == "c" )
+      {
+        stst >> c;
+      }
+    }
+
+    as_.unit_cell.set(a,b,c);
+  }
+  else if ( locname == "atom")
   {
     // set default velocity to zero
     current_atom_velocity = D3vector(0.0,0.0,0.0);
@@ -65,7 +90,24 @@ void AtomSetHandler::endElement(const XMLCh* const uri,
   string locname(XMLString::transcode(localname));
   // cout << " AtomSetHandler::endElement " << locname << endl;
   istringstream stst(content);
-  if ( locname == "atom")
+  if ( locname == "unit_cell")
+  {
+    event_type event = unit_cell;
+    as_.context().ibcast_send(1,1,(int*)&event,1);
+    // notify listening nodes
+    double buf[9];
+    buf[0] = as_.unit_cell.a(0).x; 
+    buf[1] = as_.unit_cell.a(0).y; 
+    buf[2] = as_.unit_cell.a(0).z;
+    buf[3] = as_.unit_cell.a(1).x; 
+    buf[4] = as_.unit_cell.a(1).y; 
+    buf[5] = as_.unit_cell.a(1).z;
+    buf[6] = as_.unit_cell.a(2).x; 
+    buf[7] = as_.unit_cell.a(2).y; 
+    buf[8] = as_.unit_cell.a(2).z;
+    as_.context().dbcast_send(9,1,buf,9);
+  }
+  else if ( locname == "atom")
   {
     // create an instance of Atom using the current values read so far
     // add the Atom to the current AtomSet

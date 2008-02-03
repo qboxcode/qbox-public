@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.34 2007-10-19 17:06:28 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.35 2008-02-03 22:53:55 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -243,6 +243,8 @@ void BOSampleStepper::step(int niter)
       // print positions, velocities and forces at time t0
       if ( onpe0 )
       {
+        cout << "<atomset>" << endl;
+        cout << atoms.unit_cell;
         for ( int is = 0; is < atoms.atom_list.size(); is++ )
         {
           int i = 0;
@@ -269,6 +271,7 @@ void BOSampleStepper::step(int niter)
             i += 3;
           }
         }
+        cout << "</atomset>" << endl;
         cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
         cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
         cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";

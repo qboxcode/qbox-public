@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.14 2007-10-31 04:54:14 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.15 2008-02-03 22:53:55 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -178,6 +178,8 @@ void CPSampleStepper::step(int niter)
 
       if ( onpe0 )
       {
+        cout << "<atomset>" << endl;
+        cout << atoms.unit_cell;
         for ( int is = 0; is < atoms.atom_list.size(); is++ )
         {
           int i = 0;
@@ -204,6 +206,7 @@ void CPSampleStepper::step(int niter)
             i += 3;
           }
         }
+        cout << "</atomset>" << endl;
       }
 #if 1
       if ( s_.constraints.size() > 0 )

@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.18 2007-12-15 00:56:20 fgygi Exp $
+// $Id: AtomSet.C,v 1.19 2008-02-03 22:53:54 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -447,6 +447,7 @@ ostream& operator << ( ostream &os, const AtomSet &as )
   if ( as.context().onpe0() )
   {
     os << "<atomset>\n";
+    os << as.unit_cell;
     for ( int is = 0; is < as.species_list.size(); is++ )
     {
       os << *as.species_list[is];

@@ -3,7 +3,7 @@
 // Cell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Cell.h,v 1.5 2007-10-19 16:24:04 fgygi Exp $
+// $Id: Cell.h,v 1.6 2008-02-03 22:53:54 fgygi Exp $
 
 #ifndef CELL_H
 #define CELL_H
@@ -32,10 +32,10 @@ class Cell : public Var
       return 1;
     }
 
-    D3vector a0(atof(argv[1]),atof(argv[2]),atof(argv[3]));
-    D3vector a1(atof(argv[4]),atof(argv[5]),atof(argv[6]));
-    D3vector a2(atof(argv[7]),atof(argv[8]),atof(argv[9]));
-    UnitCell cell(a0,a1,a2);
+    D3vector a(atof(argv[1]),atof(argv[2]),atof(argv[3]));
+    D3vector b(atof(argv[4]),atof(argv[5]),atof(argv[6]));
+    D3vector c(atof(argv[7]),atof(argv[8]),atof(argv[9]));
+    UnitCell cell(a,b,c);
 
     if ( cell.volume() < 0.0 )
     {
@@ -51,11 +51,11 @@ class Cell : public Var
       s->wfv->clear();
     }
 
+    s->atoms.unit_cell.set(a,b,c);
+
     if ( ui->onpe0() )
     {
-      cout << "  <unitcell>\n"
-           << s->wf.cell()
-           << "  </unitcell>" << endl;
+      cout << s->atoms.unit_cell;
     }
     return 0;
   }

@@ -3,13 +3,14 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.17 2007-10-19 16:24:03 fgygi Exp $
+// $Id: AtomSet.h,v 1.18 2008-02-03 22:53:55 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
 
 #include "Context.h"
 #include "Atom.h"
+#include "UnitCell.h"
 #include <vector>
 #include <string>
 #include <list>
@@ -32,6 +33,8 @@ class AtomSet
   std::vector<std::string> spname; // spname[is]: name of species is
 
   public:
+
+  UnitCell unit_cell;
 
   AtomSet(const Context& ctxt) : ctxt_(ctxt), nel_(0) {}
 

@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.22 2008-01-13 23:04:46 fgygi Exp $
+// $Id: SampleReader.C,v 1.23 2008-02-03 22:53:55 fgygi Exp $
 
 
 #include "Sample.h"
@@ -230,6 +230,16 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       ctxt_.ibcast_recv(1,1,(int*)&event,1,0,0);
       if ( event == end )
         done = true;
+      else if ( event == unit_cell )
+      {
+        // unit_cell
+        double buf[9];
+        ctxt_.dbcast_recv(9,1,buf,9,0,0);
+        D3vector a(buf[0],buf[1],buf[2]);
+        D3vector b(buf[3],buf[4],buf[5]);
+        D3vector c(buf[6],buf[7],buf[8]);
+        s.atoms.unit_cell = UnitCell(a,b,c);
+      }
       else if ( event == species )
       {
         // Species
@@ -570,6 +580,10 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       }
     }
   }
+
+  // force consistency of unit cell
+  // copy wavefunction domain on atomset unit_cell
+  s.atoms.unit_cell = s.wf.cell();
 
   // check if wavefunction_velocity element was read, if not, delete wfvtmp
   if ( s.wfv != 0 )

@@ -3,7 +3,7 @@
 // MoveCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MoveCmd.h,v 1.2 2007-10-19 16:24:04 fgygi Exp $
+// $Id: MoveCmd.h,v 1.3 2008-02-12 05:39:18 fgygi Exp $
 
 #ifndef MOVECMD_H
 #define MOVECMD_H
@@ -55,8 +55,7 @@ class MoveCmd : public Cmd
     if ( !pa )
     {
       if ( ui->onpe0() )
-        cout << " <!-- MoveCmd: could not find atom " << atom_name << " -->"
-             << endl;
+        cout << " MoveCmd: could not find atom " << atom_name << endl;
       return 1;
     }
 
@@ -86,14 +85,14 @@ class MoveCmd : public Cmd
     else
     {
       if ( ui->onpe0() )
-        cout << " <!-- MoveCmd: unknown mode -->" << endl;
+        cout << " MoveCmd: unknown mode" << endl;
       return 1;
     }
 
     pa->set_position(pos);
     if ( ui->onpe0() )
-      cout << " <!-- MoveCmd: atom " << atom_name << " moved to "
-           << pos << " -->" << endl;
+      cout << " MoveCmd: atom " << atom_name << " moved to "
+           << pos << endl;
 
     return 0;
   }

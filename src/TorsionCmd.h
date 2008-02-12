@@ -3,7 +3,7 @@
 // TorsionCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionCmd.h,v 1.2 2007-10-19 16:24:05 fgygi Exp $
+// $Id: TorsionCmd.h,v 1.3 2008-02-12 05:39:18 fgygi Exp $
 
 #ifndef TORSIONCMD_H
 #define TORSIONCMD_H
@@ -54,17 +54,13 @@ class TorsionCmd : public Cmd
       if ( ui->onpe0() )
       {
         if ( a1 == 0 )
-          cout << " <!-- TorsionCmd: atom " << name1 << " not defined -->"
-               << endl;
+          cout << " TorsionCmd: atom " << name1 << " not defined" << endl;
         if ( a2 == 0 )
-          cout << " <!-- TorsionCmd: atom " << name2 << " not defined -->"
-               << endl;
+          cout << " TorsionCmd: atom " << name2 << " not defined" << endl;
         if ( a3 == 0 )
-          cout << " <!-- TorsionCmd: atom " << name3 << " not defined -->"
-               << endl;
+          cout << " TorsionCmd: atom " << name3 << " not defined" << endl;
         if ( a4 == 0 )
-          cout << " <!-- TorsionCmd: atom " << name4 << " not defined -->"
-               << endl;
+          cout << " TorsionCmd: atom " << name4 << " not defined" << endl;
       }
       return 1;
     }
@@ -74,9 +70,9 @@ class TorsionCmd : public Cmd
     {
       if ( ui->onpe0() )
       {
-        cout << " <!-- TorsionCmd: replicated atoms in "
+        cout << " TorsionCmd: replicated atoms in "
              << name1 << " " << name2 << " "
-             << name3 << " " << name4 << " -->" << endl;
+             << name3 << " " << name4 << endl;
       }
       return 1;
     }
@@ -88,7 +84,7 @@ class TorsionCmd : public Cmd
     {
       if ( ui->onpe0() )
       {
-        cout << " <!-- TorsionCmd: atoms are too close -->" << endl;
+        cout << " TorsionCmd: atoms are too close" << endl;
       }
       return 1;
     }
@@ -114,10 +110,10 @@ class TorsionCmd : public Cmd
     if ( ui->onpe0() )
     {
       cout.setf(ios::fixed,ios::floatfield);
-      cout << " <!-- torsion "
+      cout << " torsion "
            << name1 << "-" << name2 << "-"
            << name3 << "-" << name4 << ": "
-           << setprecision(3) << a << " (deg) -->" << endl;
+           << setprecision(3) << a << " (deg)" << endl;
     }
     return 0;
   }

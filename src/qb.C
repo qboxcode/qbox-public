@@ -3,7 +3,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.56 2007-10-19 17:37:06 fgygi Exp $
+// $Id: qb.C,v 1.57 2008-02-12 05:39:18 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -116,7 +116,8 @@ int main(int argc, char **argv, char **envp)
   if ( ctxt.onpe0() )
   {
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-  cout << "<!--\n\n";
+  cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
+  cout << "\n";
   cout << "                   ============================\n";
   cout << "                   I qbox "
        << setw(17) << left << release() << "   I\n";
@@ -133,8 +134,7 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I                          I\n";
   cout << "                   I http://eslab.ucdavis.edu I\n";
   cout << "                   ============================\n\n";
-  cout << "-->\n";
-  cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
+  cout << "\n";
   cout << "<release> " << release() << " " << TARGET << " </release>" << endl;
 
   // Identify executable name, checksum, size and link date

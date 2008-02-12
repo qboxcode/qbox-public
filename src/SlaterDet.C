@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.44 2008-01-26 01:34:11 fgygi Exp $
+// $Id: SlaterDet.C,v 1.45 2008-02-12 05:39:18 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -724,10 +724,11 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     ctxt_.dmax(1,1,&tmax,1);
     if ( ctxt_.onpe0() )
     {
-      cout << "<!-- timing "
-           << setw(15) << (*i).first
-           << " : " << setprecision(3) << setw(9) << tmin
-           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
+      cout << "<timing name=\""
+           << setw(15) << (*i).first << "\""
+           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
+           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << endl;
     }
   }
 #endif
@@ -1616,13 +1617,12 @@ void SlaterDet::info(ostream& os)
   {
     os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\""
        << " size=\"" << nst() << "\">" << endl;
-    os << " <!-- sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << " -->"
-       << endl;
-    //os << " <!-- sdcontext: " << ctxt_ << " -->" << endl;
-    os << " <!-- basis size: " << basis_->size() << " -->" << endl;
-    os << " <!-- c dimensions: "
+    os << " sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << endl;
+    //os << " sdcontext: " << ctxt_ << endl;
+    os << " basis size: " << basis_->size() << endl;
+    os << " c dimensions: "
        << c_.m() << "x" << c_.n()
-       << "   (" << c_.mb() << "x" << c_.nb() << " blocks)" << " -->" << endl;
+       << "   (" << c_.mb() << "x" << c_.nb() << " blocks)" << endl;
     os << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\">"
        << endl;
     os << " </density_matrix>" << endl;

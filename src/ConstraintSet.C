@@ -3,7 +3,7 @@
 // ConstraintSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.C,v 1.3 2007-10-19 16:24:04 fgygi Exp $
+// $Id: ConstraintSet.C,v 1.4 2008-02-12 05:39:19 fgygi Exp $
 
 #include "ConstraintSet.h"
 #include "DistanceConstraint.h"
@@ -41,12 +41,12 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   {
     if ( onpe0 )
     {
-      cout << " <!-- use: constraint define name distance name1 name2 distance [velocity]"
+      cout << " Use: constraint define name distance name1 name2 distance [velocity]"
            << endl;
       cout << "      constraint define name angle name1 name2 name3 angle [velocity]"
            << endl;
       cout << "      constraint define name torsion name1 name2 name3 name4 angle"
-           << " [velocity] -->"
+           << " [velocity] "
            << endl;
     }
     return false;
@@ -67,8 +67,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   else
   {
     if ( onpe0 )
-      cout << " <!-- Incorrect constraint type " << constraint_type
-           << " -->" << endl;
+      cout << " Incorrect constraint type " << constraint_type << endl;
     return false;
   }
 
@@ -80,8 +79,8 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( argc < 7 || argc > 8 )
     {
       if ( onpe0 )
-        cout << " <!-- Incorrect number of arguments for distance constraint"
-             << " -->" << endl;
+        cout << " Incorrect number of arguments for distance constraint"
+             << endl;
       return false;
     }
     double distance, velocity=0.0, distance_tolerance=1.e-7;
@@ -97,21 +96,18 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       if ( onpe0 )
       {
         if ( a1 == 0 )
-          cout << " <!-- ConstraintSet: could not find atom " << name1
-               << " -->" << endl;
+          cout << " ConstraintSet: could not find atom " << name1 << endl;
         if ( a2 == 0 )
-          cout << " <!-- ConstraintSet: could not find atom " << name2
-               << " -->" << endl;
-
-        cout << " <!-- ConstraintSet: could not define constraint  -->" << endl;
+          cout << " ConstraintSet: could not find atom " << name2 << endl;
+        cout << " ConstraintSet: could not define constraint" << endl;
       }
       return false;
     }
     if ( name1 == name2 )
     {
       if ( onpe0 )
-        cout << " <!-- ConstraintSet: cannot define distance constraint between "
-             << name1 << " and " << name2 << " -->" << endl;
+        cout << " ConstraintSet: cannot define distance constraint between "
+             << name1 << " and " << name2 << endl;
       return false;
     }
 
@@ -124,8 +120,8 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( distance <= 0.0 )
     {
       if ( onpe0 )
-        cout << " <!-- ConstraintSet: distance must be positive -->" << endl
-             << " <!-- ConstraintSet: could not define constraint -->" << endl;
+        cout << " ConstraintSet: distance must be positive" << endl
+             << " ConstraintSet: could not define constraint" << endl;
       return false;
     }
 
@@ -148,8 +144,8 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( found )
     {
       if ( onpe0 )
-        cout << " <!-- ConstraintSet: constraint is already defined:\n"
-             << " cannot define constraint -->" << endl;
+        cout << " ConstraintSet: constraint is already defined:\n"
+             << " cannot define constraint" << endl;
       return false;
     }
     else
@@ -169,7 +165,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( argc < 8  || argc > 9 )
     {
       if ( onpe0 )
-        cout << " <!-- Incorrect number of arguments for angle constraint -->"
+        cout << " Incorrect number of arguments for angle constraint"
              << endl;
       return false;
     }
@@ -187,15 +183,12 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       if ( onpe0 )
       {
         if ( a1 == 0 )
-          cout << " <!-- ConstraintSet: could not find atom " << name1
-               << " -->" << endl;
+          cout << " ConstraintSet: could not find atom " << name1 << endl;
         if ( a2 == 0 )
-          cout << " <!-- ConstraintSet: could not find atom " << name2
-               << " -->" << endl;
+          cout << " ConstraintSet: could not find atom " << name2 << endl;
         if ( a3 == 0 )
-          cout << " <!-- ConstraintSet: could not find atom " << name3
-               << " -->" << endl;
-        cout << " <!-- ConstraintSet: could not define constraint -->" << endl;
+          cout << " ConstraintSet: could not find atom " << name3 << endl;
+        cout << " ConstraintSet: could not define constraint" << endl;
       }
       return false;
     }
@@ -203,8 +196,8 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( name1 == name2 || name1 == name3 || name2 == name3)
     {
       if ( onpe0 )
-        cout << " <!-- ConstraintSet: cannot define angle constraint between "
-             << name1 << " " << name2 << " and " << name3 << " -->" << endl;
+        cout << " ConstraintSet: cannot define angle constraint between "
+             << name1 << " " << name2 << " and " << name3 << endl;
       return false;
     }
 
@@ -218,8 +211,8 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( angle < 0.0 || angle > 180.0 )
     {
       if ( onpe0 )
-        cout << " <!-- ConstraintSet: angle must be in [0,180] -->" << endl
-             << " <!-- ConstraintSet: could not define constraint -->" << endl;
+        cout << " ConstraintSet: angle must be in [0,180]" << endl
+             << " ConstraintSet: could not define constraint" << endl;
       return false;
     }
 
@@ -245,10 +238,10 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( found )
     {
       if ( onpe0 )
-        cout << " <!-- ConstraintSet:set_constraint: an angle constraint "
+        cout << " ConstraintSet:set_constraint: an angle constraint "
              << name1 << " " << name2 << " " << name3
              << " was found" << endl
-             << " ConstraintSet: cannot define constraint -->" << endl;
+             << " ConstraintSet: cannot define constraint" << endl;
       return false;
     }
     else
@@ -267,7 +260,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( argc < 9  || argc > 10 )
     {
       if ( onpe0 )
-        cout << " <!-- Incorrect number of arguments for torsion constraint -->"
+        cout << " Incorrect number of arguments for torsion constraint"
              << endl;
       return false;
     }
@@ -287,19 +280,14 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       if ( onpe0 )
       {
         if ( a1 == 0 )
-          cout << " <!-- ConstraintSet: could not find atom " << name1
-               << " -->" << endl;
+          cout << " ConstraintSet: could not find atom " << name1 << endl;
         if ( a2 == 0 )
-          cout << " <!-- ConstraintSet: could not find atom " << name2
-               << " -->" << endl;
+          cout << " ConstraintSet: could not find atom " << name2 << endl;
         if ( a3 == 0 )
-          cout << " <!-- ConstraintSet: could not find atom " << name3
-               << " -->" << endl;
+          cout << " ConstraintSet: could not find atom " << name3 << endl;
         if ( a4 == 0 )
-          cout << " <!-- ConstraintSet: could not find atom " << name4
-               << " -->" << endl;
-
-        cout << " <!-- ConstraintSet: could not define constraint  -->" << endl;
+          cout << " ConstraintSet: could not find atom " << name4 << endl;
+        cout << " ConstraintSet: could not define constraint" << endl;
       }
       return false;
     }
@@ -307,9 +295,9 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
          name2 == name3 || name2 == name4 || name3 == name4 )
     {
       if ( onpe0 )
-        cout << " <!-- ConstraintSet: cannot define torsion constraint using "
+        cout << " ConstraintSet: cannot define torsion constraint using "
              << name1 << " " << name2 << " " << name3 << " " << name4
-             << " -->" << endl;
+             << endl;
       return false;
     }
 
@@ -349,10 +337,10 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( found )
     {
       if ( onpe0 )
-        cout << " <!-- ConstraintSet: a torsion constraint "
+        cout << " ConstraintSet: a torsion constraint "
              << name1 << " " << name2 << " " << name3 << " " << name4
              << " is already defined" << endl
-             << " ConstraintSet: cannot define constraint -->" << endl;
+             << " ConstraintSet: cannot define constraint" << endl;
       return false;
     }
     else
@@ -366,7 +354,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   else
   {
     if ( onpe0 )
-      cout << "<!-- ConstraintSet::set_constraint: internal error -->" << endl;
+      cout << " ConstraintSet::set_constraint: internal error" << endl;
     return false;
   }
 
@@ -409,7 +397,7 @@ bool ConstraintSet::set_constraint(int argc, char **argv)
   if ( !found )
   {
     if ( onpe0 )
-      cout << " <!-- ConstraintSet: no such constraint -->" << endl;
+      cout << " ConstraintSet: no such constraint" << endl;
     return false;
   }
   return true;
@@ -454,7 +442,7 @@ bool ConstraintSet::delete_constraint(int argc, char **argv)
 
   if ( !found )
   {
-    if ( onpe0 ) cout << " <!-- No such constraint -->" << endl;
+    if ( onpe0 ) cout << " No such constraint" << endl;
     return false;
   }
   return true;
@@ -510,8 +498,8 @@ void ConstraintSet::enforce_r(const vector<vector<double> > &r0,
   if ( !done )
   {
     if ( onpe0 )
-      cout << " <!-- ConstraintSet: could not enforce position constraints in "
-           << constraints_maxiter << " iterations -->" << endl;
+      cout << " ConstraintSet: could not enforce position constraints in "
+           << constraints_maxiter << " iterations" << endl;
   }
 }
 
@@ -536,8 +524,8 @@ void ConstraintSet::enforce_v(const vector<vector<double> > &r0,
   if ( !done )
   {
     if ( onpe0 )
-      cout << " <!-- ConstraintSet: could not enforce velocity constraints in "
-           << constraints_maxiter << " iterations -->" << endl;
+      cout << " ConstraintSet: could not enforce velocity constraints in "
+           << constraints_maxiter << " iterations" << endl;
   }
 }
 

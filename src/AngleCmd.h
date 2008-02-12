@@ -3,7 +3,7 @@
 // AngleCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleCmd.h,v 1.2 2007-10-19 16:24:03 fgygi Exp $
+// $Id: AngleCmd.h,v 1.3 2008-02-12 05:39:19 fgygi Exp $
 
 #ifndef ANGLECMD_H
 #define ANGLECMD_H
@@ -52,14 +52,11 @@ class AngleCmd : public Cmd
       if ( ui->onpe0() )
       {
         if ( a1 == 0 )
-          cout << " <!-- AngleCmd: atom " << name1 << " not defined -->"
-               << endl;
+          cout << " AngleCmd: atom " << name1 << " not defined" << endl;
         if ( a2 == 0 )
-          cout << " <!-- AngleCmd: atom " << name2 << " not defined -->"
-               << endl;
+          cout << " AngleCmd: atom " << name2 << " not defined" << endl;
         if ( a3 == 0 )
-          cout << " <!-- AngleCmd: atom " << name3 << " not defined -->"
-               << endl;
+          cout << " AngleCmd: atom " << name3 << " not defined" << endl;
       }
       return 1;
     }
@@ -68,8 +65,8 @@ class AngleCmd : public Cmd
     {
       if ( ui->onpe0() )
       {
-        cout << " <!-- AngleCmd: replicated atoms in " << name1
-             << " " << name2 << " " << name3 << " -->" << endl;
+        cout << " AngleCmd: replicated atoms in " << name1
+             << " " << name2 << " " << name3 << endl;
       }
       return 1;
     }
@@ -80,7 +77,7 @@ class AngleCmd : public Cmd
     {
       if ( ui->onpe0() )
       {
-        cout << " <!-- AngleCmd: atoms are too close -->" << endl;
+        cout << " AngleCmd: atoms are too close" << endl;
       }
       return 1;
     }
@@ -91,10 +88,10 @@ class AngleCmd : public Cmd
     if ( ui->onpe0() )
     {
       cout.setf(ios::fixed,ios::floatfield);
-      cout << " <!-- angle " << name1 << "-" << name2  << "-" << name3
+      cout << " angle " << name1 << "-" << name2  << "-" << name3
            << ": "
            << setprecision(3)
-           << a << " (deg) -->" << endl;
+           << a << " (deg)" << endl;
     }
     return 0;
   }

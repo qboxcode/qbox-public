@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.15 2008-02-03 22:53:55 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.16 2008-02-12 05:39:18 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -57,10 +57,11 @@ CPSampleStepper::~CPSampleStepper(void)
     s_.ctxt_.dmax(1,1,&tmax,1);
     if ( s_.ctxt_.myproc()==0 )
     {
-      cout << "<!-- timing "
-           << setw(15) << (*i).first
-           << " : " << setprecision(3) << setw(9) << tmin
-           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
+      cout << "<timing name=\""
+           << setw(15) << (*i).first << "\""
+           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
+           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << endl;
     }
   }
 }
@@ -128,7 +129,7 @@ void CPSampleStepper::step(int niter)
     tm_iter.reset();
     tm_iter.start();
     if ( s_.ctxt_.mype() == 0 )
-      cout << "  <iteration count=\"" << iter+1 << "\">\n";
+      cout << "<iteration count=\"" << iter+1 << "\">\n";
 
     if ( mdionic_stepper )
       atoms.sync();
@@ -270,7 +271,7 @@ void CPSampleStepper::step(int niter)
       ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
 
     if ( s_.ctxt_.mype() == 0 )
-      cout << "  </iteration>" << endl;
+      cout << "</iteration>" << endl;
 
     // print iteration time
     tm_iter.stop();
@@ -281,10 +282,10 @@ void CPSampleStepper::step(int niter)
     s_.ctxt_.dmax(1,1,&tmax,1);
     if ( s_.ctxt_.myproc()==0 )
     {
-      cout << "  <!-- timing "
-           << setw(15) << "iteration"
-           << " : " << setprecision(3) << setw(9) << tmin
-           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
+      cout << "  <timing name=\"iteration\""
+           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
+           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << endl;
     }
     if ( compute_forces )
       s_.constraints.update_constraints(dt);

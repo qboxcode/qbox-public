@@ -3,7 +3,7 @@
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.4 2008-01-26 01:34:11 fgygi Exp $
+// $Id: SampleWriter.C,v 1.5 2008-02-12 05:39:19 fgygi Exp $
 
 
 #include "SampleWriter.h"
@@ -38,8 +38,8 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     if ( ctxt_.onpe0() )
     {
       os.open(filename_cstr);
-      cout << "  <!-- SaveCmd: saving to file " << filename
-           << ", encoding=" << encoding << " -->" << endl;
+      cout << "  SaveCmd: saving to file " << filename
+           << ", encoding=" << encoding << endl;
 
       os <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
          <<"<fpmd:sample xmlns:fpmd=\""
@@ -148,12 +148,12 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
   tm.stop();
   if ( ctxt_.onpe0() )
   {
-    cout << "<!-- SampleWriter: write time: "
-         << setprecision(3) << tm.real() << " s -->"
+    cout << " SampleWriter: write time: "
+         << setprecision(3) << tm.real() << " s"
          << endl;
     if ( !serial )
     {
-      cout << "<!-- SampleWriter: aggregate write rate: "
+      cout << " SampleWriter: aggregate write rate: "
            << setprecision(2) << file_size/(tm.real()*1024*1024)
            << " MB/s" << endl;
     }

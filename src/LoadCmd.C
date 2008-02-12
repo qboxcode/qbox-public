@@ -3,7 +3,7 @@
 // LoadCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LoadCmd.C,v 1.8 2007-10-19 16:24:04 fgygi Exp $
+// $Id: LoadCmd.C,v 1.9 2008-02-12 05:39:18 fgygi Exp $
 
 #include "LoadCmd.h"
 #include "SampleReader.h"
@@ -15,7 +15,7 @@ int LoadCmd::action(int argc, char **argv)
 {
   if ( (argc != 2 && argc !=3) && ui->onpe0() )
   {
-    cout << "  <!-- use: load [-serial] uri -->" << endl;
+    cout << "  use: load [-serial] uri" << endl;
     return 1;
   }
 
@@ -29,12 +29,9 @@ int LoadCmd::action(int argc, char **argv)
   }
 
   if ( ui->onpe0() )
-    cout << " <!-- LoadCmd: loading from " << argv[iarg] << " -->" << endl;
+    cout << " LoadCmd: loading from " << argv[iarg] << endl;
 
   SampleReader s_reader(s->ctxt_);
-
-  if ( ui->onpe0() )
-    cout << " <!--" << endl;
 
   try
   {
@@ -51,9 +48,6 @@ int LoadCmd::action(int argc, char **argv)
   }
 
   s->ctxt_.barrier();
-
-  if ( ui->onpe0() )
-    cout << " -->" << endl;
 
   return 0;
 }

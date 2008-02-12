@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.35 2008-02-03 22:53:55 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.36 2008-02-12 05:39:18 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -45,10 +45,11 @@ BOSampleStepper::~BOSampleStepper()
     s_.ctxt_.dmax(1,1,&tmax,1);
     if ( s_.ctxt_.myproc()==0 )
     {
-      cout << "<!-- timing "
-           << setw(15) << (*i).first
-           << " : " << setprecision(3) << setw(9) << tmin
-           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
+      cout << "<timing name=\""
+           << setw(15) << (*i).first << "\""
+           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
+           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << endl;
     }
   }
 }
@@ -183,7 +184,7 @@ void BOSampleStepper::step(int niter)
 #endif
 
     if ( onpe0 )
-      cout << "  <iteration count=\"" << iter+1 << "\">\n";
+      cout << "<iteration count=\"" << iter+1 << "\">\n";
 
     if ( ionic_stepper )
       atoms.sync();
@@ -534,7 +535,7 @@ void BOSampleStepper::step(int niter)
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
       {
         if ( nite_ > 1 && onpe0 )
-          cout << "  <!-- BOSampleStepper: start scf iteration -->" << endl;
+          cout << "  BOSampleStepper: start scf iteration" << endl;
 
         // compute new density in cd_.rhog
         tmap["charge"].start();
@@ -592,8 +593,8 @@ void BOSampleStepper::step(int niter)
             mixer.update((double*)&drhog[0],&theta,(double*)&drhog_bar[0]);
             if ( onpe0 )
             {
-              cout << "  <!-- Charge mixing: Anderson theta="
-                   << theta << " -->" << endl;
+              cout << "  Charge mixing: Anderson theta="
+                   << theta << endl;
             }
           }
 
@@ -692,17 +693,15 @@ void BOSampleStepper::step(int niter)
           const double wf_entropy = wf.entropy();
           if ( onpe0 )
           {
-            cout << "  <!-- Wavefunction entropy: " << wf_entropy
-                 << " -->" << endl;
+            cout << "  Wavefunction entropy: " << wf_entropy << endl;
             const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
-            cout << "  <!-- Entropy contribution to free energy: "
-                 << - wf_entropy * s_.ctrl.fermi_temp * boltz
-                 << " -->" << endl;
+            cout << "  Entropy contribution to free energy: "
+                 << - wf_entropy * s_.ctrl.fermi_temp * boltz << endl;
           }
         }
 
         if ( nite_ > 1 && onpe0 )
-          cout << "  <!-- BOSampleStepper: end scf iteration -->" << endl;
+          cout << "  BOSampleStepper: end scf iteration" << endl;
       } // for itscf
 
 
@@ -738,11 +737,11 @@ void BOSampleStepper::step(int niter)
     s_.ctxt_.dmax(1,1,&tmax,1);
     if ( onpe0 )
     {
-      cout << "  <!-- timing "
-           << setw(15) << "iteration"
-           << " : " << setprecision(3) << setw(9) << tmin
-           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
-      cout << "  </iteration>" << endl;
+      cout << "  <timing name=\"iteration\""
+           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
+           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << endl;
+      cout << "</iteration>" << endl;
     }
     if ( compute_forces )
       s_.constraints.update_constraints(dt);

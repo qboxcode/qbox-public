@@ -3,7 +3,7 @@
 //  AngleConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleConstraint.C,v 1.3 2007-10-19 16:24:03 fgygi Exp $
+// $Id: AngleConstraint.C,v 1.4 2008-02-12 05:39:18 fgygi Exp $
 
 #include "AngleConstraint.h"
 #include "AtomSet.h"
@@ -136,7 +136,6 @@ vector<vector<double> > &rp) const
                      m3_inv_ * g3 * g3p;
 
 #if DEBUG_CONSTRAINTS
-  cout << " <!-- ";
   cout << " AngleConstraint::enforce_r: "
        << name1_ << " " << name2_ << " " << name3_
        << " angle = " << ap << endl;
@@ -156,7 +155,6 @@ vector<vector<double> > &rp) const
   cout << " AngleConstraint::enforce_r: g2p = " << g2p << endl;
   cout << " AngleConstraint::enforce_r: g3p = " << g3p << endl;
   cout << " AngleConstraint::enforce_r: den = " << den << endl;
-  cout << " -->" << endl;
 #endif
   if ( err < tol_ ) return true;
 
@@ -213,7 +211,6 @@ vector<vector<double> > &v0) const
   const double err = fabs(proj)/sqrt(norm2);
 
 #if DEBUG_CONSTRAINTS
-  cout << " <!-- ";
   cout << " AngleConstraint::enforce_v: "
        << name1_ << " " << name2_ << " " << name3_ << endl;
   cout << " AngleConstraint::enforce_v: tol = " << tol_ << endl;
@@ -221,7 +218,6 @@ vector<vector<double> > &v0) const
   cout << " AngleConstraint::enforce_v: g1  = " << g1 << endl;
   cout << " AngleConstraint::enforce_v: g2  = " << g2 << endl;
   cout << " AngleConstraint::enforce_v: g3  = " << g3 << endl;
-  cout << " -->" << endl;
 #endif
   if ( err < tol_ ) return true;
 
@@ -297,8 +293,7 @@ void AngleConstraint::compute_force(const vector<vector<double> > &r0,
       m2_inv_ * ( (r12s+r32s-2*sqrt(r12s*r32s)*cos_theta) /(r12s*r32s) ) +
       m3_inv_ / r32s
     );
-  cout << " <!-- AngleConstraint: z=" << z << " zcheck=" << zcheck << " -->"
-       << endl;
+  cout << " AngleConstraint: z=" << z << " zcheck=" << zcheck << endl;
 #endif
 }
 

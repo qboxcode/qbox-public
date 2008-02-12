@@ -3,7 +3,7 @@
 //  DistanceConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: DistanceConstraint.C,v 1.3 2007-10-19 16:24:04 fgygi Exp $
+// $Id: DistanceConstraint.C,v 1.4 2008-02-12 05:39:18 fgygi Exp $
 
 #include "DistanceConstraint.h"
 #include "AtomSet.h"
@@ -81,13 +81,12 @@ vector<vector<double> > &rp) const
     g1 = g1p;
     g2 = g2p;
 #if DEBUG_CONSTRAINTS
-    cout << " <!-- g and gp nearly orthogonal, use gp only -->" << endl;
+    cout << " g and gp nearly orthogonal, use gp only" << endl;
 #endif
   }
 
   const double sigma = r12p*r12p - distance_*distance_;
 #if DEBUG_CONSTRAINTS
-  cout << " <!-- ";
   cout << " DistanceConstraint::enforce_r: " << name1_ << " " << name2_ << endl;
   cout << " DistanceConstraint::enforce_r: r1 = " << r1 << endl;
   cout << " DistanceConstraint::enforce_r: r2 = " << r2 << endl;
@@ -97,7 +96,6 @@ vector<vector<double> > &rp) const
   cout << " DistanceConstraint::enforce_r: g2  = " << g2 << endl;
   cout << " DistanceConstraint::enforce_r: g1p = " << g1p << endl;
   cout << " DistanceConstraint::enforce_r: g2p = " << g2p << endl;
-  cout << " -->" << endl;
 #endif
   if ( fabs(sigma) < tol_ ) return true;
 
@@ -143,7 +141,6 @@ vector<vector<double> > &v0) const
   const double proj = v1 * g1 + v2 * g2;
   const double err = fabs(proj)/sqrt(norm2);
 #if DEBUG_CONSTRAINTS
-  cout << " <!-- ";
   cout << " DistanceConstraint::enforce_v: " << name1_ << " " << name2_ << endl;
   cout << " DistanceConstraint::enforce_v: r1 = " << r1 << endl;
   cout << " DistanceConstraint::enforce_v: r2 = " << r2 << endl;
@@ -154,7 +151,6 @@ vector<vector<double> > &v0) const
   cout << " DistanceConstraint::enforce_v: tol = " << tol_ << endl;
   cout << " DistanceConstraint::enforce_v: err = " << err
        << endl;
-  cout << " -->" << endl;
 #endif
   if ( err < tol_ ) return true;
 

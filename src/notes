@@ -1,4 +1,7 @@
 --------------------------------------------------------------------------------
+rel1_37_0
+Cleaned up XML formatting of output. Removed comments. Use <timing> tag.
+--------------------------------------------------------------------------------
 rel1_36_0
 Added unit cell to the sample schema. Modified AtomSet to contain a unit cell.
 Included unit cell in saved samples.

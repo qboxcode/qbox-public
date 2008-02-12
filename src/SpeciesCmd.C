@@ -3,7 +3,7 @@
 // SpeciesCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesCmd.C,v 1.9 2007-12-15 00:56:20 fgygi Exp $
+// $Id: SpeciesCmd.C,v 1.10 2008-02-12 05:39:18 fgygi Exp $
 
 #include "SpeciesCmd.h"
 #include "SpeciesReader.h"
@@ -18,13 +18,13 @@ int SpeciesCmd::action(int argc, char **argv)
   if ( argc != 3 )
   {
     if ( ui->onpe0() )
-      cout << "  <!-- use: species name uri -->" << endl;
+      cout << "  Use: species name uri" << endl;
     return 1;
   }
 
   if ( ui->onpe0() )
-    cout << "  <!-- SpeciesCmd: defining species " << argv[1]
-         << " as " << argv[2] << " -->" << endl;
+    cout << "  SpeciesCmd: defining species " << argv[1]
+         << " as " << argv[2] << endl;
 
   SpeciesReader sp_reader(s->ctxt_);
 

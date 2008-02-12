@@ -3,7 +3,7 @@
 // SpeciesReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesReader.C,v 1.7 2007-10-19 16:24:05 fgygi Exp $
+// $Id: SpeciesReader.C,v 1.8 2008-02-12 05:39:18 fgygi Exp $
 
 #include "Species.h"
 #include "SpeciesReader.h"
@@ -54,8 +54,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     }
     catch (const XMLException& toCatch)
     {
-      cout << "  <!-- Species::readSpecies: Error during XML initialization :\n"
-           << StrX(toCatch.getMessage()) << " -->" << endl;
+      cout << "  Species::readSpecies: Error during XML initialization :\n"
+           << StrX(toCatch.getMessage()) << endl;
       throw;
     }
 
@@ -143,16 +143,16 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     struct stat statbuf;
     bool found_file = !stat(uri.c_str(),&statbuf);
     assert(found_file);
-      cout << "  <!-- SpeciesReader opening file "
+      cout << "  SpeciesReader opening file "
            << uri << " size: "
-           << statbuf.st_size << " -->" << endl;
+           << statbuf.st_size << endl;
 
     FILE* infile;
     infile = fopen(uri.c_str(),"r");
     if ( !infile )
     {
-      cout << "  <!-- SpeciesReader::readSpecies could not open file "
-           << uri << " for reading" << " -->" << endl;
+      cout << "  SpeciesReader::readSpecies could not open file "
+           << uri << " for reading" << endl;
       return;
     }
     off_t sz = statbuf.st_size;
@@ -176,9 +176,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
     len = end - start;
 
     sp.description_ = buf.substr(start,len);
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.description_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.description_ << endl;
 
     tag = "symbol";
     start_tag = string("<") + tag + string(">");
@@ -193,9 +192,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       istringstream stst(buf.substr(start,len));
       stst >> sp.symbol_;
     }
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.symbol_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.symbol_ << endl;
 
     tag = "atomic_number";
     start_tag = string("<") + tag + string(">");
@@ -210,9 +208,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       istringstream stst(buf.substr(start,len));
       stst >> sp.atomic_number_;
     }
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.atomic_number_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.atomic_number_ << endl;
 
     tag = "mass";
     start_tag = string("<") + tag + string(">");
@@ -227,9 +224,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       istringstream stst(buf.substr(start,len));
       stst >> sp.mass_;
     }
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.mass_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.mass_ << endl;
 
     tag = "valence_charge";
     start_tag = string("<") + tag + string(">");
@@ -244,9 +240,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       istringstream stst(buf.substr(start,len));
       stst >> sp.zval_;
     }
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.zval_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.zval_ << endl;
 
     tag = "lmax";
     start_tag = string("<") + tag + string(">");
@@ -261,9 +256,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       istringstream stst(buf.substr(start,len));
       stst >> sp.lmax_;
     }
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.lmax_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.lmax_ << endl;
 
     tag = "llocal";
     start_tag = string("<") + tag + string(">");
@@ -278,9 +272,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       istringstream stst(buf.substr(start,len));
       stst >> sp.llocal_;
     }
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.llocal_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.llocal_ << endl;
 
     tag = "nquad";
     start_tag = string("<") + tag + string(">");
@@ -295,9 +288,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       istringstream stst(buf.substr(start,len));
       stst >> sp.nquad_;
     }
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.nquad_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.nquad_ << endl;
 
     tag = "rquad";
     start_tag = string("<") + tag + string(">");
@@ -312,9 +304,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       istringstream stst(buf.substr(start,len));
       stst >> sp.rquad_;
     }
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.rquad_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.rquad_ << endl;
 
     tag = "mesh_spacing";
     start_tag = string("<") + tag + string(">");
@@ -329,9 +320,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
       istringstream stst(buf.substr(start,len));
       stst >> sp.deltar_;
     }
-    cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " "
-         << sp.deltar_
-         << " -->" << endl;
+    cout << "  SpeciesReader::readSpecies: read " << tag << " "
+         << sp.deltar_ << endl;
 
     for ( int l = 0; l < sp.lmax_ + 1; l++ )
     {
@@ -387,8 +377,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
           //cout << sp.vps_[l][i] << endl;
         }
       }
-      cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " l="
-           << l << " size=" << size << " -->" << endl;
+      cout << "  SpeciesReader::readSpecies: read " << tag << " l="
+           << l << " size=" << size << endl;
 
       sp.phi_.resize(sp.phi_.size()+1);
       sp.phi_[l].resize(size);
@@ -419,8 +409,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
             //cout << sp.phi_[l][i] << endl;
           }
         }
-        cout << "  <!-- SpeciesReader::readSpecies: read " << tag << " l="
-             << l << " size=" << size << " -->" << endl;
+        cout << "  SpeciesReader::readSpecies: read " << tag << " l="
+             << l << " size=" << size << endl;
       }
     }
 

@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.23 2008-02-03 22:53:55 fgygi Exp $
+// $Id: SampleReader.C,v 1.24 2008-02-12 05:39:18 fgygi Exp $
 
 
 #include "Sample.h"
@@ -79,8 +79,8 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
 
     catch (const XMLException& toCatch)
     {
-      cout << "  <!-- Sample::readSample: Error during XML initialization :\n"
-           << StrX(toCatch.getMessage()) << " -->" << endl;
+      cout << "  Sample::readSample: Error during XML initialization :\n"
+           << StrX(toCatch.getMessage()) << endl;
       ierr = 1;
     }
     ctxt_.ibcast_send(1,1,&ierr,1);
@@ -599,11 +599,11 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   // USE_XERCES was not defined
   if ( ctxt_.onpe0() )
   {
-    cout << "  <!-- SampleReader: could not read (parser not defined) -->"
+    cout << "  SampleReader: could not read (parser not defined)"
          << endl;
   }
 #endif
   tm.stop();
   if ( ctxt_.onpe0() )
-    cout << " <!-- SampleReader: read time: " << tm.real() << " s -->" << endl;
+    cout << " SampleReader: read time: " << tm.real() << " s" << endl;
 }

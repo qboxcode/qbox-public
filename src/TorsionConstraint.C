@@ -3,7 +3,7 @@
 //  TorsionConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionConstraint.C,v 1.3 2007-10-19 16:24:05 fgygi Exp $
+// $Id: TorsionConstraint.C,v 1.4 2008-02-12 05:39:18 fgygi Exp $
 
 #include "TorsionConstraint.h"
 #include "AtomSet.h"
@@ -154,13 +154,11 @@ vector<vector<double> > &rp) const
     g4 = g4p;
   }
 #if DEBUG_CONSTRAINTS
-  cout << " <!--";
   cout << " TorsionConstraint::enforce_r: "
        << name1_ << " " << name2_ << " " << name3_ << " " << name4_ << endl;
   cout << " TorsionConstraint::enforce_r: tol = " << tol_ << endl;
   cout << " TorsionConstraint::enforce_r: ap = " << ap << endl;
-  cout << " TorsionConstraint::enforce_r: err = " << err
-       << " -->" << endl;
+  cout << " TorsionConstraint::enforce_r: err = " << err << endl;
 #endif
   if ( err < tol_ ) return true;
 
@@ -227,7 +225,6 @@ bool TorsionConstraint::enforce_v(const vector<vector<double> > &r0,
   const double proj = v1*g1 + v2*g2 + v3*g3 + v4*g4;
   const double err = fabs(proj)/sqrt(norm2);
 #if DEBUG_CONSTRAINTS
-  cout << " <!--";
   cout << " TorsionConstraint::enforce_v: "
        << name1_ << " " << name2_ << " " << name3_ << " " << name4_<< endl;
   cout << " TorsionConstraint::enforce_v: tol = " << tol_ << endl;
@@ -236,7 +233,6 @@ bool TorsionConstraint::enforce_v(const vector<vector<double> > &r0,
   cout << " TorsionConstraint::enforce_v: g2  = " << g2 << endl;
   cout << " TorsionConstraint::enforce_v: g3  = " << g3 << endl;
   cout << " TorsionConstraint::enforce_v: g4  = " << g4 << endl;
-       << " -->" << endl;
 #endif
   if ( err < tol_ ) return true;
 

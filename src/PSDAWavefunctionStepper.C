@@ -3,7 +3,7 @@
 // PSDAWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.C,v 1.15 2008-01-13 23:04:46 fgygi Exp $
+// $Id: PSDAWavefunctionStepper.C,v 1.16 2008-02-12 05:39:18 fgygi Exp $
 
 #include "PSDAWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -131,7 +131,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
             theta = - a / b;
 
           if ( wf_.sdcontext()->onpe0() )
-            cout << "  <!-- Anderson extrapolation: theta=" << theta;
+            cout << "  Anderson extrapolation: theta=" << theta;
 
           if ( theta < -1.0 )
           {
@@ -141,7 +141,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
           theta = min(2.0,theta);
 
           if ( wf_.sdcontext()->onpe0() )
-            cout <<" (" << theta << ")" << " -->"<< endl;
+            cout <<" (" << theta << ")" << endl;
 
           // extrapolation
           for ( int i = 0; i < 2*mloc*nloc; i++ )

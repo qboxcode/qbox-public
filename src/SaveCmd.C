@@ -3,7 +3,7 @@
 // SaveCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.C,v 1.13 2008-01-26 01:34:11 fgygi Exp $
+// $Id: SaveCmd.C,v 1.14 2008-02-12 05:39:18 fgygi Exp $
 
 
 #include "SaveCmd.h"
@@ -16,7 +16,7 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 int SaveCmd::action(int argc, char **argv)
 {
-  string usage("  <!-- use: save [-text|-base64] [-atomsonly] [-serial] filename -->");
+  string usage("  Use: save [-text|-base64] [-atomsonly] [-serial] filename");
   if ( !(argc>=2 && argc<=4 ) )
   {
     if ( ui->onpe0() )

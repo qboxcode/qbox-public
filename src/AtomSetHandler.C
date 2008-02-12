@@ -3,7 +3,7 @@
 // AtomSetHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.C,v 1.9 2008-02-03 22:53:54 fgygi Exp $
+// $Id: AtomSetHandler.C,v 1.10 2008-02-12 05:39:18 fgygi Exp $
 
 #if USE_XERCES
 
@@ -96,14 +96,14 @@ void AtomSetHandler::endElement(const XMLCh* const uri,
     as_.context().ibcast_send(1,1,(int*)&event,1);
     // notify listening nodes
     double buf[9];
-    buf[0] = as_.unit_cell.a(0).x; 
-    buf[1] = as_.unit_cell.a(0).y; 
+    buf[0] = as_.unit_cell.a(0).x;
+    buf[1] = as_.unit_cell.a(0).y;
     buf[2] = as_.unit_cell.a(0).z;
-    buf[3] = as_.unit_cell.a(1).x; 
-    buf[4] = as_.unit_cell.a(1).y; 
+    buf[3] = as_.unit_cell.a(1).x;
+    buf[4] = as_.unit_cell.a(1).y;
     buf[5] = as_.unit_cell.a(1).z;
-    buf[6] = as_.unit_cell.a(2).x; 
-    buf[7] = as_.unit_cell.a(2).y; 
+    buf[6] = as_.unit_cell.a(2).x;
+    buf[7] = as_.unit_cell.a(2).y;
     buf[8] = as_.unit_cell.a(2).z;
     as_.context().dbcast_send(9,1,buf,9);
   }

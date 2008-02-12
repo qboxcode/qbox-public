@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.28 2008-01-26 01:34:11 fgygi Exp $
+// $Id: Wavefunction.C,v 1.29 2008-02-12 05:39:18 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -447,15 +447,15 @@ void Wavefunction::update_occ(double temp)
 
     if ( ctxt_.onpe0() )
     {
-      cout << " <!-- Wavefunction::update_occ: sum = "
-           << rhosum << " -->" << endl;
-      cout << " <!-- Wavefunction::update_occ: mu = "
-           << setprecision(4) << mu / eVolt << " eV" << " -->" << endl;
+      cout << " Wavefunction::update_occ: sum = "
+           << rhosum << endl;
+      cout << " Wavefunction::update_occ: mu = "
+           << setprecision(4) << mu / eVolt << " eV" << endl;
 
       cout.setf(ios::right,ios::adjustfield);
       cout.setf(ios::fixed,ios::floatfield);
 
-      cout << " <!-- Wavefunction::update_occ: occupation numbers" << endl;
+      cout << " Wavefunction::update_occ: occupation numbers" << endl;
       for ( int ispin = 0; ispin < nspin_; ispin++ )
       {
         for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
@@ -469,7 +469,6 @@ void Wavefunction::update_occ(double temp)
           if ( sd_[ispin][ikp]->nst() % 10 != 0 )
             cout << endl;
         }
-        cout << " -->" << endl;
       }
     }
   }
@@ -737,12 +736,11 @@ void Wavefunction::info(ostream& os, string tag) const
        << setprecision(6) << cell_.a(0) << "\"\n      b=\""
        << cell_.a(1) << "\"\n      c=\""
        << cell_.a(2) << "\"/>" << endl;
-    os << "<!-- reciprocal lattice vectors" << endl
+    os << " reciprocal lattice vectors" << endl
        << setprecision(6)
        << " " << cell_.b(0) << endl
        << " " << cell_.b(1) << endl
-       << " " << cell_.b(2) << endl
-       << "-->" << endl;
+       << " " << cell_.b(2) << endl;
     os << "<refcell a=\""
        << refcell_.a(0) << "\"\n         b=\""
        << refcell_.a(1) << "\"\n         c=\""
@@ -757,8 +755,8 @@ void Wavefunction::info(ostream& os, string tag) const
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
       if ( ctxt_.onpe0() )
-        cout << "<!-- kpoint: " << kpoint_[ikp] << " weight: " << weight_[ikp]
-             << " -->" << endl;
+        cout << " kpoint: " << kpoint_[ikp] << " weight: " << weight_[ikp]
+             << endl;
       sd_[ispin][ikp]->info(os);
     }
   }

@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.28 2007-11-29 08:11:29 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.29 2008-02-12 05:39:19 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -61,10 +61,10 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
 
   if ( s_.ctxt_.onpe0() )
   {
-    cout << "  <!-- EnergyFunctional: np0v,np1v,np2v: " << np0v << " "
-         << np1v << " " << np2v << " -->" << endl;
-    cout << "  <!-- EnergyFunctional: vft->np012(): "
-         << vft->np012() << " -->" << endl;
+    cout << "  EnergyFunctional: np0v,np1v,np2v: " << np0v << " "
+         << np1v << " " << np2v << endl;
+    cout << "  EnergyFunctional: vft->np012(): "
+         << vft->np012() << endl;
   }
 
   const int ngloc = vbasis_->localsize();
@@ -171,10 +171,11 @@ EnergyFunctional::~EnergyFunctional(void)
     s_.ctxt_.dmax(1,1,&tmax,1);
     if ( s_.ctxt_.myproc()==0 )
     {
-      cout << "<!-- timing "
-           << setw(15) << (*i).first
-           << " : " << setprecision(3) << setw(9) << tmin
-           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
+      cout << "<timing name=\""
+           << setw(15) << (*i).first << "\""
+           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
+           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << endl;
     }
   }
 }

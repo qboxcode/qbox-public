@@ -3,7 +3,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.C,v 1.15 2007-11-08 20:09:42 fgygi Exp $
+// $Id: ChargeDensity.C,v 1.16 2008-02-12 05:39:19 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -92,10 +92,11 @@ ChargeDensity::~ChargeDensity(void)
     ctxt_.dmax(1,1,&tmax,1);
     if ( ctxt_.myproc()==0 )
     {
-      cout << "<!-- timing "
-           << setw(15) << (*i).first
-           << " : " << setprecision(3) << setw(9) << tmin
-           << " "   << setprecision(3) << setw(9) << tmax << " -->" << endl;
+      cout << "<timing name=\""
+           << setw(15) << (*i).first << "\""
+           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
+           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << endl;
     }
   }
 }
@@ -149,8 +150,8 @@ void ChargeDensity::update_density(void)
     {
       cout.setf(ios::fixed,ios::floatfield);
       cout.setf(ios::right,ios::adjustfield);
-      cout << "  <!-- total_electronic_charge: " << setprecision(8) << sum
-           << " -->" << endl;
+      cout << "  total_electronic_charge: " << setprecision(8) << sum
+           << endl;
     }
 
     tmap["charge_vft"].start();
@@ -182,5 +183,3 @@ void ChargeDensity::update_rhor(void)
     }
   }
 }
-
-

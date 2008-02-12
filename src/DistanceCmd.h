@@ -3,7 +3,7 @@
 // DistanceCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: DistanceCmd.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
+// $Id: DistanceCmd.h,v 1.4 2008-02-12 05:39:18 fgygi Exp $
 
 #ifndef DISTANCECMD_H
 #define DISTANCECMD_H
@@ -51,10 +51,10 @@ class DistanceCmd : public Cmd
       if ( ui->onpe0() )
       {
         if ( a1 == 0 )
-          cout << " <!-- DistanceCmd: atom " << name1 << " not defined -->"
+          cout << " DistanceCmd: atom " << name1 << " not defined"
                << endl;
         if ( a2 == 0 )
-          cout << " <!-- DistanceCmd: atom " << name2 << " not defined -->"
+          cout << " DistanceCmd: atom " << name2 << " not defined"
                << endl;
       }
       return 1;
@@ -64,9 +64,9 @@ class DistanceCmd : public Cmd
     {
       const double d = length(a1->position()-a2->position());
       cout.setf(ios::fixed,ios::floatfield);
-      cout << " <!-- distance " << name1 << "-" << name2 << ": "
+      cout << " distance " << name1 << "-" << name2 << ": "
            << setprecision(3)
-           << d << " (a.u.) / " << 0.529177*d << " (Ang) -->" << endl;
+           << d << " (a.u.) / " << 0.529177*d << " (Ang)" << endl;
     }
     return 0;
   }

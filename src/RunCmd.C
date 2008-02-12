@@ -3,7 +3,7 @@
 // RunCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.C,v 1.6 2007-10-19 16:24:04 fgygi Exp $
+// $Id: RunCmd.C,v 1.7 2008-02-12 05:39:18 fgygi Exp $
 
 #include "RunCmd.h"
 #include<iostream>
@@ -29,13 +29,13 @@ int RunCmd::action(int argc, char **argv)
   if ( s->wf.nst() == 0 )
   {
     if ( ui->onpe0() )
-      cout << " <!-- RunCmd: no states, cannot run -->" << endl;
+      cout << " RunCmd: no states, cannot run" << endl;
     return 1;
   }
   if ( s->wf.ecut() == 0.0 )
   {
     if ( ui->onpe0() )
-      cout << " <!-- RunCmd: ecut = 0.0, cannot run -->" << endl;
+      cout << " RunCmd: ecut = 0.0, cannot run" << endl;
     return 1;
   }
 

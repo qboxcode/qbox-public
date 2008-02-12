@@ -3,7 +3,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.15 2008-01-13 23:04:46 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.16 2008-02-12 05:39:18 fgygi Exp $
 
 #if USE_XERCES
 
@@ -271,7 +271,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       if ( attrname == "kpoint")
       {
         stst >> current_kx >> current_ky >> current_kz;
-        cout << " read <slater_determinant> kpoint=" << current_kx
+        cout << " read slater_determinant kpoint=" << current_kx
              << " " << current_ky << " " << current_kz;
       }
       else if ( attrname == "weight" )

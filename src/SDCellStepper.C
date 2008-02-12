@@ -3,7 +3,7 @@
 // SDCellStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDCellStepper.C,v 1.5 2007-10-19 16:24:04 fgygi Exp $
+// $Id: SDCellStepper.C,v 1.6 2008-02-12 05:39:18 fgygi Exp $
 
 #include "SDCellStepper.h"
 using namespace std;
@@ -22,8 +22,8 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
   {
     if ( s_.ctxt_.onpe0() )
     {
-      cout << "<!-- SDCellStepper::compute_new_cell: cell mass is zero\n"
-           << "     cannot update cell -->" << endl;
+      cout << " SDCellStepper::compute_new_cell: cell mass is zero\n"
+           << "     cannot update cell" << endl;
       return;
     }
   }

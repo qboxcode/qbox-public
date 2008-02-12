@@ -3,7 +3,7 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.5 2007-10-19 16:24:05 fgygi Exp $
+// $Id: UserInterface.C,v 1.6 2008-02-12 05:39:18 fgygi Exp $
 
 #include "UserInterface.h"
 #include <string>
@@ -93,7 +93,7 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
   int i,done,status;
 
   if ( onpe0_ )
-    cout << "<!-- " << prompt << " ";
+    cout << prompt << " ";
 
   // read a command terminated by '\n' or ';'
   if ( onpe0_ )
@@ -109,7 +109,7 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
   while ( !done )
   {
     if ( onpe0_ )
-      cout << " -->" << endl;
+      cout << endl;
 
     // cmdline contains a string of tokens terminated by '\0'
     // cout << " command line is: " << cmdline << endl;
@@ -126,7 +126,6 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
       // cout << " shell escape" << endl;
       if ( onpe0_ )
       {
-        cout << "<!-- ";
         system ( &cmdline[i+1] );
         cout << prompt << " ";
       }
@@ -225,14 +224,13 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
           else
           {
             if ( onpe0_ )
-              cout << "<!-- no such command or file name: " << tok << " -->"
-                   << endl;
+              cout << " No such command or file name: " << tok << endl;
           }
         }
       }
       delete [] av;
       if ( onpe0_ )
-        cout << "<!-- " << prompt << " ";
+        cout << prompt << " ";
     }
 
     // read a command terminated by '\n' or ';'
@@ -247,5 +245,5 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
 
   }
   if ( onpe0_ )
-    cout << " -->" << endl << "<!-- end of command stream -->" << endl;
+    cout << " End of command stream " << endl;
 }

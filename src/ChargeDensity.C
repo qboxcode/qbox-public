@@ -3,7 +3,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeDensity.C,v 1.16 2008-02-12 05:39:19 fgygi Exp $
+// $Id: ChargeDensity.C,v 1.17 2008-03-05 04:04:48 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -30,6 +30,9 @@ wf_(wf), vcontext_(wf.sd(0,0)->basis().context())
   int np0v = vbasis_->np(0)+2;
   int np1v = vbasis_->np(1)+2;
   int np2v = vbasis_->np(2)+2;
+  while (!vbasis_->factorizable(np0v)) np0v += 2;
+  while (!vbasis_->factorizable(np1v)) np1v += 2;
+  while (!vbasis_->factorizable(np2v)) np2v += 2;
 #if 0
   cout << " ChargeDensity: vbasis: " << endl;
   cout << " idxmin: " << vb.idxmin(0) << "/" << vb.idxmin(1)

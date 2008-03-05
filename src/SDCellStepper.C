@@ -3,7 +3,7 @@
 // SDCellStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDCellStepper.C,v 1.6 2008-02-12 05:39:18 fgygi Exp $
+// $Id: SDCellStepper.C,v 1.7 2008-03-05 04:04:48 fgygi Exp $
 
 #include "SDCellStepper.h"
 using namespace std;
@@ -145,6 +145,7 @@ void SDCellStepper::update_cell(void)
     }
   }
   s_.atoms.set_positions(r);
+  s_.atoms.set_cell(cellp);
 
   // resize wavefunction and basis sets
 

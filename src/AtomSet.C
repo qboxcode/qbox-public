@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.20 2008-02-12 05:39:18 fgygi Exp $
+// $Id: AtomSet.C,v 1.21 2008-03-05 04:04:48 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -24,7 +24,7 @@ bool AtomSet::addSpecies(Species* sp, string name)
     return false;
   }
 
-  const double rcps = 1.0;
+  const double rcps = 1.5;
   sp->initialize(rcps);
 
   // create new entry in species list
@@ -446,7 +446,7 @@ ostream& operator << ( ostream &os, const AtomSet &as )
   if ( as.context().onpe0() )
   {
     os << "<atomset>\n";
-    os << as.unit_cell;
+    os << as.cell();
     for ( int is = 0; is < as.species_list.size(); is++ )
     {
       os << *as.species_list[is];

@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.36 2008-02-12 05:39:18 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.37 2008-03-05 04:04:48 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -245,7 +245,7 @@ void BOSampleStepper::step(int niter)
       if ( onpe0 )
       {
         cout << "<atomset>" << endl;
-        cout << atoms.unit_cell;
+        cout << atoms.cell();
         for ( int is = 0; is < atoms.atom_list.size(); is++ )
         {
           int i = 0;

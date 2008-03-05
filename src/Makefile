@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.49 2008-02-03 22:53:55 fgygi Exp $
+# $Id: Makefile,v 1.50 2008-03-05 04:04:48 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -207,7 +207,7 @@ AtomSet.o: Context.h Atom.h D3vector.h UnitCell.h
 AtomSetHandler.o: StructureHandler.h D3vector.h
 Base64Transcoder.o: Base64Transcoder.h
 Basis.o: Basis.h D3vector.h UnitCell.h Context.h
-Basis.o: D3vector.h UnitCell.h
+Basis.o: D3vector.h UnitCell.h Context.h
 BasisMapping.o: Basis.h D3vector.h UnitCell.h Context.h BasisMapping.h
 bisection1.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 bisection1.o: ConstraintSet.h Wavefunction.h Control.h SampleReader.h Basis.h
@@ -259,6 +259,7 @@ ComputeMLWFCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 ComputeMLWFCmd.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
 ComputeMLWFCmd.o: Control.h MLWFTransform.h BasisMapping.h
 ConfinementPotential.o: ConfinementPotential.h Basis.h D3vector.h UnitCell.h
+ConfinementPotential.o: Context.h
 Constraint.o: Constraint.h
 ConstraintCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 ConstraintCmd.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
@@ -350,7 +351,7 @@ MDWavefunctionStepper.o: SlaterDet.h Context.h Basis.h Matrix.h Sample.h
 MDWavefunctionStepper.o: AtomSet.h Atom.h ConstraintSet.h Control.h
 MDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
 MLWFTransform.o: MLWFTransform.h D3vector.h BasisMapping.h Basis.h UnitCell.h
-MLWFTransform.o: SlaterDet.h Context.h Matrix.h Timer.h jade.h blas.h
+MLWFTransform.o: Context.h SlaterDet.h Matrix.h Timer.h jade.h blas.h
 MLWFTransform.o: D3vector.h BasisMapping.h
 MoveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 MoveCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h Control.h
@@ -480,7 +481,7 @@ StatusCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h Control.h
 Stress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 Stress.o: ConstraintSet.h Wavefunction.h Control.h
 StructuredDocumentHandler.o: StrX.h StructureHandler.h
-StructureFactor.o: StructureFactor.h Basis.h D3vector.h UnitCell.h
+StructureFactor.o: StructureFactor.h Basis.h D3vector.h UnitCell.h Context.h
 testAndersonMixer.o: Context.h AndersonMixer.h
 testBase64Transcoder.o: Base64Transcoder.h
 testBasis.o: Basis.h D3vector.h UnitCell.h Context.h

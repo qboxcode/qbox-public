@@ -3,7 +3,7 @@
 // Cell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Cell.h,v 1.6 2008-02-03 22:53:54 fgygi Exp $
+// $Id: Cell.h,v 1.7 2008-03-05 04:04:48 fgygi Exp $
 
 #ifndef CELL_H
 #define CELL_H
@@ -51,11 +51,11 @@ class Cell : public Var
       s->wfv->clear();
     }
 
-    s->atoms.unit_cell.set(a,b,c);
+    s->atoms.set_cell(a,b,c);
 
     if ( ui->onpe0() )
     {
-      cout << s->atoms.unit_cell;
+      cout << s->atoms.cell();
     }
     return 0;
   }

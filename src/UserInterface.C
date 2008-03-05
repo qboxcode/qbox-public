@@ -3,7 +3,7 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.6 2008-02-12 05:39:18 fgygi Exp $
+// $Id: UserInterface.C,v 1.7 2008-03-05 04:04:48 fgygi Exp $
 
 #include "UserInterface.h"
 #include <string>
@@ -77,6 +77,7 @@ char *UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
     if ( !(ch == '\n') )
       return NULL;             /* return NULL for end of file */
   }
+  if ( echo ) cout << endl;
 
   return s;
 }
@@ -108,9 +109,6 @@ void UserInterface::processCmds ( istream &cmdstream, char *prompt, bool echo )
 
   while ( !done )
   {
-    if ( onpe0_ )
-      cout << endl;
-
     // cmdline contains a string of tokens terminated by '\0'
     // cout << " command line is: " << cmdline << endl;
 

@@ -3,7 +3,7 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.18 2008-02-03 22:53:55 fgygi Exp $
+// $Id: AtomSet.h,v 1.19 2008-03-05 04:04:48 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
@@ -32,9 +32,9 @@ class AtomSet
   std::map<std::string,int> ia_; // ia_[atom_name]: ia index of atom atom_name
   std::vector<std::string> spname; // spname[is]: name of species is
 
-  public:
+  UnitCell cell_;
 
-  UnitCell unit_cell;
+  public:
 
   AtomSet(const Context& ctxt) : ctxt_(ctxt), nel_(0) {}
 
@@ -62,6 +62,12 @@ class AtomSet
   void set_positions(const std::vector<std::vector<double> >& tau);
   void get_velocities(std::vector<std::vector<double> >& vel) const;
   void set_velocities(const std::vector<std::vector<double> >& vel);
+  const UnitCell& cell(void) const { return cell_; }
+  void set_cell(const UnitCell& cell) { cell_ = cell; }
+  void set_cell(const D3vector& a, const D3vector& b, const D3vector& c)
+  {
+    cell_.set(a,b,c);
+  }
   void sync(void);
   void reset_velocities(void);
   D3vector vcm(void) const;

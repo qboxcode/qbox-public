@@ -3,7 +3,7 @@
 // AtomSetHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.C,v 1.10 2008-02-12 05:39:18 fgygi Exp $
+// $Id: AtomSetHandler.C,v 1.11 2008-03-05 04:04:48 fgygi Exp $
 
 #if USE_XERCES
 
@@ -60,7 +60,7 @@ void AtomSetHandler::startElement(const XMLCh* const uri,
       }
     }
 
-    as_.unit_cell.set(a,b,c);
+    as_.set_cell(a,b,c);
   }
   else if ( locname == "atom")
   {
@@ -96,15 +96,15 @@ void AtomSetHandler::endElement(const XMLCh* const uri,
     as_.context().ibcast_send(1,1,(int*)&event,1);
     // notify listening nodes
     double buf[9];
-    buf[0] = as_.unit_cell.a(0).x;
-    buf[1] = as_.unit_cell.a(0).y;
-    buf[2] = as_.unit_cell.a(0).z;
-    buf[3] = as_.unit_cell.a(1).x;
-    buf[4] = as_.unit_cell.a(1).y;
-    buf[5] = as_.unit_cell.a(1).z;
-    buf[6] = as_.unit_cell.a(2).x;
-    buf[7] = as_.unit_cell.a(2).y;
-    buf[8] = as_.unit_cell.a(2).z;
+    buf[0] = as_.cell().a(0).x;
+    buf[1] = as_.cell().a(0).y;
+    buf[2] = as_.cell().a(0).z;
+    buf[3] = as_.cell().a(1).x;
+    buf[4] = as_.cell().a(1).y;
+    buf[5] = as_.cell().a(1).z;
+    buf[6] = as_.cell().a(2).x;
+    buf[7] = as_.cell().a(2).y;
+    buf[8] = as_.cell().a(2).z;
     as_.context().dbcast_send(9,1,buf,9);
   }
   else if ( locname == "atom")

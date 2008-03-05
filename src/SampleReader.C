@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.24 2008-02-12 05:39:18 fgygi Exp $
+// $Id: SampleReader.C,v 1.25 2008-03-05 04:04:48 fgygi Exp $
 
 
 #include "Sample.h"
@@ -238,7 +238,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         D3vector a(buf[0],buf[1],buf[2]);
         D3vector b(buf[3],buf[4],buf[5]);
         D3vector c(buf[6],buf[7],buf[8]);
-        s.atoms.unit_cell = UnitCell(a,b,c);
+        s.atoms.set_cell(a,b,c);
       }
       else if ( event == species )
       {
@@ -583,7 +583,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
 
   // force consistency of unit cell
   // copy wavefunction domain on atomset unit_cell
-  s.atoms.unit_cell = s.wf.cell();
+  s.atoms.set_cell(s.wf.cell());
 
   // check if wavefunction_velocity element was read, if not, delete wfvtmp
   if ( s.wfv != 0 )

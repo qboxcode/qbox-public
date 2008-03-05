@@ -3,7 +3,7 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: x8664_gcc.mk,v 1.6 2008-01-26 01:36:27 fgygi Exp $
+# $Id: x8664_gcc.mk,v 1.7 2008-03-05 04:04:48 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
@@ -34,8 +34,8 @@
            -L$(XERCESCDIR)/lib
 
  LIBS =  $(PLIBS) -lfftw \
-         -llapack -lf77blas -latlas -lm -lmpich -lgfortran  \
-         $(XERCESCDIR)/lib/libxerces-c.a
+         -llapack -lf77blas -latlas -lm -lgfortran  \
+         $(MPIDIR)/lib/libmpich.a $(XERCESCDIR)/lib/libxerces-c.a
 
  LDFLAGS = $(LIBPATH) $(LIBS)
 

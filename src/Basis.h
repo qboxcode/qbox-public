@@ -3,13 +3,15 @@
 //  Basis.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.h,v 1.8 2007-10-19 17:10:58 fgygi Exp $
+// $Id: Basis.h,v 1.9 2008-03-05 04:04:48 fgygi Exp $
 
 #ifndef BASIS_H
 #define BASIS_H
 
 #include "D3vector.h"
 #include "UnitCell.h"
+#include "Context.h"
+#include <vector>
 
 class Context;
 
@@ -17,7 +19,42 @@ class Basis
 {
   private:
 
-  struct BasisImpl* pimpl_;
+  Context ctxt_;
+  int nprow_, myrow_;
+
+  UnitCell cell_;         // cell dimensions
+  UnitCell refcell_;      // reference cell dimensions
+  D3vector kpoint_;       // k-point in units of b0,b1,b2
+  double ecut_;           // energy cutoff of wavefunctions in Rydberg
+  int idxmin_[3];          // minimum index in each direction
+  int idxmax_[3];          // maximum index in each direction
+  int size_;              // basis size
+  int nrods_;             // total number of rods
+  std::vector<int> localsize_; // localsize_[ipe]
+  int maxlocalsize_, minlocalsize_;
+  std::vector<int> nrod_loc_;
+  std::vector<std::vector<int> > rod_h_;
+  std::vector<std::vector<int> > rod_k_;
+  std::vector<std::vector<int> > rod_lmin_;
+  std::vector<std::vector<int> > rod_size_;
+  std::vector<std::vector<int> > rod_first_;
+
+  std::vector<int>    idx_;   // 3-d index of vectors idx[i*3+j]
+  std::vector<double> g_;     // norm of g vectors g[localsize]
+  std::vector<double> kpg_;   // norm of g vectors g[localsize]
+  std::vector<double> gi_;    // inverse norm of g vectors gi[localsize]
+  std::vector<double> kpgi_;  // inverse norm of k+g vectors kpgi[localsize]
+  std::vector<double> g2_;    // 2-norm of g vectors g2[localsize]
+  std::vector<double> kpg2_;  // 2-norm of g vectors g2[localsize]
+  std::vector<double> g2i_;   // inverse square norm of g vec g2i[localsize]
+  std::vector<double> kpg2i_; // inverse square norm of k+g vec kpg2i[localsize]
+  int np_[3];            // cache for the function np
+  std::vector<double> gx_;    // g vec components gx[j*localsize+i], j=0,1,2
+  std::vector<double> kpgx_;  // k+g vec components kpgx[j*localsize+i], j=0,1,2
+  std::vector<int> isort_loc; // index array to access locally sorted vectors
+                         // kpg2_[isort_loc[i]] < kpg2_[isort_loc[j]] if i < j
+  bool real_;            // true if k=0
+  void update_g(void);
 
   public:
 
@@ -27,6 +64,7 @@ class Basis
   const UnitCell& refcell() const;// reference cell dimensions
   const D3vector kpoint() const; // k-point in units of b0,b1,b2
   int np(int i) const;           // good size of FFT grid in direction i
+  bool factorizable(int n) const;// check if n is factorizable with low factors
   int idxmin(int i) const;       // smallest index in direction i
   int idxmax(int i) const;       // largest index in direction i
   double ecut() const;           // energy cutoff in Hartree
@@ -89,7 +127,7 @@ class Basis
   double localmemsize(void) const;
 
   Basis(const Context &ctxt, D3vector kpoint);
-  Basis(const Basis &b);
+  //Basis(const Basis &b);
   ~Basis(void);
 
   bool resize(const UnitCell& cell, const UnitCell& refcell, double ecut);

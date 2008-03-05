@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.29 2008-02-12 05:39:19 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.30 2008-03-05 04:04:48 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -860,6 +860,18 @@ void EnergyFunctional::atoms_moved(void)
   // compute esr: pseudocharge repulsion energy
   const UnitCell& cell = s_.wf.cell();
   const double omega_inv = 1.0 / cell.volume();
+  // distance between opposite planes of the cell
+  const double d0 = 2.0 * M_PI / length(cell.b(0));
+  const double d1 = 2.0 * M_PI / length(cell.b(1));
+  const double d2 = 2.0 * M_PI / length(cell.b(2));
+  assert (d0!=0.0);
+  assert (d1!=0.0);
+  assert (d2!=0.0);
+#ifdef DEBUG
+  cout << " EnergyFunctional: d0 = " << d0 << endl;
+  cout << " EnergyFunctional: d1 = " << d1 << endl;
+  cout << " EnergyFunctional: d2 = " << d2 << endl;
+#endif
 
   esr_  = 0.0;
   sigma_esr = 0.0;
@@ -867,50 +879,69 @@ void EnergyFunctional::atoms_moved(void)
     for ( int i = 0; i < fion_esr[is].size(); i++ )
       fion_esr[is][i] = 0.0;
 
-  for ( int k = 0; k < nsp_; k++ )
+  for ( int is1 = 0; is1 < nsp_; is1++ )
   {
-    for ( int j = k; j < nsp_; j++ )
+    for ( int is2 = is1; is2 < nsp_; is2++ )
     {
-      double rckj = sqrt ( rcps_[k]*rcps_[k]+rcps_[j]*rcps_[j] );
-      int lax = na_[k];
-      if ( k == j ) lax--;
-
-      for ( int l = 0; l < lax; l++ )
+      double rcps12 = sqrt ( rcps_[is1]*rcps_[is1]+rcps_[is2]*rcps_[is2] );
+      // convergence criterion for lattice sums:
+      // fac * rcps12 < ncell * d
+      const double fac = 6.0;
+      const int ncell0 = (int) (fac * rcps12 / d0);
+      const int ncell1 = (int) (fac * rcps12 / d1);
+      const int ncell2 = (int) (fac * rcps12 / d2);
+#ifdef DEBUG
+      const double mindist = min(min(d0,d1),d2);
+      cout << " EnergyFunctional: mindist/rcps12: " << mindist/rcps12 << endl;
+      cout << " EnergyFunctional: ncell[012]: "
+           << ncell0 << " " << ncell1 << " " << ncell2 << endl;
+#endif
+      for ( int ia1 = 0; ia1 < na_[is1]; ia1++ )
       {
-        int inf = 0;
-        if ( k == j ) inf = l+1;
-        for ( int m = inf; m < na_[j]; m++ )
+        int ia2min = 0;
+        if ( is1 == is2 ) ia2min = ia1 + 1;
+        for ( int ia2 = ia2min; ia2 < na_[is2]; ia2++ )
         {
-          double xlm = tau0[k][3*l+0] - tau0[j][3*m+0];
-          double ylm = tau0[k][3*l+1] - tau0[j][3*m+1];
-          double zlm = tau0[k][3*l+2] - tau0[j][3*m+2];
-          D3vector vlm(xlm,ylm,zlm);
-          cell.fold_in_ws(vlm);
-          xlm = vlm.x;
-          ylm = vlm.y;
-          zlm = vlm.z;
-          double rlm = sqrt(xlm*xlm + ylm*ylm + zlm*zlm);
-          double arg = rlm / rckj;
-          double esr_lm = zv_[k] * zv_[j] * erfc(arg) / rlm;
-          esr_ += esr_lm;
+          double x12 = tau0[is1][3*ia1+0] - tau0[is2][3*ia2+0];
+          double y12 = tau0[is1][3*ia1+1] - tau0[is2][3*ia2+1];
+          double z12 = tau0[is1][3*ia1+2] - tau0[is2][3*ia2+2];
+          D3vector v12(x12,y12,z12);
+          cell.fold_in_ws(v12);
 
-          double desr_erfc = 2.0 * zv_[k]*zv_[j]*exp(-arg*arg)/rckj/sqrt(M_PI);
+          // loop over neighboring cells
+          for ( int ic0 = -ncell0; ic0 <= ncell0; ic0++ )
+            for ( int ic1 = -ncell1; ic1 <= ncell1; ic1++ )
+              for ( int ic2 = -ncell2; ic2 <= ncell2; ic2++ )
+              {
+                D3vector s = ic0*cell.a(0) + ic1*cell.a(1) + ic2*cell.a(2);
+                x12 = v12.x + s.x;
+                y12 = v12.y + s.y;
+                z12 = v12.z + s.z;
 
-          // desrdr = (1/r) d Esr / dr
-          double desrdr = -(esr_lm+desr_erfc) / ( rlm*rlm );
-          fion_esr[k][3*l+0] -= desrdr * xlm;
-          fion_esr[j][3*m+0] += desrdr * xlm;
-          fion_esr[k][3*l+1] -= desrdr * ylm;
-          fion_esr[j][3*m+1] += desrdr * ylm;
-          fion_esr[k][3*l+2] -= desrdr * zlm;
-          fion_esr[j][3*m+2] += desrdr * zlm;
+                double r12 = sqrt(x12*x12 + y12*y12 + z12*z12);
+                double arg = r12 / rcps12;
+                double esr_term = zv_[is1] * zv_[is2] * erfc(arg) / r12;
+                esr_ += esr_term;
 
-          sigma_esr[0] += desrdr * xlm * xlm;
-          sigma_esr[1] += desrdr * ylm * ylm;
-          sigma_esr[2] += desrdr * zlm * zlm;
-          sigma_esr[3] += desrdr * xlm * ylm;
-          sigma_esr[4] += desrdr * ylm * zlm;
-          sigma_esr[5] += desrdr * xlm * zlm;
+                double desr_erfc = 2.0 * zv_[is1]*zv_[is2] *
+                       exp(-arg*arg)/(rcps12*sqrt(M_PI));
+
+                // desrdr = (1/r) d Esr / dr
+                double desrdr = -(esr_term+desr_erfc) / ( r12*r12 );
+                fion_esr[is1][3*ia1+0] -= desrdr * x12;
+                fion_esr[is2][3*ia2+0] += desrdr * x12;
+                fion_esr[is1][3*ia1+1] -= desrdr * y12;
+                fion_esr[is2][3*ia2+1] += desrdr * y12;
+                fion_esr[is1][3*ia1+2] -= desrdr * z12;
+                fion_esr[is2][3*ia2+2] += desrdr * z12;
+
+                sigma_esr[0] += desrdr * x12 * x12;
+                sigma_esr[1] += desrdr * y12 * y12;
+                sigma_esr[2] += desrdr * z12 * z12;
+                sigma_esr[3] += desrdr * x12 * y12;
+                sigma_esr[4] += desrdr * y12 * z12;
+                sigma_esr[5] += desrdr * x12 * z12;
+              }
         }
       }
     }

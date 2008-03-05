@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.17 2007-12-15 00:57:41 fgygi Exp $
+// $Id: Basis.C,v 1.18 2008-03-05 04:04:48 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -19,136 +19,81 @@
 #include <iomanip>
 using namespace std;
 
-struct BasisImpl
-{
-  Context ctxt_;
-  int nprow_, myrow_;
-
-  UnitCell cell_;         // cell dimensions
-  UnitCell refcell_;      // reference cell dimensions
-  D3vector kpoint_;       // k-point in units of b0,b1,b2
-  double ecut_;           // energy cutoff of wavefunctions in Rydberg
-  int idxmin_[3];          // minimum index in each direction
-  int idxmax_[3];          // maximum index in each direction
-  int size_;              // basis size
-  int nrods_;             // total number of rods
-  vector<int> localsize_; // localsize_[ipe]
-  int maxlocalsize_, minlocalsize_;
-  vector<int> nrod_loc_;
-  vector<vector<int> > rod_h_;
-  vector<vector<int> > rod_k_;
-  vector<vector<int> > rod_lmin_;
-  vector<vector<int> > rod_size_;
-  vector<vector<int> > rod_first_;
-
-  vector<int>    idx_;   // 3-d index of vectors idx[i*3+j]
-  vector<double> g_;     // norm of g vectors g[localsize]
-  vector<double> kpg_;   // norm of g vectors g[localsize]
-  vector<double> gi_;    // inverse norm of g vectors gi[localsize]
-  vector<double> kpgi_;  // inverse norm of k+g vectors kpgi[localsize]
-  vector<double> g2_;    // 2-norm of g vectors g2[localsize]
-  vector<double> kpg2_;  // 2-norm of g vectors g2[localsize]
-  vector<double> g2i_;   // inverse square norm of g vectors g2i[localsize]
-  vector<double> kpg2i_; // inverse square norm of k+g vectors kpg2i[localsize]
-  int np_[3];            // cache for the function np
-  vector<double> gx_;    // g vectors components gx[j*localsize+i], j=0,1,2
-  vector<double> kpgx_;  // k+g vectors components kpgx[j*localsize+i], j=0,1,2
-  vector<int> isort_loc; // index array to access locally sorted vectors
-                         // kpg2_[isort_loc[i]] < kpg2_[isort_loc[j]] if i < j
-  bool real_;            // true if k=0
-
-  bool resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
-
-  BasisImpl(const Context &ctxt, D3vector kpoint);
-  ~BasisImpl(void);
-
-  void update_g(void);
-
-};
-
 ////////////////////////////////////////////////////////////////////////////////
 double Basis::localmemsize(void) const
 {
   return
-  5.0 * (pimpl_->nprow_*pimpl_->nrods_*sizeof(int)) // x[ipe][irod]
-  + pimpl_->localsize_[pimpl_->myrow_] * (3.0*sizeof(int) + 10 * sizeof(double));
+  5.0 * (nprow_*nrods_*sizeof(int)) // x[ipe][irod]
+  + localsize_[myrow_] * (3.0*sizeof(int) + 10 * sizeof(double));
 }
-double Basis::memsize(void) const { return pimpl_->nprow_*localmemsize(); }
+double Basis::memsize(void) const { return nprow_*localmemsize(); }
 
-const Context& Basis::context(void) const { return pimpl_->ctxt_; }
+const Context& Basis::context(void) const { return ctxt_; }
 
-const UnitCell& Basis::cell() const { return pimpl_->cell_; }
-const UnitCell& Basis::refcell() const { return pimpl_->refcell_; }
-int Basis::idxmin(int i) const { return pimpl_->idxmin_[i]; }
-int Basis::idxmax(int i) const { return pimpl_->idxmax_[i]; }
-double Basis::ecut() const { return pimpl_->ecut_; }
+const UnitCell& Basis::cell() const { return cell_; }
+const UnitCell& Basis::refcell() const { return refcell_; }
+int Basis::idxmin(int i) const { return idxmin_[i]; }
+int Basis::idxmax(int i) const { return idxmax_[i]; }
+double Basis::ecut() const { return ecut_; }
 
-int Basis::size() const { return pimpl_->size_; }
-int Basis::localsize() const { return pimpl_->localsize_[pimpl_->myrow_]; }
-int Basis::localsize(int ipe) const { return pimpl_->localsize_[ipe]; }
-int Basis::maxlocalsize() const { return pimpl_->maxlocalsize_; }
-int Basis::minlocalsize() const { return pimpl_->minlocalsize_; }
+int Basis::size() const { return size_; }
+int Basis::localsize() const { return localsize_[myrow_]; }
+int Basis::localsize(int ipe) const { return localsize_[ipe]; }
+int Basis::maxlocalsize() const { return maxlocalsize_; }
+int Basis::minlocalsize() const { return minlocalsize_; }
 
-int Basis::nrods() const { return pimpl_->nrods_; }
-int Basis::nrod_loc() const { return pimpl_->nrod_loc_[pimpl_->myrow_]; }
-int Basis::nrod_loc(int ipe) const { return pimpl_->nrod_loc_[ipe]; }
+int Basis::nrods() const { return nrods_; }
+int Basis::nrod_loc() const { return nrod_loc_[myrow_]; }
+int Basis::nrod_loc(int ipe) const { return nrod_loc_[ipe]; }
 
 int Basis::rod_h(int irod) const
-{ return pimpl_->rod_h_[pimpl_->myrow_][irod]; }
+{ return rod_h_[myrow_][irod]; }
 int Basis::rod_h(int ipe, int irod) const
-{ return pimpl_->rod_h_[ipe][irod]; }
+{ return rod_h_[ipe][irod]; }
 
-int Basis::rod_k(int irod) const
-{ return pimpl_->rod_k_[pimpl_->myrow_][irod]; }
-int Basis::rod_k(int ipe, int irod) const
-{ return pimpl_->rod_k_[ipe][irod]; }
+int Basis::rod_k(int irod) const { return rod_k_[myrow_][irod]; }
+int Basis::rod_k(int ipe, int irod) const { return rod_k_[ipe][irod]; }
 
-int Basis::rod_lmin(int irod) const
-{ return pimpl_->rod_lmin_[pimpl_->myrow_][irod]; }
-int Basis::rod_lmin(int ipe, int irod) const
-{ return pimpl_->rod_lmin_[ipe][irod]; }
+int Basis::rod_lmin(int irod) const { return rod_lmin_[myrow_][irod]; }
+int Basis::rod_lmin(int ipe, int irod) const { return rod_lmin_[ipe][irod]; }
 
 // size of rod irod on current process
-int Basis::rod_size(int irod) const
-{ return pimpl_->rod_size_[pimpl_->myrow_][irod]; }
-int Basis::rod_size(int ipe, int irod) const
-{ return pimpl_->rod_size_[ipe][irod]; }
+int Basis::rod_size(int irod) const { return rod_size_[myrow_][irod]; }
+int Basis::rod_size(int ipe, int irod) const { return rod_size_[ipe][irod]; }
 
 // position of first elem. of rod irod in the local list of g vectors
-int Basis::rod_first(int irod) const
-{ return pimpl_->rod_first_[pimpl_->myrow_][irod]; }
-int Basis::rod_first(int ipe, int irod) const
-{ return pimpl_->rod_first_[ipe][irod]; }
+int Basis::rod_first(int irod) const { return rod_first_[myrow_][irod]; }
+int Basis::rod_first(int ipe, int irod) const { return rod_first_[ipe][irod]; }
 
-int    Basis::idx(int i) const   { return pimpl_->idx_[i]; }
-double Basis::g(int i) const     { return pimpl_->g_[i]; }
-double Basis::kpg(int i) const   { return pimpl_->kpg_[i]; }
-double Basis::gi(int i) const    { return pimpl_->gi_[i]; }
-double Basis::kpgi(int i) const  { return pimpl_->kpgi_[i]; }
-double Basis::g2(int i) const    { return pimpl_->g2_[i]; }
-double Basis::kpg2(int i) const  { return pimpl_->kpg2_[i]; }
-double Basis::g2i(int i) const   { return pimpl_->g2i_[i]; }
-double Basis::kpg2i(int i) const { return pimpl_->kpg2i_[i]; }
-double Basis::gx(int i) const    { return pimpl_->gx_[i]; }
-double Basis::kpgx(int i) const  { return pimpl_->kpgx_[i]; }
-int    Basis::isort(int i) const { return pimpl_->isort_loc[i]; }
+int    Basis::idx(int i) const   { return idx_[i]; }
+double Basis::g(int i) const     { return g_[i]; }
+double Basis::kpg(int i) const   { return kpg_[i]; }
+double Basis::gi(int i) const    { return gi_[i]; }
+double Basis::kpgi(int i) const  { return kpgi_[i]; }
+double Basis::g2(int i) const    { return g2_[i]; }
+double Basis::kpg2(int i) const  { return kpg2_[i]; }
+double Basis::g2i(int i) const   { return g2i_[i]; }
+double Basis::kpg2i(int i) const { return kpg2i_[i]; }
+double Basis::gx(int i) const    { return gx_[i]; }
+double Basis::kpgx(int i) const  { return kpgx_[i]; }
+int    Basis::isort(int i) const { return isort_loc[i]; }
 
-const int*    Basis::idx_ptr(void) const   { return &(pimpl_->idx_[0]); }
-const double* Basis::g_ptr(void)  const    { return &(pimpl_->g_[0]); }
-const double* Basis::kpg_ptr(void)  const  { return &(pimpl_->kpg_[0]); }
-const double* Basis::gi_ptr(void) const    { return &(pimpl_->gi_[0]); }
-const double* Basis::kpgi_ptr(void) const  { return &(pimpl_->kpgi_[0]); }
-const double* Basis::g2_ptr(void) const    { return &(pimpl_->g2_[0]); }
-const double* Basis::kpg2_ptr(void) const  { return &(pimpl_->kpg2_[0]); }
-const double* Basis::g2i_ptr(void) const   { return &(pimpl_->g2i_[0]); }
-const double* Basis::kpg2i_ptr(void) const { return &(pimpl_->kpg2i_[0]); }
+const int*    Basis::idx_ptr(void) const   { return &(idx_[0]); }
+const double* Basis::g_ptr(void)  const    { return &(g_[0]); }
+const double* Basis::kpg_ptr(void)  const  { return &(kpg_[0]); }
+const double* Basis::gi_ptr(void) const    { return &(gi_[0]); }
+const double* Basis::kpgi_ptr(void) const  { return &(kpgi_[0]); }
+const double* Basis::g2_ptr(void) const    { return &(g2_[0]); }
+const double* Basis::kpg2_ptr(void) const  { return &(kpg2_[0]); }
+const double* Basis::g2i_ptr(void) const   { return &(g2i_[0]); }
+const double* Basis::kpg2i_ptr(void) const { return &(kpg2i_[0]); }
 const double* Basis::gx_ptr(int j) const
-{ return &(pimpl_->gx_[j*pimpl_->localsize_[pimpl_->myrow_]]); }
+{ return &(gx_[j*localsize_[myrow_]]); }
 const double* Basis::kpgx_ptr(int j) const
-{ return &(pimpl_->kpgx_[j*pimpl_->localsize_[pimpl_->myrow_]]); }
+{ return &(kpgx_[j*localsize_[myrow_]]); }
 
 ////////////////////////////////////////////////////////////////////////////////
-inline bool factorizable(int n)
+bool Basis::factorizable(int n) const
 {
   // next lines: use AIX criterion for all platforms (AIX and fftw)
 
@@ -179,33 +124,13 @@ inline bool factorizable(int n)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int Basis::np(int i) const { return pimpl_->np_[i]; }
+int Basis::np(int i) const { return np_[i]; }
 
 ////////////////////////////////////////////////////////////////////////////////
-const D3vector Basis::kpoint(void) const { return pimpl_->kpoint_; }
+const D3vector Basis::kpoint(void) const { return kpoint_; }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool Basis::real(void) const { return pimpl_->real_; }
-
-////////////////////////////////////////////////////////////////////////////////
-bool Basis::resize(const UnitCell& cell, const UnitCell& refcell, double ecut)
-{
-  return pimpl_->resize(cell,refcell,ecut);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-Basis::Basis(const Context& ctxt, D3vector kpoint) :
-  pimpl_(new BasisImpl(ctxt,kpoint)) {}
-
-////////////////////////////////////////////////////////////////////////////////
-Basis::Basis(const Basis& b) :
-  pimpl_(new BasisImpl(b.context(),b.kpoint()))
-{
-  resize(b.cell(),b.refcell(),b.ecut());
-}
-
-////////////////////////////////////////////////////////////////////////////////
-Basis::~Basis(void) { delete pimpl_; }
+bool Basis::real(void) const { return real_; }
 
 inline double sqr( double x ) { return x*x; }
 inline void swap(int &x, int &y) { int tmp = x; x = y; y = tmp; }
@@ -283,7 +208,7 @@ struct VectorLess
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-BasisImpl::BasisImpl(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt)
+Basis::Basis(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt)
 {
   // Construct the default empty basis
   // cell and refcell are (0,0,0)
@@ -307,10 +232,10 @@ BasisImpl::BasisImpl(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-BasisImpl::~BasisImpl(void) {}
+Basis::~Basis(void) {}
 
 ////////////////////////////////////////////////////////////////////////////////
-bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
+bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   double ecut)
 {
   assert(ecut>=0.0);
@@ -700,7 +625,7 @@ bool BasisImpl::resize(const UnitCell& cell, const UnitCell& refcell,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void BasisImpl::update_g(void)
+void Basis::update_g(void)
 {
   // compute the values of g, kpg, gi, g2i, g2, kpg2, gx
   // N.B. use the values of cell (not defcell)

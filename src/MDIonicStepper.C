@@ -3,7 +3,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.15 2008-02-12 05:39:18 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.16 2008-03-05 04:04:48 fgygi Exp $
 
 #include "MDIonicStepper.h"
 using namespace std;
@@ -75,6 +75,8 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
   else if ( thermostat_ == "ANDERSEN" )
   {
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
+    const double collision_probability = fabs(dt_) / th_time_ ;
+
     for ( int is = 0; is < nsp_; is++ )
     {
       const double m = pmass_[is];
@@ -82,8 +84,9 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
       for ( int ia = 0; ia < na_[is]; ia++ )
       {
         // if th_time is zero, set probability to one
-        if ( th_time_ == 0.0 || drand48() < fabs(dt_) / th_time_ )
+        if ( th_time_ == 0.0 || drand48() < collision_probability )
         {
+          cout << " collision: atom is=" << is << " ia=" << ia << endl;
           // draw gaussian random variables
           double xi0 = drand48() + drand48() + drand48() +
                        drand48() + drand48() + drand48() +
@@ -107,6 +110,9 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
   else if ( thermostat_ == "LOWE" )
   {
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
+    const int nat = atoms_.size();
+    const double collision_probability = nat > 1 ?
+                 fabs(dt_) / ( 0.5*(nat-1) * th_time_ ) : 0.0 ;
 
     // scan all atom pairs in the space (is,ia)
     //int npairs = 0;
@@ -125,14 +131,15 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
           for ( int ia2 = ia2min; ia2 < na_[is2]; ia2++ )
           {
             // if th_time is zero, set probability to one
-            if ( th_time_ == 0.0 || drand48() < fabs(dt_) / th_time_ )
+            if ( th_time_ == 0.0 || drand48() < collision_probability )
             {
-              //cout << " pair " << is1 << " " << ia1 << " "
-              //     << is2 << " " << ia2 << endl;
+              cout << " collision: pair " << is1 << " " << ia1 << " "
+                   << is2 << " " << ia2 << endl;
               D3vector r1(&r0_[is1][3*ia1]);
+              s_.wf.cell().fold_in_ws(r1);
               D3vector r2(&r0_[is2][3*ia2]);
+              s_.wf.cell().fold_in_ws(r2);
               D3vector r12 = r1 - r2;
-              s_.wf.cell().fold_in_ws(r12);
               D3vector e12 = normalized(r12);
               D3vector v1(&v0_[is1][3*ia1]);
               D3vector v2(&v0_[is2][3*ia2]);

@@ -1,4 +1,15 @@
 --------------------------------------------------------------------------------
+rel1_38_0
+MDIonicStepper.C: Modified minimum image convention in LOWE thermostat to
+conserve angular momentum in clusters. Fixed LOWE and ANDERSEN thermostats to 
+have correct collision rate.
+UserInterface.C: fixed endl in output to avoid double endl.
+Basis.C: remove pimpl implementation.
+ChargeDensity.C: use factorizable sizes for density grid.
+EnergyFunctional.C: corrected upper bound of ia1 in esr calculation.
+EnergyFunctional.C: implemented multiple cell in esr calculation.
+AtomSet.C: changed rcps value to 1.5. Changed interface to access cell.
+--------------------------------------------------------------------------------
 rel1_37_0
 Cleaned up XML formatting of output. Removed comments. Use <timing> tag.
 --------------------------------------------------------------------------------

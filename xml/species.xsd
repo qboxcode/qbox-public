@@ -4,10 +4,10 @@
   xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
   
   <annotation>
-    <documentation> $Id: species.xsd,v 1.5 2006-06-03 22:19:41 fgygi Exp $
-      FPMD atomic species schema specification. 
-      Francois Gygi, University of California, Davis
-      Copyright (c) 2006 The Regents of the University of California.
+    <documentation> $Id: species.xsd,v 1.6 2008-03-07 20:05:31 fgygi Exp $
+      http://www.quantum-simulation.org
+      FPMD atomic species XML Schema specification. 
+      Copyright (c) 2006-2008 The Regents of the University of California.
     </documentation>
   </annotation>
   

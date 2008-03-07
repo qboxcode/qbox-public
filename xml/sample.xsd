@@ -4,10 +4,10 @@
   targetNamespace="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
   
   <annotation>
-    <documentation> $Id: sample.xsd,v 1.11 2008-01-26 01:36:07 fgygi Exp $
-      FPMD sample specification schema. 
-      Francois Gygi, University of California, Davis
-      Copyright (c) 2006 The Regents of the University of California.
+    <documentation> $Id: sample.xsd,v 1.12 2008-03-07 20:05:01 fgygi Exp $
+      http://www.quantum-simulation.org
+      FPMD sample XML Schema specification. 
+      Copyright (c) 2006-2008 The Regents of the University of California.
     </documentation>
   </annotation>
   

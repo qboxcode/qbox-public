@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.37 2008-03-05 04:04:48 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.38 2008-03-21 00:30:33 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -150,10 +150,8 @@ void BOSampleStepper::step(int niter)
   if ( atoms_dyn != "LOCKED" && extrapolate_wf )
   {
     if ( s_.wfv == 0 )
-    {
       s_.wfv = new Wavefunction(wf);
-      s_.wfv->clear();
-    }
+    s_.wfv->clear();
   }
 
   if ( niter == 0 )
@@ -339,17 +337,11 @@ void BOSampleStepper::step(int niter)
             const int len = 2*mloc*nloc;
             if ( iter == 0 )
             {
+              // copy c on cv
               for ( int i = 0; i < len; i++ )
               {
-                const double x = c[i];
-                const double v = cv[i];
-                // extrapolation using velocity in cv
-                c[i] = x + dt * v;
-                cv[i] = x;
+                cv[i] = c[i];
               }
-              tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
-              tmap["gram"].stop();
             }
             else if ( iter == 1 )
             {
@@ -412,15 +404,8 @@ void BOSampleStepper::step(int niter)
             {
               for ( int i = 0; i < len; i++ )
               {
-                const double x = c[i];
-                const double v = cv[i];
-                // extrapolation using velocity in cv
-                c[i] = x + dt * v;
-                cv[i] = x;
+                cv[i] = c[i];
               }
-              tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
-              tmap["gram"].stop();
             }
             else if ( iter == 1 )
             {
@@ -484,18 +469,11 @@ void BOSampleStepper::step(int niter)
             const int len = 2*mloc*nloc;
             if ( iter == 0 )
             {
-              // linear extrapolation using the velocity in wfv
-              // save the current c in in wfv
+              // copy c to cv
               for ( int i = 0; i < len; i++ )
               {
-                const double x = c[i];
-                const double v = cv[i];
-                c[i] = x + dt * v;
-                cv[i] = x;
+                cv[i] = c[i];
               }
-              tmap["lowdin"].start();
-              s_.wf.sd(ispin,ikp)->lowdin();
-              tmap["lowdin"].stop();
             }
             else
             {
@@ -747,54 +725,8 @@ void BOSampleStepper::step(int niter)
       s_.constraints.update_constraints(dt);
   } // for iter
 
-  if ( compute_forces && extrapolate_wf )
+  if ( compute_forces )
   {
-    // compute wavefunction velocity after last iteration
-    // s_.wfv contains the previous wavefunction
-
-    // if eigenvectors were computed, use alignment before computing velocity
-    if ( compute_eigvec )
-    {
-      s_.wfv->align(s_.wf);
-    }
-
-    for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
-    {
-      for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
-      {
-        double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
-        double* cm = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
-        const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
-        const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
-        const int len = 2*mloc*nloc;
-        if ( ntc_extrapolation )
-        {
-          double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
-          for ( int i = 0; i < len; i++ )
-          {
-            const double x = c[i];
-            const double xmm = cmm[i];
-            cm[i] = dt_inv * ( x - xmm );
-          }
-          tmap["gram"].start();
-          s_.wf.sd(ispin,ikp)->gram();
-          tmap["gram"].stop();
-        }
-        else // normal extrapolation or asp_extrapolation
-        {
-          for ( int i = 0; i < len; i++ )
-          {
-            const double x = c[i];
-            const double xm = cm[i];
-            cm[i] = dt_inv * ( x - xm );
-          }
-          tmap["gram"].start();
-          s_.wf.sd(ispin,ikp)->gram();
-          tmap["gram"].stop();
-        }
-      }
-    }
-
     // compute ionic forces at last position to update velocities
     // consistently with last position
     tmap["charge"].start();
@@ -808,13 +740,11 @@ void BOSampleStepper::step(int niter)
     ionic_stepper->compute_v(energy,fion);
     // positions r0 and velocities v0 are consistent
   }
-  else
-  {
-    // delete wavefunction velocities
-    if ( s_.wfv != 0 )
-      delete s_.wfv;
-    s_.wfv = 0;
-  }
+
+  // delete wavefunction velocities
+  if ( s_.wfv != 0 )
+    delete s_.wfv;
+  s_.wfv = 0;
 
   // delete steppers
   if ( wf_stepper != 0 ) delete wf_stepper;

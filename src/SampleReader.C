@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.25 2008-03-05 04:04:48 fgygi Exp $
+// $Id: SampleReader.C,v 1.26 2008-03-21 00:29:09 fgygi Exp $
 
 
 #include "Sample.h"
@@ -48,8 +48,8 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   tm.start();
 #if USE_XERCES
   const char* encodingName = "UTF-8";
-  //SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Auto;
-  SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Always;
+  SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Auto;
+  //SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Always;
   //SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Never;
   bool expandNamespaces = false;
   bool doNamespaces = true;

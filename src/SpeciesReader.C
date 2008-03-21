@@ -3,7 +3,7 @@
 // SpeciesReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesReader.C,v 1.8 2008-02-12 05:39:18 fgygi Exp $
+// $Id: SpeciesReader.C,v 1.9 2008-03-21 00:29:09 fgygi Exp $
 
 #include "Species.h"
 #include "SpeciesReader.h"
@@ -38,8 +38,8 @@ void SpeciesReader::readSpecies (Species& sp, const string uri)
   if ( ctxt_.onpe0() )
   {
     const char* encodingName = "UTF-8";
-    //SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Auto;
-    SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Always;
+    SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Auto;
+    //SAX2XMLReader::ValSchemes valScheme = SAX2XMLReader::Val_Always;
     bool expandNamespaces = false;
     bool doNamespaces = true;
     bool doSchema = true;

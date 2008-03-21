@@ -1,4 +1,16 @@
 --------------------------------------------------------------------------------
+rel1_39_0
+SampleReader.C, SpeciesReader.C: set validation scheme to Val_Auto to allow
+successful parsing in the absence of a local copy of sample.xsd or species.xsd.
+Added fold_in_ws command: fold all atoms in the WS cell.
+MDIonicStepper.C: removed collision debug info printout.
+MDIonicStepper.C: make calc of collisions on task 0, then sync in LOWE and 
+ANDERSEN thermostats. Ensures that all velocities are consistent on all nodes.
+PSDAWavefunctionStepper.C: removed psda_enhancement_factor which caused 
+oscillations in some PSDA optimizations.
+BOSampleStepper.C: use wf velocity only inside BOSampleStepper. wfv is not 
+saved at end of steps. wfv is not used at first step for wf extrapolation.
+--------------------------------------------------------------------------------
 rel1_38_0
 MDIonicStepper.C: Modified minimum image convention in LOWE thermostat to
 conserve angular momentum in clusters. Fixed LOWE and ANDERSEN thermostats to 

@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.50 2008-03-05 04:04:48 fgygi Exp $
+# $Id: Makefile,v 1.51 2008-03-21 00:33:09 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -308,6 +308,8 @@ ExtStress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 ExtStress.o: ConstraintSet.h Wavefunction.h Control.h
 FermiTemp.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 FermiTemp.o: ConstraintSet.h Wavefunction.h Control.h
+FoldInWsCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+FoldInWsCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h Control.h
 FourierTransform.o: FourierTransform.h Timer.h Basis.h D3vector.h UnitCell.h
 FourierTransform.o: Context.h
 FourierTransform.o: Timer.h
@@ -393,14 +395,15 @@ PSDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
 qb.o: isodate.h release.h qbox_xmlns.h Context.h UserInterface.h Sample.h
 qb.o: AtomSet.h Atom.h D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
 qb.o: Control.h Timer.h AngleCmd.h AtomCmd.h ComputeMLWFCmd.h MLWFTransform.h
-qb.o: BasisMapping.h ConstraintCmd.h DistanceCmd.h HelpCmd.h KpointCmd.h
-qb.o: ListAtomsCmd.h ListSpeciesCmd.h LoadCmd.h MoveCmd.h PrintCmd.h
-qb.o: QuitCmd.h RandomizeWfCmd.h ResetVcmCmd.h RunCmd.h SaveCmd.h SetCmd.h
-qb.o: SpeciesCmd.h StatusCmd.h TorsionCmd.h AtomsDyn.h Cell.h CellDyn.h
-qb.o: SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h ChargeMixCoeff.h
-qb.o: ChargeMixRcut.h Debug.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h
-qb.o: FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h RefCell.h Stress.h
-qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: BasisMapping.h ConstraintCmd.h DistanceCmd.h FoldInWsCmd.h HelpCmd.h
+qb.o: KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h LoadCmd.h MoveCmd.h
+qb.o: PrintCmd.h QuitCmd.h RandomizeWfCmd.h ResetVcmCmd.h RunCmd.h SaveCmd.h
+qb.o: SetCmd.h SpeciesCmd.h StatusCmd.h TorsionCmd.h AtomsDyn.h Cell.h
+qb.o: CellDyn.h SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h
+qb.o: ChargeMixCoeff.h ChargeMixRcut.h Debug.h Ecut.h Ecutprec.h Ecuts.h
+qb.o: Emass.h ExtStress.h FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h
+qb.o: RefCell.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h
+qb.o: WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h Control.h

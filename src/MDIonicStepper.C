@@ -3,7 +3,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.16 2008-03-05 04:04:48 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.17 2008-03-21 00:27:11 fgygi Exp $
 
 #include "MDIonicStepper.h"
 using namespace std;
@@ -75,98 +75,124 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
   else if ( thermostat_ == "ANDERSEN" )
   {
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
-    const double collision_probability = fabs(dt_) / th_time_ ;
+    // if th_time_ is zero or less than dt, collision probability is one
+    const double collision_probability = th_time_ == 0 ? 1.0 : 
+                 min(fabs(dt_) / th_time_, 1.0);
 
-    for ( int is = 0; is < nsp_; is++ )
+    if ( s_.ctxt_.onpe0() )
     {
-      const double m = pmass_[is];
-      const double width = sqrt( boltz * th_temp_ / m );
-      for ( int ia = 0; ia < na_[is]; ia++ )
+      // compute collision on task 0 and synchronize later
+      for ( int is = 0; is < nsp_; is++ )
       {
-        // if th_time is zero, set probability to one
-        if ( th_time_ == 0.0 || drand48() < collision_probability )
+        const double m = pmass_[is];
+        const double width = sqrt( boltz * th_temp_ / m );
+        for ( int ia = 0; ia < na_[is]; ia++ )
         {
-          cout << " collision: atom is=" << is << " ia=" << ia << endl;
-          // draw gaussian random variables
-          double xi0 = drand48() + drand48() + drand48() +
-                       drand48() + drand48() + drand48() +
-                       drand48() + drand48() + drand48() +
-                       drand48() + drand48() + drand48() - 6.0;
-          double xi1 = drand48() + drand48() + drand48() +
-                       drand48() + drand48() + drand48() +
-                       drand48() + drand48() + drand48() +
-                       drand48() + drand48() + drand48() - 6.0;
-          double xi2 = drand48() + drand48() + drand48() +
-                       drand48() + drand48() + drand48() +
-                       drand48() + drand48() + drand48() +
-                       drand48() + drand48() + drand48() - 6.0;
-          v0_[is][3*ia+0] = width * xi0;
-          v0_[is][3*ia+1] = width * xi1;
-          v0_[is][3*ia+2] = width * xi2;
+          if ( drand48() < collision_probability )
+          {
+            // cout << " collision: atom is=" << is << " ia=" << ia << endl;
+            // draw gaussian random variables
+            double xi0 = drand48() + drand48() + drand48() +
+                         drand48() + drand48() + drand48() +
+                         drand48() + drand48() + drand48() +
+                         drand48() + drand48() + drand48() - 6.0;
+            double xi1 = drand48() + drand48() + drand48() +
+                         drand48() + drand48() + drand48() +
+                         drand48() + drand48() + drand48() +
+                         drand48() + drand48() + drand48() - 6.0;
+            double xi2 = drand48() + drand48() + drand48() +
+                         drand48() + drand48() + drand48() +
+                         drand48() + drand48() + drand48() +
+                         drand48() + drand48() + drand48() - 6.0;
+            v0_[is][3*ia+0] = width * xi0;
+            v0_[is][3*ia+1] = width * xi1;
+            v0_[is][3*ia+2] = width * xi2;
+          }
         }
       }
     }
+    atoms_.set_velocities(v0_);
+    atoms_.sync();
+    atoms_.get_velocities(v0_);
   }
   else if ( thermostat_ == "LOWE" )
   {
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
     const int nat = atoms_.size();
-    const double collision_probability = nat > 1 ?
-                 fabs(dt_) / ( 0.5*(nat-1) * th_time_ ) : 0.0 ;
+    double collision_probability = 0.0;
+    if ( th_time_ == 0 )
+    {
+      collision_probability = 1.0;
+    }
+    else
+    {
+      if ( nat > 1 )
+      {
+        collision_probability = min(1.0,fabs(dt_)/(0.5*(nat-1)*th_time_)); 
+      }
+    }
 
     // scan all atom pairs in the space (is,ia)
     //int npairs = 0;
-    for ( int is1 = 0; is1 < nsp_; is1++ )
+    if ( s_.ctxt_.onpe0() )
     {
-      for ( int is2 = is1; is2 < nsp_; is2++ )
+      // compute collision only on task 0 and synchronize later
+      // since calculation involves drand48
+      for ( int is1 = 0; is1 < nsp_; is1++ )
       {
-        const double m1 = pmass_[is1];
-        const double m2 = pmass_[is2];
-        const double mu = m1*m2/(m1+m2);
-        const double width = sqrt(boltz * th_temp_ / mu);
-        for ( int ia1 = 0; ia1 < na_[is1]; ia1++ )
+        for ( int is2 = is1; is2 < nsp_; is2++ )
         {
-          int ia2min = 0;
-          if ( is1 == is2 ) ia2min = ia1 + 1;
-          for ( int ia2 = ia2min; ia2 < na_[is2]; ia2++ )
+          const double m1 = pmass_[is1];
+          const double m2 = pmass_[is2];
+          const double mu = m1*m2/(m1+m2);
+          const double width = sqrt(boltz * th_temp_ / mu);
+          for ( int ia1 = 0; ia1 < na_[is1]; ia1++ )
           {
-            // if th_time is zero, set probability to one
-            if ( th_time_ == 0.0 || drand48() < collision_probability )
+            int ia2min = 0;
+            if ( is1 == is2 ) ia2min = ia1 + 1;
+            for ( int ia2 = ia2min; ia2 < na_[is2]; ia2++ )
             {
-              cout << " collision: pair " << is1 << " " << ia1 << " "
-                   << is2 << " " << ia2 << endl;
-              D3vector r1(&r0_[is1][3*ia1]);
-              s_.wf.cell().fold_in_ws(r1);
-              D3vector r2(&r0_[is2][3*ia2]);
-              s_.wf.cell().fold_in_ws(r2);
-              D3vector r12 = r1 - r2;
-              D3vector e12 = normalized(r12);
-              D3vector v1(&v0_[is1][3*ia1]);
-              D3vector v2(&v0_[is2][3*ia2]);
-              D3vector v12 = v1 - v2;
-              // draw a gaussian random variable
-              double xi = drand48() + drand48() + drand48() +
-                          drand48() + drand48() + drand48() +
-                          drand48() + drand48() + drand48() +
-                          drand48() + drand48() + drand48() - 6.0;
-              double lambda = xi * width;
-              D3vector dv12 = mu * ( lambda - v12*e12 ) * e12;
-              D3vector v1p = v1 + (1.0/m1) * dv12;
-              D3vector v2p = v2 - (1.0/m2) * dv12;
-
-              v0_[is1][3*ia1+0] = v1p.x;
-              v0_[is1][3*ia1+1] = v1p.y;
-              v0_[is1][3*ia1+2] = v1p.z;
-
-              v0_[is2][3*ia2+0] = v2p.x;
-              v0_[is2][3*ia2+1] = v2p.y;
-              v0_[is2][3*ia2+2] = v2p.z;
+              // if th_time is zero, set probability to one
+              if ( drand48() < collision_probability )
+              {
+                // cout << " collision: pair " << is1 << " " << ia1 << " "
+                //      << is2 << " " << ia2 << endl;
+                D3vector r1(&r0_[is1][3*ia1]);
+                s_.wf.cell().fold_in_ws(r1);
+                D3vector r2(&r0_[is2][3*ia2]);
+                s_.wf.cell().fold_in_ws(r2);
+                D3vector r12 = r1 - r2;
+                D3vector e12 = normalized(r12);
+                D3vector v1(&v0_[is1][3*ia1]);
+                D3vector v2(&v0_[is2][3*ia2]);
+                D3vector v12 = v1 - v2;
+                // draw a gaussian random variable
+                double xi = drand48() + drand48() + drand48() +
+                            drand48() + drand48() + drand48() +
+                            drand48() + drand48() + drand48() +
+                            drand48() + drand48() + drand48() - 6.0;
+                double lambda = xi * width;
+                D3vector dv12 = mu * ( lambda - v12*e12 ) * e12;
+                D3vector v1p = v1 + (1.0/m1) * dv12;
+                D3vector v2p = v2 - (1.0/m2) * dv12;
+  
+                v0_[is1][3*ia1+0] = v1p.x;
+                v0_[is1][3*ia1+1] = v1p.y;
+                v0_[is1][3*ia1+2] = v1p.z;
+  
+                v0_[is2][3*ia2+0] = v2p.x;
+                v0_[is2][3*ia2+1] = v2p.y;
+                v0_[is2][3*ia2+2] = v2p.z;
+              }
+              //npairs++;
             }
-            //npairs++;
           }
         }
       }
     }
+    atoms_.set_velocities(v0_);
+    atoms_.sync();
+    atoms_.get_velocities(v0_);
     //cout << " npairs: " << npairs << endl;
     compute_ekin();
   }

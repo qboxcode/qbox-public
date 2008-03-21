@@ -3,7 +3,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.21 2008-03-05 04:04:48 fgygi Exp $
+// $Id: AtomSet.C,v 1.22 2008-03-21 00:25:46 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -387,6 +387,25 @@ void AtomSet::reset_vcm(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void AtomSet::fold_in_ws(void)
+{
+  vector<vector<double> > p;
+  get_positions(p);
+  for ( int is = 0; is < p.size(); is++ )
+  {
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      D3vector pos(&p[is][3*ia]);
+      cell_.fold_in_ws(pos);
+      p[is][3*ia+0] = pos.x;
+      p[is][3*ia+1] = pos.y;
+      p[is][3*ia+2] = pos.z;
+    }
+  }
+  set_positions(p);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 D3vector AtomSet::dipole(void) const
 {
   D3vector sum;
@@ -406,7 +425,8 @@ D3vector AtomSet::dipole(void) const
 void AtomSet::sync()
 {
 #if USE_MPI
-  // enforce consistency of positions on all tasks
+  // enforce consistency of positions and velocities on all tasks
+  // broadcast positions and velocities of task 0 to all tasks
   vector<vector<double> > r,v;
   get_positions(r);
   get_velocities(v);

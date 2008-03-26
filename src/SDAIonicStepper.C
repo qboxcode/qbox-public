@@ -3,7 +3,7 @@
 // SDAIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.C,v 1.5 2007-10-19 16:24:04 fgygi Exp $
+// $Id: SDAIonicStepper.C,v 1.6 2008-03-26 04:57:54 fgygi Exp $
 
 #include "SDAIonicStepper.h"
 #include <iostream>
@@ -36,9 +36,18 @@ void SDAIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
          << "</sda_residual>" << endl;
 
   mixer_.update(&f_[0],&theta_,&fbar_[0]);
+  if ( e0 > em_ )
+  {
+    theta_ = 0.0;
+    mixer_.restart();
+    if ( s_.ctxt_.onpe0() )
+       cout << " SDAIonicStepper: sda_theta = " << theta_
+            << " reset to 0" << endl;
+  }
   if ( s_.ctxt_.onpe0() )
     cout << " <sda_theta> " << theta_
          << "</sda_theta>" << endl;
+
 
   k = 0;
   for ( int is = 0; is < r0_.size(); is++ )
@@ -56,4 +65,5 @@ void SDAIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
   rm_ = r0_;
   r0_ = rp_;
   atoms_.set_positions(r0_);
+  em_ = e0;
 }

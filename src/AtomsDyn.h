@@ -3,7 +3,7 @@
 // AtomsDyn.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomsDyn.h,v 1.3 2007-10-19 16:24:04 fgygi Exp $
+// $Id: AtomsDyn.h,v 1.4 2008-03-26 04:57:54 fgygi Exp $
 
 #ifndef ATOMSDYN_H
 #define ATOMSDYN_H
@@ -33,10 +33,10 @@ class AtomsDyn : public Var
     }
 
     string v = argv[1];
-    if ( !( v == "LOCKED" || v == "SD" || v == "SDA" || v == "MD" ) )
+    if ( !( v == "LOCKED" || v == "SD" || v == "SDA" || v == "CG" || v == "MD" ) )
     {
       if ( ui->onpe0() )
-        cout << " atoms_dyn must be LOCKED or SD or SDA or MD" << endl;
+        cout << " atoms_dyn must be LOCKED or SD or SDA or CG or MD" << endl;
       return 1;
     }
 

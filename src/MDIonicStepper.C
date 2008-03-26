@@ -3,7 +3,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.17 2008-03-21 00:27:11 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.18 2008-03-26 04:57:54 fgygi Exp $
 
 #include "MDIonicStepper.h"
 using namespace std;
@@ -76,7 +76,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
   {
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
     // if th_time_ is zero or less than dt, collision probability is one
-    const double collision_probability = th_time_ == 0 ? 1.0 : 
+    const double collision_probability = th_time_ == 0 ? 1.0 :
                  min(fabs(dt_) / th_time_, 1.0);
 
     if ( s_.ctxt_.onpe0() )
@@ -128,7 +128,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
     {
       if ( nat > 1 )
       {
-        collision_probability = min(1.0,fabs(dt_)/(0.5*(nat-1)*th_time_)); 
+        collision_probability = min(1.0,fabs(dt_)/(0.5*(nat-1)*th_time_));
       }
     }
 
@@ -175,11 +175,11 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
                 D3vector dv12 = mu * ( lambda - v12*e12 ) * e12;
                 D3vector v1p = v1 + (1.0/m1) * dv12;
                 D3vector v2p = v2 - (1.0/m2) * dv12;
-  
+
                 v0_[is1][3*ia1+0] = v1p.x;
                 v0_[is1][3*ia1+1] = v1p.y;
                 v0_[is1][3*ia1+2] = v1p.z;
-  
+
                 v0_[is2][3*ia2+0] = v2p.x;
                 v0_[is2][3*ia2+1] = v2p.y;
                 v0_[is2][3*ia2+2] = v2p.z;

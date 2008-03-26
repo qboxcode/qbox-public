@@ -3,7 +3,7 @@
 // SDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDIonicStepper.C,v 1.4 2007-03-17 01:14:00 fgygi Exp $
+// $Id: SDIonicStepper.C,v 1.5 2008-03-26 04:57:54 fgygi Exp $
 
 #include "SDIonicStepper.h"
 using namespace std;
@@ -11,17 +11,61 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 void SDIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
 {
-  // Steepest descent step
+  bool wolfe1;
+  if ( first_step_ )
+  {
+     wolfe1 = true;
+     alpha_ = 1.0;
+  }
+  else
+  {
+    // Check if the first Wolfe condition is satisfied
+    // compute predicted decrease for previous step
+    // pred = pc_ * ( r0 - rc_ )
+    double pred = 0.0;
+    for ( int is = 0; is < r0_.size(); is++ )
+    {
+      for ( int i = 0; i < r0_[is].size(); i++ )
+      {
+        pred += pc_[is][i] * ( r0_[is][i] - rc_[is][i]);
+      }
+    }
+    const double sigma_wolfe = 0.1;
+    wolfe1 = ( e0 < ec_ - sigma_wolfe * pred );
+    //cout << "SDIonicStepper: pred = " << pred << endl;
+    //cout << "SDIonicStepper: ec: " << ec_ << endl;
+    //cout << "SDIonicStepper: required energy: " << ec_-sigma_wolfe * pred
+    //     << " actual: " << e0 << endl;
+    //cout << "SDIonicStepper: wolfe1 = " << wolfe1 << endl;
+  }
+
+  if ( wolfe1 )
+  {
+    // actual decrease from last step is sufficient
+    // accept r0 as new current point
+    rc_ = r0_;
+    ec_ = e0;
+    // define new descent direction
+    pc_ = f0;
+    alpha_ *= 1.05;
+  }
+  else
+  {
+     // backtrack
+     alpha_ *= 0.8;
+  }
+  //cout << "SDIonicStepper: alpha = " << alpha_ << endl;
   for ( int is = 0; is < r0_.size(); is++ )
   {
-    const double dt2bym = dt_ * dt_ / pmass_[is];
     for ( int i = 0; i < r0_[is].size(); i++ )
     {
-      rp_[is][i] = r0_[is][i] + dt2bym * f0[is][i];
+      rp_[is][i] = rc_[is][i] + alpha_ * pc_[is][i];
     }
   }
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   r0_ = rp_;
   atoms_.set_positions(r0_);
+
+  first_step_ = false;
 }

@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.38 2008-03-21 00:30:33 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.39 2008-03-26 04:57:54 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -15,6 +15,7 @@
 #include "PSDAWavefunctionStepper.h"
 #include "SDIonicStepper.h"
 #include "SDAIonicStepper.h"
+#include "CGIonicStepper.h"
 #include "MDIonicStepper.h"
 #include "SDCellStepper.h"
 #include "Preconditioner.h"
@@ -69,21 +70,19 @@ void BOSampleStepper::step(int niter)
   const bool compute_eigvec = fractional_occ || s_.ctrl.wf_diag == "T";
   enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
 
-  const bool extrapolate_wf = !fractional_occ;
-
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
   const int nspin = wf.nspin();
 
   const UnitCell& cell = wf.cell();
-  const double omega = cell.volume();
 
   const double dt = s_.ctrl.dt;
-  const double dt_inv = 1.0 / dt;
 
   const string wf_dyn = s_.ctrl.wf_dyn;
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
+
+  const bool extrapolate_wf = atoms_dyn == "MD" && !fractional_occ;
 
   const bool ntc_extrapolation =
     s_.ctrl.debug.find("NTC_EXTRAPOLATION") != string::npos;
@@ -94,9 +93,11 @@ void BOSampleStepper::step(int niter)
   if ( extrapolate_wf && ( ntc_extrapolation || asp_extrapolation ) )
     wfmm = new Wavefunction(wf);
 
-  const bool compute_hpsi = ( wf_dyn != "LOCKED" );
-  const bool compute_forces = ( atoms_dyn != "LOCKED" );
+  // Next lines: special value of niter = 0: GS calculation only
+  const bool atoms_move = ( niter > 0 && atoms_dyn != "LOCKED" );
   const bool compute_stress = ( s_.ctrl.stress == "ON" );
+  const bool cell_moves = ( niter > 0 && compute_stress &&
+                            cell_dyn != "LOCKED" );
   const bool use_confinement = ( s_.ctrl.ecuts > 0.0 );
 
   Timer tm_iter;
@@ -136,6 +137,8 @@ void BOSampleStepper::step(int niter)
     ionic_stepper = new SDIonicStepper(s_);
   else if ( atoms_dyn == "SDA" )
     ionic_stepper = new SDAIonicStepper(s_);
+  else if ( atoms_dyn == "CG" )
+    ionic_stepper = new CGIonicStepper(s_);
   else if ( atoms_dyn == "MD" )
     ionic_stepper = new MDIonicStepper(s_);
 
@@ -147,32 +150,15 @@ void BOSampleStepper::step(int niter)
     cell_stepper = new SDCellStepper(s_);
 
   // Allocate wavefunction velocity if not available
-  if ( atoms_dyn != "LOCKED" && extrapolate_wf )
+  if ( atoms_move && extrapolate_wf )
   {
     if ( s_.wfv == 0 )
       s_.wfv = new Wavefunction(wf);
     s_.wfv->clear();
   }
 
-  if ( niter == 0 )
-  {
-    // evaluate and print energy
-    const bool compute_hpsi = false;
-    const bool compute_forces = false;
-    const bool compute_stress = false;
-    tmap["charge"].start();
-    cd_.update_density();
-    tmap["charge"].stop();
-    ef_.update_vhxc();
-    double energy = ef_.energy(compute_hpsi,dwf,compute_forces,fion,
-                               compute_stress,sigma_eks);
-    if ( onpe0 )
-    {
-      cout << ef_;
-    }
-  }
-
-  for ( int iter = 0; iter < niter; iter++ )
+  // Next line: special case of niter=0: compute GS only
+  for ( int iter = 0; iter < max(niter,1); iter++ )
   {
     // ionic iteration
 
@@ -187,97 +173,89 @@ void BOSampleStepper::step(int niter)
     if ( ionic_stepper )
       atoms.sync();
 
-    double energy = 0.0;
-    if ( compute_forces || compute_stress )
+    // compute energy and ionic forces using existing wavefunction
+
+    tmap["charge"].start();
+    cd_.update_density();
+    tmap["charge"].stop();
+
+    ef_.update_vhxc();
+    const bool compute_forces = true;
+    double energy =
+      ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
+
+    if ( onpe0 )
     {
-      // compute energy and ionic forces using existing wavefunction
-
-      tmap["charge"].start();
-      cd_.update_density();
-      tmap["charge"].stop();
-
-      ef_.update_vhxc();
-      energy =
-        ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
-
-      if ( onpe0 )
+      cout.setf(ios::fixed,ios::floatfield);
+      cout.setf(ios::right,ios::adjustfield);
+      cout << "  <ekin>   " << setprecision(8)
+           << setw(15) << ef_.ekin() << " </ekin>\n";
+      if ( use_confinement )
+        cout << "  <econf>  " << setw(15) << ef_.econf() << " </econf>\n";
+      cout << "  <eps>    " << setw(15) << ef_.eps() << " </eps>\n"
+           << "  <enl>    " << setw(15) << ef_.enl() << " </enl>\n"
+           << "  <ecoul>  " << setw(15) << ef_.ecoul() << " </ecoul>\n"
+           << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
+           << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
+           << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
+           << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n"
+           << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
+      if ( compute_stress )
       {
-        cout.setf(ios::fixed,ios::floatfield);
-        cout.setf(ios::right,ios::adjustfield);
-        cout << "  <ekin>   " << setprecision(8)
-             << setw(15) << ef_.ekin() << " </ekin>\n";
-        if ( use_confinement )
-          cout << "  <econf>  " << setw(15) << ef_.econf() << " </econf>\n";
-        cout << "  <eps>    " << setw(15) << ef_.eps() << " </eps>\n"
-             << "  <enl>    " << setw(15) << ef_.enl() << " </enl>\n"
-             << "  <ecoul>  " << setw(15) << ef_.ecoul() << " </ecoul>\n"
-             << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
-             << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
-             << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
-             << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n"
-             << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
-        if ( compute_stress )
-        {
-          const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-          const double enthalpy = ef_.etotal() + pext * cell.volume();
-          cout << "  <pv>     " << setw(15) << pext * cell.volume()
-               << " </pv>" << endl;
-          cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
-             << flush;
-        }
+        const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
+        const double enthalpy = ef_.etotal() + pext * cell.volume();
+        cout << "  <pv>     " << setw(15) << pext * cell.volume()
+             << " </pv>" << endl;
+        cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
+           << flush;
       }
     }
 
-    if ( compute_forces )
+    if ( iter > 0 && ionic_stepper )
     {
-      if ( iter > 0 )
-      {
-        ionic_stepper->compute_v(energy,fion);
-      }
-      // at this point, positions r0, velocities v0 and forces fion are
-      // consistent
-      const double ekin_ion = ionic_stepper->ekin();
-      const double temp_ion = ionic_stepper->temp();
-
-      // print positions, velocities and forces at time t0
-      if ( onpe0 )
-      {
-        cout << "<atomset>" << endl;
-        cout << atoms.cell();
-        for ( int is = 0; is < atoms.atom_list.size(); is++ )
-        {
-          int i = 0;
-          for ( int ia = 0; ia < atoms.atom_list[is].size(); ia++ )
-          {
-            Atom* pa = atoms.atom_list[is][ia];
-            cout << "  <atom name=\"" << pa->name() << "\""
-                 << " species=\"" << pa->species()
-                 << "\">\n"
-                 << "    <position> "
-                 << ionic_stepper->r0(is,i) << " "
-                 << ionic_stepper->r0(is,i+1) << " "
-                 << ionic_stepper->r0(is,i+2) << " </position>\n"
-                 << "    <velocity> "
-                 << ionic_stepper->v0(is,i) << " "
-                 << ionic_stepper->v0(is,i+1) << " "
-                 << ionic_stepper->v0(is,i+2) << " </velocity>\n"
-                 << "    <force> "
-                 << fion[is][i] << " "
-                 << fion[is][i+1] << " "
-                 << fion[is][i+2]
-                 << " </force>\n";
-            cout << "  </atom>" << endl;
-            i += 3;
-          }
-        }
-        cout << "</atomset>" << endl;
-        cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
-        cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
-        cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";
-      }
+      ionic_stepper->compute_v(energy,fion);
+    }
+    // at this point, positions r0, velocities v0 and forces fion are
+    // consistent
+    double ekin_ion, temp_ion;
+    if ( ionic_stepper )
+    {
+      ekin_ion = ionic_stepper->ekin();
+      temp_ion = ionic_stepper->temp();
     }
 
-    if ( compute_forces )
+    // print positions, velocities and forces at time t0
+    if ( onpe0 )
+    {
+      cout << "<atomset>" << endl;
+      cout << atoms.cell();
+      for ( int is = 0; is < atoms.atom_list.size(); is++ )
+      {
+        int i = 0;
+        for ( int ia = 0; ia < atoms.atom_list[is].size(); ia++ )
+        {
+          Atom* pa = atoms.atom_list[is][ia];
+          cout << "  <atom name=\"" << pa->name() << "\""
+               << " species=\"" << pa->species()
+               << "\">\n"
+               << "    <position> " << pa->position() << " </position>\n"
+               << "    <velocity> " << pa->velocity() << " </velocity>\n"
+               << "    <force> "
+               << fion[is][i] << " "
+               << fion[is][i+1] << " "
+               << fion[is][i+2]
+               << " </force>\n";
+          cout << "  </atom>" << endl;
+          i += 3;
+        }
+      }
+      cout << "</atomset>" << endl;
+      cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
+      cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
+      cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";
+    }
+
+    if ( atoms_move )
     {
       if ( s_.constraints.size() > 0 )
       {
@@ -303,7 +281,7 @@ void BOSampleStepper::step(int niter)
       compute_sigma();
       print_stress();
 
-      if ( cell_dyn != "LOCKED" )
+      if ( cell_moves )
       {
         cell_stepper->compute_new_cell(sigma);
 
@@ -321,7 +299,7 @@ void BOSampleStepper::step(int niter)
     // Recalculate ground state wavefunctions
 
     // wavefunction extrapolation
-    if ( compute_forces && extrapolate_wf )
+    if ( atoms_move && extrapolate_wf )
     {
       for ( int ispin = 0; ispin < nspin; ispin++ )
       {
@@ -496,7 +474,7 @@ void BOSampleStepper::step(int niter)
           }
         }
       }
-    } // compute_forces && extrapolate_wf
+    } // atoms_move && extrapolate_wf
 
     // do nitscf self-consistent iterations, each with nite electronic steps
     if ( wf_stepper != 0 )
@@ -682,8 +660,8 @@ void BOSampleStepper::step(int niter)
           cout << "  BOSampleStepper: end scf iteration" << endl;
       } // for itscf
 
-
-      if ( !compute_forces && !compute_stress )
+      // If GS calculation only, print energy at end of iterations
+      if ( !atoms_move && !cell_moves )
         if ( onpe0 )
           cout << ef_;
 
@@ -697,7 +675,7 @@ void BOSampleStepper::step(int niter)
       cd_.update_density();
       tmap["charge"].stop();
       ef_.update_vhxc();
-      double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+      ef_.energy(true,dwf,false,fion,false,sigma_eks);
       if ( onpe0 )
       {
         cout << ef_;
@@ -721,11 +699,11 @@ void BOSampleStepper::step(int niter)
            << endl;
       cout << "</iteration>" << endl;
     }
-    if ( compute_forces )
+    if ( atoms_move )
       s_.constraints.update_constraints(dt);
   } // for iter
 
-  if ( compute_forces )
+  if ( atoms_move )
   {
     // compute ionic forces at last position to update velocities
     // consistently with last position
@@ -734,6 +712,7 @@ void BOSampleStepper::step(int niter)
     tmap["charge"].stop();
 
     ef_.update_vhxc();
+    const bool compute_forces = true;
     double energy =
       ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
 

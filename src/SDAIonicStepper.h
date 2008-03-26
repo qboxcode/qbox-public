@@ -3,7 +3,7 @@
 // SDAIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.h,v 1.8 2007-10-19 16:24:04 fgygi Exp $
+// $Id: SDAIonicStepper.h,v 1.9 2008-03-26 04:57:54 fgygi Exp $
 
 #ifndef SDAIONICSTEPPER_H
 #define SDAIONICSTEPPER_H
@@ -20,6 +20,7 @@ class SDAIonicStepper : public IonicStepper
   double theta_;
   bool first_step_;
   AndersonMixer mixer_;
+  double em_;
 
   public:
 
@@ -29,8 +30,9 @@ class SDAIonicStepper : public IonicStepper
     f_.resize(3*atoms_.size());
     fbar_.resize(3*atoms_.size());
     rm_ = r0_;
-    mixer_.set_theta_max(1.5);
+    mixer_.set_theta_max(1.0);
     mixer_.set_theta_nc(1.0);
+    em_ = 1.0e50;
   }
 
   void compute_r(double e0, const std::vector<std::vector< double> >& f0);

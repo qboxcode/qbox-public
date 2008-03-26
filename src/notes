@@ -1,4 +1,11 @@
 --------------------------------------------------------------------------------
+rel1_40_0
+AtomsDyn.h,CGIonicStepper.[Ch]: added CG ionic stepper.
+BOSampleStepper.C: enabled niter=0 in run command.
+MDIonicStepper.C: removed trailing blanks.
+SDAIonicStepper: reduced theta_max, test for energy increase.
+SDIonicStepper: implemented line search, removed dt, mass dependency.
+--------------------------------------------------------------------------------
 rel1_39_0
 SampleReader.C, SpeciesReader.C: set validation scheme to Val_Auto to allow
 successful parsing in the absence of a local copy of sample.xsd or species.xsd.

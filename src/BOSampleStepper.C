@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.39 2008-03-26 04:57:54 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.40 2008-04-05 19:11:25 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -272,12 +272,6 @@ void BOSampleStepper::step(int niter)
 
     if ( compute_stress )
     {
-      if ( onpe0 )
-      {
-        cout << "<unit_cell>" << endl;
-        cout << s_.wf.cell();
-        cout << "</unit_cell>" << endl;
-      }
       compute_sigma();
       print_stress();
 

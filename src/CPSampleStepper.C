@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.17 2008-03-05 04:04:48 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.18 2008-04-05 19:13:03 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -237,12 +237,6 @@ void CPSampleStepper::step(int niter)
 
     if ( compute_stress )
     {
-      if ( onpe0 )
-      {
-        cout << "<unit_cell>" << endl;
-        cout << s_.wf.cell();
-        cout << "</unit_cell>" << endl;
-      }
       compute_sigma();
       print_stress();
 

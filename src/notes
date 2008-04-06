@@ -1,10 +1,18 @@
 --------------------------------------------------------------------------------
+rel1_41_0
+BOSampleStepper.C, CPSampleStepper.C: remove redundant printing of unicell
+LineMinimizer.h: new LineMinimizer class used in optimization algorithms
+SDIonicStepper.C: back to simple dt^2/m steepest descent (back to rel1_39_0)
+SDAIonicStepper.C: steepest descent with line minimization.
+CGIonicStepper.C: conjugate gradient with line minimization.
+--------------------------------------------------------------------------------
 rel1_40_0
 AtomsDyn.h,CGIonicStepper.[Ch]: added CG ionic stepper.
 BOSampleStepper.C: enabled niter=0 in run command.
 MDIonicStepper.C: removed trailing blanks.
 SDAIonicStepper: reduced theta_max, test for energy increase.
 SDIonicStepper: implemented line search, removed dt, mass dependency.
+Known problems: SD, SDA, CG algorithms are not working properly
 --------------------------------------------------------------------------------
 rel1_39_0
 SampleReader.C, SpeciesReader.C: set validation scheme to Val_Auto to allow

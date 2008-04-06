@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.52 2008-03-26 04:57:54 fgygi Exp $
+# $Id: Makefile,v 1.53 2008-04-06 17:48:15 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -225,9 +225,9 @@ BOSampleStepper.o: UnitCell.h ConstraintSet.h Wavefunction.h Control.h
 BOSampleStepper.o: SlaterDet.h Basis.h Matrix.h WavefunctionStepper.h
 BOSampleStepper.o: SDWavefunctionStepper.h PSDWavefunctionStepper.h
 BOSampleStepper.o: PSDAWavefunctionStepper.h SDIonicStepper.h IonicStepper.h
-BOSampleStepper.o: Species.h SDAIonicStepper.h AndersonMixer.h
+BOSampleStepper.o: Species.h SDAIonicStepper.h LineMinimizer.h
 BOSampleStepper.o: CGIonicStepper.h MDIonicStepper.h SDCellStepper.h
-BOSampleStepper.o: CellStepper.h Preconditioner.h
+BOSampleStepper.o: CellStepper.h Preconditioner.h AndersonMixer.h
 BOSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 BOSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 BOSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
@@ -245,10 +245,10 @@ CellStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 CellStepper.o: ConstraintSet.h Wavefunction.h Control.h
 CGIonicStepper.o: CGIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 CGIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h ConstraintSet.h
-CGIonicStepper.o: Wavefunction.h Control.h Species.h
+CGIonicStepper.o: Wavefunction.h Control.h Species.h LineMinimizer.h
 CGIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
 CGIonicStepper.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
-CGIonicStepper.o: Control.h Species.h
+CGIonicStepper.o: Control.h Species.h LineMinimizer.h
 ChargeDensity.o: ChargeDensity.h Timer.h Context.h Basis.h D3vector.h
 ChargeDensity.o: UnitCell.h Wavefunction.h FourierTransform.h SlaterDet.h
 ChargeDensity.o: Matrix.h
@@ -448,10 +448,10 @@ SaveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SaveCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h Control.h
 SDAIonicStepper.o: SDAIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 SDAIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h ConstraintSet.h
-SDAIonicStepper.o: Wavefunction.h Control.h Species.h AndersonMixer.h
+SDAIonicStepper.o: Wavefunction.h Control.h Species.h LineMinimizer.h
 SDAIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
 SDAIonicStepper.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
-SDAIonicStepper.o: Control.h Species.h AndersonMixer.h
+SDAIonicStepper.o: Control.h Species.h LineMinimizer.h
 SDCellStepper.o: SDCellStepper.h CellStepper.h Sample.h AtomSet.h Context.h
 SDCellStepper.o: Atom.h D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
 SDCellStepper.o: Control.h
@@ -512,6 +512,7 @@ testHandler.o: StrX.h
 testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h Matrix.h jade.h
 testLDAFunctional.o: LDAFunctional.h XCFunctional.h
+testLineMinimizer.o: LineMinimizer.h
 testMapping.o: Basis.h D3vector.h UnitCell.h Context.h
 testMatrix.o: Timer.h Context.h Matrix.h
 testMatrixColumnRotation.o: MatrixColumnRotation.h Context.h Matrix.h Timer.h

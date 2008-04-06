@@ -3,12 +3,13 @@
 // CGIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CGIonicStepper.h,v 1.1 2008-03-26 04:57:54 fgygi Exp $
+// $Id: CGIonicStepper.h,v 1.2 2008-04-06 17:46:50 fgygi Exp $
 
 #ifndef CGIONICSTEPPER_H
 #define CGIONICSTEPPER_H
 
 #include "IonicStepper.h"
+#include "LineMinimizer.h"
 #include <vector>
 
 class CGIonicStepper : public IonicStepper
@@ -19,12 +20,14 @@ class CGIonicStepper : public IonicStepper
   std::vector<std::vector< double> > rc_;
   std::vector<std::vector< double> > pc_;
   std::vector<std::vector< double> > fc_;
-  double ec_;
-  double alpha_;
+  double ec_, fpc_;
+  double alpha_, sigma1_, sigma2_;
+  LineMinimizer linmin_;
 
   public:
 
-  CGIonicStepper(Sample& s) : IonicStepper(s), first_step_(true) {}
+  CGIonicStepper(Sample& s) : IonicStepper(s), first_step_(true),
+    sigma1_(0.1), sigma2_(0.5) { linmin_.set_sigma1(sigma1_); }
 
   void compute_r(double e0, const std::vector<std::vector< double> >& f0);
   void compute_v(double e0, const std::vector<std::vector< double> >& f0) {}

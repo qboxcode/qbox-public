@@ -3,41 +3,34 @@
 // SDAIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.h,v 1.9 2008-03-26 04:57:54 fgygi Exp $
+// $Id: SDAIonicStepper.h,v 1.10 2008-04-06 17:47:12 fgygi Exp $
 
 #ifndef SDAIONICSTEPPER_H
 #define SDAIONICSTEPPER_H
 
 #include "IonicStepper.h"
-#include "AndersonMixer.h"
+#include "LineMinimizer.h"
+#include <vector>
 
 class SDAIonicStepper : public IonicStepper
 {
   private:
 
-  std::vector<double> f_;
-  std::vector<double> fbar_;
-  double theta_;
   bool first_step_;
-  AndersonMixer mixer_;
-  double em_;
+  std::vector<std::vector< double> > rc_;
+  std::vector<std::vector< double> > pc_;
+  std::vector<std::vector< double> > fc_;
+  double ec_, fpc_;
+  double alpha_, sigma1_, sigma2_;
+  LineMinimizer linmin_;
 
   public:
 
-  SDAIonicStepper(Sample& s) : IonicStepper(s), first_step_(true), theta_(0),
-  mixer_(3*atoms_.size(), 0)
-  {
-    f_.resize(3*atoms_.size());
-    fbar_.resize(3*atoms_.size());
-    rm_ = r0_;
-    mixer_.set_theta_max(1.0);
-    mixer_.set_theta_nc(1.0);
-    em_ = 1.0e50;
-  }
+  SDAIonicStepper(Sample& s) : IonicStepper(s), first_step_(true),
+  sigma1_(0.1), sigma2_(0.5) { linmin_.set_sigma1(sigma1_); }
 
   void compute_r(double e0, const std::vector<std::vector< double> >& f0);
   void compute_v(double e0, const std::vector<std::vector< double> >& f0) {}
-  void reset(void) { first_step_ = true; }
 };
 
 #endif

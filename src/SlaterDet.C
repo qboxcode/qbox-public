@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.45 2008-02-12 05:39:18 fgygi Exp $
+// $Id: SlaterDet.C,v 1.46 2008-04-09 16:06:33 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -68,6 +68,11 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
 
   try
   {
+    // create a temporary copy of the basis and of the coefficient matrix
+    Basis btmp(*basis_);
+    ComplexMatrix ctmp(c_);
+
+    // perform normal resize operations, possibly resetting contents of c_
     basis_->resize(cell,refcell,ecut);
     occ_.resize(nst);
     eig_.resize(nst);
@@ -85,6 +90,58 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
 
     if ( needs_reset )
       reset();
+
+    // check if data can be copied from temporary copy
+    // It is assumed that nst and ecut are not changing at the same time
+    // Only the cases where one change at a time occurs is covered
+    
+    // consider only cases where the dimensions are finite
+    if ( c_.m() > 0 && c_.n() > 0 )
+    {
+    
+      // first case: only nst has changed
+      if ( c_.m() == ctmp.m() && c_.n() != ctmp.n() )
+      {
+        //cout << "SlaterDet::resize: c_m/n=   " 
+        //     << c_.m() << "/" << c_.n() << endl;
+        //cout << "SlaterDet::resize: ctmp_m/n=" << ctmp.m() 
+        //     << "/" << ctmp.n() << endl;
+        // nst has changed, basis is unchanged
+        // copy coefficients up to min(n_old, n_new)
+        if ( c_.n() < ctmp.n() )
+        {
+          c_.getsub(ctmp,ctmp.m(),c_.n(),0,0);
+        }
+        else
+        {
+          c_.getsub(ctmp,ctmp.m(),ctmp.n(),0,0);
+        }
+        gram();
+      }
+      // second case: basis was resized, nst unchanged
+      if ( btmp.ecut() > 0.0 && basis_->ecut() > 0.0 &&
+           c_.m() != ctmp.m() && c_.n() == ctmp.n() )
+      {
+        // transform all states to real space and interpolate
+        int np0 = max(basis_->np(0),btmp.np(0));
+        int np1 = max(basis_->np(1),btmp.np(1));
+        int np2 = max(basis_->np(2),btmp.np(2));
+        //cout << " SlaterDet::resize: grid: np0/1/2: "
+        //     << np0 << " " << np1 << " " << np2 << endl;
+        // FourierTransform tf1(oldbasis, new basis grid)
+        // FourierTransform tf2(newbasis, new basis grid)
+        FourierTransform ft1(btmp,np0,np1,np2);
+        FourierTransform ft2(*basis_,np0,np1,np2);
+        // allocate real-space grid
+        valarray<complex<double> > tmpr(ft1.np012loc());
+        // transform each state from old basis to grid to new basis
+        for ( int n = 0; n < nstloc(); n++ )
+        {
+          ft1.backward(ctmp.cvalptr(n*ctmp.mloc()),&tmpr[0]);
+          ft2.forward(&tmpr[0], c_.valptr(n*c_.mloc()));
+        }
+      }
+    }
   }
   catch ( bad_alloc )
   {

@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.29 2008-02-12 05:39:18 fgygi Exp $
+// $Id: Wavefunction.C,v 1.30 2008-04-09 16:06:34 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -214,7 +214,6 @@ void Wavefunction::set_nel(int nel)
   nel_ = nel;
   compute_nst();
   resize(cell_,refcell_,ecut_);
-  reset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -229,7 +228,6 @@ void Wavefunction::set_nempty(int nempty)
   nempty_ = nempty;
   compute_nst();
   resize(cell_,refcell_,ecut_);
-  reset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

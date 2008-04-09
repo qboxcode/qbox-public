@@ -1,4 +1,8 @@
 --------------------------------------------------------------------------------
+rel1_42_0
+SlaterDet.C, Wavefunction.C: implemented dynamic resize of ecut or nempty
+without loss of data. Changes of cell also preserve wavefunctions.
+--------------------------------------------------------------------------------
 rel1_41_0
 BOSampleStepper.C, CPSampleStepper.C: remove redundant printing of unicell
 LineMinimizer.h: new LineMinimizer class used in optimization algorithms

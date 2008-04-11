@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.30 2008-04-09 16:06:34 fgygi Exp $
+// $Id: Wavefunction.C,v 1.31 2008-04-11 05:34:34 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -660,6 +660,11 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::write(MPI_File& fh, string encoding, string tag) const
 {
+  MPI_File_sync(fh);
+  ctxt_.barrier();
+  MPI_File_sync(fh);
+  MPI_File_seek(fh,0,MPI_SEEK_END);
+
   if ( ctxt_.onpe0() )
   {
     ostringstream os;
@@ -685,14 +690,10 @@ void Wavefunction::write(MPI_File& fh, string encoding, string tag) const
     string str(os.str());
     int len = str.size();
     MPI_Status status;
-    int err = MPI_File_write_shared(fh,(void*)str.c_str(),len,MPI_CHAR,&status);
+    int err = MPI_File_write(fh,(void*)str.c_str(),len,MPI_CHAR,&status);
     if ( err != 0 )
-      cout << " Wavefunction::write: error in MPI_File_write_shared" << endl;
+      cout << " Wavefunction::write: error in MPI_File_write" << endl;
   }
-
-  MPI_File_sync(fh);
-  ctxt_.barrier();
-  MPI_File_sync(fh);
 
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
@@ -702,6 +703,11 @@ void Wavefunction::write(MPI_File& fh, string encoding, string tag) const
     }
   }
 
+  MPI_File_sync(fh);
+  ctxt_.barrier();
+  MPI_File_sync(fh);
+  MPI_File_seek(fh,0,MPI_SEEK_END);
+
   if ( ctxt_.onpe0() )
   {
     ostringstream os;
@@ -709,15 +715,10 @@ void Wavefunction::write(MPI_File& fh, string encoding, string tag) const
     string str(os.str());
     int len = str.size();
     MPI_Status status;
-    int err = MPI_File_write_shared(fh,(void*)str.c_str(),len,MPI_CHAR,&status);
+    int err = MPI_File_write(fh,(void*)str.c_str(),len,MPI_CHAR,&status);
     if ( err != 0 )
-      cout << " Wavefunction::write: error in MPI_File_write_shared" << endl;
+      cout << " Wavefunction::write: error in MPI_File_write" << endl;
   }
-
-  MPI_File_sync(fh);
-  ctxt_.barrier();
-  MPI_File_sync(fh);
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////

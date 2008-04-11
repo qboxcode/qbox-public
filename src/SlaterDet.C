@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.46 2008-04-09 16:06:33 fgygi Exp $
+// $Id: SlaterDet.C,v 1.47 2008-04-11 05:34:34 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -94,17 +94,17 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
     // check if data can be copied from temporary copy
     // It is assumed that nst and ecut are not changing at the same time
     // Only the cases where one change at a time occurs is covered
-    
+
     // consider only cases where the dimensions are finite
     if ( c_.m() > 0 && c_.n() > 0 )
     {
-    
+
       // first case: only nst has changed
       if ( c_.m() == ctmp.m() && c_.n() != ctmp.n() )
       {
-        //cout << "SlaterDet::resize: c_m/n=   " 
+        //cout << "SlaterDet::resize: c_m/n=   "
         //     << c_.m() << "/" << c_.n() << endl;
-        //cout << "SlaterDet::resize: ctmp_m/n=" << ctmp.m() 
+        //cout << "SlaterDet::resize: ctmp_m/n=" << ctmp.m()
         //     << "/" << ctmp.n() << endl;
         // nst has changed, basis is unchanged
         // copy coefficients up to min(n_old, n_new)
@@ -1526,10 +1526,6 @@ void SlaterDet::write(MPI_File&  fh, string encoding, double weight, int ispin,
 
     // tmpr contains either a real or a complex array
 
-    #if PLT_BIG_ENDIAN
-    xcdr.byteswap_double(tmpr_size,&tmpr[0]);
-    #endif
-
     const string element_type = real_basis ? "double" : "complex";
 
     if ( encoding == "base64" )
@@ -1639,32 +1635,50 @@ void SlaterDet::write(MPI_File&  fh, string encoding, double weight, int ispin,
   }
   // wbuf now contains the data to be written in the correct order
 
+  MPI_File_sync(fh);
+  ctxt_.barrier();
+  MPI_File_sync(fh);
+  MPI_File_seek(fh,0,MPI_SEEK_END);
+
+  // compute offsets
+
+  MPI_Offset off;
+  long long int local_offset,current_offset;
+  MPI_File_get_position(fh,&off);
+  current_offset = off;
+
+  // compute local offset of next write
+  long long int local_size = wbuf.size();
+  MPI_Scan(&local_size, &local_offset, 1,
+           MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+  // add base and correct for inclusive scan by subtracting local_size
+  local_offset += current_offset - local_size;
+  off = local_offset;
+
   MPI_Status status;
 
-  // write wbuf from all tasks, ordered
-  int err = MPI_File_write_ordered(fh,(void*)wbuf.c_str(),wbuf.size(),
+  // write wbuf from all tasks using computed offset
+  int err = MPI_File_write_at_all(fh,off,(void*)wbuf.c_str(),wbuf.size(),
                                MPI_CHAR,&status);
   if ( err != 0 )
     cout << ctxt_.mype()
-         << " error in MPI_File_write_ordered" << endl;
+         << " error in MPI_File_write_at_all" << endl;
 
   MPI_File_sync(fh);
   ctxt_.barrier();
   MPI_File_sync(fh);
+  MPI_File_seek(fh,0,MPI_SEEK_END);
 
   if ( ctxt_.onpe0() )
   {
     string s("</slater_determinant>\n");
-    int err = MPI_File_write_shared(fh,(void*) s.c_str(),
+    int err = MPI_File_write(fh,(void*) s.c_str(),
               s.size(),MPI_CHAR,&status);
     if ( err != 0 )
       cout << ctxt_.mype()
-           << " error in MPI_File_write_shared, slater_determinant trailer"
+           << " error in MPI_File_write, slater_determinant trailer"
            << endl;
   }
-  MPI_File_sync(fh);
-  ctxt_.barrier();
-  MPI_File_sync(fh);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -3,7 +3,7 @@
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.5 2008-02-12 05:39:19 fgygi Exp $
+// $Id: SampleWriter.C,v 1.6 2008-04-11 05:34:34 fgygi Exp $
 
 
 #include "SampleWriter.h"
@@ -81,6 +81,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
       cout << s.ctxt_.mype() << ": error in MPI_File_open: " << err << endl;
 
     MPI_File_set_size(fh,0);
+    ctxt_.barrier();
 
     MPI_Status status;
     if ( ctxt_.onpe0() )
@@ -104,17 +105,13 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
       ostringstream ss("");
       ss << s.atoms;
       header += ss.str();
-
-      err = MPI_File_write_shared(fh,(void*)header.c_str(),
-                                  header.size(),MPI_CHAR,&status);
+      int len = header.size();
+      err = MPI_File_write(fh,(void*)header.c_str(),
+                           len,MPI_CHAR,&status);
       if ( err != 0 )
-        cout << ctxt_.mype() << ": error in MPI_File_write_shared: header "
+        cout << ctxt_.mype() << ": error in MPI_File_write: header "
              << err << endl;
     }
-
-    MPI_File_sync(fh);
-    ctxt_.barrier();
-    MPI_File_sync(fh);
 
     if ( !atomsonly )
     {
@@ -123,16 +120,22 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
         s.wfv->write(fh,encoding,"wavefunction_velocity");
     }
 
+    MPI_File_sync(fh);
+    ctxt_.barrier();
+    MPI_File_sync(fh);
+    MPI_File_seek(fh,0,MPI_SEEK_END);
+
     if ( ctxt_.onpe0() )
     {
       char *trailer = "</fpmd:sample>\n";
       int len = strlen(trailer);
-      err = MPI_File_write_shared(fh,(void*)trailer,len,MPI_CHAR,&status);
+      err = MPI_File_write(fh,(void*)trailer,len,MPI_CHAR,&status);
       if ( err != 0 )
-        cout << ctxt_.mype() << ": error in MPI_File_write_shared: trailer "
+        cout << ctxt_.mype() << ": error in MPI_File_write: trailer "
              << err << endl;
 
     }
+
     MPI_File_sync(fh);
     ctxt_.barrier();
     MPI_File_sync(fh);
@@ -153,6 +156,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
          << endl;
     if ( !serial )
     {
+      cout << " SampleWriter: file size: " << file_size << endl;
       cout << " SampleWriter: aggregate write rate: "
            << setprecision(2) << file_size/(tm.real()*1024*1024)
            << " MB/s" << endl;

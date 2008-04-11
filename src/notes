@@ -1,4 +1,10 @@
 --------------------------------------------------------------------------------
+rel1_43_0
+SampleWriter.C, Wavefunction.C, SlaterDet.C: implemented MPI-IO parallel I/O
+using individual file pointers, no shared pointers.
+SlaterDet.C: fixed bug: base64 transcoding done twice on big endian platforms
+when writing in parallel.
+--------------------------------------------------------------------------------
 rel1_42_0
 SlaterDet.C, Wavefunction.C: implemented dynamic resize of ecut or nempty
 without loss of data. Changes of cell also preserve wavefunctions.

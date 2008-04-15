@@ -1,4 +1,9 @@
 --------------------------------------------------------------------------------
+rel1_43_1
+BOSampleStepper.C, CPSampleStepper.C: fixed initialization of ekin_ion,temp_ion.
+SampleWriter.C, Wavefunction.C, SlaterDet.C: implementation of parallel I/O
+using SharedFilePtr class.
+--------------------------------------------------------------------------------
 rel1_43_0
 SampleWriter.C, Wavefunction.C, SlaterDet.C: implemented MPI-IO parallel I/O
 using individual file pointers, no shared pointers.
@@ -10,7 +15,7 @@ SlaterDet.C, Wavefunction.C: implemented dynamic resize of ecut or nempty
 without loss of data. Changes of cell also preserve wavefunctions.
 --------------------------------------------------------------------------------
 rel1_41_0
-BOSampleStepper.C, CPSampleStepper.C: remove redundant printing of unicell
+BOSampleStepper.C, CPSampleStepper.C: remove redundant printing of unitcell
 LineMinimizer.h: new LineMinimizer class used in optimization algorithms
 SDIonicStepper.C: back to simple dt^2/m steepest descent (back to rel1_39_0)
 SDAIonicStepper.C: steepest descent with line minimization.

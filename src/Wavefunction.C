@@ -3,11 +3,12 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.31 2008-04-11 05:34:34 fgygi Exp $
+// $Id: Wavefunction.C,v 1.32 2008-04-15 01:36:44 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
 #include "jacobi.h"
+#include "SharedFilePtr.h"
 #include <vector>
 #include <iomanip>
 #include <sstream>
@@ -658,12 +659,9 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::write(MPI_File& fh, string encoding, string tag) const
+void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
 {
-  MPI_File_sync(fh);
-  ctxt_.barrier();
-  MPI_File_sync(fh);
-  MPI_File_seek(fh,0,MPI_SEEK_END);
+  sfp.sync();
 
   if ( ctxt_.onpe0() )
   {
@@ -690,23 +688,22 @@ void Wavefunction::write(MPI_File& fh, string encoding, string tag) const
     string str(os.str());
     int len = str.size();
     MPI_Status status;
-    int err = MPI_File_write(fh,(void*)str.c_str(),len,MPI_CHAR,&status);
+    int err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)str.c_str(),
+              len,MPI_CHAR,&status);
     if ( err != 0 )
       cout << " Wavefunction::write: error in MPI_File_write" << endl;
+    sfp.advance(len);
   }
 
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      sd_[ispin][ikp]->write(fh,encoding,weight_[ikp],ispin,nspin_);
+      sd_[ispin][ikp]->write(sfp,encoding,weight_[ikp],ispin,nspin_);
     }
   }
 
-  MPI_File_sync(fh);
-  ctxt_.barrier();
-  MPI_File_sync(fh);
-  MPI_File_seek(fh,0,MPI_SEEK_END);
+  sfp.sync();
 
   if ( ctxt_.onpe0() )
   {
@@ -715,9 +712,11 @@ void Wavefunction::write(MPI_File& fh, string encoding, string tag) const
     string str(os.str());
     int len = str.size();
     MPI_Status status;
-    int err = MPI_File_write(fh,(void*)str.c_str(),len,MPI_CHAR,&status);
+    int err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)str.c_str(),
+              len,MPI_CHAR,&status);
     if ( err != 0 )
       cout << " Wavefunction::write: error in MPI_File_write" << endl;
+    sfp.advance(len);
   }
 }
 

@@ -3,16 +3,16 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.19 2008-01-26 01:34:11 fgygi Exp $
+// $Id: Wavefunction.h,v 1.20 2008-04-15 01:36:44 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
 
 #include "D3vector.h"
 #include "UnitCell.h"
+#include "SharedFilePtr.h"
 #include <vector>
 #include <complex>
-#include "mpi.h"
 
 class SlaterDet;
 class Context;
@@ -102,7 +102,7 @@ class Wavefunction
   std::complex<double> dot(const Wavefunction& wf) const;
 
   void print(std::ostream& os, std::string encoding, std::string tag) const;
-  void write(MPI_File& fh, std::string encoding, std::string tag) const;
+  void write(SharedFilePtr& fh, std::string encoding, std::string tag) const;
   void info(std::ostream& os, std::string tag) const;
 };
 std::ostream& operator << ( std::ostream& os, const Wavefunction& wf );

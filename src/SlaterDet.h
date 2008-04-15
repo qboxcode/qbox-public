@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.22 2008-01-26 01:34:11 fgygi Exp $
+// $Id: SlaterDet.h,v 1.23 2008-04-15 01:36:44 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -19,7 +19,7 @@ class FourierTransform;
 #include "Timer.h"
 #include <string>
 #include <map>
-#include "mpi.h"
+#include "SharedFilePtr.h"
 
 typedef std::map<std::string,Timer> TimerMap;
 
@@ -91,7 +91,7 @@ class SlaterDet
   SlaterDet& operator=(SlaterDet& rhs);
   void print(std::ostream& os, std::string encoding, double weight, int ispin,
     int nspin);
-  void write(MPI_File& fh, std::string encoding, double weight, int ispin,
+  void write(SharedFilePtr& fh, std::string encoding, double weight, int ispin,
     int nspin);
   void info(std::ostream& os);
 };

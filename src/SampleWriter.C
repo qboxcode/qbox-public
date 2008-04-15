@@ -3,7 +3,7 @@
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.6 2008-04-11 05:34:34 fgygi Exp $
+// $Id: SampleWriter.C,v 1.7 2008-04-15 01:36:44 fgygi Exp $
 
 
 #include "SampleWriter.h"
@@ -11,6 +11,7 @@
 #include "fstream"
 #include "qbox_xmlns.h"
 #include "Timer.h"
+#include "SharedFilePtr.h"
 #include <sstream>
 #include <iomanip>
 
@@ -73,6 +74,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     MPI_Info info;
     MPI_Info_create(&info);
     MPI_Offset fsize;
+    SharedFilePtr sfp(ctxt_.comm(),fh);
 
     int err;
     err = MPI_File_open(ctxt_.comm(),(char*) filename_cstr,
@@ -106,42 +108,39 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
       ss << s.atoms;
       header += ss.str();
       int len = header.size();
-      err = MPI_File_write(fh,(void*)header.c_str(),
-                           len,MPI_CHAR,&status);
+      err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)header.c_str(),
+            len,MPI_CHAR,&status);
       if ( err != 0 )
         cout << ctxt_.mype() << ": error in MPI_File_write: header "
              << err << endl;
+      sfp.advance(len);
     }
+    sfp.sync();
 
     if ( !atomsonly )
     {
-      s.wf.write(fh,encoding,"wavefunction");
+      s.wf.write(sfp,encoding,"wavefunction");
       if ( s.wfv != 0 )
-        s.wfv->write(fh,encoding,"wavefunction_velocity");
+        s.wfv->write(sfp,encoding,"wavefunction_velocity");
     }
 
-    MPI_File_sync(fh);
-    ctxt_.barrier();
-    MPI_File_sync(fh);
-    MPI_File_seek(fh,0,MPI_SEEK_END);
+    sfp.sync();
 
     if ( ctxt_.onpe0() )
     {
       char *trailer = "</fpmd:sample>\n";
       int len = strlen(trailer);
-      err = MPI_File_write(fh,(void*)trailer,len,MPI_CHAR,&status);
+      err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)trailer,
+              len,MPI_CHAR,&status);
       if ( err != 0 )
         cout << ctxt_.mype() << ": error in MPI_File_write: trailer "
              << err << endl;
-
+      sfp.advance(len);
     }
 
-    MPI_File_sync(fh);
-    ctxt_.barrier();
-    MPI_File_sync(fh);
+    sfp.sync();
 
-    MPI_File_get_size(fh,&fsize);
-    file_size = fsize;
+    file_size = sfp.offset();
 
     err = MPI_File_close(&fh);
     if ( err != 0 )

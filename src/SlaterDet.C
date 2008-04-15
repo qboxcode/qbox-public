@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.47 2008-04-11 05:34:34 fgygi Exp $
+// $Id: SlaterDet.C,v 1.48 2008-04-15 01:36:44 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -1326,7 +1326,7 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::write(MPI_File&  fh, string encoding, double weight, int ispin,
+void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight, int ispin,
   int nspin)
 {
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
@@ -1632,25 +1632,23 @@ void SlaterDet::write(MPI_File&  fh, string encoding, double weight, int ispin,
 
     wbuf.append(rbuf,rbufsize);
     delete [] rbuf;
+    seg[nloc].clear();
   }
   // wbuf now contains the data to be written in the correct order
 
-  MPI_File_sync(fh);
   ctxt_.barrier();
-  MPI_File_sync(fh);
-  MPI_File_seek(fh,0,MPI_SEEK_END);
 
   // compute offsets
+  sfp.sync();
 
   MPI_Offset off;
   long long int local_offset,current_offset;
-  MPI_File_get_position(fh,&off);
-  current_offset = off;
+  current_offset = sfp.offset();
 
   // compute local offset of next write
   long long int local_size = wbuf.size();
   MPI_Scan(&local_size, &local_offset, 1,
-           MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+           MPI_LONG_LONG, MPI_SUM, ctxt_.comm());
   // add base and correct for inclusive scan by subtracting local_size
   local_offset += current_offset - local_size;
   off = local_offset;
@@ -1658,26 +1656,26 @@ void SlaterDet::write(MPI_File&  fh, string encoding, double weight, int ispin,
   MPI_Status status;
 
   // write wbuf from all tasks using computed offset
-  int err = MPI_File_write_at_all(fh,off,(void*)wbuf.c_str(),wbuf.size(),
+  int len = wbuf.size();
+  int err = MPI_File_write_at_all(sfp.file(),off,(void*)wbuf.c_str(),len,
                                MPI_CHAR,&status);
   if ( err != 0 )
     cout << ctxt_.mype()
          << " error in MPI_File_write_at_all" << endl;
+  sfp.set_offset(local_offset+len);
 
-  MPI_File_sync(fh);
-  ctxt_.barrier();
-  MPI_File_sync(fh);
-  MPI_File_seek(fh,0,MPI_SEEK_END);
+  sfp.sync();
 
   if ( ctxt_.onpe0() )
   {
     string s("</slater_determinant>\n");
-    int err = MPI_File_write(fh,(void*) s.c_str(),
+    int err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*) s.c_str(),
               s.size(),MPI_CHAR,&status);
     if ( err != 0 )
       cout << ctxt_.mype()
            << " error in MPI_File_write, slater_determinant trailer"
            << endl;
+    sfp.advance(s.size());
   }
 }
 

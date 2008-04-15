@@ -3,7 +3,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.18 2008-04-05 19:13:03 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.19 2008-04-15 01:36:15 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -87,7 +87,7 @@ void CPSampleStepper::step(int niter)
   Wavefunction& wf = s_.wf;
 
   const double dt = s_.ctrl.dt;
-  double ekin_ion=0.0,ekin_e, temp_ion, eta;
+  double ekin_ion=0.0,ekin_e, temp_ion=0.0, eta;
 
   const string wf_dyn = s_.ctrl.wf_dyn;
   assert(wf_dyn=="MD");

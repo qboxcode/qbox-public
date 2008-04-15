@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.40 2008-04-05 19:11:25 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.41 2008-04-15 01:36:15 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -217,7 +217,7 @@ void BOSampleStepper::step(int niter)
     }
     // at this point, positions r0, velocities v0 and forces fion are
     // consistent
-    double ekin_ion, temp_ion;
+    double ekin_ion = 0.0, temp_ion = 0.0;
     if ( ionic_stepper )
     {
       ekin_ion = ionic_stepper->ekin();

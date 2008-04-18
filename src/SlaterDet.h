@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.23 2008-04-15 01:36:44 fgygi Exp $
+// $Id: SlaterDet.h,v 1.24 2008-04-18 03:40:33 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -19,7 +19,8 @@ class FourierTransform;
 #include "Timer.h"
 #include <string>
 #include <map>
-#include "SharedFilePtr.h"
+
+class SharedFilePtr;
 
 typedef std::map<std::string,Timer> TimerMap;
 

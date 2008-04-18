@@ -3,7 +3,7 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: x8664_gcc.mk,v 1.7 2008-03-05 04:04:48 fgygi Exp $
+# $Id: x8664_gcc.mk,v 1.8 2008-04-18 03:40:57 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
@@ -27,7 +27,7 @@
 
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
 
- CXXFLAGS= -g -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
+ CXXFLAGS= -g -Wunused -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR)/.libs -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L$(LAPACKDIR) -L$(BLASDIR) \

@@ -1,4 +1,7 @@
 --------------------------------------------------------------------------------
+rel1_43_2
+SlaterDet.C: rewrite of the parallel I/O section, using less memory.
+--------------------------------------------------------------------------------
 rel1_43_1
 BOSampleStepper.C, CPSampleStepper.C: fixed initialization of ekin_ion,temp_ion.
 SampleWriter.C, Wavefunction.C, SlaterDet.C: implementation of parallel I/O

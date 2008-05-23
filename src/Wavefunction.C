@@ -3,7 +3,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.32 2008-04-15 01:36:44 fgygi Exp $
+// $Id: Wavefunction.C,v 1.33 2008-05-23 03:24:20 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -301,13 +301,15 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
     }
   }
 
-  deallocate();
   kpoint_.push_back(kpoint);
   weight_.push_back(weight);
 
-  allocate();
+  const int nkp = kpoint_.size();
+  assert(nspin_ == 1);
+  sd_.resize(nspin_);
+  sd_[0].push_back(new SlaterDet(*sdcontext_,kpoint_[nkp-1]));
+
   resize(cell_,refcell_,ecut_);
-  reset();
   update_occ(0.0);
 }
 

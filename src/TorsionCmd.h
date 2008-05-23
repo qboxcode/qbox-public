@@ -3,7 +3,7 @@
 // TorsionCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionCmd.h,v 1.3 2008-02-12 05:39:18 fgygi Exp $
+// $Id: TorsionCmd.h,v 1.4 2008-05-23 03:23:36 fgygi Exp $
 
 #ifndef TORSIONCMD_H
 #define TORSIONCMD_H
@@ -103,7 +103,7 @@ class TorsionCmd : public Cmd
       D3vector e123 = normalized(e12^e32);
       D3vector e234 = normalized(e23^e43);
       double cc = max(min(e123*e234,1.0),-1.0);
-      double ss = max(min((e123^e234)*e32,1.0),-1.0);
+      double ss = -max(min((e123^e234)*e32,1.0),-1.0);
       a = (180.0/M_PI) * atan2(ss,cc);
     }
 

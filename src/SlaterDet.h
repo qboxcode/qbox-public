@@ -3,7 +3,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.24 2008-04-18 03:40:33 fgygi Exp $
+// $Id: SlaterDet.h,v 1.25 2008-05-23 03:23:09 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -67,7 +67,7 @@ class SlaterDet
   void align(const SlaterDet& sd);
   void ortho_align(const SlaterDet& sd);
   std::complex<double> dot(const SlaterDet& sd) const;
-  double total_charge(void);
+  double total_charge(void) const;
   void update_occ(int nel, int nspin);
   void update_occ(int nspin, double mu, double temp);
   double eig(int i) const { return eig_[i]; };
@@ -85,16 +85,16 @@ class SlaterDet
       for ( int i = 0; i < eig.size(); i++ )
         eig_[i] = eig[i];
     }
-  double entropy(int nspin);
-  double ortho_error(void);
+  double entropy(int nspin) const;
+  double ortho_error(void) const;
   double memsize(void) const;
   double localmemsize(void) const;
   SlaterDet& operator=(SlaterDet& rhs);
   void print(std::ostream& os, std::string encoding, double weight, int ispin,
-    int nspin);
+    int nspin) const;
   void write(SharedFilePtr& fh, std::string encoding, double weight, int ispin,
-    int nspin);
-  void info(std::ostream& os);
+    int nspin) const;
+  void info(std::ostream& os) const;
 };
 std::ostream& operator << ( std::ostream& os, SlaterDet& sd );
 

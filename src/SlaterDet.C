@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.49 2008-04-18 03:40:03 fgygi Exp $
+// $Id: SlaterDet.C,v 1.50 2008-05-23 03:23:09 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -954,7 +954,7 @@ void SlaterDet::update_occ(int nel, int nspin)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double SlaterDet::total_charge(void)
+double SlaterDet::total_charge(void) const
 {
   // compute total charge from occ_[i]
   double sum = 0.0;
@@ -1016,7 +1016,7 @@ double SlaterDet::fermi(double e, double mu, double fermitemp)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double SlaterDet::entropy(int nspin)
+double SlaterDet::entropy(int nspin) const
 {
   // return dimensionless entropy
   // the contribution to the free energy is - t_kelvin * k_boltz * wf.entropy()
@@ -1036,7 +1036,7 @@ double SlaterDet::entropy(int nspin)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double SlaterDet::ortho_error(void)
+double SlaterDet::ortho_error(void) const
 {
   // deviation from orthogonality of c_
   double error;
@@ -1157,7 +1157,7 @@ double SlaterDet::localmemsize(void) const
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
-  int nspin)
+  int nspin) const
 {
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
@@ -1328,7 +1328,7 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight, int ispin,
-  int nspin)
+  int nspin) const
 {
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
@@ -1708,7 +1708,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight, int is
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::info(ostream& os)
+void SlaterDet::info(ostream& os) const
 {
   if ( ctxt_.onpe0() )
   {

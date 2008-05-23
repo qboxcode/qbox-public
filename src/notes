@@ -1,4 +1,10 @@
 --------------------------------------------------------------------------------
+rel1_43_3
+TorsionCmd.h: fixed sign of torsion angle.
+SlaterDet.[Ch]: fixed const-ness of some members.
+Wavefunction.C: modif allocation in add_kpoint to avoid O(nkp**2) time
+x8664_gcc.mk: link statically to gfortran libs for better portability of exec.
+--------------------------------------------------------------------------------
 rel1_43_2
 SlaterDet.C: rewrite of the parallel I/O section, using less memory.
 --------------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.26 2008-03-21 00:29:09 fgygi Exp $
+// $Id: SampleReader.C,v 1.27 2008-06-06 00:10:58 fgygi Exp $
 
 
 #include "Sample.h"
@@ -426,8 +426,10 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     else
       assert(dmat[0].size() == s.wf.nkp() );
 
-    // ofstream gffile("gf.dat");
-    // gffile << gfdata;
+#if DEBUG
+    ofstream gffile("gf.dat");
+    gffile << gfdata;
+#endif
     if ( read_wf )
     {
       // transfer data from the gfdata matrix to the SlaterDets
@@ -455,32 +457,36 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
           sd->set_occ(dmat[ispin][ikp]);
           const Basis& basis = sd->basis();
           FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
-          //cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
-          //cout << ctxt_.mype() << ": ft.context(): " << ft.context();
+#if DEBUG
+          cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
+          cout << ctxt_.mype() << ": ft.context(): " << ft.context();
+#endif
 
           ComplexMatrix& c = sd->c();
           // copy wf values
           // Determine the size of the temporary real matrix wftmpr
           int wftmpr_size, wftmpr_block_size;
-          if ( basis.real() && ( ft.np012() == gfdata.m() ) )
+          if ( basis.real() )
           {
-            // all functions are real
             wftmpr_size = ft.np012();
             wftmpr_block_size = ft.np012loc(0);
           }
           else
           {
-            // there is either 1) a mix of real and complex functions
-            // or 2) only complex functions
             wftmpr_size = 2*ft.np012();
             wftmpr_block_size = 2*ft.np012loc(0);
           }
+#if DEBUG
+          cout << ctxt_.mype() << ": wftmpr_size: " << wftmpr_size << endl;
+          cout << ctxt_.mype() << ": wftmpr_block_size: "
+               << wftmpr_block_size << endl;
+#endif
           DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
             wftmpr_block_size,c.nb());
 
           wftmpr.getsub(gfdata,wftmpr_size,sd->nst(),0,ikp*sd->nst());
 
-#if 0
+#if DEBUG
           // Check orthogonality by computing overlap matrix
           DoubleMatrix smat(sd->context(),sd->nst(),sd->nst(),c.nb(),c.nb());
           smat.syrk('l','t',1.0,wftmpr,0.0);

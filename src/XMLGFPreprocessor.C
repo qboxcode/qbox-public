@@ -3,7 +3,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.11 2007-10-19 17:37:06 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.12 2008-06-06 00:09:23 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -735,7 +735,7 @@ void XMLGFPreprocessor::process(const char* const filename,
       if ( igf[iseg] == i )
         gfsize[i] = dbuf[iseg].size();
   }
-  rctxt.isum(1,ngf,&gfsize[0],1);
+  rctxt.isum(ngf,1,&gfsize[0],ngf);
   if ( ngf > 0 )
     maxgfsize = gfsize.max();
 #if DEBUG
@@ -757,31 +757,6 @@ void XMLGFPreprocessor::process(const char* const filename,
        << ")  (" << gfmb << "x" << gfnb << ") blocks" << endl;
   cout << ctxt.mype() << ": gfdata.context(): " << gfdata.context();
 #endif
-
-  // If the data in dbuf segments corresponds to real functions (kpoint==0)
-  // and if there are also complex functions (kpoint!=0), then
-  // for real functions: gfsize[igf[iseg]] == maxgfsize/2
-  // for complex functions: gfsize[igf[iseg] == maxgfsize
-
-  // If both real and complex functions are present, the real functions
-  // are converted to complex functions before redistribution of data
-  // This is done by resizing dbuf[iseg] and copying the data with stride 2
-  for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
-  {
-    if ( maxgfsize == 2*gfsize[igf[iseg]] )
-    {
-      // the function is real and there are also complex functions
-      // resize dbuf[iseg] to double its size
-      const int ndoubles = dbuf[iseg].size();
-      dbuf[iseg].resize(2*ndoubles);
-      // redistribute the data in the array
-      for ( int i = ndoubles-1; i >= 0; i-- )
-      {
-        dbuf[iseg][2*i] = dbuf[iseg][i];
-        dbuf[iseg][2*i+1] = 0.0;
-      }
-    }
-  }
 
   // prepare buffer sbuf for all_to_all operation
   int sbufsize = 0;
@@ -875,6 +850,7 @@ void XMLGFPreprocessor::process(const char* const filename,
       mb_loc = maxgfsize - km * gfmb;
     else
       mb_loc = 0;
+
     const int max_offset = min_offset + mb_loc;
 
     sdispl[itask] = sbuf_pos;
@@ -957,14 +933,86 @@ void XMLGFPreprocessor::process(const char* const filename,
   for ( int i = 1; i < ctxt.size(); i++ )
     rdispl[i] = rdispl[i-1] + rcounts[i-1];
 
-  // Transfer gf data
+  int rbufsize = 0;
+  for ( int i = 0; i < ctxt.size(); i++ )
+    rbufsize += rcounts[i];
+#if DEBUG
+  cout << ctxt.mype() << ": "
+       << " rbufsize: " << rbufsize << endl;
+#endif
+
+  valarray<double> rbuf(rbufsize);
+
+
   status = MPI_Alltoallv(&sbuf[0],&scounts[0],&sdispl[0],MPI_DOUBLE,
-           gfdata.valptr(),&rcounts[0],&rdispl[0],MPI_DOUBLE,rctxt.comm());
+           &rbuf[0],&rcounts[0],&rdispl[0],MPI_DOUBLE,rctxt.comm());
   assert(status==0);
+
+  // copy data from rbuf to gfdata.valptr()
+  // functions in rbuf can have varying length
+  // determine bounds igfmin, igfmax of functions in rbuf
+  // then use gfsize[igf] to copy one function at a time to gfdata
+  //
+  // compute block sizes for current node
+  const int irow = ctxt.myrow();
+  const int icol = ctxt.mycol();
+
+  const int igfminloc = icol * gfnb;
+  // nb_loc: size of block on task icol
+  // nb_loc is gfnb       for icol < kn
+  //           ngf-k*gfnb for icol == kn
+  //           0          for icol > kn
+  // where kn = int(ngf/gfnb)
+  const int kn = (gfnb>0) ? ngf / gfnb : 0;
+  int nb_loc;
+  if ( icol < kn )
+    nb_loc = gfnb;
+  else if ( icol == kn )
+    nb_loc = ngf - kn * gfnb;
+  else
+    nb_loc = 0;
+  const int igfmaxloc = igfminloc + nb_loc;
+
+#if DEBUG
+  cout << ctxt.mype() << ": "
+       << " igfminloc: " << igfminloc << " igfmaxloc: " << igfmaxloc << endl;
+#endif
+  int rbuf_pos = 0;
+  int igfloc = 0;
+  for ( int igf = igfminloc; igf < igfmaxloc; igf++ )
+  {
+    // mb_loc: size of block on task irow
+    // mb_loc is gfmb             for irow < km
+    //           gfsize-k*gfmb for irow == km
+    //           0                for irow > km
+    // where km = int(gfsize/gfmb)
+    const int km = (gfmb>0) ? gfsize[igf] / gfmb : 0;
+    int mb_loc;
+    if ( irow < km )
+      mb_loc = gfmb;
+    else if ( irow == km )
+      mb_loc = gfsize[igf] - km * gfmb;
+    else
+      mb_loc = 0;
+
+#if DEBUG
+    cout << " copying gfsize[" << igf << "] = " << gfsize[igf]
+         << " block size: " << mb_loc
+         << " gfdata.mloc(): " << gfdata.mloc() << endl;
+#endif
+
+    // copy rbuf[rbuf_pos] size mb_loc to
+    // gfdata.valptr(icol*mloc())
+    const int dest = igfloc * gfdata.mloc();
+    memcpy(gfdata.valptr(dest),&rbuf[rbuf_pos],mb_loc*sizeof(double));
+    rbuf_pos += mb_loc;
+    igfloc++;
+  }
 
   tm.stop();
   if ( ctxt.onpe0() )
-    cout << " XMLGFPreprocessor: data redistribution time: " << tm.real() << endl;
+    cout << " XMLGFPreprocessor: data redistribution time: "
+         << tm.real() << endl;
   tm.reset();
   tm.start();
 

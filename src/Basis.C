@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.18 2008-03-05 04:04:48 fgygi Exp $
+// $Id: Basis.C,v 1.19 2008-06-06 00:10:08 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -368,11 +368,11 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     lmax_used = lend;
 
     // rods (0,k,l)
-    for ( int k = 1; k <= kmax; k++ )
+    for ( int k = 1; k <= kmax+1; k++ )
     {
       int lstart=lmax,lend=lmin;
       bool found = false;
-      for ( int l = lmin; l <= lmax; l++ )
+      for ( int l = lmin-1; l <= lmax+1; l++ )
       {
         const double two_e = norm(k*b1+l*b2);
         if ( two_e < two_ecut )
@@ -396,13 +396,13 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
       }
     }
     // rods (h,k,l) h>0
-    for ( int h = 1; h <= hmax; h++ )
+    for ( int h = 1; h <= hmax+1; h++ )
     {
-      for ( int k = kmin; k <= kmax; k++ )
+      for ( int k = kmin-1; k <= kmax+1; k++ )
       {
         int lstart=lmax,lend=lmin;
         bool found = false;
-        for ( int l = lmin; l <= lmax; l++ )
+        for ( int l = lmin-1; l <= lmax+1; l++ )
         {
           const double two_e = norm(h*b0+k*b1+l*b2);
           if ( two_e < two_ecut )
@@ -436,13 +436,13 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     size_ = 0;
     nrods_ = 0;
     // rods (h,k,l)
-    for ( int h = hmin; h <= hmax; h++ )
+    for ( int h = hmin; h <= hmax+1; h++ )
     {
-      for ( int k = kmin; k <= kmax; k++ )
+      for ( int k = kmin-1; k <= kmax+1; k++ )
       {
         int lstart=lmax,lend=lmin;
         bool found = false;
-        for ( int l = lmin; l <= lmax; l++ )
+        for ( int l = lmin-1; l <= lmax+1; l++ )
         {
           const double two_e = norm((kpx+h)*b0 + (kpy+k)*b1 + (kpz+l)*b2);
           if ( two_e < two_ecut )
@@ -494,12 +494,17 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   assert(lmin_used >= lmin);
 
   // compute good FFT sizes
-  for ( int i = 0; i < 3; i++ )
-  {
-    int n = 2 * max(abs(idxmax_[i]),abs(idxmin_[i])) + 2;
-    while ( !factorizable(n) ) n += 2;
-    np_[i] = n;
-  }
+  // use values independent of the kpoint
+  int n;
+  n = 2*hmax+2;
+  while ( !factorizable(n) ) n+=2;
+  np_[0] = n;
+  n = 2*kmax+2;
+  while ( !factorizable(n) ) n+=2;
+  np_[1] = n;
+  n = 2*lmax+2;
+  while ( !factorizable(n) ) n+=2;
+  np_[2] = n;
 
   // Distribute the basis on nprow_ processors
 

@@ -3,7 +3,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.18 2008-03-26 04:57:54 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.19 2008-06-06 00:00:58 fgygi Exp $
 
 #include "MDIonicStepper.h"
 using namespace std;
@@ -152,7 +152,6 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
             if ( is1 == is2 ) ia2min = ia1 + 1;
             for ( int ia2 = ia2min; ia2 < na_[is2]; ia2++ )
             {
-              // if th_time is zero, set probability to one
               if ( drand48() < collision_probability )
               {
                 // cout << " collision: pair " << is1 << " " << ia1 << " "

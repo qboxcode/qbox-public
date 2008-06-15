@@ -1,4 +1,14 @@
 --------------------------------------------------------------------------------
+rel1_43_5
+BOSampleStepper.C: print energy at end of wf optimization when using niter=0.
+Basis.C: modified grid size to cover all grids for any k-point
+--------------------------------------------------------------------------------
+rel1_43_4
+Basis.C: np() yields same grid size for all kpoints
+XMLGFPreprocessor.C, SampleReader.C: fixed reading samples with both real and
+complex wavefunctions
+Wavefunction.C: removed unneeded resize in add_kpoint
+--------------------------------------------------------------------------------
 rel1_43_3
 TorsionCmd.h: fixed sign of torsion angle.
 SlaterDet.[Ch]: fixed const-ness of some members.

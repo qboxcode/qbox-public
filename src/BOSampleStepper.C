@@ -3,7 +3,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.41 2008-04-15 01:36:15 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.42 2008-06-15 20:44:58 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -98,6 +98,8 @@ void BOSampleStepper::step(int niter)
   const bool compute_stress = ( s_.ctrl.stress == "ON" );
   const bool cell_moves = ( niter > 0 && compute_stress &&
                             cell_dyn != "LOCKED" );
+  // GS-only calculation:
+  const bool gs_only = !atoms_move && !cell_moves;
   const bool use_confinement = ( s_.ctrl.ecuts > 0.0 );
 
   Timer tm_iter;
@@ -175,120 +177,123 @@ void BOSampleStepper::step(int niter)
 
     // compute energy and ionic forces using existing wavefunction
 
-    tmap["charge"].start();
-    cd_.update_density();
-    tmap["charge"].stop();
-
-    ef_.update_vhxc();
-    const bool compute_forces = true;
-    double energy =
-      ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
-
-    if ( onpe0 )
+    if ( !gs_only )
     {
-      cout.setf(ios::fixed,ios::floatfield);
-      cout.setf(ios::right,ios::adjustfield);
-      cout << "  <ekin>   " << setprecision(8)
-           << setw(15) << ef_.ekin() << " </ekin>\n";
-      if ( use_confinement )
-        cout << "  <econf>  " << setw(15) << ef_.econf() << " </econf>\n";
-      cout << "  <eps>    " << setw(15) << ef_.eps() << " </eps>\n"
-           << "  <enl>    " << setw(15) << ef_.enl() << " </enl>\n"
-           << "  <ecoul>  " << setw(15) << ef_.ecoul() << " </ecoul>\n"
-           << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
-           << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
-           << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
-           << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n"
-           << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
+      tmap["charge"].start();
+      cd_.update_density();
+      tmap["charge"].stop();
+
+      ef_.update_vhxc();
+      const bool compute_forces = true;
+      double energy =
+        ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
+
+      if ( onpe0 )
+      {
+        cout.setf(ios::fixed,ios::floatfield);
+        cout.setf(ios::right,ios::adjustfield);
+        cout << "  <ekin>   " << setprecision(8)
+             << setw(15) << ef_.ekin() << " </ekin>\n";
+        if ( use_confinement )
+          cout << "  <econf>  " << setw(15) << ef_.econf() << " </econf>\n";
+        cout << "  <eps>    " << setw(15) << ef_.eps() << " </eps>\n"
+             << "  <enl>    " << setw(15) << ef_.enl() << " </enl>\n"
+             << "  <ecoul>  " << setw(15) << ef_.ecoul() << " </ecoul>\n"
+             << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
+             << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
+             << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
+             << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n"
+             << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
+        if ( compute_stress )
+        {
+          const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
+          const double enthalpy = ef_.etotal() + pext * cell.volume();
+          cout << "  <pv>     " << setw(15) << pext * cell.volume()
+               << " </pv>" << endl;
+          cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
+             << flush;
+        }
+      }
+
+      if ( iter > 0 && ionic_stepper )
+      {
+        ionic_stepper->compute_v(energy,fion);
+      }
+      // at this point, positions r0, velocities v0 and forces fion are
+      // consistent
+      double ekin_ion = 0.0, temp_ion = 0.0;
+      if ( ionic_stepper )
+      {
+        ekin_ion = ionic_stepper->ekin();
+        temp_ion = ionic_stepper->temp();
+      }
+
+      // print positions, velocities and forces at time t0
+      if ( onpe0 )
+      {
+        cout << "<atomset>" << endl;
+        cout << atoms.cell();
+        for ( int is = 0; is < atoms.atom_list.size(); is++ )
+        {
+          int i = 0;
+          for ( int ia = 0; ia < atoms.atom_list[is].size(); ia++ )
+          {
+            Atom* pa = atoms.atom_list[is][ia];
+            cout << "  <atom name=\"" << pa->name() << "\""
+                 << " species=\"" << pa->species()
+                 << "\">\n"
+                 << "    <position> " << pa->position() << " </position>\n"
+                 << "    <velocity> " << pa->velocity() << " </velocity>\n"
+                 << "    <force> "
+                 << fion[is][i] << " "
+                 << fion[is][i+1] << " "
+                 << fion[is][i+2]
+                 << " </force>\n";
+            cout << "  </atom>" << endl;
+            i += 3;
+          }
+        }
+        cout << "</atomset>" << endl;
+        cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
+        cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
+        cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";
+      }
+
+      if ( atoms_move )
+      {
+        if ( s_.constraints.size() > 0 )
+        {
+          s_.constraints.compute_forces(ionic_stepper->r0(), fion);
+          if ( onpe0 )
+          {
+            s_.constraints.list_constraints(cout);
+          }
+        }
+        // move atoms to new position: r0 <- r0 + v0*dt + dt2/m * fion
+        ionic_stepper->compute_r(energy,fion);
+        ef_.atoms_moved();
+      }
+
       if ( compute_stress )
       {
-        const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-        const double enthalpy = ef_.etotal() + pext * cell.volume();
-        cout << "  <pv>     " << setw(15) << pext * cell.volume()
-             << " </pv>" << endl;
-        cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
-           << flush;
-      }
-    }
+        compute_sigma();
+        print_stress();
 
-    if ( iter > 0 && ionic_stepper )
-    {
-      ionic_stepper->compute_v(energy,fion);
-    }
-    // at this point, positions r0, velocities v0 and forces fion are
-    // consistent
-    double ekin_ion = 0.0, temp_ion = 0.0;
-    if ( ionic_stepper )
-    {
-      ekin_ion = ionic_stepper->ekin();
-      temp_ion = ionic_stepper->temp();
-    }
-
-    // print positions, velocities and forces at time t0
-    if ( onpe0 )
-    {
-      cout << "<atomset>" << endl;
-      cout << atoms.cell();
-      for ( int is = 0; is < atoms.atom_list.size(); is++ )
-      {
-        int i = 0;
-        for ( int ia = 0; ia < atoms.atom_list[is].size(); ia++ )
+        if ( cell_moves )
         {
-          Atom* pa = atoms.atom_list[is][ia];
-          cout << "  <atom name=\"" << pa->name() << "\""
-               << " species=\"" << pa->species()
-               << "\">\n"
-               << "    <position> " << pa->position() << " </position>\n"
-               << "    <velocity> " << pa->velocity() << " </velocity>\n"
-               << "    <force> "
-               << fion[is][i] << " "
-               << fion[is][i+1] << " "
-               << fion[is][i+2]
-               << " </force>\n";
-          cout << "  </atom>" << endl;
-          i += 3;
+          cell_stepper->compute_new_cell(sigma);
+
+          // Update cell
+          cell_stepper->update_cell();
+
+          ef_.cell_moved();
+          ef_.atoms_moved(); // modifications of the cell also move ions
+
+          if ( use_preconditioner )
+            preconditioner->update();
         }
       }
-      cout << "</atomset>" << endl;
-      cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
-      cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
-      cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";
-    }
-
-    if ( atoms_move )
-    {
-      if ( s_.constraints.size() > 0 )
-      {
-        s_.constraints.compute_forces(ionic_stepper->r0(), fion);
-        if ( onpe0 )
-        {
-          s_.constraints.list_constraints(cout);
-        }
-      }
-      // move atoms to new position: r0 <- r0 + v0*dt + dt2/m * fion
-      ionic_stepper->compute_r(energy,fion);
-      ef_.atoms_moved();
-    }
-
-    if ( compute_stress )
-    {
-      compute_sigma();
-      print_stress();
-
-      if ( cell_moves )
-      {
-        cell_stepper->compute_new_cell(sigma);
-
-        // Update cell
-        cell_stepper->update_cell();
-
-        ef_.cell_moved();
-        ef_.atoms_moved(); // modifications of the cell also move ions
-
-        if ( use_preconditioner )
-          preconditioner->update();
-      }
-    }
+    } // if !gs_only
 
     // Recalculate ground state wavefunctions
 
@@ -609,7 +614,7 @@ void BOSampleStepper::step(int niter)
         // subspace diagonalization
         if ( compute_eigvec || s_.ctrl.wf_diag == "EIGVAL" )
         {
-          energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+          ef_.energy(true,dwf,false,fion,false,sigma_eks);
           s_.wf.diag(dwf,compute_eigvec);
           if ( onpe0 )
           {
@@ -654,11 +659,50 @@ void BOSampleStepper::step(int niter)
           cout << "  BOSampleStepper: end scf iteration" << endl;
       } // for itscf
 
-      // If GS calculation only, print energy at end of iterations
-      if ( !atoms_move && !cell_moves )
-        if ( onpe0 )
-          cout << ef_;
+      // If GS calculation only, print energy and atomset at end of iterations
+      if ( gs_only )
+      {
+        tmap["charge"].start();
+        cd_.update_density();
+        tmap["charge"].stop();
 
+        ef_.update_vhxc();
+        const bool compute_forces = true;
+        ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
+
+        if ( onpe0 )
+        {
+          cout << ef_;
+          cout << "<atomset>" << endl;
+          cout << atoms.cell();
+          for ( int is = 0; is < atoms.atom_list.size(); is++ )
+          {
+            int i = 0;
+            for ( int ia = 0; ia < atoms.atom_list[is].size(); ia++ )
+            {
+              Atom* pa = atoms.atom_list[is][ia];
+              cout << "  <atom name=\"" << pa->name() << "\""
+                   << " species=\"" << pa->species()
+                   << "\">\n"
+                   << "    <position> " << pa->position() << " </position>\n"
+                   << "    <velocity> " << pa->velocity() << " </velocity>\n"
+                   << "    <force> "
+                   << fion[is][i] << " "
+                   << fion[is][i+1] << " "
+                   << fion[is][i+2]
+                   << " </force>\n";
+              cout << "  </atom>" << endl;
+              i += 3;
+            }
+          }
+          cout << "</atomset>" << endl;
+          if ( compute_stress )
+          {
+            compute_sigma();
+            print_stress();
+          }
+        }
+      }
       wf_stepper->postprocess();
     }
     else

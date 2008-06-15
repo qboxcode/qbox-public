@@ -3,7 +3,7 @@
 // Basis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.C,v 1.19 2008-06-06 00:10:08 fgygi Exp $
+// $Id: Basis.C,v 1.20 2008-06-15 20:46:05 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -325,17 +325,14 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
 
   const double fac = sqrt(two_ecut) / twopi;
 
-  // define safe enclosing domain
-  const int hmax = (int) ( fac * (
-    abs(defcell.a(0).x) + abs(defcell.a(0).y) + abs(defcell.a(0).z) ) );
+  // define safe enclosing domain for any k-point value in the BZ
+  const int hmax = (int) ( 0.5 + fac * ( length(defcell.a(0) ) ) );
   const int hmin = - hmax;
 
-  const int kmax = (int) ( fac * (
-    abs(defcell.a(1).x) + abs(defcell.a(1).y) + abs(defcell.a(1).z) ) );
+  const int kmax = (int) ( 0.5 + fac * ( length(defcell.a(1) ) ) );
   const int kmin = - kmax;
 
-  const int lmax = (int) ( fac * (
-    abs(defcell.a(2).x) + abs(defcell.a(2).y) + abs(defcell.a(2).z) ) );
+  const int lmax = (int) ( 0.5 + fac * ( length(defcell.a(2) ) ) );
   const int lmin = - lmax;
 
   multiset<Rod> rodset;
@@ -436,7 +433,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     size_ = 0;
     nrods_ = 0;
     // rods (h,k,l)
-    for ( int h = hmin; h <= hmax+1; h++ )
+    for ( int h = hmin-1; h <= hmax+1; h++ )
     {
       for ( int k = kmin-1; k <= kmax+1; k++ )
       {
@@ -470,12 +467,14 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     }
   }
 
-  //cout << " hmin/hmax: " << hmin << " / " << hmax << endl;
-  //cout << " kmin/kmax: " << kmin << " / " << kmax << endl;
-  //cout << " lmin/lmax: " << lmin << " / " << lmax << endl;
-  //cout << " hmin/hmax used: " << hmin_used << " / " << hmax_used << endl;
-  //cout << " kmin/kmax used: " << kmin_used << " / " << kmax_used << endl;
-  //cout << " lmin/lmax used: " << lmin_used << " / " << lmax_used << endl;
+#if DEBUG
+  cout << " hmin/hmax: " << hmin << " / " << hmax << endl;
+  cout << " kmin/kmax: " << kmin << " / " << kmax << endl;
+  cout << " lmin/lmax: " << lmin << " / " << lmax << endl;
+  cout << " hmin/hmax used: " << hmin_used << " / " << hmax_used << endl;
+  cout << " kmin/kmax used: " << kmin_used << " / " << kmax_used << endl;
+  cout << " lmin/lmax used: " << lmin_used << " / " << lmax_used << endl;
+#endif
 
   idxmax_[0] = hmax_used;
   idxmin_[0] = hmin_used;

@@ -3,7 +3,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.50 2008-05-23 03:23:09 fgygi Exp $
+// $Id: SlaterDet.C,v 1.51 2008-06-18 04:03:34 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -1174,7 +1174,7 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
     if ( nspin == 2 )
       os << " spin=\"" << spin << "\"";
     os << " kpoint=\"" << basis_->kpoint() << "\"\n"
-       << "  weight=\"" << weight << "\""
+       << "  weight=\"" << setprecision(12) <<  weight << "\""
        << " size=\"" << nst() << "\">" << endl;
 
     os << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">"
@@ -1354,7 +1354,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight, int is
     if ( nspin == 2 )
       ostr_hdr << " spin=\"" << spin << "\"";
     ostr_hdr << " kpoint=\"" << basis_->kpoint() << "\"\n"
-       << "  weight=\"" << weight << "\""
+       << "  weight=\"" << setprecision(12) << weight << "\""
        << " size=\"" << nst() << "\">" << endl;
 
     ostr_hdr << "<density_matrix form=\"diagonal\" size=\"" << nst() << "\">"

@@ -1,4 +1,8 @@
 --------------------------------------------------------------------------------
+rel1_44_0
+WavefunctionHandler.[Ch], SampleReader.[Ch]: fixed compatibility with older
+versions when reading samples with smaller grid sizes.
+--------------------------------------------------------------------------------
 rel1_43_5
 BOSampleStepper.C: print energy at end of wf optimization when using niter=0.
 Basis.C: modified grid size to cover all grids for any k-point

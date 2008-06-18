@@ -1,65 +1,41 @@
 #-------------------------------------------------------------------------------
 #
+# Copyright (c) 2008 The Regents of the University of California
+#
+# This file is distributed under the terms of the GNU General Public
+# License. See the file COPYING in the root directory of this distribution
+# or http://www.gnu.org/licenses
+#
+#-------------------------------------------------------------------------------
+#
 #  aix_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: aix_mpi.mk,v 1.14 2007-10-19 16:24:05 fgygi Exp $
+# $Id: aix_mpi.mk,v 1.15 2008-06-18 03:39:53 fgygi Exp $
 PLT=AIX
 #-------------------------------------------------------------------------------
- XERCESCDIR=${HOME}/software/xml/xerces-c-${PLT}
- XERCESCLIBDIR=/usr/apps/qbox/lib
+ XERCESCDIR=${HOME}/qb/software/xerces/xerces-c-src_2_7_0
+ XERCESCLIBDIR=$(XERCESCDIR)/lib
+ FFTWDIR=$(HOME)/qb/software/fftw/fftw-2.1.5/fftw
+ FFTWLIBDIR=$(FFTWDIR)/.libs
+ FFTWINCLUDEDIR=$(FFTWDIR)
 
- CXX=newmpxlC
+ CXX=mpCC
  LD=$(CXX)
 
-#PLTFLAGS += -DUSE_ESSL -D_LARGE_FILES -DUSE_XERCES
- PLTFLAGS += -DUSE_ESSL -DUSE_CSTDIO_LFS -DUSE_XERCES -DPLT_BIG_ENDIAN
- INCLUDE = -I$(XERCESCDIR)/include
+ PLTFLAGS += -DUSE_FFTW -DUSE_CSTDIO_LFS -DUSE_XERCES -DPLT_BIG_ENDIAN
+ INCLUDE = -I$(XERCESCDIR)/include -I$(FFTWINCLUDEDIR)
 
  CXXFLAGS= -O2 -qmaxmem=-1 -DUSE_MPI -DSCALAPACK -D$(PLT) $(INCLUDE) \
            $(DFLAGS) $(PLTFLAGS)
-#CXXFLAGS= -g -qmaxmem=-1 -DUSE_MPI -DSCALAPACK -D$(PLT) $(INCLUDE) $(DFLAGS) \
-           $(DFLAGS) $(PLTFLAGS)
 
- LIBPATH = -L $(XERCESCLIBDIR)
+ LIBPATH = -L$(XERCESCLIBDIR) -L/usr/local/apps/scalapack -L$(FFTWLIBDIR)
 
- PLIBS = $(SCALAPACKLIB) $(PBLASLIB) $(TOOLSLIB) $(REDISTLIB) $(CBLACSLIB)
- LIBS =  $(PLIBS) -lessl -lm -lmassv -lxlf90_r $(XERCESCLIBDIR)/libxerces-c.so
+ PLIBS = $(SCALAPACKLIB) $(BLACSLIB)
+ LIBS =  $(PLIBS) -lessl -lm -lmassv -lxlf90_r -lfftw \
+         $(XERCESCLIBDIR)/libxerces-c.a
 
  LDFLAGS = -bmaxdata:0x80000000 $(LIBPATH) $(LIBS)
 
-#
-#  BLACS setup.  All version need the debug level (0 or 1),
-#  and the directory where the BLACS libraries are
-#
-BLACSDBGLVL   = 0
-BLACSdir      = $(HOME)/lib
-
-#
-#  MPI setup; uncomment and tailor to your system if using MPIBLACS
-#  Will need to comment out the default native BLACS setup below below
-#
-#USEMPI        = -DUsingMpiBlacs
-BLACSFINIT    = $(BLACSdir)/blacsF77init_MPI-SP-$(BLACSDBGLVL).a
-BLACSCINIT    = $(BLACSdir)/blacsCinit_MPI-SP-$(BLACSDBGLVL).a
-BLACSLIB      = $(BLACSdir)/blacs_MPI-SP-$(BLACSDBGLVL).a
-
-#
-#  system primitive BLACS setup, comment out if using MPI
-#
-CBLACSLIB     = $(BLACSCINIT) $(BLACSLIB) $(BLACSCINIT)
-FBLACSLIB     = $(BLACSFINIT) $(BLACSLIB) $(BLACSFINIT)
-
-#
-# BLAS and LAPACK
-#
-#BLASLIB      = /usr/local/lib/lapack.a -lesslsmp
-BLASLIB       = /usr/local/lib/lapack.a -lessl
-
-#
-#  The name of the libraries to be linked to
-#
-PBLASLIB      = $(HOME)/lib/pblas_SP.a
-SCALAPACKLIB  = $(HOME)/lib/libscalapack_SP.a
-TOOLSLIB      = $(HOME)/lib/tools_SP.a
-REDISTLIB     = $(HOME)/lib/redist_SP.a
+BLACSLIB = -lblacs
+SCALAPACKLIB = -lscalapack

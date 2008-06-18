@@ -3,14 +3,16 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: x8664_gcc.mk,v 1.10 2008-06-06 00:13:32 fgygi Exp $
+# $Id: x8664_gcc.mk,v 1.11 2008-06-18 03:39:53 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
-#GCCDIR=/usr/lib/gcc/x86_64-redhat-linux/4.1.1
-#MPIDIR=$(HOME)/software/mpich/mpich-1.2.6
  MPIDIR=/opt/mpich-1.2.6
  XERCESCDIR=$(HOME)/software/xml/Linux_x8664/xerces-c-src_2_5_0
+ FFTWDIR=$(HOME)/software/fftw/Linux_x8664/fftw-2.1.3/fftw
+ BLASDIR=$(HOME)/software/atlas/ATLAS/Linux_P4E64SSE3/lib
+ LAPACKDIR=$(HOME)/software/lapack/LAPACK
+
  PLTOBJECTS = readTSC.o
 
  CXX=/usr/bin/g++
@@ -20,10 +22,6 @@
              -D_FILE_OFFSET_BITS=64 -DUSE_MPI -DSCALAPACK -DADD_ \
              -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES
 
- FFTWDIR=$(HOME)/software/fftw/Linux_x8664/fftw-2.1.3/fftw
- BLASDIR=$(HOME)/software/atlas/ATLAS/Linux_P4E64SSE3/lib
-#BLASDIR=/usr/lib64
- LAPACKDIR=$(HOME)/software/lapack/LAPACK
 
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
 
@@ -53,15 +51,10 @@
  FBLACSLIB     = $(BLACSFINIT) $(BLACSLIB) $(BLACSFINIT)
 
  # Scalapack libraries
- #SCALAPACK_DIR = $(HOME)/software/scalapack/Linux_x8664/SCALAPACK
  SCALAPACK_DIR = $(HOME)/software/scalapack/Linux_x8664/scalapack-1.8.0
-#PBLASLIB      = $(SCALAPACK_DIR)/pblas_$(PLAT).a
  SCALAPACKLIB  = $(SCALAPACK_DIR)/libscalapack.a
-#TOOLSLIB      = $(SCALAPACK_DIR)/tools_$(PLAT).a
-#REDISTLIB     = $(SCALAPACK_DIR)/redist_$(PLAT).a
 
 # Parallel libraries
-#PLIBS = $(SCALAPACKLIB) $(PBLASLIB) $(TOOLSLIB) $(REDISTLIB) $(CBLACSLIB)
  PLIBS = $(SCALAPACKLIB) $(CBLACSLIB)
 
 #-------------------------------------------------------------------------------

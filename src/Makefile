@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.54 2008-04-15 01:37:09 fgygi Exp $
+# $Id: Makefile,v 1.55 2008-06-18 03:39:53 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -317,6 +317,10 @@ EnergyFunctional.o: FourierTransform.h XCPotential.h LDAFunctional.h
 EnergyFunctional.o: XCFunctional.h PBEFunctional.h BLYPFunctional.h
 EnergyFunctional.o: NonLocalPotential.h ConfinementPotential.h blas.h
 EnergyFunctional.o: ChargeDensity.h Timer.h Context.h StructureFactor.h
+ExchangeOperator.o: ExchangeOperator.h Sample.h AtomSet.h Context.h Atom.h
+ExchangeOperator.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
+ExchangeOperator.o: SharedFilePtr.h Control.h SlaterDet.h Basis.h Matrix.h
+ExchangeOperator.o: Timer.h FourierTransform.h
 ExtStress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 ExtStress.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 FermiTemp.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
@@ -336,6 +340,7 @@ IonicStepper.o: Species.h
 isodate.o: isodate.h
 jacobi.o: Context.h Matrix.h blas.h
 jade.o: Context.h Matrix.h blas.h Timer.h
+kpgen.o: D3vector.h UnitCell.h
 KpointCmd.o: UserInterface.h D3vector.h Sample.h AtomSet.h Context.h Atom.h
 KpointCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
 KpointCmd.o: Control.h
@@ -372,8 +377,7 @@ MDWavefunctionStepper.o: Matrix.h Sample.h AtomSet.h Atom.h ConstraintSet.h
 MDWavefunctionStepper.o: Control.h
 MDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
 MLWFTransform.o: MLWFTransform.h D3vector.h BasisMapping.h Basis.h UnitCell.h
-MLWFTransform.o: Context.h SlaterDet.h Matrix.h Timer.h SharedFilePtr.h
-MLWFTransform.o: jade.h blas.h
+MLWFTransform.o: Context.h SlaterDet.h Matrix.h Timer.h jade.h blas.h
 MLWFTransform.o: D3vector.h BasisMapping.h
 MoveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 MoveCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
@@ -384,9 +388,9 @@ NetCharge.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 NetCharge.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 NonLocalPotential.o: NonLocalPotential.h AtomSet.h Context.h Atom.h
 NonLocalPotential.o: D3vector.h UnitCell.h Basis.h SlaterDet.h Matrix.h
-NonLocalPotential.o: Timer.h SharedFilePtr.h Species.h blas.h
+NonLocalPotential.o: Timer.h Species.h blas.h
 NonLocalPotential.o: AtomSet.h Context.h Atom.h D3vector.h UnitCell.h Basis.h
-NonLocalPotential.o: SlaterDet.h Matrix.h Timer.h SharedFilePtr.h
+NonLocalPotential.o: SlaterDet.h Matrix.h Timer.h
 Nrowmax.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 Nrowmax.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 PBEFunctional.o: PBEFunctional.h XCFunctional.h
@@ -495,10 +499,9 @@ SetCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SetCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 sinft.o: sinft.h
 SlaterDet.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h Matrix.h
-SlaterDet.o: Timer.h SharedFilePtr.h FourierTransform.h blas.h
-SlaterDet.o: Base64Transcoder.h
-SlaterDet.o: Context.h Basis.h D3vector.h UnitCell.h Matrix.h Timer.h
+SlaterDet.o: Timer.h FourierTransform.h blas.h Base64Transcoder.h
 SlaterDet.o: SharedFilePtr.h
+SlaterDet.o: Context.h Basis.h D3vector.h UnitCell.h Matrix.h Timer.h
 Species.o: Species.h Context.h spline.h sinft.h
 SpeciesCmd.o: SpeciesCmd.h UserInterface.h Sample.h AtomSet.h Context.h
 SpeciesCmd.o: Atom.h D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
@@ -526,6 +529,9 @@ testBasisMapping.o: Timer.h
 testChargeDensity.o: Context.h Wavefunction.h D3vector.h UnitCell.h
 testChargeDensity.o: SharedFilePtr.h ChargeDensity.h Timer.h SlaterDet.h
 testChargeDensity.o: Basis.h Matrix.h FourierTransform.h
+TestCmd.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+TestCmd.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
+TestCmd.o: ExchangeOperator.h
 testContext.o: Context.h
 testEnergyFunctional.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h
 testEnergyFunctional.o: UnitCell.h ConstraintSet.h Wavefunction.h
@@ -550,11 +556,11 @@ testreadSample.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 testreadSample.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 testreadSample.o: SampleReader.h
 testSample.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
-testSample.o: Timer.h SharedFilePtr.h Sample.h AtomSet.h Atom.h
-testSample.o: ConstraintSet.h Wavefunction.h Control.h
+testSample.o: Timer.h Sample.h AtomSet.h Atom.h ConstraintSet.h
+testSample.o: Wavefunction.h SharedFilePtr.h Control.h
 test_sinft.o: sinft.h readTSC.h
 testSlaterDet.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
-testSlaterDet.o: Timer.h SharedFilePtr.h FourierTransform.h
+testSlaterDet.o: Timer.h FourierTransform.h
 testSpecies.o: Species.h Context.h SpeciesReader.h
 test_spline.o: spline.h
 testStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h

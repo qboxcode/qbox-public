@@ -3,7 +3,7 @@
 // SampleHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleHandler.C,v 1.8 2007-10-19 17:37:06 fgygi Exp $
+// $Id: SampleHandler.C,v 1.9 2008-06-18 03:40:53 fgygi Exp $
 
 #if USE_XERCES
 
@@ -19,9 +19,11 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 SampleHandler::SampleHandler(Sample& s, DoubleMatrix& gfdata,
+  int& nx, int& ny, int& nz,
   vector<vector<vector<double> > > &dmat,
   Wavefunction& wfvtmp) :
-  s_(s), gfdata_(gfdata), dmat_(dmat), read_wf(false), read_wfv(false),
+  s_(s), gfdata_(gfdata), nx_(nx), ny_(ny), nz_(nz),
+  dmat_(dmat), read_wf(false), read_wfv(false),
   wfvtmp_(wfvtmp) {}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,12 +63,12 @@ StructureHandler* SampleHandler::startSubHandler(const XMLCh* const uri,
   else if ( qnm == "wavefunction" )
   {
     read_wf = true;
-    return new WavefunctionHandler(s_.wf,gfdata_,dmat_);
+    return new WavefunctionHandler(s_.wf,gfdata_,nx_,ny_,nz_,dmat_);
   }
   else if ( qnm == "wavefunction_velocity" )
   {
     read_wfv = true;
-    return new WavefunctionHandler(wfvtmp_,gfdata_,dmat_);
+    return new WavefunctionHandler(wfvtmp_,gfdata_,nx_,ny_,nz_,dmat_);
   }
   else
   {

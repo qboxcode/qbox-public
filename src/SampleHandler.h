@@ -3,7 +3,7 @@
 // SampleHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleHandler.h,v 1.7 2007-10-19 17:37:06 fgygi Exp $
+// $Id: SampleHandler.h,v 1.8 2008-06-18 03:40:53 fgygi Exp $
 
 #ifndef SAMPLEHANDLER_H
 #define SAMPLEHANDLER_H
@@ -27,6 +27,9 @@ class SampleHandler : public StructureHandler
   public:
 
   bool read_wf,read_wfv;
+  int& nx_;
+  int& ny_;
+  int& nz_;
 
   // Start of the root element in the structure being handled
   virtual void startElement(const XMLCh* const uri,const XMLCh* const localname,
@@ -46,7 +49,7 @@ class SampleHandler : public StructureHandler
     const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const subHandler);
 
-  SampleHandler(Sample& s, DoubleMatrix& gfdata,
+  SampleHandler(Sample& s, DoubleMatrix& gfdata, int& nx, int& ny, int& nz,
                 std::vector<std::vector<std::vector<double> > > &dmat,
                 Wavefunction& wfvtmp);
   ~SampleHandler();

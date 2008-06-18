@@ -3,7 +3,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.27 2008-06-06 00:10:58 fgygi Exp $
+// $Id: SampleReader.C,v 1.28 2008-06-18 03:40:53 fgygi Exp $
 
 
 #include "Sample.h"
@@ -61,6 +61,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   Wavefunction* wfvtmp = new Wavefunction(s.wf);
   Wavefunction* current_wf = &s.wf;
   vector<vector<vector<double> > > dmat;
+  int nx, ny, nz; // size of <grid> in wavefunction
   const int nspin = 1;
   const int current_ispin = 0;
   int current_ikp;
@@ -161,7 +162,8 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
 
     int errorCount = 0;
-    SampleHandler* s_handler = new SampleHandler(s,gfdata,dmat,*wfvtmp);
+    SampleHandler* s_handler =
+      new SampleHandler(s,gfdata,nx,ny,nz,dmat,*wfvtmp);
 
     try
     {
@@ -207,6 +209,9 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     read_wfv = s_handler->read_wfv;
     if ( read_wfv )
       cout << " wavefunction velocity was read" << endl;
+
+    cout << " SampleReader::readSample: grid nx,ny,nz="
+         << nx << " " << ny << " " << nz << endl;
 
     delete s_handler;
     delete parser;
@@ -294,6 +299,12 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         UnitCell uc(a,b,c);
 
         // grid
+        int ibuf[3];
+        ctxt_.ibcast_recv(3,1,ibuf,3,0,0);
+        nx = ibuf[0];
+        ny = ibuf[1];
+        nz = ibuf[2];
+
         // receive only computed ecut
         double ecut;
         ctxt_.dbcast_recv(1,1,&ecut,1,0,0);
@@ -337,6 +348,12 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         UnitCell uc(a,b,c);
 
         // grid
+        int ibuf[3];
+        ctxt_.ibcast_recv(3,1,ibuf,3,0,0);
+        assert(nx == ibuf[0]);
+        assert(ny == ibuf[1]);
+        assert(nz == ibuf[2]);
+
         // receive only computed ecut
         double ecut;
         ctxt_.dbcast_recv(1,1,&ecut,1,0,0);
@@ -371,7 +388,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
           // receive grid_functions
           SlaterDet* sd = current_wf->sd(current_ispin,current_ikp);
           const Basis& basis = sd->basis();
-          FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
+          FourierTransform ft(basis,nx,ny,nz);
           const int wftmpr_size = basis.real() ? ft.np012loc() :
             2*ft.np012loc();
           valarray<double> wftmpr(wftmpr_size);
@@ -456,7 +473,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
           // copy density matrix information
           sd->set_occ(dmat[ispin][ikp]);
           const Basis& basis = sd->basis();
-          FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
+          FourierTransform ft(basis,nx,ny,nz);
 #if DEBUG
           cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
           cout << ctxt_.mype() << ": ft.context(): " << ft.context();
@@ -535,7 +552,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         {
           SlaterDet* sd = wfvtmp->sd(ispin,ikp);
           const Basis& basis = sd->basis();
-          FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
+          FourierTransform ft(basis,nx,ny,nz);
           //cout << ctxt_.mype() << ": ft.np012loc()=" << ft.np012loc() << endl;
           //cout << ctxt_.mype() << ": ft.context(): " << ft.context();
 

@@ -3,7 +3,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.16 2008-02-12 05:39:18 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.17 2008-06-18 03:40:53 fgygi Exp $
 
 #if USE_XERCES
 
@@ -25,9 +25,9 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 WavefunctionHandler::WavefunctionHandler(Wavefunction& wf,
-  DoubleMatrix& gfdata,
+  DoubleMatrix& gfdata, int& nx, int& ny, int& nz,
   vector<vector<vector<double> > > &dmat) :
-  wf_(wf), gfdata_(gfdata), dmat_(dmat), ecut(0.0)
+  wf_(wf), gfdata_(gfdata), dmat_(dmat), ecut(0.0), nx_(nx), ny_(ny), nz_(nz)
 {
   // if the data is read from a file, gfdata has a finite size
   // since the grid functions were processed by XMLGFPreprocessor
@@ -177,7 +177,6 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     //cout << " WavefunctionHandler::startElement: reference_domain" << endl;
     ruc.set(a,b,c);
     //cout << ruc;
-
   }
   else if ( locname == "density_matrix")
   {
@@ -215,17 +214,24 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       istringstream stst(attrval);
       if ( attrname == "nx")
       {
-        stst >> nx;
+        stst >> nx_;
       }
       else if ( attrname == "ny" )
       {
-        stst >> ny;
+        stst >> ny_;
       }
       else if ( attrname == "nz" )
       {
-        stst >> nz;
+        stst >> nz_;
       }
     }
+
+    // notify listening nodes
+    int ibuf[3];
+    ibuf[0] = nx_;
+    ibuf[1] = ny_;
+    ibuf[2] = nz_;
+    wf_.context().ibcast_send(3,1,ibuf,3);
 
     if ( ecut == 0.0 )
     {
@@ -235,9 +241,9 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       // When importing grids with Dirichlet b.c. grid sizes can be odd
       // round nx,ny,nz to next even number to compute ecut
       // use nx+nx%2 instead of nx
-      double g0_max = ((2*(nx+nx%2)-1.0)/2.0) * 2.0 * M_PI / length(uc.a(0));
-      double g1_max = ((2*(ny+ny%2)-1.0)/2.0) * 2.0 * M_PI / length(uc.a(1));
-      double g2_max = ((2*(nz+nz%2)-1.0)/2.0) * 2.0 * M_PI / length(uc.a(2));
+      double g0_max = ((2*(nx_+nx_%2)-1.0)/2.0) * 2.0 * M_PI / length(uc.a(0));
+      double g1_max = ((2*(ny_+ny_%2)-1.0)/2.0) * 2.0 * M_PI / length(uc.a(1));
+      double g2_max = ((2*(nz_+nz_%2)-1.0)/2.0) * 2.0 * M_PI / length(uc.a(2));
       double ecut0 = 0.125 * g0_max * g0_max;
       double ecut1 = 0.125 * g1_max * g1_max;
       double ecut2 = 0.125 * g2_max * g2_max;
@@ -245,7 +251,6 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       ecut = max(max(ecut0,ecut1),ecut2);
       cout << " ecut=" << 2*ecut << " Ry" << endl;
     }
-
     // notify listening nodes of ecut
     wf_.context().dbcast_send(1,1,&ecut,1);
 
@@ -298,13 +303,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     assert(current_size==wf_.sd(current_ispin,current_ikp)->nst());
 
     const Basis& basis = wf_.sd(current_ispin,current_ikp)->basis();
-
-    // check the size of the basis generated
-    //cout << " sd basis: np0,np1,np2 = " << basis.np(0)
-    //     << " " << basis.np(1)
-    //     << " " << basis.np(2)
-    //     << endl;
-    ft = new FourierTransform(basis,basis.np(0),basis.np(1),basis.np(2));
+    ft = new FourierTransform(basis,nx_,ny_,nz_);
     wftmp.resize((ft->np012loc()));
   }
   else if ( locname == "grid_function")
@@ -360,10 +359,11 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
   }
   else if ( locname == "grid_function")
   {
-    // current implementation accepts only full grids
-    assert(current_gf_nx==ft->np0());
-    assert(current_gf_ny==ft->np1());
-    assert(current_gf_nz==ft->np2());
+    // current implementation accepts only full grids as declared in
+    // the wavefunction <grid> element
+    assert(current_gf_nx==nx_ &&
+           current_gf_ny==ny_ &&
+           current_gf_nz==nz_ );
 
     if ( read_from_gfdata )
     {

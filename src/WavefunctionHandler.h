@@ -3,7 +3,7 @@
 // WavefunctionHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.h,v 1.10 2007-10-19 17:37:06 fgygi Exp $
+// $Id: WavefunctionHandler.h,v 1.11 2008-06-18 03:40:53 fgygi Exp $
 
 #ifndef WavefunctionHANDLER_H
 #define WavefunctionHANDLER_H
@@ -26,7 +26,9 @@ class WavefunctionHandler : public StructureHandler
   double ecut;
   // dmat[ispin][ikp][i]
   std::vector<std::vector<std::vector<double> > > &dmat_;
-  int nx,ny,nz;
+  int& nx_;
+  int& ny_;
+  int& nz_;
   int current_gf_nx,current_gf_ny,current_gf_nz;
   std::string current_gf_encoding;
   int current_ispin,current_ikp,current_n,current_igf;
@@ -60,6 +62,7 @@ class WavefunctionHandler : public StructureHandler
     const StructureHandler* const subHandler);
 
   WavefunctionHandler(Wavefunction& wf, DoubleMatrix& gfdata,
+    int& nx, int& ny, int& nz,
     std::vector<std::vector<std::vector<double> > > &dmat);
   ~WavefunctionHandler();
 };

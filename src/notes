@@ -1,4 +1,8 @@
 --------------------------------------------------------------------------------
+rel1_44_1
+EnergyFunctional.C: fixed calculation of Esr and Esr stress in cases where the
+unit cell is small compared with rcps (initialized in AtomSet.C).
+--------------------------------------------------------------------------------
 rel1_44_0
 WavefunctionHandler.[Ch], SampleReader.[Ch]: fixed compatibility with older
 versions when reading samples with smaller grid sizes.

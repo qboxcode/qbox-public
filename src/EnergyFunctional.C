@@ -3,7 +3,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.30 2008-03-05 04:04:48 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.31 2008-08-13 06:10:53 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -899,9 +899,10 @@ void EnergyFunctional::atoms_moved(void)
       for ( int ia1 = 0; ia1 < na_[is1]; ia1++ )
       {
         int ia2min = 0;
-        if ( is1 == is2 ) ia2min = ia1 + 1;
+        if ( is1 == is2 ) ia2min = ia1;
         for ( int ia2 = ia2min; ia2 < na_[is2]; ia2++ )
         {
+          const bool same_atom = ( is1==is2 && ia1==ia2 );
           double x12 = tau0[is1][3*ia1+0] - tau0[is2][3*ia2+0];
           double y12 = tau0[is1][3*ia1+1] - tau0[is2][3*ia2+1];
           double z12 = tau0[is1][3*ia1+2] - tau0[is2][3*ia2+2];
@@ -913,34 +914,40 @@ void EnergyFunctional::atoms_moved(void)
             for ( int ic1 = -ncell1; ic1 <= ncell1; ic1++ )
               for ( int ic2 = -ncell2; ic2 <= ncell2; ic2++ )
               {
-                D3vector s = ic0*cell.a(0) + ic1*cell.a(1) + ic2*cell.a(2);
-                x12 = v12.x + s.x;
-                y12 = v12.y + s.y;
-                z12 = v12.z + s.z;
+                if ( !same_atom || ic0!=0 || ic1!=0 || ic2!=0 )
+                {
+                  double fac = 1.0;
+                  if ( same_atom )
+                    fac = 0.5;
+                  D3vector s = ic0*cell.a(0) + ic1*cell.a(1) + ic2*cell.a(2);
+                  x12 = v12.x + s.x;
+                  y12 = v12.y + s.y;
+                  z12 = v12.z + s.z;
 
-                double r12 = sqrt(x12*x12 + y12*y12 + z12*z12);
-                double arg = r12 / rcps12;
-                double esr_term = zv_[is1] * zv_[is2] * erfc(arg) / r12;
-                esr_ += esr_term;
+                  double r12 = sqrt(x12*x12 + y12*y12 + z12*z12);
+                  double arg = r12 / rcps12;
+                  double esr_term = zv_[is1] * zv_[is2] * erfc(arg) / r12;
+                  esr_ += fac * esr_term;
 
-                double desr_erfc = 2.0 * zv_[is1]*zv_[is2] *
-                       exp(-arg*arg)/(rcps12*sqrt(M_PI));
+                  double desr_erfc = 2.0 * zv_[is1]*zv_[is2] *
+                         exp(-arg*arg)/(rcps12*sqrt(M_PI));
 
-                // desrdr = (1/r) d Esr / dr
-                double desrdr = -(esr_term+desr_erfc) / ( r12*r12 );
-                fion_esr[is1][3*ia1+0] -= desrdr * x12;
-                fion_esr[is2][3*ia2+0] += desrdr * x12;
-                fion_esr[is1][3*ia1+1] -= desrdr * y12;
-                fion_esr[is2][3*ia2+1] += desrdr * y12;
-                fion_esr[is1][3*ia1+2] -= desrdr * z12;
-                fion_esr[is2][3*ia2+2] += desrdr * z12;
+                  // desrdr = (1/r) d Esr / dr
+                  double desrdr = - fac * (esr_term+desr_erfc) / ( r12*r12 );
+                  fion_esr[is1][3*ia1+0] -= desrdr * x12;
+                  fion_esr[is2][3*ia2+0] += desrdr * x12;
+                  fion_esr[is1][3*ia1+1] -= desrdr * y12;
+                  fion_esr[is2][3*ia2+1] += desrdr * y12;
+                  fion_esr[is1][3*ia1+2] -= desrdr * z12;
+                  fion_esr[is2][3*ia2+2] += desrdr * z12;
 
-                sigma_esr[0] += desrdr * x12 * x12;
-                sigma_esr[1] += desrdr * y12 * y12;
-                sigma_esr[2] += desrdr * z12 * z12;
-                sigma_esr[3] += desrdr * x12 * y12;
-                sigma_esr[4] += desrdr * y12 * z12;
-                sigma_esr[5] += desrdr * x12 * z12;
+                  sigma_esr[0] += desrdr * x12 * x12;
+                  sigma_esr[1] += desrdr * y12 * y12;
+                  sigma_esr[2] += desrdr * z12 * z12;
+                  sigma_esr[3] += desrdr * x12 * y12;
+                  sigma_esr[4] += desrdr * y12 * z12;
+                  sigma_esr[5] += desrdr * x12 * z12;
+                }
               }
         }
       }

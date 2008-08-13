@@ -1,9 +1,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
+// Copyright (c) 2008 The Regents of the University of California
+//
+// This file is part of Qbox
+//
+// Qbox is distributed under the terms of the GNU General Public License 
+// as published by the Free Software Foundation, either version 2 of 
+// the License, or (at your option) any later version.
+// See the file COPYING in the root directory of this distribution
+// or <http://www.gnu.org/licenses/>.
+//
+////////////////////////////////////////////////////////////////////////////////
+//
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.16 2008-01-25 06:05:07 fgygi Exp $
+// $Id: Matrix.h,v 1.17 2008-08-13 06:39:43 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H

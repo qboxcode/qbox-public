@@ -1,9 +1,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
+// Copyright (c) 2008 The Regents of the University of California
+//
+// This file is part of Qbox
+//
+// Qbox is distributed under the terms of the GNU General Public License 
+// as published by the Free Software Foundation, either version 2 of 
+// the License, or (at your option) any later version.
+// See the file COPYING in the root directory of this distribution
+// or <http://www.gnu.org/licenses/>.
+//
+////////////////////////////////////////////////////////////////////////////////
+//
 // Base64Transcoder.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Base64Transcoder.h,v 1.5 2007-10-19 16:24:04 fgygi Exp $
+// $Id: Base64Transcoder.h,v 1.6 2008-08-13 06:39:42 fgygi Exp $
 
 #ifndef BASE64TRANSCODER_H
 #define BASE64TRANSCODER_H

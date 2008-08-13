@@ -1,9 +1,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
+// Copyright (c) 2008 The Regents of the University of California
+//
+// This file is part of Qbox
+//
+// Qbox is distributed under the terms of the GNU General Public License 
+// as published by the Free Software Foundation, either version 2 of 
+// the License, or (at your option) any later version.
+// See the file COPYING in the root directory of this distribution
+// or <http://www.gnu.org/licenses/>.
+//
+////////////////////////////////////////////////////////////////////////////////
+//
 // Context.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.C,v 1.15 2008-01-13 23:04:46 fgygi Exp $
+// $Id: Context.C,v 1.16 2008-08-13 06:39:42 fgygi Exp $
 
 #include "Context.h"
 #include <iostream>

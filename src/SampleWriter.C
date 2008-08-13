@@ -1,9 +1,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
+// Copyright (c) 2008 The Regents of the University of California
+//
+// This file is part of Qbox
+//
+// Qbox is distributed under the terms of the GNU General Public License 
+// as published by the Free Software Foundation, either version 2 of 
+// the License, or (at your option) any later version.
+// See the file COPYING in the root directory of this distribution
+// or <http://www.gnu.org/licenses/>.
+//
+////////////////////////////////////////////////////////////////////////////////
+//
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.7 2008-04-15 01:36:44 fgygi Exp $
+// $Id: SampleWriter.C,v 1.8 2008-08-13 06:39:43 fgygi Exp $
 
 
 #include "SampleWriter.h"

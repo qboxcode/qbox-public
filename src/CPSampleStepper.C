@@ -1,9 +1,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
+// Copyright (c) 2008 The Regents of the University of California
+//
+// This file is part of Qbox
+//
+// Qbox is distributed under the terms of the GNU General Public License 
+// as published by the Free Software Foundation, either version 2 of 
+// the License, or (at your option) any later version.
+// See the file COPYING in the root directory of this distribution
+// or <http://www.gnu.org/licenses/>.
+//
+////////////////////////////////////////////////////////////////////////////////
+//
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.19 2008-04-15 01:36:15 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.20 2008-08-13 06:39:42 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"

@@ -1,9 +1,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
+// Copyright (c) 2008 The Regents of the University of California
+//
+// This file is part of Qbox
+//
+// Qbox is distributed under the terms of the GNU General Public License 
+// as published by the Free Software Foundation, either version 2 of 
+// the License, or (at your option) any later version.
+// See the file COPYING in the root directory of this distribution
+// or <http://www.gnu.org/licenses/>.
+//
+////////////////////////////////////////////////////////////////////////////////
+//
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.20 2008-03-21 00:26:19 fgygi Exp $
+// $Id: AtomSet.h,v 1.21 2008-08-13 06:39:42 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H

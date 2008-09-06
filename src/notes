@@ -1,3 +1,8 @@
+TODO: change all char* name() functions to const char* name ()
+(causes warning at compile time on tribe).
+--------------------------------------------------------------------------------
+rel1_44_3
+UserInterface.h, Base64Transcoder.C: added include <cstring>
 --------------------------------------------------------------------------------
 rel1_44_2
 Added copyright headers.

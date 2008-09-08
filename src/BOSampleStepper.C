@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.44 2008-09-08 15:56:18 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.45 2008-09-08 16:25:50 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -32,6 +32,7 @@
 #include "SDCellStepper.h"
 #include "Preconditioner.h"
 #include "AndersonMixer.h"
+#include "MLWFTransform.h"
 
 #ifdef USE_APC
 #include "apc.h"
@@ -80,6 +81,8 @@ void BOSampleStepper::step(int niter)
   // or if the SlaterDet has fractionally occupied states
   const bool fractional_occ = (s_.wf.nel() != 2 * s_.wf.nst());
   const bool compute_eigvec = fractional_occ || s_.ctrl.wf_diag == "T";
+  const bool compute_mlwf = s_.ctrl.wf_diag == "MLWF";
+  const bool compute_mlwfc = s_.ctrl.wf_diag == "MLWFC";
   enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
 
   AtomSet& atoms = s_.atoms;
@@ -167,8 +170,30 @@ void BOSampleStepper::step(int niter)
   if ( atoms_move && extrapolate_wf )
   {
     if ( s_.wfv == 0 )
+    {
       s_.wfv = new Wavefunction(wf);
-    s_.wfv->clear();
+      s_.wfv->clear();
+    }
+  }
+
+  MLWFTransform* mlwft;
+
+  if ( compute_mlwf || compute_mlwfc )
+  {
+    // MLWF can be computed at the gamma point only
+    // There must be a single k-point, and it must be gamma
+    if ( wf.nkp() > 1 || ( wf.nkp()==1 && wf.kpoint(0) != D3vector(0,0,0) ) )
+    {
+      if ( onpe0 )
+      {
+        cout << " BOSampleStepper::step: MLWF can be computed at k=0 only"
+             << endl;
+        cout << " BOSampleStepper::step: cannot run" << endl;
+      }
+      return;
+    }
+    assert(wf.nspin()==1);
+    mlwft = new MLWFTransform(*wf.sd(0,0));
   }
 
   // Next line: special case of niter=0: compute GS only
@@ -329,8 +354,15 @@ void BOSampleStepper::step(int niter)
               // copy c on cv
               for ( int i = 0; i < len; i++ )
               {
-                cv[i] = c[i];
+                const double x = c[i];
+                const double v = cv[i];
+                // extrapolation using velocity in cv
+                c[i] = x + dt * v;
+                cv[i] = x;
               }
+              tmap["gram"].start();
+              s_.wf.sd(ispin,ikp)->gram();
+              tmap["gram"].stop();
             }
             else if ( iter == 1 )
             {
@@ -393,8 +425,15 @@ void BOSampleStepper::step(int niter)
             {
               for ( int i = 0; i < len; i++ )
               {
-                cv[i] = c[i];
+                const double x = c[i];
+                const double v = cv[i];
+                // extrapolation using velocity in cv
+                c[i] = x + dt * v;
+                cv[i] = x;
               }
+              tmap["gram"].start();
+              s_.wf.sd(ispin,ikp)->gram();
+              tmap["gram"].stop();
             }
             else if ( iter == 1 )
             {
@@ -445,12 +484,6 @@ void BOSampleStepper::step(int niter)
           }
           else // normal extrapolation
           {
-            if ( iter > 0 && compute_eigvec )
-            {
-              // eigenvectors were computed, need alignment
-              // wfv contains wfm since iter > 0
-              s_.wfv->align(s_.wf);
-            }
             double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
             double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
             const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
@@ -461,11 +494,24 @@ void BOSampleStepper::step(int niter)
               // copy c to cv
               for ( int i = 0; i < len; i++ )
               {
-                cv[i] = c[i];
+                const double x = c[i];
+                const double v = cv[i];
+                c[i] = x + dt * v;
+                cv[i] = x;
               }
+              //tmap["lowdin"].start();
+              //s_.wf.sd(ispin,ikp)->lowdin();
+              //tmap["lowdin"].stop();
+              tmap["gram"].start();
+              s_.wf.sd(ispin,ikp)->gram();
+              tmap["gram"].stop();
             }
             else
             {
+              tmap["align"].start();
+              s_.wfv->align(s_.wf);
+              tmap["align"].stop();
+
               // linear extrapolation
               for ( int i = 0; i < len; i++ )
               {
@@ -474,13 +520,17 @@ void BOSampleStepper::step(int niter)
                 c[i] = 2.0 * x - xm;
                 cv[i] = x;
               }
-              tmap["ortho_align"].start();
-              s_.wf.sd(ispin,ikp)->ortho_align(*s_.wfv->sd(ispin,ikp));
-              tmap["ortho_align"].stop();
+              //tmap["ortho_align"].start();
+              //s_.wf.sd(ispin,ikp)->ortho_align(*s_.wfv->sd(ispin,ikp));
+              //tmap["ortho_align"].stop();
 
               //tmap["riccati"].start();
               //s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));
               //tmap["riccati"].stop();
+
+              tmap["lowdin"].start();
+              s_.wf.sd(ispin,ikp)->lowdin();
+              tmap["lowdin"].stop();
             }
           }
         }
@@ -671,6 +721,45 @@ void BOSampleStepper::step(int niter)
           cout << "  BOSampleStepper: end scf iteration" << endl;
       } // for itscf
 
+      if ( compute_mlwf || compute_mlwfc )
+      {
+        SlaterDet& sd = *(wf.sd(0,0));
+        mlwft->compute_transform();
+
+        if ( compute_mlwf )
+          mlwft->apply_transform(sd);
+
+        if ( onpe0 )
+        {
+          cout << " <mlwf_set size=\"" << sd.nst() << "\">" << endl;
+          for ( int i = 0; i < sd.nst(); i++ )
+          {
+            D3vector ctr = mlwft->center(i);
+            double sp = mlwft->spread(i);
+            cout.setf(ios::fixed, ios::floatfield);
+            cout.setf(ios::right, ios::adjustfield);
+            cout << "   <mlwf center=\"" << setprecision(6)
+                 << setw(12) << ctr.x
+                 << setw(12) << ctr.y
+                 << setw(12) << ctr.z
+                 << " \" spread=\" " << sp << " \"/>"
+                 << endl;
+          }
+          cout << " </mlwf_set>" << endl;
+          D3vector edipole = mlwft->dipole();
+          cout << " <electronic_dipole> " << edipole
+               << " </electronic_dipole>" << endl;
+          D3vector idipole = atoms.dipole();
+          cout << " <ionic_dipole> " << idipole
+               << " </ionic_dipole>" << endl;
+          cout << " <total_dipole> " << idipole + edipole
+               << " </total_dipole>" << endl;
+          cout << " <total_dipole_length> " << length(idipole + edipole)
+               << " </total_dipole_length>" << endl;
+        }
+      }
+
+
       // If GS calculation only, print energy and atomset at end of iterations
       if ( gs_only )
       {
@@ -770,10 +859,74 @@ void BOSampleStepper::step(int niter)
     // positions r0 and velocities v0 are consistent
   }
 
-  // delete wavefunction velocities
-  if ( s_.wfv != 0 )
-    delete s_.wfv;
-  s_.wfv = 0;
+  if ( atoms_move && extrapolate_wf )
+  {
+    // compute wavefunction velocity after last iteration
+    // s_.wfv contains the previous wavefunction
+
+    s_.wfv->align(s_.wf);
+
+    for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+    {
+      for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+      {
+        double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
+        double* cm = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
+        const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
+        const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+        const int len = 2*mloc*nloc;
+        const double dt_inv = 1.0 / dt;
+        if ( ntc_extrapolation )
+        {
+          double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
+          for ( int i = 0; i < len; i++ )
+          {
+            const double x = c[i];
+            const double xmm = cmm[i];
+            cm[i] = dt_inv * ( x - xmm );
+          }
+          tmap["gram"].start();
+          s_.wf.sd(ispin,ikp)->gram();
+          tmap["gram"].stop();
+        }
+        else // normal extrapolation or asp_extrapolation
+        {
+          for ( int i = 0; i < len; i++ )
+          {
+            const double x = c[i];
+            const double xm = cm[i];
+            cm[i] = dt_inv * ( x - xm );
+          }
+          tmap["gram"].start();
+          s_.wf.sd(ispin,ikp)->gram();
+          tmap["gram"].stop();
+        }
+      }
+    }
+
+    // compute ionic forces at last position to update velocities
+    // consistently with last position
+    tmap["charge"].start();
+    cd_.update_density();
+    tmap["charge"].stop();
+
+    ef_.update_vhxc();
+    const bool compute_forces = true;
+    double energy =
+      ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
+
+    ionic_stepper->compute_v(energy,fion);
+    // positions r0 and velocities v0 are consistent
+  }
+  else
+  {
+    // delete wavefunction velocities
+    if ( s_.wfv != 0 )
+      delete s_.wfv;
+    s_.wfv = 0;
+  }
+
+  delete mlwft;
 
   // delete steppers
   if ( wf_stepper != 0 ) delete wf_stepper;

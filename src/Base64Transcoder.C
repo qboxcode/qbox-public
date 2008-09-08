@@ -4,8 +4,8 @@
 //
 // This file is part of Qbox
 //
-// Qbox is distributed under the terms of the GNU General Public License 
-// as published by the Free Software Foundation, either version 2 of 
+// Qbox is distributed under the terms of the GNU General Public License
+// as published by the Free Software Foundation, either version 2 of
 // the License, or (at your option) any later version.
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
@@ -15,7 +15,7 @@
 // Base64Transcoder.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Base64Transcoder.C,v 1.7 2008-09-06 21:22:02 fgygi Exp $
+// $Id: Base64Transcoder.C,v 1.8 2008-09-08 15:56:18 fgygi Exp $
 
 #include "Base64Transcoder.h"
 #include <iostream>

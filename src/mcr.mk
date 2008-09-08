@@ -4,8 +4,8 @@
 #
 # This file is part of Qbox
 #
-# Qbox is distributed under the terms of the GNU General Public License 
-# as published by the Free Software Foundation, either version 2 of 
+# Qbox is distributed under the terms of the GNU General Public License
+# as published by the Free Software Foundation, either version 2 of
 # the License, or (at your option) any later version.
 # See the file COPYING in the root directory of this distribution
 # or <http://www.gnu.org/licenses/>.
@@ -15,7 +15,7 @@
 #  mcr.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: mcr.mk,v 1.13 2008-08-13 06:39:43 fgygi Exp $
+# $Id: mcr.mk,v 1.14 2008-09-08 15:56:20 fgygi Exp $
 #
  PLT=LINUX
 #-------------------------------------------------------------------------------

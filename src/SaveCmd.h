@@ -15,7 +15,7 @@
 // SaveCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
+// $Id: SaveCmd.h,v 1.6 2008-09-08 16:26:36 fgygi Exp $
 
 #ifndef SAVECMD_H
 #define SAVECMD_H
@@ -42,10 +42,14 @@ class SaveCmd : public Cmd
   {
     return
     "\n save\n\n"
-    " syntax: save [-serial] [-text] filename \n\n"
+    " syntax: save [-serial] [-text] [-atomsonly] [-no_wfv] filename \n\n"
     "   The save command saves the sample to the file filename.\n\n"
     "   When using the -serial option, I/O is performed from the \n"
-    "   head node only. \n\n";
+    "   head node only. If the -text option is used, wavefunctions\n"
+    "   are saved in formatted form instead of base64 encoding. The\n"
+    "   -atomsonly option is used to save the atomset only without the\n"
+    "   wavefunctions. If the -no_wfv option is used, wavefunction\n"
+    "   velocities are not saved.\n\n";
   }
 
   int action(int argc, char **argv);

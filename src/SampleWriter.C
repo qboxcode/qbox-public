@@ -15,7 +15,7 @@
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.9 2008-09-08 15:56:19 fgygi Exp $
+// $Id: SampleWriter.C,v 1.10 2008-09-08 16:26:36 fgygi Exp $
 
 
 #include "SampleWriter.h"
@@ -34,8 +34,8 @@ SampleWriter::SampleWriter(const Context& ctxt) : ctxt_(ctxt) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 void SampleWriter::writeSample(const Sample& s, const string filename,
-                              string description,
-                              bool base64, bool atomsonly, bool serial)
+                              string description, bool base64,
+                              bool atomsonly, bool serial, bool save_wfv)
 {
   Timer tm;
   tm.start();
@@ -71,7 +71,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     if ( !atomsonly )
     {
       s.wf.print(os,encoding,"wavefunction");
-      if ( s.wfv != 0 )
+      if ( save_wfv && s.wfv != 0 )
         s.wfv->print(os,encoding,"wavefunction_velocity");
     }
 
@@ -132,7 +132,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     if ( !atomsonly )
     {
       s.wf.write(sfp,encoding,"wavefunction");
-      if ( s.wfv != 0 )
+      if ( save_wfv && s.wfv != 0 )
         s.wfv->write(sfp,encoding,"wavefunction_velocity");
     }
 

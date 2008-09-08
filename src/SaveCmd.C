@@ -15,7 +15,7 @@
 // SaveCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SaveCmd.C,v 1.16 2008-09-08 15:56:19 fgygi Exp $
+// $Id: SaveCmd.C,v 1.17 2008-09-08 16:26:36 fgygi Exp $
 
 
 #include "SaveCmd.h"
@@ -28,7 +28,8 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 int SaveCmd::action(int argc, char **argv)
 {
-  string usage("  Use: save [-text|-base64] [-atomsonly] [-serial] filename");
+  string usage("  Use: save [-text] [-atomsonly]");
+  usage += string(" [-serial] [-no_wfv] filename");
   if ( !(argc>=2 && argc<=4 ) )
   {
     if ( ui->onpe0() )
@@ -36,10 +37,11 @@ int SaveCmd::action(int argc, char **argv)
     return 1;
   }
 
-  // set default encoding
+  // set default encoding and flags
   bool base64 = true;
   bool atomsonly = false;
   bool serial = false;
+  bool save_wfv = true;
   char* filename = 0;
 
   // check for -text or -base64 or -atomsonly or -serial arguments
@@ -58,6 +60,10 @@ int SaveCmd::action(int argc, char **argv)
     else if ( arg=="-serial" )
     {
       serial = true;
+    }
+    else if ( arg=="-no_wfv" )
+    {
+      save_wfv = false;
     }
     else if ( arg[0] != '-' && i == argc-1 )
     {
@@ -80,7 +86,8 @@ int SaveCmd::action(int argc, char **argv)
   SampleWriter swriter(s->ctxt_);
   string description = string(" Created ") + isodate() +
                        string(" by qbox-") + release() + string(" ");
-  swriter.writeSample(*s, filename, description, base64, atomsonly, serial);
+  swriter.writeSample(*s, filename, description, base64, atomsonly, serial,
+                      save_wfv);
 
   return 0;
 }

@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.45 2008-09-08 16:25:50 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.46 2008-09-09 04:24:02 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -176,7 +176,7 @@ void BOSampleStepper::step(int niter)
     }
   }
 
-  MLWFTransform* mlwft;
+  MLWFTransform* mlwft=0;
 
   if ( compute_mlwf || compute_mlwfc )
   {
@@ -929,9 +929,9 @@ void BOSampleStepper::step(int niter)
   delete mlwft;
 
   // delete steppers
-  if ( wf_stepper != 0 ) delete wf_stepper;
-  if ( ionic_stepper != 0 ) delete ionic_stepper;
-  if ( cell_stepper != 0 ) delete cell_stepper;
+  delete wf_stepper;
+  delete ionic_stepper;
+  delete cell_stepper;
 
   // delete preconditioner
   if ( use_preconditioner ) delete preconditioner;

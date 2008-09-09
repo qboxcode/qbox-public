@@ -1,6 +1,9 @@
 TODO: change all char* name() functions to const char* name ()
 (causes warning at compile time on tribe).
 --------------------------------------------------------------------------------
+rel1_44_5
+BOSampleStepper.C: Fix uninitialized mlwft ptr. Fixed delete statements.
+--------------------------------------------------------------------------------
 rel1_44_4
 BOSampleStepper.C: reintroduced feature that keeps memory of wfv between run
 commands. Allows for smooth continuation of multiple runs. Added MLWF and 

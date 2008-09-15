@@ -15,7 +15,7 @@
 // UnitCell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.h,v 1.9 2008-09-15 14:56:48 fgygi Exp $
+// $Id: UnitCell.h,v 1.10 2008-09-15 14:59:58 fgygi Exp $
 
 #ifndef UNITCELL_H
 #define UNITCELL_H
@@ -66,7 +66,7 @@ class UnitCell
   // 3x3 matrix vector multiply Z = X Y where X is a 3x3 matrix, Y,Z 3-vectors
   void vecmult3x3(const double* x, const double* y, double *z) const;
 
-  // 3x3 sym matrix vector multiply Z = X Y where X is a sym 3x3 matrix, 
+  // 3x3 sym matrix vector multiply Z = X Y where X is a sym 3x3 matrix,
   // Y,Z 3-vectors
   void vecsmult3x3(const double* x, const double* y, double *z) const;
 

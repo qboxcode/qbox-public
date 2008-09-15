@@ -15,7 +15,7 @@
 // UnitCell.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.18 2008-09-15 14:56:48 fgygi Exp $
+// $Id: UnitCell.C,v 1.19 2008-09-15 14:59:58 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -298,11 +298,11 @@ void UnitCell::vecmult3x3(const double* x, const double* y, double *z) const
 void UnitCell::vecsmult3x3(const double* xs, const double* y, double *z) const
 {
   // multiply a vector by a symmetric 3x3 matrix
-  
+
   //  | z0 |     | xs0 xs3 xs5 |     | y0 |
   //  | z1 |  =  | xs3 xs1 xs4 |  *  | y1 |
   //  | z2 |     | xs5 xs4 xs2 |     | y2 |
-  
+
   z[0] = xs[0]*y[0]+xs[3]*y[1]+xs[5]*y[2];
   z[1] = xs[3]*y[0]+xs[1]*y[1]+xs[4]*y[2];
   z[2] = xs[5]*y[0]+xs[4]*y[1]+xs[2]*y[2];

@@ -1,6 +1,14 @@
 TODO: change all char* name() functions to const char* name ()
 (causes warning at compile time on tribe).
 --------------------------------------------------------------------------------
+rel1_45_0
+Added strain command for deformation of the cell.
+UnitCell.C: removed member compute_deda (moved calc to SDCellStepper). Added
+symmetric matrix - vector product function.
+SDCellStepper.C fixed calculation of cell correction from stress tensor.
+BOSampleStepper.C: reintroduced wf extrapolation when nempty>0 for MD.
+RunCmd.h: fixed help msg.
+--------------------------------------------------------------------------------
 rel1_44_5
 BOSampleStepper.C: Fix uninitialized mlwft ptr. Fixed delete statements.
 --------------------------------------------------------------------------------

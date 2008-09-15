@@ -15,7 +15,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.60 2008-09-08 15:56:20 fgygi Exp $
+// $Id: qb.C,v 1.61 2008-09-15 15:00:30 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -62,6 +62,7 @@ using namespace std;
 #include "SetCmd.h"
 #include "SpeciesCmd.h"
 #include "StatusCmd.h"
+#include "StrainCmd.h"
 #include "TorsionCmd.h"
 
 #include "AtomsDyn.h"
@@ -246,6 +247,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new SetCmd(s));
   ui.addCmd(new SpeciesCmd(s));
   ui.addCmd(new StatusCmd(s));
+  ui.addCmd(new StrainCmd(s));
   ui.addCmd(new TorsionCmd(s));
 
   ui.addVar(new AtomsDyn(s));

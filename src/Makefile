@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.57 2008-09-08 15:56:18 fgygi Exp $
+# $Id: Makefile,v 1.58 2008-09-15 15:00:31 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -243,7 +243,8 @@ BOSampleStepper.o: PSDWavefunctionStepper.h PSDAWavefunctionStepper.h
 BOSampleStepper.o: SDIonicStepper.h IonicStepper.h Species.h
 BOSampleStepper.o: SDAIonicStepper.h LineMinimizer.h CGIonicStepper.h
 BOSampleStepper.o: MDIonicStepper.h SDCellStepper.h CellStepper.h
-BOSampleStepper.o: Preconditioner.h AndersonMixer.h
+BOSampleStepper.o: Preconditioner.h AndersonMixer.h MLWFTransform.h
+BOSampleStepper.o: BasisMapping.h
 BOSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 BOSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 BOSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
@@ -352,7 +353,7 @@ IonicStepper.o: Species.h
 isodate.o: isodate.h
 jacobi.o: Context.h Matrix.h blas.h
 jade.o: Context.h Matrix.h blas.h Timer.h
-kpgen.o: D3vector.h UnitCell.h
+kpgen.o: D3vector.h
 KpointCmd.o: UserInterface.h D3vector.h Sample.h AtomSet.h Context.h Atom.h
 KpointCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
 KpointCmd.o: Control.h
@@ -436,12 +437,12 @@ qb.o: SharedFilePtr.h Control.h Timer.h AngleCmd.h AtomCmd.h ComputeMLWFCmd.h
 qb.o: MLWFTransform.h BasisMapping.h ConstraintCmd.h DistanceCmd.h
 qb.o: FoldInWsCmd.h HelpCmd.h KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h
 qb.o: LoadCmd.h MoveCmd.h PrintCmd.h QuitCmd.h RandomizeWfCmd.h ResetVcmCmd.h
-qb.o: RunCmd.h SaveCmd.h SetCmd.h SpeciesCmd.h StatusCmd.h TorsionCmd.h
-qb.o: AtomsDyn.h Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h CellLock.h
-qb.o: CellMass.h ChargeMixCoeff.h ChargeMixRcut.h Debug.h Ecut.h Ecutprec.h
-qb.o: Ecuts.h Emass.h ExtStress.h FermiTemp.h Dt.h Nempty.h NetCharge.h
-qb.o: Nrowmax.h RefCell.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h
-qb.o: WfDiag.h WfDyn.h Xc.h
+qb.o: RunCmd.h SaveCmd.h SetCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h
+qb.o: TorsionCmd.h AtomsDyn.h Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h
+qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixRcut.h Debug.h Ecut.h
+qb.o: Ecutprec.h Ecuts.h Emass.h ExtStress.h FermiTemp.h Dt.h Nempty.h
+qb.o: NetCharge.h Nrowmax.h RefCell.h Stress.h Thermostat.h ThTemp.h ThTime.h
+qb.o: ThWidth.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
@@ -529,6 +530,9 @@ spline.o: spline.h
 StatusCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 StatusCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
 StatusCmd.o: Control.h
+StrainCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+StrainCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
+StrainCmd.o: Control.h
 Stress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 Stress.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 StructuredDocumentHandler.o: StrX.h StructureHandler.h
@@ -622,10 +626,7 @@ XCPotential.o: BLYPFunctional.h Basis.h D3vector.h UnitCell.h
 XCPotential.o: FourierTransform.h blas.h
 XCPotential.o: ChargeDensity.h Timer.h Context.h LDAFunctional.h
 XCPotential.o: XCFunctional.h PBEFunctional.h BLYPFunctional.h
-xml2xy.o: StrX.h
 xmlextract.o: StrX.h
-xmlget.o: SampleHandler.h StructureHandler.h StructuredDocumentHandler.h
-xmlget.o: StrX.h
 XMLGFPreprocessor.o: Timer.h Context.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h
 XMLGFPreprocessor.o: Matrix.h

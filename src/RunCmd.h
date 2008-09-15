@@ -15,7 +15,7 @@
 // RunCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.h,v 1.6 2008-09-08 15:56:19 fgygi Exp $
+// $Id: RunCmd.h,v 1.7 2008-09-15 14:57:29 fgygi Exp $
 
 #ifndef RUNCMD_H
 #define RUNCMD_H
@@ -39,9 +39,10 @@ class RunCmd : public Cmd
   {
     return
     "\n run\n\n"
-    " syntax: run n [nite]\n\n"
+    " syntax: run n [nitscf [nite]]\n\n"
     "   The run command runs n steps of simulation. Each step\n"
-    "   consists of one (optionally nite) electronic steps\n\n";
+    "   consists of one or more (nitscf) scf steps, each consisting\n"
+    "   of one or more (nite) electronic steps.\n\n";
   }
 
   int action(int argc, char **argv);

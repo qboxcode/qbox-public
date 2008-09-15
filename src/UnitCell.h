@@ -15,7 +15,7 @@
 // UnitCell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.h,v 1.8 2008-09-08 15:56:19 fgygi Exp $
+// $Id: UnitCell.h,v 1.9 2008-09-15 14:56:48 fgygi Exp $
 
 #ifndef UNITCELL_H
 #define UNITCELL_H
@@ -66,6 +66,10 @@ class UnitCell
   // 3x3 matrix vector multiply Z = X Y where X is a 3x3 matrix, Y,Z 3-vectors
   void vecmult3x3(const double* x, const double* y, double *z) const;
 
+  // 3x3 sym matrix vector multiply Z = X Y where X is a sym 3x3 matrix, 
+  // Y,Z 3-vectors
+  void vecsmult3x3(const double* x, const double* y, double *z) const;
+
   // 3x3 matrix matrix multiply Z = X Y where X, Y are 3x3 matrices
   void matmult3x3(const double* x, const double* y, double *z) const;
   // Z = X Y where X is a symmetric 3x3 matrix and Y a general 3x3 matrix
@@ -73,8 +77,6 @@ class UnitCell
   // where xs[0] = x00, xs[1] = x11, xs[2] = x22,
   // xs[3] = x10, xs[4] = x21, xs[5] = x20
   void smatmult3x3(const double* xs, const double* y, double *z) const;
-  void compute_deda(const std::valarray<double>& sigma,
-                    std::valarray<double>& deda) const;
 
   bool in_ws(const D3vector& v) const;
   void fold_in_ws(D3vector& v) const;

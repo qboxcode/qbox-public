@@ -15,7 +15,7 @@
 // UnitCell.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.17 2008-09-08 15:56:19 fgygi Exp $
+// $Id: UnitCell.C,v 1.18 2008-09-15 14:56:48 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -293,6 +293,21 @@ void UnitCell::vecmult3x3(const double* x, const double* y, double *z) const
   z[2] = z2;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+void UnitCell::vecsmult3x3(const double* xs, const double* y, double *z) const
+{
+  // multiply a vector by a symmetric 3x3 matrix
+  
+  //  | z0 |     | xs0 xs3 xs5 |     | y0 |
+  //  | z1 |  =  | xs3 xs1 xs4 |  *  | y1 |
+  //  | z2 |     | xs5 xs4 xs2 |     | y2 |
+  
+  z[0] = xs[0]*y[0]+xs[3]*y[1]+xs[5]*y[2];
+  z[1] = xs[3]*y[0]+xs[1]*y[1]+xs[4]*y[2];
+  z[2] = xs[5]*y[0]+xs[4]*y[1]+xs[2]*y[2];
+
+}
 ////////////////////////////////////////////////////////////////////////////////
 void UnitCell::matmult3x3(const double* x, const double* y, double *z) const
 {
@@ -356,24 +371,6 @@ void UnitCell::smatmult3x3(const double* xs, const double* y, double *z) const
   z[7] = z12;
   z[8] = z22;
 }
-////////////////////////////////////////////////////////////////////////////////
-void UnitCell::compute_deda(const valarray<double>& sigma,
- valarray<double>& deda) const
-{
-  // Compute energy derivatives dE/da_ij from a symmetric stress tensor
-  assert(sigma.size()==6);
-  assert(deda.size()==9);
-
-  // local copy of sigma to circumvent bug in icc compiler
-  valarray<double> sigma_loc(6);
-  sigma_loc = sigma;
-
-  // deda = - omega * sigma * A^-T
-  smatmult3x3(&sigma_loc[0],&amat_inv_t_[0],&deda[0]);
-
-  deda *= -volume_;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator<< ( ostream& os, const UnitCell& cell )
 {

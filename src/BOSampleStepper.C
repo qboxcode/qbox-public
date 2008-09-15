@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.46 2008-09-09 04:24:02 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.47 2008-09-15 14:57:11 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -97,7 +97,7 @@ void BOSampleStepper::step(int niter)
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
 
-  const bool extrapolate_wf = atoms_dyn == "MD" && !fractional_occ;
+  const bool extrapolate_wf = atoms_dyn == "MD";
 
   const bool ntc_extrapolation =
     s_.ctrl.debug.find("NTC_EXTRAPOLATION") != string::npos;

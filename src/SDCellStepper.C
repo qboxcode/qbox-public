@@ -15,7 +15,7 @@
 // SDCellStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDCellStepper.C,v 1.10 2008-09-15 14:58:08 fgygi Exp $
+// $Id: SDCellStepper.C,v 1.11 2008-09-26 21:05:18 fgygi Exp $
 
 #include "SDCellStepper.h"
 using namespace std;
@@ -42,7 +42,10 @@ void SDCellStepper::compute_new_cell(const valarray<double>& sigma)
   // Compute cell correction dcell_ij from the stress tensor
   // dcell = - omega * sigma * A
   assert(sigma.size()==6);
-  cell.smatmult3x3(&sigma[0],cell.amat(),&dcell[0]);
+  // next line: local copy of sigma to circumvent compiler error
+  valarray<double> sigma_loc(sigma);
+  cell.smatmult3x3(&sigma_loc[0],cell.amat(),&dcell[0]);
+  // cell.smatmult3x3(&sigma[0],cell.amat(),&dcell[0]);
   dcell *= -cell.volume();
 
   string cell_lock = s_.ctrl.cell_lock;

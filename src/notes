@@ -1,6 +1,9 @@
 TODO: change all char* name() functions to const char* name ()
 (causes warning at compile time on tribe).
 --------------------------------------------------------------------------------
+rel1_45_1: fixed SDCellStepper.C: make local copy of sigma to avoid 
+PGI compiler error on franklin: "must be lvalue or...".
+--------------------------------------------------------------------------------
 rel1_45_0
 Added strain command for deformation of the cell.
 UnitCell.C: removed member compute_deda (moved calc to SDCellStepper). Added

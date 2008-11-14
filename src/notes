@@ -11,7 +11,7 @@ Note: All definitions of commands and variables cause memory leaks in qb.C
 (causes new/delete mismatch in valgrind)
 --------------------------------------------------------------------------------
 rel1_45_2
-qb.C, UserInterface.C: implemented -server option
+qb.C, UserInterface.C: implemented -server option, cleaned up destructors.
 AtomSet.C: implemented destructor (fix leaks)
 qb.C: added delete s at end (fix leaks)
 ConstraintSet: implemented destructor (fix leaks)

@@ -15,7 +15,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.14 2008-09-08 15:56:19 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.15 2008-11-14 04:04:03 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -114,8 +114,21 @@ void XMLGFPreprocessor::process(const char* const filename,
   {
     cout << "fseeko failed: offset=" << offset << " file_size=" << sz << endl;
   }
+
   assert(fseek_status==0);
-  size_t items_read = fread(rdbuf,sizeof(char),local_size,infile);
+  size_t items_read;
+#if PARALLEL_FS
+  // parallel file system: all nodes read at once
+  items_read = fread(rdbuf,sizeof(char),local_size,infile);
+#else
+  // serial (or NFS) file system: tasks read by increasing row order
+  // No more than ctxt.npcol() tasks are reading at any given time
+  for ( int irow = 0; irow < ctxt.nprow(); irow++ )
+  {
+    if ( irow == ctxt.myrow() )
+      items_read = fread(rdbuf,sizeof(char),local_size,infile);
+  }
+#endif
   assert(items_read==local_size);
 
   //std::streampos offset = ctxt.mype()*block_size;

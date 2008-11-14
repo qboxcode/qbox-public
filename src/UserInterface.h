@@ -51,7 +51,7 @@ class UserInterface
 {
   private:
 
-  char *readCmd(char *s, int max, std::istream &fp, bool echo);
+  int readCmd(char *s, int max, std::istream &fp, bool echo);
   bool terminate_;
   bool onpe0_;
 
@@ -106,7 +106,9 @@ class UserInterface
     }
   };
 
-  void processCmds(std::istream &cmdstream, char *prompt, bool echo);
+  void processCmds(std::istream &cmdstream, const char *prompt, bool echo);
+  void processCmdsServer(std::string inputfilename, std::string outputfilename,
+                         const char *prompt, bool echo);
 
   void terminate(void) { terminate_ = true; }
 

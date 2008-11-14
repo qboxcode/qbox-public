@@ -15,7 +15,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.61 2008-09-15 15:00:30 fgygi Exp $
+// $Id: qb.C,v 1.62 2008-11-14 04:06:25 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -280,23 +280,51 @@ int main(int argc, char **argv, char **envp)
 
   if ( argc == 2 )
   {
-    // input file was given as a command line argument
+    // input file given as a command line argument
+    // cmd line: qb inputfilename
     bool echo = true;
+    string inputfilename(argv[1]);
+    string outputfilename("stdout");
     ifstream in;
     if ( ctxt.onpe0() )
-    {
       in.open(argv[1],ios::in);
+    if ( in )
+      ui.processCmds(in, "[qbox]", echo);
+    else
+    {
+      cout << " qbox: could not open input file "
+           << argv[1] << endl;
+      ctxt.abort(1);
     }
-    ui.processCmds(in, "[qbox]", echo);
+  }
+  else if ( argc == 4 )
+  {
+    // server mode
+    // cmd line: qb -server inputfilename outputfilename
+    if ( strcmp(argv[1],"-server") )
+    {
+      // first argument is not "-strcmp"
+      cout << " use: qb [infile | -server infile outfile]" << endl;
+      ctxt.abort(1);
+    }
+    // first argument is "-server"
+    string inputfilename(argv[2]);
+    string outputfilename(argv[3]);
+    bool echo = true;
+    ui.processCmdsServer(inputfilename, outputfilename, "[qbox]", echo);
   }
   else
   {
+    // interactive mode
+    assert(argc==1);
     // use standard input
     bool echo = !isatty(0);
+    string inputfilename("stdin");
+    string outputfilename("stdout");
     ui.processCmds(cin, "[qbox]", echo);
   }
 
-  // exit using the quit command when a encountering EOF in a script
+  // exit using the quit command when processCmds returns
   Cmd *c = ui.findCmd("quit");
   c->action(1,NULL);
 
@@ -306,6 +334,8 @@ int main(int argc, char **argv, char **envp)
     cout << "<end_time> " << isodate() << " </end_time>" << endl;
     cout << "</fpmd:simulation>" << endl;
   }
+
+  delete s;
 
   } // end of Context scope
 #if USE_APC

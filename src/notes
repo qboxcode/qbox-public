@@ -1,5 +1,24 @@
 TODO: change all char* name() functions to const char* name ()
 (causes warning at compile time on tribe).
+
+--------------------------------------------------------------------------------
+Fix memory leaks:
+(check with valgrind on melodie:
+mpirun -np 1 /usr/bin/valgrind --leak-check=full --show-reachable=yes \
+../../src/qb  t.i 2>&1 | tee valgrind.r
+see: http://valgrind.org/docs/manual/mc-manual.html
+Note: All definitions of commands and variables cause memory leaks in qb.C
+(causes new/delete mismatch in valgrind)
+--------------------------------------------------------------------------------
+rel1_45_2
+qb.C, UserInterface.C: implemented -server option
+AtomSet.C: implemented destructor (fix leaks)
+qb.C: added delete s at end (fix leaks)
+ConstraintSet: implemented destructor (fix leaks)
+Constraint.h and derived classes: implemented virtual destructors.
+StrainCmd.h: fix error in usage message.
+XMLGFPreprocessor.C: new macro PARALLEL_FS. Limit the number of simultaneous
+fread calls if PARALLEL_FS is not defined.
 --------------------------------------------------------------------------------
 rel1_45_1: fixed SDCellStepper.C: make local copy of sigma to avoid 
 PGI compiler error on franklin: "must be lvalue or...".

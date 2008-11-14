@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.58 2008-09-15 15:00:31 fgygi Exp $
+# $Id: Makefile,v 1.59 2008-11-14 04:08:05 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -72,6 +72,17 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
          SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
          Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
          AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ truncateMLWF: truncateMLWF.o \
+         MLWFTransform.o BasisMapping.o jade.o \
+         Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
+         Constraint.o ConstraintSet.o Wavefunction.o UnitCell.o Matrix.o \
+         SampleReader.o StructuredDocumentHandler.o FourierTransform.o \
+         Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
+         SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
+         Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
+         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o \
+         SampleWriter.o qbox_xmlns.o isodate.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  bisection: bisection.o jade.o \
          Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
@@ -227,10 +238,19 @@ bisection1.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 bisection1.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 bisection1.o: SampleReader.h Basis.h FourierTransform.h Timer.h SlaterDet.h
 bisection1.o: Matrix.h
+bisection-2008-10-23.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h
+bisection-2008-10-23.o: UnitCell.h ConstraintSet.h Wavefunction.h
+bisection-2008-10-23.o: SharedFilePtr.h Control.h SampleReader.h
+bisection-2008-10-23.o: SampleWriter.h Basis.h FourierTransform.h Timer.h
+bisection-2008-10-23.o: SlaterDet.h Matrix.h isodate.h jade.h
 bisection.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 bisection.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 bisection.o: SampleReader.h SampleWriter.h Basis.h FourierTransform.h Timer.h
 bisection.o: SlaterDet.h Matrix.h isodate.h jade.h
+bisection_save.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
+bisection_save.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
+bisection_save.o: SampleReader.h SampleWriter.h Basis.h FourierTransform.h
+bisection_save.o: Timer.h SlaterDet.h Matrix.h isodate.h jade.h
 BLYPFunctional.o: BLYPFunctional.h XCFunctional.h
 BLYPFunctional.o: XCFunctional.h
 BOSampleStepper.o: BOSampleStepper.h SampleStepper.h Timer.h
@@ -603,6 +623,11 @@ TorsionCmd.o: Control.h
 TorsionConstraint.o: TorsionConstraint.h Constraint.h D3vector.h AtomSet.h
 TorsionConstraint.o: Context.h Atom.h UnitCell.h Species.h
 TorsionConstraint.o: Constraint.h D3vector.h
+truncateMLWF.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
+truncateMLWF.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
+truncateMLWF.o: SampleReader.h SampleWriter.h Basis.h FourierTransform.h
+truncateMLWF.o: Timer.h SlaterDet.h Matrix.h isodate.h jade.h MLWFTransform.h
+truncateMLWF.o: BasisMapping.h ComputeMLWFCmd.h UserInterface.h
 UnitCell.o: UnitCell.h D3vector.h
 UnitCell.o: D3vector.h
 UserInterface.o: UserInterface.h

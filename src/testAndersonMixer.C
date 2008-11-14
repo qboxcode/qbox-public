@@ -15,7 +15,7 @@
 // testAndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testAndersonMixer.C,v 1.5 2008-09-08 15:56:20 fgygi Exp $
+// $Id: testAndersonMixer.C,v 1.6 2008-11-14 04:08:05 fgygi Exp $
 
 
 #include <iostream>
@@ -31,51 +31,61 @@ int main(int argc, char** argv)
   MPI_Init(&argc,&argv);
 #endif
   {
+    const int ndim = 20;
+    const int niter = 10;
+
     Context ctxt;
 
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     int namelen;
     PMPI_Get_processor_name(processor_name,&namelen);
-    cout << " Process " << ctxt.mype() << " on " << processor_name << endl;
+    // cout << " Process " << ctxt.mype() << " on " << processor_name << endl;
 
     const double alpha = 1.0;
     vector<double> x,f,xlast,fbar;
     double theta;
-    x.resize(3);
-    xlast.resize(3);
-    f.resize(3);
-    fbar.resize(3);
+    x.resize(ndim);
+    xlast.resize(ndim);
+    f.resize(ndim);
+    fbar.resize(ndim);
 
     AndersonMixer mixer(x.size(),&ctxt);
 
-    x[0] = 1.0 + 0.2 * ctxt.mype();
-    x[1] = 2.0 + 0.2 * ctxt.mype();
-    x[2] = 3.0 + 0.2 * ctxt.mype();
+    for ( int i = 0; i < ndim; i++ )
+      x[i] = (i+5);
 
     xlast = x;
 
-    for ( int iter = 0; iter < 20; iter++ )
+    for ( int iter = 0; iter < niter; iter++ )
     {
-      //f[0] = - 2.0 * x[0] - 3.0 * x[0]*x[0]*x[0];
-      //f[1] = - 1.0 * x[1] - 1.5 * x[1]*x[1]*x[1];
-      //f[2] = - 4.0 * x[2];
-      f[0] = - 2.0 * x[0];
-      f[1] = - 1.0 * x[1];
-      f[2] = - 4.0 * x[2];
+      // compute gradient
+#if 1
+      // quadratic form
+      for ( int i = 0; i < ndim; i++ )
+        //f[i] = -(i+1) * (x[i]-1.0) - 0.1 * x[i]*x[i]*x[i];
+        f[i] = -(i+1) * (x[i]-i);
+#else
+      // Rosenbrock function
+      assert(ndim%2==0);
+      // f = sum_i^(n-1) (1-x_i)^2 + 100*(x_i+1 - x_i^2)^2
+      f[0] = 0.0;
+      for ( int i = 0; i < ndim-1; i++ )
+      {
+        f[i+1] = 200 * ( x[i+1] - x[i]*x[i] );
+        f[i] += -2.0 * ( 1.0 - x[i] ) + 200 * x[i] * ( x[i+1] - x[i]*x[i] );
+      }
+#endif
 
       double resnorm = 0.0;
       for ( int i = 0; i < x.size(); i++ )
-      {
         resnorm += f[i]*f[i];
-        // f[i] *= 0.1;
-      }
+#if USE_MPI
       ctxt.dsum(1,1,&resnorm,1);
+#endif
 
-      cout << ctxt.mype() << ": x: " << x[0] << " " << x[1] << " " << x[2]
-           << " resnorm: " << resnorm << endl;
 
       mixer.update(&f[0],&theta,&fbar[0]);
-      cout << ctxt.mype() << ": theta: " << theta << endl;
+      cout << " theta: " << theta << " resnorm: " << resnorm << endl;
 
       for ( int i = 0; i < x.size(); i++ )
       {

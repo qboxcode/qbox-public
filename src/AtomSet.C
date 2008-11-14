@@ -15,7 +15,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.25 2008-11-14 04:01:26 fgygi Exp $
+// $Id: AtomSet.C,v 1.26 2008-11-14 04:06:41 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -36,7 +36,7 @@ AtomSet::~AtomSet(void)
     }
     delete species_list[is];
   }
-} 
+}
 ////////////////////////////////////////////////////////////////////////////////
 bool AtomSet::addSpecies(Species* sp, string name)
 {

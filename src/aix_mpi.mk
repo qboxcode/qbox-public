@@ -12,18 +12,10 @@
 #
 #-------------------------------------------------------------------------------
 #
-# Copyright (c) 2008 The Regents of the University of California
-#
-# This file is distributed under the terms of the GNU General Public
-# License. See the file COPYING in the root directory of this distribution
-# or http://www.gnu.org/licenses
-#
-#-------------------------------------------------------------------------------
-#
 #  aix_mpi.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: aix_mpi.mk,v 1.17 2008-09-08 15:56:19 fgygi Exp $
+# $Id: aix_mpi.mk,v 1.18 2008-11-14 04:03:20 fgygi Exp $
 PLT=AIX
 #-------------------------------------------------------------------------------
  XERCESCDIR=${HOME}/qb/software/xerces/xerces-c-src_2_7_0

@@ -15,7 +15,7 @@
 // StrainCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StrainCmd.h,v 1.1 2008-09-15 15:00:31 fgygi Exp $
+// $Id: StrainCmd.h,v 1.2 2008-11-14 04:02:08 fgygi Exp $
 
 #ifndef STRAINCMD_H
 #define STRAINCMD_H
@@ -41,7 +41,7 @@ class StrainCmd : public Cmd
   {
     return
     "\n strain\n\n"
-    " syntax: strain [-atomsonly] [-inverse] uxx uxy uzz uxy uyz uxz \n\n"
+    " syntax: strain [-atomsonly] [-inverse] uxx uyy uzz uxy uyz uxz \n\n"
     "   The strain command deforms the unit cell according to\n"
     "   the given strain tensor u. Atomic positions are modified\n"
     "   correspondingly. If -atomsonly is specified, only atomic\n"
@@ -52,7 +52,7 @@ class StrainCmd : public Cmd
   int action(int argc, char **argv)
   {
     const string usage =
-    " use: strain [-atomsonly] [-inverse] uxx uxy uzz uxy uyz uxz";
+    " use: strain [-atomsonly] [-inverse] uxx uyy uzz uxy uyz uxz";
     // strain must have 7, 8 or 9 arguments including the command name
     if ( argc < 7 || argc > 9 )
     {

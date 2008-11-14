@@ -15,7 +15,7 @@
 //  TorsionConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionConstraint.h,v 1.6 2008-09-08 15:56:19 fgygi Exp $
+// $Id: TorsionConstraint.h,v 1.7 2008-11-14 04:01:26 fgygi Exp $
 
 #ifndef TORSIONCONSTRAINT_H
 #define TORSIONCONSTRAINT_H
@@ -58,6 +58,7 @@ class TorsionConstraint : public Constraint
     force_ = 0.0;
     weight_ = 1.0;
   }
+  ~TorsionConstraint(void) {}
 
   std::string type(void) const { return "torsion"; }
   double value(void) const { return angle_; }

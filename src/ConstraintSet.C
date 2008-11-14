@@ -15,7 +15,7 @@
 // ConstraintSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.C,v 1.6 2008-09-08 15:56:18 fgygi Exp $
+// $Id: ConstraintSet.C,v 1.7 2008-11-14 04:01:26 fgygi Exp $
 
 #include "ConstraintSet.h"
 #include "DistanceConstraint.h"
@@ -30,6 +30,13 @@
 using namespace std;
 
 const int constraints_maxiter = 10;
+
+////////////////////////////////////////////////////////////////////////////////
+ConstraintSet::~ConstraintSet(void)
+{
+  for ( int ic = 0; ic < constraint_list.size(); ic++ )
+    delete constraint_list[ic];
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)

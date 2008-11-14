@@ -15,7 +15,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.24 2008-09-08 15:56:17 fgygi Exp $
+// $Id: AtomSet.C,v 1.25 2008-11-14 04:01:26 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -25,6 +25,18 @@
 #include <string>
 using namespace std;
 
+////////////////////////////////////////////////////////////////////////////////
+AtomSet::~AtomSet(void)
+{
+  for ( int is = 0; is < species_list.size(); is++ )
+  {
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      delete atom_list[is][ia];
+    }
+    delete species_list[is];
+  }
+} 
 ////////////////////////////////////////////////////////////////////////////////
 bool AtomSet::addSpecies(Species* sp, string name)
 {

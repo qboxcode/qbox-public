@@ -15,7 +15,7 @@
 //  AngleConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleConstraint.h,v 1.6 2008-09-08 15:56:17 fgygi Exp $
+// $Id: AngleConstraint.h,v 1.7 2008-11-14 04:01:25 fgygi Exp $
 
 #ifndef ANGLECONSTRAINT_H
 #define ANGLECONSTRAINT_H
@@ -55,6 +55,7 @@ class AngleConstraint : public Constraint
     force_ = 0.0;
     weight_ = 1.0;
   }
+  ~AngleConstraint(void) {}
 
   std::string type(void) const { return "angle"; }
   double value(void) const { return angle_; }

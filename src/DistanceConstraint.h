@@ -15,7 +15,7 @@
 //  DistanceConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: DistanceConstraint.h,v 1.6 2008-09-08 15:56:18 fgygi Exp $
+// $Id: DistanceConstraint.h,v 1.7 2008-11-14 04:01:26 fgygi Exp $
 
 #ifndef DISTANCECONSTRAINT_H
 #define DISTANCECONSTRAINT_H
@@ -47,6 +47,7 @@ class DistanceConstraint : public Constraint
     force_ = 0.0;
     weight_ = 1.0;
   }
+  ~DistanceConstraint(void) {}
 
   std::string type(void) const { return "distance"; }
   double value(void) const { return distance_; }

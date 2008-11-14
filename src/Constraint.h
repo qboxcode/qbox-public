@@ -15,7 +15,7 @@
 //  Constraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Constraint.h,v 1.6 2008-09-08 15:56:18 fgygi Exp $
+// $Id: Constraint.h,v 1.7 2008-11-14 04:01:26 fgygi Exp $
 
 #ifndef CONSTRAINT_H
 #define CONSTRAINT_H
@@ -35,6 +35,7 @@ class Constraint
 
   public:
 
+  virtual ~Constraint(void){}
   virtual std::string type(void) const = 0;
   virtual double value(void) const = 0;
   virtual double velocity(void) const = 0;

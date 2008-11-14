@@ -15,7 +15,7 @@
 // Sample.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Sample.h,v 1.11 2008-09-08 15:56:19 fgygi Exp $
+// $Id: Sample.h,v 1.12 2008-11-14 04:01:26 fgygi Exp $
 
 #ifndef SAMPLE_H
 #define SAMPLE_H
@@ -43,5 +43,6 @@ class Sample
 
   Sample(const Context& ctxt) : ctxt_(ctxt), atoms(ctxt), constraints(ctxt),
     wf(ctxt), wfv(0) {}
+  ~Sample(void) { delete wfv; }
 };
 #endif

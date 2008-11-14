@@ -36,6 +36,7 @@ class Cmd
   virtual char *name(void) const = 0;
   virtual char *help_msg(void) const = 0;
   virtual int action(int argc, char **argv) = 0;
+  virtual ~Cmd(void) {}
 };
 
 class Var
@@ -45,6 +46,7 @@ class Var
   virtual char *name ( void ) const = 0;
   virtual int set ( int argc, char **argv ) = 0;
   virtual std::string print ( void ) const = 0;
+  virtual ~Var(void) {}
 };
 
 class UserInterface
@@ -115,5 +117,6 @@ class UserInterface
   bool onpe0(void) const { return onpe0_; }
 
   UserInterface(void);
+  ~UserInterface(void);
 };
 #endif

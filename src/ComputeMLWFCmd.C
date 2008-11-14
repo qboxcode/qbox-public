@@ -15,7 +15,7 @@
 // ComputeMLWFCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ComputeMLWFCmd.C,v 1.7 2008-09-08 15:56:18 fgygi Exp $
+// $Id: ComputeMLWFCmd.C,v 1.8 2008-11-14 22:11:30 fgygi Exp $
 
 #include "ComputeMLWFCmd.h"
 #include<iostream>
@@ -23,12 +23,13 @@
 #include "SlaterDet.h"
 using namespace std;
 
+////////////////////////////////////////////////////////////////////////////////
 int ComputeMLWFCmd::action(int argc, char **argv)
 {
   Wavefunction& wf = s->wf;
   SlaterDet& sd = *(wf.sd(0,0));
 
-  mlwft = new MLWFTransform(sd);
+  MLWFTransform* mlwft = new MLWFTransform(sd);
 
   mlwft->compute_transform();
   mlwft->apply_transform(sd);

@@ -15,7 +15,7 @@
 // ComputeMLWFCmd.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ComputeMLWFCmd.h,v 1.4 2008-09-08 15:56:18 fgygi Exp $
+// $Id: ComputeMLWFCmd.h,v 1.5 2008-11-14 22:11:30 fgygi Exp $
 
 #ifndef COMPUTEMLWFCMD_H
 #define COMPUTEMLWFCMD_H
@@ -31,8 +31,6 @@
 class ComputeMLWFCmd : public Cmd
 {
   private:
-
-  MLWFTransform* mlwft;
 
   public:
   Sample *s;
@@ -53,6 +51,5 @@ class ComputeMLWFCmd : public Cmd
   int action(int argc, char **argv);
 
   ComputeMLWFCmd();
-  ~ComputeMLWFCmd();
 };
 #endif

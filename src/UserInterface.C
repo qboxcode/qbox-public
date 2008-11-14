@@ -15,7 +15,7 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.10 2008-11-14 04:06:25 fgygi Exp $
+// $Id: UserInterface.C,v 1.11 2008-11-14 22:11:30 fgygi Exp $
 
 #include "UserInterface.h"
 #include <string>
@@ -62,6 +62,17 @@ UserInterface::UserInterface(void) : terminate_(false)
   int mype;
   MPI_Comm_rank(MPI_COMM_WORLD,&mype);
   onpe0_ = ( mype == 0 );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+UserInterface::~UserInterface(void) 
+{
+  std::list<Cmd*>::iterator cmd;
+  for ( cmd = cmdlist.begin(); cmd != cmdlist.end(); cmd++ )
+    delete *cmd;
+  std::list<Var*>::iterator var;
+  for ( var = varlist.begin(); var != varlist.end(); var++ )
+    delete *var;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

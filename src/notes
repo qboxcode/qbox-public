@@ -2,13 +2,16 @@ TODO: change all char* name() functions to const char* name ()
 (causes warning at compile time on tribe).
 
 --------------------------------------------------------------------------------
-Fix memory leaks:
+To fix memory leaks:
 (check with valgrind on melodie:
 mpirun -np 1 /usr/bin/valgrind --leak-check=full --show-reachable=yes \
 ../../src/qb  t.i 2>&1 | tee valgrind.r
 see: http://valgrind.org/docs/manual/mc-manual.html
-Note: All definitions of commands and variables cause memory leaks in qb.C
-(causes new/delete mismatch in valgrind)
+--------------------------------------------------------------------------------
+rel1_45_3
+UserInterface.C: modified server mode to allow multiple commands in input file.
+Use file "<inputfile>.lock" to synchronize with client.
+Output file in server mode is now a valid XML fragment, with fpmd namespace.
 --------------------------------------------------------------------------------
 rel1_45_2
 qb.C, UserInterface.C: implemented -server option, cleaned up destructors.

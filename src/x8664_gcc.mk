@@ -15,12 +15,13 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: x8664_gcc.mk,v 1.13 2008-09-08 15:56:20 fgygi Exp $
+# $Id: x8664_gcc.mk,v 1.14 2008-12-04 20:05:13 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
  MPIDIR=/opt/mpich-1.2.6
- XERCESCDIR=$(HOME)/software/xml/Linux_x8664/xerces-c-src_2_5_0
+#XERCESCDIR=$(HOME)/software/xml/Linux_x8664/xerces-c-src_2_5_0
+ XERCESCDIR=$(HOME)/software/xml/xerces-c-src_2_8_0
  FFTWDIR=$(HOME)/software/fftw/Linux_x8664/fftw-2.1.3/fftw
  BLASDIR=$(HOME)/software/atlas/ATLAS/Linux_P4E64SSE3/lib
  LAPACKDIR=$(HOME)/software/lapack/LAPACK
@@ -43,7 +44,7 @@
            -L$(MPIDIR)/lib -L$(LAPACKDIR) -L$(BLASDIR) \
            -L$(XERCESCDIR)/lib
 
- LIBS =  $(PLIBS) -lfftw \
+ LIBS =  $(PLIBS) -lpthread -lfftw \
          -llapack -lf77blas -latlas -lm \
          -Xlinker -Bstatic \
           -lc -lgfortran -static-libgcc -lmpich -lxerces-c \

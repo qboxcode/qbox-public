@@ -15,9 +15,10 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.11 2008-11-14 22:11:30 fgygi Exp $
+// $Id: UserInterface.C,v 1.12 2008-12-04 20:03:48 fgygi Exp $
 
 #include "UserInterface.h"
+#include "qbox_xmlns.h"
 #include <string>
 #include <list>
 #include <unistd.h> // isatty
@@ -30,30 +31,19 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-void wait_for_no_file(const string& readyfilename)
+void wait_for_no_file(const string& lockfilename)
 {
-  cout << " waiting for no " << readyfilename << endl;
-#if 0
-  ifstream readyfile;
-  readyfile.open(readyfilename.c_str());
-  while ( readyfile )
-  {
-    readyfile.open(readyfilename.c_str());
-    usleep(500000);
-    cerr << ".";
-  }
-#else
+  cerr << " waiting for no " << lockfilename << endl;
   struct stat statbuf;
   int status;
   do
   {
     // stat returns 0 if the file exists
-    status = stat(readyfilename.c_str(),&statbuf);
-    usleep(500000);
-    cerr << ".";
+    status = stat(lockfilename.c_str(),&statbuf);
+    usleep(100000);
+    // cerr << ".";
   }
   while ( status == 0 );
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -297,27 +287,13 @@ void UserInterface::processCmdsServer ( string inputfilename,
   const char *separators = " ;\t";
   int i,done=0,cmd_read,status;
 
-  string readyfilename = inputfilename + ".ready";
+  string lockfilename = inputfilename + ".lock";
 
   // in server mode, redirect output to stream qbout
   streambuf *qbout_buf;
   streambuf *cout_buf;
   ofstream qbout;
   ifstream qbin;
-  if ( onpe0_ )
-  {
-    cout << " processCmds: switching output to file qbout" << endl;
-    qbout.open(outputfilename.c_str(),ios_base::trunc);
-    qbout_buf = qbout.rdbuf();
-    // save copy of cout streambuf
-    cout_buf = cout.rdbuf();
-    // redirect cout
-    cout.rdbuf(qbout_buf);
-    cout << " processCmds: redirected cout " << endl;
-  }
-
-  if ( onpe0_ )
-    cout << prompt << " ";
 
   ofstream tstfile;
 
@@ -325,186 +301,196 @@ void UserInterface::processCmdsServer ( string inputfilename,
   {
     if ( onpe0_ )
     {
-      // create link to signal that Qbox is waiting for a command on cmdstream
-      tstfile.open(readyfilename.c_str());
+      // create file to signal that Qbox is waiting for a command on qbin
+      tstfile.open(lockfilename.c_str());
       tstfile << "1" << endl;
       tstfile.close();
       sync();
-      //link(inputfilename.c_str(),readyfilename.c_str());
-      // wait for link to be removed by the driver
+      // wait for tstfile to be removed by the driver
       usleep(100000);
-      wait_for_no_file(readyfilename.c_str());
+      wait_for_no_file(lockfilename.c_str());
 
       qbin.open(inputfilename.c_str());
       qbin.sync();
       qbin.clear();
-      // readCmd returns 1 if a command is read, 0 if at EOF
-      cmd_read = readCmd(cmdline, 256, qbin, echo );
-      qbin.close();
-      cout << cmdline << endl;
-    }
-    MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
-    MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
 
-    if ( cmd_read )
+      // save copy of cout streambuf
+      cout_buf = cout.rdbuf();
+      qbout.open(outputfilename.c_str(),ios_base::trunc);
+      qbout_buf = qbout.rdbuf();
+      // redirect cout
+      cout.rdbuf(qbout_buf);
+      cerr << " processCmdsServer: cout streambuf redirected" << endl;
+
+      cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+      cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
+    }
+
+    do
     {
       if ( onpe0_ )
       {
-        cerr << " read cmd: " << cmdline << endl;
-        cerr << " executing ... ";
-        qbout.open(outputfilename.c_str(),ios_base::trunc);
-        cout.rdbuf(qbout.rdbuf());
+        // readCmd returns 1 if a command is read, 0 if at EOF
+        cmd_read = readCmd(cmdline, 256, qbin, echo );
         cout << prompt << " " << cmdline << endl;
       }
+      MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
+      MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
 
-      // cmdline contains a string of tokens terminated by '\0'
-      // cout << " command line is: " << cmdline << endl;
-
-      // comment lines: start with '#'
-      if ( cmdline[i=strspn(cmdline," ")] == '#' )
+      if ( cmd_read )
       {
-        // cout << " comment line" << endl;
-        // do nothing, not even write prompt
-      }
-      else if ( cmdline[i=strspn(cmdline," ")] == '!' )
-      {
-        // shell escape commands start with '!'
-        // cout << " shell escape" << endl;
         if ( onpe0_ )
         {
-          system ( &cmdline[i+1] );
-          cout << prompt << " ";
+          cerr << " read cmd: " << cmdline << endl;
+          cerr << " executing ... ";
         }
-      }
-      else
-      {
-        // cout << " command split in the following tokens:" << endl;
 
-        // scan tokens and build argument list
-        list<char*> arglist;
-        int ntok = 0;
-        char* tok = strtok(cmdline, separators);
-        while ( tok != 0 )
+        // cmdline contains a string of tokens terminated by '\0'
+        // cout << " command line is: " << cmdline << endl;
+
+        // comment lines: start with '#'
+        if ( cmdline[i=strspn(cmdline," ")] == '#' )
         {
-          arglist.push_back(tok);
-          ntok++;
-          // cout << "\"" << tok << "\"" << endl;
-          tok = strtok(0,separators);
+          // cout << " comment line" << endl;
+          // do nothing, not even write prompt
         }
-        // cout << " total of " << ntok << " tokens" << endl;
-        // arglist.dump();
-
-        // build ac and av
-        int ac = ntok;
-        char **av = new char *[ntok+1];
-        i = 0;
-        list<char*>::iterator iarg = arglist.begin();
-        while ( iarg != arglist.end() )
+        else if ( cmdline[i=strspn(cmdline," ")] == '!' )
         {
-          av[i++] = *iarg++;
-        }
-        av[ntok] = 0;
-
-        // write arguments
-        // for ( i = 0; i < ac; i++ )
-        // {
-        //   cout << av[i] << endl;
-        // }
-
-        // search cmdlist for command
-
-        tok = av[0];
-
-        // check for empty command line
-        if ( tok != 0 )
-        {
-          Cmd *cmdptr = findCmd(tok);
-
-          if ( cmdptr )
+          // shell escape commands start with '!'
+          // cout << " shell escape" << endl;
+          if ( onpe0_ )
           {
-            MPI_Barrier(MPI_COMM_WORLD);
-#if DEBUG
-            cerr << " execute command " << cmdptr->name() << endl;
-#endif
-            cmdptr->action(ac,av);
-            MPI_Barrier(MPI_COMM_WORLD);
-#if DEBUG
-            cerr << " command completed " << cmdptr->name() << endl;
-#endif
+            system ( &cmdline[i+1] );
+            // cout << prompt << " ";
           }
-          else
+        }
+        else
+        {
+          // cout << " command split in the following tokens:" << endl;
+
+          // scan tokens and build argument list
+          list<char*> arglist;
+          int ntok = 0;
+          char* tok = strtok(cmdline, separators);
+          while ( tok != 0 )
           {
-            // command is not in the command list, check for script files
-            ifstream cmdstr;
-            if ( onpe0_ )
+            arglist.push_back(tok);
+            ntok++;
+            // cout << "\"" << tok << "\"" << endl;
+            tok = strtok(0,separators);
+          }
+          // cout << " total of " << ntok << " tokens" << endl;
+          // arglist.dump();
+
+          // build ac and av
+          int ac = ntok;
+          char **av = new char *[ntok+1];
+          i = 0;
+          list<char*>::iterator iarg = arglist.begin();
+          while ( iarg != arglist.end() )
+          {
+            av[i++] = *iarg++;
+          }
+          av[ntok] = 0;
+
+          // write arguments
+          // for ( i = 0; i < ac; i++ )
+          // {
+          //   cout << av[i] << endl;
+          // }
+
+          // search cmdlist for command
+
+          tok = av[0];
+
+          // check for empty command line
+          if ( tok != 0 )
+          {
+            Cmd *cmdptr = findCmd(tok);
+
+            if ( cmdptr )
             {
-              cmdstr.open(av[0],ios::in);
-              status = !cmdstr;
-            }
-            MPI_Bcast(&status,1,MPI_INT,0,MPI_COMM_WORLD);
-            if ( !status )
-            {
-              // create new prompt in the form: prompt<filename>
-              char *newprompt=0;
-              if ( onpe0_ )
-              {
-                newprompt = new char[strlen(prompt)+strlen(av[0])+4];
-                newprompt = strcpy(newprompt,prompt);
-                newprompt = strcat(newprompt,"[");
-                newprompt = strcat(newprompt,av[0]);
-                newprompt = strcat(newprompt,"]");
-              }
-                // MPI: process commands on all processes.
-                // Note: newprompt is 0 on all processes > 0
-                // Note: echo == true for scripts
-              processCmds (cmdstr, newprompt, true);
-              if ( onpe0_ )
-                delete newprompt;
+              MPI_Barrier(MPI_COMM_WORLD);
+#if DEBUG
+              cerr << " execute command " << cmdptr->name() << endl;
+#endif
+              cmdptr->action(ac,av);
+              MPI_Barrier(MPI_COMM_WORLD);
+#if DEBUG
+              cerr << " command completed " << cmdptr->name() << endl;
+#endif
             }
             else
             {
+              // command is not in the command list, check for script files
+              ifstream cmdstr;
               if ( onpe0_ )
-                cout << " No such command or file name: " << tok << endl;
+              {
+                cmdstr.open(av[0],ios::in);
+                status = !cmdstr;
+              }
+              MPI_Bcast(&status,1,MPI_INT,0,MPI_COMM_WORLD);
+              if ( !status )
+              {
+                // create new prompt in the form: prompt<filename>
+                char *newprompt=0;
+                if ( onpe0_ )
+                {
+                  newprompt = new char[strlen(prompt)+strlen(av[0])+4];
+                  newprompt = strcpy(newprompt,prompt);
+                  newprompt = strcat(newprompt,"[");
+                  newprompt = strcat(newprompt,av[0]);
+                  newprompt = strcat(newprompt,"]");
+                }
+                // MPI: process commands on all processes.
+                // Note: newprompt is 0 on all processes > 0
+                // Note: echo == true for scripts
+                processCmds (cmdstr, newprompt, true);
+                if ( onpe0_ )
+                  delete newprompt;
+              }
+              else
+              {
+                if ( onpe0_ )
+                  cout << " No such command or file name: " << tok << endl;
+              }
             }
           }
+          delete [] av;
         }
-        delete [] av;
+
         if ( onpe0_ )
-          cout << prompt << " ";
-      }
-      if ( onpe0_ )
-      {
-        cerr << " done" << endl;
-        cout.flush();
-        qbout.close();
-      }
-    }
-    else // if cmd_read
-    {
-      // no command was read from qbin
-      if ( onpe0_ )
-        cerr << " eof found in qbin" << endl;
-    }
-    // wait before retrying
-    usleep(500000);
+          cerr << "done" << endl;
 
-    // check if terminate_ flag was set during command execution
+        // check if terminate_ flag was set during command execution
+        if ( onpe0_ )
+          done = terminate_;
+        MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
+
+      } // if cmd_read
+
+    } while ( !done && cmd_read );
+
     if ( onpe0_ )
-      done = terminate_;
-    MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
-  }
+    {
+      qbin.close();
+      cout << " End of command stream " << endl;
+      cout << "</fpmd:simulation>" << endl;
+      cout.flush();
+      qbout.close();
+      cout.rdbuf(cout_buf);
+      cerr << " processCmdsServer: cout streambuf reassigned" << endl;
+    }
 
-  if ( onpe0_ )
-    cout << " End of command stream " << endl;
+    // wait before retrying
+    usleep(200000);
+
+  } // while !done
 
   if ( onpe0_ )
   {
-    // reassign cout streambuf
-    cout.rdbuf(cout_buf);
-    cout << " processCmds: reassigned cout streambuf" << endl;
-
-    // remove ready link
-    remove(readyfilename.c_str());
+    // remove lock file
+    remove(lockfilename.c_str());
     sync();
   }
 }

@@ -82,7 +82,7 @@ int main(int argc, char **argv)
   double dg = 0.02;
   double v,dv;
 
-  int n = 1000;
+  int n = 1500;
 
   for ( int l = 0; l <= s.lmax(); l++ )
   {

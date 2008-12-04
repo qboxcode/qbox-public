@@ -15,7 +15,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.62 2008-11-14 04:06:25 fgygi Exp $
+// $Id: qb.C,v 1.63 2008-12-04 20:05:43 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -310,7 +310,7 @@ int main(int argc, char **argv, char **envp)
     // first argument is "-server"
     string inputfilename(argv[2]);
     string outputfilename(argv[3]);
-    bool echo = true;
+    bool echo = false;
     ui.processCmdsServer(inputfilename, outputfilename, "[qbox]", echo);
   }
   else

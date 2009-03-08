@@ -15,17 +15,18 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: pavane.mk,v 1.8 2008-09-08 15:56:20 fgygi Exp $
+# $Id: pavane.mk,v 1.9 2009-03-08 01:16:33 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
  GCCDIR=/usr/lib/gcc/x86_64-redhat-linux/3.4.3
 #MPIDIR=$(HOME)/software/mpich/mpich-1.2.6
- MPIDIR=/opt/mpich-1.2.6
+ MPIDIR=/opt/mpich-1.2.7p1
  XERCESCDIR=$(HOME)/software/xerces/Linux_x8664/xerces-c-src_2_7_0
  PLTOBJECTS = readTSC.o
 
- CXX=/usr/bin/g++
+#CXX=/usr/bin/g++
+ CXX=mpicxx
  LD=$(CXX)
 
  PLTFLAGS += -DIA32 -DUSE_FFTW -D_LARGEFILE_SOURCE \
@@ -42,13 +43,16 @@
 
  CXXFLAGS= -g -Wunused -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
- LIBPATH = -L$(GCCDIR)/lib -L$(FFTWDIR)/.libs -L/usr/X11R6/lib \
+ LIBPATH = -L$(FFTWDIR)/.libs -L/usr/X11R6/lib \
            -L$(MPIDIR)/lib -L$(BLASDIR) -L$(LAPACKDIR) \
            -L$(XERCESCDIR)/lib -L$(HOME)/lib
 
- LIBS =  $(PLIBS) $(GCCDIR)/libg2c.a -lfftw \
-         -llapack -lblas -lm -lmpich \
-         $(XERCESCDIR)/lib/libxerces-c.a
+ LIBS =  $(PLIBS) -lpthread -lfftw \
+         -llapack -lm -Xlinker -Bstatic \
+          -lc -lgfortran -static-libgcc -lmpich -lxerces-c \
+         -Xlinker -Bdynamic
+#LIBS =  $(PLIBS) -lfftw -llapack -lblas -lm -lmpich \
+#        $(XERCESCDIR)/lib/libxerces-c.a
 
  LDFLAGS = $(LIBPATH) $(LIBS)
 

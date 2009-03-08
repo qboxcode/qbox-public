@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.59 2008-11-14 04:08:05 fgygi Exp $
+# $Id: Makefile,v 1.60 2009-03-08 01:16:33 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -238,15 +238,14 @@ bisection1.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 bisection1.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 bisection1.o: SampleReader.h Basis.h FourierTransform.h Timer.h SlaterDet.h
 bisection1.o: Matrix.h
-bisection-2008-10-23.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h
-bisection-2008-10-23.o: UnitCell.h ConstraintSet.h Wavefunction.h
-bisection-2008-10-23.o: SharedFilePtr.h Control.h SampleReader.h
-bisection-2008-10-23.o: SampleWriter.h Basis.h FourierTransform.h Timer.h
-bisection-2008-10-23.o: SlaterDet.h Matrix.h isodate.h jade.h
 bisection.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 bisection.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 bisection.o: SampleReader.h SampleWriter.h Basis.h FourierTransform.h Timer.h
 bisection.o: SlaterDet.h Matrix.h isodate.h jade.h
+bisection_level4.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
+bisection_level4.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
+bisection_level4.o: SampleReader.h SampleWriter.h Basis.h FourierTransform.h
+bisection_level4.o: Timer.h SlaterDet.h Matrix.h isodate.h jade.h
 bisection_save.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 bisection_save.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 bisection_save.o: SampleReader.h SampleWriter.h Basis.h FourierTransform.h
@@ -293,6 +292,8 @@ ChargeDensity.o: SlaterDet.h Matrix.h
 ChargeDensity.o: Timer.h Context.h
 ChargeMixCoeff.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 ChargeMixCoeff.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
+ChargeMixNdim.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+ChargeMixNdim.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 ChargeMixRcut.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 ChargeMixRcut.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 ComputeMLWFCmd.o: ComputeMLWFCmd.h UserInterface.h Sample.h AtomSet.h
@@ -459,10 +460,10 @@ qb.o: FoldInWsCmd.h HelpCmd.h KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h
 qb.o: LoadCmd.h MoveCmd.h PrintCmd.h QuitCmd.h RandomizeWfCmd.h ResetVcmCmd.h
 qb.o: RunCmd.h SaveCmd.h SetCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h
 qb.o: TorsionCmd.h AtomsDyn.h Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h
-qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixRcut.h Debug.h Ecut.h
-qb.o: Ecutprec.h Ecuts.h Emass.h ExtStress.h FermiTemp.h Dt.h Nempty.h
-qb.o: NetCharge.h Nrowmax.h RefCell.h Stress.h Thermostat.h ThTemp.h ThTime.h
-qb.o: ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
+qb.o: Debug.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h FermiTemp.h Dt.h
+qb.o: Nempty.h NetCharge.h Nrowmax.h RefCell.h Stress.h Thermostat.h ThTemp.h
+qb.o: ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
@@ -630,7 +631,7 @@ truncateMLWF.o: Timer.h SlaterDet.h Matrix.h isodate.h jade.h MLWFTransform.h
 truncateMLWF.o: BasisMapping.h ComputeMLWFCmd.h UserInterface.h
 UnitCell.o: UnitCell.h D3vector.h
 UnitCell.o: D3vector.h
-UserInterface.o: UserInterface.h
+UserInterface.o: UserInterface.h qbox_xmlns.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SharedFilePtr.h
 Wavefunction.o: SlaterDet.h Context.h Basis.h Matrix.h Timer.h jacobi.h
 Wavefunction.o: D3vector.h UnitCell.h SharedFilePtr.h

@@ -15,7 +15,7 @@
 // testAndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testAndersonMixer.C,v 1.6 2008-11-14 04:08:05 fgygi Exp $
+// $Id: testAndersonMixer.C,v 1.7 2009-03-08 01:16:33 fgygi Exp $
 
 
 #include <iostream>
@@ -25,14 +25,21 @@ using namespace std;
 #include "Context.h"
 #include "AndersonMixer.h"
 
+// use: testAndersonMixer ndim nmax niter
 int main(int argc, char** argv)
 {
 #if USE_MPI
   MPI_Init(&argc,&argv);
 #endif
   {
-    const int ndim = 20;
-    const int niter = 10;
+    if ( argc != 4 )
+    {
+      cout << " use: testAndersonMixer ndim nmax niter" << endl;
+      return 1;
+    }
+    const int ndim = atoi(argv[1]);
+    const int nmax = atoi(argv[2]);
+    const int niter = atoi(argv[3]);
 
     Context ctxt;
 
@@ -41,20 +48,17 @@ int main(int argc, char** argv)
     PMPI_Get_processor_name(processor_name,&namelen);
     // cout << " Process " << ctxt.mype() << " on " << processor_name << endl;
 
-    const double alpha = 1.0;
-    vector<double> x,f,xlast,fbar;
-    double theta;
+    const double alpha = 0.1;
+    vector<double> x,f,xbar,fbar;
     x.resize(ndim);
-    xlast.resize(ndim);
     f.resize(ndim);
+    xbar.resize(ndim);
     fbar.resize(ndim);
 
-    AndersonMixer mixer(x.size(),&ctxt);
+    AndersonMixer mixer(ndim,nmax,&ctxt);
 
     for ( int i = 0; i < ndim; i++ )
       x[i] = (i+5);
-
-    xlast = x;
 
     for ( int iter = 0; iter < niter; iter++ )
     {
@@ -62,8 +66,14 @@ int main(int argc, char** argv)
 #if 1
       // quadratic form
       for ( int i = 0; i < ndim; i++ )
-        //f[i] = -(i+1) * (x[i]-1.0) - 0.1 * x[i]*x[i]*x[i];
         f[i] = -(i+1) * (x[i]-i);
+        //f[i] = -(0.1*i+1)*(x[i]-i);
+#if 1
+      // precondition f
+      for ( int i = 0; i < ndim; i++ )
+        f[i] *= 1.0/(i+3);
+#endif
+
 #else
       // Rosenbrock function
       assert(ndim%2==0);
@@ -77,24 +87,24 @@ int main(int argc, char** argv)
 #endif
 
       double resnorm = 0.0;
-      for ( int i = 0; i < x.size(); i++ )
+      for ( int i = 0; i < ndim; i++ )
         resnorm += f[i]*f[i];
 #if USE_MPI
       ctxt.dsum(1,1,&resnorm,1);
 #endif
 
+      cout << " resnorm: " << sqrt(resnorm) << endl;
+      mixer.update(&x[0],&f[0],&xbar[0],&fbar[0]);
 
-      mixer.update(&f[0],&theta,&fbar[0]);
-      cout << " theta: " << theta << " resnorm: " << resnorm << endl;
+#if 0
+      // precondition fbar
+      for ( int i = 0; i < ndim; i++ )
+        fbar[i] /= (i+3);
+        //fbar[i] *= 1.0/(i+2);
+#endif
 
-      for ( int i = 0; i < x.size(); i++ )
-      {
-        // xbar = x + theta * ( x - xlast )
-        // x = xbar + fbar
-        double xtmp = x[i];
-        x[i] += theta * ( x[i] - xlast[i] ) + alpha * fbar[i];
-        xlast[i] = xtmp;
-      }
+      for ( int i = 0; i < ndim; i++ )
+        x[i] = xbar[i] + alpha * fbar[i];
     }
   }
 #if USE_MPI

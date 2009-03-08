@@ -15,7 +15,7 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.12 2008-12-04 20:03:48 fgygi Exp $
+// $Id: UserInterface.C,v 1.13 2009-03-08 01:12:33 fgygi Exp $
 
 #include "UserInterface.h"
 #include "qbox_xmlns.h"
@@ -55,7 +55,7 @@ UserInterface::UserInterface(void) : terminate_(false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-UserInterface::~UserInterface(void) 
+UserInterface::~UserInterface(void)
 {
   std::list<Cmd*>::iterator cmd;
   for ( cmd = cmdlist.begin(); cmd != cmdlist.end(); cmd++ )

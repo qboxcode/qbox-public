@@ -15,67 +15,176 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.C,v 1.7 2008-09-08 15:56:17 fgygi Exp $
+// $Id: AndersonMixer.C,v 1.8 2009-03-08 01:10:30 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
+#include <iostream>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 void AndersonMixer::restart(void)
 {
-  extrapolate_ = false;
+  n_ = -1;
+  k_ = -1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void AndersonMixer::update(const double* f, double* theta, double* fbar)
+void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
 {
-    *theta = 0.0;
-    if ( extrapolate_ )
-    {
-      int ione=1;
-      valarray<double> tmp0(n_);
+  // update:
+  // input: x, f
+  // output: xbar, fbar
+  //
+  // Computes the pair (xbar,fbar) using pairs (x,f) used
+  // in previous updates, according to the Anderson algorithm.
+  //
+  // increment index of current vector
+  k_ = ( k_ + 1 ) % ( nmax_ + 1 );
+  // increment current number of vectors
+  if ( n_ < nmax_ ) n_++;
 
-      // compute theta = - a / b
-      // tmp0 = delta_F = f - flast
-      for ( int i = 0; i < n_; i++ )
-        tmp0[i] = f[i] - flast_[i];
+  // save vectors
+  for ( int i = 0; i < m_; i++ )
+  {
+    x_[k_][i] = x[i];
+    f_[k_][i] = f[i];
+  }
 
-      // a = delta_F * F
-      double a = ddot(&n_, &tmp0[0], &ione, f, &ione);
-
-      // b = delta_F * delta_F
-      double b = ddot(&n_, &tmp0[0], &ione, &tmp0[0], &ione);
-
-      if ( pctxt_ != 0 )
-      {
-        double work[2] = { a, b };
-        pctxt_->dsum(2,1,work,2);
-        a = work[0];
-        b = work[1];
-      }
-
-      if ( b != 0.0 )
-        *theta = - a / b;
-      else
-        *theta = 0.0;
-
-      // test if residual has increased
-      if ( *theta <= -1.0 )
-      {
-        *theta = theta_nc_;
-      }
-
-      *theta = min(theta_max_,*theta);
-    }
-
-    // fbar = f + theta * ( f - flast )
-    // flast_ = f_
+  valarray<double> a;
+  valarray<double> b;
+  valarray<double> theta;
+  if ( n_ > 0 )
+  {
+    // compute matrix A = F^T F and rhs b = F^T f
+    // compute the lower part of A only (i>=j)
+    a.resize(n_*n_);
+    b.resize(n_);
+    theta.resize(n_);
     for ( int i = 0; i < n_; i++ )
     {
-      const double ftmp = f[i];
-      fbar[i] = ftmp + *theta * ( ftmp - flast_[i] );
-      flast_[i] = ftmp;
+      const int kmi = ( k_ - i + nmax_ ) % ( nmax_ + 1 );
+      assert(kmi>=0);
+      assert(kmi<nmax_+1);
+      // cout << "k=" << k_ << " i=" << i << " kmi=" << kmi << endl;
+      for ( int j = 0; j <= i; j++ )
+      {
+        const int kmj = ( k_ - j + nmax_ ) % ( nmax_ + 1 );
+        assert(kmj>=0);
+        assert(kmj<nmax_+1);
+        // cout << "k=" << k_ << " j=" << j << " kmj=" << kmj << endl;
+        double sum = 0.0;
+        for ( int l = 0; l < m_; l++ )
+          sum += (f_[k_][l] - f_[kmi][l]) * (f_[k_][l] - f_[kmj][l]);
+        a[i+j*n_] = sum;
+      }
+
+      double bsum = 0.0;
+      for ( int l = 0; l < m_; l++ )
+        bsum += ( f_[k_][l] - f_[kmi][l] ) * f_[k_][l];
+      b[i] = bsum;
     }
-    extrapolate_ = true;
+
+#if 0
+    // print matrix a and rhs b
+    for ( int i = 0; i < n_; i++ )
+      for ( int j = 0; j <=i; j++ )
+         cout << "a("<<i<<","<<j<<")=" << a[i+j*n_] << endl;
+    for ( int i = 0; i < n_; i++ )
+       cout << "b("<<i<<")=" << b[i] << endl;
+#endif
+
+    if ( pctxt_ != 0 )
+    {
+      pctxt_->dsum(n_*n_,1,&a[0],n_*n_);
+      pctxt_->dsum(n_,1,&b[0],n_);
+    }
+
+    // solve the linear system a * theta = b
+    const bool diag = false;
+    if ( diag )
+    {
+      // solve the linear system using eigenvalues and eigenvectors
+      // compute eigenvalues of a
+      char jobz = 'V';
+      char uplo = 'L';
+      valarray<double> w(n_);
+      int lwork = 3*n_;
+      valarray<double> work(lwork);
+      int info;
+      dsyev(&jobz,&uplo,&n_,&a[0],&n_,&w[0],&work[0],&lwork,&info);
+
+      for ( int i = 0; i < n_; i++ )
+        cout << w[i] << "  ";
+      cout << endl;
+      if ( info != 0 )
+      {
+        cerr << " AndersonMixer: Error in dsyev" << endl;
+        cerr << " info = " << info << endl;
+        exit(1);
+      }
+
+      // solve for theta
+      // theta_i = sum_j
+      for ( int k = 0; k < n_; k++ )
+      {
+        // correct only if eigenvalue w[k] is large enough compared to the
+        // largest eigenvalue
+        if ( w[n_-1] < 5.0 * w[k] )
+        {
+          const double fac = 1.0 / w[k];
+          for ( int i = 0; i < n_; i++ )
+            for ( int j = 0; j < n_; j++ )
+              theta[i] += fac * a[i+k*n_] * a[j+k*n_] * b[j];
+        }
+      }
+    }
+    else
+    {
+      // solve the linear system directly
+      char uplo = 'L';
+      int nrhs = 1;
+      valarray<int> ipiv(n_);
+      valarray<double> work(n_);
+      int info;
+      dsysv(&uplo,&n_,&nrhs,&a[0],&n_,&ipiv[0],&b[0],&n_,&work[0],&n_,&info);
+      if ( info != 0 )
+      {
+        cerr << " AndersonMixer: Error in dsysv" << endl;
+        cerr << " info = " << info << endl;
+        exit(1);
+      }
+      // the vector b now contains the solution
+      theta = b;
+      if ( pctxt_ != 0 )
+      {
+        if ( pctxt_->onpe0() )
+        {
+          cout << " AndersonMixer: theta = ";
+          for ( int i = 0; i < theta.size(); i++ )
+            cout << theta[i] << " ";
+          cout << endl;
+        }
+      }
+    }
+  } // if n_ > 0
+
+  // fbar = f[k] + sum_i theta_i * ( f[k] - f[kmi] )
+  // xbar = x[k] + sum_i theta_i * ( x[k] - x[kmi] )
+  for ( int l = 0; l < m_; l++ )
+  {
+    fbar[l] = f_[k_][l];
+    xbar[l] = x_[k_][l];
+  }
+  for ( int i = 0; i < n_; i++ )
+  {
+    const int kmi = ( k_ - i + nmax_ ) % ( nmax_ + 1 );
+    assert(kmi>=0);
+    assert(kmi<nmax_+1);
+    for ( int l = 0; l < m_; l++ )
+    {
+      fbar[l] -= theta[i] * ( f_[k_][l] - f_[kmi][l] );
+      xbar[l] -= theta[i] * ( x_[k_][l] - x_[kmi][l] );
+    }
+  }
 }

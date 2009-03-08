@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.47 2008-09-15 14:57:11 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.48 2009-03-08 01:10:59 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -73,8 +73,7 @@ void BOSampleStepper::step(int niter)
 {
   const bool onpe0 = s_.ctxt_.onpe0();
 
-  const bool anderson_charge_mixing =
-    ( s_.ctrl.debug.find("AND_CHMIX") != string::npos );
+  const bool anderson_charge_mixing = ( s_.ctrl.charge_mix_ndim > 0 );
 
   // determine whether eigenvectors must be computed
   // eigenvectors are computed if explicitly requested with wf_diag==T
@@ -194,6 +193,40 @@ void BOSampleStepper::step(int niter)
     }
     assert(wf.nspin()==1);
     mlwft = new MLWFTransform(*wf.sd(0,0));
+  }
+
+  // Charge mixing variables
+  vector<complex<double> > rhog_in(cd_.rhog[0]);
+  vector<complex<double> > drhog(rhog_in.size());
+  vector<complex<double> > rhobar(rhog_in.size());
+  vector<complex<double> > drhobar(rhog_in.size());
+  vector<double> wkerker(rhog_in.size());
+  vector<double> wkerker_inv(rhog_in.size());
+  const int anderson_ndim = s_.ctrl.charge_mix_ndim;
+  AndersonMixer mixer(2*rhog_in.size(),anderson_ndim,&cd_.vcontext());
+
+  // compute Kerker preconditioning
+  // real space Kerker cutoff in a.u.
+  const double rc_Kerker = s_.ctrl.charge_mix_rcut;
+  const double *const g2 = cd_.vbasis()->g2_ptr();
+  const double *const g2i = cd_.vbasis()->g2i_ptr();
+  if ( rc_Kerker > 0.0 )
+  {
+    const double q0_kerker = 2 * M_PI / rc_Kerker;
+    const double q0_kerker2 = q0_kerker * q0_kerker;
+    for ( int i=0; i < wkerker.size(); i++ )
+    {
+      wkerker[i] = g2[i] / ( g2[i] + q0_kerker2 );
+      wkerker_inv[i] = g2i[i] * ( g2[i] + q0_kerker2 );
+    }
+  }
+  else
+  {
+    for ( int i=0; i < wkerker.size(); i++ )
+    {
+      wkerker[i] = 1.0;
+      wkerker_inv[i] = 1.0;
+    }
   }
 
   // Next line: special case of niter=0: compute GS only
@@ -541,12 +574,6 @@ void BOSampleStepper::step(int niter)
     if ( wf_stepper != 0 )
     {
       assert(cd_.rhog.size()==1); // works for nspin=1 only
-      vector<complex<double> > rhog_current(cd_.rhog[0]);
-      vector<complex<double> > rhog_last(rhog_current);
-      vector<complex<double> > drhog(rhog_current.size());
-      vector<complex<double> > drhog_bar(rhog_current.size());
-      AndersonMixer mixer(2*rhog_current.size(),&cd_.vcontext());
-      mixer.set_theta_max(2.0);
 
       wf_stepper->preprocess();
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
@@ -564,74 +591,42 @@ void BOSampleStepper::step(int niter)
         {
           if ( itscf == 0 )
           {
-            rhog_current = cd_.rhog[0];
-            rhog_last = cd_.rhog[0];
-          }
-
-          // compute correction drhog
-          for ( int i=0; i < rhog_current.size(); i++ )
-          {
-            drhog[i] = (cd_.rhog[0][i] - rhog_current[i]);
-          }
-
-          // Apply Kerker preconditioner to drhog
-          // Use Kerker preconditioning if rc_Kerker > 0.0,
-          // no preconditioning otherwise
-          const double alpha = s_.ctrl.charge_mix_coeff;
-          const double *const g2 = cd_.vbasis()->g2_ptr();
-          // real space Kerker cutoff in a.u.
-          const double rc_Kerker = s_.ctrl.charge_mix_rcut;
-          if ( rc_Kerker > 0.0 )
-          {
-            const double q0_kerker = 2 * M_PI / rc_Kerker;
-            const double q0_kerker2 = q0_kerker * q0_kerker;
-            for ( int i=0; i < rhog_current.size(); i++ )
-            {
-              drhog[i] *= alpha * g2[i] / ( g2[i] + q0_kerker2 );
-            }
+            // at first scf iteration, nothing to mix
+            // memorize rhog in rhog_in
+            rhog_in = cd_.rhog[0];
           }
           else
           {
-            for ( int i=0; i < rhog_current.size(); i++ )
+            // itscf > 0
+            // compute unscreened correction drhog
+            for ( int i=0; i < rhog_in.size(); i++ )
+              drhog[i] = (cd_.rhog[0][i] - rhog_in[i]);
+
+            const double alpha = s_.ctrl.charge_mix_coeff;
+            // Anderson acceleration
+            if ( anderson_charge_mixing )
             {
-              drhog[i] *= alpha;
+              // row weighting of LS calculation (preconditioning)
+              for ( int i=0; i < drhog.size(); i++ )
+                drhog[i] *= wkerker_inv[i];
+
+              mixer.update((double*)&rhog_in[0],(double*)&drhog[0],
+                           (double*)&rhobar[0],(double*)&drhobar[0]);
+              for ( int i=0; i < drhog.size(); i++ )
+                drhobar[i] *= wkerker[i];
+
+              for ( int i=0; i < rhog_in.size(); i++ )
+                rhog_in[i] = rhobar[i] + alpha * drhobar[i];
             }
-          }
-
-          // Anderson acceleration
-          double theta = 0.0;
-          for ( int i=0; i < rhog_current.size(); i++ )
-          {
-            drhog_bar[i] = drhog[i];
-          }
-
-          if ( anderson_charge_mixing )
-          {
-            mixer.update((double*)&drhog[0],&theta,(double*)&drhog_bar[0]);
-            if ( onpe0 )
+            else
             {
-              cout << "  Charge mixing: Anderson theta="
-                   << theta << endl;
+              for ( int i=0; i < rhog_in.size(); i++ )
+                rhog_in[i] += alpha * drhog[i] * wkerker[i];
             }
-          }
 
-          // update rhog_current
-          // rhog_current = rhog_current + theta*(rhog_current-rhog_last)
-
-          for ( int i=0; i < rhog_current.size(); i++ )
-          {
-            complex<double> rhotmp = rhog_current[i];
-            rhog_current[i] += theta * (rhog_current[i] - rhog_last[i]);
-            rhog_last[i] = rhotmp;
+            cd_.rhog[0] = rhog_in;
+            cd_.update_rhor();
           }
-
-          // Apply correction
-          for ( int i=0; i < rhog_current.size(); i++ )
-          {
-            cd_.rhog[0][i] = rhog_current[i] + drhog_bar[i];
-          }
-          rhog_current = cd_.rhog[0];
-          cd_.update_rhor();
         } // if nite > 1
 
         ef_.update_vhxc();

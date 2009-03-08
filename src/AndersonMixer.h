@@ -15,39 +15,46 @@
 // AndersonMixer.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.h,v 1.7 2008-09-08 15:56:17 fgygi Exp $
+// $Id: AndersonMixer.h,v 1.8 2009-03-08 01:10:30 fgygi Exp $
 
 #ifndef ANDERSONMIXER_H
 #define ANDERSONMIXER_H
 
+#include <vector>
 #include <valarray>
 #include <cassert>
 #include "Context.h"
 
 class AndersonMixer
 {
-  int     n_;                    // size of vectors
+  // nmax is the dimension of the subspace of previous search directions
+  // nmax=0: use simple mixing (no acceleration)
+  // nmax=1: use one previous direction
+  int     m_;                    // dimension of vectors
+  int     nmax_;                 // maximum number of vectors (without current)
+  int     n_;                    // number of vectors
+  int     k_;                    // index of current vector
   const   Context* const pctxt_; // pointer to relevant Context, null if local
-  double  theta_max_; // maximum extrapolation
-  double  theta_nc_;  // negative curvature value
 
-  std::valarray<double> flast_;       // last residual
-  bool extrapolate_;             // state variable
+  std::vector<std::valarray<double> > x_,f_;
 
   public:
 
-  AndersonMixer(const int n, const Context* const pctxt) :
-    n_(n), pctxt_(pctxt), extrapolate_(false), theta_max_(2.0), theta_nc_(0.0)
+  AndersonMixer(const int m, const int nmax, const Context* const pctxt) :
+    m_(m), nmax_(nmax), pctxt_(pctxt)
   {
-    assert( n > 0 );
-    flast_.resize(n);
+    assert( nmax >= 0 );
+    x_.resize(nmax_+1);
+    f_.resize(nmax_+1);
+    for ( int n = 0; n < nmax_+1; n++ )
+    {
+      x_[n].resize(m_);
+      f_[n].resize(m_);
+    }
+    restart();
   }
 
-  void update(const double* f, double* theta, double* fbar);
+  void update(double* x, double* f, double* xbar, double* fbar);
   void restart(void);
-  void set_theta_max(double theta_max) { theta_max_ = theta_max; }
-  void set_theta_nc(double theta_nc) { theta_nc_ = theta_nc; }
-  double theta_max(void) const { return theta_max_; }
-  double theta_nc(void) const { return theta_nc_; }
 };
 #endif

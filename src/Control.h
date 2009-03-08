@@ -15,7 +15,7 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.14 2008-09-08 15:56:18 fgygi Exp $
+// $Id: Control.h,v 1.15 2009-03-08 01:11:31 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
@@ -62,5 +62,6 @@ struct Control
 
   double charge_mix_coeff;
   double charge_mix_rcut;
+  int    charge_mix_ndim;
 };
 #endif

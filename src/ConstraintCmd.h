@@ -15,7 +15,7 @@
 // ConstraintCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintCmd.h,v 1.5 2008-09-08 15:56:18 fgygi Exp $
+// $Id: ConstraintCmd.h,v 1.6 2009-04-30 22:24:08 fgygi Exp $
 
 #ifndef CONSTRAINTCMD_H
 #define CONSTRAINTCMD_H
@@ -37,6 +37,7 @@ class ConstraintCmd : public Cmd
     return
     "\n constraint\n\n"
     " syntax:\n\n"
+    "   constraint define position name atom\n"
     "   constraint define distance name atom1 atom2 distance [velocity]\n"
     "   constraint define angle name atom1 atom2 atom3 angle [velocity]\n"
     "   constraint define torsion name atom1 atom2 atom3 atom4 angle [velocity]\n"
@@ -46,8 +47,6 @@ class ConstraintCmd : public Cmd
     "   constraint enforce\n\n"
     "   Constraints are enforced at each MD step if ions are allowed to move.\n"
     "   Velocity parameters are optional.\n\n";
-    //"   constraint multidistance weight name1 name2 \n"
-    //"                           [weight name1 name2] distance [velocity]\n"
   }
 
   int action(int argc, char **argv)
@@ -75,6 +74,8 @@ class ConstraintCmd : public Cmd
     else if ( subcmd == "enforce" )
     {
       s->constraints.enforce(s->atoms);
+      // reset velocities to zero to avoid jump in temperature
+      s->atoms.reset_velocities();
       // Note: should catch exception here if constraints could not be enforced
     }
     else if ( subcmd == "list" )

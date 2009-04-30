@@ -15,7 +15,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.19 2008-09-08 15:56:19 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.20 2009-04-30 22:39:18 fgygi Exp $
 
 #if USE_XERCES
 
@@ -412,7 +412,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
         byteswap_double(wftmpr_size,(double*)b);
 #endif
         memcpy(&wftmpr[0],b,wftmpr_size*sizeof(double));
-        XMLString::release(&b);
+        XMLString::release((char**)&b);
       }
       else
       {

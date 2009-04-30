@@ -15,7 +15,7 @@
 // StructuredDocumentHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.C,v 1.8 2008-09-08 15:56:19 fgygi Exp $
+// $Id: StructuredDocumentHandler.C,v 1.9 2009-04-30 22:38:32 fgygi Exp $
 
 #if USE_XERCES
 
@@ -125,8 +125,8 @@ void StructuredDocumentHandler::processingInstruction(const  XMLCh* const target
 void StructuredDocumentHandler::error(const SAXParseException& e)
 {
     cout << "\nError at file " << StrX(e.getSystemId())
-		 << ", line " << e.getLineNumber()
-		 << ", char " << e.getColumnNumber()
+         << ", line " << e.getLineNumber()
+         << ", char " << e.getColumnNumber()
          << "\n  Message: " << StrX(e.getMessage()) << endl;
 
     throw(e);
@@ -136,8 +136,8 @@ void StructuredDocumentHandler::error(const SAXParseException& e)
 void StructuredDocumentHandler::fatalError(const SAXParseException& e)
 {
     cout << "\nFatal Error at file " << StrX(e.getSystemId())
-		 << ", line " << e.getLineNumber()
-		 << ", char " << e.getColumnNumber()
+         << ", line " << e.getLineNumber()
+         << ", char " << e.getColumnNumber()
          << "\n  Message: " << StrX(e.getMessage()) << endl;
     throw(e);
 }
@@ -146,8 +146,8 @@ void StructuredDocumentHandler::fatalError(const SAXParseException& e)
 void StructuredDocumentHandler::warning(const SAXParseException& e)
 {
     cout << "\nWarning at file " << StrX(e.getSystemId())
-		 << ", line " << e.getLineNumber()
-		 << ", char " << e.getColumnNumber()
+         << ", line " << e.getLineNumber()
+         << ", char " << e.getColumnNumber()
          << "\n  Message: " << StrX(e.getMessage()) << endl;
 }
 

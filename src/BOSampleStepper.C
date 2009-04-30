@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.48 2009-03-08 01:10:59 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.49 2009-04-30 22:22:55 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -29,6 +29,7 @@
 #include "SDAIonicStepper.h"
 #include "CGIonicStepper.h"
 #include "MDIonicStepper.h"
+#include "BMDIonicStepper.h"
 #include "SDCellStepper.h"
 #include "Preconditioner.h"
 #include "AndersonMixer.h"
@@ -157,6 +158,8 @@ void BOSampleStepper::step(int niter)
     ionic_stepper = new CGIonicStepper(s_);
   else if ( atoms_dyn == "MD" )
     ionic_stepper = new MDIonicStepper(s_);
+  else if ( atoms_dyn == "BMD" )
+    ionic_stepper = new BMDIonicStepper(s_);
 
   if ( ionic_stepper )
     ionic_stepper->setup_constraints();

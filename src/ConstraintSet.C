@@ -15,9 +15,10 @@
 // ConstraintSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.C,v 1.7 2008-11-14 04:01:26 fgygi Exp $
+// $Id: ConstraintSet.C,v 1.8 2009-04-30 22:24:51 fgygi Exp $
 
 #include "ConstraintSet.h"
+#include "PositionConstraint.h"
 #include "DistanceConstraint.h"
 #include "AngleConstraint.h"
 #include "TorsionConstraint.h"
@@ -41,16 +42,17 @@ ConstraintSet::~ConstraintSet(void)
 ////////////////////////////////////////////////////////////////////////////////
 bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 {
-  enum constraint_type { unknown, distance_type, multidistance_type,
+  enum constraint_type { unknown, position_type, distance_type,
                          angle_type, torsion_type }
     type = unknown;
+  const double position_tolerance = 1.0e-7;
   const double distance_tolerance = 1.0e-7;
   const double angle_tolerance = 1.0e-4;
   const bool onpe0 = ctxt_.onpe0();
 
   // argv[0] == "constraint"
   // argv[1] == "define"
-  // argv[2] == {"distance", "angle", "torsion"}
+  // argv[2] == {"position", "distance", "angle", "torsion"}
   // argv[3] == constraint name
   // argv[4-(5,6,7)] == atom names
   // argv[{5,6,7}] == {distance,angle,angle}
@@ -60,6 +62,8 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   {
     if ( onpe0 )
     {
+      cout << " Use: constraint define name position name1"
+           << endl;
       cout << " Use: constraint define name distance name1 name2 distance [velocity]"
            << endl;
       cout << "      constraint define name angle name1 name2 name3 angle [velocity]"
@@ -71,7 +75,11 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     return false;
   }
   const string constraint_type = argv[2];
-  if ( constraint_type == "distance" )
+  if ( constraint_type == "position" )
+  {
+    type = position_type;
+  }
+  else if ( constraint_type == "distance" )
   {
     type = distance_type;
   }
@@ -90,7 +98,59 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     return false;
   }
 
-  if ( type == distance_type )
+  if ( type == position_type )
+  {
+    // define position name A
+
+    if ( argc != 5 )
+    {
+      if ( onpe0 )
+        cout << " Incorrect number of arguments for position constraint"
+             << endl;
+      return false;
+    }
+    string name = argv[3];
+    string name1 = argv[4];
+
+    Atom *a1 = atoms.findAtom(name1);
+
+    if ( a1 == 0 )
+    {
+      if ( onpe0 )
+      {
+        cout << " ConstraintSet: could not find atom " << name1 << endl;
+        cout << " ConstraintSet: could not define constraint" << endl;
+      }
+      return false;
+    }
+
+    // check if constraint is already defined
+    bool found = false;
+    Constraint *pc = 0;
+    for ( int i = 0; i < constraint_list.size(); i++ )
+    {
+      pc = constraint_list[i];
+      assert(pc != 0);
+      // check if a constraint with same name or with same atom is defined
+      if ( pc->type() == "position" )
+        found = ( pc->name() == name ) || ( pc->names(0) == name1 );
+    }
+
+    if ( found )
+    {
+      if ( onpe0 )
+        cout << " ConstraintSet: constraint is already defined:\n"
+             << " cannot define constraint" << endl;
+      return false;
+    }
+    else
+    {
+      PositionConstraint *c =
+        new PositionConstraint(name,name1,position_tolerance);
+      constraint_list.push_back(c);
+    }
+  }
+  else if ( type == distance_type )
   {
     // define name distance A B value
     // define name distance A B value velocity
@@ -102,7 +162,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
              << endl;
       return false;
     }
-    double distance, velocity=0.0, distance_tolerance=1.e-7;
+    double distance, velocity=0.0;
     string name = argv[3];
     string name1 = argv[4];
     string name2 = argv[5];
@@ -152,12 +212,10 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       pc = constraint_list[i];
       assert(pc != 0);
       // check if a constraint (name1,name2) or (name2,name1) is defined
-      if ( pc->type() == "distance" &&
-           ( pc->names(0) == name1 && pc->names(1) == name2 ) ||
-           ( pc->names(1) == name1 && pc->names(0) == name2 ) )
-         found = true;
-      if ( pc->type() == "distance" && pc->name() == name )
-        found = true;
+      if ( pc->type() == "distance" )
+        found = ( pc->names(0) == name1 && pc->names(1) == name2 ) ||
+                ( pc->names(1) == name1 && pc->names(0) == name2 ) ||
+                ( pc->name() == name );
     }
 
     if ( found )
@@ -244,14 +302,14 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       assert(pc != 0);
       // check if a constraint (name1,name2,name3) or
       // (name3,name2,name1) is defined
-      if ( pc->type() == "angle" &&
-           ( pc->names(0) == name1 &&
-             pc->names(1) == name2 &&
-             pc->names(2) == name3) ||
-           ( pc->names(0) == name3 &&
-             pc->names(1) == name2 &&
-             pc->names(2) == name1) )
-         found = true;
+      if ( pc->type() == "angle" )
+        found = ( pc->names(0) == name1 &&
+                  pc->names(1) == name2 &&
+                  pc->names(2) == name3 ) ||
+                ( pc->names(0) == name3 &&
+                  pc->names(1) == name2 &&
+                  pc->names(2) == name1 ) ||
+                ( pc->name() == name );
     }
 
     if ( found )
@@ -341,16 +399,16 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       assert(pc != 0);
       // check if an equivalent constraint (name1,name2,name3,name4) or
       // (name4,name3,name2,name1) is defined
-      if ( pc->type() == "angle" &&
-           ( pc->names(0) == name1 &&
-             pc->names(1) == name2 &&
-             pc->names(2) == name3 &&
-             pc->names(3) == name4) ||
-           ( pc->names(0) == name4 &&
-             pc->names(1) == name3 &&
-             pc->names(2) == name2 &&
-             pc->names(3) == name1) )
-         found = true;
+      if ( pc->type() == "angle" )
+        found = ( pc->names(0) == name1 &&
+                  pc->names(1) == name2 &&
+                  pc->names(2) == name3 &&
+                  pc->names(3) == name4 ) ||
+                ( pc->names(0) == name4 &&
+                  pc->names(1) == name3 &&
+                  pc->names(2) == name2 &&
+                  pc->names(3) == name1 ) ||
+                ( pc->name() == name );
     }
 
     if ( found )

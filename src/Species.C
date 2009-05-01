@@ -15,7 +15,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.13 2008-09-08 15:56:19 fgygi Exp $
+// $Id: Species.C,v 1.14 2009-05-01 04:26:45 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -96,19 +96,14 @@ bool Species::initialize(double rcpsval)
   }
 
   // compute ndft_: size of radial FFT array
-  // ndft_ is the second power of 2 larger than np
+  // ndft_ is a power of 2 larger than ( rdftmin / deltar_ )
+  // minimum outer bound in (a.u.)
+  const double rdftmin = 40.0;
+  // next line: limit small mesh sizes
+  assert(deltar_ > 0.0001);
   ndft_ = 1;
-  while ( ndft_ < np )
-  {
+  while ( ndft_ * deltar_ < rdftmin )
     ndft_ *= 2;
-    if ( ndft_ > 8192 )
-    {
-      cout << " Species::initialize: warning: ndft_ > 8192"
-           << endl;
-      return false;
-    }
-  }
-  ndft_ *= 2;
 
   rps_.resize(ndft_);
   for ( int i = 0; i < ndft_; i++ )

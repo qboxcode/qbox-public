@@ -1,4 +1,12 @@
 --------------------------------------------------------------------------------
+rel1_47_0
+Add BMDIonicStepper class.
+ConstraintCmd.h ConstraintSet.C: Added PositionConstraint class to lock atoms.
+Species.C: modified calculation of ndft to ensure rmax>40 a.u.
+This corrects the problem that ndft would depend on the number of mesh points
+given in the species file.
+WavefunctionHandler.C: fix XMLString::release() call for Xerces 3.0.1
+--------------------------------------------------------------------------------
 rel1_46_0
 AndersonMixer.C, BOSampleStepper.C: Implemented multidimensional Anderson 
 acceleration of charge mixing.

@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.60 2009-03-08 01:16:33 fgygi Exp $
+# $Id: Makefile,v 1.61 2009-05-01 04:27:17 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -38,11 +38,12 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         CPSampleStepper.o BOSampleStepper.o \
         SDWavefunctionStepper.o \
         MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
+        BMDIonicStepper.o \
         PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
         SDCellStepper.o ConfinementPotential.o Preconditioner.o \
         release.o qbox_xmlns.o isodate.o \
         AndersonMixer.o SDAIonicStepper.o CGIonicStepper.o \
-        ConstraintSet.o Constraint.o DistanceConstraint.o \
+        ConstraintSet.o Constraint.o PositionConstraint.o DistanceConstraint.o \
         AngleConstraint.o TorsionConstraint.o jacobi.o \
         SampleWriter.o ComputeMLWFCmd.o BasisMapping.o MLWFTransform.o \
         jade.o \
@@ -252,6 +253,12 @@ bisection_save.o: SampleReader.h SampleWriter.h Basis.h FourierTransform.h
 bisection_save.o: Timer.h SlaterDet.h Matrix.h isodate.h jade.h
 BLYPFunctional.o: BLYPFunctional.h XCFunctional.h
 BLYPFunctional.o: XCFunctional.h
+BMDIonicStepper.o: BMDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
+BMDIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h ConstraintSet.h
+BMDIonicStepper.o: Wavefunction.h SharedFilePtr.h Control.h Species.h
+BMDIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
+BMDIonicStepper.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
+BMDIonicStepper.o: SharedFilePtr.h Control.h Species.h
 BOSampleStepper.o: BOSampleStepper.h SampleStepper.h Timer.h
 BOSampleStepper.o: EnergyFunctional.h ChargeDensity.h Context.h
 BOSampleStepper.o: StructureFactor.h Sample.h AtomSet.h Atom.h D3vector.h
@@ -261,9 +268,9 @@ BOSampleStepper.o: WavefunctionStepper.h SDWavefunctionStepper.h
 BOSampleStepper.o: PSDWavefunctionStepper.h PSDAWavefunctionStepper.h
 BOSampleStepper.o: SDIonicStepper.h IonicStepper.h Species.h
 BOSampleStepper.o: SDAIonicStepper.h LineMinimizer.h CGIonicStepper.h
-BOSampleStepper.o: MDIonicStepper.h SDCellStepper.h CellStepper.h
-BOSampleStepper.o: Preconditioner.h AndersonMixer.h MLWFTransform.h
-BOSampleStepper.o: BasisMapping.h
+BOSampleStepper.o: MDIonicStepper.h BMDIonicStepper.h SDCellStepper.h
+BOSampleStepper.o: CellStepper.h Preconditioner.h AndersonMixer.h
+BOSampleStepper.o: MLWFTransform.h BasisMapping.h
 BOSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 BOSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 BOSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
@@ -309,9 +316,9 @@ Constraint.o: Constraint.h
 ConstraintCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 ConstraintCmd.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
 ConstraintCmd.o: SharedFilePtr.h Control.h
-ConstraintSet.o: ConstraintSet.h DistanceConstraint.h Constraint.h
-ConstraintSet.o: AngleConstraint.h D3vector.h TorsionConstraint.h Atom.h
-ConstraintSet.o: AtomSet.h Context.h UnitCell.h
+ConstraintSet.o: ConstraintSet.h PositionConstraint.h Constraint.h
+ConstraintSet.o: DistanceConstraint.h AngleConstraint.h D3vector.h
+ConstraintSet.o: TorsionConstraint.h Atom.h AtomSet.h Context.h UnitCell.h
 Context.o: Context.h
 CPSampleStepper.o: CPSampleStepper.h SampleStepper.h Timer.h
 CPSampleStepper.o: EnergyFunctional.h ChargeDensity.h Context.h
@@ -433,6 +440,9 @@ plotSample.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 plotSample.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 plotSample.o: SampleReader.h Basis.h FourierTransform.h Timer.h SlaterDet.h
 plotSample.o: Matrix.h Species.h ChargeDensity.h atomic_properties.h
+PositionConstraint.o: PositionConstraint.h Constraint.h AtomSet.h Context.h
+PositionConstraint.o: Atom.h D3vector.h UnitCell.h Species.h
+PositionConstraint.o: Constraint.h
 Preconditioner.o: Preconditioner.h EnergyFunctional.h ChargeDensity.h Timer.h
 Preconditioner.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 Preconditioner.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h

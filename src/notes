@@ -1,3 +1,17 @@
+To do: 
+Fix the ndim>0 Anderson charge mixing to avoid singular systems
+--------------------------------------------------------------------------------
+rel1_47_1
+Added a virtual member function in Constraint that returns the number of DOFs to
+be subtracted due to that constraint. That number is 1 for all constraints,
+except for PositionConstraint, for which it is 3. This function is used 
+by ConstraintSet to keep track of the total number of DOFs to be removed 
+when computing the system temperature. The ConstraintSet class maintains the
+total number of DOFs and modifies it only when constraints are added or deleted.
+MDIonicStepper::ekin() modified to compute kinetic energy correctly in the 
+presence of constraints. 
+Emass.h: allow reset to zero
+BOSampleStepper.C: fix print format of etotal_int
 --------------------------------------------------------------------------------
 rel1_47_0
 Add BMDIonicStepper class.

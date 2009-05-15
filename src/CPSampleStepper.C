@@ -15,7 +15,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.21 2008-09-08 15:56:18 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.22 2009-05-15 04:37:02 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -221,7 +221,7 @@ void CPSampleStepper::step(int niter)
         }
         cout << "</atomset>" << endl;
       }
-#if 1
+
       if ( s_.constraints.size() > 0 )
       {
         s_.constraints.compute_forces(mdionic_stepper->r0(), fion);
@@ -230,7 +230,7 @@ void CPSampleStepper::step(int niter)
           s_.constraints.list_constraints(cout);
         }
       }
-#endif
+
     }
 
     if ( onpe0 )

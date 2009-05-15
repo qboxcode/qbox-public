@@ -15,7 +15,7 @@
 // ConstraintSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.h,v 1.7 2008-11-14 04:01:26 fgygi Exp $
+// $Id: ConstraintSet.h,v 1.8 2009-05-15 04:38:48 fgygi Exp $
 
 #ifndef CONSTRAINTSET_H
 #define CONSTRAINTSET_H
@@ -34,6 +34,8 @@ class ConstraintSet
 
   const Context& ctxt_;
   std::vector<Constraint *> constraint_list;
+  // ndofs_: total number of degrees of freedom blocked by the constraints
+  int ndofs_;
 
   public:
 
@@ -44,6 +46,7 @@ class ConstraintSet
   bool delete_constraint(int argc, char **argv);
   void list_constraints(std::ostream &os);
   int size(void) const { return constraint_list.size(); }
+  int ndofs(void) const { return ndofs_; }
   void enforce(AtomSet& atoms);
   void enforce_r(const std::vector<std::vector<double> > &r0,
                  std::vector<std::vector<double> > &rp);

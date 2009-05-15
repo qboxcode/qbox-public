@@ -15,7 +15,7 @@
 //  Constraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Constraint.h,v 1.7 2008-11-14 04:01:26 fgygi Exp $
+// $Id: Constraint.h,v 1.8 2009-05-15 04:38:48 fgygi Exp $
 
 #ifndef CONSTRAINT_H
 #define CONSTRAINT_H
@@ -52,6 +52,7 @@ class Constraint
                              const std::vector<std::vector<double> > &f) = 0;
   virtual void update(double dt) = 0;
   virtual void setup(const AtomSet& atoms) = 0;
+  virtual int dofs(void) const = 0;
   virtual std::ostream& print(std::ostream &os) = 0;
   std::string name(void) const { return name_; }
   std::string names(int i) const

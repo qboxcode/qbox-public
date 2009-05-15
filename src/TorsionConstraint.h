@@ -15,7 +15,7 @@
 //  TorsionConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionConstraint.h,v 1.7 2008-11-14 04:01:26 fgygi Exp $
+// $Id: TorsionConstraint.h,v 1.8 2009-05-15 04:38:48 fgygi Exp $
 
 #ifndef TORSIONCONSTRAINT_H
 #define TORSIONCONSTRAINT_H
@@ -80,6 +80,7 @@ class TorsionConstraint : public Constraint
   }
 
   void setup(const AtomSet& atoms);
+  int dofs(void) const { return 1; }
   void update(double dt);
   bool enforce_r(const std::vector<std::vector<double> > &r0,
                  std::vector<std::vector<double> > &rp) const;

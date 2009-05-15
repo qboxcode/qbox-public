@@ -15,7 +15,7 @@
 // ConstraintSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.C,v 1.8 2009-04-30 22:24:51 fgygi Exp $
+// $Id: ConstraintSet.C,v 1.9 2009-05-15 04:38:48 fgygi Exp $
 
 #include "ConstraintSet.h"
 #include "PositionConstraint.h"
@@ -435,6 +435,9 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     return false;
   }
 
+  // update total number of blocked degrees of freedom
+  ndofs_ += constraint_list.back()->dofs();
+
   return true;
 }
 
@@ -505,6 +508,10 @@ bool ConstraintSet::delete_constraint(int argc, char **argv)
     if ( pc->name() == name )
     {
       found = true;
+
+      // update total number of blocked degrees of freedom
+      ndofs_ -= pc->dofs();
+
       delete pc;
 
       // remove constraint pointer from the list

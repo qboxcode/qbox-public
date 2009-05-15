@@ -15,7 +15,7 @@
 //  PositionConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PositionConstraint.h,v 1.1 2009-04-30 23:13:39 fgygi Exp $
+// $Id: PositionConstraint.h,v 1.2 2009-05-15 04:38:48 fgygi Exp $
 
 #ifndef POSITIONCONSTRAINT_H
 #define POSITIONCONSTRAINT_H
@@ -61,6 +61,7 @@ class PositionConstraint : public Constraint
   }
 
   void setup(const AtomSet& atoms);
+  int dofs(void) const { return 3; }
   void update(double dt);
   bool enforce_r(const std::vector<std::vector<double> > &r0,
                  std::vector<std::vector<double> > &rp) const;

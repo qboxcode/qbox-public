@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.49 2009-04-30 22:22:55 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.50 2009-05-15 04:37:42 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -658,7 +658,7 @@ void BOSampleStepper::step(int niter)
           {
             cout.setf(ios::fixed,ios::floatfield);
             cout.setf(ios::right,ios::adjustfield);
-            cout << "  <etotal_int> " << setw(15)
+            cout << "  <etotal_int> " << setprecision(8) << setw(15)
                  << energy << " </etotal_int>\n";
             if ( compute_stress )
             {

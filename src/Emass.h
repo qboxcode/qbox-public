@@ -15,7 +15,7 @@
 // Emass.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Emass.h,v 1.4 2008-09-08 15:56:18 fgygi Exp $
+// $Id: Emass.h,v 1.5 2009-05-15 04:40:52 fgygi Exp $
 
 #ifndef EMASS_H
 #define EMASS_H
@@ -45,10 +45,10 @@ class Emass : public Var
     }
 
     double v = atof(argv[1]);
-    if ( v <= 0.0 )
+    if ( v < 0.0 )
     {
       if ( ui->onpe0() )
-        cout << " emass must be positive" << endl;
+        cout << " emass must be non-negative" << endl;
       return 1;
     }
 

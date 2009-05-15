@@ -15,7 +15,7 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.21 2008-09-08 15:56:18 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.22 2009-05-15 04:40:00 fgygi Exp $
 
 #include "MDIonicStepper.h"
 using namespace std;
@@ -50,6 +50,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
   // compute velocities v0_ using r0_, rm_ and f0(r0)
   // enforce constraints for vp
   // adjust velocities with the thermostat
+  // compute ekin
 
   assert(dt_ != 0.0);
   for ( int is = 0; is < v0_.size(); is++ )
@@ -62,7 +63,12 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
       v0_[is][i] = vhalf + dtby2m * f0[is][i];
     }
   }
-  compute_ekin();
+  // if using a thermostat, compute ekin for use in the thermostat
+  if ( thermostat_ != "OFF" )
+  {
+    constraints_.enforce_v(r0_,v0_);
+    compute_ekin();
+  }
 
   if ( thermostat_ == "SCALING" )
   {
@@ -82,7 +88,6 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
         v0_[is][i] *= fac;
       }
     }
-    ekin_ *= fac * fac;
   }
   else if ( thermostat_ == "ANDERSEN" )
   {
@@ -205,9 +210,10 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
     atoms_.sync();
     atoms_.get_velocities(v0_);
     //cout << " npairs: " << npairs << endl;
-    compute_ekin();
   }
   constraints_.enforce_v(r0_,v0_);
+  // recompute ekin as velocities may be affected by constraints
+  compute_ekin();
   atoms_.set_velocities(v0_);
 }
 

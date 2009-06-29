@@ -15,7 +15,7 @@
 // LDAFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LDAFunctional.h,v 1.7 2008-09-08 15:56:18 fgygi Exp $
+// $Id: LDAFunctional.h,v 1.8 2009-06-29 09:57:57 fgygi Exp $
 
 #ifndef LDAFUNCTIONAL_H
 #define LDAFUNCTIONAL_H
@@ -63,8 +63,8 @@ class LDAFunctional : public XCFunctional
     }
   };
 
-  bool isGGA() { return false; };
-  std::string name() { return "LDA"; };
+  bool isGGA() const { return false; };
+  std::string name() const { return "LDA"; };
   void setxc(void);
 };
 #endif

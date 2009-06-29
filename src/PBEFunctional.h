@@ -15,7 +15,7 @@
 // PBEFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PBEFunctional.h,v 1.6 2008-09-08 15:56:18 fgygi Exp $
+// $Id: PBEFunctional.h,v 1.7 2009-06-29 09:57:57 fgygi Exp $
 
 #ifndef PBEFUNCTIONAL_H
 #define PBEFUNCTIONAL_H
@@ -25,8 +25,7 @@
 
 class PBEFunctional : public XCFunctional
 {
-  PBEFunctional();
-
+  double x_coeff_, c_coeff_;
   std::vector<double> _exc, _exc_up, _exc_dn;
   std::vector<double> _vxc1, _vxc1_up, _vxc1_dn,
                  _vxc2, _vxc2_upup, _vxc2_updn, _vxc2_dnup, _vxc2_dndn;
@@ -47,10 +46,13 @@ class PBEFunctional : public XCFunctional
 
   public:
 
-  PBEFunctional(const std::vector<std::vector<double> > &rhoe);
+  // constructor with variable coefficients for exchange and correlation
+  // with default values 1.0
+  PBEFunctional(const std::vector<std::vector<double> > &rhoe,
+                double x_coeff=1.0, double c_coeff=1.0);
 
-  bool isGGA() { return true; };
-  std::string name() { return "PBE"; };
+  bool isGGA() const { return true; };
+  std::string name() const { return "PBE"; };
   void setxc(void);
 };
 #endif

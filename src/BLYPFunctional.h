@@ -15,7 +15,7 @@
 // BLYPFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BLYPFunctional.h,v 1.6 2008-09-08 15:56:18 fgygi Exp $
+// $Id: BLYPFunctional.h,v 1.7 2009-06-29 09:57:57 fgygi Exp $
 
 #ifndef BLYPFUNCTIONAL_H
 #define BLYPFUNCTIONAL_H
@@ -45,8 +45,8 @@ class BLYPFunctional : public XCFunctional
 
   BLYPFunctional(const std::vector<std::vector<double> > &rhoe);
 
-  bool isGGA() { return true; };
-  std::string name() { return "BLYP"; };
+  bool isGGA() const { return true; };
+  std::string name() const { return "BLYP"; };
   void setxc(void);
 };
 #endif

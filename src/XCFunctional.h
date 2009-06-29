@@ -15,7 +15,7 @@
 // XCFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCFunctional.h,v 1.6 2008-09-08 15:56:19 fgygi Exp $
+// $Id: XCFunctional.h,v 1.7 2009-06-29 09:57:57 fgygi Exp $
 
 //
 // Abstract base class for density functionals
@@ -70,10 +70,10 @@ class XCFunctional
   double *vxc1, *vxc1_up, *vxc1_dn;
   double *vxc2, *vxc2_upup, *vxc2_dndn, *vxc2_updn, *vxc2_dnup;
 
-  virtual bool isGGA(void) = 0;
-  virtual std::string name(void) = 0;
-  int np(void) { return _np; };
-  int nspin(void) { return _nspin; };
+  virtual bool isGGA(void) const = 0;
+  virtual std::string name(void) const = 0;
+  int np(void) const { return _np; };
+  int nspin(void) const { return _nspin; };
 
   XCFunctional()
   {

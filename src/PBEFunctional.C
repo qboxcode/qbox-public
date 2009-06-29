@@ -15,7 +15,7 @@
 // PBEFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PBEFunctional.C,v 1.8 2008-09-08 15:56:18 fgygi Exp $
+// $Id: PBEFunctional.C,v 1.9 2009-06-29 09:58:34 fgygi Exp $
 
 #include "PBEFunctional.h"
 #include <cmath>
@@ -24,8 +24,11 @@
 #include <vector>
 using namespace std;
 
-PBEFunctional::PBEFunctional(const vector<vector<double> > &rhoe)
+PBEFunctional::PBEFunctional(const vector<vector<double> > &rhoe,
+  double x_coeff, double c_coeff)
 {
+  x_coeff_ = x_coeff;
+  c_coeff_ = c_coeff;
   _nspin = rhoe.size();
   if ( _nspin > 1 ) assert(rhoe[0].size() == rhoe[1].size());
   _np = rhoe[0].size();
@@ -269,9 +272,9 @@ void PBEFunctional::excpbe(double rho, double grad,
   vc1 = vc + h + hrs - t2 * ht * seven_sixth;
   vc2 = - ht / ( rho * twoks * twoks );
 
-  *exc = ex + ec + h;
-  *vxc1 = vx1 + vc1;
-  *vxc2 = vx2 + vc2;
+  *exc = x_coeff_ * ex + c_coeff_ * ( ec + h );
+  *vxc1 = x_coeff_ * vx1 + c_coeff_ * vc1;
+  *vxc2 = x_coeff_ * vx2 + c_coeff_ * vc2;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

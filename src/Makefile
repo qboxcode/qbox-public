@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.62 2009-06-29 10:00:03 fgygi Exp $
+# $Id: Makefile,v 1.63 2009-06-29 10:08:59 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -440,7 +440,7 @@ PlotCmd.o: PlotCmd.h UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 PlotCmd.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
 PlotCmd.o: SharedFilePtr.h Control.h isodate.h release.h SampleReader.h
 PlotCmd.o: Basis.h FourierTransform.h Timer.h SlaterDet.h Matrix.h Species.h
-PlotCmd.o: ChargeDensity.h atomic_properties.h
+PlotCmd.o: ChargeDensity.h
 PlotCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 PlotCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
 PlotCmd.o: Control.h

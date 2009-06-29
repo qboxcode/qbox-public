@@ -1,6 +1,11 @@
 To do: 
 Fix the ndim>0 Anderson charge mixing to avoid singular systems
 --------------------------------------------------------------------------------
+rel1_48_0
+PlotCmd.[Ch]: added plot command. Generates cube format or xyz
+{LDA,PBE,BLYP}Functional: modified API for compat. with future implem. of PBE0
+SlaterDet.C: added timing ifdefs in gram ortho.
+--------------------------------------------------------------------------------
 rel1_47_1
 Added a virtual member function in Constraint that returns the number of DOFs to
 be subtracted due to that constraint. That number is 1 for all constraints,

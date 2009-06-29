@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.61 2009-05-01 04:27:17 fgygi Exp $
+# $Id: Makefile,v 1.62 2009-06-29 10:00:03 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -46,7 +46,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         ConstraintSet.o Constraint.o PositionConstraint.o DistanceConstraint.o \
         AngleConstraint.o TorsionConstraint.o jacobi.o \
         SampleWriter.o ComputeMLWFCmd.o BasisMapping.o MLWFTransform.o \
-        jade.o \
+        jade.o PlotCmd.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
  $(EXEC):    $(OBJECTS)
@@ -436,6 +436,14 @@ Nrowmax.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 Nrowmax.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 PBEFunctional.o: PBEFunctional.h XCFunctional.h
 PBEFunctional.o: XCFunctional.h
+PlotCmd.o: PlotCmd.h UserInterface.h Sample.h AtomSet.h Context.h Atom.h
+PlotCmd.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
+PlotCmd.o: SharedFilePtr.h Control.h isodate.h release.h SampleReader.h
+PlotCmd.o: Basis.h FourierTransform.h Timer.h SlaterDet.h Matrix.h Species.h
+PlotCmd.o: ChargeDensity.h atomic_properties.h
+PlotCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+PlotCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
+PlotCmd.o: Control.h
 plotSample.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 plotSample.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 plotSample.o: SampleReader.h Basis.h FourierTransform.h Timer.h SlaterDet.h
@@ -467,13 +475,13 @@ qb.o: AtomSet.h Atom.h D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
 qb.o: SharedFilePtr.h Control.h Timer.h AngleCmd.h AtomCmd.h ComputeMLWFCmd.h
 qb.o: MLWFTransform.h BasisMapping.h ConstraintCmd.h DistanceCmd.h
 qb.o: FoldInWsCmd.h HelpCmd.h KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h
-qb.o: LoadCmd.h MoveCmd.h PrintCmd.h QuitCmd.h RandomizeWfCmd.h ResetVcmCmd.h
-qb.o: RunCmd.h SaveCmd.h SetCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h
-qb.o: TorsionCmd.h AtomsDyn.h Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h
-qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
-qb.o: Debug.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h FermiTemp.h Dt.h
-qb.o: Nempty.h NetCharge.h Nrowmax.h RefCell.h Stress.h Thermostat.h ThTemp.h
-qb.o: ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: LoadCmd.h MoveCmd.h PlotCmd.h PrintCmd.h QuitCmd.h RandomizeWfCmd.h
+qb.o: ResetVcmCmd.h RunCmd.h SaveCmd.h SetCmd.h SpeciesCmd.h StatusCmd.h
+qb.o: StrainCmd.h TorsionCmd.h AtomsDyn.h Cell.h CellDyn.h SlaterDet.h
+qb.o: Basis.h Matrix.h CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h
+qb.o: ChargeMixRcut.h Debug.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h
+qb.o: FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h RefCell.h Stress.h
+qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h

@@ -15,7 +15,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.64 2009-03-08 01:15:19 fgygi Exp $
+// $Id: qb.C,v 1.65 2009-06-29 09:59:41 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -53,6 +53,7 @@ using namespace std;
 #include "ListSpeciesCmd.h"
 #include "LoadCmd.h"
 #include "MoveCmd.h"
+#include "PlotCmd.h"
 #include "PrintCmd.h"
 #include "QuitCmd.h"
 #include "RandomizeWfCmd.h"
@@ -239,6 +240,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new ListSpeciesCmd(s));
   ui.addCmd(new LoadCmd(s));
   ui.addCmd(new MoveCmd(s));
+  ui.addCmd(new PlotCmd(s));
   ui.addCmd(new PrintCmd(s));
   ui.addCmd(new QuitCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));

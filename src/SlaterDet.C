@@ -15,7 +15,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.53 2008-09-08 15:56:19 fgygi Exp $
+// $Id: SlaterDet.C,v 1.54 2009-06-29 09:59:06 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -64,6 +64,24 @@ SlaterDet::~SlaterDet()
   delete basis_;
   delete my_col_ctxt_;
   // cout << ctxt_.mype() << ": SlaterDet::dtor: ctxt=" << ctxt_;
+#ifdef TIMING
+  for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
+  {
+    double time = (*i).second.real();
+    double tmin = time;
+    double tmax = time;
+    ctxt_.dmin(1,1,&tmin,1);
+    ctxt_.dmax(1,1,&tmax,1);
+    if ( ctxt_.myproc()==0 )
+    {
+      cout << "<timing name=\""
+           << setw(15) << (*i).first << "\""
+           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
+           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << endl;
+    }
+  }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -386,8 +404,20 @@ void SlaterDet::gram(void)
     // create a DoubleMatrix proxy for c_
     DoubleMatrix c_proxy(c_);
     DoubleMatrix s(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+#if TIMING
+    tmap["syrk"].start();
+#endif
     s.syrk('l','t',2.0,c_proxy,0.0);
+#if TIMING
+    tmap["syrk"].stop();
+    tmap["syr"].start();
+#endif
     s.syr('l',-1.0,c_proxy,0,'r');
+#if TIMING
+    tmap["syr"].stop();
+    tmap["potrf"].start();
+#endif
+
 #ifdef CHOLESKY_REMAP
     // create a square context for the Cholesky decomposition
     // int nsq = (int) sqrt((double) ctxt_.size());
@@ -401,7 +431,14 @@ void SlaterDet::gram(void)
     s.potrf('l'); // Cholesky decomposition: S = L * L^T
 #endif
     // solve triangular system X * L^T = C
+#if TIMING
+    tmap["potrf"].stop();
+    tmap["trsm"].start();
+#endif
     c_proxy.trsm('r','l','t','n',1.0,s);
+#if TIMING
+    tmap["trsm"].stop();
+#endif
   }
   else
   {

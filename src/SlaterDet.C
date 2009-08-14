@@ -15,7 +15,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.55 2009-08-14 17:06:43 fgygi Exp $
+// $Id: SlaterDet.C,v 1.56 2009-08-14 17:58:01 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -1376,8 +1376,8 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight, int ispin,
-  int nspin) const
+void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight, 
+  int ispin, int nspin) const
 {
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());

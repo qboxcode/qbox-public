@@ -1,8 +1,5 @@
-To do: 
-Fix the ndim>0 Anderson charge mixing to avoid singular systems
-1.48.1_beta_x try Tikhonov regularization of the Anderson LS problem
 --------------------------------------------------------------------------------
-rel1_48_1 candidate
+rel1_48_1
 SlaterDet.C: fix bug in SlaterDet::write for -text mode
 BOSampleStepper.C: modified Kerker weights. Added mixer.reset() call.
 AtomCmd.h: fixed text of help message.

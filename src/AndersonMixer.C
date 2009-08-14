@@ -15,7 +15,7 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.C,v 1.8 2009-03-08 01:10:30 fgygi Exp $
+// $Id: AndersonMixer.C,v 1.9 2009-08-14 17:06:43 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
@@ -38,13 +38,17 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
   //
   // Computes the pair (xbar,fbar) using pairs (x,f) used
   // in previous updates, according to the Anderson algorithm.
-  //
+
+  // Tikhonov regularization parameter
+  const double tikhonov_parameter = 0.2;
+
   // increment index of current vector
   k_ = ( k_ + 1 ) % ( nmax_ + 1 );
   // increment current number of vectors
   if ( n_ < nmax_ ) n_++;
 
   // save vectors
+
   for ( int i = 0; i < m_; i++ )
   {
     x_[k_][i] = x[i];
@@ -78,21 +82,11 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
           sum += (f_[k_][l] - f_[kmi][l]) * (f_[k_][l] - f_[kmj][l]);
         a[i+j*n_] = sum;
       }
-
       double bsum = 0.0;
       for ( int l = 0; l < m_; l++ )
         bsum += ( f_[k_][l] - f_[kmi][l] ) * f_[k_][l];
       b[i] = bsum;
     }
-
-#if 0
-    // print matrix a and rhs b
-    for ( int i = 0; i < n_; i++ )
-      for ( int j = 0; j <=i; j++ )
-         cout << "a("<<i<<","<<j<<")=" << a[i+j*n_] << endl;
-    for ( int i = 0; i < n_; i++ )
-       cout << "b("<<i<<")=" << b[i] << endl;
-#endif
 
     if ( pctxt_ != 0 )
     {
@@ -100,73 +94,134 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
       pctxt_->dsum(n_,1,&b[0],n_);
     }
 
-    // solve the linear system a * theta = b
-    const bool diag = false;
-    if ( diag )
+    for ( int i = 0; i < n_; i++ )    
+      a[i+i*n_] += tikhonov_parameter;
+
+#if 0
+    // print matrix a and rhs b
+    if ( pctxt_ != 0 )
     {
-      // solve the linear system using eigenvalues and eigenvectors
-      // compute eigenvalues of a
-      char jobz = 'V';
-      char uplo = 'L';
-      valarray<double> w(n_);
-      int lwork = 3*n_;
-      valarray<double> work(lwork);
-      int info;
-      dsyev(&jobz,&uplo,&n_,&a[0],&n_,&w[0],&work[0],&lwork,&info);
-
-      for ( int i = 0; i < n_; i++ )
-        cout << w[i] << "  ";
-      cout << endl;
-      if ( info != 0 )
+      for ( int ip =0; ip < pctxt_->size(); ip++ )
       {
-        cerr << " AndersonMixer: Error in dsyev" << endl;
-        cerr << " info = " << info << endl;
-        exit(1);
-      }
-
-      // solve for theta
-      // theta_i = sum_j
-      for ( int k = 0; k < n_; k++ )
-      {
-        // correct only if eigenvalue w[k] is large enough compared to the
-        // largest eigenvalue
-        if ( w[n_-1] < 5.0 * w[k] )
+        pctxt_->barrier();
+        if ( pctxt_->mype() == ip )
         {
-          const double fac = 1.0 / w[k];
+          // print matrix a and rhs b
+          double anrm = 0.0;
           for ( int i = 0; i < n_; i++ )
-            for ( int j = 0; j < n_; j++ )
-              theta[i] += fac * a[i+k*n_] * a[j+k*n_] * b[j];
+            for ( int j = 0; j <=i; j++ )
+            {
+              cout << pctxt_->mype() << ": "
+                   << "a("<<i<<","<<j<<")=" << a[i+j*n_] << endl;
+              anrm += a[i+j*n_]*a[i+j*n_];
+            }
+            for ( int i = 0; i < n_; i++ )
+              cout << pctxt_->mype() << ": "
+                   <<  "b("<<i<<")=" << b[i] << endl;
+          //cout << " AndersonMixer: n=" << n_ << " anorm = " << anrm << endl;
         }
       }
     }
-    else
+#endif
+
+    // solve the linear system a * theta = b
+    // solve on task 0 and bcast result
+    if ( pctxt_ == 0 || pctxt_->onpe0() )
     {
-      // solve the linear system directly
-      char uplo = 'L';
-      int nrhs = 1;
-      valarray<int> ipiv(n_);
-      valarray<double> work(n_);
-      int info;
-      dsysv(&uplo,&n_,&nrhs,&a[0],&n_,&ipiv[0],&b[0],&n_,&work[0],&n_,&info);
-      if ( info != 0 )
+      const bool diag = false;
+      if ( diag )
       {
-        cerr << " AndersonMixer: Error in dsysv" << endl;
-        cerr << " info = " << info << endl;
-        exit(1);
-      }
-      // the vector b now contains the solution
-      theta = b;
-      if ( pctxt_ != 0 )
-      {
-        if ( pctxt_->onpe0() )
+        // solve the linear system using eigenvalues and eigenvectors
+        // compute eigenvalues of a
+        char jobz = 'V';
+        char uplo = 'L';
+        valarray<double> w(n_);
+        int lwork = 3*n_;
+        valarray<double> work(lwork);
+        int info;
+        dsyev(&jobz,&uplo,&n_,&a[0],&n_,&w[0],&work[0],&lwork,&info);
+  
+        if ( pctxt_ != 0 )
         {
-          cout << " AndersonMixer: theta = ";
-          for ( int i = 0; i < theta.size(); i++ )
-            cout << theta[i] << " ";
-          cout << endl;
+          if ( pctxt_->onpe0() )
+          {
+            cout << "AndersonMixer: eigenvalues: ";
+            for ( int i = 0; i < n_; i++ )
+              cout << w[i] << "  ";
+            cout << endl;
+          }
+        }
+        if ( info != 0 )
+        {
+          cerr << " AndersonMixer: Error in dsyev" << endl;
+          cerr << " info = " << info << endl;
+          exit(1);
+        }
+  
+        // solve for theta
+        // theta_i = sum_j
+        for ( int k = 0; k < n_; k++ )
+        {
+          // correct only if eigenvalue w[k] is large enough compared to the
+          // largest eigenvalue
+          if ( w[n_-1] < 5.0 * w[k] )
+          {
+            const double fac = 1.0 / w[k];
+            for ( int i = 0; i < n_; i++ )
+              for ( int j = 0; j < n_; j++ )
+                theta[i] += fac * a[i+k*n_] * a[j+k*n_] * b[j];
+          }
         }
       }
+      else
+      {
+        // solve the linear system directly
+        char uplo = 'L';
+        int nrhs = 1;
+        valarray<int> ipiv(n_);
+        valarray<double> work(n_);
+        int info;
+        dsysv(&uplo,&n_,&nrhs,&a[0],&n_,&ipiv[0],&b[0],&n_,&work[0],&n_,&info);
+        if ( info != 0 )
+        {
+          cerr << " AndersonMixer: Error in dsysv" << endl;
+          cerr << " info = " << info << endl;
+          exit(1);
+        }
+        // the vector b now contains the solution
+        theta = b;
+      }
+
+      cout << " AndersonMixer: theta = ";
+      for ( int i = 0; i < theta.size(); i++ )
+        cout << theta[i] << " ";
+      cout << endl;
     }
+
+    // broadcast theta from task 0
+    if ( pctxt_ != 0 )
+    {
+      if ( pctxt_->onpe0() )
+        pctxt_->dbcast_send(n_,1,&theta[0],n_);
+      else
+        pctxt_->dbcast_recv(n_,1,&theta[0],n_,0,0);
+    }
+
+#if 0
+    for ( int ip = 0; ip < pctxt_->size(); ip++ )
+    {
+      pctxt_->barrier();
+      if ( pctxt_->mype() == ip )
+      {
+        cout << pctxt_->mype() << ": ";
+        cout << " AndersonMixer: theta = ";
+        for ( int i = 0; i < theta.size(); i++ )
+          cout << theta[i] << " ";
+        cout << endl;
+      }
+    }
+#endif
+
   } // if n_ > 0
 
   // fbar = f[k] + sum_i theta_i * ( f[k] - f[kmi] )

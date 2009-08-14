@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.50 2009-05-15 04:37:42 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.51 2009-08-14 17:06:43 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -219,8 +219,8 @@ void BOSampleStepper::step(int niter)
     const double q0_kerker2 = q0_kerker * q0_kerker;
     for ( int i=0; i < wkerker.size(); i++ )
     {
-      wkerker[i] = g2[i] / ( g2[i] + q0_kerker2 );
-      wkerker_inv[i] = g2i[i] * ( g2[i] + q0_kerker2 );
+      wkerker[i] = sqrt(g2[i] / ( g2[i] + q0_kerker2 ));
+      wkerker_inv[i] = sqrt(g2i[i] * ( g2[i] + q0_kerker2 ));
     }
   }
   else
@@ -579,6 +579,9 @@ void BOSampleStepper::step(int niter)
       assert(cd_.rhog.size()==1); // works for nspin=1 only
 
       wf_stepper->preprocess();
+      if ( anderson_charge_mixing )
+        mixer.restart();
+
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
       {
         if ( nite_ > 1 && onpe0 )
@@ -609,14 +612,18 @@ void BOSampleStepper::step(int niter)
             // Anderson acceleration
             if ( anderson_charge_mixing )
             {
+#if 1
               // row weighting of LS calculation (preconditioning)
               for ( int i=0; i < drhog.size(); i++ )
                 drhog[i] *= wkerker_inv[i];
+#endif
 
               mixer.update((double*)&rhog_in[0],(double*)&drhog[0],
                            (double*)&rhobar[0],(double*)&drhobar[0]);
+#if 1
               for ( int i=0; i < drhog.size(); i++ )
-                drhobar[i] *= wkerker[i];
+                drhobar[i] *= wkerker[i]*wkerker[i];
+#endif
 
               for ( int i=0; i < rhog_in.size(); i++ )
                 rhog_in[i] = rhobar[i] + alpha * drhobar[i];
@@ -624,7 +631,7 @@ void BOSampleStepper::step(int niter)
             else
             {
               for ( int i=0; i < rhog_in.size(); i++ )
-                rhog_in[i] += alpha * drhog[i] * wkerker[i];
+                rhog_in[i] += alpha * drhog[i] * wkerker[i] * wkerker[i];
             }
 
             cd_.rhog[0] = rhog_in;

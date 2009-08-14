@@ -15,7 +15,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.54 2009-06-29 09:59:06 fgygi Exp $
+// $Id: SlaterDet.C,v 1.55 2009-08-14 17:06:43 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -1629,7 +1629,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight, int is
              << " encoding=\"text\">" << endl;
       }
       int count = 0;
-      for ( int k = 0; k < ft.np2(); k++ )
+      for ( int k = 0; k < ft.np2_loc(); k++ )
         for ( int j = 0; j < ft.np1(); j++ )
           for ( int i = 0; i < ft.np0(); i++ )
           {

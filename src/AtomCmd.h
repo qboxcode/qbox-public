@@ -15,7 +15,7 @@
 // AtomCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomCmd.h,v 1.10 2008-09-08 15:56:17 fgygi Exp $
+// $Id: AtomCmd.h,v 1.11 2009-08-14 17:06:43 fgygi Exp $
 
 #ifndef ATOMCMD_H
 #define ATOMCMD_H
@@ -42,8 +42,8 @@ class AtomCmd : public Cmd
     " syntax: atom name species x y z [vx vy vz]\n\n"
     "   The atom command defines a new atom and adds it to the atom list.\n"
     "   The name can be any character string, the species must be the name\n"
-    "   of a file containing the definition of the pseudopotential for this\n"
-    "   atomic species. The position of the atom is specified by x y and z.\n"
+    "   of a species previously defined using the species command.\n"
+    "   The position of the atom is specified by x y and z in atomic units.\n"
     "   Optionally, the atom velocity can be specified by vx vy and vz.\n\n";
   }
 

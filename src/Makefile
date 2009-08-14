@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.63 2009-06-29 10:08:59 fgygi Exp $
+# $Id: Makefile,v 1.64 2009-08-14 17:06:43 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -92,7 +92,8 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
          Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
          SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
          Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
-         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o \
+         AngleConstraint.o TorsionConstraint.o PositionConstraint.o \
+         XMLGFPreprocessor.o \
          SampleWriter.o qbox_xmlns.o isodate.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  plotSample: plotSample.o \
@@ -158,6 +159,8 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testPParse: testPParse.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testMemParse: testMemParse.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ upf2qso: upf2qso.o PeriodicTable.o spline.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  xmlSpecies: xmlSpecies.o qbox_xmlns.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)

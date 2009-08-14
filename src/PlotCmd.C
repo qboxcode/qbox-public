@@ -15,7 +15,7 @@
 // PlotCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PlotCmd.C,v 1.2 2009-06-29 10:08:20 fgygi Exp $
+// $Id: PlotCmd.C,v 1.3 2009-08-14 17:06:43 fgygi Exp $
 
 #include "PlotCmd.h"
 #include "isodate.h"
@@ -36,8 +36,6 @@
 #include "Species.h"
 #include "Atom.h"
 #include "ChargeDensity.h"
-
-//#include "atomic_properties.h"
 
 using namespace std;
 

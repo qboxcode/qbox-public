@@ -15,7 +15,7 @@
 // PlotCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PlotCmd.C,v 1.3 2009-08-14 17:06:43 fgygi Exp $
+// $Id: PlotCmd.C,v 1.4 2009-08-26 15:03:50 fgygi Exp $
 
 #include "PlotCmd.h"
 #include "isodate.h"
@@ -102,14 +102,14 @@ int PlotCmd::action(int argc, char **argv)
     if ( nmin < 0 || nmax >= s->wf.nst() || nmin > nmax )
     {
       if ( ui->onpe0() )
-        cout << " nmin or nmax incompatible with nst=" 
+        cout << " nmin or nmax incompatible with nst="
              << s->wf.nst() << endl;
       return 1;
     }
   }
   else if ( argc == 5 )
   {
-    // plot -wf <nmin> <nmin> filename : 
+    // plot -wf <nmin> <nmin> filename :
     // plot density of wfs <nmin> to <nmax>
     if ( strcmp(argv[1],"-wf") )
     {
@@ -127,7 +127,7 @@ int PlotCmd::action(int argc, char **argv)
     if ( nmin < 0 || nmax >= s->wf.nst() || nmin > nmax )
     {
       if ( ui->onpe0() )
-        cout << " nmin or nmax incompatible with nst=" 
+        cout << " nmin or nmax incompatible with nst="
              << s->wf.nst() << endl;
       return 1;
     }
@@ -256,7 +256,7 @@ int PlotCmd::action(int argc, char **argv)
         }
         else
         {
-          // complex function: plot modulus 
+          // complex function: plot modulus
           for ( int i = 0; i < ft.np012loc(); i++ )
             wftmpr[i] = sqrt(a[2*i]*a[2*i] + a[2*i+1]*a[2*i+1]);
         }
@@ -363,7 +363,7 @@ int PlotCmd::action(int argc, char **argv)
           }
         }
       }
-      else 
+      else
       {
         // write header and atoms
         os << "Created " << isodate() << " by qbox-" << release() << endl;

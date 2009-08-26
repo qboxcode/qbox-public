@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.51 2009-08-14 17:06:43 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.52 2009-08-26 15:03:22 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -204,7 +204,7 @@ void BOSampleStepper::step(int niter)
   vector<complex<double> > rhobar(rhog_in.size());
   vector<complex<double> > drhobar(rhog_in.size());
   vector<double> wkerker(rhog_in.size());
-  vector<double> wkerker_inv(rhog_in.size());
+  vector<double> wls(rhog_in.size());
   const int anderson_ndim = s_.ctrl.charge_mix_ndim;
   AndersonMixer mixer(2*rhog_in.size(),anderson_ndim,&cd_.vcontext());
 
@@ -212,24 +212,49 @@ void BOSampleStepper::step(int niter)
   // real space Kerker cutoff in a.u.
   const double rc_Kerker = s_.ctrl.charge_mix_rcut;
   const double *const g2 = cd_.vbasis()->g2_ptr();
-  const double *const g2i = cd_.vbasis()->g2i_ptr();
+
+  // define q1 cutoff for row weighting of LS charge mixing
+  // Use rc1 = 3 a.u. default cutoff
+  double rc1 = 3.0;
+  // check if override from the debug variable
+  // use: set debug RC1 <value>
+  if ( s_.ctrl.debug.find("RC1") != string::npos )
+  {
+    istringstream is(s_.ctrl.debug);
+    string s;
+    is >> s >> rc1;
+    cout << " override rc1 value: rc1 = " << rc1 << endl;
+    assert(rc1 >= 0.0);
+  }
+
+  if ( rc1 != 0.0 )
+  {
+    const double q1 = 2.0 * M_PI / rc1;
+    for ( int i=0; i < wls.size(); i++ )
+    {
+      if ( g2[i] != 0.0 )
+        wls[i] = sqrt(g2[i] / ( g2[i] + q1*q1 ));
+      else
+        wls[i] = 1.0;
+    }
+  }
+  else
+  {
+    for ( int i=0; i < wls.size(); i++ )
+      wls[i] = 1.0;
+  }
+
   if ( rc_Kerker > 0.0 )
   {
     const double q0_kerker = 2 * M_PI / rc_Kerker;
     const double q0_kerker2 = q0_kerker * q0_kerker;
     for ( int i=0; i < wkerker.size(); i++ )
-    {
-      wkerker[i] = sqrt(g2[i] / ( g2[i] + q0_kerker2 ));
-      wkerker_inv[i] = sqrt(g2i[i] * ( g2[i] + q0_kerker2 ));
-    }
+      wkerker[i] = g2[i] / ( g2[i] + q0_kerker2 );
   }
   else
   {
     for ( int i=0; i < wkerker.size(); i++ )
-    {
       wkerker[i] = 1.0;
-      wkerker_inv[i] = 1.0;
-    }
   }
 
   // Next line: special case of niter=0: compute GS only
@@ -598,7 +623,7 @@ void BOSampleStepper::step(int niter)
           if ( itscf == 0 )
           {
             // at first scf iteration, nothing to mix
-            // memorize rhog in rhog_in
+            // memorize rhog in rhog_in for next iteration
             rhog_in = cd_.rhog[0];
           }
           else
@@ -612,26 +637,23 @@ void BOSampleStepper::step(int niter)
             // Anderson acceleration
             if ( anderson_charge_mixing )
             {
-#if 1
-              // row weighting of LS calculation (preconditioning)
+              // row weighting of LS calculation
               for ( int i=0; i < drhog.size(); i++ )
-                drhog[i] *= wkerker_inv[i];
-#endif
+                drhog[i] /= wls[i];
 
               mixer.update((double*)&rhog_in[0],(double*)&drhog[0],
                            (double*)&rhobar[0],(double*)&drhobar[0]);
-#if 1
+
               for ( int i=0; i < drhog.size(); i++ )
-                drhobar[i] *= wkerker[i]*wkerker[i];
-#endif
+                drhobar[i] *= wls[i];
 
               for ( int i=0; i < rhog_in.size(); i++ )
-                rhog_in[i] = rhobar[i] + alpha * drhobar[i];
+                rhog_in[i] = rhobar[i] + alpha * drhobar[i] * wkerker[i];
             }
             else
             {
               for ( int i=0; i < rhog_in.size(); i++ )
-                rhog_in[i] += alpha * drhog[i] * wkerker[i] * wkerker[i];
+                rhog_in[i] += alpha * drhog[i] * wkerker[i];
             }
 
             cd_.rhog[0] = rhog_in;

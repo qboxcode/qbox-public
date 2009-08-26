@@ -1,4 +1,11 @@
 --------------------------------------------------------------------------------
+rel1_49_0
+BOSampleStepper.C: introduced separate row-weighting of Anderson LS problem
+with fixed cutoff rc1=3.0 a.u.
+AndersonMixer.C: modified regularization
+PlotCmd.C: white space
+SlaterDet.C: white space
+--------------------------------------------------------------------------------
 rel1_48_1
 SlaterDet.C: fix bug in SlaterDet::write for -text mode
 BOSampleStepper.C: modified Kerker weights. Added mixer.reset() call.

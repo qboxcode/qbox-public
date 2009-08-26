@@ -15,7 +15,7 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.C,v 1.9 2009-08-14 17:06:43 fgygi Exp $
+// $Id: AndersonMixer.C,v 1.10 2009-08-26 15:01:56 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
@@ -38,9 +38,6 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
   //
   // Computes the pair (xbar,fbar) using pairs (x,f) used
   // in previous updates, according to the Anderson algorithm.
-
-  // Tikhonov regularization parameter
-  const double tikhonov_parameter = 0.2;
 
   // increment index of current vector
   k_ = ( k_ + 1 ) % ( nmax_ + 1 );
@@ -94,9 +91,6 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
       pctxt_->dsum(n_,1,&b[0],n_);
     }
 
-    for ( int i = 0; i < n_; i++ )    
-      a[i+i*n_] += tikhonov_parameter;
-
 #if 0
     // print matrix a and rhs b
     if ( pctxt_ != 0 )
@@ -140,31 +134,26 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
         valarray<double> work(lwork);
         int info;
         dsyev(&jobz,&uplo,&n_,&a[0],&n_,&w[0],&work[0],&lwork,&info);
-  
-        if ( pctxt_ != 0 )
-        {
-          if ( pctxt_->onpe0() )
-          {
-            cout << "AndersonMixer: eigenvalues: ";
-            for ( int i = 0; i < n_; i++ )
-              cout << w[i] << "  ";
-            cout << endl;
-          }
-        }
+
+        cout << "AndersonMixer: eigenvalues: ";
+        for ( int i = 0; i < n_; i++ )
+          cout << w[i] << "  ";
+        cout << endl;
         if ( info != 0 )
         {
           cerr << " AndersonMixer: Error in dsyev" << endl;
           cerr << " info = " << info << endl;
           exit(1);
         }
-  
+
         // solve for theta
         // theta_i = sum_j
         for ( int k = 0; k < n_; k++ )
         {
           // correct only if eigenvalue w[k] is large enough compared to the
           // largest eigenvalue
-          if ( w[n_-1] < 5.0 * w[k] )
+          const double eig_ratio = 1.e-14;
+          if ( w[k] > eig_ratio * w[n_-1] )
           {
             const double fac = 1.0 / w[k];
             for ( int i = 0; i < n_; i++ )
@@ -176,6 +165,12 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
       else
       {
         // solve the linear system directly
+
+        // Tikhonov regularization parameter
+        const double tikhonov_parameter = 1.e-12;
+        for ( int i = 0; i < n_; i++ )
+          a[i+i*n_] += tikhonov_parameter;
+
         char uplo = 'L';
         int nrhs = 1;
         valarray<int> ipiv(n_);
@@ -196,6 +191,7 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
       for ( int i = 0; i < theta.size(); i++ )
         cout << theta[i] << " ";
       cout << endl;
+
     }
 
     // broadcast theta from task 0

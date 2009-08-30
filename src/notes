@@ -1,4 +1,8 @@
 --------------------------------------------------------------------------------
+rel1_49_1
+EnergyFunctional.C: increased criterion for determination of neighboring
+cells in esr calculation.
+--------------------------------------------------------------------------------
 rel1_49_0
 BOSampleStepper.C: introduced separate row-weighting of Anderson LS problem
 with fixed cutoff rc1=3.0 a.u.

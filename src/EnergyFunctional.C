@@ -15,7 +15,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.33 2008-09-08 15:56:18 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.34 2009-08-30 00:22:57 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -898,7 +898,7 @@ void EnergyFunctional::atoms_moved(void)
       double rcps12 = sqrt ( rcps_[is1]*rcps_[is1]+rcps_[is2]*rcps_[is2] );
       // convergence criterion for lattice sums:
       // fac * rcps12 < ncell * d
-      const double fac = 6.0;
+      const double fac = 8.0;
       const int ncell0 = (int) (fac * rcps12 / d0);
       const int ncell1 = (int) (fac * rcps12 / d1);
       const int ncell2 = (int) (fac * rcps12 / d2);

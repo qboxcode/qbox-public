@@ -15,7 +15,7 @@
 // RunCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.C,v 1.9 2008-09-08 15:56:19 fgygi Exp $
+// $Id: RunCmd.C,v 1.10 2009-09-08 05:38:58 fgygi Exp $
 
 #include "RunCmd.h"
 #include<iostream>
@@ -28,13 +28,12 @@ using namespace std;
 
 int RunCmd::action(int argc, char **argv)
 {
-
-  if ( argc < 2 || argc > 4)
+  if ( argc < 2 || argc > 5)
   {
     if ( ui->onpe0() )
-      cout << " use: run niter" << endl;
-      cout << "      run niter nitscf" << endl;
-      cout << "      run niter nitscf nite" << endl;
+      cout << " use: run [-atomic_density] niter" << endl;
+      cout << "      run [-atomic_density] niter nitscf" << endl;
+      cout << "      run [-atomic_density] niter nitscf nite" << endl;
     return 1;
   }
 
@@ -53,19 +52,28 @@ int RunCmd::action(int argc, char **argv)
 
   SampleStepper* stepper;
 
-  int niter = atoi(argv[1]);
+  int iarg = 1;
+  bool atomic_density = false;
+  if ( !strcmp(argv[iarg],"-atomic_density") )
+  {
+    atomic_density = true;
+    iarg++;
+    argc--;
+  }
+
+  int niter = atoi(argv[iarg]);
   int nite = 1;
   int nitscf = 1;
   if ( argc == 3 )
   {
     // run niter nitscf
-    nitscf = atoi(argv[2]);
+    nitscf = atoi(argv[iarg+1]);
   }
   else if ( argc == 4 )
   {
     // run niter nitscf nite
-    nitscf = atoi(argv[2]);
-    nite = atoi(argv[3]);
+    nitscf = atoi(argv[iarg+1]);
+    nite = atoi(argv[iarg+2]);
   }
   if ( s->ctrl.wf_dyn == "MD" )
     stepper = new CPSampleStepper(*s);
@@ -73,6 +81,9 @@ int RunCmd::action(int argc, char **argv)
     stepper = new BOSampleStepper(*s,nitscf,nite);
 
   assert(stepper!=0);
+
+  if ( atomic_density )
+    stepper->initialize_density();
 
   s->wf.info(cout,"wavefunction");
   stepper->step(niter);

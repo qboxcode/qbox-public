@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.53 2009-09-08 05:35:39 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.54 2009-09-08 18:45:59 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -153,7 +153,8 @@ void BOSampleStepper::initialize_density(void)
 ////////////////////////////////////////////////////////////////////////////////
 void BOSampleStepper::step(int niter)
 {
-  const bool onpe0 = s_.ctxt_.onpe0();
+  const Context& ctxt = s_.ctxt_;
+  const bool onpe0 = ctxt.onpe0();
 
   const bool anderson_charge_mixing = ( s_.ctrl.charge_mix_ndim > 0 );
 
@@ -732,8 +733,22 @@ void BOSampleStepper::step(int niter)
               for ( int i=0; i < drhog.size(); i++ )
                 drhog[i] /= wls[i];
 
-              mixer.update((double*)&rhog_in[0],(double*)&drhog[0],
+              const Context * const kpctxt = s_.wf.kpcontext();
+              if ( kpctxt->mycol() == 0 )
+              {
+                // use AndersonMixer on first column only and bcast results
+                mixer.update((double*)&rhog_in[0],(double*)&drhog[0],
                            (double*)&rhobar[0],(double*)&drhobar[0]);
+                const int n = 2*rhobar.size();
+                kpctxt->dbcast_send('r',n,1,(double*)&rhobar[0],n);
+                kpctxt->dbcast_send('r',n,1,(double*)&drhobar[0],n);
+              }
+              else
+              {
+                const int n = 2*rhobar.size();
+                kpctxt->dbcast_recv('r',n,1,(double*)&rhobar[0],n,-1,0);
+                kpctxt->dbcast_recv('r',n,1,(double*)&drhobar[0],n,-1,0);
+              }
 
               for ( int i=0; i < drhog.size(); i++ )
                 drhobar[i] *= wls[i];

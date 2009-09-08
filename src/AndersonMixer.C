@@ -15,7 +15,7 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.C,v 1.11 2009-09-08 05:39:41 fgygi Exp $
+// $Id: AndersonMixer.C,v 1.12 2009-09-08 14:26:01 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
@@ -223,11 +223,11 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
           }
           norm_ok = theta_sum <= 1.0;
 #endif
-          cout << " tp = " << tikhonov_parameter
-               << " AndersonMixer: theta = ";
-          for ( int i = 0; i < theta.size(); i++ )
-            cout << theta[i] << " ";
-          cout << endl;
+          // cout << " tp = " << tikhonov_parameter
+          //      << " AndersonMixer: theta = ";
+          // for ( int i = 0; i < theta.size(); i++ )
+          //   cout << theta[i] << " ";
+          // cout << endl;
 
           tikhonov_parameter *= 2.0;
           iter++;

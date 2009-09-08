@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.52 2009-08-26 15:03:22 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.53 2009-09-08 05:35:39 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -25,6 +25,7 @@
 #include "SDWavefunctionStepper.h"
 #include "PSDWavefunctionStepper.h"
 #include "PSDAWavefunctionStepper.h"
+#include "JDWavefunctionStepper.h"
 #include "SDIonicStepper.h"
 #include "SDAIonicStepper.h"
 #include "CGIonicStepper.h"
@@ -46,7 +47,8 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) :
   SampleStepper(s), cd_(s.wf), ef_(s,cd_),
-  dwf(s.wf), wfv(s.wfv), nitscf_(nitscf), nite_(nite) {}
+  dwf(s.wf), wfv(s.wfv), nitscf_(nitscf), nite_(nite),
+  initial_atomic_density(false) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::~BOSampleStepper()
@@ -67,6 +69,85 @@ BOSampleStepper::~BOSampleStepper()
            << endl;
     }
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void BOSampleStepper::initialize_density(void)
+{
+  // initialize cd_ with a sum of atomic densities
+
+  double atom_radius[] =
+  {
+    0.00,  0.80,  0.59,  3.16,  2.12,  // null H  He  Li  Be
+    1.64,  1.27,  1.06,  0.91,  0.79,  //  B   C   N   O   F
+    0.72,  3.59,  2.74,  2.23,  2.10,  // Ne  Na  Mg  Al  Si
+    1.85,  1.66,  1.49,  1.34,  4.59,  //  P   S  Cl  Ar   K
+    3.67,  3.48,  3.33,  3.23,  3.14,  // Ca  Sc  Ti   V  Cr
+    3.04,  2.95,  2.87,  2.82,  2.74,  // Mn  Fe  Co  Ni  Cu
+    2.68,  2.57,  2.36,  2.15,  1.95,  // Zn  Ga  Ge  As  Se
+    1.78,  1.66,  5.01,  4.14,  4.01,  // Br  Kr  Rb  Sr   Y
+    3.89,  3.74,  3.59,  3.46,  3.36,  // Zr  Nb  Mo  Tc  Ru
+    3.27,  3.19,  3.12,  3.04,  2.95,  // Rh  Pd  Ag  Cd  In
+    2.74,  2.51,  2.32,  2.17,  2.04,  // Sn  Sb  Te   I  Xe
+    5.63,  4.78,  0.00,  0.00,  4.67,  // Cs  Ba  La  Ce  Pr
+    3.89,  3.87,  4.50,  4.37,  4.40,  // Nd  Pm  Sm  Eu  Gd
+    4.25,  4.31,  0.00,  4.27,  4.20,  // Tb  Dy  Ho  Er  Tm
+    4.20,  4.10,  3.93,  3.78,  3.65,  // Yb  Lu  Hf  Ta   W
+    3.55,  3.50,  3.40,  3.34,  3.29,  // Re  Os  Ir  Pt  Au
+    3.23,  2.95,  2.91,  2.70,  2.55,  // Hg  Tl  Pb  Bi  Po
+    4.00,  2.27,  4.00,  4.00,  4.00,  // At  Rn  Fr  Ra  Ac
+    4.00,  4.00,  4.00,  4.00,  4.00,  // Th  Pa   U  Np  Pu
+    4.00,  4.00,  4.00,  4.00,  4.00,  // Am  Cm  Bk  Cf  Es
+    4.00,  4.00,  4.00,  4.00          // Fm  Md  No  Lr
+  };
+
+  const AtomSet& atoms = s_.atoms;
+  const Basis* const vbasis = cd_.vbasis();
+  const int ngloc = vbasis->localsize();
+  vector<vector<complex<double> > > rhops;
+  const int nsp = atoms.nsp();
+  rhops.resize(nsp);
+  vector<complex<double> > rhopst(ngloc);
+  const double * const g2 = vbasis->g2_ptr();
+
+  for ( int is = 0; is < nsp; is++ )
+  {
+    rhops[is].resize(ngloc);
+    Species *s = atoms.species_list[is];
+    const int zval = s->zval();
+    const int atomic_number = s->atomic_number();
+    assert(atomic_number < sizeof(atom_radius)/sizeof(double));
+    // scaling factor 2.0 in next line is empirically adjusted
+    double rc = 2.0 * atom_radius[atomic_number];
+    for ( int ig = 0; ig < ngloc; ig++ )
+    {
+      double arg = 0.25 * rc * rc * g2[ig];
+      rhops[is][ig] = zval * exp( -arg );
+    }
+  }
+
+  vector<vector<double> > tau0;
+  tau0.resize(nsp);
+  for ( int is = 0; is < nsp; is++ )
+    tau0.resize(3*atoms.na(is));
+  atoms.get_positions(tau0);
+  StructureFactor sf;
+  sf.init(tau0,*vbasis);
+  sf.update(tau0,*vbasis);
+
+  memset( (void*)&rhopst[0], 0, 2*ngloc*sizeof(double) );
+  for ( int is = 0; is < nsp; is++ )
+  {
+    complex<double> *s = &sf.sfac[is][0];
+    for ( int ig = 0; ig < ngloc; ig++ )
+    {
+      const complex<double> sg = s[ig];
+      rhopst[ig] += sg * rhops[is][ig];
+    }
+  }
+
+  cd_.rhog[0] = rhopst;
+  initial_atomic_density = true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -119,7 +200,9 @@ void BOSampleStepper::step(int niter)
 
   Timer tm_iter;
 
-  const bool use_preconditioner = wf_dyn == "PSD" || wf_dyn == "PSDA";
+  const bool use_preconditioner = wf_dyn == "PSD" ||
+                                  wf_dyn == "PSDA"||
+                                  wf_dyn == "JD";
   Preconditioner *preconditioner = 0;
   if ( use_preconditioner )
   {
@@ -146,6 +229,8 @@ void BOSampleStepper::step(int niter)
     wf_stepper = new PSDWavefunctionStepper(wf,*preconditioner,tmap);
   else if ( wf_dyn == "PSDA" )
     wf_stepper = new PSDAWavefunctionStepper(wf,*preconditioner,tmap);
+  else if ( wf_dyn == "JD" )
+    wf_stepper = new JDWavefunctionStepper(wf,*preconditioner,ef_,tmap);
 
   // wf_stepper == 0 indicates that wf_dyn == LOCKED
 
@@ -278,7 +363,10 @@ void BOSampleStepper::step(int niter)
     if ( !gs_only )
     {
       tmap["charge"].start();
-      cd_.update_density();
+      if ( initial_atomic_density )
+        cd_.update_rhor();
+      else
+        cd_.update_density();
       tmap["charge"].stop();
 
       ef_.update_vhxc();
@@ -614,7 +702,10 @@ void BOSampleStepper::step(int niter)
 
         // compute new density in cd_.rhog
         tmap["charge"].start();
-        cd_.update_density();
+        if ( itscf==0 && initial_atomic_density )
+          cd_.update_rhor();
+        else
+          cd_.update_density();
         tmap["charge"].stop();
 
         // charge mixing
@@ -791,7 +882,7 @@ void BOSampleStepper::step(int niter)
       if ( gs_only )
       {
         tmap["charge"].start();
-        cd_.update_density();
+        if ( !initial_atomic_density ) cd_.update_density();
         tmap["charge"].stop();
 
         ef_.update_vhxc();
@@ -963,4 +1054,6 @@ void BOSampleStepper::step(int niter)
   // delete preconditioner
   if ( use_preconditioner ) delete preconditioner;
   if ( ntc_extrapolation || asp_extrapolation ) delete wfmm;
+
+  initial_atomic_density = false;
 }

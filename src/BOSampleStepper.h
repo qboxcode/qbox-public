@@ -15,7 +15,7 @@
 // BOSampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.h,v 1.8 2008-09-08 15:56:18 fgygi Exp $
+// $Id: BOSampleStepper.h,v 1.9 2009-09-08 05:35:39 fgygi Exp $
 
 #ifndef BOSAMPLESTEPPER_H
 #define BOSAMPLESTEPPER_H
@@ -42,6 +42,8 @@ class BOSampleStepper : public SampleStepper
   WavefunctionStepper* wf_stepper;
   IonicStepper* ionic_stepper;
 
+  bool initial_atomic_density;
+
   // Do not allow construction of BOSampleStepper unrelated to a Sample
   BOSampleStepper(void);
 
@@ -50,6 +52,7 @@ class BOSampleStepper : public SampleStepper
   mutable TimerMap tmap;
 
   void step(int niter);
+  void initialize_density(void);
 
   BOSampleStepper(Sample& s, int nitscf, int nite);
   ~BOSampleStepper();

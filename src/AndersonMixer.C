@@ -15,7 +15,7 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AndersonMixer.C,v 1.10 2009-08-26 15:01:56 fgygi Exp $
+// $Id: AndersonMixer.C,v 1.11 2009-09-08 05:39:41 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
@@ -167,24 +167,71 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
         // solve the linear system directly
 
         // Tikhonov regularization parameter
-        const double tikhonov_parameter = 1.e-12;
-        for ( int i = 0; i < n_; i++ )
-          a[i+i*n_] += tikhonov_parameter;
-
-        char uplo = 'L';
-        int nrhs = 1;
-        valarray<int> ipiv(n_);
-        valarray<double> work(n_);
-        int info;
-        dsysv(&uplo,&n_,&nrhs,&a[0],&n_,&ipiv[0],&b[0],&n_,&work[0],&n_,&info);
-        if ( info != 0 )
+        // adjust the parameter until the norm of theta is < 1.0
+        double tikhonov_parameter = 1.e-12;
+        bool norm_ok = false;
+        valarray<double> asave(a);
+        valarray<double> bsave(b);
+        int iter = 0;
+        const int maxiter = 100;
+        while ( !norm_ok && iter < maxiter )
         {
-          cerr << " AndersonMixer: Error in dsysv" << endl;
-          cerr << " info = " << info << endl;
-          exit(1);
+          a = asave;
+          b = bsave;
+          for ( int i = 0; i < n_; i++ )
+            a[i+i*n_] += tikhonov_parameter;
+
+          char uplo = 'L';
+          int nrhs = 1;
+          valarray<int> ipiv(n_);
+          valarray<double> work(n_);
+          int info;
+          dsysv(&uplo,&n_,&nrhs,&a[0],&n_,&ipiv[0],
+                &b[0],&n_,&work[0],&n_,&info);
+          if ( info != 0 )
+          {
+            cerr << " AndersonMixer: Error in dsysv" << endl;
+            cerr << " info = " << info << endl;
+            exit(1);
+          }
+          // the vector b now contains the solution
+          theta = b;
+
+          // check condition on the norm of theta
+          norm_ok = true;
+#if 0
+          // unit simplex criterion
+          double theta_sum = 0.0;
+          for ( int i = 0; i < theta.size(); i++ )
+          {
+            theta_sum += theta[i];
+            norm_ok &= theta[i] >= 0.0;
+          }
+          norm_ok &= fabs(theta_sum) <= 1.0;
+#endif
+#if 0
+          // infinity norm criterion
+          for ( int i = 0; i < theta.size(); i++ )
+            norm_ok &= fabs(theta[i]) <  3.0;
+#endif
+#if 1
+          // 2-norm criterion
+          double theta_sum = 0.0;
+          for ( int i = 0; i < theta.size(); i++ )
+          {
+            theta_sum += theta[i] * theta[i];
+          }
+          norm_ok = theta_sum <= 1.0;
+#endif
+          cout << " tp = " << tikhonov_parameter
+               << " AndersonMixer: theta = ";
+          for ( int i = 0; i < theta.size(); i++ )
+            cout << theta[i] << " ";
+          cout << endl;
+
+          tikhonov_parameter *= 2.0;
+          iter++;
         }
-        // the vector b now contains the solution
-        theta = b;
       }
 
       cout << " AndersonMixer: theta = ";

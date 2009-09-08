@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.64 2009-08-14 17:06:43 fgygi Exp $
+# $Id: Makefile,v 1.65 2009-09-08 05:40:50 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -40,6 +40,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
         BMDIonicStepper.o \
         PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
+        JDWavefunctionStepper.o \
         SDCellStepper.o ConfinementPotential.o Preconditioner.o \
         release.o qbox_xmlns.o isodate.o \
         AndersonMixer.o SDAIonicStepper.o CGIonicStepper.o \
@@ -269,11 +270,11 @@ BOSampleStepper.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
 BOSampleStepper.o: Control.h SlaterDet.h Basis.h Matrix.h
 BOSampleStepper.o: WavefunctionStepper.h SDWavefunctionStepper.h
 BOSampleStepper.o: PSDWavefunctionStepper.h PSDAWavefunctionStepper.h
-BOSampleStepper.o: SDIonicStepper.h IonicStepper.h Species.h
-BOSampleStepper.o: SDAIonicStepper.h LineMinimizer.h CGIonicStepper.h
-BOSampleStepper.o: MDIonicStepper.h BMDIonicStepper.h SDCellStepper.h
-BOSampleStepper.o: CellStepper.h Preconditioner.h AndersonMixer.h
-BOSampleStepper.o: MLWFTransform.h BasisMapping.h
+BOSampleStepper.o: JDWavefunctionStepper.h SDIonicStepper.h IonicStepper.h
+BOSampleStepper.o: Species.h SDAIonicStepper.h LineMinimizer.h
+BOSampleStepper.o: CGIonicStepper.h MDIonicStepper.h BMDIonicStepper.h
+BOSampleStepper.o: SDCellStepper.h CellStepper.h Preconditioner.h
+BOSampleStepper.o: AndersonMixer.h MLWFTransform.h BasisMapping.h
 BOSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 BOSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 BOSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
@@ -384,6 +385,13 @@ IonicStepper.o: Species.h
 isodate.o: isodate.h
 jacobi.o: Context.h Matrix.h blas.h
 jade.o: Context.h Matrix.h blas.h Timer.h
+JDWavefunctionStepper.o: JDWavefunctionStepper.h WavefunctionStepper.h
+JDWavefunctionStepper.o: Timer.h Wavefunction.h D3vector.h UnitCell.h
+JDWavefunctionStepper.o: SharedFilePtr.h SlaterDet.h Context.h Basis.h
+JDWavefunctionStepper.o: Matrix.h EnergyFunctional.h ChargeDensity.h
+JDWavefunctionStepper.o: StructureFactor.h Preconditioner.h
+JDWavefunctionStepper.o: WavefunctionStepper.h Timer.h Wavefunction.h
+JDWavefunctionStepper.o: D3vector.h UnitCell.h SharedFilePtr.h
 kpgen.o: D3vector.h
 KpointCmd.o: UserInterface.h D3vector.h Sample.h AtomSet.h Context.h Atom.h
 KpointCmd.o: UnitCell.h ConstraintSet.h Wavefunction.h SharedFilePtr.h
@@ -439,6 +447,7 @@ Nrowmax.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 Nrowmax.o: ConstraintSet.h Wavefunction.h SharedFilePtr.h Control.h
 PBEFunctional.o: PBEFunctional.h XCFunctional.h
 PBEFunctional.o: XCFunctional.h
+PeriodicTable.o: PeriodicTable.h
 PlotCmd.o: PlotCmd.h UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 PlotCmd.o: D3vector.h UnitCell.h ConstraintSet.h Wavefunction.h
 PlotCmd.o: SharedFilePtr.h Control.h isodate.h release.h SampleReader.h
@@ -652,6 +661,7 @@ truncateMLWF.o: Timer.h SlaterDet.h Matrix.h isodate.h jade.h MLWFTransform.h
 truncateMLWF.o: BasisMapping.h ComputeMLWFCmd.h UserInterface.h
 UnitCell.o: UnitCell.h D3vector.h
 UnitCell.o: D3vector.h
+upf2qso.o: spline.h PeriodicTable.h
 UserInterface.o: UserInterface.h qbox_xmlns.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SharedFilePtr.h
 Wavefunction.o: SlaterDet.h Context.h Basis.h Matrix.h Timer.h jacobi.h

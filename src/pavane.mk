@@ -15,7 +15,7 @@
 #  x8664_gcc.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: pavane.mk,v 1.9 2009-03-08 01:16:33 fgygi Exp $
+# $Id: pavane.mk,v 1.10 2009-09-08 05:38:06 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
@@ -34,22 +34,28 @@
              -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES
 
  FFTWDIR=$(HOME)/software/fftw/Linux_x8664/fftw-2.1.5/fftw
-#BLASDIR=$(HOME)/software/atlas/ATLAS/lib/Linux_x8664
-#BLASDIR=$(HOME)/software/atlas/ATLAS/lib/Linux_HAMMER64SSE2
- BLASDIR=/usr/lib64
- LAPACKDIR=/usr/lib64
+ BLASDIR=$(HOME)/software/atlas/x86_64/lib
+ LAPACKDIR=$(HOME)/software/lapack/LAPACK
+#BLASDIR=/usr/lib64
+#LAPACKDIR=/usr/lib64
 
  INCLUDE = -I$(MPIDIR)/include -I$(FFTWDIR) -I$(XERCESCDIR)/include
 
- CXXFLAGS= -g -Wunused -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
+ CXXFLAGS= -O4 -Wunused -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(FFTWDIR)/.libs -L/usr/X11R6/lib \
-           -L$(MPIDIR)/lib -L$(BLASDIR) -L$(LAPACKDIR) \
+           -L$(MPIDIR)/lib -L$(BLASDIR) \
            -L$(XERCESCDIR)/lib -L$(HOME)/lib
 
+#LIBS =  $(PLIBS) -lpthread -lfftw \
+#        -lmpich -lxerces-c \
+#        $(LAPACKDIR)/liblapack.a \
+#        -lf77blas -latlas -lgfortran 
  LIBS =  $(PLIBS) -lpthread -lfftw \
-         -llapack -lm -Xlinker -Bstatic \
-          -lc -lgfortran -static-libgcc -lmpich -lxerces-c \
+         -lm -Xlinker -Bstatic \
+          -lc -static-libgcc -lmpich -lxerces-c \
+         $(LAPACKDIR)/liblapack.a \
+         -lf77blas -latlas -lgfortran \
          -Xlinker -Bdynamic
 #LIBS =  $(PLIBS) -lfftw -llapack -lblas -lm -lmpich \
 #        $(XERCESCDIR)/lib/libxerces-c.a

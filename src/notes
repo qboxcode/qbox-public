@@ -1,4 +1,10 @@
 --------------------------------------------------------------------------------
+rel1_50_0
+BOSampleStepper.C, RunCmd.C: added [-atomic_density] option to the run cmd.
+AndersonMixer.C: iterative LS problem with adaptive Tikhonov parameter.
+Matrix.[Ch]: added getsub for arbitrary block destination
+JDWavefunctionStepper.[Ch]: Jacobi-Davidson WavefunctionStepper
+--------------------------------------------------------------------------------
 rel1_49_1
 EnergyFunctional.C: increased criterion for determination of neighboring
 cells in esr calculation.

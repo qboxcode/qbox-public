@@ -15,7 +15,7 @@
 // SampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.h,v 1.13 2008-09-08 15:56:19 fgygi Exp $
+// $Id: SampleStepper.h,v 1.14 2009-09-08 05:38:31 fgygi Exp $
 
 #ifndef SAMPLESTEPPER_H
 #define SAMPLESTEPPER_H
@@ -48,6 +48,7 @@ class SampleStepper
   virtual void step(int niter) = 0;
   void print_stress(void);
   void compute_sigma(void); // compute kinetic contribution to stress
+  virtual void initialize_density() {}
 
   SampleStepper(Sample& s);
   virtual ~SampleStepper(void);

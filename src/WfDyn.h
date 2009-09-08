@@ -15,7 +15,7 @@
 // WfDyn.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WfDyn.h,v 1.8 2008-09-08 15:56:19 fgygi Exp $
+// $Id: WfDyn.h,v 1.9 2009-09-08 05:38:31 fgygi Exp $
 
 #ifndef WFDYN_H
 #define WFDYN_H
@@ -48,28 +48,14 @@ class WfDyn : public Var
 
     string v = argv[1];
     if ( !( v == "LOCKED" || v == "SD" || v == "PSD" ||
-            v == "PSDA" || v == "MD" ) )
+            v == "PSDA" || v == "JD" || v == "MD" ) )
     {
       if ( ui->onpe0() )
-        cout << " wf_dyn must be in [LOCKED,SD,PSD,PSDA,MD]" << endl;
+        cout << " wf_dyn must be in [LOCKED,SD,PSD,PSDA,JD,MD]" << endl;
       return 1;
     }
 
     s->ctrl.wf_dyn = v;
-
-//     if ( v == "MD" )
-//     {
-//       if ( s->wfv == 0 )
-//       {
-//         s->wfv = new Wavefunction(s->wf);
-//         s->wfv->clear();
-//       }
-//     }
-//     else
-//     {
-//       delete s->wfv;
-//       s->wfv = 0;
-//     }
 
     return 0;
   }

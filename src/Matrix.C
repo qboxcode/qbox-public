@@ -15,7 +15,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.19 2008-09-08 15:56:18 fgygi Exp $
+// $Id: Matrix.C,v 1.20 2009-09-08 05:37:41 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -930,8 +930,34 @@ void DoubleMatrix::getsub(const DoubleMatrix &a,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// real getsub: *this = sub(A)
+// copy submatrix A(ia:ia+m, ja:ja+n) into *this(idest:idest+m,jdest:jdest+n)
+// *this and A may live in different contexts
+void DoubleMatrix::getsub(const DoubleMatrix &a,
+  int m, int n, int isrc, int jsrc, int idest, int jdest)
+{
+#if SCALAPACK
+  int iap=isrc+1;
+  int jap=jsrc+1;
+  int idp=idest+1;
+  int jdp=jdest+1;
+  assert(n<=n_);
+  assert(n<=a.n());
+  assert(m<=m_);
+  assert(m<=a.m());
+  int gictxt;
+  Cblacs_get( 0, 0, &gictxt );
+  pdgemr2d(&m,&n,a.val,&iap,&jap,a.desc_,val,&idp,&jdp,desc_,&gictxt);
+#else
+  for ( int j = 0; j < n; j++ )
+    for ( int i = 0; i < m; i++ )
+      val[(idest+i)+(jdest+j)*m_] = a.val[(i+isrc) + (j+jsrc)*a.m()];
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // complex getsub: *this = sub(A)
-// copy submatrix A(ia:ia+m, ja:ja+n) into *this;
+// copy submatrix A(ia:ia+m, ja:ja+n) into *this
 // *this and A may live in different contexts
 void ComplexMatrix::getsub(const ComplexMatrix &a,
   int m, int n, int ia, int ja)
@@ -951,6 +977,32 @@ void ComplexMatrix::getsub(const ComplexMatrix &a,
   for ( int j = 0; j < n; j++ )
     for ( int i = 0; i < m; i++ )
       val[i+j*m_] = a.val[(i+ia) + (j+ja)*a.m()];
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// complex getsub: *this = sub(A)
+// copy submatrix A(ia:ia+m, ja:ja+n) into *this(idest:idest+m,jdest:jdest+n)
+// *this and A may live in different contexts
+void ComplexMatrix::getsub(const ComplexMatrix &a,
+  int m, int n, int isrc, int jsrc, int idest, int jdest)
+{
+#if SCALAPACK
+  int iap=isrc+1;
+  int jap=jsrc+1;
+  int idp=idest+1;
+  int jdp=jdest+1;
+  assert(n<=n_);
+  assert(n<=a.n());
+  assert(m<=m_);
+  assert(m<=a.m());
+  int gictxt;
+  Cblacs_get( 0, 0, &gictxt );
+  pzgemr2d(&m,&n,a.val,&iap,&jap,a.desc_,val,&idp,&jdp,desc_,&gictxt);
+#else
+  for ( int j = 0; j < n; j++ )
+    for ( int i = 0; i < m; i++ )
+      val[(idest+i)+(jdest+j)*m_] = a.val[(i+isrc) + (j+jsrc)*a.m()];
 #endif
 }
 

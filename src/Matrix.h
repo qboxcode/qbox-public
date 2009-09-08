@@ -15,7 +15,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.18 2008-09-08 15:56:18 fgygi Exp $
+// $Id: Matrix.h,v 1.19 2009-09-08 05:37:41 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -203,6 +203,11 @@ class DoubleMatrix
 
     // get submatrix A(ia:ia+m,ja:ja+n) of A
     void getsub(const DoubleMatrix& a,int m,int n,int ia,int ja);
+
+    // get submatrix A(ia:ia+m,ja:ja+n) of A and store in
+    // this(idest:idest+m,jdest:jdest+n)
+    void getsub(const DoubleMatrix& a,int m,int n,int isrc,int jsrc,
+                int idest, int jdest);
 
     // matrix * matrix
     // this = alpha*op(A)*op(B)+beta*this
@@ -459,6 +464,11 @@ class ComplexMatrix
 
     // get submatrix A(ia:ia+m,ja:ja+n) of A
     void getsub(const ComplexMatrix& a, int m, int n, int ia, int ja);
+
+    // get submatrix A(ia:ia+m,ja:ja+n) of A and store in
+    // this(idest:idest+m,jdest:jdest+n)
+    void getsub(const ComplexMatrix& a,int m,int n,int isrc,int jsrc,
+                int idest, int jdest);
 
     // matrix * matrix
     // this = alpha*op(A)*op(B)+beta*this

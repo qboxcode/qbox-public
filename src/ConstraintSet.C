@@ -15,7 +15,7 @@
 // ConstraintSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.C,v 1.9 2009-05-15 04:38:48 fgygi Exp $
+// $Id: ConstraintSet.C,v 1.10 2009-10-06 06:23:28 fgygi Exp $
 
 #include "ConstraintSet.h"
 #include "PositionConstraint.h"
@@ -62,13 +62,16 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   {
     if ( onpe0 )
     {
-      cout << " Use: constraint define name position name1"
+      cout << " Use: constraint define position constraint_name atom_name"
            << endl;
-      cout << " Use: constraint define name distance name1 name2 distance [velocity]"
+      cout << " Use: constraint define distance constraint_name "
+           << "atom_name1 atom_name2 distance_value [velocity]"
            << endl;
-      cout << "      constraint define name angle name1 name2 name3 angle [velocity]"
+      cout << "      constraint define angle constraint_name "
+           << "name1 name2 name3 angle_value [velocity]"
            << endl;
-      cout << "      constraint define name torsion name1 name2 name3 name4 angle"
+      cout << "      constraint define torsion constraint_name "
+           << "name1 name2 name3 name4 angle_value"
            << " [velocity] "
            << endl;
     }
@@ -152,8 +155,8 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   }
   else if ( type == distance_type )
   {
-    // define name distance A B value
-    // define name distance A B value velocity
+    // define distance name A B value
+    // define distance name A B value velocity
 
     if ( argc < 7 || argc > 8 )
     {
@@ -236,8 +239,8 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   }
   else if ( type == angle_type )
   {
-    // constraint define name angle A B C value
-    // constraint define name angle A B C value velocity
+    // constraint define angle name A B C value
+    // constraint define angle name A B C value velocity
 
     if ( argc < 8  || argc > 9 )
     {
@@ -331,8 +334,8 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   }
   else if ( type == torsion_type )
   {
-    // constraint define name torsion A B C D angle
-    // constraint define name torsion A B C D angle velocity
+    // constraint define torsion name A B C D angle
+    // constraint define torsion name A B C D angle velocity
 
     if ( argc < 9  || argc > 10 )
     {

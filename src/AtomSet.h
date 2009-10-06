@@ -15,7 +15,7 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.23 2008-11-14 04:01:26 fgygi Exp $
+// $Id: AtomSet.h,v 1.24 2009-10-06 06:29:05 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
@@ -38,7 +38,7 @@ class AtomSet
   const Context& ctxt_;
 
   int nel_;
-  std::map<std::string,int> na_;  // na_[sp_name]: number of at. of spec. sp_name
+  std::map<std::string,int> na_;  // na_[sp_name]: num. of at. of spec. sp_name
   std::map<std::string,int> isp_; // isp_[sp_name]: index of species sp_name
   std::map<std::string,int> is_; // is_[atom_name]: is index of atom atom_name
   std::map<std::string,int> ia_; // ia_[atom_name]: ia index of atom atom_name

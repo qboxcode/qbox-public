@@ -15,7 +15,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.26 2008-11-14 04:06:41 fgygi Exp $
+// $Id: AtomSet.C,v 1.27 2009-10-06 06:30:27 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -55,9 +55,8 @@ bool AtomSet::addSpecies(Species* sp, string name)
   species_list.push_back(sp);
   spname.push_back(name);
   isp_[name] = species_list.size()-1;
-  na_.insert(map<string,int>::value_type(name,0));
+  na_[name] = 0;
   atom_list.resize(atom_list.size()+1);
-  is_[name] = spname.size()-1;
 
   if ( ctxt_.onpe0() )
   {

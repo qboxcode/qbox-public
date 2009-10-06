@@ -15,7 +15,7 @@
 // IonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: IonicStepper.h,v 1.12 2009-05-15 04:39:07 fgygi Exp $
+// $Id: IonicStepper.h,v 1.13 2009-10-06 06:24:39 fgygi Exp $
 
 #ifndef IONICSTEPPER_H
 #define IONICSTEPPER_H
@@ -33,7 +33,8 @@ class IonicStepper
   ConstraintSet& constraints_;
   double                    dt_;
   int                       nsp_;
-  // ndofs_ is the total number of degrees of freedom after constraints are considered
+  // ndofs_ is the total number of degrees of freedom after 
+  // constraints are considered
   int                            ndofs_;
   std::vector<int>               na_;  // number of atoms per species na_[nsp_]
   std::vector<std::vector< double> >  r0_; // r0_[nsp_][3*na_]

@@ -15,7 +15,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.34 2009-08-30 00:22:57 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.35 2009-11-05 07:03:39 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -729,8 +729,10 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     }
   }
 
-  sigma = sigma_ekin + sigma_econf + sigma_eps + sigma_enl +
-          sigma_ehart + sigma_exc + sigma_esr;
+  if ( compute_stress )
+    sigma = sigma_ekin + sigma_econf + sigma_eps + sigma_enl +
+            sigma_ehart + sigma_exc + sigma_esr;
+
   if ( debug_stress && s_.ctxt_.onpe0() )
   {
     const double gpa = 29421.5;
@@ -837,7 +839,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
          << "   <sigma_eks_xz> " << setw(12) << sigma[5] << " </sigma_eks_xz>\n"
          << " </stress_tensor>" << endl;
   }
-
 
   return etotal_;
 }

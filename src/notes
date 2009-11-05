@@ -1,4 +1,7 @@
 --------------------------------------------------------------------------------
+rel1_50_1
+EnergyFunctional.C:732: use sigma only if compute_stress==true
+--------------------------------------------------------------------------------
 rel1_50_0
 BOSampleStepper.C, RunCmd.C: added [-atomic_density] option to the run cmd.
 AndersonMixer.C: iterative LS problem with adaptive Tikhonov parameter.

@@ -15,7 +15,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.20 2009-09-08 05:37:41 fgygi Exp $
+// $Id: Matrix.C,v 1.21 2009-11-30 02:32:59 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -2395,8 +2395,8 @@ void DoubleMatrix::syevx(char uplo, valarray<double>& w, DoubleMatrix& z,
   {
     assert(m_==n_);
     char jobz = 'V';
-    char range = 'A';
 #ifdef SCALAPACK
+    char range = 'A';
     int ione=1;
     int lwork=-1;
     double tmpwork;
@@ -2673,6 +2673,20 @@ void ComplexMatrix::heevd(char uplo, valarray<double>& w, ComplexMatrix& z)
             rwork, &lrwork, iwork, &liwork, &info);
 
     //MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+    if ( info != 0 )
+    {
+      cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
+      cout << " Matrix::heevd, lwork>=" << lwork << endl;
+      cout << " Matrix::heevd, liwork>=" << liwork << endl;
+      cout << " Matrix::heevd, info=" << info<< endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    delete[] work;
+    delete[] rwork;
+    delete[] iwork;
 #else
     // request optimal lwork size
     int lwork=-1;
@@ -2689,22 +2703,20 @@ void ComplexMatrix::heevd(char uplo, valarray<double>& w, ComplexMatrix& z)
     z=*this;
     zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork,
           rwork, &info);
-#endif
     if ( info != 0 )
     {
       cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
       cout << " Matrix::heevd, lwork>=" << lwork << endl;
-      cout << " Matrix::heevd, liwork>=" << liwork << endl;
       cout << " Matrix::heevd, info=" << info<< endl;
 #ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
 #else
       exit(2);
 #endif
+#endif
     }
     delete[] work;
     delete[] rwork;
-    delete[] iwork;
   }
 }
 
@@ -2811,6 +2823,22 @@ void ComplexMatrix::heevd(char uplo, valarray<double>& w)
            rwork, &lrwork, iwork, &liwork, &info);
 
     MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+    if ( info != 0 )
+    {
+      cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
+      cout << " Matrix::heevd, lwork>=" << lwork << endl;
+      cout << " Matrix::heevd, lrwork>=" << lrwork << endl;
+      cout << " Matrix::heevd, liwork>=" << liwork << endl;
+      cout << " Matrix::heevd, info=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+    delete[] work;
+    delete[] rwork;
+    delete[] iwork;
 #else
     // request optimal lwork size
     int lwork=-1;
@@ -2833,7 +2861,6 @@ void ComplexMatrix::heevd(char uplo, valarray<double>& w)
       cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
       cout << " Matrix::heevd, lwork>=" << lwork << endl;
       cout << " Matrix::heevd, lrwork>=" << lrwork << endl;
-      cout << " Matrix::heevd, liwork>=" << liwork << endl;
       cout << " Matrix::heevd, info=" << info << endl;
 #ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
@@ -2843,7 +2870,6 @@ void ComplexMatrix::heevd(char uplo, valarray<double>& w)
     }
     delete[] work;
     delete[] rwork;
-    delete[] iwork;
   }
 }
 

@@ -15,7 +15,7 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.13 2009-03-08 01:12:33 fgygi Exp $
+// $Id: UserInterface.C,v 1.14 2009-11-30 02:28:54 fgygi Exp $
 
 #include "UserInterface.h"
 #include "qbox_xmlns.h"
@@ -27,7 +27,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#if USE_MPI
 #include <mpi.h>
+#endif
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -49,8 +51,10 @@ void wait_for_no_file(const string& lockfilename)
 ////////////////////////////////////////////////////////////////////////////////
 UserInterface::UserInterface(void) : terminate_(false)
 {
-  int mype;
+  int mype = 0;
+#if USE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&mype);
+#endif
   onpe0_ = ( mype == 0 );
 }
 
@@ -138,8 +142,10 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
       cmd_read = readCmd(cmdline, 256, cmdstream, echo );
       done = !cmd_read;
     }
+#if USE_MPI
     MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
     MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
+#endif
 
     if ( cmd_read )
     {
@@ -208,12 +214,16 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
 
           if ( cmdptr )
           {
+#if USE_MPI
             MPI_Barrier(MPI_COMM_WORLD);
+#endif
 #if DEBUG
             cout << " execute command " << cmdptr->name() << endl;
 #endif
             cmdptr->action(ac,av);
+#if USE_MPI
             MPI_Barrier(MPI_COMM_WORLD);
+#endif
 #if DEBUG
             cout << " command completed" << cmdptr->name() << endl;
 #endif
@@ -227,7 +237,9 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
               cmdstr.open(av[0],ios::in);
               status = !cmdstr;
             }
+#if USE_MPI
             MPI_Bcast(&status,1,MPI_INT,0,MPI_COMM_WORLD);
+#endif
             if ( !status )
             {
               // create new prompt in the form: prompt<filename>
@@ -267,7 +279,9 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
 
     if ( onpe0_ )
       done |= terminate_;
+#if USE_MPI
     MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
+#endif
   }
 
   if ( onpe0_ )
@@ -334,8 +348,10 @@ void UserInterface::processCmdsServer ( string inputfilename,
         cmd_read = readCmd(cmdline, 256, qbin, echo );
         cout << prompt << " " << cmdline << endl;
       }
+#if USE_MPI
       MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
       MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
+#endif
 
       if ( cmd_read )
       {
@@ -410,12 +426,16 @@ void UserInterface::processCmdsServer ( string inputfilename,
 
             if ( cmdptr )
             {
+#if USE_MPI
               MPI_Barrier(MPI_COMM_WORLD);
+#endif
 #if DEBUG
               cerr << " execute command " << cmdptr->name() << endl;
 #endif
               cmdptr->action(ac,av);
+#if USE_MPI
               MPI_Barrier(MPI_COMM_WORLD);
+#endif
 #if DEBUG
               cerr << " command completed " << cmdptr->name() << endl;
 #endif
@@ -429,7 +449,9 @@ void UserInterface::processCmdsServer ( string inputfilename,
                 cmdstr.open(av[0],ios::in);
                 status = !cmdstr;
               }
+#if USE_MPI
               MPI_Bcast(&status,1,MPI_INT,0,MPI_COMM_WORLD);
+#endif
               if ( !status )
               {
                 // create new prompt in the form: prompt<filename>
@@ -465,7 +487,9 @@ void UserInterface::processCmdsServer ( string inputfilename,
         // check if terminate_ flag was set during command execution
         if ( onpe0_ )
           done = terminate_;
+#if USE_MPI
         MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
+#endif
 
       } // if cmd_read
 

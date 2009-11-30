@@ -15,7 +15,7 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.15 2008-11-14 04:04:03 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.16 2009-11-30 02:26:37 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -942,6 +942,7 @@ void XMLGFPreprocessor::process(const char* const filename,
     }
   }
 
+#if USE_MPI
   // send scount array using all_to_all call
   valarray<int> a2a_scounts(1,ctxt.size()),a2a_rcounts(1,ctxt.size()),
                 a2a_sdispl(0,ctxt.size()),a2a_rdispl(0,ctxt.size());
@@ -968,10 +969,13 @@ void XMLGFPreprocessor::process(const char* const filename,
 
   valarray<double> rbuf(rbufsize);
 
-
   status = MPI_Alltoallv(&sbuf[0],&scounts[0],&sdispl[0],MPI_DOUBLE,
            &rbuf[0],&rcounts[0],&rdispl[0],MPI_DOUBLE,rctxt.comm());
   assert(status==0);
+
+#else // USE_MPI
+  valarray<double> rbuf(sbuf);
+#endif // USE_MPI
 
   // copy data from rbuf to gfdata.valptr()
   // functions in rbuf can have varying length
@@ -1061,6 +1065,7 @@ void XMLGFPreprocessor::process(const char* const filename,
   // Distribute sizes of local strings to all tasks
   // and store in array rcounts
 
+#if USE_MPI
   int xmlcontentsize = buf.size();
   status = MPI_Allgather(&xmlcontentsize,1,MPI_INT,&rcounts[0],1,
              MPI_INT,rctxt.comm());
@@ -1079,7 +1084,9 @@ void XMLGFPreprocessor::process(const char* const filename,
   // Allgatherv xml content
   status = MPI_Allgatherv(&buf[0],xmlcontentsize,MPI_CHAR,&xmlcontent[0],
     &rcounts[0],&rdispl[0],MPI_CHAR,rctxt.comm());
-
+#else
+  xmlcontent = buf;
+#endif // USE_MPI
   tm.stop();
   if ( ctxt.onpe0() )
     cout << " XMLGFPreprocessor: XML compacting time: " << tm.real() << endl;

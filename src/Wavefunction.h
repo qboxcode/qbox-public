@@ -15,17 +15,17 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.22 2008-09-08 15:56:19 fgygi Exp $
+// $Id: Wavefunction.h,v 1.23 2009-11-30 02:27:59 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
 
 #include "D3vector.h"
 #include "UnitCell.h"
-#include "SharedFilePtr.h"
 #include <vector>
 #include <complex>
 
+class SharedFilePtr;
 class SlaterDet;
 class Context;
 

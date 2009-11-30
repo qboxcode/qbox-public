@@ -15,7 +15,7 @@
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.10 2008-09-08 16:26:36 fgygi Exp $
+// $Id: SampleWriter.C,v 1.11 2009-11-30 02:31:15 fgygi Exp $
 
 
 #include "SampleWriter.h"
@@ -82,11 +82,11 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
   }
   else
   {
+#if USE_MPI
     MPI_File fh;
     MPI_Info info;
     MPI_Info_create(&info);
     MPI_Offset fsize;
-    SharedFilePtr sfp(ctxt_.comm(),fh);
 
     int err;
     err = MPI_File_open(ctxt_.comm(),(char*) filename_cstr,
@@ -98,6 +98,10 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     ctxt_.barrier();
 
     MPI_Status status;
+#else
+    ofstream fh(filename_cstr);
+#endif
+    SharedFilePtr sfp(ctxt_.comm(),fh);
     if ( ctxt_.onpe0() )
     {
       string header("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -120,12 +124,16 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
       ss << s.atoms;
       header += ss.str();
       int len = header.size();
+#if USE_MPI
       err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)header.c_str(),
             len,MPI_CHAR,&status);
       if ( err != 0 )
         cout << ctxt_.mype() << ": error in MPI_File_write: header "
              << err << endl;
       sfp.advance(len);
+#else
+      fh.write(header.c_str(),len);
+#endif
     }
     sfp.sync();
 
@@ -142,21 +150,29 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     {
       char *trailer = "</fpmd:sample>\n";
       int len = strlen(trailer);
+#if USE_MPI
       err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)trailer,
               len,MPI_CHAR,&status);
       if ( err != 0 )
         cout << ctxt_.mype() << ": error in MPI_File_write: trailer "
              << err << endl;
       sfp.advance(len);
+#else
+      fh.write(trailer,len);
+#endif
     }
 
     sfp.sync();
 
     file_size = sfp.offset();
 
+#if USE_MPI
     err = MPI_File_close(&fh);
     if ( err != 0 )
       cout << ctxt_.mype() << ": error in MPI_File_close: " << err << endl;
+#else
+    fh.close();
+#endif
   }
 
   tm.stop();

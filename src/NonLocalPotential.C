@@ -15,7 +15,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.C,v 1.27 2008-09-08 15:56:18 fgygi Exp $
+// $Id: NonLocalPotential.C,v 1.28 2009-11-30 02:32:13 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "Species.h"
@@ -1141,6 +1141,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
           tmap["fnl_zemm"].stop();
         }
 
+#if USE_MPI
         tmap["fnl_allreduce"].start();
         // Allreduce fnl partial sum
         MPI_Comm basis_comm = basis_.context().comm();
@@ -1154,6 +1155,11 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
           fnl_loc = 2.0 * fnl_buf;
         else
           fnl_loc = fnl_buf;
+#else
+        // factor 2.0 in next line is: counting G, -G
+        if ( basis_.real() )
+          fnl_loc *= 2.0;
+#endif
 
         // accumulate Enl contribution
         const int nbase = ctxt_.mycol() * sd_.c().nb();

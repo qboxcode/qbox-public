@@ -15,7 +15,7 @@
 // testChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testChargeDensity.C,v 1.4 2008-09-08 15:56:20 fgygi Exp $
+// $Id: testChargeDensity.C,v 1.5 2009-11-30 02:26:07 fgygi Exp $
 
 #include "Context.h"
 #include "Wavefunction.h"
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
     {
       for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
       {
-        if ( wf.sd(ispin,ikp) != 0 && wf.sdcontext(ispin,ikp)->active() )
+        if ( wf.sd(ispin,ikp) != 0 && wf.sd(ispin,ikp)->context().active() )
         {
         cout << "wf.sd(ispin=" << ispin << ",ikp=" << ikp << "): "
              << wf.sd(ispin,ikp)->c().m() << "x"
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
     cout << " wf.gram: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
 
-    wf.update_occ();
+    // wf.update_occ();
 
     // compute charge density in real space
     Timer tmrho;

@@ -15,7 +15,7 @@
 // Context.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.C,v 1.17 2008-09-08 15:56:18 fgygi Exp $
+// $Id: Context.C,v 1.18 2009-11-30 02:33:49 fgygi Exp $
 
 #include "Context.h"
 #include <iostream>
@@ -92,11 +92,11 @@ void Cdgsum2d(int icontxt, char* scope, char* top,
 
 void Cdgamx2d(int icontxt, char scope[], char top[],int m,int n,double *A,
               int lda, int *ra, int *ca, int rcflag, int rdest, int cdest)
-{ return; }
+{ if ( rcflag > 0 ) { *ca = 0; *ra = 0; } return; }
 
 void Cdgamn2d(int icontxt, char scope[], char top[],int m,int n,double *A,
               int lda, int *ra, int *ca, int rcflag, int rdest, int cdest)
-{ return; }
+{ if ( rcflag > 0 ) { *ca = 0; *ra = 0; } return; }
 
 void Cdgebs2d(int icontxt, char scope[], char top[],int m,int n,double *A,
               int lda)
@@ -118,11 +118,11 @@ void Cigsum2d(int icontxt, char* scope, char* top,
 
 void Cigamx2d(int icontxt, char scope[], char top[],int m,int n,int *A,int lda,
               int *ra, int *ca, int rcflag, int rdest, int cdest)
-{ return; }
+{ if ( rcflag > 0 ) { *ca = 0; *ra = 0; } return; }
 
 void Cigamn2d(int icontxt, char scope[], char top[],int m,int n,int *A,int lda,
               int *ra, int *ca, int rcflag, int rdest, int cdest)
-{ return; }
+{ if ( rcflag > 0 ) { *ca = 0; *ra = 0; } return; }
 
 void Cigebs2d(int icontxt, char scope[], char top[],int m,int n,int *A,
               int lda)

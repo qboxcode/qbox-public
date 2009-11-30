@@ -15,7 +15,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.57 2009-08-26 15:03:50 fgygi Exp $
+// $Id: SlaterDet.C,v 1.58 2009-11-30 02:30:34 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -1386,11 +1386,13 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   vector<double> wftmpr(wftmpr_loc_size);
   Base64Transcoder xcdr;
 
+#if USE_MPI
   char* wbuf = 0;
   size_t wbufsize = 0;
+  const Context& colctxt = basis_->context();
+#endif
 
   // Segment n on process iprow is sent to row (n*nprow+iprow)/(nprow)
-  const Context& colctxt = basis_->context();
   const int nprow = ctxt_.nprow();
   vector<int> scounts(nprow), sdispl(nprow), rcounts(nprow), rdispl(nprow);
 
@@ -1653,6 +1655,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
 
     // seg is defined
 
+#if USE_MPI
     // redistribute segments to tasks within each process column
 
     for ( int i = 0; i < nprow; i++ )
@@ -1708,7 +1711,12 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
       wbufsize += rbufsize;
     }
     delete [] rbuf;
+#else
+    sfp.file().write(seg.data(),seg.size());
+#endif
   }
+
+#if USE_MPI
   // wbuf now contains the data to be written in the correct order
 
   ctxt_.barrier();
@@ -1754,6 +1762,9 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
            << endl;
     sfp.advance(s.size());
   }
+#else
+  sfp.file() << "</slater_determinant>\n";
+#endif // USE_MPI
 }
 
 ////////////////////////////////////////////////////////////////////////////////

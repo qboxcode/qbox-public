@@ -15,7 +15,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.36 2008-09-08 15:56:19 fgygi Exp $
+// $Id: Wavefunction.C,v 1.37 2009-11-30 02:27:59 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -700,12 +700,16 @@ void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
     string str(os.str());
     int len = str.size();
+#if USE_MPI
     MPI_Status status;
     int err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)str.c_str(),
               len,MPI_CHAR,&status);
     if ( err != 0 )
       cout << " Wavefunction::write: error in MPI_File_write" << endl;
     sfp.advance(len);
+#else
+    sfp.file().write(str.c_str(),len);
+#endif
   }
 
   for ( int ispin = 0; ispin < nspin_; ispin++ )
@@ -724,12 +728,16 @@ void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
     os << "</" << tag << ">" << endl;
     string str(os.str());
     int len = str.size();
+#if USE_MPI
     MPI_Status status;
     int err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)str.c_str(),
               len,MPI_CHAR,&status);
     if ( err != 0 )
       cout << " Wavefunction::write: error in MPI_File_write" << endl;
     sfp.advance(len);
+#else
+    sfp.file().write(str.c_str(),len);
+#endif
   }
 }
 

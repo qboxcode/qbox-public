@@ -45,9 +45,13 @@ int main(int argc, char **argv)
   // the MPI_Finalize call
   {
 
+#if USE_MPI
   char processor_name[MPI_MAX_PROCESSOR_NAME];
   int namelen;
   PMPI_Get_processor_name(processor_name,&namelen);
+#else
+  const char* processor_name = "serial";
+#endif
 
   Context ctxt_global;
   int mype = ctxt_global.mype();
@@ -80,6 +84,7 @@ int main(int argc, char **argv)
   else
   {
     cout << " use: testFourierTransform a b c ecut(a.u.) [kpoint] " << endl;
+    return 1;
   }
   UnitCell cell(a,b,c);
   const double omega = cell.volume();
@@ -146,7 +151,7 @@ int main(int argc, char **argv)
   cout << " backward done " << endl;
   ctxt.barrier();
 
-#if 0
+#if 1
 
   tm.reset();
   ft2.reset_timers();

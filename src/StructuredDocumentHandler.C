@@ -15,7 +15,7 @@
 // StructuredDocumentHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.C,v 1.9 2009-04-30 22:38:32 fgygi Exp $
+// $Id: StructuredDocumentHandler.C,v 1.10 2009-11-30 02:35:35 fgygi Exp $
 
 #if USE_XERCES
 
@@ -67,11 +67,11 @@ void StructuredDocumentHandler::characters(const XMLCh* const chars,
   Timer tm;
   tm.start();
 #endif
-  size_t pos = buffer.size();
-  // Note: buffer must be able to hold length+1 chars for '\0'
-  buffer.resize(pos+length+1);
-  bool status = XMLString::transcode(chars,&buffer[pos],length);
-  assert(status==true);
+
+  char *str = XMLString::transcode(chars);
+  buffer += str;
+  XMLString::release(&str);
+
 #if TIMING
   tm.stop();
   cout << " StructuredDocumentHandler::characters: time: " << tm.real() << endl;

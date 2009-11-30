@@ -15,7 +15,7 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.20 2009-04-30 22:39:18 fgygi Exp $
+// $Id: WavefunctionHandler.C,v 1.21 2009-11-30 02:47:04 fgygi Exp $
 
 #if USE_XERCES
 
@@ -32,6 +32,7 @@
 using namespace xercesc;
 #include <iostream>
 #include <cassert>
+#include <cstring> // memcpy
 #include <sstream>
 using namespace std;
 
@@ -404,7 +405,12 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
       {
         // base64 encoding
         unsigned int length;
+#ifdef XERCESC_3_0_1
+        XMLByte* b = Base64::decode((XMLByte*)content.c_str(),
+                                    (XMLSize_t*) &length);
+#else
         XMLByte* b = Base64::decode((XMLByte*)content.c_str(), &length);
+#endif
         assert(b!=0);
         // use data in b
         assert(length/sizeof(double)==wftmpr_size);

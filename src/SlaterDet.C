@@ -15,7 +15,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.58 2009-11-30 02:30:34 fgygi Exp $
+// $Id: SlaterDet.C,v 1.59 2009-11-30 02:46:15 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -26,6 +26,7 @@
 #include "Timer.h"
 
 #include <cstdlib>
+#include <cstring> // memcpy
 #include <iostream>
 #include <iomanip>
 #include <sstream>

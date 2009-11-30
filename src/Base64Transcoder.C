@@ -15,13 +15,13 @@
 // Base64Transcoder.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Base64Transcoder.C,v 1.8 2008-09-08 15:56:18 fgygi Exp $
+// $Id: Base64Transcoder.C,v 1.9 2009-11-30 02:45:23 fgygi Exp $
 
 #include "Base64Transcoder.h"
 #include <iostream>
 #include <cstdio>
 #include <string>
-#include <cstring>
+#include <cstring> // memcpy
 #include <cassert>
 using namespace std;
 

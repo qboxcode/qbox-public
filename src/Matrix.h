@@ -15,7 +15,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.19 2009-09-08 05:37:41 fgygi Exp $
+// $Id: Matrix.h,v 1.20 2009-11-30 02:45:11 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -26,6 +26,7 @@ class Context;
 
 #include <valarray>
 #include <complex>
+#include <cstring> // memcpy
 
 class ComplexMatrix;
 

@@ -15,7 +15,7 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.30 2008-09-08 15:56:19 fgygi Exp $
+// $Id: SampleReader.C,v 1.31 2009-11-30 02:45:55 fgygi Exp $
 
 
 #include "Sample.h"
@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include <string>
+#include <cstring> // memcpy
 #include <iostream>
 #include <fstream>
 #include <sys/stat.h>

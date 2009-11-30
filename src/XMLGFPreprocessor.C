@@ -15,13 +15,14 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.16 2009-11-30 02:26:37 fgygi Exp $
+// $Id: XMLGFPreprocessor.C,v 1.17 2009-11-30 02:47:20 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <cstring> // memcpy
 #include <vector>
 #include <cstdlib>
 #include <cstdio>

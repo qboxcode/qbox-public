@@ -10,7 +10,7 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
-// $Id: testMatrix.C,v 1.15 2008-09-08 15:56:20 fgygi Exp $
+// $Id: testMatrix.C,v 1.16 2009-11-30 02:22:53 fgygi Exp $
 //
 // test Matrix
 //
@@ -358,7 +358,7 @@ int main(int argc, char **argv)
           {
             int i = a.i(l,x);
             int j = a.j(m,y);
-            double aij = aa(i,j);
+            //double aij = aa(i,j);
             int iii = x + l*a.mb();
             int jjj = y + m*a.nb();
             int ival = iii + jjj * a.mloc();

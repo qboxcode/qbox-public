@@ -15,7 +15,7 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.20 2008-09-08 15:56:18 fgygi Exp $
+// $Id: FourierTransform.C,v 1.21 2009-11-30 02:33:27 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
@@ -929,7 +929,7 @@ void FourierTransform::fwd(complex<double>* val)
   assert ( status == 0 );
 #else
   assert(sbuf.size()==rbuf.size());
-  rbuf = sbuf;
+  sbuf = rbuf;
 #endif
 
   // segments of z-vectors are now in sbuf

@@ -1,4 +1,9 @@
 --------------------------------------------------------------------------------
+rel1_50_2
+Updated several files to enable serial version (without MPI or ScaLAPACK)
+Added include<cstring> in various files to get correct memcpy declaration.
+(caused trouble with gcc 4.4.1 on Ubuntu).
+--------------------------------------------------------------------------------
 rel1_50_1
 EnergyFunctional.C:732: use sigma only if compute_stress==true
 --------------------------------------------------------------------------------

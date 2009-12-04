@@ -1,4 +1,7 @@
 --------------------------------------------------------------------------------
+rel1_50_3
+SampleWriter.C: Fixed size calculation for serial version
+--------------------------------------------------------------------------------
 rel1_50_2
 Updated several files to enable serial version (without MPI or ScaLAPACK)
 Added include<cstring> in various files to get correct memcpy declaration.

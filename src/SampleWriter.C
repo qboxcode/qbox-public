@@ -15,7 +15,7 @@
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.11 2009-11-30 02:31:15 fgygi Exp $
+// $Id: SampleWriter.C,v 1.12 2009-12-04 03:18:23 fgygi Exp $
 
 
 #include "SampleWriter.h"
@@ -26,6 +26,7 @@
 #include "SharedFilePtr.h"
 #include <sstream>
 #include <iomanip>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -86,7 +87,6 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     MPI_File fh;
     MPI_Info info;
     MPI_Info_create(&info);
-    MPI_Offset fsize;
 
     int err;
     err = MPI_File_open(ctxt_.comm(),(char*) filename_cstr,
@@ -164,14 +164,16 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
 
     sfp.sync();
 
-    file_size = sfp.offset();
-
 #if USE_MPI
+    file_size = sfp.offset();
     err = MPI_File_close(&fh);
     if ( err != 0 )
       cout << ctxt_.mype() << ": error in MPI_File_close: " << err << endl;
 #else
     fh.close();
+    struct stat statbuf;
+    stat(filename_cstr,&statbuf);
+    file_size = statbuf.st_size;
 #endif
   }
 

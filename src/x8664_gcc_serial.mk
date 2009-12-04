@@ -15,7 +15,7 @@
 #  x8664_gcc_serial.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: x8664_gcc_serial.mk,v 1.1 2009-11-30 02:36:00 fgygi Exp $
+# $Id: x8664_gcc_serial.mk,v 1.2 2009-12-04 03:16:17 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
@@ -45,7 +45,7 @@
  LIBS =  $(PLIBS) -lfftw \
          -llapack -lf77blas -latlas -lm \
          -Xlinker -Bstatic \
-          -lc -lgfortran -static-libgcc -lxerces-c \
+          -lc -lgfortran -static-libgcc -lxerces-c -luuid \
          -Xlinker -Bdynamic
 
  LDFLAGS = $(LIBPATH) $(LIBS)

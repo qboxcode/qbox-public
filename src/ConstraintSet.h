@@ -15,7 +15,7 @@
 // ConstraintSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.h,v 1.8 2009-05-15 04:38:48 fgygi Exp $
+// $Id: ConstraintSet.h,v 1.9 2010-01-09 19:35:40 fgygi Exp $
 
 #ifndef CONSTRAINTSET_H
 #define CONSTRAINTSET_H
@@ -39,7 +39,7 @@ class ConstraintSet
 
   public:
 
-  ConstraintSet(const Context& ctxt) : ctxt_(ctxt) {}
+  ConstraintSet(const Context& ctxt) : ctxt_(ctxt), ndofs_(0) {}
   ~ConstraintSet();
   bool define_constraint(AtomSet &atoms, int argc, char **argv);
   bool set_constraint(int argc, char **argv);

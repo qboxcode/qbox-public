@@ -1,4 +1,12 @@
 --------------------------------------------------------------------------------
+rel1_51_0
+Added external forces: atomic, pair or global.
+Added capability to load samples multiple times
+Added capability to redefine species
+Added uuid identifier in output
+SlaterDet.C, Wavefunction.C modified clear, reset, init members
+Species.C: modified Species::info to print XML elements
+--------------------------------------------------------------------------------
 rel1_50_4
 ConstraintSet.C: Fixed uninitialized ndofs_ in ctor.
 --------------------------------------------------------------------------------

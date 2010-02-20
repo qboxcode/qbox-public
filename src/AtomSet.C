@@ -15,7 +15,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.27 2009-10-06 06:30:27 fgygi Exp $
+// $Id: AtomSet.C,v 1.28 2010-02-20 23:13:02 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -40,23 +40,40 @@ AtomSet::~AtomSet(void)
 ////////////////////////////////////////////////////////////////////////////////
 bool AtomSet::addSpecies(Species* sp, string name)
 {
-  if ( findSpecies(name) )
-  {
-    if ( ctxt_.onpe0() )
-      cout << " AtomSet::addSpecies: species " << name
-           << " is already defined" << endl;
-    return false;
-  }
-
   const double rcps = 1.5;
   sp->initialize(rcps);
 
-  // create new entry in species list
-  species_list.push_back(sp);
-  spname.push_back(name);
-  isp_[name] = species_list.size()-1;
-  na_[name] = 0;
-  atom_list.resize(atom_list.size()+1);
+  Species *s = findSpecies(name);
+  if ( s != 0 )
+  {
+    // species is already defined: substitute with new definition
+    if ( ctxt_.onpe0() )
+    {
+      cout << " AtomSet::addSpecies: species " << name
+           << " is already defined" << endl;
+      cout << " AtomSet::addSpecies: redefining species" << endl;
+    }
+    // Check if s and sp are compatible: zval must be equal
+    if ( s->zval() != sp->zval() )
+    {
+      cout << " AtomSet::addSpecies: species do not have the same"
+           << " number of valence electrons. Cannot redefine species" << endl;
+      return false;
+    }
+
+    int is = isp_[s->name()];
+    species_list[is] = sp;
+    delete s;
+  }
+  else
+  {
+    // create new entry in species list
+    species_list.push_back(sp);
+    spname.push_back(name);
+    isp_[name] = species_list.size()-1;
+    na_[name] = 0;
+    atom_list.resize(atom_list.size()+1);
+  }
 
   if ( ctxt_.onpe0() )
   {
@@ -276,7 +293,26 @@ bool AtomSet::reset(void)
   }
   atom_list.resize(0);
   species_list.resize(0);
+  spname.resize(0);
+  for ( map<string,int>::iterator i = na_.begin();
+        i != na_.end();
+        i++ )
+        na_.erase(i);
 
+  for ( map<string,int>::iterator i = isp_.begin();
+        i != isp_.end();
+        i++ )
+        isp_.erase(i);
+
+  for ( map<string,int>::iterator i = is_.begin();
+        i != is_.end();
+        i++ )
+        is_.erase(i);
+
+  for ( map<string,int>::iterator i = ia_.begin();
+        i != ia_.end();
+        i++ )
+        ia_.erase(i);
   nel_ = 0;
 
   return true;

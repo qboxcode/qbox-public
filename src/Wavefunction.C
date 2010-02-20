@@ -15,7 +15,7 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.37 2009-11-30 02:27:59 fgygi Exp $
+// $Id: Wavefunction.C,v 1.38 2010-02-20 23:13:02 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -60,7 +60,7 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
   allocate();
 
   resize(cell_,refcell_,ecut_);
-  reset();
+  init();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -94,18 +94,6 @@ void Wavefunction::deallocate(void)
     delete sd_[0][ikp];
   }
   sd_[0].resize(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::clear(void)
-{
-  for ( int ispin = 0; ispin < nspin(); ispin++ )
-  {
-    for ( int ikp = 0; ikp < nkp(); ikp++ )
-    {
-      sd(ispin,ikp)->c().clear();
-    }
-  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -184,16 +172,46 @@ void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::reset(void)
+void Wavefunction::init(void)
 {
-  // reset all SlaterDets
+  // initialize all SlaterDets with lowest energy plane waves
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      sd_[ispin][ikp]->reset();
+      sd_[ispin][ikp]->init();
     }
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void Wavefunction::clear(void)
+{
+  // initialize all SlaterDets with zero
+  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  {
+    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    {
+      sd_[ispin][ikp]->c().clear();
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void Wavefunction::reset(void)
+{
+  // reset to single kpoint, ecut=0
+  deallocate();
+  nel_ = 0;
+  nempty_ = 0;
+  nspin_ = 1;
+  deltaspin_ = 0;
+  kpoint_.resize(1);
+  kpoint_[0] = D3vector(0,0,0);
+  weight_.resize(1);
+  weight_[0] = 1.0;
+  compute_nst();
+  allocate();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -258,7 +276,7 @@ void Wavefunction::set_nspin(int nspin)
   allocate();
   cout << " Wavefunction::set_nspin: " << nspin << " allocate done" << endl;
   resize(cell_,refcell_,ecut_);
-  reset();
+  init();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -296,7 +314,7 @@ void Wavefunction::set_nrowmax(int n)
   compute_nst();
   allocate();
   resize(cell_,refcell_,ecut_);
-  reset();
+  init();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -354,7 +372,7 @@ void Wavefunction::del_kpoint(D3vector kpoint)
   weight_.erase(pw);
   allocate();
   resize(cell_,refcell_,ecut_);
-  reset();
+  init();
   update_occ(0.0);
 }
 

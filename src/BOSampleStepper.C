@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.54 2009-09-08 18:45:59 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.55 2010-02-20 23:13:02 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -389,8 +389,10 @@ void BOSampleStepper::step(int niter)
              << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
              << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
              << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
-             << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n"
-             << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
+             << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n";
+        if ( s_.extforces.size() > 0 )
+          cout << "  <eexf>     " << setw(15) << ef_.eexf() << " </eexf>\n";
+        cout << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
         if ( compute_stress )
         {
           const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;

@@ -15,7 +15,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.14 2009-05-01 04:26:45 fgygi Exp $
+// $Id: Species.C,v 1.15 2010-02-20 23:13:02 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -617,12 +617,32 @@ void Species::info(ostream &os)
 {
   os.setf(ios::left,ios::adjustfield);
 
-  os << " name_ = " << name() << endl;
-  os << " description_ = " << description() << endl;
-  os << " uri_ = " << uri() << endl;
-  os << " symbol_ = " << symbol() << endl;
-  os << " atomic_number_ = " << atomic_number() << endl;
+  if ( uri() != "" )
+  {
+    os <<"<species name=\"" << name()
+       << "\" href=\"" << uri() << "\">" << endl;
+  }
+  else
+  {
+    os <<"<species name=\"" << name() << "\">" << endl;
+  }
+  os << "<description>" << description() << "</description>" << endl;
+  os << "<symbol>" << symbol() << "</symbol>" << endl;
+  os << "<atomic_number>" << atomic_number() << "</atomic_number>" << endl;
+  os << "<mass>" << mass() << "</mass>" << endl;
+  os << "<norm_conserving_pseudopotential>" << endl;
+  os << "<valence_charge>" << zval() << "</valence_charge>" << endl;
+  os << "<lmax>" << lmax() << "</lmax>" << endl;
+  os << "<llocal>" << llocal() << "</llocal>" << endl;
+  os << "<nquad>" << nquad() << "</nquad>" << endl;
+  os << "<rquad>" << rquad() << "</rquad>" << endl;
+  os << "<mesh_spacing>" << deltar() << "</mesh_spacing>" << endl;
+  os << "</norm_conserving_pseudopotential>" << endl;
+  os << "</species>" << endl;
+
   // describe type of potential
+  os.setf(ios::fixed,ios::floatfield);
+  os << setprecision(6);
   if ( nquad() == 0 )
   {
     if ( lmax() == 0 )
@@ -639,12 +659,6 @@ void Species::info(ostream &os)
     os << " local (within 1.e-4) beyond r = " << rcut_loc(1.e-4) << endl;
     os << " local (within 1.e-3) beyond r = " << rcut_loc(1.e-3) << endl;
   }
-
-  os << " valence charge = " << zval()
-     << " / ionic mass_ = " << mass()
-     << " (amu)" << endl;
-  os << " lmax_ =   " << lmax() << endl;
-  os << " llocal_ = " << llocal() << endl;
   os << " rcps_ =   " << rcps() << endl;
   os.setf(ios::right,ios::adjustfield);
 }

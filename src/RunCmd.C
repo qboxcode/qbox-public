@@ -15,7 +15,7 @@
 // RunCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.C,v 1.10 2009-09-08 05:38:58 fgygi Exp $
+// $Id: RunCmd.C,v 1.11 2010-02-20 23:13:02 fgygi Exp $
 
 #include "RunCmd.h"
 #include<iostream>
@@ -75,6 +75,9 @@ int RunCmd::action(int argc, char **argv)
     nitscf = atoi(argv[iarg+1]);
     nite = atoi(argv[iarg+2]);
   }
+
+  s->extforces.setup(s->atoms);
+
   if ( s->ctrl.wf_dyn == "MD" )
     stepper = new CPSampleStepper(*s);
   else

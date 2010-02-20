@@ -15,7 +15,7 @@
 // ConstraintSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.h,v 1.9 2010-01-09 19:35:40 fgygi Exp $
+// $Id: ConstraintSet.h,v 1.10 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef CONSTRAINTSET_H
 #define CONSTRAINTSET_H
@@ -56,5 +56,6 @@ class ConstraintSet
                       const std::vector<std::vector<double> > &f);
   void update_constraints(double dt);
   void setup(AtomSet& atoms);
+  void reset(void);
 };
 #endif

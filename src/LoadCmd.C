@@ -15,7 +15,7 @@
 // LoadCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LoadCmd.C,v 1.11 2008-09-08 15:56:18 fgygi Exp $
+// $Id: LoadCmd.C,v 1.12 2010-02-20 23:13:02 fgygi Exp $
 
 #include "LoadCmd.h"
 #include "SampleReader.h"
@@ -42,6 +42,11 @@ int LoadCmd::action(int argc, char **argv)
 
   if ( ui->onpe0() )
     cout << " LoadCmd: loading from " << argv[iarg] << endl;
+
+  // Reset current sample
+  // cout << "atomset before reset: nsp: " << s->atoms.nsp() << endl;
+  s->reset();
+  // cout << "atomset after reset: nsp: " << s->atoms.nsp() << endl;
 
   SampleReader s_reader(s->ctxt_);
 

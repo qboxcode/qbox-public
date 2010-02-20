@@ -15,7 +15,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.27 2008-09-08 15:56:19 fgygi Exp $
+// $Id: SlaterDet.h,v 1.28 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -72,7 +72,7 @@ class SlaterDet
   void rs_mul_add(FourierTransform& ft, const double* v, SlaterDet& sdp) const;
   void randomize(double amplitude);
   void cleanup(void);
-  void reset(void);
+  void init(void);
   void gram(void);
   void riccati(const SlaterDet& sd);
   void lowdin(void);

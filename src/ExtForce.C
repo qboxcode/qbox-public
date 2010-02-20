@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2009 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -12,13 +12,17 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// release.C
+//  ExtForce.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: release.C,v 1.81 2010-02-20 23:13:02 fgygi Exp $
+// $Id: ExtForce.C,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
-#include "release.h"
-std::string release(void)
+#include "ExtForce.h"
+#include <iostream>
+using namespace std;
+
+ostream& operator << ( ostream &os, ExtForce &x )
 {
-  return std::string("1.51.0");
+  return x.print(os);
 }
+

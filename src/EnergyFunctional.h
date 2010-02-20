@@ -15,7 +15,7 @@
 // EnergyFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.h,v 1.19 2008-09-08 15:56:18 fgygi Exp $
+// $Id: EnergyFunctional.h,v 1.20 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef ENERGYFUNCTIONAL_H
 #define ENERGYFUNCTIONAL_H
@@ -61,12 +61,13 @@ class EnergyFunctional
   std::vector<double> ftmp;
 
   std::vector<std::vector<double> > tau0, fion_esr;
+  std::vector<std::vector<double> > fext;
   std::vector<double> zv_, rcps_;
   std::vector<int> na_;
   int namax_;
   int nsp_;
   double ekin_, econf_, eps_, enl_, ehart_,
-         ecoul_, exc_, esr_, eself_, ets_, etotal_;
+         ecoul_, exc_, esr_, eself_, ets_, eexf_, etotal_;
   std::valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
     sigma_enl, sigma_esr, sigma;
 
@@ -90,6 +91,7 @@ class EnergyFunctional
   double esr(void) const { return esr_; }
   double eself(void) const { return eself_; }
   double ets(void) const { return ets_; }
+  double eexf(void) const { return eexf_; }
 
   const ConfinementPotential *confpot(int ikp) const { return cfp[ikp]; }
 

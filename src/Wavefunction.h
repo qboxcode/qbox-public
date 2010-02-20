@@ -15,7 +15,7 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.23 2009-11-30 02:27:59 fgygi Exp $
+// $Id: Wavefunction.h,v 1.24 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H
@@ -92,8 +92,9 @@ class Wavefunction
 
   void resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
   void resize(double ec) { resize(cell_,refcell_,ec); }
-  void reset(void); // initialize with lowest plane waves
+  void init(void); // initialize with lowest plane waves
   void clear(void); // initialize with zero
+  void reset(void); // reset to single kpoint, ecut=0
   void set_nel(int nel);
   void set_nempty(int nempty);
   void set_nspin(int nspin);

@@ -15,13 +15,14 @@
 // Sample.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Sample.h,v 1.12 2008-11-14 04:01:26 fgygi Exp $
+// $Id: Sample.h,v 1.13 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef SAMPLE_H
 #define SAMPLE_H
 
 #include "AtomSet.h"
 #include "ConstraintSet.h"
+#include "ExtForceSet.h"
 #include "Wavefunction.h"
 #include "Control.h"
 
@@ -37,12 +38,21 @@ class Sample
 
   AtomSet atoms;
   ConstraintSet constraints;
+  ExtForceSet extforces;
   Wavefunction wf;
   Wavefunction* wfv; // wavefunction velocity
   Control ctrl;
 
   Sample(const Context& ctxt) : ctxt_(ctxt), atoms(ctxt), constraints(ctxt),
-    wf(ctxt), wfv(0) {}
+    extforces(ctxt), wf(ctxt), wfv(0) {}
   ~Sample(void) { delete wfv; }
+  void reset(void)
+  {
+    atoms.reset();
+    constraints.reset();
+    extforces.reset();
+    wf.reset();
+    delete wfv;
+  }
 };
 #endif

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2008-2010 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -15,7 +15,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.65 2009-06-29 09:59:41 fgygi Exp $
+// $Id: qb.C,v 1.66 2010-02-20 23:13:02 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -35,6 +35,7 @@ using namespace std;
 #include "isodate.h"
 #include "release.h"
 #include "qbox_xmlns.h"
+#include "uuid.h"
 
 #include "Context.h"
 #include "UserInterface.h"
@@ -46,6 +47,7 @@ using namespace std;
 #include "ComputeMLWFCmd.h"
 #include "ConstraintCmd.h"
 #include "DistanceCmd.h"
+#include "ExtForceCmd.h"
 #include "FoldInWsCmd.h"
 #include "HelpCmd.h"
 #include "KpointCmd.h"
@@ -133,6 +135,7 @@ int main(int argc, char **argv, char **envp)
   {
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
+  cout << "<uuid> " << uuid() << " </uuid>" << endl;
   cout << "\n";
   cout << "                   ============================\n";
   cout << "                   I qbox "
@@ -233,6 +236,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new ComputeMLWFCmd(s));
   ui.addCmd(new ConstraintCmd(s));
   ui.addCmd(new DistanceCmd(s));
+  ui.addCmd(new ExtForceCmd(s));
   ui.addCmd(new FoldInWsCmd(s));
   ui.addCmd(new HelpCmd(s));
   ui.addCmd(new KpointCmd(s));

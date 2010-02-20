@@ -15,7 +15,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.59 2009-11-30 02:46:15 fgygi Exp $
+// $Id: SlaterDet.C,v 1.60 2010-02-20 23:13:02 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -113,15 +113,16 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
     const int m = ctxt_.nprow() * mb;
     const int nb = nst/ctxt_.npcol() + (nst%ctxt_.npcol() > 0 ? 1 : 0);
 
-    // Determine if plane wave coefficients must be reset after the resize
+    // Determine if plane wave coefficients must be reinitialized after
+    // the resize
     // This is needed if the dimensions of the matrix c_ must be changed
-    const bool needs_reset =
+    const bool needs_init =
       m!=c_.m() || nst!=c_.n() || mb!=c_.mb() || nb!=c_.nb();
 
     c_.resize(m,nst,mb,nb);
 
-    if ( needs_reset )
-      reset();
+    if ( needs_init )
+      init();
 
     // check if data can be copied from temporary copy
     // It is assumed that nst and ecut are not changing at the same time
@@ -182,7 +183,7 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::reset(void)
+void SlaterDet::init(void)
 {
   // initialize coefficients with lowest plane waves
   if ( c_.n() <= basis_->size() )

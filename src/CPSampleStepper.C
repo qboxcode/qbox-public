@@ -15,7 +15,7 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.22 2009-05-15 04:37:02 fgygi Exp $
+// $Id: CPSampleStepper.C,v 1.23 2010-02-20 23:13:02 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
@@ -166,8 +166,10 @@ void CPSampleStepper::step(int niter)
            << "  <ecoul>    " << setw(15) << ef_.ecoul() << " </ecoul>\n"
            << "  <exc>      " << setw(15) << ef_.exc() << " </exc>\n"
            << "  <esr>      " << setw(15) << ef_.esr() << " </esr>\n"
-           << "  <eself>    " << setw(15) << ef_.eself() << " </eself>\n"
-           << "  <etotal>   " << setw(15) << ef_.etotal() << " </etotal>\n"
+           << "  <eself>    " << setw(15) << ef_.eself() << " </eself>\n";
+      if ( s_.extforces.size() > 0 )
+        cout << "  <eexf>     " << setw(15) << ef_.eexf() << " </eexf>\n";
+      cout << "  <etotal>   " << setw(15) << ef_.etotal() << " </etotal>\n"
            << flush;
       if ( compute_stress )
       {

@@ -15,7 +15,7 @@
 // ConstraintSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.C,v 1.10 2009-10-06 06:23:28 fgygi Exp $
+// $Id: ConstraintSet.C,v 1.11 2010-02-20 23:13:02 fgygi Exp $
 
 #include "ConstraintSet.h"
 #include "PositionConstraint.h"
@@ -642,4 +642,13 @@ void ConstraintSet::setup(AtomSet& atoms)
   {
     constraint_list[i]->setup(atoms);
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ConstraintSet::reset(void)
+{
+  for ( int i = 0; i < constraint_list.size(); i++ )
+    delete constraint_list[i];
+  ndofs_ = 0;
+  constraint_list.resize(0);
 }

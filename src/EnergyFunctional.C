@@ -15,7 +15,7 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.35 2009-11-05 07:03:39 fgygi Exp $
+// $Id: EnergyFunctional.C,v 1.36 2010-02-20 23:13:02 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -118,6 +118,7 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
 
   tau0.resize(nsp_);
   fion_esr.resize(nsp_);
+  fext.resize(nsp_);
   ftmp.resize(3*namax_);
 
   eself_ = 0.0;
@@ -129,6 +130,7 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
     const int na = atoms.na(is);
     tau0[is].resize(3*na);
     fion_esr[is].resize(3*na);
+    fext[is].resize(3*na);
 
     eself_ += na * s->eself();
     na_[is] = na;
@@ -161,7 +163,6 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
   cell_moved();
 
   atoms_moved();
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -314,8 +315,8 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   const bool use_confinement = s_.ctrl.ecuts > 0.0;
 
   for ( int is = 0; is < fion.size(); is++ )
-    for ( int ia = 0; ia < fion[is].size(); ia++ )
-      fion[is][ia] = 0.0;
+    for ( int i = 0; i < fion[is].size(); i++ )
+      fion[is][i] = 0.0;
 
   if ( compute_hpsi )
   {
@@ -603,7 +604,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
     ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
   }
-  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_;
+  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_;
 
   if ( compute_hpsi )
   {
@@ -726,6 +727,15 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       {
         fion[is][i] += fion_esr[is][i] + fac * ftmp[i];
       }
+
+      // add external forces
+      if ( s_.extforces.size() > 0 )
+      {
+        assert(fion.size()==fext.size());
+        assert(fion[is].size()==fext[is].size());
+        for ( int i = 0; i < fion[is].size(); i++ )
+          fion[is][i] += fext[is][i];
+      }
     }
   }
 
@@ -839,7 +849,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
          << "   <sigma_eks_xz> " << setw(12) << sigma[5] << " </sigma_eks_xz>\n"
          << " </stress_tensor>" << endl;
   }
-
   return etotal_;
 }
 
@@ -967,6 +976,10 @@ void EnergyFunctional::atoms_moved(void)
     }
   }
   sigma_esr *= - omega_inv;
+
+  // get external forces in fext
+  eexf_ = s_.extforces.energy(tau0,fext);
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1020,6 +1033,7 @@ void EnergyFunctional::print(ostream& os) const
      << "  <esr>    " << setw(15) << esr() << " </esr>\n"
      << "  <eself>  " << setw(15) << eself() << " </eself>\n"
      << "  <ets>    " << setw(15) << ets() << " </ets>\n"
+     << "  <eexf>   " << setw(15) << eexf() << " </eexf>\n"
      << "  <etotal> " << setw(15) << etotal() << " </etotal>\n"
      << flush;
 }

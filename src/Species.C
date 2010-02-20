@@ -15,7 +15,7 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.15 2010-02-20 23:13:02 fgygi Exp $
+// $Id: Species.C,v 1.16 2010-02-20 23:25:38 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -626,18 +626,18 @@ void Species::info(ostream &os)
   {
     os <<"<species name=\"" << name() << "\">" << endl;
   }
-  os << "<description>" << description() << "</description>" << endl;
-  os << "<symbol>" << symbol() << "</symbol>" << endl;
-  os << "<atomic_number>" << atomic_number() << "</atomic_number>" << endl;
-  os << "<mass>" << mass() << "</mass>" << endl;
-  os << "<norm_conserving_pseudopotential>" << endl;
-  os << "<valence_charge>" << zval() << "</valence_charge>" << endl;
-  os << "<lmax>" << lmax() << "</lmax>" << endl;
-  os << "<llocal>" << llocal() << "</llocal>" << endl;
-  os << "<nquad>" << nquad() << "</nquad>" << endl;
-  os << "<rquad>" << rquad() << "</rquad>" << endl;
-  os << "<mesh_spacing>" << deltar() << "</mesh_spacing>" << endl;
-  os << "</norm_conserving_pseudopotential>" << endl;
+  os << " <description>" << description() << "</description>" << endl;
+  os << " <symbol>" << symbol() << "</symbol>" << endl;
+  os << " <atomic_number>" << atomic_number() << "</atomic_number>" << endl;
+  os << " <mass>" << mass() << "</mass>" << endl;
+  os << " <norm_conserving_pseudopotential>" << endl;
+  os << " <valence_charge>" << zval() << "</valence_charge>" << endl;
+  os << " <lmax>" << lmax() << "</lmax>" << endl;
+  os << " <llocal>" << llocal() << "</llocal>" << endl;
+  os << " <nquad>" << nquad() << "</nquad>" << endl;
+  os << " <rquad>" << rquad() << "</rquad>" << endl;
+  os << " <mesh_spacing>" << deltar() << "</mesh_spacing>" << endl;
+  os << " </norm_conserving_pseudopotential>" << endl;
   os << "</species>" << endl;
 
   // describe type of potential

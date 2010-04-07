@@ -15,7 +15,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.20 2009-11-30 02:45:11 fgygi Exp $
+// $Id: Matrix.h,v 1.21 2010-04-07 03:20:14 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -130,7 +130,6 @@ class DoubleMatrix
       const int old_size = size_;
       init_size(m,n,mb,nb);
       if ( size_ == old_size ) return;
-      init_size(m,n,mb,nb);
       delete[] val;
       val = new double[size_];
       clear();

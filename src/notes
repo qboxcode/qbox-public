@@ -1,3 +1,11 @@
+To do: OMP implementation 
+SlaterDet::rs_mul_add
+ChargeDensity(charge_integral)
+Exc
+--------------------------------------------------------------------------------
+rel1_51_1
+Fixed bug 2010-04-04T01:14:19Z
+Small imaginary part in c(G=0), initialization in SlaterDet::resize.
 --------------------------------------------------------------------------------
 rel1_51_0
 Added external forces: atomic, pair or global.

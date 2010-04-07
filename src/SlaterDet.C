@@ -15,7 +15,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.60 2010-02-20 23:13:02 fgygi Exp $
+// $Id: SlaterDet.C,v 1.61 2010-04-07 03:21:40 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -100,9 +100,8 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
 
   try
   {
-    // create a temporary copy of the basis and of the coefficient matrix
+    // create a temporary copy of the basis
     Basis btmp(*basis_);
-    ComplexMatrix ctmp(c_);
 
     // perform normal resize operations, possibly resetting contents of c_
     basis_->resize(cell,refcell,ecut);
@@ -113,65 +112,64 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
     const int m = ctxt_.nprow() * mb;
     const int nb = nst/ctxt_.npcol() + (nst%ctxt_.npcol() > 0 ? 1 : 0);
 
-    // Determine if plane wave coefficients must be reinitialized after
-    // the resize
-    // This is needed if the dimensions of the matrix c_ must be changed
-    const bool needs_init =
-      m!=c_.m() || nst!=c_.n() || mb!=c_.mb() || nb!=c_.nb();
-
-    c_.resize(m,nst,mb,nb);
-
-    if ( needs_init )
+    // check if the dimensions of c_ must change
+    if ( m!=c_.m() || nst!=c_.n() || mb!=c_.mb() || nb!=c_.nb() )
+    {
+      // make a copy of c_ before resize
+      ComplexMatrix ctmp(c_);
+      c_.resize(m,nst,mb,nb);
       init();
 
-    // check if data can be copied from temporary copy
-    // It is assumed that nst and ecut are not changing at the same time
-    // Only the cases where one change at a time occurs is covered
+      // check if data can be copied from temporary copy
+      // It is assumed that nst and ecut are not changing at the same time
+      // Only the cases where one change at a time occurs is covered
 
-    // consider only cases where the dimensions are finite
-    if ( c_.m() > 0 && c_.n() > 0 )
-    {
-
-      // first case: only nst has changed
-      if ( c_.m() == ctmp.m() && c_.n() != ctmp.n() )
+      // consider only cases where the dimensions are finite
+      if ( c_.m() > 0 && c_.n() > 0 )
       {
-        //cout << "SlaterDet::resize: c_m/n=   "
-        //     << c_.m() << "/" << c_.n() << endl;
-        //cout << "SlaterDet::resize: ctmp_m/n=" << ctmp.m()
-        //     << "/" << ctmp.n() << endl;
-        // nst has changed, basis is unchanged
-        // copy coefficients up to min(n_old, n_new)
-        if ( c_.n() < ctmp.n() )
+        // first case: only nst has changed
+        if ( c_.m() == ctmp.m() && c_.n() != ctmp.n() )
         {
-          c_.getsub(ctmp,ctmp.m(),c_.n(),0,0);
+          //cout << "SlaterDet::resize: c_m/n=   "
+          //     << c_.m() << "/" << c_.n() << endl;
+          //cout << "SlaterDet::resize: ctmp_m/n=" << ctmp.m()
+          //     << "/" << ctmp.n() << endl;
+          // nst has changed, basis is unchanged
+          // copy coefficients up to min(n_old, n_new)
+          if ( c_.n() < ctmp.n() )
+          {
+            c_.getsub(ctmp,ctmp.m(),c_.n(),0,0);
+          }
+          else
+          {
+            c_.getsub(ctmp,ctmp.m(),ctmp.n(),0,0);
+          }
+          gram();
         }
-        else
+        // second case: basis was resized, nst unchanged
+        if ( btmp.ecut() > 0.0 && basis_->ecut() > 0.0 &&
+             c_.m() != ctmp.m() && c_.n() == ctmp.n() )
         {
-          c_.getsub(ctmp,ctmp.m(),ctmp.n(),0,0);
-        }
-        gram();
-      }
-      // second case: basis was resized, nst unchanged
-      if ( btmp.ecut() > 0.0 && basis_->ecut() > 0.0 &&
-           c_.m() != ctmp.m() && c_.n() == ctmp.n() )
-      {
-        // transform all states to real space and interpolate
-        int np0 = max(basis_->np(0),btmp.np(0));
-        int np1 = max(basis_->np(1),btmp.np(1));
-        int np2 = max(basis_->np(2),btmp.np(2));
-        //cout << " SlaterDet::resize: grid: np0/1/2: "
-        //     << np0 << " " << np1 << " " << np2 << endl;
-        // FourierTransform tf1(oldbasis, new basis grid)
-        // FourierTransform tf2(newbasis, new basis grid)
-        FourierTransform ft1(btmp,np0,np1,np2);
-        FourierTransform ft2(*basis_,np0,np1,np2);
-        // allocate real-space grid
-        valarray<complex<double> > tmpr(ft1.np012loc());
-        // transform each state from old basis to grid to new basis
-        for ( int n = 0; n < nstloc(); n++ )
-        {
-          ft1.backward(ctmp.cvalptr(n*ctmp.mloc()),&tmpr[0]);
-          ft2.forward(&tmpr[0], c_.valptr(n*c_.mloc()));
+          // transform all states to real space and interpolate
+          int np0 = max(basis_->np(0),btmp.np(0));
+          int np1 = max(basis_->np(1),btmp.np(1));
+          int np2 = max(basis_->np(2),btmp.np(2));
+          //cout << " SlaterDet::resize: grid: np0/1/2: "
+          //     << np0 << " " << np1 << " " << np2 << endl;
+          // FourierTransform tf1(oldbasis, new basis grid)
+          // FourierTransform tf2(newbasis, new basis grid)
+          FourierTransform ft1(btmp,np0,np1,np2);
+          FourierTransform ft2(*basis_,np0,np1,np2);
+          // allocate real-space grid
+          valarray<complex<double> > tmpr(ft1.np012loc());
+          // transform each state from old basis to grid to new basis
+          for ( int n = 0; n < nstloc(); n++ )
+          {
+            for ( int i = 0; i < tmpr.size(); i++ )
+              tmpr[i] = 0.0;
+            ft1.backward(ctmp.cvalptr(n*ctmp.mloc()),&tmpr[0]);
+            ft2.forward(&tmpr[0], c_.valptr(n*c_.mloc()));
+          }
         }
       }
     }
@@ -181,6 +179,16 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
     cout << " bad_alloc exception caught in SlaterDet::resize" << endl;
     throw;
   }
+#if 0 
+  // print error in imaginary part of c(G=0)
+  double imag_err = g0_imag_error();
+  if ( ctxt_.onpe0() )
+  {
+    cout.setf(ios::scientific,ios::floatfield);
+    cout << " SlaterDet::resize: imag error on exit: " << imag_err << endl;
+  }
+#endif
+  cleanup();
 }
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::init(void)
@@ -400,6 +408,7 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::gram(void)
 {
+  cleanup();
   if ( basis_->real() )
   {
     // k = 0 case
@@ -456,6 +465,7 @@ void SlaterDet::gram(void)
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::riccati(const SlaterDet& sd)
 {
+  cleanup();
   if ( basis_->real() )
   {
     // k = 0 case
@@ -573,6 +583,7 @@ void SlaterDet::riccati(const SlaterDet& sd)
 void SlaterDet::lowdin(void)
 {
   // Higham algorithm for polar decomposition
+  cleanup();
   if ( basis_->real() )
   {
     ComplexMatrix c_tmp(c_);
@@ -664,6 +675,7 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 {
   // Orthogonalize *this and align with sd
   // Higham algorithm for polar decomposition
+  cleanup();
   if ( basis_->real() )
   {
     ComplexMatrix c_tmp(c_);
@@ -1148,7 +1160,7 @@ void SlaterDet::randomize(double amplitude)
       p[i] += amplitude * complex<double>(re,im);
     }
   }
-  cleanup();
+  // gram does an initial cleanup
   gram();
 }
 
@@ -1165,7 +1177,7 @@ void SlaterDet::cleanup(void)
   {
     complex<double>* p = c_.valptr(c_.mloc()*n);
     // reset imaginary part of G=0 component to zero
-    if ( ctxt_.myrow() == 0 )
+    if ( c_.mloc() > 0 && ctxt_.myrow() == 0 )
     {
       // index of G=0 element
       int izero;
@@ -1794,4 +1806,45 @@ ostream& operator<<(ostream& os, SlaterDet& sd)
 {
   sd.print(os,"text",0.0,0,1);
   return os;
+}
+////////////////////////////////////////////////////////////////////////////////
+double SlaterDet::empty_row_error(void)
+{
+  // sum norm of the empty rows of the matrix c_
+  double sum = 0.0;
+  for ( int n = 0; n < c_.nloc(); n++ )
+  {
+    complex<double>* p = c_.valptr(c_.mloc()*n);
+    for ( int i = basis_->localsize(); i < c_.mloc(); i++ )
+    {
+      sum += norm(p[i]);
+    }
+  }
+  return sum;
+  ctxt_.dsum(1,1,&sum,1);
+}
+////////////////////////////////////////////////////////////////////////////////
+double SlaterDet::g0_imag_error(void)
+{
+  // sum norm of the imaginary part of c(G=0).
+  double sum = 0.0;
+  for ( int n = 0; n < c_.nloc(); n++ )
+  {
+    complex<double>* p = c_.valptr(c_.mloc()*n);
+    if ( c_.mloc() > 0 && ctxt_.myrow() == 0 )
+    {
+      // index of G=0 element
+      int izero;
+      if ( basis_->real() )
+        izero = 0;
+      else
+        izero = basis_->rod_size(0)/2;
+      //cout << " izero = " << izero << " G = " << basis_->kv(3*izero) << " "
+      //     << basis_->kv(3*izero+1) << " " << basis_->kv(3*izero+2) << endl;
+      double tim = p[izero].imag();
+      sum += tim*tim;
+    }
+  }
+  ctxt_.dsum(1,1,&sum,1);
+  return sum;
 }

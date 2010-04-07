@@ -15,7 +15,7 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.28 2010-02-20 23:13:02 fgygi Exp $
+// $Id: SlaterDet.h,v 1.29 2010-04-07 03:21:40 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -107,6 +107,8 @@ class SlaterDet
   void write(SharedFilePtr& fh, std::string encoding, double weight, int ispin,
     int nspin) const;
   void info(std::ostream& os) const;
+  double empty_row_error(void);
+  double g0_imag_error(void);
 };
 std::ostream& operator << ( std::ostream& os, SlaterDet& sd );
 

@@ -15,7 +15,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.21 2010-04-07 03:20:14 fgygi Exp $
+// $Id: Matrix.h,v 1.22 2010-04-07 04:47:22 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -138,7 +138,8 @@ class DoubleMatrix
     void print(std::ostream& os) const;
 
     explicit DoubleMatrix(const Context& ctxt) : ctxt_(ctxt),
-        m_(0), n_(0), mb_(0), nb_(0), size_(0), reference_(false), val(0) {}
+        m_(0), n_(0), mb_(0), nb_(0), mloc_(0), nloc_(0),
+        size_(0), reference_(false), val(0) {}
 
     // Construct a DoubleMatrix of dimensions m,n
     explicit DoubleMatrix(const Context& ctxt, int m, int n,
@@ -391,7 +392,8 @@ class ComplexMatrix
     void print(std::ostream& os) const;
 
     explicit ComplexMatrix(const Context& ctxt) : ctxt_(ctxt),
-        m_(0), n_(0), mb_(0), nb_(0), size_(0), reference_(false), val(0) {}
+        m_(0), n_(0), mb_(0), nb_(0), mloc_(0), nloc_(0),
+        size_(0), reference_(false), val(0) {}
 
     // Construct a ComplexMatrix of dimensions m,n
     explicit ComplexMatrix(const Context& ctxt, int m, int n,

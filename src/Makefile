@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.67 2010-02-20 23:13:02 fgygi Exp $
+# $Id: Makefile,v 1.68 2010-04-07 03:23:13 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -66,7 +66,9 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         Basis.o FourierTransform.o Matrix.o Context.o \
         sinft.o spline.o UnitCell.o \
         Base64Transcoder.o Constraint.o ConstraintSet.o DistanceConstraint.o \
-        AngleConstraint.o TorsionConstraint.o PositionConstraint.o
+        AngleConstraint.o TorsionConstraint.o PositionConstraint.o \
+        ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
+        GlobalExtForce.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testreadSample: testreadSample.o \
          Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \

@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.55 2010-02-20 23:13:02 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.56 2010-04-07 03:18:55 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -485,7 +485,20 @@ void BOSampleStepper::step(int niter)
     } // if !gs_only
 
     // Recalculate ground state wavefunctions
-
+#ifdef DEBUG
+    double sum = s_.wf.sd(0,0)->empty_row_error() ;
+    if ( onpe0 )
+    {
+      cout.setf(ios::scientific,ios::floatfield);
+      cout << " sd empty row error: " << sum << endl;
+    }
+    sum = s_.wf.sd(0,0)->g0_imag_error() ;
+    if ( onpe0 )
+    {
+      cout.setf(ios::scientific,ios::floatfield);
+      cout << " sd g0 imag error: " << sum << endl;
+    }
+#endif
     // wavefunction extrapolation
     if ( atoms_move && extrapolate_wf )
     {

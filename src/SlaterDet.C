@@ -15,7 +15,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.61 2010-04-07 03:21:40 fgygi Exp $
+// $Id: SlaterDet.C,v 1.62 2010-04-16 21:39:55 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -179,7 +179,7 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
     cout << " bad_alloc exception caught in SlaterDet::resize" << endl;
     throw;
   }
-#if 0 
+#if 0
   // print error in imaginary part of c(G=0)
   double imag_err = g0_imag_error();
   if ( ctxt_.onpe0() )

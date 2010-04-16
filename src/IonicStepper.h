@@ -15,7 +15,7 @@
 // IonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: IonicStepper.h,v 1.14 2009-10-06 06:27:54 fgygi Exp $
+// $Id: IonicStepper.h,v 1.15 2010-04-16 21:43:11 fgygi Exp $
 
 #ifndef IONICSTEPPER_H
 #define IONICSTEPPER_H
@@ -86,6 +86,7 @@ class IonicStepper
     const std::vector<std::vector< double> >& f0) = 0;
   virtual void reset(void) {}
   virtual double ekin(void) const { return 0.0; }
+  virtual double ekin_stepper(void) const { return 0.0; }
   virtual double temp(void) const { return 0.0; }
 
   virtual ~IonicStepper() {}

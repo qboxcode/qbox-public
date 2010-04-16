@@ -1,7 +1,11 @@
-To do: OMP implementation 
-SlaterDet::rs_mul_add
-ChargeDensity(charge_integral)
-Exc
+--------------------------------------------------------------------------------
+rel1_52_0
+Added the rescale_v command (RescaleVCmd.h) to rescale all velocities.
+Implemented the Bussi-Donadio-Parrinello thermostat.
+Added files sampling.C sampling.h
+Modified IonicStepper.h to add ekin_stepper member
+BOSampleStepper.C: <econst> includes stepper kinetic energy when using BDP.
+FourierTransform.C: included some OpenMP pragmas
 --------------------------------------------------------------------------------
 rel1_51_1
 Fixed bug 2010-04-04T01:14:19Z

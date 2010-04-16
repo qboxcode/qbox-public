@@ -27,9 +27,9 @@ using namespace std;
 #include "apc.h"
 #endif
 
-int fft_flops(int n)
+double fft_flops(int n)
 {
-  return (int) (5.0 * n * log((double) n) / log(2.0));
+  return 5.0 * n * log((double) n) / log(2.0);
 }
 
 int main(int argc, char **argv)
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
   cout << " backward done " << endl;
   ctxt.barrier();
 
-#if 1
+#if 0
 
   tm.reset();
   ft2.reset_timers();
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
 #endif
   } // end of scope for wf-v transforms
 
-#if 0
+#if 1
   ////////////////////////////////////////////////////////////
   // v(g)->vgrid
   Basis vbasis(ctxt,kpoint);
@@ -351,18 +351,18 @@ int main(int argc, char **argv)
 #endif
   tm.stop();
   cout << " fwd4: vgrid->v(g)" << endl;
-  cout << " fwd4: tm_b_fft:    " << vft.tm_b_fft.real() << endl;
-  cout << " fwd4: tm_b_mpi:    " << vft.tm_b_mpi.real() << endl;
-  cout << " fwd4: tm_b_pack:   " << vft.tm_b_pack.real() << endl;
-  cout << " fwd4: tm_b_unpack: " << vft.tm_b_unpack.real() << endl;
-  cout << " fwd4: tm_b_zero:   " << vft.tm_b_zero.real() << endl;
-  cout << " fwd4: tm_b_map:    " << vft.tm_b_map.real() << endl;
-  cout << " fwd4: tm_b_total:  " << vft.tm_b_fft.real() +
-                                    vft.tm_b_mpi.real() +
-                                    vft.tm_b_pack.real() +
-                                    vft.tm_b_unpack.real() +
-                                    vft.tm_b_zero.real() +
-                                    vft.tm_b_map.real() << endl;
+  cout << " fwd4: tm_f_fft:    " << vft.tm_f_fft.real() << endl;
+  cout << " fwd4: tm_f_mpi:    " << vft.tm_f_mpi.real() << endl;
+  cout << " fwd4: tm_f_pack:   " << vft.tm_f_pack.real() << endl;
+  cout << " fwd4: tm_f_unpack: " << vft.tm_f_unpack.real() << endl;
+  cout << " fwd4: tm_f_zero:   " << vft.tm_f_zero.real() << endl;
+  cout << " fwd4: tm_f_map:    " << vft.tm_f_map.real() << endl;
+  cout << " fwd4: tm_f_total:  " << vft.tm_f_fft.real() +
+                                    vft.tm_f_mpi.real() +
+                                    vft.tm_f_pack.real() +
+                                    vft.tm_f_unpack.real() +
+                                    vft.tm_f_zero.real() +
+                                    vft.tm_f_map.real() << endl;
   cout << " fwd4 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*vflops/tm.real() << " MFlops" << endl;
 

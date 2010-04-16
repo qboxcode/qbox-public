@@ -15,18 +15,23 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.C,v 1.21 2009-11-30 02:33:27 fgygi Exp $
+// $Id: FourierTransform.C,v 1.22 2010-04-16 22:42:27 fgygi Exp $
 
 // The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
 #include "FourierTransform.h"
 #include "Basis.h"
 #include "Context.h"
+#include "blas.h"
 
 #include <complex>
 #include <algorithm>
 #include <map>
 #include <cassert>
+
+#if _OPENMP
+#include <omp.h>
+#endif
 
 #if USE_MPI
 #include <mpi.h>
@@ -553,13 +558,19 @@ void FourierTransform::bwd(complex<double>* val)
     *    FFTW_COMPLEX *in, int istride, int idist,
     *    FFTW_COMPLEX *out, int ostride, int odist);
     */
-  int ntrans, inc1, inc2;
-
-  ntrans = nvec_;
-  inc1 = 1;
-  inc2 = np2_;
+#if _OPENMP
+  #pragma omp parallel for
+  for ( int i = 0; i < nvec_; i++ )
+  {
+    //#pragma omp task
+    fftw_one(bwplan2,(FFTW_COMPLEX*)&zvec_[i*np2_],(FFTW_COMPLEX*)0);
+  }
+#else
+  int ntrans = nvec_, inc1 = 1, inc2 = np2_;
   fftw(bwplan2,ntrans,(FFTW_COMPLEX*)&zvec_[0],inc1,inc2,
                       (FFTW_COMPLEX*)0,0,0);
+#endif
+
 #else
   // No library
   /* Transform along z */
@@ -591,6 +602,7 @@ void FourierTransform::bwd(complex<double>* val)
   const int zvec_size = zvec_.size();
   double* const ps = (double*) &sbuf[0];
   const double* const pz = (double*) &zvec_[0];
+  #pragma omp parallel for
   for ( int i = 0; i < zvec_size; i++ )
   {
     // sbuf[ipack_[i]] = zvec_[i];
@@ -634,6 +646,7 @@ void FourierTransform::bwd(complex<double>* val)
   {
     const int len = np012loc();
     double* const pv = (double*) &val[0];
+    #pragma omp parallel for
     for ( int i = 0; i < len; i++ )
     {
       pv[2*i]   = 0.0;
@@ -659,6 +672,7 @@ void FourierTransform::bwd(complex<double>* val)
     const int rbuf_size = rbuf.size();
     const double* const pr = (double*) &rbuf[0];
     double* const pv = (double*) &val[0];
+    #pragma omp parallel for
     for ( int i = 0; i < rbuf_size; i++ )
     {
       // val[iunpack_[i]] = rbuf[i];
@@ -727,6 +741,46 @@ void FourierTransform::bwd(complex<double>* val)
        &length,&ntrans,&isign,&scale,&aux1yb[0],&naux1y,&aux2[0],&naux2);
 #endif
 #elif USE_FFTW
+#if _OPENMP
+  int ibase = k * np0_ * np1_;
+  #pragma omp parallel for
+  for ( int i = 0; i < ntrans0_; i++ )
+  {
+    //#pragma omp task
+    {
+      // Transform first block along x: positive y indices
+      fftw_one(bwplan0,(FFTW_COMPLEX*)&val[ibase+i*np0_],(FFTW_COMPLEX*)0);
+      //fftw(bwplan0,1,(FFTW_COMPLEX*)&val[ibase+i*np0_],1,np0_,
+      //               (FFTW_COMPLEX*)0,0,0);
+      // Transform second block along x: negative y indices
+      fftw_one(bwplan0,(FFTW_COMPLEX*)&val[ibase+(np1_-ntrans0_+i)*np0_],
+                       (FFTW_COMPLEX*)0);
+      //fftw(bwplan0,1,(FFTW_COMPLEX*)&val[ibase+(np1_-ntrans0_+i)*np0_],1,np0_,
+      //               (FFTW_COMPLEX*)0,0,0);
+    }
+  }
+
+  //complex<double> *tmp1 = new complex<double>[np1_];
+  #pragma omp parallel for
+  for ( int i = 0; i < np0_; i++ )
+  {
+    //#pragma omp task
+    {
+      // transform along y for all values of x
+      // copy data to local array
+      int one=1;
+      #if 0
+      zcopy_(&np1_,&val[ibase+i],&np0_,tmp1,&one);
+      fftw_one(bwplan1,(FFTW_COMPLEX*)tmp1,(FFTW_COMPLEX*)0);
+      zcopy_(&np1_,tmp1,&one,&val[ibase+i],&np0_);
+      #else
+      fftw(bwplan1,1,(FFTW_COMPLEX*)&val[ibase+i],np0_,one,
+                     (FFTW_COMPLEX*)0,0,0);
+      #endif
+    }
+  }
+  //delete [] tmp1;
+#else
     int inc1, inc2, istart;
 
     int ntrans = ntrans0_;
@@ -750,6 +804,7 @@ void FourierTransform::bwd(complex<double>* val)
     istart = k * np0_ * np1_;
     fftw(bwplan1,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
+#endif
 #else
     // No library
     // transform along x for non-zero elements
@@ -838,6 +893,42 @@ void FourierTransform::fwd(complex<double>* val)
          &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
 #endif
 #elif USE_FFTW
+#if _OPENMP
+  int ibase = k * np0_ * np1_;
+  complex<double> *tmp1 = new complex<double>[np1_];
+  #pragma omp parallel for
+  for ( int i = 0; i < np0_; i++ )
+  {
+    //#pragma omp task
+    {
+      // transform along y for all values of x
+      // copy data to local array
+      int one=1;
+      #if 0
+      zcopy_(&np1_,&val[ibase+i],&np0_,tmp1,&one);
+      fftw_one(fwplan1,(FFTW_COMPLEX*)tmp1,(FFTW_COMPLEX*)0);
+      zcopy_(&np1_,tmp1,&one,&val[ibase+i],&np0_);
+      #else
+      fftw(fwplan1,1,(FFTW_COMPLEX*)&val[ibase+i],np0_,one,
+                     (FFTW_COMPLEX*)0,0,0);
+      #endif
+    }
+  }
+  delete [] tmp1;
+
+  #pragma omp parallel for
+  for ( int i = 0; i < ntrans0_; i++ )
+  {
+    //#pragma omp task
+    {
+      // Transform first block along x: positive y indices
+      fftw_one(fwplan0,(FFTW_COMPLEX*)&val[ibase+i*np0_],(FFTW_COMPLEX*)0);
+      // Transform second block along x: negative y indices
+      fftw_one(fwplan0,(FFTW_COMPLEX*)&val[ibase+(np1_-ntrans0_+i)*np0_],
+                       (FFTW_COMPLEX*)0);
+    }
+  }
+#else
     int inc1, inc2, istart;
 
     // transform along y for all values of x
@@ -861,7 +952,7 @@ void FourierTransform::fwd(complex<double>* val)
     istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
-
+#endif
 #else
     // No library
     // transform along y for all values of x
@@ -906,6 +997,7 @@ void FourierTransform::fwd(complex<double>* val)
   const int rbuf_size = rbuf.size();
   double* const pr = (double*) &rbuf[0];
   const double* const pv = (double*) &val[0];
+  #pragma omp parallel for
   for ( int i = 0; i < rbuf_size; i++ )
   {
     // rbuf[i] = val[iunpack_[i]];
@@ -952,6 +1044,7 @@ void FourierTransform::fwd(complex<double>* val)
   const int zvec_size = zvec_.size();
   const double* const ps = (double*) &sbuf[0];
   double* const pz = (double*) &zvec_[0];
+  #pragma omp parallel for
   for ( int i = 0; i < zvec_size; i++ )
   {
     // zvec_[i] = sbuf[ipack_[i]];
@@ -977,6 +1070,20 @@ void FourierTransform::fwd(complex<double>* val)
         &isign,&scale,&aux1zf[0],&naux1z,&aux2[0],&naux2);
 
 #elif USE_FFTW
+#if _OPENMP
+  const double fac = 1.0 / ( np0_ * np1_ * np2_ );
+  #pragma omp parallel for
+  for ( int i = 0; i < nvec_; i++ )
+  {
+    //#pragma omp task
+    fftw_one(fwplan2,(FFTW_COMPLEX*)&zvec_[i*np2_],(FFTW_COMPLEX*)0);
+    for ( int j = 0; j < np2_; j++ )
+      zvec_[i*np2_+j] *= fac;
+  }
+  // int inc1=1;
+  // zdscal(&len,&fac,&zvec_[0],&inc1);
+#else
+
  /*
   * void fftw(fftw_plan plan, int howmany,
   *    FFTW_COMPLEX *in, int istride, int idist,
@@ -992,6 +1099,7 @@ void FourierTransform::fwd(complex<double>* val)
   int len = zvec_.size();
   double fac = 1.0 / ( np0_ * np1_ * np2_ );
   zdscal(&len,&fac,&zvec_[0],&inc1);
+#endif
 #else
   // No library
   /* Transform along z */
@@ -1140,6 +1248,7 @@ void FourierTransform::vector_to_zvec(const complex<double> *c)
   const int ng = basis_.localsize();
   const int zvec_size = zvec_.size();
   double* const pz = (double*) &zvec_[0];
+  #pragma omp parallel for
   for ( int i = 0; i < zvec_size; i++ )
   {
     pz[2*i]   = 0.0;
@@ -1148,6 +1257,7 @@ void FourierTransform::vector_to_zvec(const complex<double> *c)
   const double* const pc = (double*) &c[0];
   if ( basis_.real() )
   {
+    #pragma omp parallel for
     for ( int ig = 0; ig < ng; ig++ )
     {
       // zvec_[ifftp_[ig]] = c[ig];
@@ -1163,6 +1273,7 @@ void FourierTransform::vector_to_zvec(const complex<double> *c)
     }
   }
   else
+    #pragma omp parallel for
     for ( int ig = 0; ig < ng; ig++ )
     {
       // zvec_[ifftp_[ig]] = c[ig];
@@ -1179,6 +1290,7 @@ void FourierTransform::zvec_to_vector(complex<double> *c)
   const int ng = basis_.localsize();
   const double* const pz = (double*) &zvec_[0];
   double* const pc = (double*) &c[0];
+  #pragma omp parallel for
   for ( int ig = 0; ig < ng; ig++ )
   {
     // c[ig] = zvec_[ifftp_[ig]];
@@ -1198,6 +1310,7 @@ void FourierTransform::doublevector_to_zvec(const complex<double> *c1,
   assert(basis_.real());
   const int zvec_size = zvec_.size();
   double* const pz = (double*) &zvec_[0];
+  #pragma omp parallel for
   for ( int i = 0; i < zvec_size; i++ )
   {
     pz[2*i] = 0.0;
@@ -1206,6 +1319,7 @@ void FourierTransform::doublevector_to_zvec(const complex<double> *c1,
   const int ng = basis_.localsize();
   const double* const pc1 = (double*) &c1[0];
   const double* const pc2 = (double*) &c2[0];
+  #pragma omp parallel for
   for ( int ig = 0; ig < ng; ig++ )
   {
     // const double a = c1[ig].real();
@@ -1237,6 +1351,7 @@ void FourierTransform::zvec_to_doublevector(complex<double> *c1,
   const double* const pz = (double*) &zvec_[0];
   double* const pc1 = (double*) &c1[0];
   double* const pc2 = (double*) &c2[0];
+  #pragma omp parallel for
   for ( int ig = 0; ig < ng; ig++ )
   {
     // const double a = 0.5*zvec_[ip].real();

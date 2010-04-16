@@ -15,7 +15,7 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.24 2009-10-06 06:29:05 fgygi Exp $
+// $Id: AtomSet.h,v 1.25 2010-04-16 21:40:50 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
@@ -83,6 +83,7 @@ class AtomSet
   }
   void sync(void);
   void reset_velocities(void);
+  void rescale_velocities(double fac);
   D3vector vcm(void) const;
   D3vector dipole(void) const;
   void reset_vcm(void);

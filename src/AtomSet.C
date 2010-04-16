@@ -15,7 +15,7 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.28 2010-02-20 23:13:02 fgygi Exp $
+// $Id: AtomSet.C,v 1.29 2010-04-16 21:40:50 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -397,13 +397,22 @@ void AtomSet::reset_velocities(void)
 {
   for ( int is = 0; is < atom_list.size(); is++ )
   {
-    int i = 0;
     for ( int ia = 0; ia < atom_list[is].size(); ia++ )
-    {
       atom_list[is][ia]->set_velocity(D3vector(0.0, 0.0, 0.0));
-      i += 3;
-    }
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void AtomSet::rescale_velocities(double fac)
+{
+  vector<vector<double> > v;
+  get_velocities(v);
+  for ( int is = 0; is < v.size(); is++ )
+  {
+    for ( int ia = 0; ia < v[is].size(); ia++ )
+      v[is][ia] *= fac;
+  }
+  set_velocities(v);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

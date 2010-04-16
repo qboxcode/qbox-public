@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.68 2010-04-07 03:23:13 fgygi Exp $
+# $Id: Makefile,v 1.69 2010-04-16 21:43:56 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -50,7 +50,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         jade.o PlotCmd.o \
         ExtForceSet.o ExtForce.o AtomicExtForce.o PairExtForce.o \
         GlobalExtForce.o \
-        uuid.o \
+        uuid.o sampling.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
  $(EXEC):    $(OBJECTS)
@@ -372,7 +372,7 @@ FoldInWsCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 FoldInWsCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 FoldInWsCmd.o: Control.h
 FourierTransform.o: FourierTransform.h Timer.h Basis.h D3vector.h UnitCell.h
-FourierTransform.o: Context.h
+FourierTransform.o: Context.h blas.h
 FourierTransform.o: Timer.h
 GlobalExtForce.o: GlobalExtForce.h ExtForce.h D3vector.h AtomSet.h Context.h
 GlobalExtForce.o: Atom.h UnitCell.h Species.h
@@ -480,13 +480,13 @@ qb.o: ExtForceSet.h Wavefunction.h Control.h Timer.h AngleCmd.h AtomCmd.h
 qb.o: ComputeMLWFCmd.h MLWFTransform.h BasisMapping.h ConstraintCmd.h
 qb.o: DistanceCmd.h ExtForceCmd.h FoldInWsCmd.h HelpCmd.h KpointCmd.h
 qb.o: ListAtomsCmd.h ListSpeciesCmd.h LoadCmd.h MoveCmd.h PlotCmd.h
-qb.o: PrintCmd.h QuitCmd.h RandomizeWfCmd.h ResetVcmCmd.h RunCmd.h SaveCmd.h
-qb.o: SetCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h TorsionCmd.h AtomsDyn.h
-qb.o: Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h
-qb.o: ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h Debug.h Ecut.h
-qb.o: Ecutprec.h Ecuts.h Emass.h ExtStress.h FermiTemp.h Dt.h Nempty.h
-qb.o: NetCharge.h Nrowmax.h RefCell.h Stress.h Thermostat.h ThTemp.h ThTime.h
-qb.o: ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: PrintCmd.h QuitCmd.h RandomizeWfCmd.h ResetVcmCmd.h RescaleVCmd.h
+qb.o: RunCmd.h SaveCmd.h SetCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h
+qb.o: TorsionCmd.h AtomsDyn.h Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h
+qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
+qb.o: Debug.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h FermiTemp.h Dt.h
+qb.o: Nempty.h NetCharge.h Nrowmax.h RefCell.h Stress.h Thermostat.h ThTemp.h
+qb.o: ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
@@ -496,6 +496,9 @@ RandomizeWfCmd.o: Wavefunction.h Control.h
 RefCell.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 RefCell.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 release.o: release.h
+RescaleVCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+RescaleVCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+RescaleVCmd.o: Control.h
 ResetVcmCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 ResetVcmCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 ResetVcmCmd.o: Control.h

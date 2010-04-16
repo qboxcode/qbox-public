@@ -15,9 +15,10 @@
 // MDIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.C,v 1.22 2009-05-15 04:40:00 fgygi Exp $
+// $Id: MDIonicStepper.C,v 1.23 2010-04-16 22:41:55 fgygi Exp $
 
 #include "MDIonicStepper.h"
+#include "sampling.h"
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -108,19 +109,10 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
           if ( drand48() < collision_probability )
           {
             // cout << " collision: atom is=" << is << " ia=" << ia << endl;
-            // draw gaussian random variables
-            double xi0 = drand48() + drand48() + drand48() +
-                         drand48() + drand48() + drand48() +
-                         drand48() + drand48() + drand48() +
-                         drand48() + drand48() + drand48() - 6.0;
-            double xi1 = drand48() + drand48() + drand48() +
-                         drand48() + drand48() + drand48() +
-                         drand48() + drand48() + drand48() +
-                         drand48() + drand48() + drand48() - 6.0;
-            double xi2 = drand48() + drand48() + drand48() +
-                         drand48() + drand48() + drand48() +
-                         drand48() + drand48() + drand48() +
-                         drand48() + drand48() + drand48() - 6.0;
+            // draw pairs of unit variance gaussian random variables
+            double xi0, xi1, xi2, xi3; // xi3 not used
+            normal_dev(&xi0,&xi1);
+            normal_dev(&xi2,&xi3);
             v0_[is][3*ia+0] = width * xi0;
             v0_[is][3*ia+1] = width * xi1;
             v0_[is][3*ia+2] = width * xi2;
@@ -183,11 +175,9 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
                 D3vector v2(&v0_[is2][3*ia2]);
                 D3vector v12 = v1 - v2;
                 // draw a gaussian random variable
-                double xi = drand48() + drand48() + drand48() +
-                            drand48() + drand48() + drand48() +
-                            drand48() + drand48() + drand48() +
-                            drand48() + drand48() + drand48() - 6.0;
-                double lambda = xi * width;
+                double xi1, xi2; // xi2 not used
+                normal_dev(&xi1,&xi2);
+                double lambda = xi1 * width;
                 D3vector dv12 = mu * ( lambda - v12*e12 ) * e12;
                 D3vector v1p = v1 + (1.0/m1) * dv12;
                 D3vector v2p = v2 - (1.0/m2) * dv12;
@@ -210,6 +200,56 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
     atoms_.sync();
     atoms_.get_velocities(v0_);
     //cout << " npairs: " << npairs << endl;
+  }
+  else if ( thermostat_ == "BDP" )
+  {
+    // stochastic velocity rescaling following Bussi,Donadio,Parrinello,
+    // J.Chem.Phys. 126, 014101 (2007)
+    // Choice of sign of alpha following
+    // Bussi, Parrinello, Comput. Phys. Comm. 179, 26 (2008).
+    if ( s_.ctxt_.onpe0() )
+    {
+      // rescale velocities on task 0 and synchronize later
+      // since calculation involves drand48
+      const double c = (th_time_ > 0.0) ? exp(-dt_/th_time_) : 0.0;
+      // generate a pair of normal deviates
+      double r1, r2;
+      normal_dev(&r1, &r2);
+      // compute the chi square deviate for the sum of ndofs_-1 squared normal
+      // deviates
+      double chi2;
+      if ( (ndofs_-1)%2 == 0 )
+        chi2 = 2.0 * gamma_dev((ndofs_-1)/2);
+      else
+        chi2 = 2.0 * gamma_dev((ndofs_-2)/2) + r2*r2;
+      double alpha = 1.0, alpha2 = 1.0;
+      if ( temp() != 0.0 )
+      {
+        double z = th_temp_ / ( ndofs_ * temp() );
+        alpha2 = c + (1.0-c) * z * (chi2 + r1*r1)
+          + 2.0 * r1 * sqrt( c * (1.0-c) * z );
+        alpha = sqrt(alpha2);
+        if ( r1 + sqrt(c / ((1.0-c)*z)) < 0.0 )
+          alpha = -alpha;
+      }
+      for ( int is = 0; is < r0_.size(); is++ )
+      {
+        for ( int i = 0; i < r0_[is].size(); i++ )
+        {
+          v0_[is][i] *= alpha;
+        }
+      }
+      // accumulate the change in kinetic energy in ekin_stepper_
+      // ekin(t+dt) = alpha2 * ekin(t)
+      ekin_stepper_ += ( 1.0 - alpha2 ) * ekin_;
+      s_.ctxt_.dbcast_send(1,1,&ekin_stepper_,1);
+    }
+    if ( !s_.ctxt_.onpe0() )
+      s_.ctxt_.dbcast_recv(1,1,&ekin_stepper_,1,0,0);
+
+    atoms_.set_velocities(v0_);
+    atoms_.sync();
+    atoms_.get_velocities(v0_);
   }
   constraints_.enforce_v(r0_,v0_);
   // recompute ekin as velocities may be affected by constraints

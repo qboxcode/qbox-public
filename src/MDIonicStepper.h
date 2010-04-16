@@ -15,7 +15,7 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.12 2008-09-08 15:56:18 fgygi Exp $
+// $Id: MDIonicStepper.h,v 1.13 2010-04-16 22:41:55 fgygi Exp $
 
 //
 // IonicStepper is used in the following way
@@ -59,6 +59,7 @@ class MDIonicStepper : public IonicStepper
   double th_time_;
   double th_width_;
   double ekin_;
+  double ekin_stepper_;
   double eta_;
   std::string thermostat_;
   void compute_ekin(void);
@@ -73,6 +74,7 @@ class MDIonicStepper : public IonicStepper
     th_width_ = s.ctrl.th_width;
     eta_ = 0.0;
     ekin_ = 0.0;
+    ekin_stepper_ = 0.0;
     atoms_.get_positions(r0_);
     atoms_.get_velocities(v0_);
     compute_ekin();
@@ -82,6 +84,7 @@ class MDIonicStepper : public IonicStepper
   void compute_v(double e0, const std::vector<std::vector< double> >& f0);
   double eta(void) const { return eta_; }
   double ekin(void) const { return ekin_; }
+  double ekin_stepper(void) const { return ekin_stepper_; }
   double temp(void) const
   {
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );

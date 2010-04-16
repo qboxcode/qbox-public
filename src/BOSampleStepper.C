@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.56 2010-04-07 03:18:55 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.57 2010-04-16 21:42:46 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -443,7 +443,13 @@ void BOSampleStepper::step(int niter)
           }
         }
         cout << "</atomset>" << endl;
-        cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
+
+        // compute the kinetic energy of the stepper e.g. in the
+        // BDP thermostat
+        double ekin_stepper;
+        if ( ionic_stepper != 0 )
+          ekin_stepper = ionic_stepper->ekin_stepper();
+        cout << "  <econst> " << energy+ekin_ion+ekin_stepper << " </econst>\n";
         cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
         cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";
       }

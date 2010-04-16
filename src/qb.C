@@ -15,7 +15,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.66 2010-02-20 23:13:02 fgygi Exp $
+// $Id: qb.C,v 1.67 2010-04-16 22:43:22 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -60,6 +60,7 @@ using namespace std;
 #include "QuitCmd.h"
 #include "RandomizeWfCmd.h"
 #include "ResetVcmCmd.h"
+#include "RescaleVCmd.h"
 #include "RunCmd.h"
 #include "SaveCmd.h"
 #include "SetCmd.h"
@@ -249,6 +250,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new QuitCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
   ui.addCmd(new ResetVcmCmd(s));
+  ui.addCmd(new RescaleVCmd(s));
   ui.addCmd(new RunCmd(s));
   ui.addCmd(new SaveCmd(s));
   ui.addCmd(new SetCmd(s));

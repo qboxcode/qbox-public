@@ -1,4 +1,13 @@
 --------------------------------------------------------------------------------
+rel1_52_1
+SlaterDet::gram use beta=0 in herk, for consistency (complex case).
+(does not affect results since Matrix ctor clears data).
+SlaterDet: removed constraint on Im(c(G=0)) for complex case.
+Note: this fixes a bug introduced in 1.51.1 which incorrectly set Im=0 for k!=0.
+This fixes bug 2010-04-04T01:14:19Z
+Matrix.C: parameters alpha and beta of pzherk and zherk must be double*
+Moved files uuid.[Ch] to uuid_str.[Ch] to avoid name conflicts with uuid/uuid.h
+--------------------------------------------------------------------------------
 rel1_52_0
 Added the rescale_v command (RescaleVCmd.h) to rescale all velocities.
 Implemented the Bussi-Donadio-Parrinello thermostat.
@@ -6,10 +15,14 @@ Added files sampling.C sampling.h
 Modified IonicStepper.h to add ekin_stepper member
 BOSampleStepper.C: <econst> includes stepper kinetic energy when using BDP.
 FourierTransform.C: included some OpenMP pragmas
+Known bug: 2010-04-04T01:14:19Z
 --------------------------------------------------------------------------------
 rel1_51_1
-Fixed bug 2010-04-04T01:14:19Z
+Attempt to fix bug 2010-04-04T01:14:19Z
 Small imaginary part in c(G=0), initialization in SlaterDet::resize.
+Incorrect fix of 2010-04-04T01:14:19Z causes incorrect results in k!=0 wfs
+Later corrected in 1.52.1
+Known bug: 2010-04-04T01:14:19Z
 --------------------------------------------------------------------------------
 rel1_51_0
 Added external forces: atomic, pair or global.

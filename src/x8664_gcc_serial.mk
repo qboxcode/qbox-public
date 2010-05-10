@@ -15,14 +15,15 @@
 #  x8664_gcc_serial.mk
 #
 #-------------------------------------------------------------------------------
-# $Id: x8664_gcc_serial.mk,v 1.2 2009-12-04 03:16:17 fgygi Exp $
+# $Id: x8664_gcc_serial.mk,v 1.3 2010-05-10 20:06:42 fgygi Exp $
 #
  PLT=Linux_x8664
 #-------------------------------------------------------------------------------
+ MPIDIR=/opt/mpich-1.2.6
  XERCESCDIR=$(HOME)/software/xml/xerces-c-src_2_8_0
  FFTWDIR=$(HOME)/software/fftw/Linux_x8664/fftw-2.1.3/fftw
- BLASDIR=$(HOME)/software/atlas/ATLAS/Linux_P4E64SSE3/lib
- LAPACKDIR=$(HOME)/software/lapack/LAPACK
+ BLASDIR=/usr/lib64/atlas
+ LAPACKDIR=/usr/lib64/atlas
 
  PLTOBJECTS = readTSC.o
 
@@ -42,7 +43,7 @@
            -L$(LAPACKDIR) -L$(BLASDIR) \
            -L$(XERCESCDIR)/lib
 
- LIBS =  $(PLIBS) -lfftw \
+ LIBS =  $(PLIBS) -lpthread -lfftw \
          -llapack -lf77blas -latlas -lm \
          -Xlinker -Bstatic \
           -lc -lgfortran -static-libgcc -lxerces-c -luuid \

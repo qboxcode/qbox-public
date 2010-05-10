@@ -15,7 +15,7 @@
 // Matrix.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.C,v 1.21 2009-11-30 02:32:59 fgygi Exp $
+// $Id: Matrix.C,v 1.22 2010-05-10 20:50:37 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -146,9 +146,9 @@ extern "C"
        const double*, const double*, const int*, const int*, const int*,
        const double*, double*, const int*, const int*, const int*);
   void pzherk(const char*, const char*, const int*, const int*,
-       const complex<double>*, const complex<double>*, const int*,
+       const double*, const complex<double>*, const int*,
        const int*, const int*,
-       const complex<double>*, complex<double>*, const int*,
+       const double*, complex<double>*, const int*,
        const int*, const int*);
   void pdtran(const int*,const  int*, const double*,
        const double*, const int*, const int*, const int*,
@@ -275,9 +275,9 @@ extern "C"
              const double *, const double *, const int *,
              const double *, double *, const int *);
   void zherk(const char* uplo, const char* trans, const int* n, const int* k,
-             const complex<double>* alpha, const complex<double>* a,
+             const double* alpha, const complex<double>* a,
              const int*  lda,
-             const complex<double>* beta, complex<double>* c, const int* ldc);
+             const double* beta, complex<double>* c, const int* ldc);
   void dtrmm(const char*, const char*, const char*, const char*,
              const int*, const int *, const double*, const double*,
              const int*, double*, const int*);
@@ -2069,8 +2069,7 @@ void DoubleMatrix::syrk(char uplo, char trans,
 // this = beta * this + alpha * A^H * A  (trans=='c')
 ////////////////////////////////////////////////////////////////////////////////
 void ComplexMatrix::herk(char uplo, char trans,
-  complex<double> alpha, const ComplexMatrix& a,
-  complex<double> beta)
+  double alpha, const ComplexMatrix& a, double beta)
 {
   assert( ictxt_ == a.ictxt() );
   assert( n_ == m_ ); // *this must be a square matrix

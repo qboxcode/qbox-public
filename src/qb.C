@@ -15,7 +15,7 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.67 2010-04-16 22:43:22 fgygi Exp $
+// $Id: qb.C,v 1.68 2010-05-10 20:07:43 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -35,7 +35,7 @@ using namespace std;
 #include "isodate.h"
 #include "release.h"
 #include "qbox_xmlns.h"
-#include "uuid.h"
+#include "uuid_str.h"
 
 #include "Context.h"
 #include "UserInterface.h"
@@ -136,7 +136,7 @@ int main(int argc, char **argv, char **envp)
   {
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
-  cout << "<uuid> " << uuid() << " </uuid>" << endl;
+  cout << "<uuid> " << uuid_str() << " </uuid>" << endl;
   cout << "\n";
   cout << "                   ============================\n";
   cout << "                   I qbox "

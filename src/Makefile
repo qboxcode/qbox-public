@@ -11,7 +11,7 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.69 2010-04-16 21:43:56 fgygi Exp $
+# $Id: Makefile,v 1.70 2010-05-10 20:51:00 fgygi Exp $
 #------------------------------------------------------------------------------
 #
 include $(TARGET).mk
@@ -50,7 +50,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         jade.o PlotCmd.o \
         ExtForceSet.o ExtForce.o AtomicExtForce.o PairExtForce.o \
         GlobalExtForce.o \
-        uuid.o sampling.o \
+        uuid_str.o sampling.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
  $(EXEC):    $(OBJECTS)
@@ -273,6 +273,7 @@ BOSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 BOSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 BOSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 BOSampleStepper.o: Wavefunction.h Control.h
+boxmuller.o: boxmuller.h
 CellDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 CellDyn.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h SlaterDet.h
 CellDyn.o: Basis.h Matrix.h Timer.h
@@ -415,7 +416,7 @@ LoadCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 Matrix.o: Context.h Matrix.h
 MDIonicStepper.o: MDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 MDIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h ConstraintSet.h
-MDIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h
+MDIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h sampling.h
 MDIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
 MDIonicStepper.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 MDIonicStepper.o: Wavefunction.h Control.h Species.h
@@ -474,7 +475,7 @@ PSDWavefunctionStepper.o: Timer.h Wavefunction.h D3vector.h UnitCell.h
 PSDWavefunctionStepper.o: SlaterDet.h Context.h Basis.h Matrix.h
 PSDWavefunctionStepper.o: Preconditioner.h
 PSDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
-qb.o: isodate.h release.h qbox_xmlns.h uuid.h Context.h UserInterface.h
+qb.o: isodate.h release.h qbox_xmlns.h uuid_str.h Context.h UserInterface.h
 qb.o: Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h ConstraintSet.h
 qb.o: ExtForceSet.h Wavefunction.h Control.h Timer.h AngleCmd.h AtomCmd.h
 qb.o: ComputeMLWFCmd.h MLWFTransform.h BasisMapping.h ConstraintCmd.h
@@ -587,6 +588,7 @@ testBase64Transcoder.o: Base64Transcoder.h
 testBasis.o: Basis.h D3vector.h UnitCell.h Context.h
 testBasisMapping.o: Context.h Basis.h D3vector.h UnitCell.h BasisMapping.h
 testBasisMapping.o: Timer.h
+test_boxmuller.o: boxmuller.h
 testChargeDensity.o: Context.h Wavefunction.h D3vector.h UnitCell.h
 testChargeDensity.o: ChargeDensity.h Timer.h SlaterDet.h Basis.h Matrix.h
 testChargeDensity.o: FourierTransform.h
@@ -646,7 +648,7 @@ TorsionConstraint.o: Constraint.h D3vector.h
 UnitCell.o: UnitCell.h D3vector.h
 UnitCell.o: D3vector.h
 UserInterface.o: UserInterface.h qbox_xmlns.h
-uuid.o: uuid.h
+uuid_str.o: uuid_str.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SlaterDet.h Context.h
 Wavefunction.o: Basis.h Matrix.h Timer.h jacobi.h SharedFilePtr.h
 Wavefunction.o: D3vector.h UnitCell.h

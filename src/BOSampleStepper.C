@@ -15,7 +15,7 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.57 2010-04-16 21:42:46 fgygi Exp $
+// $Id: BOSampleStepper.C,v 1.58 2010-05-10 20:51:55 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -492,17 +492,25 @@ void BOSampleStepper::step(int niter)
 
     // Recalculate ground state wavefunctions
 #ifdef DEBUG
-    double sum = s_.wf.sd(0,0)->empty_row_error() ;
-    if ( onpe0 )
+    for ( int ispin = 0; ispin < nspin; ispin++ )
     {
-      cout.setf(ios::scientific,ios::floatfield);
-      cout << " sd empty row error: " << sum << endl;
-    }
-    sum = s_.wf.sd(0,0)->g0_imag_error() ;
-    if ( onpe0 )
-    {
-      cout.setf(ios::scientific,ios::floatfield);
-      cout << " sd g0 imag error: " << sum << endl;
+      for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+      {
+        double sum = s_.wf.sd(ispin,ikp)->empty_row_error() ;
+        if ( onpe0 )
+        {
+          cout.setf(ios::scientific,ios::floatfield);
+          cout << " sd empty row error: ispin="
+               << ispin << " ikp=" << ikp << "  " << sum << endl;
+        }
+        sum = s_.wf.sd(ispin,ikp)->g0_imag_error() ;
+        if ( onpe0 )
+        {
+          cout.setf(ios::scientific,ios::floatfield);
+          cout << " sd g0 imag error: ispin="
+               << ispin << " ikp=" << ikp << "  " << sum << endl;
+        }
+      }
     }
 #endif
     // wavefunction extrapolation

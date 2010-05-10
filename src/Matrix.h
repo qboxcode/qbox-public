@@ -15,7 +15,7 @@
 // Matrix.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Matrix.h,v 1.22 2010-04-07 04:47:22 fgygi Exp $
+// $Id: Matrix.h,v 1.23 2010-05-10 20:49:38 fgygi Exp $
 
 #ifndef MATRIX_H
 #define MATRIX_H
@@ -491,11 +491,10 @@ class ComplexMatrix
          const ComplexMatrix& b, std::complex<double> beta);
 
     // hermitian rank k update
-    // this = beta * this + alpha * A * A^T  (trans=='n')
-    // this = beta * this + alpha * A^T * A  (trans=='t')
+    // this = beta * this + alpha * A * A^H  (trans=='n')
+    // this = beta * this + alpha * A^H * A  (trans=='c')
     void herk(char uplo, char trans,
-         std::complex<double> alpha, const ComplexMatrix& a,
-         std::complex<double> beta);
+         double alpha, const ComplexMatrix& a, double beta);
 
     // matrix transpose
     // this = alpha * transpose(A) + beta * this

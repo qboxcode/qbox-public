@@ -15,7 +15,7 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.25 2010-04-16 21:40:50 fgygi Exp $
+// $Id: AtomSet.h,v 1.26 2010-05-10 20:52:54 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
@@ -27,7 +27,6 @@
 #include <string>
 #include <list>
 #include <map>
-#include <string>
 
 class Species;
 

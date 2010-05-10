@@ -15,7 +15,7 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.62 2010-04-16 21:39:55 fgygi Exp $
+// $Id: SlaterDet.C,v 1.63 2010-05-10 20:48:58 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -455,7 +455,7 @@ void SlaterDet::gram(void)
   {
     // k != 0 case
     ComplexMatrix s(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    s.herk('l','c',1.0,c_,1.0);
+    s.herk('l','c',1.0,c_,0.0);
     s.potrf('l'); // Cholesky decomposition: S = L * L^H
     // solve triangular system X * L^H = C
     c_.trsm('r','l','c','n',1.0,s);
@@ -1167,7 +1167,7 @@ void SlaterDet::randomize(double amplitude)
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::cleanup(void)
 {
-  // set Im( c(G=0) ) to zero and
+  // set Im( c(G=0) ) to zero for real case and
   // set the empty rows of the matrix c_ to zero
   // The empty rows are located between i = basis_->localsize() and
   // c_.mloc(). Empty rows are necessary to insure that the
@@ -1177,23 +1177,14 @@ void SlaterDet::cleanup(void)
   {
     complex<double>* p = c_.valptr(c_.mloc()*n);
     // reset imaginary part of G=0 component to zero
-    if ( c_.mloc() > 0 && ctxt_.myrow() == 0 )
+    if ( basis_->real() && c_.mloc() > 0 && ctxt_.myrow() == 0 )
     {
       // index of G=0 element
-      int izero;
-      if ( basis_->real() )
-        izero = 0;
-      else
-        izero = basis_->rod_size(0)/2;
-      //cout << " izero = " << izero << " G = " << basis_->kv(3*izero) << " "
-      //     << basis_->kv(3*izero+1) << " " << basis_->kv(3*izero+2) << endl;
-      p[izero] = complex<double> ( p[izero].real(), 0.0);
+      p[0] = complex<double> ( p[0].real(), 0.0);
     }
     // reset values of empty rows of c_ to zero
     for ( int i = basis_->localsize(); i < c_.mloc(); i++ )
-    {
       p[i] = 0.0;
-    }
   }
 }
 
@@ -1831,17 +1822,10 @@ double SlaterDet::g0_imag_error(void)
   for ( int n = 0; n < c_.nloc(); n++ )
   {
     complex<double>* p = c_.valptr(c_.mloc()*n);
-    if ( c_.mloc() > 0 && ctxt_.myrow() == 0 )
+    if ( basis_->real() && c_.mloc() > 0 && ctxt_.myrow() == 0 )
     {
       // index of G=0 element
-      int izero;
-      if ( basis_->real() )
-        izero = 0;
-      else
-        izero = basis_->rod_size(0)/2;
-      //cout << " izero = " << izero << " G = " << basis_->kv(3*izero) << " "
-      //     << basis_->kv(3*izero+1) << " " << basis_->kv(3*izero+2) << endl;
-      double tim = p[izero].imag();
+      double tim = p[0].imag();
       sum += tim*tim;
     }
   }

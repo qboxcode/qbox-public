@@ -842,6 +842,7 @@ void BOSampleStepper::step(int niter)
           s_.wf.diag(dwf,compute_eigvec);
           if ( onpe0 )
           {
+            cout << "<eigenset>" << endl;
             // print eigenvalues
             for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
             {
@@ -862,6 +863,7 @@ void BOSampleStepper::step(int niter)
                 cout << "  </eigenvalues>" << endl;
               }
             }
+            cout << "</eigenset>" << endl;
           }
         }
 

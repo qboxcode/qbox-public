@@ -104,15 +104,16 @@ int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
     return 0;             /* return 0 for end of file */
 
   // output command line if reading from a script
-  if ( echo ) cout << s;
+  if ( echo && i > 0 ) cout << "<cmd>" << s << "</cmd>";
 
   if ( ch == '#' )
   {
-    if ( echo ) cout << '#';
+    if ( echo ) cout << "<cmd>#";
     while ( (ch = fp.get()) != EOF && !( ch == '\n' ) )
     {
       if ( echo ) cout << (char) ch;
     }
+    if ( echo && ch=='\n' ) cout << "</cmd>";
     if ( !(ch == '\n') )
       return 0;             /* return 0 for end of file */
   }

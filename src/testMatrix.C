@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     infile >> m_a >> n_a >> mb_a >> nb_a >> ta;
     cout<<"m_a="<<m_a<<", n_a="<<n_a<<endl;
     infile >> m_b >> n_b >> mb_b >> nb_b >> tb;
-    cout<<"m_b="<<m_b<<", n_b="<<n_a<<endl;
+    cout<<"m_b="<<m_b<<", n_b="<<n_b<<endl;
     infile >> m_c >> n_c >> mb_c >> nb_c;
     cout<<"m_c="<<m_c<<", n_c="<<n_c<<endl;
   }

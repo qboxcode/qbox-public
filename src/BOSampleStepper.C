@@ -179,7 +179,7 @@ void BOSampleStepper::step(int niter)
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
 
-  const bool extrapolate_wf = atoms_dyn == "MD";
+  const bool extrapolate_wf = ( atoms_dyn == "MD" ) && ( nite_ == 1 );
 
   const bool ntc_extrapolation =
     s_.ctrl.debug.find("NTC_EXTRAPOLATION") != string::npos;
@@ -364,10 +364,7 @@ void BOSampleStepper::step(int niter)
     if ( !gs_only )
     {
       tmap["charge"].start();
-      if ( initial_atomic_density )
-        cd_.update_rhor();
-      else
-        cd_.update_density();
+      cd_.update_density();
       tmap["charge"].stop();
 
       ef_.update_vhxc();
@@ -928,7 +925,7 @@ void BOSampleStepper::step(int niter)
       if ( gs_only )
       {
         tmap["charge"].start();
-        if ( !initial_atomic_density ) cd_.update_density();
+        cd_.update_density();
         tmap["charge"].stop();
 
         ef_.update_vhxc();

@@ -1,3 +1,14 @@
+TODO:
+LineMinimizer.h: avoid getting blocked in bracketing mode
+indefinitely when the accuracy of forces is insufficient.
+Sample.h: replace ExtForceSet and ConstraintSet members by pointers.
+--------------------------------------------------------------------------------
+rel1_52_2
+RunCmd.h: updated help msg
+LoadCmd.C: fix bug in reading a sample with atomset only. (unit_cell not set).
+Add <cmd> </cmd> tags when echoing commands executed by qbox.
+Add <eigenset> tag around <eigenvalues> for each kpoint and spin.
+BOSampleStepper.C: Disabled wf extrapolation if nite>1 (unstable)
 --------------------------------------------------------------------------------
 rel1_52_1
 SlaterDet::gram use beta=0 in herk, for consistency (complex case).

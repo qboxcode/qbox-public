@@ -223,8 +223,9 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     if ( read_wfv )
       cout << " wavefunction velocity was read" << endl;
 
-    cout << " SampleReader::readSample: grid nx,ny,nz="
-         << nx << " " << ny << " " << nz << endl;
+    if ( read_wf )
+      cout << " SampleReader::readSample: grid nx,ny,nz="
+           << nx << " " << ny << " " << nz << endl;
 
     delete s_handler;
     delete parser;
@@ -619,7 +620,24 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
 
   // force consistency of unit cell
   // copy wavefunction domain on atomset unit_cell
-  s.atoms.set_cell(s.wf.cell());
+  if ( read_wf )
+  {
+    cout << "copying wf.cell on atoms.cell" << endl;
+    s.atoms.set_cell(s.wf.cell());
+  }
+
+  if ( !read_wf )
+  {
+    // only atomset was read
+    s.wf.reset();
+    // set wf cell
+    s.wf.resize(s.atoms.cell(),s.atoms.cell(),s.wf.ecut());
+    // set number of states from charge in atomset
+    s.wf.set_nel(s.atoms.nel());
+    s.wf.update_occ(0.0);
+
+    //cout << s.wf << endl;
+  }
 
   // check if wavefunction_velocity element was read, if not, delete wfvtmp
   if ( s.wfv != 0 )

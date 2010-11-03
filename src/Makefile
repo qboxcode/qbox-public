@@ -245,10 +245,6 @@ Base64Transcoder.o: Base64Transcoder.h
 Basis.o: Basis.h D3vector.h UnitCell.h Context.h
 Basis.o: D3vector.h UnitCell.h Context.h
 BasisMapping.o: Basis.h D3vector.h UnitCell.h Context.h BasisMapping.h
-bisection.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
-bisection.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-bisection.o: SampleReader.h SampleWriter.h Basis.h FourierTransform.h Timer.h
-bisection.o: SlaterDet.h Matrix.h isodate.h jade.h
 BLYPFunctional.o: BLYPFunctional.h XCFunctional.h
 BLYPFunctional.o: XCFunctional.h
 BMDIonicStepper.o: BMDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
@@ -273,7 +269,6 @@ BOSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 BOSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 BOSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 BOSampleStepper.o: Wavefunction.h Control.h
-boxmuller.o: boxmuller.h
 CellDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 CellDyn.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h SlaterDet.h
 CellDyn.o: Basis.h Matrix.h Timer.h
@@ -588,7 +583,6 @@ testBase64Transcoder.o: Base64Transcoder.h
 testBasis.o: Basis.h D3vector.h UnitCell.h Context.h
 testBasisMapping.o: Context.h Basis.h D3vector.h UnitCell.h BasisMapping.h
 testBasisMapping.o: Timer.h
-test_boxmuller.o: boxmuller.h
 testChargeDensity.o: Context.h Wavefunction.h D3vector.h UnitCell.h
 testChargeDensity.o: ChargeDensity.h Timer.h SlaterDet.h Basis.h Matrix.h
 testChargeDensity.o: FourierTransform.h
@@ -597,20 +591,14 @@ testEnergyFunctional.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h
 testEnergyFunctional.o: UnitCell.h ConstraintSet.h ExtForceSet.h
 testEnergyFunctional.o: Wavefunction.h Control.h EnergyFunctional.h
 testEnergyFunctional.o: ChargeDensity.h Timer.h StructureFactor.h
-test_fftw3.o: Timer.h
 test_fftw.o: Timer.h
 testFourierTransform.o: Context.h Basis.h D3vector.h UnitCell.h
 testFourierTransform.o: FourierTransform.h Timer.h
-testHandler.o: StrX.h
 testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h Matrix.h jade.h
 testLDAFunctional.o: LDAFunctional.h XCFunctional.h
 testLineMinimizer.o: LineMinimizer.h
-testMapping.o: Basis.h D3vector.h UnitCell.h Context.h
 testMatrix.o: Timer.h Context.h Matrix.h
-testMatrixColumnRotation.o: Context.h Matrix.h Timer.h
-testMemParse.o: StrX.h
-testPParse.o: StrX.h
 testreadSample.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 testreadSample.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 testreadSample.o: SampleReader.h
@@ -621,11 +609,6 @@ test_sinft.o: sinft.h readTSC.h
 testSlaterDet.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
 testSlaterDet.o: Timer.h FourierTransform.h
 testSpecies.o: Species.h Context.h SpeciesReader.h
-test_spline.o: spline.h
-testStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
-testStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-testStepper.o: BOSampleStepper.h SampleStepper.h Timer.h EnergyFunctional.h
-testStepper.o: ChargeDensity.h StructureFactor.h
 testUnitCell.o: UnitCell.h D3vector.h
 testWavefunction.o: Context.h Wavefunction.h D3vector.h UnitCell.h
 testWavefunction.o: SlaterDet.h Basis.h Matrix.h Timer.h

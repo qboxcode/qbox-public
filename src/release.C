@@ -20,5 +20,5 @@
 #include "release.h"
 std::string release(void)
 {
-  return std::string("1.52.1");
+  return std::string("1.52.2");
 }

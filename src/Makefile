@@ -77,7 +77,10 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
          Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
          SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
          Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
-         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o
+         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o \
+         PositionConstraint.o \
+        ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
+        GlobalExtForce.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  truncateMLWF: truncateMLWF.o \
          MLWFTransform.o BasisMapping.o jade.o \

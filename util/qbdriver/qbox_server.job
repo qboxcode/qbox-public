@@ -1,0 +1,68 @@
+#!/bin/bash
+# qbox.job: qbox job script
+#
+# submit with: qsub -pe mpi <NSLOTS> [-v NTASKS=<NTASKS> ] -N <JOB_NAME> job
+# uses: JOB_NAME.i
+# produces: JOB_NAME.r JOB_NAME.o<jobid> JOB_NAME.po<jobid>
+#
+#$ -cwd
+#$ -j y
+#$ -S /bin/bash
+#
+
+exe=/home/fgygi/qb/export/rel1_45_2/qb/src/qb
+MPIRUNARGS=-q 0
+declare -i nslots=$NSLOTS
+declare -i ntasks
+
+if [ "$NTASKS" == "" ]
+then
+  NTASKS=$NSLOTS
+fi
+
+if [ "$NTASKS" == "$NSLOTS" ]
+then
+  # 4 tasks per node
+  NTASKS=$NSLOTS
+  echo "ulimit -v 850000" > mpirunrc.$JOB_ID
+else
+  # less than 4 tasks per node
+  ntasks=$NTASKS
+  declare -i ns2=nslots*2
+  declare -i ns3=nslots*3
+  declare -i ns4=nslots*4
+  declare -i nt4=ntasks*4
+  if [ $ns2 -eq $nt4 ]
+  then
+    # 2 tasks per node
+    echo "ulimit -v 1700000" > mpirunrc.$JOB_ID
+    PPN="-ppn 2"
+  elif [ $ns3 -eq $nt4 ]
+  then
+    # 3 tasks per node
+    echo "ulimit -v 2550000" > mpirunrc.$JOB_ID
+    PPN="-ppn 3"
+  elif [ $nslots -eq $nt4 ]
+  then
+    # 1 task per node
+    echo "ulimit -v 3400000" > mpirunrc.$JOB_ID
+    PPN="-ppn 1"
+  else
+    echo "Illegal value of NTASKS: must be NSLOTS, NSLOTS/2, NSLOTS/3 or NSLOTS/4"
+    exit 1
+  fi
+  cat $TMPDIR/machines | uniq > $TMPDIR/machines.tmp
+  mv $TMPDIR/machines.tmp $TMPDIR/machines
+fi
+
+echo TMPDIR=$TMPDIR
+echo NSLOTS=$NSLOTS
+echo NTASKS=$NTASKS
+
+cmd="mpirun $MPIRUNARGS -np $NTASKS $PPN -machinefile $TMPDIR/machines \
+-rcfile mpirunrc.$JOB_ID $exe -server $JOB_NAME.in $JOB_NAME.out"
+echo cmd=$cmd
+$cmd
+
+rm mpirunrc.$JOB_ID
+

@@ -1,0 +1,52 @@
+
+   Calculation of vibrational frequencies
+   --------------------------------------
+
+1) Generate a Qbox input script "fdmoves.i" using the script "fdmoves.sh"
+
+   Example:
+   $ fdmoves.sh O1 O2 H1 H2 H3 H4 > fdmoves.i
+
+   Note: the atom names must appear in the same order as they are printed in
+   the <atomset> element in Qbox output. This may not correspond to the order
+   in which they were defined with the atom command.
+
+2) Run Qbox using the following input file:
+
+   A sample file describing a relaxed structure must be available (in the
+   following example: "relaxed_sample.xml")
+
+   # finite difference calculation of the dynamical matrix
+   load relaxed_sample.xml
+   set xc PBE
+   set wf_dyn PSDA
+   set ecutprec 4
+   fdmoves.i
+
+   Save the result in "fdmoves.r"
+
+3) Extract all the <force> elements from the file "fdmoves.r"
+
+   $ grep '<force>' fdmoves.r > force.dat
+
+4) Run the dynmat program using "force.dat"
+
+   use: dynmat force.dat N mass1 .. massN
+   where N is the number of atoms, mass1 .. massN are the masses (C=12)
+   Note: the mass must be repeated for each atom.
+
+   $ ./dynmat force.dat 6 16 16 1 1 1 1 
+
+   The frequencies are printed twice in order of increasing magnitude.
+   The first six frequencies should be zero. Deviations from zero give
+   an estimate of the lower bound on the error in frequencies.
+   The dynamical matrix computed from finite-difference force calculations
+   is not exactly symmetric due to errors in the forces and imperfect 
+   relaxation of the original structure. The dynmat program prints two sets
+   of eigenvalues. The first is computed using the upper triangle of the 
+   dynamical matrix and the second using the lower triangle. The difference
+   between the two sets gives an indication of the error due to the lack
+   of symmetry of the dynamical matrix.
+
+   Note: For calculations involving different isotopes, only step 4 must be 
+   repeated with modified mass arguments. The file force.dat can be reused.

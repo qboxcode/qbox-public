@@ -622,7 +622,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   // copy wavefunction domain on atomset unit_cell
   if ( read_wf )
   {
-    cout << "copying wf.cell on atoms.cell" << endl;
+    // cout << "copying wf.cell on atoms.cell" << endl;
     s.atoms.set_cell(s.wf.cell());
   }
 

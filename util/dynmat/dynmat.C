@@ -1,8 +1,24 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2009-2010 The Regents of the University of California
+//
+// This file is part of Qbox
+//
+// Qbox is distributed under the terms of the GNU General Public License
+// as published by the Free Software Foundation, either version 2 of
+// the License, or (at your option) any later version.
+// See the file COPYING in the root directory of this distribution
+// or <http://www.gnu.org/licenses/>.
+//
+////////////////////////////////////////////////////////////////////////////////
 //
 // dynmat.C: compute and diagonalize a dynamical matrix
+//
+////////////////////////////////////////////////////////////////////////////////
 // Forces are read from Qbox output
 // The Qbox output should correspond to a sequence of calculations
 // using symmetric finite displacements for all atoms in the x,y,z directions
+// Displacements have an amplitude of +/- h 
 //
 // use: dynmat force.dat h Nat1 mass1 [Nat2 mass2] ...
 // input_file: force.dat: forces from Qbox XML output file (collected with grep)
@@ -10,6 +26,8 @@
 // Nat1: number of atoms of mass mass1
 // Nat2: (optional) number of atoms of mass mass2
 // (repeat the above for all atomic species)
+// Species masses must be given in the order in which they appear in the
+// <atomset> element in Qbox output
 
 #include <cassert>
 #include <cstdlib>

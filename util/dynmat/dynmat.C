@@ -4,8 +4,12 @@
 // The Qbox output should correspond to a sequence of calculations
 // using symmetric finite displacements for all atoms in the x,y,z directions
 //
-// use: diag input_file
-// input_file: forces from Qbox XML output file (collected with grep)
+// use: dynmat force.dat h Nat1 mass1 [Nat2 mass2] ...
+// input_file: force.dat: forces from Qbox XML output file (collected with grep)
+// h: displacement used in the force calculations (a.u.)
+// Nat1: number of atoms of mass mass1
+// Nat2: (optional) number of atoms of mass mass2
+// (repeat the above for all atomic species)
 
 #include <cassert>
 #include <cstdlib>

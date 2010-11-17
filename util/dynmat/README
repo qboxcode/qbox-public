@@ -31,11 +31,15 @@
 
 4) Run the dynmat program using "force.dat"
 
-   use: dynmat force.dat N mass1 .. massN
-   where N is the number of atoms, mass1 .. massN are the masses (C=12)
-   Note: the mass must be repeated for each atom.
+   use: dynmat force.dat Nat1 mass1 [Nat2 mass2] ...
+   where Nat1 is the number of atoms of mass mass1 
+   Nat2 is the number of atoms of mass mass2, etc.
+   The mass parameters are in amu (C=12)
 
-   $ ./dynmat force.dat 6 16 16 1 1 1 1 
+   Example for the water dimer (with oxygen atoms first, hydrogen last)
+   Two oxygen atoms of mass 16, four hydrogen atoms of mass 1
+   Displacements used to compute forces are 0.01 (a.u.)
+   $ ./dynmat force.dat 0.01 2 16 4 1 
 
    The frequencies are printed twice in order of increasing magnitude.
    The first six frequencies should be zero. Deviations from zero give

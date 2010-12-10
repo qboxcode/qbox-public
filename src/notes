@@ -3,6 +3,13 @@ LineMinimizer.h: avoid getting blocked in bracketing mode
 indefinitely when the accuracy of forces is insufficient.
 Sample.h: replace ExtForceSet and ConstraintSet members by pointers.
 --------------------------------------------------------------------------------
+rel1_52_3
+Fixed StructuredDocumentHandler.[Ch] and WavefunctionHandler.C for compilation
+with Xerces-C 3.x.x
+SampleReader.C: removed debug print
+--------------------------------------------------------------------------------
+rel1_52_2
+RunCmd.h: updated help msg
 rel1_52_2
 RunCmd.h: updated help msg
 LoadCmd.C: fix bug in reading a sample with atomset only. (unit_cell not set).

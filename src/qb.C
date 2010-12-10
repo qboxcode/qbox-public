@@ -35,7 +35,9 @@ using namespace std;
 #include "isodate.h"
 #include "release.h"
 #include "qbox_xmlns.h"
+#if USE_UUID
 #include "uuid_str.h"
+#endif
 
 #include "Context.h"
 #include "UserInterface.h"
@@ -136,7 +138,9 @@ int main(int argc, char **argv, char **envp)
   {
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
+#if USE_UUID
   cout << "<uuid> " << uuid_str() << " </uuid>" << endl;
+#endif
   cout << "\n";
   cout << "                   ============================\n";
   cout << "                   I qbox "

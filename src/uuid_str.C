@@ -1,3 +1,4 @@
+#if USE_UUID
 #include <uuid/uuid.h>
 #include "uuid_str.h"
 using namespace std;
@@ -15,3 +16,4 @@ std::string uuid_str(void)
 
   return string(s);
 }
+#endif

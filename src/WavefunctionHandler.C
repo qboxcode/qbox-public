@@ -405,7 +405,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
       {
         // base64 encoding
         unsigned int length;
-#ifdef XERCESC_3_0_1
+#ifdef XERCESC_3
         XMLByte* b = Base64::decode((XMLByte*)content.c_str(),
                                     (XMLSize_t*) &length);
 #else

@@ -200,7 +200,7 @@ SampleStepper.o EnergyFunctional.o
 # generate dependencies in makefile: use -Y to avoid library header files
 # that are likely to be different on other platforms.
  depend :
-	makedepend -Y -D$(PLT) *.[cCh]
+	makedepend -Y -D$(PLT) $(PLTFLAGS) *.[cCh]
 #makedepend -D$(PLT) -I/usr/include/CC *.[cC]
 #------------------------------------------------------------------------------
 #  Cleanup object files
@@ -501,6 +501,8 @@ RescaleVCmd.o: Control.h
 ResetVcmCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 ResetVcmCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 ResetVcmCmd.o: Control.h
+RseedCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+RseedCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 RunCmd.o: RunCmd.h UserInterface.h BOSampleStepper.h SampleStepper.h Timer.h
 RunCmd.o: EnergyFunctional.h ChargeDensity.h Context.h StructureFactor.h
 RunCmd.o: Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h ConstraintSet.h

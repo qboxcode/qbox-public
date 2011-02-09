@@ -6,6 +6,7 @@ Sample.h: replace ExtForceSet and ConstraintSet members by pointers.
 rel1_52_4
 Introduced a USE_UUID macro in qb.C, uuid_str.[Ch] (some platforms have no 
 uuid library)
+Fix bug 23: Wavefunction::set_nempty: added update occ when nempty=0.
 --------------------------------------------------------------------------------
 rel1_52_3
 Fixed StructuredDocumentHandler.[Ch] and WavefunctionHandler.C for compilation

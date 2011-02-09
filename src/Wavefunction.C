@@ -258,6 +258,7 @@ void Wavefunction::set_nempty(int nempty)
   }
   nempty_ = nempty;
   compute_nst();
+  update_occ(0.0);
   resize(cell_,refcell_,ecut_);
 }
 

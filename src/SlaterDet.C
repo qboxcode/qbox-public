@@ -1749,7 +1749,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
                                MPI_CHAR,&status);
   if ( err != 0 )
     cout << ctxt_.mype()
-         << " error in MPI_File_write_at_all" << endl;
+         << " error in MPI_File_write_at_all: err=" << err << endl;
   sfp.set_offset(local_offset+len);
 
   sfp.sync();
@@ -1763,8 +1763,8 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
               s.size(),MPI_CHAR,&status);
     if ( err != 0 )
       cout << ctxt_.mype()
-           << " error in MPI_File_write, slater_determinant trailer"
-           << endl;
+           << " error in MPI_File_write, slater_determinant trailer:"
+           << " err=" << err << endl;
     sfp.advance(s.size());
   }
 #else

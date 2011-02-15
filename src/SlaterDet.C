@@ -1811,8 +1811,8 @@ double SlaterDet::empty_row_error(void)
       sum += norm(p[i]);
     }
   }
-  return sum;
   ctxt_.dsum(1,1,&sum,1);
+  return sum;
 }
 ////////////////////////////////////////////////////////////////////////////////
 double SlaterDet::g0_imag_error(void)

@@ -29,6 +29,17 @@ int ComputeMLWFCmd::action(int argc, char **argv)
   Wavefunction& wf = s->wf;
   SlaterDet& sd = *(wf.sd(0,0));
 
+  // Check that only the k=0 point is used
+  if ( wf.nkp()>1 || !sd.basis().real() )
+  {
+    if ( ui->onpe0() )
+    {
+      cout << " ComputeMLWFCmd::action: compute_mlwf can only be used at\n"
+           << " the Gamma point (k=0)" << endl;
+    }
+    return 1;
+  }
+
   MLWFTransform* mlwft = new MLWFTransform(sd);
 
   mlwft->compute_transform();

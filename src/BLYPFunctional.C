@@ -159,8 +159,8 @@ void BLYPFunctional::excblyp(double rho, double grad,
   const double ex = rha13 * ga;
 
   /* energy done, now the potential */
-  const double gpa = ( 6.0*beta*beta*xa2 * ( xa/sqrt(xa2+1.0) - asinhxa ) - 2.0*beta*xa ) *
-        frac*frac;
+  const double gpa = ( 6.0*beta*beta*xa2 * ( xa/sqrt(xa2+1.0) - asinhxa )
+                     - 2.0*beta*xa ) * frac*frac;
   const double vx1 = rha13 * fourthirds * ( ga - xa * gpa );
   const double vx2 = - 0.5 * gpa / grada;
 
@@ -209,4 +209,3 @@ void BLYPFunctional::excblyp(double rho, double grad,
   *vxc1 = vx1 + vc1;
   *vxc2 = vx2 + vc2;
 }
-

@@ -15,7 +15,6 @@
 // SampleWriter.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.C,v 1.12 2009-12-04 03:18:23 fgygi Exp $
 
 
 #include "SampleWriter.h"
@@ -27,6 +26,7 @@
 #include <sstream>
 #include <iomanip>
 #include <sys/stat.h>
+#include <cstring>
 
 using namespace std;
 

@@ -15,7 +15,6 @@
 // EnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.C,v 1.36 2010-02-20 23:13:02 fgygi Exp $
 
 #include "EnergyFunctional.h"
 #include "Sample.h"
@@ -745,7 +744,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
 
   if ( debug_stress && s_.ctxt_.onpe0() )
   {
-    const double gpa = 29421.5;
+    //const double gpa = 29421.5;
     cout.setf(ios::fixed,ios::floatfield);
     cout.setf(ios::right,ios::adjustfield);
     cout << setprecision(8);

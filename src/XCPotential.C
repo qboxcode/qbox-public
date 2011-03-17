@@ -18,6 +18,9 @@
 // $Id: XCPotential.C,v 1.9 2008-09-08 15:56:19 fgygi Exp $
 
 #include "XCPotential.h"
+#include "LDAFunctional.h"
+#include "PBEFunctional.h"
+#include "BLYPFunctional.h"
 #include "Basis.h"
 #include "FourierTransform.h"
 #include "blas.h" // daxpy, dcopy
@@ -137,7 +140,6 @@ void XCPotential::update(vector<vector<double> >& vr)
   {
     // GGA functional
     exc_ = 0.0;
-    int size = xcf_->np();
 
     // compute grad_rho
     const double omega_inv = 1.0 / vbasis_.cell().volume();
@@ -274,7 +276,7 @@ void XCPotential::update(vector<vector<double> >& vr)
     {
       const double *const e = xcf_->exc;
       const double *const v1 = xcf_->vxc1;
-      const double *const v2 = xcf_->vxc2;
+      //const double *const v2 = xcf_->vxc2;
       const double *const rh = xcf_->rho;
       {
         for ( int ir = 0; ir < np012loc_; ir++ )
@@ -288,10 +290,10 @@ void XCPotential::update(vector<vector<double> >& vr)
     {
       const double *const v1_up = xcf_->vxc1_up;
       const double *const v1_dn = xcf_->vxc1_dn;
-      const double *const v2_upup = xcf_->vxc2_upup;
-      const double *const v2_updn = xcf_->vxc2_updn;
-      const double *const v2_dnup = xcf_->vxc2_dnup;
-      const double *const v2_dndn = xcf_->vxc2_dndn;
+      //const double *const v2_upup = xcf_->vxc2_upup;
+      //const double *const v2_updn = xcf_->vxc2_updn;
+      //const double *const v2_dnup = xcf_->vxc2_dnup;
+      //const double *const v2_dndn = xcf_->vxc2_dndn;
       const double *const eup = xcf_->exc_up;
       const double *const edn = xcf_->exc_dn;
       const double *const rh_up = xcf_->rho_up;

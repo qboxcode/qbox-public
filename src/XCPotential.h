@@ -1,5 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////
-//
+//////////////////////////////////////////////////////////////////////////////// //
 // Copyright (c) 2008 The Regents of the University of California
 //
 // This file is part of Qbox
@@ -15,15 +14,11 @@
 // XCPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCPotential.h,v 1.7 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef XCPOTENTIAL_H
 #define XCPOTENTIAL_H
 
 #include "ChargeDensity.h"
-#include "LDAFunctional.h"
-#include "PBEFunctional.h"
-#include "BLYPFunctional.h"
 #include <string>
 #include <vector>
 #include <valarray>
@@ -31,6 +26,7 @@
 
 class Basis;
 class FourierTransform;
+class XCFunctional;
 
 class XCPotential
 {

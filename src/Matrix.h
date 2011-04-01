@@ -30,6 +30,159 @@ class Context;
 
 class ComplexMatrix;
 
+class IntegerMatrix
+{
+  private:
+
+    Context ctxt_;
+    int ictxt_;
+    int lld_;  // leading dimension of local matrix
+    int m_, n_;   // size of global matrix
+    int mb_, nb_; // size of blocks
+    int mloc_, nloc_;   // size of local array
+    int size_; // size of local array;
+    int nprow_, npcol_; // number of process rows and cols in context
+    int myrow_, mycol_; // position of my process in the process grid
+    int mblocks_, nblocks_; // number of local blocks
+    int desc_[9];
+    bool active_;
+    bool m_incomplete_, n_incomplete_; // this process has an incomplete block
+    bool reference_; // object was created using the copy constructor
+    int* val;
+
+  public:
+
+    int* valptr(int i=0) { return &val[i]; }
+    const int* cvalptr(int i=0) const { return &val[i]; }
+    int& operator[] (int i) { return val[i]; }
+    const int& operator[] (int i) const { return val[i]; }
+    const Context& context(void) const { return ctxt_; }
+    int ictxt(void) const { return ictxt_; }
+    int lld(void) const { return lld_; }
+    int m(void) const { return m_; } // size of global matrix
+    int n(void) const { return n_; } // size of global matrix
+    int mb(void) const { return mb_; } // size of blocks
+    int nb(void) const { return nb_; } // size of blocks
+    int mloc(void) const { return mloc_; } // size of local array
+    int nloc(void) const { return nloc_; } // size of local array
+    int size(void) const { return size_; } // size of local array
+    int localsize(void) const { return mloc_*nloc_; } // local size of val
+    double memsize(void) const { return (double)m_ * (double)n_ * sizeof(double); }
+    double localmemsize(void) const
+    { return (double) mloc_ * (double) nloc_ * sizeof(double); }
+    const int* desc(void) const { return &desc_[0]; }
+
+    // local block size of block (l,m)
+    int mbs(int l) const
+    {
+      // if l is the last block and this process holds an incomplete
+      // block, then the size is m_%mb_. Otherwise, it is mb_.
+      return ( (l==mblocks_-1) && ( m_incomplete_ ) ) ? m_%mb_ : mb_;
+    }
+    int nbs(int m) const
+    {
+      // if m is the last block and this process holds an incomplete
+      // block, then the size is n_%nb_. Otherwise, it is nb_.
+      return ( (m==nblocks_-1) && ( n_incomplete_ ) ) ? n_%nb_ : nb_;
+    }
+
+    // number of local blocks
+    int mblocks(void) const { return mblocks_; }
+    int nblocks(void) const { return nblocks_; }
+
+    // functions to compute local indices from global indices
+
+    // index of blocks: element (i,j) is at position (x,y)
+    // in local block (l,m) of process (pr,pc)
+    int l(int i) const { return i/(nprow_*mb_); }
+    int x(int i) const { return i % mb_; }
+    int pr(int i) const { return (i/mb_) % nprow_; }
+
+    int m(int j) const { return j/(npcol_*nb_); }
+    int y(int j) const { return j % nb_; }
+    int pc(int j) const { return (j/nb_) % npcol_; }
+
+    // global indices:
+    // (i,j) is the global index of element (x,y) of block (l,m)
+    int i(int l, int x) const { return (l * nprow_ + myrow_) * mb_ + x; }
+    int j(int m, int y) const { return (m * npcol_ + mycol_) * nb_ + y; }
+
+    int iglobal(int ilocal) const
+    { return mb_*(nprow_*(ilocal/mb_)+myrow_)+ilocal%mb_; }
+    int jglobal(int jlocal) const
+    { return nb_*(npcol_*(jlocal/nb_)+mycol_)+jlocal%nb_; }
+
+    int iglobal(int iprow, int ilocal) const
+    { return mb_*(nprow_*(ilocal/mb_)+iprow)+ilocal%mb_; }
+    int jglobal(int jpcol, int jlocal) const
+    { return nb_*(npcol_*(jlocal/nb_)+jpcol)+jlocal%nb_; }
+
+
+    // store element a(ii,jj) (where ii,jj are global indices)
+    // in array val:
+    //        int iii = l(ii) * mb_ + x(ii);
+    //        int jjj = m(jj) * nb_ + y(jj);
+    //        val[iii+mloc_*jjj] = a_ij;
+
+    // active flag: the matrix has elements on this process
+    bool active(void) const { return active_; }
+
+    void init_size(int m, int n, int mb = MATRIX_DEF_BLOCK_SIZE,
+      int nb = MATRIX_DEF_BLOCK_SIZE);
+
+    void resize(int m, int n, int mb = MATRIX_DEF_BLOCK_SIZE,
+      int nb = MATRIX_DEF_BLOCK_SIZE)
+    {
+      const int old_size = size_;
+      init_size(m,n,mb,nb);
+      if ( size_ == old_size ) return;
+      init_size(m,n,mb,nb);
+      delete[] val;
+      val = new int[size_];
+      clear();
+    }
+
+    void clear(void);
+    void print(std::ostream& os) const;
+
+    explicit IntegerMatrix(const Context& ctxt) : ctxt_(ctxt),
+        m_(0), n_(0), mb_(0), nb_(0), size_(0), reference_(false), val(0) {}
+
+    // Construct an IntegerMatrix of dimensions m,n
+    explicit IntegerMatrix(const Context& ctxt, int m, int n,
+        int mb=MATRIX_DEF_BLOCK_SIZE,
+        int nb=MATRIX_DEF_BLOCK_SIZE) : ctxt_(ctxt),
+        m_(0), n_(0), mb_(0), nb_(0), size_(0), reference_(false), val(0)
+    {
+      resize(m,n,mb,nb);
+    }
+
+    // copy constructor: create a separate copy of rhs
+    explicit IntegerMatrix(const IntegerMatrix& rhs) : ctxt_(rhs.context()),
+      reference_(false)
+    {
+      init_size(rhs.m(),rhs.n(),rhs.mb(),rhs.nb());
+      val = new int[size_];
+      memcpy(val, rhs.val, size_*sizeof(int));
+    }
+
+    // get submatrix A(ia:ia+m,ja:ja+n) of A
+    void getsub(const IntegerMatrix& a,int m,int n,int ia,int ja);
+
+    // get submatrix A(ia:ia+m,ja:ja+n) of A and store in
+    // this(idest:idest+m,jdest:jdest+n)
+    void getsub(const IntegerMatrix& a,int m,int n,int isrc,int jsrc,
+                int idest, int jdest);
+
+    // destructor
+    ~IntegerMatrix(void)
+    {
+      if ( !reference_ ) delete[] val;
+    }
+};
+
+std::ostream& operator << ( std::ostream& os, const IntegerMatrix& a );
+
 class DoubleMatrix
 {
   private:
@@ -111,6 +264,12 @@ class DoubleMatrix
     { return mb_*(nprow_*(ilocal/mb_)+myrow_)+ilocal%mb_; }
     int jglobal(int jlocal) const
     { return nb_*(npcol_*(jlocal/nb_)+mycol_)+jlocal%nb_; }
+
+    int iglobal(int iprow, int ilocal) const
+    { return mb_*(nprow_*(ilocal/mb_)+iprow)+ilocal%mb_; }
+    int jglobal(int jpcol, int jlocal) const
+    { return nb_*(npcol_*(jlocal/nb_)+jpcol)+jlocal%nb_; }
+
 
     // store element a(ii,jj) (where ii,jj are global indices)
     // in array val:
@@ -277,6 +436,9 @@ class DoubleMatrix
     void syevx(char uplo, std::valarray<double>& w, DoubleMatrix& z,
        double abstol);
 
+    // permute the coeff of the matrix *this
+    void lapiv(char direc, char rowcol, IntegerMatrix& permutation);
+
     // compute eigenvalues (only) of symmetric matrix *this
     // using the divide and conquer method of Tisseur and Dongarra
     //void syevx(char uplo, std::valarray<double>& w);
@@ -365,6 +527,11 @@ class ComplexMatrix
     { return mb_*(nprow_*(ilocal/mb_)+myrow_)+ilocal%mb_; }
     int jglobal(int jlocal) const
     { return nb_*(npcol_*(jlocal/nb_)+mycol_)+jlocal%nb_; }
+
+    int iglobal(int iprow, int ilocal) const
+    { return mb_*(nprow_*(ilocal/mb_)+iprow)+ilocal%mb_; }
+    int jglobal(int jpcol, int jlocal) const
+    { return nb_*(npcol_*(jlocal/nb_)+jpcol)+jlocal%nb_; }
 
     // store element a(ii,jj) (where ii,jj are global indices)
     // in array val:
@@ -528,6 +695,9 @@ class ComplexMatrix
     void heevd(char uplo, std::valarray<double>& w, ComplexMatrix& z);
     // compute eigenvalues (only) of hermitian matrix *this
     void heevd(char uplo, std::valarray<double>& w);
+
+    // permute the coeff of the matrix *this
+    void lapiv(char direc, char rowcol, IntegerMatrix &permutation);
 };
 std::ostream& operator << ( std::ostream& os, const ComplexMatrix& a );
 #endif

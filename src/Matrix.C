@@ -18,6 +18,7 @@
 // $Id: Matrix.C,v 1.22 2010-05-10 20:50:37 fgygi Exp $
 
 #include <cassert>
+#include <vector>
 #include <iostream>
 using namespace std;
 
@@ -45,6 +46,9 @@ using namespace std;
 #define pzherk     pzherk_
 #define pdsyr      pdsyr_
 #define pdger      pdger_
+#define pzgerc     pzgerc_
+#define pzgeru     pzgeru_
+#define pigemr2d   pigemr2d_
 #define pdgemr2d   pdgemr2d_
 #define pzgemr2d   pzgemr2d_
 #define pdtrmm     pdtrmm_
@@ -67,6 +71,9 @@ using namespace std;
 #define pdlacp3    pdlacp3_
 #define pdgetrf    pdgetrf_
 #define pdgetri    pdgetri_
+#define pilapiv    pilapiv_
+#define pdlapiv    pdlapiv_
+#define pzlapiv    pzlapiv_
 
 #define dscal      dscal_
 #define zscal      zscal_
@@ -84,6 +91,8 @@ using namespace std;
 #define zgemm      zgemm_
 #define dsyr       dsyr_
 #define dger       dger_
+#define zgerc      zgerc_
+#define zgeru      zgeru_
 #define dsyrk      dsyrk_
 #define zherk      zherk_
 #define dtrmm      dtrmm_
@@ -139,6 +148,14 @@ extern "C"
        const double*, const int*, const int*, const int*, const int*,
        const double*, const int*, const int*, const int*, const int*,
        double*, const int*, const int*, const int*);
+  void pzgerc(const int*, const int*, const complex<double>*,
+       const complex<double>*, const int*, const int*, const int*, const int*,
+       const complex<double>*, const int*, const int*, const int*, const int*,
+       complex<double>*, const int*, const int*, const int*);
+  void pzgeru(const int*, const int*, const complex<double>*,
+       const complex<double>*, const int*, const int*, const int*, const int*,
+       const complex<double>*, const int*, const int*, const int*, const int*,
+       complex<double>*, const int*, const int*, const int*);
   void pdsyr(const char*, const int*,
        const double*, const double*, const int*, const int*, const int*,
        const int*, double*, const int*, const int*, const int*);
@@ -174,6 +191,9 @@ extern "C"
   void pdtrtrs(const char*, const char*, const char*, const int*, const int*,
                const double*, const int*, const int*, const int*,
                double*, const int*, const int*, const int*, int*);
+  void pigemr2d(const int*,const int*,
+                const int*,const int*,const int*, const int*,
+                int*,const int*,const int*,const int*,const int*);
   void pdgemr2d(const int*,const int*,
                 const double*,const int*,const int*, const int*,
                 double*,const int*,const int*,const int*,const int*);
@@ -228,6 +248,15 @@ extern "C"
   void pdgetri(const int* n, double* val,
                const int* ia, const int* ja, int* desca, int* ipiv,
                double* work, int* lwork, int* iwork, int* liwork, int* info);
+  void pdlapiv(const char* direc, const char* rowcol, const char* pivroc,
+               const int* m, const int* n, double *a, const int* ia,
+               const int* ja, const int* desca, int* ipiv, const int* ip,
+               const int* jp, const int* descp, int* iwork);
+  void pzlapiv(const char* direc, const char* rowcol, const char* pivroc,
+               const int* m, const int* n, complex<double> *a, const int* ia,
+               const int* ja, const int* desca, int* ipiv, const int* ip,
+               const int* jp, const int* descp, int* iwork);
+
 #endif
   // BLAS1
   void dscal(const int*, const double*, double*, const int*);
@@ -368,6 +397,76 @@ ComplexMatrix::ComplexMatrix(const DoubleMatrix& rhs) : ctxt_(rhs.context()),
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void IntegerMatrix::init_size(int m, int n, int mb, int nb)
+{
+  assert(m>=0);
+  assert(n>=0);
+  assert(mb>=0);
+  assert(nb>=0);
+  m_ = m;
+  n_ = n;
+#ifdef SCALAPACK
+  mb_ = mb;
+  nb_ = nb;
+#else
+  mb_ = m;
+  nb_ = n;
+#endif
+  if ( mb_ == 0 ) mb_ = 1;
+  if ( nb_ == 0 ) nb_ = 1;
+  ictxt_ = ctxt_.ictxt();
+  nprow_ = ctxt_.nprow();
+  npcol_ = ctxt_.npcol();
+  myrow_ = ctxt_.myrow();
+  mycol_ = ctxt_.mycol();
+  active_ = myrow_ >= 0;
+  int isrcproc=0;
+  mloc_ = 0;
+  nloc_ = 0;
+  if ( m_ != 0 )
+    mloc_ = numroc(&m_,&mb_,&myrow_,&isrcproc,&nprow_);
+  if ( n_ != 0 )
+    nloc_ = numroc(&n_,&nb_,&mycol_,&isrcproc,&npcol_);
+  size_ = mloc_ * nloc_;
+
+  // set leading dimension of val array to mloc_;
+  lld_ = mloc_;
+  if ( lld_ == 0 ) lld_ = 1;
+
+  // total and local number of blocks
+  mblocks_ = 0;
+  nblocks_ = 0;
+  m_incomplete_ = false;
+  n_incomplete_ = false;
+  if ( active_ && mb_ > 0 && nb_ > 0 )
+  {
+    mblocks_ = ( mloc_ + mb_ - 1 ) / mb_;
+    nblocks_ = ( nloc_ + nb_ - 1 ) / nb_;
+    m_incomplete_ = mloc_ % mb_ != 0;
+    n_incomplete_ = nloc_ % nb_ != 0;
+  }
+
+  if ( active_ )
+  {
+    desc_[0] = 1;
+  }
+  else
+  {
+    desc_[0] = -1;
+  }
+  desc_[1] = ictxt_;
+  desc_[2] = m_;
+  desc_[3] = n_;
+  desc_[4] = mb_;
+  desc_[5] = nb_;
+  desc_[6] = 0;
+  desc_[7] = 0;
+  desc_[8] = lld_;
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::init_size(int m, int n, int mb, int nb)
 {
   assert(m>=0);
@@ -504,6 +603,13 @@ void ComplexMatrix::init_size(int m, int n, int mb, int nb)
   desc_[7] = 0;
   desc_[8] = lld_;
 
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void IntegerMatrix::clear(void)
+{
+  assert(val!=0||size_==0);
+  memset(val,0,size_*sizeof(int));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -908,6 +1014,57 @@ void ComplexMatrix::axpy(double alpha, const ComplexMatrix &x)
 // real getsub: *this = sub(A)
 // copy submatrix A(ia:ia+m, ja:ja+n) into *this;
 // *this and A may live in different contexts
+void IntegerMatrix::getsub(const IntegerMatrix &a,
+  int m, int n, int ia, int ja)
+{
+#if SCALAPACK
+  int iap=ia+1;
+  int jap=ja+1;
+  assert(n<=n_);
+  assert(n<=a.n());
+  assert(m<=m_);
+  assert(m<=a.m());
+  int ione = 1;
+  int gictxt;
+  Cblacs_get( 0, 0, &gictxt );
+  pigemr2d(&m,&n,a.val,&iap,&jap,a.desc_,val,&ione,&ione,desc_,&gictxt);
+#else
+  for ( int j = 0; j < n; j++ )
+    for ( int i = 0; i < m; i++ )
+      val[i+j*m_] = a.val[(i+ia) + (j+ja)*a.m()];
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// real getsub: *this = sub(A)
+// copy submatrix A(ia:ia+m, ja:ja+n) into *this(idest:idest+m,jdest:jdest+n)
+// *this and A may live in different contexts
+void IntegerMatrix::getsub(const IntegerMatrix &a,
+  int m, int n, int isrc, int jsrc, int idest, int jdest)
+{
+#if SCALAPACK
+  int iap=isrc+1;
+  int jap=jsrc+1;
+  int idp=idest+1;
+  int jdp=jdest+1;
+  assert(n<=n_);
+  assert(n<=a.n());
+  assert(m<=m_);
+  assert(m<=a.m());
+  int gictxt;
+  Cblacs_get( 0, 0, &gictxt );
+  pigemr2d(&m,&n,a.val,&iap,&jap,a.desc_,val,&idp,&jdp,desc_,&gictxt);
+#else
+  for ( int j = 0; j < n; j++ )
+    for ( int i = 0; i < m; i++ )
+      val[(idest+i)+(jdest+j)*m_] = a.val[(i+isrc) + (j+jsrc)*a.m()];
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// real getsub: *this = sub(A)
+// copy submatrix A(ia:ia+m, ja:ja+n) into *this;
+// *this and A may live in different contexts
 void DoubleMatrix::getsub(const DoubleMatrix &a,
   int m, int n, int ia, int ja)
 {
@@ -1206,6 +1363,64 @@ void DoubleMatrix::ger(double alpha,
   int incx = x.m();
   int incy = y.m();
   dger(&m_,&n_,&alpha,&x.val[kx*x.m()],&incx,
+                      &y.val[ky*y.m()],&incy,val,&m_);
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// rank-1 update using row kx of x and conj(row ky of y)^T
+// *this = *this + alpha * x(kx) * conj(y(ky))^T
+void ComplexMatrix::gerc(complex<double> alpha,
+  const ComplexMatrix& x, int kx, const ComplexMatrix& y, int ky)
+{
+  assert(x.n()==m_);
+  assert(y.n()==n_);
+#if SCALAPACK
+  int ione=1;
+
+  int ix = kx+1;
+  int jx = 1;
+  int incx = x.m();
+
+  int iy = ky+1;
+  int jy = 1;
+  int incy = y.m();
+  pzgerc(&m_,&n_,&alpha,x.val,&ix,&jx,x.desc_,&incx,
+                       y.val,&iy,&jy,y.desc_,&incy,
+                       val,&ione,&ione,desc_);
+#else
+  int incx = x.m();
+  int incy = y.m();
+  zgerc(&m_,&n_,&alpha,&x.val[kx*x.m()],&incx,
+                      &y.val[ky*y.m()],&incy,val,&m_);
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// rank-1 update using row kx of x and conj(row ky of y)^T
+// *this = *this + alpha * x(kx) * y(ky)^T
+void ComplexMatrix::geru(complex<double> alpha,
+  const ComplexMatrix& x, int kx, const ComplexMatrix& y, int ky)
+{
+  assert(x.n()==m_);
+  assert(y.n()==n_);
+#if SCALAPACK
+  int ione=1;
+
+  int ix = kx+1;
+  int jx = 1;
+  int incx = x.m();
+
+  int iy = ky+1;
+  int jy = 1;
+  int incy = y.m();
+  pzgeru(&m_,&n_,&alpha,x.val,&ix,&jx,x.desc_,&incx,
+                       y.val,&iy,&jy,y.desc_,&incy,
+                       val,&ione,&ione,desc_);
+#else
+  int incx = x.m();
+  int incy = y.m();
+  zgeru(&m_,&n_,&alpha,&x.val[kx*x.m()],&incx,
                       &y.val[ky*y.m()],&incy,val,&m_);
 #endif
 }
@@ -2873,6 +3088,90 @@ void ComplexMatrix::heevd(char uplo, valarray<double>& w)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void DoubleMatrix::lapiv(char direc, char rowcol, IntegerMatrix &permutation)
+{
+  // verify alignment
+  if ( rowcol=='C' || rowcol=='c' )
+  {
+    assert( permutation.n()==n_ );
+    assert( permutation.nb()==nb_ );
+    assert( permutation.m()==1 );
+    assert( permutation.mb()==1 );
+  }
+  else if ( rowcol=='R' || rowcol=='R' )
+  {
+    assert( permutation.m()==m_ );
+    assert( permutation.mb()==mb_ );
+    assert( permutation.n()==1 );
+    assert( permutation.nb()==1 );
+  }
+  char pivroc=rowcol;
+  int one = 1;
+  vector<int> iwork(mb_+nb_);
+  // apply permutation
+  pdlapiv(&direc, &rowcol, &pivroc, &m_, &n_, val, &one, &one, desc_,
+          &permutation[0], &one, &one, permutation.desc(), &iwork[0] );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ComplexMatrix::lapiv(char direc, char rowcol, IntegerMatrix &permutation)
+{
+  // verify alignment
+  if ( rowcol=='C' || rowcol=='c' )
+  {
+    assert( permutation.n()==n_ );
+    assert( permutation.nb()==nb_ );
+    assert( permutation.m()==1 );
+    assert( permutation.mb()==1 );
+  }
+  else if ( rowcol=='R' || rowcol=='R' )
+  {
+    assert( permutation.m()==m_ );
+    assert( permutation.mb()==mb_ );
+    assert( permutation.n()==1 );
+    assert( permutation.nb()==1 );
+  }
+  int one = 1;
+  char pivroc=rowcol;
+  vector<int> iwork(m_+n_);
+  // apply permutation
+  pzlapiv(&direc, &rowcol, &pivroc, &m_, &n_, val, &one, &one, desc_,
+          permutation.valptr(0), &one, &one, permutation.desc(), &iwork[0] );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void IntegerMatrix::print(ostream& os) const
+{
+  // Copy blocks of <blocksize> columns and print them on process (0,0)
+  if ( m_ == 0 || n_ == 0 ) return;
+  Context ctxtl(1,1);
+  const int blockmemsize = 32768; // maximum memory size of a block in bytes
+  // compute maximum block size: must be at least 1
+  int maxbs = max(1, (int) ((blockmemsize/sizeof(double))/m_));
+  IntegerMatrix t(ctxtl,m_,maxbs);
+  int nblocks = n_ / maxbs + ( (n_%maxbs == 0) ? 0 : 1 );
+  int ia = 0;
+  int ja = 0;
+  for ( int jb = 0; jb < nblocks; jb++ )
+  {
+    int blocksize = ( (jb+1) * maxbs > n_ ) ? n_ % maxbs : maxbs;
+    t.getsub(*this,t.m(),blocksize,ia,ja);
+    ja += blocksize;
+    if ( t.active() )
+    {
+      // this is done only on pe 0
+      for ( int jj = 0; jj < blocksize; jj++ )
+      {
+        for ( int ii = 0; ii < m_; ii++ )
+        {
+          os << "(" << ii << "," << jj+jb*maxbs << ")="
+             << t.val[ii+t.mloc()*jj] << endl;
+        }
+      }
+    }
+  }
+}
+////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::print(ostream& os) const
 {
   // Copy blocks of <blocksize> columns and print them on process (0,0)
@@ -2935,6 +3234,12 @@ void ComplexMatrix::print(ostream& os) const
       }
     }
   }
+}
+////////////////////////////////////////////////////////////////////////////////
+ostream& operator<<(ostream& os, const IntegerMatrix& a)
+{
+  a.print(os);
+  return os;
 }
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator<<(ostream& os, const DoubleMatrix& a)

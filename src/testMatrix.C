@@ -348,6 +348,35 @@ int main(int argc, char **argv)
       if (mype == 0) cout << " done" << endl;
       tm.stop();
       if (mype == 0) cout << "Eigenproblem time: " << tm.real() << endl;
+
+      // complex eigenvalue problem
+      ComplexMatrix cc(c.context(),m_c,n_c,mb_c,nb_c);
+      for ( int m = 0; m < cc.nblocks(); m++ )
+        for ( int l = 0; l < cc.mblocks(); l++ )
+          for ( int y = 0; y < cc.nbs(m); y++ )
+            for ( int x = 0; x < cc.mbs(l); x++ )
+            {
+              int i = cc.i(l,x);
+              int j = cc.j(m,y);
+              int iii = x + l*cc.mb();
+              int jjj = y + m*cc.nb();
+              int ival = iii + jjj * cc.mloc();
+              if ( i == j )
+                cc[ival] = i + 1.e-5*drand48();
+              else
+                cc[ival] = complex<double>(1.e-5*drand48(), 1.e-5*drand48());
+            }
+      tm.reset();
+      tm.start();
+      if (mype == 0) cout << "Complex Eigenproblem... ";
+      ComplexMatrix zz(cc.context(),cc.n(),cc.n(),cc.nb(),cc.nb());
+      valarray<double> ww(cc.m());
+      cc.heev('l',ww,zz);
+      //c.syevx('l',w,z,1.e-5);
+      if (mype == 0) cout << " done" << endl;
+      tm.stop();
+      if (mype == 0) cout << "Complex Eigenproblem time: " << tm.real() << endl;
+      
     }
 
 //  Gram-Schmidt orthogonalization of matrix a

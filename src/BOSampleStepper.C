@@ -179,7 +179,7 @@ void BOSampleStepper::step(int niter)
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
 
-  const bool extrapolate_wf = ( atoms_dyn == "MD" ) && ( nite_ == 1 );
+  const bool extrapolate_wf = ( atoms_dyn == "MD" );
 
   const bool ntc_extrapolation =
     s_.ctrl.debug.find("NTC_EXTRAPOLATION") != string::npos;

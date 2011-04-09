@@ -30,7 +30,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         ChargeDensity.o UserInterface.o RunCmd.o \
         LoadCmd.o SaveCmd.o \
         SpeciesCmd.o SpeciesReader.o SpeciesHandler.o \
-        XCPotential.o LDAFunctional.o VWNFunctional.o PBEFunctional.o \
+        XCPotential.o LDAFunctional.o PBEFunctional.o \
         BLYPFunctional.o NonLocalPotential.o \
 	SampleReader.o StructuredDocumentHandler.o \
         SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \

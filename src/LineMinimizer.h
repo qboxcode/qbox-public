@@ -15,7 +15,6 @@
 // LineMinimizer.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LineMinimizer.h,v 1.3 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef LINEMINIMIZER_H
 #define LINEMINIMIZER_H
@@ -33,6 +32,10 @@ class LineMinimizer
   double f_low, fp_low, f_high, fp_high;
   double f0, fp0;
   bool bracket, first_use;
+  // number of iterations in bracketing mode
+  int nbracket;
+  // maximum number of iterations in bracketing mode
+  enum { nbracket_max = 4 };
   bool debug_print;
   double interpolate(void)
   {
@@ -68,8 +71,8 @@ class LineMinimizer
   public:
 
   LineMinimizer(void) : sigma1_(0.1), alpha_start(1.0), first_use(true),
-   debug_print(false) {}
-  void reset(void) { first_use = true; }
+   debug_print(false), nbracket(0) {}
+  void reset(void) { first_use = true; nbracket = 0; }
   double sigma1(void) const { return sigma1_; }
   void set_sigma1(double s1) { sigma1_ = s1; }
   double newalpha(double alpha, double f, double fp)
@@ -134,6 +137,10 @@ class LineMinimizer
     else
     {
       // we are in the bracketing phase
+      // check how many iterations have been done so far in bracketing mode
+      // and reset if more than 3
+      if ( nbracket++ > 3)
+        reset();
       if ( debug_print )
       {
         std::cout << " LineMinimizer: bracketing, alpha_low/high = "

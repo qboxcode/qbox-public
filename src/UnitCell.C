@@ -37,7 +37,7 @@ void UnitCell::set(const D3vector& a0, const D3vector& a1, const D3vector& a2)
   amat_[8] = a2.z;
 
   // volume = det(A)
-  volume_ = a0 * ( a1 ^ a2 );
+  volume_ = fabs(a0 * ( a1 ^ a2 ));
   if ( volume_ > 0.0 )
   {
     // Compute rows of A-1 (columns of A^-T)

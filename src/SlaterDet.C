@@ -15,7 +15,6 @@
 // SlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.C,v 1.63 2010-05-10 20:48:58 fgygi Exp $
 
 #include "SlaterDet.h"
 #include "FourierTransform.h"
@@ -214,7 +213,7 @@ void SlaterDet::init(void)
       // kpg2: size^2 of smallest vector on this task
       // set kpg2 to largest double value if localsize == 0
       double kpg2 = numeric_limits<double>::max();
-      if ( basis_->localsize() > 0 )
+      if ( ismallest < basis_->localsize() )
       {
         kpg2 = basis_->kpg2(basis_->isort(ismallest));
       }

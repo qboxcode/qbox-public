@@ -211,9 +211,15 @@ void SlaterDet::init(void)
         value = s2i;
 
       // find process row holding the smallest g vector
-      double kpg2 = basis_->kpg2(basis_->isort(ismallest));
+      // kpg2: size^2 of smallest vector on this task
+      // set kpg2 to largest double value if localsize == 0
+      double kpg2 = numeric_limits<double>::max();
+      if ( basis_->localsize() > 0 )
+      {
+        kpg2 = basis_->kpg2(basis_->isort(ismallest));
+      }
       // cout << "smallest vector on proc " << ctxt_.mype()
-      //      << " has norm " << g2 << endl;
+      //      << " has norm " << kpg2 << endl;
       int minrow, mincol;
       ctxt_.dmin('c',' ',1,1,&kpg2,1,&minrow,&mincol,1,-1,-1);
 

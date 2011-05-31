@@ -42,7 +42,7 @@ class RunCmd : public Cmd
     " syntax: run [-atomic_density] n [nitscf [nite]]\n\n"
     "   The run command runs n steps of simulation. Each step\n"
     "   consists of one or more (nitscf) scf steps, each consisting\n"
-    "   of one or more (nite) electronic steps.\n" 
+    "   of one or more (nite) electronic steps.\n"
     "   If the -atomic_density option is used, the initial charge\n"
     "   density if a sum of atomic charge densities.\n\n";
   }

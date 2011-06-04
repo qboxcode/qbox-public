@@ -376,7 +376,7 @@ int main(int argc, char **argv)
       if (mype == 0) cout << " done" << endl;
       tm.stop();
       if (mype == 0) cout << "Complex Eigenproblem time: " << tm.real() << endl;
-      
+
     }
 
 //  Gram-Schmidt orthogonalization of matrix a

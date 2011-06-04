@@ -40,8 +40,8 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
         BMDIonicStepper.o \
         PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
-        JDWavefunctionStepper.o \
-        SDCellStepper.o ConfinementPotential.o Preconditioner.o \
+        JDWavefunctionStepper.o CellStepper.o SDCellStepper.o \
+	CGCellStepper.o ConfinementPotential.o Preconditioner.o \
         release.o qbox_xmlns.o isodate.o \
         AndersonMixer.o SDAIonicStepper.o CGIonicStepper.o \
         ConstraintSet.o Constraint.o PositionConstraint.o DistanceConstraint.o \
@@ -211,7 +211,7 @@ SampleStepper.o EnergyFunctional.o
 	rm -f libqb.a
 #------------------------------------------------------------------------------
  ctags :
-	etags -o tags *.[Ch]
+	ctags -o tags *.[Ch]
 #------------------------------------------------------------------------------
  html :
 	enscript -Ecpp --color -Whtml --toc -pqbsrc.html *.h *.C
@@ -269,8 +269,9 @@ BOSampleStepper.o: PSDWavefunctionStepper.h PSDAWavefunctionStepper.h
 BOSampleStepper.o: JDWavefunctionStepper.h SDIonicStepper.h IonicStepper.h
 BOSampleStepper.o: Species.h SDAIonicStepper.h LineMinimizer.h
 BOSampleStepper.o: CGIonicStepper.h MDIonicStepper.h BMDIonicStepper.h
-BOSampleStepper.o: SDCellStepper.h CellStepper.h Preconditioner.h
-BOSampleStepper.o: AndersonMixer.h MLWFTransform.h BasisMapping.h
+BOSampleStepper.o: SDCellStepper.h CellStepper.h CGCellStepper.h
+BOSampleStepper.o: Preconditioner.h AndersonMixer.h MLWFTransform.h
+BOSampleStepper.o: BasisMapping.h
 BOSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 BOSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 BOSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
@@ -284,8 +285,17 @@ CellLock.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 CellLock.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 CellMass.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 CellMass.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+CellStepper.o: CellStepper.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+CellStepper.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+CellStepper.o: Control.h
 CellStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 CellStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+CGCellStepper.o: CGCellStepper.h CellStepper.h Sample.h AtomSet.h Context.h
+CGCellStepper.o: Atom.h D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
+CGCellStepper.o: Wavefunction.h Control.h LineMinimizer.h
+CGCellStepper.o: CellStepper.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+CGCellStepper.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+CGCellStepper.o: Control.h LineMinimizer.h
 CGIonicStepper.o: CGIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 CGIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h ConstraintSet.h
 CGIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h
@@ -327,7 +337,7 @@ CPSampleStepper.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 CPSampleStepper.o: Control.h SlaterDet.h Basis.h Matrix.h
 CPSampleStepper.o: MDWavefunctionStepper.h WavefunctionStepper.h
 CPSampleStepper.o: MDIonicStepper.h IonicStepper.h Species.h SDCellStepper.h
-CPSampleStepper.o: CellStepper.h
+CPSampleStepper.o: CellStepper.h CGCellStepper.h LineMinimizer.h
 CPSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 CPSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 CPSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h

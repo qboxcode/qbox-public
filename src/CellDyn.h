@@ -15,7 +15,6 @@
 // CellDyn.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CellDyn.h,v 1.5 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef CELLDYN_H
 #define CELLDYN_H
@@ -47,10 +46,10 @@ class CellDyn : public Var
     }
 
     string v = argv[1];
-    if ( !( v == "LOCKED" || v == "SD" ) )
+    if ( !( v == "LOCKED" || v == "SD" || v == "CG" ) )
     {
       if ( ui->onpe0() )
-        cout << " cell_dyn must be in [LOCKED,SD]" << endl;
+        cout << " cell_dyn must be LOCKED, SD or CG" << endl;
       return 1;
     }
 

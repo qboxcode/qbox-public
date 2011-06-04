@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2011 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -12,25 +12,33 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// SDCellStepper.h:
+// CGCellStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SDCELLSTEPPER_H
-#define SDCELLSTEPPER_H
+#ifndef CGCELLSTEPPER_H
+#define CGCELLSTEPPER_H
 
 #include "CellStepper.h"
+#include "LineMinimizer.h"
 
-class SDCellStepper : public CellStepper
+class CGCellStepper : public CellStepper
 {
   private:
 
+  bool first_step_;
+  int nat_;
+  std::valarray<double> xc_, pc_, fc_;
+  std::vector<std::vector<double> > rc_, rp_;
+  double ec_, fpc_;
+  double alpha_, sigma1_, sigma2_;
+  LineMinimizer linmin_;
+
   public:
 
-  SDCellStepper(Sample& s) : CellStepper(s) {}
-
+  CGCellStepper(Sample& s);
   void compute_new_cell(double e0, const std::valarray<double>& sigma,
-    const std::vector<std::vector< double> >& f0);
+                        const std::vector<std::vector< double> >& fion);
   void update_cell(void);
   double ekin(void) const { return 0.0; }
 };

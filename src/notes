@@ -1,12 +1,19 @@
 TODO:
-LineMinimizer.h: avoid getting blocked in bracketing mode
-indefinitely when the accuracy of forces is insufficient.
 Sample.h: replace ExtForceSet and ConstraintSet members by pointers.
+Check behavior of net_charge during save/load.
 --------------------------------------------------------------------------------
 Issues: 
 BOSampleStepper.C:Using run 0 modifies the wavefunctions. Need to set 
 wf_dyn=LOCKED to only compute energy without modif of wfs.
 kpgen for non-rectangular cells yields non-symmetric kpoint sets.
+--------------------------------------------------------------------------------
+rel1_54_0 candidate
+LineMinimizer.h: limited the number of iterations in bracketing mode to 4
+UnitCell.C: accept unit cells with orientation leading to negative volume and
+define the volume as fabs(a0*(a1^a2))
+CellStepper.C, CGCellStepper.C: implemented CG algorithm to optimize both
+cell parameters and atomic positions. Moved implementation of common CellStepper
+member functions to CellStepper.C.
 --------------------------------------------------------------------------------
 rel1_53_0
 RseedCmd.h: rseed command to initialize random number generator

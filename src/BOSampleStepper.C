@@ -15,7 +15,6 @@
 // BOSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BOSampleStepper.C,v 1.58 2010-05-10 20:51:55 fgygi Exp $
 
 #include "BOSampleStepper.h"
 #include "EnergyFunctional.h"
@@ -32,6 +31,7 @@
 #include "MDIonicStepper.h"
 #include "BMDIonicStepper.h"
 #include "SDCellStepper.h"
+#include "CGCellStepper.h"
 #include "Preconditioner.h"
 #include "AndersonMixer.h"
 #include "MLWFTransform.h"
@@ -253,6 +253,8 @@ void BOSampleStepper::step(int niter)
   CellStepper* cell_stepper = 0;
   if ( cell_dyn == "SD" )
     cell_stepper = new SDCellStepper(s_);
+  else if ( cell_dyn == "CG" )
+    cell_stepper = new CGCellStepper(s_);
 
   // Allocate wavefunction velocity if not available
   if ( atoms_move && extrapolate_wf )
@@ -473,7 +475,7 @@ void BOSampleStepper::step(int niter)
 
         if ( cell_moves )
         {
-          cell_stepper->compute_new_cell(sigma);
+          cell_stepper->compute_new_cell(energy,sigma,fion);
 
           // Update cell
           cell_stepper->update_cell();
@@ -791,7 +793,7 @@ void BOSampleStepper::step(int niter)
             cd_.rhog[0] = rhog_in;
             cd_.update_rhor();
           }
-        } // if nite > 1
+        } // if nite_ > 1
 
         ef_.update_vhxc();
 

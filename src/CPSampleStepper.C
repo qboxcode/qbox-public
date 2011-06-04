@@ -15,13 +15,13 @@
 // CPSampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.C,v 1.23 2010-02-20 23:13:02 fgygi Exp $
 
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
 #include "MDWavefunctionStepper.h"
 #include "MDIonicStepper.h"
 #include "SDCellStepper.h"
+#include "CGCellStepper.h"
 #include "Basis.h"
 #include "Species.h"
 
@@ -114,6 +114,8 @@ void CPSampleStepper::step(int niter)
   CellStepper* cell_stepper = 0;
   if ( cell_dyn == "SD" )
     cell_stepper = new SDCellStepper(s_);
+  else if ( cell_dyn == "CG" )
+    cell_stepper = new CGCellStepper(s_);
 
   if ( s_.wfv == 0 )
   {
@@ -256,7 +258,7 @@ void CPSampleStepper::step(int niter)
 
       if ( cell_dyn != "LOCKED" )
       {
-        cell_stepper->compute_new_cell(sigma);
+        cell_stepper->compute_new_cell(energy,sigma,fion);
 
         // Update cell
         cell_stepper->update_cell();

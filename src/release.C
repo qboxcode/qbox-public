@@ -15,10 +15,9 @@
 // release.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: release.C,v 1.84 2010-05-10 20:08:12 fgygi Exp $
 
 #include "release.h"
 std::string release(void)
 {
-  return std::string("1.53.0");
+  return std::string("1.54.0");
 }

@@ -338,13 +338,13 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   const double fac = sqrt(two_ecut) / twopi;
 
   // define safe enclosing domain for any k-point value in the BZ
-  const int hmax = (int) ( 0.5 + fac * ( length(defcell.a(0) ) ) );
+  const int hmax = (int) ( 1.5 + fac * ( length(defcell.a(0) ) ) );
   const int hmin = - hmax;
 
-  const int kmax = (int) ( 0.5 + fac * ( length(defcell.a(1) ) ) );
+  const int kmax = (int) ( 1.5 + fac * ( length(defcell.a(1) ) ) );
   const int kmin = - kmax;
 
-  const int lmax = (int) ( 0.5 + fac * ( length(defcell.a(2) ) ) );
+  const int lmax = (int) ( 1.5 + fac * ( length(defcell.a(2) ) ) );
   const int lmin = - lmax;
 
   multiset<Rod> rodset;
@@ -377,11 +377,11 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     lmax_used = lend;
 
     // rods (0,k,l)
-    for ( int k = 1; k <= kmax+1; k++ )
+    for ( int k = 1; k <= kmax; k++ )
     {
       int lstart=lmax,lend=lmin;
       bool found = false;
-      for ( int l = lmin-1; l <= lmax+1; l++ )
+      for ( int l = lmin; l <= lmax; l++ )
       {
         const double two_e = norm(k*b1+l*b2);
         if ( two_e < two_ecut )
@@ -405,13 +405,13 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
       }
     }
     // rods (h,k,l) h>0
-    for ( int h = 1; h <= hmax+1; h++ )
+    for ( int h = 1; h <= hmax; h++ )
     {
-      for ( int k = kmin-1; k <= kmax+1; k++ )
+      for ( int k = kmin; k <= kmax; k++ )
       {
         int lstart=lmax,lend=lmin;
         bool found = false;
-        for ( int l = lmin-1; l <= lmax+1; l++ )
+        for ( int l = lmin; l <= lmax; l++ )
         {
           const double two_e = norm(h*b0+k*b1+l*b2);
           if ( two_e < two_ecut )
@@ -445,13 +445,13 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     size_ = 0;
     nrods_ = 0;
     // rods (h,k,l)
-    for ( int h = hmin-1; h <= hmax+1; h++ )
+    for ( int h = hmin; h <= hmax; h++ )
     {
-      for ( int k = kmin-1; k <= kmax+1; k++ )
+      for ( int k = kmin; k <= kmax; k++ )
       {
         int lstart=lmax,lend=lmin;
         bool found = false;
-        for ( int l = lmin-1; l <= lmax+1; l++ )
+        for ( int l = lmin; l <= lmax; l++ )
         {
           const double two_e = norm((kpx+h)*b0 + (kpy+k)*b1 + (kpz+l)*b2);
           if ( two_e < two_ecut )
@@ -497,23 +497,20 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   idxmax_[2] = lmax_used;
   idxmin_[2] = lmin_used;
 
-  assert(hmax_used <= hmax);
-  assert(hmin_used >= hmin);
-  assert(kmax_used <= kmax);
-  assert(kmin_used >= kmin);
-  assert(lmax_used <= lmax);
-  assert(lmin_used >= lmin);
+  assert(hmax_used - hmin_used + 1 <= 2 * hmax);
+  assert(kmax_used - kmin_used + 1 <= 2 * kmax);
+  assert(lmax_used - lmin_used + 1 <= 2 * lmax);
 
   // compute good FFT sizes
   // use values independent of the kpoint
   int n;
-  n = 2*hmax+2;
+  n = 2 * hmax;
   while ( !factorizable(n) ) n+=2;
   np_[0] = n;
-  n = 2*kmax+2;
+  n = 2 * kmax;
   while ( !factorizable(n) ) n+=2;
   np_[1] = n;
-  n = 2*lmax+2;
+  n = 2 * lmax;
   while ( !factorizable(n) ) n+=2;
   np_[2] = n;
 

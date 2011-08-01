@@ -295,6 +295,14 @@ extern "C"
              const complex<double>*, const complex<double>*, const int*,
              const complex<double>*, const int*,
              const complex<double>*, complex<double>*, const int*);
+  void zgerc(const int*, const int *, const complex<double>*, 
+             const complex<double>*, const int*,
+             const complex<double>*, const int*,
+             const complex<double>*, const int*);
+  void zgeru(const int*, const int *, const complex<double>*, 
+             const complex<double>*, const int*,
+             const complex<double>*, const int*,
+             const complex<double>*, const int*);
   void dger(const int *, const int*, const double *,
             const double *, const int *, const double *, const int *,
             double*, const int*);
@@ -3087,6 +3095,7 @@ void ComplexMatrix::heevd(char uplo, valarray<double>& w)
   }
 }
 
+#if SCALAPACK
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::lapiv(char direc, char rowcol, IntegerMatrix &permutation)
 {
@@ -3138,6 +3147,7 @@ void ComplexMatrix::lapiv(char direc, char rowcol, IntegerMatrix &permutation)
   pzlapiv(&direc, &rowcol, &pivroc, &m_, &n_, val, &one, &one, desc_,
           permutation.valptr(0), &one, &one, permutation.desc(), &iwork[0] );
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 void IntegerMatrix::print(ostream& os) const

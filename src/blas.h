@@ -77,6 +77,10 @@ void dgemv( char *ta, int *m, int *n,
 
 void dger(int *,int *, double *, double *, int *,
   double *, int *, double *, int *);
+void zgeru(int*,int*,std::complex<double>*,std::complex<double>*,int*,
+  std::complex<double>*,int*,std::complex<double>*,int*);
+void zgerc(int*,int*,std::complex<double>*,std::complex<double>*,int*,
+  std::complex<double>*,int*,std::complex<double>*,int*);
 
 void dscal(int *len, double *alpha, double *x, int *incx);
   double dasum(int *len, double *x, int *incx);

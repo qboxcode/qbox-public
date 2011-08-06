@@ -436,8 +436,10 @@ class DoubleMatrix
     void syevx(char uplo, std::valarray<double>& w, DoubleMatrix& z,
        double abstol);
 
+#if SCALAPACK
     // permute the coeff of the matrix *this
     void lapiv(char direc, char rowcol, IntegerMatrix& permutation);
+#endif
 
     // compute eigenvalues (only) of symmetric matrix *this
     // using the divide and conquer method of Tisseur and Dongarra
@@ -622,10 +624,12 @@ class ComplexMatrix
     // where x(kx) is row kx of x, and y(ky) is row ky of y
     void ger(std::complex<double> alpha, const ComplexMatrix& x,int kx,
                                     const ComplexMatrix& y,int ky);
+#if SCALAPACK 
     void geru(std::complex<double> alpha, const ComplexMatrix& x,int kx,
                                      const ComplexMatrix& y,int ky);
     void gerc(std::complex<double> alpha, const ComplexMatrix& x,int kx,
                                      const ComplexMatrix& y,int ky);
+#endif
 
     // symmetric rank-1 update
     void her(char uplo, std::complex<double> alpha,
@@ -696,8 +700,10 @@ class ComplexMatrix
     // compute eigenvalues (only) of hermitian matrix *this
     void heevd(char uplo, std::valarray<double>& w);
 
+#if SCALAPACK
     // permute the coeff of the matrix *this
     void lapiv(char direc, char rowcol, IntegerMatrix &permutation);
+#endif
 };
 std::ostream& operator << ( std::ostream& os, const ComplexMatrix& a );
 #endif

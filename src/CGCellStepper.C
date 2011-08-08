@@ -82,13 +82,12 @@ void CGCellStepper::compute_new_cell(double e0, const valarray<double>& sigma,
   }
 
   // convert descent direction dcell to cell space from the stress tensor
-  // dcell = - omega * sigma * A
+  // dcell = sigma * A
   valarray<double> dcell(9); // descent direction in cell space
   assert(sigma.size()==6);
   // next line: local copy of sigma to circumvent compiler error
   valarray<double> sigma_loc(sigma);
   cell.smatmult3x3(&sigma_loc[0],cell.amat(),&dcell[0]);
-  // dcell *= -cell.volume();
   for ( int i = 0; i < dcell.size(); i++ )
     f0[3*nat_+i] = dcell[i];
 

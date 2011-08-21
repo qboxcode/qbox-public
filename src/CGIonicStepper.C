@@ -63,18 +63,32 @@ void CGIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
 
   // CG algorithm
 
-  if ( !first_step_ )
+  // define the descent direction
+  if ( first_step_ )
   {
+    // first step: set descent direction pc_ = f0
+    pc_ = f0;
+    // fp0: dE/dalpha in the direction -pc_
+    fp0 = 0.0;
+    for ( int is = 0; is < r0_.size(); is++ )
+      for ( int i = 0; i < r0_[is].size(); i++ )
+        fp0 -= f0[is][i] * pc_[is][i];
+    // initialize fc_, fpc_, ec_, rc_
+    fc_ = f0;
+    // fpc = d_e / d_alpha in direction pc
+    fpc_ = fp0;
+    ec_ = e0;
+    rc_ = r0_;
+  }
+  else
+  {
+    // check if the Wolfe conditions are satisfied
     wolfe1 = e0 < ec_ + fpc_ * sigma1_ * alpha_;
     // fp0 = -proj(f0,pc)
     fp0 = 0.0;
     for ( int is = 0; is < r0_.size(); is++ )
-    {
       for ( int i = 0; i < r0_[is].size(); i++ )
-      {
         fp0 -= f0[is][i] * pc_[is][i];
-      }
-    }
     wolfe2 = fabs(fp0) < sigma2_ * fabs(fpc_);
     if ( s_.ctxt_.onpe0() )
     {
@@ -86,20 +100,11 @@ void CGIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
       cout << "  CGIonicStepper: wolfe1/wolfe2 = "
            << wolfe1 << "/" << wolfe2 << endl;
     }
-  }
 
-  if ( first_step_ || (wolfe1 && wolfe2) )
-  {
-    // set new descent direction
-    // pc = f0
-    // define new descent direction
-    if ( first_step_ )
+    if ( wolfe1 && wolfe2 )
     {
-      pc_ = f0;
-    }
-    else
-    {
-      // Polak-Ribiere definition
+      // done with this descent direction
+      // define new descent direction pc_ using the Fletcher-Reeves formula
       double num = 0.0, den = 0.0;
       for ( int is = 0; is < r0_.size(); is++ )
       {
@@ -107,38 +112,36 @@ void CGIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
         {
           const double fctmp = fc_[is][i];
           const double f0tmp = f0[is][i];
-          num += f0tmp * ( f0tmp - fctmp );
+          // Fletcher-Reeves definition
+          num += f0tmp * f0tmp;
           den += fctmp * fctmp;
         }
       }
       double beta = den > 0.0 ? num/den : 0.0;
-      beta = max(beta,0.0);
       if ( s_.ctxt_.onpe0() )
         cout << "  CGIonicStepper: beta = " << beta << endl;
       for ( int is = 0; is < r0_.size(); is++ )
       {
         for ( int i = 0; i < r0_[is].size(); i++ )
-        {
           pc_[is][i] = beta * pc_[is][i] + f0[is][i];
-        }
       }
+      // initialize fc_, fpc_, ec_, rc_
+      // fp0 = d_e / d_alpha in direction pc_
+      fp0 = 0.0;
+      for ( int is = 0; is < r0_.size(); is++ )
+        for ( int i = 0; i < r0_[is].size(); i++ )
+          fp0 -= f0[is][i] * pc_[is][i];
+      fc_ = f0;
+      fpc_ = fp0;
+      ec_ = e0;
+      rc_ = r0_;
+
+      // reset the line minimizer
+      linmin_.reset();
     }
-    fc_ = f0;
-    // fpc = d_e / d_alpha in direction pc
-    fpc_ = 0.0;
-    for ( int is = 0; is < r0_.size(); is++ )
-    {
-      for ( int i = 0; i < r0_[is].size(); i++ )
-      {
-        fpc_ -= fc_[is][i] * pc_[is][i];
-      }
-    }
-    ec_ = e0;
-    rc_ = r0_;
-    fp0 = fpc_;
-    // reset line minimizer
-    linmin_.reset();
   }
+
+  // the descent direction pc_ is defined
 
   alpha_ = linmin_.newalpha(alpha_,e0,fp0);
 
@@ -147,12 +150,8 @@ void CGIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
 
   // rp = rc + alpha * pc
   for ( int is = 0; is < r0_.size(); is++ )
-  {
     for ( int i = 0; i < r0_[is].size(); i++ )
-    {
       rp_[is][i] = rc_[is][i] + alpha_ * pc_[is][i];
-    }
-  }
 
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;

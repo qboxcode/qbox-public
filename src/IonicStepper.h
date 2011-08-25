@@ -31,8 +31,9 @@ class IonicStepper
   Sample& s_;
   AtomSet& atoms_;
   ConstraintSet& constraints_;
-  double                    dt_;
-  int                       nsp_;
+  double dt_;
+  int    nsp_;
+  int    natoms_;
   // ndofs_ is the total number of degrees of freedom after
   // constraints are considered
   int                            ndofs_;
@@ -66,6 +67,7 @@ class IonicStepper
       v0_[is].resize(3*nais);
       pmass_[is] = atoms_.species_list[is]->mass() * 1822.89;
     }
+    natoms_ = atoms_.size();
     atoms_.get_positions(r0_);
     atoms_.get_velocities(v0_);
   }

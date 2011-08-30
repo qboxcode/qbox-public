@@ -526,6 +526,25 @@ void AtomSet::sync()
   }
   set_positions(r);
   set_velocities(v);
+
+  // synchronize the unit cell
+  if ( ctxt_.onpe0() )
+  {
+    double sbuf[9];
+    for ( int i = 0; i < 9; i++ )
+      sbuf[i] = cell_.amat(i);
+    ctxt_.dbcast_send(9,1,sbuf,9);
+  }
+  else
+  {
+    double rbuf[9];
+    ctxt_.dbcast_recv(9,1,rbuf,9,0,0);
+    D3vector a0(rbuf[0],rbuf[1],rbuf[2]);
+    D3vector a1(rbuf[3],rbuf[4],rbuf[5]);
+    D3vector a2(rbuf[6],rbuf[7],rbuf[8]);
+    // call UnitCell::set to recompute other UnitCell members
+    cell_.set(a0,a1,a2);
+  }
 #endif
 }
 ////////////////////////////////////////////////////////////////////////////////

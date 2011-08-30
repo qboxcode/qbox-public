@@ -17,234 +17,155 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "CGCellStepper.h"
-#include <valarray>
+#include "CGOptimizer.h"
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-CGCellStepper::CGCellStepper(Sample& s) : CellStepper(s), first_step_(true),
-  sigma1_(0.1), sigma2_(0.5)
+CGCellStepper::CGCellStepper(Sample& s) : CellStepper(s), 
+  cgopt_(CGOptimizer(3*s.atoms.size()+9)), cell0(s_.atoms.cell())
 {
   nat_ = atoms_.size();
+  cgopt_.set_alpha_start(0.5);
+  cgopt_.set_beta_max(5.0);
+#ifdef DEBUG
+  cgopt_.set_debug_print();
+#endif
 
-  xc_.resize(3*nat_+9);
-  pc_.resize(3*nat_+9);
-  fc_.resize(3*nat_+9);
-
-  rc_.resize(atoms_.nsp());
-  rp_.resize(atoms_.nsp());
-  for ( int is = 0; is < rc_.size(); is++ )
-  {
-    rc_[is].resize(3*atoms_.na(is));
+  rp_.resize(s.atoms.nsp());
+  for ( int is = 0; is < rp_.size(); is++ )
     rp_[is].resize(3*atoms_.na(is));
-  }
 
-  linmin_.set_sigma1(sigma1_);
+  // store full strain tensor u for consistency of dot products
+  u_.resize(9);
+  up_.resize(9);
+  for ( int i = 0; i < u_.size(); i++ )
+  {
+    u_[i] = 0.0;
+    up_[i] = 0.0;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void CGCellStepper::compute_new_cell(double e0, const valarray<double>& sigma,
+void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
   const std::vector<std::vector< double> >& fion)
 {
   // compute new cell and ionic positions using the stress tensor sigma
   // and the forces on ions fion
-  const UnitCell& cell = s_.wf.cell();
+  const UnitCell cell = s_.wf.cell();
 
   // total number of dofs: 3* natoms + cell parameters
-  valarray<double> f0(3*nat_+9), x0(3*nat_+9), xp(3*nat_+9);
+  valarray<double> x(3*nat_+9), xp(3*nat_+9), g(3*nat_+9);
 
-  // copy current positions into x0
+  // copy current positions into x
   vector<vector<double> > r0;
   atoms_.get_positions(r0);
   double tmp3[3];
   // convert position from r0 to tau (relative) coordinates: tau = A^-1 R
-  for ( int i = 0, is = 0; is < r0.size(); is++ )
+  for ( int is = 0, i = 0; is < r0.size(); is++ )
   {
     for ( int ia = 0; ia < r0[is].size()/3; ia++ )
     {
       cell.vecmult3x3(cell.amat_inv(),&r0[is][3*ia],tmp3);
-      x0[i++]=tmp3[0];
-      x0[i++]=tmp3[1];
-      x0[i++]=tmp3[2];
+      x[i++]=tmp3[0];
+      x[i++]=tmp3[1];
+      x[i++]=tmp3[2];
     }
   }
 
-  // convert forces on positions to forces on tau coordinates, store in f0
+  // copy current strain tensor into x
+  for ( int i = 0; i < 9; i++ )
+    x[3*nat_+i] = u_[i];
+
+  // convert forces on positions to forces  on tau coordinates, store -f in g
   // f = A^-1 * fion
   for ( int i = 0, is = 0; is < fion.size(); is++ )
   {
     for ( int ia = 0; ia < fion[is].size()/3; ia++ )
     {
       cell.vecmult3x3(cell.amat_inv(),&fion[is][3*ia],tmp3);
-      f0[i++]=tmp3[0];
-      f0[i++]=tmp3[1];
-      f0[i++]=tmp3[2];
+      g[i++]=-tmp3[0];
+      g[i++]=-tmp3[1];
+      g[i++]=-tmp3[2];
     }
   }
 
-  // convert descent direction dcell to cell space from the stress tensor
-  // dcell = sigma * A
-  valarray<double> dcell(9); // descent direction in cell space
-  assert(sigma.size()==6);
-  // next line: local copy of sigma to circumvent compiler error
-  valarray<double> sigma_loc(sigma);
-  cell.smatmult3x3(&sigma_loc[0],cell.amat(),&dcell[0]);
-  for ( int i = 0; i < dcell.size(); i++ )
-    f0[3*nat_+i] = dcell[i];
+  // compute descent direction in strain space
+  // gradient g = - sigma * volume
+  g[3*nat_+0] = -sigma[0] * cell.volume();
+  g[3*nat_+1] = -sigma[3] * cell.volume();
+  g[3*nat_+2] = -sigma[5] * cell.volume();
 
-  // cout << "dcell = " << endl;
-  // cout << dcell[0] << " " << dcell[1] << " " << dcell[2] << endl;
-  // cout << dcell[3] << " " << dcell[4] << " " << dcell[5] << endl;
-  // cout << dcell[6] << " " << dcell[7] << " " << dcell[8] << endl;
+  g[3*nat_+3] = -sigma[3] * cell.volume();
+  g[3*nat_+4] = -sigma[1] * cell.volume();
+  g[3*nat_+5] = -sigma[4] * cell.volume();
 
-  // the vector f0 now contains the derivatives of the energy in tau+cell space
-#ifdef DEBUG
-  if ( s_.ctxt_.onpe0() )
-  {
-    cout << " f0:" << endl;
-    for ( int i = 0; i < f0.size(); i++ )
-      cout << f0[i] << endl;
-  }
-#endif
+  g[3*nat_+6] = -sigma[5] * cell.volume();
+  g[3*nat_+7] = -sigma[4] * cell.volume();
+  g[3*nat_+8] = -sigma[2] * cell.volume();
 
-  double fp0; // derivative f'(x) at x=xp
-  bool wolfe1, wolfe2; // First and second Wolfe conditions in line search
+  // the vector g now contains the gradient of the energy in tau+strain space
+
+  // project the gradient in a direction compatible with constraints
+ 
+  enforce_constraints(&g[3*nat_]);
 
   // CG algorithm
 
-  if ( !first_step_ )
-  {
-    wolfe1 = e0 < ec_ + fpc_ * sigma1_ * alpha_;
-    // compute fp0: projection of forces on direction pc_
-    fp0 = 0.0;
-    for ( int i = 0; i < f0.size(); i++ )
-      fp0 -= f0[i] * pc_[i];
-
-    wolfe2 = fabs(fp0) < sigma2_ * fabs(fpc_);
-    if ( s_.ctxt_.onpe0() )
-    {
-      cout << "  CGCellStepper: fpc = " << fpc_ << endl;
-      cout << "  CGCellStepper: fp0 = " << fp0 << endl;
-      cout << "  CGCellStepper: ec = " << ec_ << " e0 = " << e0 <<  endl;
-      cout << "  CGCellStepper: ec_ + fpc_ * sigma1_ * alpha_ ="
-           << ec_ + fpc_ * sigma1_ * alpha_ << endl;
-      cout << "  CGCellStepper: wolfe1/wolfe2 = "
-           << wolfe1 << "/" << wolfe2 << endl;
-    }
-  }
-
-  if ( first_step_ || (wolfe1 && wolfe2) )
-  {
-    // define new descent direction pc_
-    if ( first_step_ )
-    {
-      pc_ = f0;
-    }
-    else
-    {
-      // Polak-Ribiere definition
-      double num = 0.0, den = 0.0;
-      for ( int i = 0; i < f0.size(); i++ )
-      {
-        const double fctmp = fc_[i];
-        const double f0tmp = f0[i];
-        num += f0tmp * ( f0tmp - fctmp );
-        den += fctmp * fctmp;
-      }
-      double beta = den > 0.0 ? num/den : 0.0;
-      beta = max(beta,0.0);
-      if ( s_.ctxt_.onpe0() )
-        cout << "  CGCellStepper: beta = " << beta << endl;
-      for ( int i = 0; i < f0.size(); i++ )
-        pc_[i] = beta * pc_[i] + f0[i];
-    }
-
-    fc_ = f0;
-    // fpc = d_e / d_alpha in direction pc
-    fpc_ = 0.0;
-    for ( int i = 0; i < f0.size(); i++ )
-      fpc_ -= fc_[i] * pc_[i];
-    ec_ = e0;
-    xc_ = x0;
-    fp0 = fpc_;
-    // reset line minimizer
-    linmin_.reset();
-  }
-
-#ifdef DEBUG
-  if ( s_.ctxt_.onpe0() )
-  {
-    cout << " pc:" << endl;
-    for ( int i = 0; i < pc_.size(); i++ )
-      cout << pc_[i] << endl;
-  }
-
-  // find largest component of pc_
-  double pcmax = 0.0;
-  for ( int i = 0; i < pc_.size(); i++ )
-    pcmax = max(fabs(pc_[i]),pcmax);
-  if ( s_.ctxt_.onpe0() )
-  {
-    cout << "CGCellStepper: largest component of pc_: "
-         << pcmax << endl;
-  }
-#endif
-
-  alpha_ = linmin_.newalpha(alpha_,e0,fp0);
+  cgopt_.compute_xp(x,e,g,xp);
 
   if ( s_.ctxt_.onpe0() )
-    cout << "  CGCellStepper: alpha = " << alpha_ << endl;
+  {
+    cout << "  CGCellStepper: alpha = " << cgopt_.alpha() << endl;
+  }
 
-  // update
-  xp = xc_ + alpha_ * pc_;
-
-  // save the change of cell parameters into dcell
   for ( int i = 0; i < 9; i++ )
-    dcell[i] = xp[3*nat_+i]-xc_[3*nat_+i];
+    up_[i] = xp[3*nat_+i]; 
 
-  // cellp = cell + dcell
-  D3vector a0p = cell.a(0) + D3vector(dcell[0],dcell[1],dcell[2]);
-  D3vector a1p = cell.a(1) + D3vector(dcell[3],dcell[4],dcell[5]);
-  D3vector a2p = cell.a(2) + D3vector(dcell[6],dcell[7],dcell[8]);
-  // cout << "dcell = " << endl;
-  // cout << dcell[0] << " " << dcell[1] << " " << dcell[2] << endl;
-  // cout << dcell[3] << " " << dcell[4] << " " << dcell[5] << endl;
-  // cout << dcell[6] << " " << dcell[7] << " " << dcell[8] << endl;
-  cellp = UnitCell(a0p,a1p,a2p);
+  // enforce cell_lock constraints
+  enforce_constraints(&up_[0]);
 
-  // check for cell_lock constraints and modify cellp if needed
-  enforce_constraints(cell, cellp);
+  // compute cellp = ( I + Up ) * A0
+  // symmetric matrix I+U stored in iumat: xx, yy, zz, xy, yz, xz
+  double iupmat[6];
+  iupmat[0] = 1.0 + up_[0];
+  iupmat[1] = 1.0 + up_[4];
+  iupmat[2] = 1.0 + up_[8];
+  iupmat[3] = 0.5 * ( up_[1] + up_[3] );
+  iupmat[4] = 0.5 * ( up_[5] + up_[7] );
+  iupmat[5] = 0.5 * ( up_[2] + up_[6] );
 
-  // compute atomic positions rc_[is][3*ia+j] from xc_
+  const double *a0mat = cell0.amat();
+  double apmat[9];
+  cell0.smatmult3x3(&iupmat[0],a0mat,apmat);
+
+  D3vector a0p(apmat[0],apmat[1],apmat[2]);
+  D3vector a1p(apmat[3],apmat[4],apmat[5]);
+  D3vector a2p(apmat[6],apmat[7],apmat[8]);
+  cellp.set(a0p,a1p,a2p);
+  
   // compute new atomic positions rp_[is][3*ia+j] from xp and cellp
   for ( int is = 0, i = 0; is < fion.size(); is++ )
   {
     for ( int ia = 0; ia < fion[is].size()/3; ia++ )
     {
-      tmp3[0] = xc_[i+0];
-      tmp3[1] = xc_[i+1];
-      tmp3[2] = xc_[i+2];
-      cell.vecmult3x3(cell.amat(),tmp3,&rc_[is][3*ia]);
       tmp3[0] = xp[i+0];
       tmp3[1] = xp[i+1];
       tmp3[2] = xp[i+2];
-      cell.vecmult3x3(cellp.amat(),tmp3,&rp_[is][3*ia]);
+      cellp.vecmult3x3(cellp.amat(),tmp3,&rp_[is][3*ia]);
       i+=3;
     }
   }
 
   // enforce constraints on atomic positions
-  s_.constraints.enforce_r(rc_,rp_);
-
-  first_step_ = false;
+  s_.constraints.enforce_r(r0,rp_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void CGCellStepper::update_cell(void)
 {
-  const UnitCell& cell = s_.wf.cell();
-
   s_.atoms.set_positions(rp_);
   s_.atoms.set_cell(cellp);
+  u_ = up_;
 
   // resize wavefunction and basis sets
   s_.wf.resize(cellp,s_.wf.refcell(),s_.wf.ecut());

@@ -30,6 +30,7 @@ class CellStepper
   AtomSet& atoms_;
   double ekin_;
   UnitCell cellp;
+  std::vector<double> u_, up_;
 
   public:
 
@@ -37,7 +38,7 @@ class CellStepper
 
   virtual void compute_new_cell(double e0,const std::valarray<double>& sigma,
     const std::vector<std::vector< double> >& f0) = 0;
-  void enforce_constraints(const UnitCell& cell, UnitCell& cellp);
+  void enforce_constraints(double* u); 
   virtual void update_cell(void) = 0;
 
   double ekin(void) const { return ekin_; }

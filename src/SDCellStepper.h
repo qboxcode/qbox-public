@@ -27,7 +27,7 @@ class SDCellStepper : public CellStepper
 
   public:
 
-  SDCellStepper(Sample& s) : CellStepper(s) {}
+  SDCellStepper(Sample& s);
 
   void compute_new_cell(double e0, const std::valarray<double>& sigma,
     const std::vector<std::vector< double> >& f0);

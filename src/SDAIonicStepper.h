@@ -39,7 +39,11 @@ class SDAIonicStepper : public IonicStepper
   public:
 
   SDAIonicStepper(Sample& s) : IonicStepper(s), first_step_(true),
-  sigma1_(0.1), sigma2_(0.5) { linmin_.set_sigma1(sigma1_); }
+  sigma1_(0.1), sigma2_(0.3) 
+  { 
+    linmin_.set_sigma1(sigma1_);
+    linmin_.set_sigma2(sigma2_);
+  }
 
   void compute_r(double e0, const std::vector<std::vector< double> >& f0);
   void compute_v(double e0, const std::vector<std::vector< double> >& f0) {}

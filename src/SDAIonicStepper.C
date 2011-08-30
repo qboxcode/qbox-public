@@ -109,7 +109,7 @@ void SDAIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
     linmin_.reset();
   }
 
-  alpha_ = linmin_.newalpha(alpha_,e0,fp0);
+  alpha_ = linmin_.next_alpha(alpha_,e0,fp0);
 
   if ( s_.ctxt_.onpe0() )
     cout << "  SDAIonicStepper: alpha = " << alpha_ << endl;

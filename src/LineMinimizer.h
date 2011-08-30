@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2011 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -19,170 +19,35 @@
 #ifndef LINEMINIMIZER_H
 #define LINEMINIMIZER_H
 
-#include <iostream>
-#include <cassert>
-#include <cmath>
-
 class LineMinimizer
 {
   private:
 
-  double sigma1_;
-  double alpha_start, alpha_low, alpha_high;
-  double f_low, fp_low, f_high, fp_high;
-  double f0, fp0;
-  bool bracket, first_use;
-  // number of iterations in bracketing mode
-  int nbracket;
-  // maximum number of iterations in bracketing mode
-  enum { nbracket_max = 4 };
-  bool debug_print;
-  double interpolate(void)
-  {
-    // select value of alpha in [alpha_low,alpha_high] using the
-    // values of f_low, f_high, fp_low, fp_high
+  double f0,fp0,fm,fpm,f_low,fp_low,f_high,fp_high,
+         alpha_m,alpha_low,alpha_high;
+  bool first_use, done_, fail_, bracketing;
+  double alpha_start_, sigma1_, sigma2_;
+  int nstep_, nstep_max_;
 
-    if ( fp_low * fp_high < 0.0 )
-    {
-      // quadratic interpolation
-      if ( debug_print )
-      {
-        std::cout << " LineMinimizer: quadratic interpolation: "
-                  << std::endl;
-        std::cout << " LineMinimizer: alpha_low/high: "
-                  << alpha_low << " " << alpha_high << std::endl;
-        std::cout << " LineMinimizer: f_low/high: "
-                  << f_low << " " << f_high << std::endl;
-        std::cout << " LineMinimizer: fp_low/high: "
-                  << fp_low << " " << fp_high << std::endl;
-      }
-      const double dalpha = alpha_high - alpha_low;
-      return alpha_low -
-             0.5 * ( fp_low * dalpha * dalpha ) /
-                   ( f_high - f_low - fp_low * dalpha );
-    }
-    else
-    {
-      // bisection
-      return 0.5 * ( alpha_low + alpha_high );
-    }
-  }
+  double interpolate(void);
 
   public:
 
-  LineMinimizer(void) : sigma1_(0.1), alpha_start(1.0), first_use(true),
-   debug_print(false), nbracket(0) {}
-  void reset(void) { first_use = true; nbracket = 0; }
+  LineMinimizer(void) : sigma1_(0.1), sigma2_(0.5), alpha_start_(1.0), 
+   first_use(true), done_(false), fail_(false), bracketing(false), nstep_(0),
+   nstep_max_(10) {}
+  void reset(void) { first_use = true; done_ = false; fail_ = false;
+    bracketing = false; nstep_ = 0; }
   double sigma1(void) const { return sigma1_; }
-  void set_sigma1(double s1) { sigma1_ = s1; }
-  double newalpha(double alpha, double f, double fp)
-  {
-    // compute a new alpha
-    // fp = d_f / d_alpha
-    if ( first_use )
-    {
-      alpha_low = 0.0;
-      f_low = f;
-      fp_low = fp;
-      f0 = f;
-      fp0 = fp;
-      first_use = false;
-      bracket = false;
-      return alpha_start;
-    }
+  double sigma2(void) const { return sigma2_; }
+  double alpha_start(void) const { return alpha_start_; }
+  bool done(void) const { return done_; }
+  bool fail(void) const { return fail_; }
 
-    if ( !bracket )
-    {
-      if ( debug_print )
-      {
-        std::cout << " LineMinimizer: not bracketing, alpha_low = "
-                  << alpha_low << std::endl;
-        std::cout << " LineMinimizer: not bracketing, f_low = "
-                  << f_low << std::endl;
-        std::cout << " LineMinimizer: not bracketing, fp_low = "
-                  << fp_low  << std::endl;
-      }
-      if ( fp*fp_low < 0.0 || (f > f0 + fp0 * sigma1_ * alpha) || f > f_low )
-      {
-        alpha_high = alpha;
-        f_high = f;
-        fp_high = fp;
-        bracket = true;
-        if ( f_low > f_high )
-        {
-          double tmp;
-          tmp = alpha_low; alpha_low = alpha_high; alpha_high = tmp;
-          tmp = f_low; f_low = f_high; f_high = tmp;
-          tmp = fp_low; fp_low = fp_high; fp_high = tmp;
-        }
-        return interpolate();
-      }
-      else
-      {
-        const double delta_alpha = 1.1 * ( alpha - alpha_low );
-        // increase alpha by at least 0.1
-        const double alpha_t = alpha + std::max(delta_alpha,0.1);
-        if ( debug_print )
-        {
-          std::cout << " LineMinimizer: expanding, alpha = " << alpha
-                    << " alpha_low = "
-                    << alpha_low << " alpha_t = " << alpha_t  << std::endl;
-        }
-        alpha_low = alpha;
-        f_low = f;
-        fp_low = fp;
-        return alpha_t;
-      }
-    }
-    else
-    {
-      // we are in the bracketing phase
-      // check how many iterations have been done so far in bracketing mode
-      // and reset if more than 3
-      if ( nbracket++ > 3)
-        reset();
-      if ( debug_print )
-      {
-        std::cout << " LineMinimizer: bracketing, alpha_low/high = "
-                  << alpha_low << "  " << alpha_high << std::endl;
-        std::cout << " LineMinimizer: bracketing, f_low/high = "
-                  << f_low << " " << f_high << std::endl;
-        std::cout << " LineMinimizer: bracketing, fp_low/high = "
-                  << fp_low << " " << fp_high << std::endl;
-      }
-      if ( fp*fp_low < 0.0 )
-      {
-        // bracket(alpha, alpha_low)
-        alpha_high = alpha;
-        f_high = f;
-        fp_high = fp;
-        bracket = true;
-        if ( f_low > f_high )
-        {
-          double tmp;
-          tmp = alpha_low; alpha_low = alpha_high; alpha_high = tmp;
-          tmp = f_low; f_low = f_high; f_high = tmp;
-          tmp = fp_low; fp_low = fp_high; fp_high = tmp;
-        }
-        return interpolate();
-      }
-      else
-      {
-        // bracket(alpha, alpha_high);
-        alpha_low = alpha;
-        f_low = f;
-        fp_low = fp;
-        bracket = true;
-        if ( f_low > f_high )
-        {
-          double tmp;
-          tmp = alpha_low; alpha_low = alpha_high; alpha_high = tmp;
-          tmp = f_low; f_low = f_high; f_high = tmp;
-          tmp = fp_low; fp_low = fp_high; fp_high = tmp;
-        }
-        return interpolate();
-      }
-    }
-  }
+  void set_sigma1(double s) { sigma1_ = s; }
+  void set_sigma2(double s) { sigma2_ = s; }
+  void set_alpha_start(double a) { alpha_start_ = a; }
+
+  double next_alpha(double alpha, double f, double fp);
 };
 #endif

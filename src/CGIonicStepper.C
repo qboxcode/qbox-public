@@ -15,148 +15,60 @@
 // CGIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CGIonicStepper.C,v 1.4 2008-09-08 15:56:18 fgygi Exp $
 
 #include "CGIonicStepper.h"
-#include <cassert>
+#include "CGOptimizer.h"
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-void CGIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
+CGIonicStepper::CGIonicStepper(Sample& s) : IonicStepper(s), 
+  cgopt_(CGOptimizer(3*natoms_))
 {
-  double fp0;
-  bool wolfe1, wolfe2;
-
-  // check if the largest component of the force f0 is larger than max_force
-  const double max_force = 0.1;
-  double largest_force = 0.0;
-  for ( int is = 0; is < r0_.size(); is++ )
-  {
-    for ( int i = 0; i < r0_[is].size(); i++ )
-    {
-      largest_force = max(largest_force,fabs(f0[is][i]));
-    }
-  }
-
-  if ( largest_force > max_force )
-  {
-    if ( s_.ctxt_.onpe0() )
-      cout << "  CGIonicStepper: force exceeds limit, taking SD step " << endl;
-    // take a steepest descent step with limited displacement and exit
-    const double alpha_sd = max_force/largest_force;
-    // SD step
-    for ( int is = 0; is < r0_.size(); is++ )
-    {
-      for ( int i = 0; i < r0_[is].size(); i++ )
-      {
-        rp_[is][i] = r0_[is][i] + alpha_sd * f0[is][i];
-      }
-    }
-    constraints_.enforce_r(r0_,rp_);
-    rm_ = r0_;
-    r0_ = rp_;
-    atoms_.set_positions(r0_);
-    // reset the CG algorithm
-    first_step_ = true;
-    return;
-  }
-
+  cgopt_.set_beta_max(5.0);
+}
+////////////////////////////////////////////////////////////////////////////////
+void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
+{
   // CG algorithm
 
-  // define the descent direction
-  if ( first_step_ )
+  valarray<double> x(3*natoms_),xp(3*natoms_),g(3*natoms_);
+  for ( int is = 0, i = 0; is < r0_.size(); is++ )
+    for ( int j = 0; j < r0_[is].size(); j++ )
+    {
+      x[i] = r0_[is][j];
+      g[i] = -f0[is][j];
+      i++;
+    }
+
+  cgopt_.compute_xp(x,e0,g,xp);
+
+  // check largest displacement
+  // max_disp: largest acceptable displacement
+  const double max_disp = 0.05;
+  double largest_disp = 0.0;
+  for ( int i = 0; i < xp.size(); i++ )
+    largest_disp = max(largest_disp,fabs(xp[i]-x[i]));
+  if ( largest_disp > max_disp )
   {
-    // first step: set descent direction pc_ = f0
-    pc_ = f0;
-    // fp0: dE/dalpha in the direction -pc_
-    fp0 = 0.0;
-    for ( int is = 0; is < r0_.size(); is++ )
-      for ( int i = 0; i < r0_[is].size(); i++ )
-        fp0 -= f0[is][i] * pc_[is][i];
-    // initialize fc_, fpc_, ec_, rc_
-    fc_ = f0;
-    // fpc = d_e / d_alpha in direction pc
-    fpc_ = fp0;
-    ec_ = e0;
-    rc_ = r0_;
-  }
-  else
-  {
-    // check if the Wolfe conditions are satisfied
-    wolfe1 = e0 < ec_ + fpc_ * sigma1_ * alpha_;
-    // fp0 = -proj(f0,pc)
-    fp0 = 0.0;
-    for ( int is = 0; is < r0_.size(); is++ )
-      for ( int i = 0; i < r0_[is].size(); i++ )
-        fp0 -= f0[is][i] * pc_[is][i];
-    wolfe2 = fabs(fp0) < sigma2_ * fabs(fpc_);
     if ( s_.ctxt_.onpe0() )
-    {
-      cout << "  CGIonicStepper: fpc = " << fpc_ << endl;
-      cout << "  CGIonicStepper: fp0 = " << fp0 << endl;
-      cout << "  CGIonicStepper: ec = " << ec_ << " e0 = " << e0 <<  endl;
-      cout << "  CGIonicStepper: ec_ + fpc_ * sigma1_ * alpha_ ="
-           << ec_ + fpc_ * sigma1_ * alpha_ << endl;
-      cout << "  CGIonicStepper: wolfe1/wolfe2 = "
-           << wolfe1 << "/" << wolfe2 << endl;
-    }
-
-    if ( wolfe1 && wolfe2 )
-    {
-      // done with this descent direction
-      // define new descent direction pc_ using the Fletcher-Reeves formula
-      double num = 0.0, den = 0.0;
-      for ( int is = 0; is < r0_.size(); is++ )
-      {
-        for ( int i = 0; i < r0_[is].size(); i++ )
-        {
-          const double fctmp = fc_[is][i];
-          const double f0tmp = f0[is][i];
-          // Fletcher-Reeves definition
-          num += f0tmp * f0tmp;
-          den += fctmp * fctmp;
-        }
-      }
-      double beta = den > 0.0 ? num/den : 0.0;
-      if ( s_.ctxt_.onpe0() )
-        cout << "  CGIonicStepper: beta = " << beta << endl;
-      for ( int is = 0; is < r0_.size(); is++ )
-      {
-        for ( int i = 0; i < r0_[is].size(); i++ )
-          pc_[is][i] = beta * pc_[is][i] + f0[is][i];
-      }
-      // initialize fc_, fpc_, ec_, rc_
-      // fp0 = d_e / d_alpha in direction pc_
-      fp0 = 0.0;
-      for ( int is = 0; is < r0_.size(); is++ )
-        for ( int i = 0; i < r0_[is].size(); i++ )
-          fp0 -= f0[is][i] * pc_[is][i];
-      fc_ = f0;
-      fpc_ = fp0;
-      ec_ = e0;
-      rc_ = r0_;
-
-      // reset the line minimizer
-      linmin_.reset();
-    }
+      cout << "  CGIonicStepper: displacement exceeds limit, rescaling" << endl;
+    // rescale displacement and reset the CG optimizer
+    xp = x + (max_disp/largest_disp) * (xp - x);
+    
+    cgopt_.reset();
   }
-
-  // the descent direction pc_ is defined
-
-  alpha_ = linmin_.newalpha(alpha_,e0,fp0);
 
   if ( s_.ctxt_.onpe0() )
-    cout << "  CGIonicStepper: alpha = " << alpha_ << endl;
+  {
+    cout << "  CGIonicStepper: alpha = " << cgopt_.alpha() << endl;
+  }
 
-  // rp = rc + alpha * pc
-  for ( int is = 0; is < r0_.size(); is++ )
-    for ( int i = 0; i < r0_[is].size(); i++ )
-      rp_[is][i] = rc_[is][i] + alpha_ * pc_[is][i];
+  for ( int is = 0, i = 0; is < r0_.size(); is++ )
+    for ( int j = 0; j < r0_[is].size(); j++ )
+      rp_[is][j] = xp[i++];
 
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   r0_ = rp_;
   atoms_.set_positions(r0_);
-
-  first_step_ = false;
 }

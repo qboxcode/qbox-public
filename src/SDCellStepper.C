@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2011 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -20,18 +20,29 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-void SDCellStepper::compute_new_cell(double e0, const valarray<double>& sigma,
-  const std::vector<std::vector< double> >& f0)
+SDCellStepper::SDCellStepper(Sample& s) : CellStepper(s)
 {
-  // compute new cell by adding correction dcell_ij. Steepest descent algorithm.
-  // forces f0 are not used
-  valarray<double> dcell(9);
+  // strain tensors u, up
+  u_.resize(9);
+  up_.resize(9);
+  for ( int i = 0; i < u_.size(); i++ )
+  {
+    u_[i] = 0.0;
+    up_[i] = 0.0;
+  }
+}
 
-  const UnitCell& cell = s_.wf.cell();
+////////////////////////////////////////////////////////////////////////////////
+void SDCellStepper::compute_new_cell(double e0, const valarray<double>& sigma,
+  const std::vector<std::vector< double> >& fion)
+{
+  // compute new cell and ionic positions using the stress tensor sigma
+  const UnitCell cell0 = s_.wf.cell();
   const double cell_mass = s_.ctrl.cell_mass;
 
   if ( cell_mass <= 0.0 )
   {
+    cellp = cell0;
     if ( s_.ctxt_.onpe0() )
     {
       cout << " SDCellStepper::compute_new_cell: cell mass is zero\n"
@@ -40,25 +51,53 @@ void SDCellStepper::compute_new_cell(double e0, const valarray<double>& sigma,
     }
   }
 
-  // Compute cell correction dcell_ij from the stress tensor
-  // dcell = - omega * sigma * A
   assert(sigma.size()==6);
-  // next line: local copy of sigma to circumvent compiler error
-  valarray<double> sigma_loc(sigma);
-  cell.smatmult3x3(&sigma_loc[0],cell.amat(),&dcell[0]);
-  // cell.smatmult3x3(&sigma[0],cell.amat(),&dcell[0]);
-  dcell *= -cell.volume();
-
-  // new cell: cellp = cell - dcell * dt^2 / cell_mass
   const double dt = s_.ctrl.dt;
   const double dt2bym = dt*dt/cell_mass;
-  D3vector a0p = cell.a(0) - dt2bym * D3vector(dcell[0],dcell[1],dcell[2]);
-  D3vector a1p = cell.a(1) - dt2bym * D3vector(dcell[3],dcell[4],dcell[5]);
-  D3vector a2p = cell.a(2) - dt2bym * D3vector(dcell[6],dcell[7],dcell[8]);
-  cellp = UnitCell(a0p,a1p,a2p);
 
-  // check for cell_lock constraints and modify cellp if needed
-  enforce_constraints(cell, cellp);
+  double g[9];
+  // compute descent direction in strain space
+  const double omega = cell0.volume();
+  // gradient g = - sigma * volume
+  g[0] = -sigma[0] * omega;
+  g[1] = -sigma[3] * omega;
+  g[2] = -sigma[5] * omega;
+
+  g[3] = -sigma[3] * omega;
+  g[4] = -sigma[1] * omega;
+  g[5] = -sigma[4] * omega;
+
+  g[6] = -sigma[5] * omega;
+  g[7] = -sigma[4] * omega;
+  g[8] = -sigma[2] * omega;
+
+  // the vector g now contains the gradient of the energy in strain space
+
+  // SD algorithm
+  for ( int i = 0; i < 9; i++ )
+    up_[i] = - dt2bym * g[i];
+  
+  // check for cell_lock constraints and modify up_ if needed
+  enforce_constraints(&up_[0]);
+
+  // compute cellp = ( I + Up ) * A0
+  // symmetric matrix I+U stored in iumat: xx, yy, zz, xy, yz, xz
+  double iupmat[6];
+  iupmat[0] = 1.0 + up_[0];
+  iupmat[1] = 1.0 + up_[4];
+  iupmat[2] = 1.0 + up_[8];
+  iupmat[3] = 0.5 * ( up_[1] + up_[3] );
+  iupmat[4] = 0.5 * ( up_[5] + up_[7] );
+  iupmat[5] = 0.5 * ( up_[2] + up_[6] );
+
+  const double *a0mat = cell0.amat();
+  double apmat[9];
+  cell0.smatmult3x3(&iupmat[0],a0mat,apmat);
+
+  D3vector a0p(apmat[0],apmat[1],apmat[2]);
+  D3vector a1p(apmat[3],apmat[4],apmat[5]);
+  D3vector a2p(apmat[6],apmat[7],apmat[8]);
+  cellp.set(a0p,a1p,a2p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

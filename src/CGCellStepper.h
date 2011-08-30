@@ -20,19 +20,17 @@
 #define CGCELLSTEPPER_H
 
 #include "CellStepper.h"
-#include "LineMinimizer.h"
+#include "CGOptimizer.h"
 
 class CGCellStepper : public CellStepper
 {
   private:
 
-  bool first_step_;
+  CGOptimizer cgopt_;
+  UnitCell cell0; 
+  std::vector<std::vector<double> > rp_;
+
   int nat_;
-  std::valarray<double> xc_, pc_, fc_;
-  std::vector<std::vector<double> > rc_, rp_;
-  double ec_, fpc_;
-  double alpha_, sigma1_, sigma2_;
-  LineMinimizer linmin_;
 
   public:
 

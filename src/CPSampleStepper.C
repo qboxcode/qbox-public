@@ -99,7 +99,7 @@ void CPSampleStepper::step(int niter)
   Wavefunction& wf = s_.wf;
 
   const double dt = s_.ctrl.dt;
-  double ekin_ion=0.0,ekin_e, temp_ion=0.0, eta;
+  double ekin_ion=0.0,ekin_e;
 
   const string wf_dyn = s_.ctrl.wf_dyn;
   assert(wf_dyn=="MD");

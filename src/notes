@@ -7,7 +7,20 @@ BOSampleStepper.C:Using run 0 modifies the wavefunctions. Need to set
 wf_dyn=LOCKED to only compute energy without modif of wfs.
 kpgen for non-rectangular cells yields non-symmetric kpoint sets.
 --------------------------------------------------------------------------------
-rel1_54_0 candidate
+Rewrite of CellStepper, SDCellStepper, CGCellStepper classes.
+CGOptimizer and LineMinimizer restructured.
+--------------------------------------------------------------------------------
+rel1_54_2
+fix CG algorithm in CGCellStepper.C
+--------------------------------------------------------------------------------
+rel1_54_1
+CGCellStepper.C: fixed CG algorithm.
+--------------------------------------------------------------------------------
+rel1_54_1
+Basis.C: fixed bug 26: cannot build basis for kpoint close to FCC BZ boundary
+fixed in r924
+--------------------------------------------------------------------------------
+rel1_54_0
 LineMinimizer.h: limited the number of iterations in bracketing mode to 4
 UnitCell.C: accept unit cells with orientation leading to negative volume and
 define the volume as fabs(a0*(a1^a2))

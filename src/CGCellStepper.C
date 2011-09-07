@@ -21,7 +21,7 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-CGCellStepper::CGCellStepper(Sample& s) : CellStepper(s), 
+CGCellStepper::CGCellStepper(Sample& s) : CellStepper(s),
   cgopt_(CGOptimizer(3*s.atoms.size()+9)), cell0(s_.atoms.cell())
 {
   nat_ = atoms_.size();
@@ -106,7 +106,7 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
   // the vector g now contains the gradient of the energy in tau+strain space
 
   // project the gradient in a direction compatible with constraints
- 
+
   enforce_constraints(&g[3*nat_]);
 
   // CG algorithm
@@ -119,7 +119,7 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
   }
 
   for ( int i = 0; i < 9; i++ )
-    up_[i] = xp[3*nat_+i]; 
+    up_[i] = xp[3*nat_+i];
 
   // enforce cell_lock constraints
   enforce_constraints(&up_[0]);
@@ -142,7 +142,7 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
   D3vector a1p(apmat[3],apmat[4],apmat[5]);
   D3vector a2p(apmat[6],apmat[7],apmat[8]);
   cellp.set(a0p,a1p,a2p);
-  
+
   // compute new atomic positions rp_[is][3*ia+j] from xp and cellp
   for ( int is = 0, i = 0; is < fion.size(); is++ )
   {

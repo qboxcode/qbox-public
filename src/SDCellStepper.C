@@ -76,7 +76,7 @@ void SDCellStepper::compute_new_cell(double e0, const valarray<double>& sigma,
   // SD algorithm
   for ( int i = 0; i < 9; i++ )
     up_[i] = - dt2bym * g[i];
-  
+
   // check for cell_lock constraints and modify up_ if needed
   enforce_constraints(&up_[0]);
 

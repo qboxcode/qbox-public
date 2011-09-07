@@ -78,7 +78,7 @@ double LineMinimizer::next_alpha(double alpha, double f, double fp)
 #ifdef DEBUG
       cout << "LineMinimizer: start bracketing" << endl;
       cout << "LineMinimizer: alpha=" << alpha << endl;
-      cout << "LineMinimizer: alpha_low/alpha_high= " 
+      cout << "LineMinimizer: alpha_low/alpha_high= "
            << alpha_low << " " << alpha_high << endl;
       cout << "LineMinimizer: fp_low=" << fp_low << endl;
 #endif

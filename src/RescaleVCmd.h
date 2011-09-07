@@ -49,6 +49,12 @@ class RescaleVCmd : public Cmd
 
   int action(int argc, char **argv)
   {
+    if ( argc != 2 )
+    {
+      if ( ui->onpe0() )
+        cout << " use: rescale_v fac" << endl;
+      return 1;
+    }
     const double fac = atof(argv[1]);
     s->atoms.rescale_velocities(fac);
     return 0;

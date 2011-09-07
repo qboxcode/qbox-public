@@ -28,17 +28,16 @@ class CGOptimizer
 
   int n_;
   bool first_step_, debug_print;
-  std::valarray<double> x0_, p_;  
+  std::valarray<double> x0_, p_;
   double f0_, fp0_, g0norm2_, alpha_, beta_max_;
   LineMinimizer linmin_;
-  double norm2(const std::valarray<double>& v);
 
   public:
 
   CGOptimizer(int n): n_(n), first_step_(true), alpha_(0.0), beta_max_(0.0),
     debug_print(false)
-  { 
-    x0_.resize(n); 
+  {
+    x0_.resize(n);
     p_.resize(n);
   }
 
@@ -55,7 +54,7 @@ class CGOptimizer
   double alpha(void) const { return alpha_; }
   double alpha_start(void) const { return linmin_.alpha_start(); }
   double beta_max(void) const { return beta_max_; }
-  void compute_xp(const std::valarray<double>& x, const double f, 
+  void compute_xp(const std::valarray<double>& x, const double f,
                   const std::valarray<double>& g, std::valarray<double>& xp);
 };
 #endif

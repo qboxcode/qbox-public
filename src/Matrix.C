@@ -295,11 +295,11 @@ extern "C"
              const complex<double>*, const complex<double>*, const int*,
              const complex<double>*, const int*,
              const complex<double>*, complex<double>*, const int*);
-  void zgerc(const int*, const int *, const complex<double>*, 
+  void zgerc(const int*, const int *, const complex<double>*,
              const complex<double>*, const int*,
              const complex<double>*, const int*,
              const complex<double>*, const int*);
-  void zgeru(const int*, const int *, const complex<double>*, 
+  void zgeru(const int*, const int *, const complex<double>*,
              const complex<double>*, const int*,
              const complex<double>*, const int*,
              const complex<double>*, const int*);

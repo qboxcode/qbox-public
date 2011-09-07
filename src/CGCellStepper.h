@@ -27,7 +27,7 @@ class CGCellStepper : public CellStepper
   private:
 
   CGOptimizer cgopt_;
-  UnitCell cell0; 
+  UnitCell cell0;
   std::vector<std::vector<double> > rp_;
 
   int nat_;

@@ -39,8 +39,8 @@ class SDAIonicStepper : public IonicStepper
   public:
 
   SDAIonicStepper(Sample& s) : IonicStepper(s), first_step_(true),
-  sigma1_(0.1), sigma2_(0.3) 
-  { 
+  sigma1_(0.1), sigma2_(0.3)
+  {
     linmin_.set_sigma1(sigma1_);
     linmin_.set_sigma2(sigma2_);
   }

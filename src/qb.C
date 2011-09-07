@@ -60,6 +60,7 @@ using namespace std;
 #include "PlotCmd.h"
 #include "PrintCmd.h"
 #include "QuitCmd.h"
+#include "RandomizeVCmd.h"
 #include "RandomizeWfCmd.h"
 #include "ResetVcmCmd.h"
 #include "RescaleVCmd.h"
@@ -253,6 +254,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new PlotCmd(s));
   ui.addCmd(new PrintCmd(s));
   ui.addCmd(new QuitCmd(s));
+  ui.addCmd(new RandomizeVCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
   ui.addCmd(new ResetVcmCmd(s));
   ui.addCmd(new RescaleVCmd(s));

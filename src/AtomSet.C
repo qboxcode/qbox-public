@@ -20,6 +20,7 @@
 #include "AtomSet.h"
 #include "Species.h"
 #include "NameOf.h"
+#include "sampling.h"
 #include <iostream>
 #include <algorithm>
 #include <string>
@@ -409,12 +410,38 @@ void AtomSet::rescale_velocities(double fac)
   get_velocities(v);
   for ( int is = 0; is < v.size(); is++ )
   {
-    for ( int ia = 0; ia < v[is].size(); ia++ )
-      v[is][ia] *= fac;
+    for ( int i = 0; i < v[is].size(); i++ )
+      v[is][i] *= fac;
   }
   set_velocities(v);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+void AtomSet::randomize_velocities(double temp)
+{
+  // initialize velocities with random numbers from a Maxwell-Boltzmann
+  // distribution at temperature temp
+  const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
+  vector<vector<double> > v;
+  get_velocities(v);
+  for ( int is = 0; is < v.size(); is++ )
+  {
+    const double m = species_list[is]->mass() * 1822.89;
+    const double width = sqrt( boltz * temp / m );
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      // draw pairs of unit variance gaussian random variables
+      double xi0, xi1, xi2, xi3; // xi3 not used
+      normal_dev(&xi0,&xi1);
+      normal_dev(&xi2,&xi3);
+      v[is][3*ia+0] = width * xi0;
+      v[is][3*ia+1] = width * xi1;
+      v[is][3*ia+2] = width * xi2;
+    }
+  }
+  set_velocities(v);
+  sync();
+}
 ////////////////////////////////////////////////////////////////////////////////
 D3vector AtomSet::vcm(void) const
 {

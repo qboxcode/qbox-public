@@ -83,6 +83,7 @@ class AtomSet
   void sync(void);
   void reset_velocities(void);
   void rescale_velocities(double fac);
+  void randomize_velocities(double temp);
   D3vector vcm(void) const;
   D3vector dipole(void) const;
   void reset_vcm(void);

@@ -81,7 +81,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
     {
       // line minimization failed
       if ( debug_print )
-        cout << "CGOptimizer: line minimization failed" << endl;
+        cout << "  CGOptimizer: line minimization failed" << endl;
 
       // restart from current point
       p_ = -g;
@@ -105,6 +105,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
 
       xp = x0_ + alpha_ * p_;
       first_step_ = false;
+      return;
     }
 
     if ( linmin_.done() )

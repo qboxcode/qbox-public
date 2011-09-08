@@ -40,6 +40,15 @@ double LineMinimizer::interpolate(void)
 ////////////////////////////////////////////////////////////////////////////////
 double LineMinimizer::next_alpha(double alpha, double f, double fp)
 {
+  nstep_++;
+  if ( nstep_ > nstep_max_ )
+  {
+#ifdef DEBUG
+    cout << "LineMinimizer: fail, nstep_max" << endl;
+#endif
+    fail_ = true;
+  }
+
   if ( done_ || fail_ )
     return alpha;
 
@@ -126,16 +135,6 @@ double LineMinimizer::next_alpha(double alpha, double f, double fp)
   else
   {
     // bracketing
-    nstep_++;
-    if ( nstep_ > nstep_max_ )
-    {
-#ifdef DEBUG
-      cout << "LineMinimizer: fail, nstep_max" << endl;
-#endif
-      fail_ = true;
-      return alpha;
-    }
-
     if ( !wolfe1 || f > f_low )
     {
 #ifdef DEBUG

@@ -21,10 +21,13 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-CGIonicStepper::CGIonicStepper(Sample& s) : IonicStepper(s), 
+CGIonicStepper::CGIonicStepper(Sample& s) : IonicStepper(s),
   cgopt_(CGOptimizer(3*natoms_))
 {
   cgopt_.set_beta_max(5.0);
+#ifdef DEBUG
+  cgopt_.set_debug_print();
+#endif
 }
 ////////////////////////////////////////////////////////////////////////////////
 void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
@@ -32,13 +35,26 @@ void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
   // CG algorithm
 
   valarray<double> x(3*natoms_),xp(3*natoms_),g(3*natoms_);
+  vector<vector<double> > gvec;
+  gvec.resize(r0_.size());
   for ( int is = 0, i = 0; is < r0_.size(); is++ )
+  {
+    gvec[is].resize(r0_[is].size());
     for ( int j = 0; j < r0_[is].size(); j++ )
     {
       x[i] = r0_[is][j];
-      g[i] = -f0[is][j];
+      gvec[is][j] = -f0[is][j];
       i++;
     }
+  }
+
+  // enforce compatibility of the gradient with constraints
+  constraints_.enforce_v(r0_,gvec);
+
+  // copy projected gradient to g
+  for ( int is = 0, i = 0; is < r0_.size(); is++ )
+    for ( int j = 0; j < r0_[is].size(); j++ )
+      g[i++] = gvec[is][j];
 
   cgopt_.compute_xp(x,e0,g,xp);
 
@@ -54,7 +70,7 @@ void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
       cout << "  CGIonicStepper: displacement exceeds limit, rescaling" << endl;
     // rescale displacement and reset the CG optimizer
     xp = x + (max_disp/largest_disp) * (xp - x);
-    
+
     cgopt_.reset();
   }
 

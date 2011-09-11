@@ -21,16 +21,13 @@
 #include <numeric>
 using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
-double norm2(const std::valarray<double>&v)
+double CGOptimizer::norm2(std::valarray<double>& v)
 {
-  double sum = 0.0;
-  for ( int i = 0; i < v.size(); i++ )
-    sum += v[i]*v[i];
-  return sum;
+  return inner_product(&v[0],&v[v.size()],&v[0],0.0);
 }
 ////////////////////////////////////////////////////////////////////////////////
 void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
-                             const valarray<double>& g, valarray<double>& xp)
+                             valarray<double>& g, valarray<double>& xp)
 {
   // Use the function value f and the gradient g at x to generate a new point xp
   // using the Fletcher-Powell CG algorithm
@@ -69,9 +66,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
   {
     // fp: derivative along the current descent direction p_
     // fp = df(x0+alpha*p)/dalpha at x
-    fp = 0.0;
-    for ( int i = 0; i < g.size(); i++ )
-      fp += g[i] * p_[i];
+    fp = inner_product(&g[0],&g[g.size()],&p_[0],0.0);
     double new_alpha = linmin_.next_alpha(alpha_,f,fp);
     if ( debug_print )
       cout << "  CGOptimizer: alpha=" << alpha_
@@ -130,9 +125,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
       f0_ = f;
       // recalculate f0, fp0
       // fp0 = d_e / d_alpha in direction pc_
-      fp0_ = 0.0;
-      for ( int i = 0; i < g.size(); i++ )
-        fp0_ += g[i] * p_[i];
+      fp0_ = inner_product(&g[0],&g[g.size()],&p_[0],0.0);
       g0norm2_ = norm2(g);
       fp = fp0_;
       assert(fp<0.0 && "CGOptimizer: p_ not a descent direction");

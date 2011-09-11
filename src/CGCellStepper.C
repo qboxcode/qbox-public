@@ -25,7 +25,7 @@ CGCellStepper::CGCellStepper(Sample& s) : CellStepper(s),
   cgopt_(CGOptimizer(3*s.atoms.size()+9)), cell0(s_.atoms.cell())
 {
   nat_ = atoms_.size();
-  cgopt_.set_alpha_start(0.5);
+  cgopt_.set_alpha_start(0.1);
   cgopt_.set_beta_max(5.0);
 #ifdef DEBUG
   cgopt_.set_debug_print();
@@ -57,7 +57,7 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
   valarray<double> x(3*nat_+9), xp(3*nat_+9), g(3*nat_+9);
 
   // copy current positions into x
-  vector<vector<double> > r0;
+  vector<vector<double> > r0, gvec;
   atoms_.get_positions(r0);
   double tmp3[3];
   // convert position from r0 to tau (relative) coordinates: tau = A^-1 R
@@ -76,18 +76,27 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
   for ( int i = 0; i < 9; i++ )
     x[3*nat_+i] = u_[i];
 
-  // convert forces on positions to forces  on tau coordinates, store -f in g
+  // convert forces on positions to forces on tau coordinates, store -f in gvec
   // f = A^-1 * fion
-  for ( int i = 0, is = 0; is < fion.size(); is++ )
+  gvec.resize(r0.size());
+  for ( int is = 0; is < r0.size(); is++ )
   {
-    for ( int ia = 0; ia < fion[is].size()/3; ia++ )
+    gvec[is].resize(r0[is].size());
+    for ( int ia = 0; ia < r0[is].size()/3; ia++ )
     {
       cell.vecmult3x3(cell.amat_inv(),&fion[is][3*ia],tmp3);
-      g[i++]=-tmp3[0];
-      g[i++]=-tmp3[1];
-      g[i++]=-tmp3[2];
+      gvec[is][3*ia+0]=-tmp3[0];
+      gvec[is][3*ia+1]=-tmp3[1];
+      gvec[is][3*ia+2]=-tmp3[2];
     }
   }
+
+  // project the gradient gvec in a direction compatible with constraints
+  s_.constraints.enforce_v(r0,gvec);
+
+  for ( int j = 0, is = 0; is < r0.size(); is++ )
+    for ( int i = 0; i < r0[is].size(); i++ )
+      g[j++] = gvec[is][i];
 
   // compute descent direction in strain space
   // gradient g = - sigma * volume
@@ -105,9 +114,12 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
 
   // the vector g now contains the gradient of the energy in tau+strain space
 
-  // project the gradient in a direction compatible with constraints
-
+  // enforce constraints on the unit cell
+  // Next line only affects the cell components of g
   enforce_constraints(&g[3*nat_]);
+
+  // the vector g now contains a gradient of the energy in tau+strain space
+  // compatible with atoms and cell constraints
 
   // CG algorithm
 

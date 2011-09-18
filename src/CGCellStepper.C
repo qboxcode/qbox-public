@@ -175,7 +175,9 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
 ////////////////////////////////////////////////////////////////////////////////
 void CGCellStepper::update_cell(void)
 {
+  s_.atoms.sync_positions(rp_);
   s_.atoms.set_positions(rp_);
+  s_.atoms.sync_cell(cellp);
   s_.atoms.set_cell(cellp);
   u_ = up_;
 

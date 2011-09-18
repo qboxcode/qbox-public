@@ -358,9 +358,6 @@ void BOSampleStepper::step(int niter)
     if ( onpe0 )
       cout << "<iteration count=\"" << iter+1 << "\">\n";
 
-    if ( ionic_stepper || cell_stepper )
-      atoms.sync();
-
     // compute energy and ionic forces using existing wavefunction
 
     if ( !gs_only )

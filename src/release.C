@@ -19,5 +19,5 @@
 #include "release.h"
 std::string release(void)
 {
-  return std::string("1.54.1wrk");
+  return std::string("wrk");
 }

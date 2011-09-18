@@ -15,8 +15,6 @@
 // BMDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BMDIonicStepper.h,v 1.1 2009-04-30 23:13:14 fgygi Exp $
-
 //
 // IonicStepper is used in the following way
 //
@@ -55,6 +53,7 @@ class BMDIonicStepper : public IonicStepper
 {
   private:
 
+  const double bmd_fac_;
   double e0_,em_;
   double ekin_;
   std::vector<std::vector< double> > fm_;
@@ -62,7 +61,7 @@ class BMDIonicStepper : public IonicStepper
 
   public:
 
-  BMDIonicStepper(Sample& s) : IonicStepper(s)
+  BMDIonicStepper(Sample& s) : IonicStepper(s), bmd_fac_(0.025)
   {
     e0_ = 0.0;
     em_ = 0.0;

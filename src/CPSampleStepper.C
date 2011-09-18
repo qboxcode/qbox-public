@@ -145,9 +145,6 @@ void CPSampleStepper::step(int niter)
     if ( s_.ctxt_.mype() == 0 )
       cout << "<iteration count=\"" << iter+1 << "\">\n";
 
-    if ( mdionic_stepper || cell_stepper )
-      atoms.sync();
-
     mdwf_stepper->update(dwf);
 
     ekin_e = mdwf_stepper->ekin();

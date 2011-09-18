@@ -71,16 +71,16 @@ class AtomSet
   int nel(void) const { return nel_; };
   int nsp(void) const { return species_list.size(); }
   void get_positions(std::vector<std::vector<double> >& tau) const;
+  void sync_positions(std::vector<std::vector<double> >& tau);
   void set_positions(const std::vector<std::vector<double> >& tau);
   void get_velocities(std::vector<std::vector<double> >& vel) const;
+  void sync_velocities(std::vector<std::vector<double> >& vel);
   void set_velocities(const std::vector<std::vector<double> >& vel);
   const UnitCell& cell(void) const { return cell_; }
   void set_cell(const UnitCell& cell) { cell_ = cell; }
-  void set_cell(const D3vector& a, const D3vector& b, const D3vector& c)
-  {
-    cell_.set(a,b,c);
-  }
-  void sync(void);
+  void set_cell(const D3vector& a, const D3vector& b, const D3vector& c);
+  void sync_cell(void);
+  void sync_cell(UnitCell& cell);
   void reset_velocities(void);
   void rescale_velocities(double fac);
   void randomize_velocities(double temp);

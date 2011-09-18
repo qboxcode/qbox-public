@@ -340,14 +340,31 @@ void AtomSet::get_positions(vector<vector<double> >& tau) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void AtomSet::sync_positions(vector<vector<double> >& tau)
+{
+  for ( int is = 0; is < tau.size(); is++ )
+  {
+    int m = tau[is].size();
+    double* p = &tau[is][0];
+    if ( ctxt_.onpe0() )
+    {
+      ctxt_.dbcast_send(m,1,p,m);
+    }
+    else
+    {
+      ctxt_.dbcast_recv(m,1,p,m,0,0);
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void AtomSet::set_positions(const vector<vector<double> >& tau)
 {
   assert(tau.size() == atom_list.size());
   for ( int is = 0; is < atom_list.size(); is++ )
   {
     assert(tau[is].size() == 3*atom_list[is].size());
-    int i = 0;
-    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    for ( int ia = 0, i = 0; ia < atom_list[is].size(); ia++ )
     {
       atom_list[is][ia]->set_position(
         D3vector(tau[is][i],tau[is][i+1],tau[is][i+2]));
@@ -377,14 +394,31 @@ void AtomSet::get_velocities(vector<vector<double> >& vel) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void AtomSet::sync_velocities(vector<vector<double> >& vel)
+{
+  for ( int is = 0; is < vel.size(); is++ )
+  {
+    int m = vel[is].size();
+    double* p = &vel[is][0];
+    if ( ctxt_.onpe0() )
+    {
+      ctxt_.dbcast_send(m,1,p,m);
+    }
+    else
+    {
+      ctxt_.dbcast_recv(m,1,p,m,0,0);
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void AtomSet::set_velocities(const vector<vector<double> >& vel)
 {
   assert(vel.size() == atom_list.size());
   for ( int is = 0; is < atom_list.size(); is++ )
   {
     assert(vel[is].size() == 3*atom_list[is].size());
-    int i = 0;
-    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    for ( int ia = 0, i = 0; ia < atom_list[is].size(); ia++ )
     {
       atom_list[is][ia]->set_velocity(
         D3vector(vel[is][i],vel[is][i+1],vel[is][i+2]));
@@ -440,7 +474,6 @@ void AtomSet::randomize_velocities(double temp)
     }
   }
   set_velocities(v);
-  sync();
 }
 ////////////////////////////////////////////////////////////////////////////////
 D3vector AtomSet::vcm(void) const
@@ -517,49 +550,25 @@ D3vector AtomSet::dipole(void) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void AtomSet::sync()
+void AtomSet::set_cell(const D3vector& a, const D3vector& b, const D3vector& c)
 {
-#if USE_MPI
-  // enforce consistency of positions and velocities on all tasks
-  // broadcast positions and velocities of task 0 to all tasks
-  vector<vector<double> > r,v;
-  get_positions(r);
-  get_velocities(v);
-  for ( int is = 0; is < atom_list.size(); is++ )
-  {
-    int m = r[is].size();
-    double* p = &r[is][0];
-    if ( ctxt_.onpe0() )
-    {
-      ctxt_.dbcast_send(m,1,p,m);
-    }
-    else
-    {
-      ctxt_.dbcast_recv(m,1,p,m,0,0);
-    }
-  }
-  for ( int is = 0; is < atom_list.size(); is++ )
-  {
-    int m = v[is].size();
-    double* p = &v[is][0];
-    if ( ctxt_.onpe0() )
-    {
-      ctxt_.dbcast_send(m,1,p,m);
-    }
-    else
-    {
-      ctxt_.dbcast_recv(m,1,p,m,0,0);
-    }
-  }
-  set_positions(r);
-  set_velocities(v);
+  cell_.set(a,b,c);
+}
 
-  // synchronize the unit cell
+////////////////////////////////////////////////////////////////////////////////
+void AtomSet::sync_cell(void)
+{
+  sync_cell(cell_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void AtomSet::sync_cell(UnitCell& cell)
+{
   if ( ctxt_.onpe0() )
   {
     double sbuf[9];
     for ( int i = 0; i < 9; i++ )
-      sbuf[i] = cell_.amat(i);
+      sbuf[i] = cell.amat(i);
     ctxt_.dbcast_send(9,1,sbuf,9);
   }
   else
@@ -569,11 +578,10 @@ void AtomSet::sync()
     D3vector a0(rbuf[0],rbuf[1],rbuf[2]);
     D3vector a1(rbuf[3],rbuf[4],rbuf[5]);
     D3vector a2(rbuf[6],rbuf[7],rbuf[8]);
-    // call UnitCell::set to recompute other UnitCell members
-    cell_.set(a0,a1,a2);
+    cell.set(a0,a1,a2);
   }
-#endif
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator << ( ostream &os, const AtomSet &as )
 {

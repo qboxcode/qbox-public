@@ -559,8 +559,10 @@ void ConstraintSet::enforce(AtomSet& atoms)
   rp=r0;
   atoms.get_velocities(v0);
   enforce_r(r0,rp);
+  atoms.sync_positions(rp);
   atoms.set_positions(rp);
   enforce_v(r0,v0);
+  atoms.sync_velocities(v0);
   atoms.set_velocities(v0);
 }
 ////////////////////////////////////////////////////////////////////////////////

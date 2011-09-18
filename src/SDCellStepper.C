@@ -124,7 +124,9 @@ void SDCellStepper::update_cell(void)
       cellp.vecmult3x3(cellp.amat(),&tau[0],&r[is][3*ia]);
     }
   }
+  s_.atoms.sync_positions(r);
   s_.atoms.set_positions(r);
+  s_.atoms.sync_cell(cellp);
   s_.atoms.set_cell(cellp);
 
   // resize wavefunction and basis sets

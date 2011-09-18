@@ -42,6 +42,7 @@ void MDIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   r0_ = rp_;
+  atoms_.sync_positions(r0_);
   atoms_.set_positions(r0_);
 }
 
@@ -120,9 +121,8 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
         }
       }
     }
+    atoms_.sync_velocities(v0_);
     atoms_.set_velocities(v0_);
-    atoms_.sync();
-    atoms_.get_velocities(v0_);
   }
   else if ( thermostat_ == "LOWE" )
   {
@@ -196,9 +196,8 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
         }
       }
     }
+    atoms_.sync_velocities(v0_);
     atoms_.set_velocities(v0_);
-    atoms_.sync();
-    atoms_.get_velocities(v0_);
     //cout << " npairs: " << npairs << endl;
   }
   else if ( thermostat_ == "BDP" )
@@ -247,13 +246,13 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
     if ( !s_.ctxt_.onpe0() )
       s_.ctxt_.dbcast_recv(1,1,&ekin_stepper_,1,0,0);
 
+    atoms_.sync_velocities(v0_);
     atoms_.set_velocities(v0_);
-    atoms_.sync();
-    atoms_.get_velocities(v0_);
   }
   constraints_.enforce_v(r0_,v0_);
   // recompute ekin as velocities may be affected by constraints
   compute_ekin();
+  atoms_.sync_velocities(v0_);
   atoms_.set_velocities(v0_);
 }
 

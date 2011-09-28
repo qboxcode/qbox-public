@@ -19,12 +19,8 @@
 #include <iostream>
 #include <cassert>
 #include <numeric>
+#include "blas.h"
 using namespace std;
-////////////////////////////////////////////////////////////////////////////////
-double CGOptimizer::norm2(std::valarray<double>& v)
-{
-  return inner_product(&v[0],&v[v.size()],&v[0],0.0);
-}
 ////////////////////////////////////////////////////////////////////////////////
 void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
                              valarray<double>& g, valarray<double>& xp)
@@ -33,6 +29,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
   // using the Fletcher-Powell CG algorithm
   // return xp=x if the 2-norm of g is smaller than tol
   const double tol = 1.0e-18;
+  const int one = 1;
 
   assert(x.size()==n_ && g.size()==n_ && xp.size()==n_);
 
@@ -45,7 +42,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
     x0_ = x;
     f0_ = f;
 
-    g0norm2_ = norm2(g);
+    g0norm2_ = ddot_(&n_,&g[0],&one,&g[0],&one);
     if ( g0norm2_ < tol )
     {
       xp = x;
@@ -66,8 +63,8 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
   {
     // fp: derivative along the current descent direction p_
     // fp = df(x0+alpha*p)/dalpha at x
-    fp = inner_product(&g[0],&g[g.size()],&p_[0],0.0);
-    double new_alpha = linmin_.next_alpha(alpha_,f,fp);
+    fp = ddot_(&n_,&g[0],&one,&p_[0],&one);
+    alpha_ = linmin_.next_alpha(alpha_,f,fp);
     if ( debug_print )
       cout << "  CGOptimizer: alpha=" << alpha_
            << " f=" << f << " fp=" << fp << endl;
@@ -84,7 +81,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
       x0_ = x;
       f0_ = f;
 
-      g0norm2_ = norm2(g);
+      g0norm2_ = ddot_(&n_,&g[0],&one,&g[0],&one);
       if ( g0norm2_ < tol )
       {
         xp = x;
@@ -110,13 +107,16 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
         cout << "  CGOptimizer: done with current descent direction" << endl;
       // define a new descent direction p_ using the Fletcher-Reeves formula
       assert(g0norm2_ > 0.0);
-      double beta = norm2(g) / g0norm2_;
+
+      double beta = ddot_(&n_,&g[0],&one,&g[0],&one) / g0norm2_;
+#if 0
       if ( beta_max_ > 0.0 && beta > beta_max_ )
       {
         if ( debug_print )
           cout << "  CGOptimizer: beta exceeds beta_max " << endl;
         beta = min(beta, beta_max_);
       }
+#endif
       if ( debug_print )
         cout << "  CGOptimizer: beta = " << beta << endl;
       p_ = beta * p_ - g;
@@ -125,10 +125,25 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
       f0_ = f;
       // recalculate f0, fp0
       // fp0 = d_e / d_alpha in direction pc_
-      fp0_ = inner_product(&g[0],&g[g.size()],&p_[0],0.0);
-      g0norm2_ = norm2(g);
-      fp = fp0_;
-      assert(fp<0.0 && "CGOptimizer: p_ not a descent direction");
+      fp = ddot_(&n_,&g[0],&one,&p_[0],&one);
+      g0norm2_ = ddot_(&n_,&g[0],&one,&g[0],&one);
+      fp0_ = fp;
+
+      if ( fp > 0.0 )
+      {
+        // p_ is not a descent direction
+        // restart from current point
+        if ( debug_print )
+          cout << "  CGOptimizer: p_ not a descent direction" << endl;
+        p_ = -g;
+
+        x0_ = x;
+        f0_ = f;
+
+        g0norm2_ = ddot_(&n_,&g[0],&one,&g[0],&one);
+        fp = -g0norm2_;
+        fp0_ = fp;
+      }
 
       // reset the line minimizer
       linmin_.reset();
@@ -136,11 +151,6 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
       if ( debug_print )
         cout << "  CGOptimizer: restart: alpha=" << alpha_
              << " f=" << f << " fp=" << fp << endl;
-    }
-    else
-    {
-      // not done with the current descent direction
-      alpha_ = new_alpha;
     }
     xp = x0_ + alpha_ * p_;
   }

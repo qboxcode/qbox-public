@@ -47,7 +47,7 @@ class CGOptimizer
   void set_sigma2(double s) { linmin_.set_sigma2(s); }
   void set_alpha_start(double a ) { linmin_.set_alpha_start(a); }
   void set_beta_max(double b ) { beta_max_ = b; }
-  void set_debug_print(void) { debug_print = true; }
+  void set_debug_print(void) { debug_print = true; linmin_.set_debug_print(); }
 
   int size(void) const { return n_; }
   double sigma1(void) const { return linmin_.sigma1(); }

@@ -119,11 +119,11 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
                      ddot_(&n_,&gm_[0],&one,&g[0],&one)) / g0norm2_;
 #endif
 
-      if ( beta_max_ > 0.0 && beta > beta_max_ )
+      if ( beta_max_ > 0.0 && fabs(beta) > beta_max_ )
       {
         if ( debug_print )
-          cout << "  CGOptimizer: beta exceeds beta_max " << endl;
-        if ( beta > beta_max_ ) beta = 0.0;
+          cout << "  CGOptimizer: |beta| exceeds beta_max " << endl;
+        beta = (beta > 0.0) ? beta_max_ : -beta_max_;
       }
       if ( debug_print )
         cout << "  CGOptimizer: beta = " << beta << endl;

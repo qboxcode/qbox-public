@@ -25,10 +25,12 @@ CGCellStepper::CGCellStepper(Sample& s) : CellStepper(s),
   cgopt_(CGOptimizer(3*s.atoms.size()+9)), cell0(s_.atoms.cell())
 {
   nat_ = atoms_.size();
-  cgopt_.set_alpha_start(0.1);
-  cgopt_.set_beta_max(5.0);
+  cgopt_.set_alpha_start(0.05);
+  cgopt_.set_alpha_max(1.0);
+  cgopt_.set_beta_max(10.0);
 #ifdef DEBUG
-  cgopt_.set_debug_print();
+  if ( s.ctxt_.onpe0() )
+    cgopt_.set_debug_print();
 #endif
 
   rp_.resize(s.atoms.nsp());

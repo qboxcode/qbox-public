@@ -24,7 +24,9 @@ using namespace std;
 CGIonicStepper::CGIonicStepper(Sample& s) : IonicStepper(s),
   cgopt_(CGOptimizer(3*natoms_))
 {
-  cgopt_.set_beta_max(5.0);
+  cgopt_.set_alpha_start(1.0);
+  cgopt_.set_alpha_max(10.0);
+  cgopt_.set_beta_max(10.0);
 #ifdef DEBUG
   if ( s.ctxt_.onpe0() )
     cgopt_.set_debug_print();

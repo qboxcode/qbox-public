@@ -28,7 +28,7 @@ class CGOptimizer
 
   int n_;
   bool first_step_, debug_print;
-  std::valarray<double> x0_, p_;
+  std::valarray<double> x0_, p_, gm_;
   double f0_, fp0_, g0norm2_, alpha_, beta_max_;
   LineMinimizer linmin_;
   double norm2(std::valarray<double>& v);
@@ -40,6 +40,7 @@ class CGOptimizer
   {
     x0_.resize(n);
     p_.resize(n);
+    gm_.resize(n);
   }
 
   void reset(void) { first_step_ = true; }

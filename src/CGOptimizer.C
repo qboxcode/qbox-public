@@ -26,7 +26,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
                              valarray<double>& g, valarray<double>& xp)
 {
   // Use the function value f and the gradient g at x to generate a new point xp
-  // using the Fletcher-Powell CG algorithm
+  // using the Fletcher-Reeves or Polak-Ribiere CG algorithm
   // return xp=x if the 2-norm of g is smaller than tol
   const double tol = 1.0e-18;
   const int one = 1;
@@ -38,6 +38,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
   if ( first_step_ )
   {
     p_ = -g;
+    gm_ = g;
 
     x0_ = x;
     f0_ = f;
@@ -77,6 +78,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
 
       // restart from current point
       p_ = -g;
+      gm_ = g;
 
       x0_ = x;
       f0_ = f;
@@ -108,15 +110,21 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
       // define a new descent direction p_ using the Fletcher-Reeves formula
       assert(g0norm2_ > 0.0);
 
-      double beta = ddot_(&n_,&g[0],&one,&g[0],&one) / g0norm2_;
 #if 0
+      // Fletcher-Reeves
+      double beta = ddot_(&n_,&g[0],&one,&g[0],&one) / g0norm2_;
+#else
+      // Polak-Ribiere
+      double beta = (ddot_(&n_,&g[0],&one,&g[0],&one)-
+                     ddot_(&n_,&gm_[0],&one,&g[0],&one)) / g0norm2_;
+#endif
+
       if ( beta_max_ > 0.0 && beta > beta_max_ )
       {
         if ( debug_print )
           cout << "  CGOptimizer: beta exceeds beta_max " << endl;
-        beta = min(beta, beta_max_);
+        if ( beta > beta_max_ ) beta = 0.0;
       }
-#endif
       if ( debug_print )
         cout << "  CGOptimizer: beta = " << beta << endl;
       p_ = beta * p_ - g;
@@ -127,6 +135,8 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
       // fp0 = d_e / d_alpha in direction pc_
       fp = ddot_(&n_,&g[0],&one,&p_[0],&one);
       g0norm2_ = ddot_(&n_,&g[0],&one,&g[0],&one);
+
+      gm_ = g;
       fp0_ = fp;
 
       if ( fp > 0.0 )
@@ -136,6 +146,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
         if ( debug_print )
           cout << "  CGOptimizer: p_ not a descent direction" << endl;
         p_ = -g;
+        gm_ = g;
 
         x0_ = x;
         f0_ = f;

@@ -54,6 +54,7 @@ int main(int argc, char** argv)
 
   CGOptimizer cgop(n);
   cgop.set_alpha_start(0.01);
+  cgop.set_debug_print();
 
   valarray<double> x(n), xp(n), g(n);
   double f;

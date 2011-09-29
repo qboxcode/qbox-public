@@ -26,7 +26,8 @@ CGIonicStepper::CGIonicStepper(Sample& s) : IonicStepper(s),
 {
   cgopt_.set_beta_max(5.0);
 #ifdef DEBUG
-  cgopt_.set_debug_print();
+  if ( s.ctxt_.onpe0() )
+    cgopt_.set_debug_print();
 #endif
 }
 ////////////////////////////////////////////////////////////////////////////////

@@ -24,31 +24,61 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 double LineMinimizer::interpolate(void)
 {
-  assert(fp_low*(alpha_high-alpha_low)<0);
-  // if fp_low * fp_high > 0, use bisection
-  if ( fp_low * fp_high > 0 )
+  const double dalpha = alpha_high - alpha_low;
+  // use psi'(alpha_low), psi(alpha_low_), psi(alpha_high)
+
+  double new_alpha;
+  if ( use_psi )
   {
-    return 0.5 * ( alpha_low + alpha_high );
+    // use psi
+    double psip_low = psip(fp_low);
+    double psi_low = psi(alpha_low,f_low);
+    double psi_high = psi(alpha_high,f_high);
+    new_alpha = alpha_low - 0.5 * ( psip_low * dalpha * dalpha ) /
+                ( psi_high - psi_low - psip_low * dalpha );
   }
   else
   {
-    const double dalpha = alpha_high - alpha_low;
-    return alpha_low - 0.5 * ( fp_low * dalpha * dalpha ) /
-                             ( f_high - f_low - fp_low * dalpha );
+    // use f
+    // quadratic interpolation using f_low, fp_low, f_high
+    // new_alpha = alpha_low - 0.5 * ( fp_low * dalpha * dalpha ) /
+    //                  ( f_high - f_low - fp_low * dalpha );
+    if ( fp_low*fp_high < 0 )
+    {
+      // secant
+      new_alpha = alpha_low - fp_low *
+        ( (alpha_high-alpha_low)/(fp_high-fp_low) );
+    }
+    else
+    {
+      // midpoint
+      new_alpha = 0.5 * (alpha_low+alpha_high);
+    }
   }
+
+  if ( debug_print )
+  {
+    cout << "LineMinimizer: interpolate: [alpha_low,alpha_high] = ["
+         << alpha_low << "," << alpha_high << "]" << endl;
+    cout << "LineMinimizer: interpolate: f_low, f_high: "
+         << f_low << " " << f_high << endl;
+    cout << "LineMinimizer: interpolate: fp_low, fp_high: "
+         << fp_low << " " << fp_high << endl;
+    cout << "LineMinimizer: interpolate: new_alpha: " << new_alpha << endl;
+  }
+  if ( alpha_low < alpha_high )
+  {
+    assert ( new_alpha >= alpha_low && new_alpha <= alpha_high );
+  }
+  else
+  {
+    assert ( new_alpha <= alpha_low && new_alpha >= alpha_high );
+  }
+  return new_alpha;
 }
 ////////////////////////////////////////////////////////////////////////////////
 double LineMinimizer::next_alpha(double alpha, double f, double fp)
 {
-  nstep_++;
-  if ( nstep_ > nstep_max_ )
-  {
-#ifdef DEBUG
-    cout << "LineMinimizer: fail, nstep_max" << endl;
-#endif
-    fail_ = true;
-  }
-
   if ( done_ || fail_ )
     return alpha;
 
@@ -57,133 +87,178 @@ double LineMinimizer::next_alpha(double alpha, double f, double fp)
     first_use = false;
     f0 = f;
     fp0 = fp;
-    alpha_m = 0;
-    fm = f;
-    fpm = fp;
+    alpha_low = 0;
+    f_low = f0;
+    fp_low = fp0;
+    alpha_high = alpha_max_;
+    assert(alpha_max_ > alpha_start_);
+    if ( debug_print )
+      cout << "LineMinimizer: first use: f0, fp0: " << f0 << " " << fp0 << endl;
     return alpha_start_;
   }
-
-  // !first_use
+  if ( debug_print )
+    cout << "LineMinimizer: next_alpha(" << alpha << ","
+         << f << "," << fp << ")" << endl;
 
   bool wolfe1 = f < f0 + sigma1_ * alpha * fp0;
   bool wolfe2 = fabs(fp) < sigma2_ * fabs(fp0);
 
+  if ( debug_print )
+  {
+    cout << "LineMinimizer: wolfe1: f = " << f << endl;
+    cout << "LineMinimizer: wolfe1: f0 + sigma1_ * alpha * fp0 = "
+         << f0 + sigma1_ * alpha * fp0 << endl;
+    cout << "LineMinimizer: wolfe1/wolfe2: " << wolfe1 << "/" << wolfe2 << endl;
+  }
+
+  // check if alpha satisfies both wolfe1 and wolfe2 and return
+  if ( wolfe1 && wolfe2 )
+  {
+    done_ = true;
+    return alpha;
+  }
+
   if ( !bracketing )
   {
-    if ( !wolfe1 || f > fm )
+    // we have not entered the bracketing phase yet
+    // Enter bracketing mode if condition U1 holds: psi(alpha) > psi(alpha_low)
+    // Note: U1 is equivalent to wolfe1(alpha) == false
+    if ( psi(alpha,f) > psi(alpha_low,f_low) )
     {
-#ifdef DEBUG
-      cout << "LineMinimizer: not bracketing, !wolfe1 || f > fm" << endl;
-      if ( !wolfe1 ) cout << "LineMinimizer: !wolfe1" << endl;
-      if ( f > fm ) cout << "LineMinimizer: f > fm" << endl;
-#endif
+      // wolfe1(alpha) == false
+      // we can enter the bracketing phase
+      // enter the bracketing phase with alpha_low = 0, alpha_high = alpha
+
+      if ( debug_print )
+      {
+        cout << "LineMinimizer: entering bracketing: wolfe1==false" << endl;
+        cout << "LineMinimizer: psi(alpha), psip(alpha):"
+             << psi(alpha,f) << " " << psip(fp) << endl;
+        cout << "LineMinimizer: psi(alpha_low, psi(alpha_high):"
+             << psi(alpha_low,f_low) << " " << psi(alpha_high,f_high) << endl;
+        cout << "LineMinimizer: psip(alpha_low, psip(alpha_high):"
+           << psip(fp_low) << " " << psip(fp_high) << endl;
+      }
+
       bracketing = true;
-      alpha_low = alpha_m;
-      f_low = fm;
-      fp_low = fpm;
+      use_psi = true;
       alpha_high = alpha;
       f_high = f;
       fp_high = fp;
-#ifdef DEBUG
-      cout << "LineMinimizer: start bracketing" << endl;
-      cout << "LineMinimizer: alpha=" << alpha << endl;
-      cout << "LineMinimizer: alpha_low/alpha_high= "
-           << alpha_low << " " << alpha_high << endl;
-      cout << "LineMinimizer: fp_low=" << fp_low << endl;
-#endif
-      assert(fp_low*(alpha_high-alpha_low)<0);
+      assert(psi(alpha_low,f_low)<=0);
+      assert(psip(fp_low)*(alpha_high-alpha_low)<=0);
+      assert(psi(alpha_low,f_low)<=psi(alpha_high,f_high));
       return interpolate();
     }
 
-    // wolfe1 == true && f <= fm
-
-    if ( wolfe2 )
+    // check if wolfe1 is ok and f'(alpha)(alpha-alpha_low)  > 0
+    // Need to test only the second inequality at this point
+    if ( fp*(alpha-alpha_low) > 0 )
     {
-      // wolfe1 and wolfe2 both ok
-      done_ = true;
-      return alpha;
-    }
+      // enter bracketing mode with alpha_high = alpha_low, alpha_low = alpha
+      if ( debug_print )
+        cout << "LineMinimizer: entering bracketing: case U3" << endl;
 
-    // wolfe1==true, wolfe2==false, f <= fm
-
-    if ( fp >= 0 )
-    {
-#ifdef DEBUG
-      cout << "LineMinimizer: not bracketing, fp>=0" << endl;
-#endif
       bracketing = true;
-      alpha_low = alpha;
-      f_low = f;
-      fp_low = fp;
-      alpha_high = alpha_m;
-      f_high = fm;
-      fp_high = fpm;
-      assert(fp_low*(alpha_high-alpha_low)<0);
-      return interpolate();
-    }
-
-    // wolfe1==true, wolfe2==false, fp<0
-
-    const double delta_alpha = 1.1 * (alpha - alpha_m);
-    // increase alpha by at least 0.1*alpha_start
-    const double new_alpha = alpha + std::max(delta_alpha,0.1*alpha_start_);
-    alpha_m = alpha;
-    fm = f;
-    fpm = fp;
-    return new_alpha;
-  }
-  else
-  {
-    // bracketing
-    if ( !wolfe1 || f > f_low )
-    {
-#ifdef DEBUG
-      cout << "LineMinimizer: bracketing, !wolfe1 || f > f_low" << endl;
-      if ( !wolfe1 ) cout << "LineMinimizer: !wolfe1" << endl;
-      if ( f > f_low ) cout << "LineMinimizer: f > f_low" << endl;
-#endif
-      alpha_high = alpha;
-      f_high = f;
-      fp_high = fp;
-      assert(fp_low*(alpha_high-alpha_low)<0);
-      return interpolate();
-    }
-
-    // wolfe1==true, f <= f_low
-
-    if ( wolfe2 )
-    {
-      // both wolfe1 and wolfe2 ok
-      done_ = true;
-      return alpha;
-    }
-
-    // wolfe1==true, wolfe2==false, f<=f_low
-
-    if ( fp*(alpha_high-alpha_low) >= 0 )
-    {
-#ifdef DEBUG
-      cout << "LineMinimizer: bracketing, path1" << endl;
-#endif
+      use_psi = false;
       alpha_high = alpha_low;
       f_high = f_low;
       fp_high = fp_low;
       alpha_low = alpha;
       f_low = f;
       fp_low = fp;
-      assert(fp_low*(alpha_high-alpha_low)<0);
+      assert(psi(alpha_low,f_low)<=0);
+      assert(psip(fp_low)*(alpha_high-alpha_low)<=0);
+      assert(psi(alpha_low,f_low)<=psi(alpha_high,f_high));
+      return interpolate();
+    }
+
+    // Condition U2 holds
+    // increase alpha
+
+    if ( debug_print )
+      cout << "LineMinimizer: U2, increase alpha" << endl;
+
+    const double delta = 1.1;
+    double new_alpha = std::min(alpha+delta*(alpha-alpha_low), alpha_max_);
+    if ( new_alpha == alpha_max_ )
+      done_ = true;
+    return new_alpha;
+  }
+  else
+  {
+    // we are already in bracketing mode
+    nstep_++;
+    if ( nstep_ > nstep_max_ )
+    {
+      if ( debug_print )
+        cout << "LineMinimizer: fail, nstep_max" << endl;
+
+      fail_ = true;
+      return alpha;
+    }
+
+    if ( debug_print )
+    {
+      cout << "LineMinimizer: bracketing mode: [alpha_low,alpha_high] = ["
+           << alpha_low << "," << alpha_high << "]" << endl;
+      cout << "LineMinimizer: bracketing mode: f_low, f_high: "
+           << f_low << " " << f_high << endl;
+      cout << "LineMinimizer: bracketing mode: fp_low, fp_high: "
+           << fp_low << " " << fp_high << endl;
+      cout << "LineMinimizer: bracketing mode: psi(alpha), psip(alpha):"
+           << psi(alpha,f) << " " << psip(fp) << endl;
+      cout << "LineMinimizer: bracketing mode: psi(alpha_low, psi(alpha_high):"
+           << psi(alpha_low,f_low) << " " << psi(alpha_high,f_high) << endl;
+      cout << "LineMinimizer: bracketing mode: psip(alpha_low, psip(alpha_high):"
+           << psip(fp_low) << " " << psip(fp_high) << endl;
+    }
+
+    // check U1: psi(alpha) > psi(alpha_low)
+    if ( psi(alpha,f) > psi(alpha_low,f_low) )
+    {
+      if ( debug_print )
+        cout << "LineMinimizer: bracketing, U1" << endl;
+      alpha_high = alpha;
+      f_high = f;
+      fp_high = fp;
+      assert(psi(alpha_low,f_low)<=0);
+      assert(psip(fp_low)*(alpha_high-alpha_low)<=0);
+      assert(psi(alpha_low,f_low)<=psi(alpha_high,f_high));
       return interpolate();
     }
     else
     {
-      // there is an inflection point in [alpha_low,alpha_high]
-      // this is likely caused by inaccuracy in f, fp or both
-      // signal failure and exit
-#ifdef DEBUG
-      cout << "LineMinimizer: bracketing, path2 (fail)" << endl;
-#endif
-      fail_ = true;
-      return alpha;
+      // at this point psi(alpha) <= psi(alpha_low)
+      // test condition U2: psi'(alpha)*(alpha_low-alpha) > 0
+      if ( psip(fp)*(alpha_low-alpha) > 0 )
+      {
+        if ( debug_print )
+          cout << "LineMinimizer: bracketing, U2" << endl;
+        alpha_low = alpha;
+        f_low = f;
+        fp_low = fp;
+        assert(psi(alpha_low,f_low)<=0);
+        assert(psip(fp_low)*(alpha_high-alpha_low)<=0);
+        assert(psi(alpha_low,f_low)<=psi(alpha_high,f_high));
+        return interpolate();
+      }
+      else
+      {
+        if ( debug_print )
+          cout << "LineMinimizer: bracketing, U3" << endl;
+        alpha_high = alpha_low;
+        f_high = f_low;
+        fp_high = fp_low;
+        alpha_low = alpha;
+        f_low = f;
+        fp_low = fp;
+        assert(psi(alpha_low,f_low)<=0);
+        assert(psip(fp_low)*(alpha_high-alpha_low)<=0);
+        assert(psi(alpha_low,f_low)<=psi(alpha_high,f_high));
+        use_psi = false;
+        return interpolate();
+      }
     }
   }
 }

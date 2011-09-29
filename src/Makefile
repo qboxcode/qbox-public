@@ -245,7 +245,7 @@ AtomicExtForce.o: ExtForce.h D3vector.h
 AtomsDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 AtomsDyn.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 AtomSet.o: AtomSet.h Context.h Atom.h D3vector.h UnitCell.h Species.h
-AtomSet.o: NameOf.h
+AtomSet.o: NameOf.h sampling.h
 AtomSet.o: Context.h Atom.h D3vector.h UnitCell.h
 AtomSetHandler.o: AtomSetHandler.h StructureHandler.h D3vector.h AtomSet.h
 AtomSetHandler.o: Context.h Atom.h UnitCell.h Species.h SpeciesHandler.h
@@ -308,7 +308,7 @@ CGIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
 CGIonicStepper.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 CGIonicStepper.o: Wavefunction.h Control.h Species.h CGOptimizer.h
 CGIonicStepper.o: LineMinimizer.h
-CGOptimizer.o: CGOptimizer.h LineMinimizer.h
+CGOptimizer.o: CGOptimizer.h LineMinimizer.h blas.h
 CGOptimizer.o: LineMinimizer.h
 ChargeDensity.o: ChargeDensity.h Timer.h Context.h Basis.h D3vector.h
 ChargeDensity.o: UnitCell.h Wavefunction.h FourierTransform.h SlaterDet.h
@@ -396,7 +396,6 @@ FourierTransform.o: Timer.h
 GlobalExtForce.o: GlobalExtForce.h ExtForce.h D3vector.h AtomSet.h Context.h
 GlobalExtForce.o: Atom.h UnitCell.h Species.h
 GlobalExtForce.o: ExtForce.h D3vector.h
-HagerZhangeLineMinimizer.o: LineMinimizer.h
 HelpCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 HelpCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 IonicStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
@@ -449,7 +448,6 @@ MDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
 MLWFTransform.o: MLWFTransform.h D3vector.h BasisMapping.h Basis.h UnitCell.h
 MLWFTransform.o: Context.h SlaterDet.h Matrix.h Timer.h jade.h blas.h
 MLWFTransform.o: D3vector.h BasisMapping.h
-MoreThuenteLineMinimizer.o: LineMinimizer.h
 MoveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 MoveCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 Nempty.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
@@ -502,16 +500,23 @@ qb.o: Wavefunction.h Control.h Timer.h AngleCmd.h AtomCmd.h ComputeMLWFCmd.h
 qb.o: MLWFTransform.h BasisMapping.h ConstraintCmd.h DistanceCmd.h
 qb.o: ExtForceCmd.h FoldInWsCmd.h HelpCmd.h KpointCmd.h ListAtomsCmd.h
 qb.o: ListSpeciesCmd.h LoadCmd.h MoveCmd.h PlotCmd.h PrintCmd.h QuitCmd.h
-qb.o: RandomizeWfCmd.h ResetVcmCmd.h RescaleVCmd.h RseedCmd.h RunCmd.h
-qb.o: SaveCmd.h SetCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h TorsionCmd.h
-qb.o: AtomsDyn.h Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h CellLock.h
-qb.o: CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h Debug.h
-qb.o: Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h FermiTemp.h Dt.h Nempty.h
-qb.o: NetCharge.h Nrowmax.h RefCell.h Stress.h Thermostat.h ThTemp.h ThTime.h
-qb.o: ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: RandomizeRCmd.h RandomizeVCmd.h RandomizeWfCmd.h ResetVcmCmd.h
+qb.o: RescaleVCmd.h RseedCmd.h RunCmd.h SaveCmd.h SetCmd.h SpeciesCmd.h
+qb.o: StatusCmd.h StrainCmd.h TorsionCmd.h AtomsDyn.h Cell.h CellDyn.h
+qb.o: SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h ChargeMixCoeff.h
+qb.o: ChargeMixNdim.h ChargeMixRcut.h Debug.h Ecut.h Ecutprec.h Ecuts.h
+qb.o: Emass.h ExtStress.h FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h
+qb.o: RefCell.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h
+qb.o: WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+RandomizeRCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
+RandomizeRCmd.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
+RandomizeRCmd.o: Wavefunction.h Control.h
+RandomizeVCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
+RandomizeVCmd.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
+RandomizeVCmd.o: Wavefunction.h Control.h
 RandomizeWfCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 RandomizeWfCmd.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 RandomizeWfCmd.o: Wavefunction.h Control.h
@@ -637,6 +642,7 @@ testFourierTransform.o: Context.h Basis.h D3vector.h UnitCell.h
 testFourierTransform.o: FourierTransform.h Timer.h
 testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h Matrix.h jade.h
+test_lapiv.o: Context.h Matrix.h
 testLDAFunctional.o: LDAFunctional.h XCFunctional.h
 testLineMinimizer.o: LineMinimizer.h
 testMatrix.o: Timer.h Context.h Matrix.h

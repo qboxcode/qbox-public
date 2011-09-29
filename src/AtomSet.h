@@ -84,6 +84,7 @@ class AtomSet
   void reset_velocities(void);
   void rescale_velocities(double fac);
   void randomize_velocities(double temp);
+  void randomize_positions(double amplitude);
   D3vector vcm(void) const;
   D3vector dipole(void) const;
   void reset_vcm(void);

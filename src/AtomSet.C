@@ -451,6 +451,30 @@ void AtomSet::rescale_velocities(double fac)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void AtomSet::randomize_positions(double amplitude)
+{
+  // add random displacements to postions using 
+  // random numbers from a normal distribution scaled
+  // by the amplitude parameter
+  vector<vector<double> > r;
+  get_positions(r);
+  for ( int is = 0; is < r.size(); is++ )
+  {
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      // draw pairs of unit variance gaussian random variables
+      double xi0, xi1, xi2, xi3; // xi3 not used
+      normal_dev(&xi0,&xi1);
+      normal_dev(&xi2,&xi3);
+      r[is][3*ia+0] += amplitude * xi0;
+      r[is][3*ia+1] += amplitude * xi1;
+      r[is][3*ia+2] += amplitude * xi2;
+    }
+  }
+  set_positions(r);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void AtomSet::randomize_velocities(double temp)
 {
   // initialize velocities with random numbers from a Maxwell-Boltzmann
@@ -475,6 +499,7 @@ void AtomSet::randomize_velocities(double temp)
   }
   set_velocities(v);
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 D3vector AtomSet::vcm(void) const
 {

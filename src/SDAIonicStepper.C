@@ -88,7 +88,7 @@ void SDAIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
     }
   }
 
-  if ( first_step_ || (wolfe1 && wolfe2) )
+  if ( first_step_ || (wolfe1 && wolfe2) || linmin_.done() )
   {
     // set new descent direction
     // pc = f0

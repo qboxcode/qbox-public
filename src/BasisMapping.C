@@ -517,7 +517,7 @@ void BasisMapping::transpose_bwd(const complex<double> *ct,
   assert ( status == 0 );
 #else
   assert(sbuf.size()==rbuf.size());
-  rbuf = sbuf;
+  sbuf = rbuf;
 #endif
 
   // segments of z-vectors are now in sbuf

@@ -52,7 +52,6 @@ class RseedCmd : public Cmd
     long int seed = (long int) time(0);
     if ( argc == 2 )
       seed = atol(argv[1]);
-    cout << " seed: " << seed << endl;
     srand48(seed);
     return 0;
   }

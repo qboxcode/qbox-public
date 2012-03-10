@@ -163,6 +163,9 @@ int main(int argc, char **argv, char **envp)
   cout << "                   ============================\n\n";
   cout << "\n";
   cout << "<release> " << release() << " " << TARGET << " </release>" << endl;
+#ifdef SVN_VERSION
+  cout << "<svn_version> " << SVN_VERSION << " </svn_version>" << endl;
+#endif
 
   // Identify executable name, checksum, size and link date
   if ( getlogin() != 0 )

@@ -43,7 +43,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
     x0_ = x;
     f0_ = f;
 
-    g0norm2_ = ddot_(&n_,&g[0],&one,&g[0],&one);
+    g0norm2_ = ddot(&n_,&g[0],&one,&g[0],&one);
     if ( g0norm2_ < tol )
     {
       xp = x;
@@ -64,7 +64,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
   {
     // fp: derivative along the current descent direction p_
     // fp = df(x0+alpha*p)/dalpha at x
-    fp = ddot_(&n_,&g[0],&one,&p_[0],&one);
+    fp = ddot(&n_,&g[0],&one,&p_[0],&one);
     alpha_ = linmin_.next_alpha(alpha_,f,fp);
     if ( debug_print )
       cout << "  CGOptimizer: alpha=" << alpha_
@@ -83,7 +83,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
       x0_ = x;
       f0_ = f;
 
-      g0norm2_ = ddot_(&n_,&g[0],&one,&g[0],&one);
+      g0norm2_ = ddot(&n_,&g[0],&one,&g[0],&one);
       if ( g0norm2_ < tol )
       {
         xp = x;
@@ -112,11 +112,11 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
 
 #if 0
       // Fletcher-Reeves
-      double beta = ddot_(&n_,&g[0],&one,&g[0],&one) / g0norm2_;
+      double beta = ddot(&n_,&g[0],&one,&g[0],&one) / g0norm2_;
 #else
       // Polak-Ribiere
-      double beta = (ddot_(&n_,&g[0],&one,&g[0],&one)-
-                     ddot_(&n_,&gm_[0],&one,&g[0],&one)) / g0norm2_;
+      double beta = (ddot(&n_,&g[0],&one,&g[0],&one)-
+                     ddot(&n_,&gm_[0],&one,&g[0],&one)) / g0norm2_;
 #endif
 
       if ( beta_max_ > 0.0 && fabs(beta) > beta_max_ )
@@ -133,8 +133,8 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
       f0_ = f;
       // recalculate f0, fp0
       // fp0 = d_e / d_alpha in direction pc_
-      fp = ddot_(&n_,&g[0],&one,&p_[0],&one);
-      g0norm2_ = ddot_(&n_,&g[0],&one,&g[0],&one);
+      fp = ddot(&n_,&g[0],&one,&p_[0],&one);
+      g0norm2_ = ddot(&n_,&g[0],&one,&g[0],&one);
 
       gm_ = g;
       fp0_ = fp;
@@ -151,7 +151,7 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
         x0_ = x;
         f0_ = f;
 
-        g0norm2_ = ddot_(&n_,&g[0],&one,&g[0],&one);
+        g0norm2_ = ddot(&n_,&g[0],&one,&g[0],&one);
         fp = -g0norm2_;
         fp0_ = fp;
       }

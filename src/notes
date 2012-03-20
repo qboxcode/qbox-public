@@ -7,7 +7,14 @@ BOSampleStepper.C:Using run 0 modifies the wavefunctions. Need to set
 wf_dyn=LOCKED to only compute energy without modif of wfs.
 kpgen for non-rectangular cells yields non-symmetric kpoint sets.
 --------------------------------------------------------------------------------
-rel1_54_4 candidate
+rel1_54_5
+Added enthalpy in BOSampleStepper for use in cell optimization.
+BasisMapping.C: fix bug of serial version: MLWF calc of dipole wrong.
+Added randomize_r command
+removed printing on stdout in rseed command
+Changed number of iterations in SlaterDet::{ortho_align,align,riccati}
+--------------------------------------------------------------------------------
+rel1_54_4
 Added randomize_v command to set velocities to a Maxwell-Boltzmann distribution
 Modified CGIonicStepper: project forces on constraints
 Modified BMDIonicStepper: rescale velocity rather than stop

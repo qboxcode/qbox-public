@@ -370,6 +370,7 @@ void BOSampleStepper::step(int niter)
       const bool compute_forces = true;
       double energy =
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
+      double enthalpy = energy;
 
       if ( onpe0 )
       {
@@ -392,7 +393,7 @@ void BOSampleStepper::step(int niter)
         if ( compute_stress )
         {
           const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-          const double enthalpy = ef_.etotal() + pext * cell.volume();
+          enthalpy = ef_.etotal() + pext * cell.volume();
           cout << "  <pv>     " << setw(15) << pext * cell.volume()
                << " </pv>" << endl;
           cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
@@ -472,7 +473,7 @@ void BOSampleStepper::step(int niter)
 
         if ( cell_moves )
         {
-          cell_stepper->compute_new_cell(energy,sigma,fion);
+          cell_stepper->compute_new_cell(enthalpy,sigma,fion);
 
           // Update cell
           cell_stepper->update_cell();
@@ -800,6 +801,7 @@ void BOSampleStepper::step(int niter)
         for ( int ite = 0; ite < nite_; ite++ )
         {
           double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+          double enthalpy = energy;
 
           // compute the sum of eigenvalues (with fixed weight)
           // to measure convergence of the subspace update
@@ -823,7 +825,7 @@ void BOSampleStepper::step(int niter)
             if ( compute_stress )
             {
               const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-              const double enthalpy = energy + pext * cell.volume();
+              enthalpy = energy + pext * cell.volume();
               cout << "  <enthalpy_int> " << setw(15)
                    << enthalpy << " </enthalpy_int>\n"
                    << flush;

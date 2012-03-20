@@ -488,24 +488,37 @@ void SlaterDet::riccati(const SlaterDet& sd)
     DoubleMatrix c_proxy(c_);
     DoubleMatrix sdc_proxy(sd.c());
 
+#if TIMING
+    tmap["riccati_syrk"].start();
+#endif
     // Factor -1.0 in next line: -0.5 from definition of s, 2.0 for G and -G
     s.syrk('l','t',-1.0,c_proxy,0.5); // s = 0.5 * ( I - A )
     // symmetric rank-1 update using first row of c_proxy
     s.syr('l',0.5,c_proxy,0,'r');
+#if TIMING
+    tmap["riccati_syrk"].stop();
+    tmap["riccati_gemm"].start();
+#endif
     // factor -2.0 in next line: G and -G
     r.gemm('t','n',-2.0,sdc_proxy,c_proxy,1.0); // r = ( I - B )
     // rank-1 update using first row of sdc_proxy() and c_proxy
     r.ger(1.0,sdc_proxy,0,c_proxy,0);
+#if TIMING
+    tmap["riccati_gemm"].stop();
+#endif
 
     xm = s;
     xm.symmetrize('l');
 
+#if TIMING
+    tmap["riccati_while"].start();
+#endif
     s.syrk('l','t',0.5,r,1.0); // s = s + 0.5 * r^T * r
     s.symmetrize('l');
 
     double diff = 1.0;
     const double epsilon = 1.e-10;
-    const int maxiter = 20;
+    const int maxiter = 5;
     int iter = 0;
 
     while ( iter < maxiter && diff > epsilon )
@@ -530,7 +543,14 @@ void SlaterDet::riccati(const SlaterDet& sd)
       xm = x;
       iter++;
     }
+#if TIMING
+    tmap["riccati_while"].stop();
+    tmap["riccati_symm"].start();
+#endif
     c_proxy.symm('r','l',1.0,x,sdc_proxy,1.0);
+#if TIMING
+    tmap["riccati_symm"].stop();
+#endif
   }
   else
   {
@@ -558,7 +578,7 @@ void SlaterDet::riccati(const SlaterDet& sd)
 
     double diff = 1.0;
     const double epsilon = 1.e-10;
-    const int maxiter = 20;
+    const int maxiter = 5;
     int iter = 0;
 
     while ( iter < maxiter && diff > epsilon )
@@ -620,7 +640,7 @@ void SlaterDet::lowdin(void)
 
     double diff = 1.0;
     const double epsilon = 1.e-10;
-    const int maxiter = 20;
+    const int maxiter = 3;
     int iter = 0;
 
     while ( iter < maxiter && diff > epsilon )
@@ -753,7 +773,7 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     // compute the polar decomposition of L^-1 B
     double diff = 1.0;
     const double epsilon = 1.e-10;
-    const int maxiter = 20;
+    const int maxiter = 3;
     int iter = 0;
 
 #if TIMING
@@ -880,11 +900,17 @@ void SlaterDet::align(const SlaterDet& sd)
     // Compute the polar decomposition of B
     // where B = C^T sd.C
 
+#if TIMING
+    tmap["align_gemm1"].start();
+#endif
     // Compute B: store result in x
     // factor -2.0 in next line: G and -G
     x.gemm('t','n',2.0,c_proxy,sdc_proxy,0.0);
     // rank-1 update using first row of sdc_proxy() and c_proxy
     x.ger(-1.0,c_proxy,0,sdc_proxy,0);
+#if TIMING
+    tmap["align_gemm1"].stop();
+#endif
 
     // x now contains B
 
@@ -899,9 +925,12 @@ void SlaterDet::align(const SlaterDet& sd)
     // compute the polar decomposition of B
     double diff = 1.0;
     const double epsilon = 1.e-10;
-    const int maxiter = 20;
+    const int maxiter = 3;
     int iter = 0;
 
+#if TIMING
+    tmap["align_while"].start();
+#endif
     while ( iter < maxiter && diff > epsilon )
     {
       // t = X^T
@@ -928,15 +957,24 @@ void SlaterDet::align(const SlaterDet& sd)
 
       iter++;
     }
+#if TIMING
+    tmap["align_while"].stop();
+#endif
 
     // x now contains the orthogonal polar factor X of the
     // polar decomposition B = XH
 
     //cout << " SlaterDet::align: orthogonal polar factor=\n" << x << endl;
 
+#if TIMING
+    tmap["align_gemm2"].start();
+#endif
     // Multiply c by X
     c_tmp_proxy = c_proxy;
     c_proxy.gemm('n','n',1.0,c_tmp_proxy,x,0.0);
+#if TIMING
+    tmap["align_gemm2"].stop();
+#endif
 
     // Compute the distance | c - sdc | after alignment
     //for ( int i = 0; i < c_proxy.size(); i++ )

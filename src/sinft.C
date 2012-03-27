@@ -20,7 +20,13 @@
 #include "sinft.h"
 #include <math.h>
 #include <assert.h>
+#if USE_FFTW
+#if USE_DFFTW
+#include "dfftw.h"
+#else
 #include "fftw.h"
+#endif
+#endif
 #include <vector>
 #include <complex>
 using namespace std;

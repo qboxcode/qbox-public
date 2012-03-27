@@ -24,7 +24,11 @@
 #include <vector>
 
 #if USE_FFTW
+#if USE_DFFTW
+#include "dfftw.h"
+#else
 #include "fftw.h"
+#endif
 #endif
 
 #include "Timer.h"

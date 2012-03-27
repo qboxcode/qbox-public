@@ -40,7 +40,6 @@ typedef int MPI_Comm;
 #endif
 
 #if USE_FFTW
-#include "fftw.h"
 #ifdef ADD_
 #define zdscal zdscal_
 #endif

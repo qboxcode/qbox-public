@@ -7,6 +7,9 @@ BOSampleStepper.C:Using run 0 modifies the wavefunctions. Need to set
 wf_dyn=LOCKED to only compute energy without modif of wfs.
 kpgen for non-rectangular cells yields non-symmetric kpoint sets.
 --------------------------------------------------------------------------------
+rel1_54_6
+Added USE_DFFTW macro for platforms providing the dfftw.h header only
+--------------------------------------------------------------------------------
 rel1_54_5
 Added enthalpy in BOSampleStepper for use in cell optimization.
 BasisMapping.C: fix bug of serial version: MLWF calc of dipole wrong.

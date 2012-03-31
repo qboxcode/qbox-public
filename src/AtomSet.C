@@ -453,7 +453,7 @@ void AtomSet::rescale_velocities(double fac)
 ////////////////////////////////////////////////////////////////////////////////
 void AtomSet::randomize_positions(double amplitude)
 {
-  // add random displacements to postions using 
+  // add random displacements to positions using
   // random numbers from a normal distribution scaled
   // by the amplitude parameter
   vector<vector<double> > r;

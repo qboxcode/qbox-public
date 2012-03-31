@@ -15,7 +15,6 @@
 // Base64Transcoder.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Base64Transcoder.C,v 1.9 2009-11-30 02:45:23 fgygi Exp $
 
 #include "Base64Transcoder.h"
 #include <iostream>

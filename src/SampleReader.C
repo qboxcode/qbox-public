@@ -15,8 +15,6 @@
 // SampleReader.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleReader.C,v 1.31 2009-11-30 02:45:55 fgygi Exp $
-
 
 #include "Sample.h"
 #include "SampleReader.h"
@@ -75,8 +73,8 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   Wavefunction* current_wf = &s.wf;
   vector<vector<vector<double> > > dmat;
   int nx, ny, nz; // size of <grid> in wavefunction
-  const int nspin = 1;
-  const int current_ispin = 0;
+  int nspin = 1;
+  int current_ispin = 0;
   int current_ikp;
   dmat.resize(nspin);
 
@@ -292,7 +290,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
         current_ikp = 0;
         // Wavefunction
         read_wf = true;
-        int nel,nspin,nempty;
+        int nel,nempty;
         ctxt_.ibcast_recv(1,1,&nel,1,0,0);
         ctxt_.ibcast_recv(1,1,&nspin,1,0,0);
         ctxt_.ibcast_recv(1,1,&nempty,1,0,0);
@@ -388,9 +386,12 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       {
         // process SlaterDet
         // receive kpoint and weight
-        double buf[4];
-        ctxt_.dbcast_recv(4,1,buf,4,0,0);
-        current_wf->add_kpoint(D3vector(buf[0],buf[1],buf[2]),buf[3]);
+        double buf[6];
+        ctxt_.dbcast_recv(6,1,buf,6,0,0);
+        current_ispin=(int) buf[4];
+        current_ikp=(int) buf[5];
+        if ( current_ispin == 0 )
+          current_wf->add_kpoint(D3vector(buf[0],buf[1],buf[2]),buf[3]);
 
         // receive density_matrix
         vector<double> dmat_tmp(current_wf->nst());
@@ -515,7 +516,8 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
           DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
             wftmpr_block_size,c.nb());
 
-          wftmpr.getsub(gfdata,wftmpr_size,sd->nst(),0,ikp*sd->nst());
+          wftmpr.getsub(gfdata,wftmpr_size,sd->nst(),0,
+            ikp*sd->nst()+ispin*s.wf.nkp()*sd->nst());
 
 #if DEBUG
           // Check orthogonality by computing overlap matrix

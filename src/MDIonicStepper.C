@@ -19,6 +19,7 @@
 
 #include "MDIonicStepper.h"
 #include "sampling.h"
+#include <cstdlib> // drand48
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////

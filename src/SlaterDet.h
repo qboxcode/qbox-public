@@ -15,7 +15,6 @@
 // SlaterDet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SlaterDet.h,v 1.29 2010-04-07 03:21:40 fgygi Exp $
 
 #ifndef SLATERDET_H
 #define SLATERDET_H
@@ -26,8 +25,7 @@ class FourierTransform;
 #include "Matrix.h"
 
 #include "D3vector.h"
-#include <vector>
-#include <iostream>
+#include <iosfwd>
 #include "Timer.h"
 #include <string>
 #include <map>

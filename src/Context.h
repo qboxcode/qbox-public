@@ -15,13 +15,11 @@
 // Context.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.h,v 1.12 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
 #include <iosfwd>
-#include <string>
 
 #if USE_MPI
 #include <mpi.h>

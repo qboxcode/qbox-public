@@ -1,0 +1,2410 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2010 The Regents of the University of California
+//
+// This file is part of Qbox
+//
+// Qbox is distributed under the terms of the GNU General Public License
+// as published by the Free Software Foundation, either version 2 of
+// the License, or (at your option) any later version.
+// See the file COPYING in the root directory of this distribution
+// or <http://www.gnu.org/licenses/>.
+//
+////////////////////////////////////////////////////////////////////////////////
+//
+// ExchangeOperator.C
+//
+////////////////////////////////////////////////////////////////////////////////
+
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include "ExchangeOperator.h"
+
+using namespace std;
+
+#define Tag_NumberOfStates 1
+#define Tag_Occupation 2
+#define Tag_Exchange 3
+#define Tag_Forces 4
+#define Tag_States 5
+
+////////////////////////////////////////////////////////////////////////////////
+ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff)
+: s_(s), wf0_(s.wf), dwf0_(s.wf),
+  KPGridPerm_(s), KPGridStat_(s), bisection_(0), HFCoeff_(HFCoeff)
+{
+  eex_ = 0.0; // exchange energy
+  rcut_ = 1.0;  // constant of support function for exchange integration
+
+  // column context
+  vcontext_ = s_.wf.sd(0,0)->basis().context();
+
+  // global context
+  gcontext_ = s_.wf.sd(0,0)->context();
+
+  // check if the only kpoint is the gamma point:
+  gamma_only_ = ( s_.wf.nkp()==1 ) && ( s_.wf.sd(0,0)->basis().real() );
+
+  if ( gamma_only_ )
+  {
+    // create a real basis for the pair densities
+    vbasis_ = new Basis(vcontext_, D3vector(0.0,0.0,0.0));
+  }
+  else
+  {
+    // create a complex basis
+    //!! should avoid the finite k trick to get a complex basis at gamma
+    vbasis_ = new Basis(vcontext_, D3vector(0.00000001,0.00000001,0.00000001));
+  }
+  // the size of the basis for the pair density should be
+  // twice the size of the wave function basis
+  vbasis_->resize( s_.wf.cell(),s_.wf.refcell(),4.0*s_.wf.ecut());
+
+  // set the size for the r grid to be a product of small primes
+  np0v_ = vbasis_->np(0)+2;
+  np1v_ = vbasis_->np(1)+2;
+  np2v_ = vbasis_->np(2)+2;
+  while (!vbasis_->factorizable(np0v_)) np0v_ += 2;
+  while (!vbasis_->factorizable(np1v_)) np1v_ += 2;
+  while (!vbasis_->factorizable(np2v_)) np2v_ += 2;
+
+  if ( gamma_only_ )
+  {
+    // create Fourier transform object wavefunctions
+    wft_ = new FourierTransform(  s_.wf.sd(0,0)->basis(),np0v_,np1v_,np2v_);
+  }
+
+  const int ngloc = vbasis_->localsize();
+  // create Fourier transform object for densities
+  vft_ = new FourierTransform(*vbasis_,np0v_,np1v_,np2v_);
+
+  np012loc_ = vft_->np012loc();
+
+  // allocate memory for densities in G space
+  rhog1_.resize(ngloc);
+  rhog2_.resize(ngloc);
+
+  // allocate memory for densities in r space
+  rhor1_.resize(np012loc_);
+  rhor2_.resize(np012loc_);
+
+  // if not only at gamma, allocate arrays q+G
+  if ( !gamma_only_ )
+  {
+    // allocate memory for |q+G| and related quantities
+    qpG21_.resize(ngloc);
+    qpG22_.resize(ngloc);
+    qpG2i1_.resize(ngloc);
+    qpG2i2_.resize(ngloc);
+  }
+
+  // get both local and maximum amount of states on a proc
+  {
+    if ( s_.wf.nspin()==1 )
+    {
+      SlaterDet& sd = *(s_.wf.sd(0,0));
+      nLocalStates_=sd.nstloc();
+      MPI_Allreduce(&nLocalStates_,&nMaxLocalStates_,1,
+        MPI_INT,MPI_MAX,gcontext_.comm());
+    }
+    else
+    {
+      SlaterDet& sd_up = *(s_.wf.sd(0,0));
+      SlaterDet& sd_dn = *(s_.wf.sd(1,0));
+      nLocalStates_= sd_up.nstloc() > sd_dn.nstloc() ?
+                     sd_up.nstloc() : sd_dn.nstloc();
+      MPI_Allreduce(&nLocalStates_,&nMaxLocalStates_,1,
+        MPI_INT,MPI_MAX,gcontext_.comm());
+    }
+  }
+
+  // allocate memory for exchange energies
+  exchange_ki_.resize(nMaxLocalStates_);
+  exchange_kj_.resize(nMaxLocalStates_);
+  send_buf_exchange_.resize(nMaxLocalStates_);
+  send_buf_occupation_.resize(nMaxLocalStates_);
+
+  // allocate memory for exchange
+  exchange_.resize(s_.wf.nkp());
+  for ( int iKp=0; iKp<s_.wf.nkp(); iKp++ )
+  {
+    // allocate memory for exchange energies of states of this kpoint.
+    exchange_[iKp].resize(nMaxLocalStates_);
+  }
+  // get maximum number of g coeff per states
+  int mlocMax=0;
+  for ( int iKpi = 0; iKpi < s_.wf.nkp(); iKpi++ )
+  {
+    SlaterDet& sdi = *(s_.wf.sd(0,iKpi));
+    ComplexMatrix& ci = sdi.c();
+    if (mlocMax<ci.mloc()) mlocMax=ci.mloc();
+  }
+
+  // allocate memory for the copy of states of kpoint iKpi
+  {
+    state_kpi_.resize( nMaxLocalStates_ * mlocMax );
+    send_buf_states_.resize( nMaxLocalStates_ * mlocMax );
+  }
+
+  // allocate buffers ( different if only at gamma or not )
+  if ( gamma_only_ )
+  {
+    buffer_forces_1_.resize( mlocMax );
+    buffer_forces_2_.resize( mlocMax );
+  }
+  else
+  {
+    buffer_dstate_.resize( mlocMax );
+  }
+
+  // allocate memory for the r coordinate expression
+  // of each state of kpi and kpj
+  statei_.resize(nMaxLocalStates_);
+  statej_.resize(nMaxLocalStates_);
+  for ( int i = 0; i < nMaxLocalStates_; i++ )
+  {
+    statei_[i].resize(np012loc_);
+    statej_[i].resize(np012loc_);
+  }
+
+  // if only at gamma
+  if ( gamma_only_ )
+  {
+    tmp_.resize(np012loc_);
+    // allocate bisection object
+    if ( s.ctrl.btHF > 0.0 )
+      bisection_ = new Bisection(s_,s_.ctrl.blHF);
+  }
+
+  // allocate memory for occupation numbers of kpoint iKpi
+  occ_ki_.resize(nMaxLocalStates_);
+  occ_kj_.resize(nMaxLocalStates_);
+
+  // allocate memory for the real space expression of the forces
+  dstatei_.resize(nMaxLocalStates_);
+  dstatej_.resize(nMaxLocalStates_);
+  for ( int i = 0; i < nMaxLocalStates_; i++ )
+  {
+    dstatei_[i].resize(np012loc_);
+    dstatej_[i].resize(np012loc_);
+  }
+
+  // allocate memory for the copy of forces of kpoint iKpi
+  {
+    force_kpi_.resize( nMaxLocalStates_ * mlocMax );
+    send_buf_forces_.resize( nMaxLocalStates_ * mlocMax );
+  }
+
+  // set indices for overlaps
+  KPGridPerm_.SetOverlapIndices(vbasis_);
+  KPGridStat_.SetOverlapIndices(vbasis_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+ExchangeOperator::~ExchangeOperator()
+{
+  if ( ( s_.wf.nkp()==1 ) && ( s_.wf.sd(0,0)->basis().real() ) )
+  {
+    // delete Fourier transform objects on states and forces
+    delete wft_;
+  }
+  // delete Fourier transform and basis for pair densities
+  delete vft_;
+  delete vbasis_;
+  delete bisection_;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+double ExchangeOperator::update_energy()
+{
+  if ( gamma_only_ )
+    return eex_ = compute_exchange_at_gamma_(s_.wf, 0);
+  else
+    return eex_ = compute_exchange_for_general_case_(&s_, 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+double ExchangeOperator::update_sigma()
+{
+  dwf0_.clear();
+
+  // compute exchange energy and derivatives
+  if ( gamma_only_ )
+    eex_ = compute_exchange_at_gamma_(s_.wf, &dwf0_);
+  else
+    eex_ = compute_exchange_for_general_case_(&s_, &dwf0_);
+
+  // wf0_ is kept as a reference state
+  wf0_ = s_.wf;
+
+  // return exchange energy
+  return eex_;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
+  Wavefunction& dwf_ref, Wavefunction& dwf)
+{
+  // dwf += mix * ( |dwf_ref> <wf_ref|s_.wf> + |wf_ref><dwf_ref|s_.wf>
+  // - |wf_ref><wf_ref|sigma_HF|wf_ref><wf_ref|s_.wf> )
+  for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+  {
+    const int nst = s_.wf.nst(ispin);
+    for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+    {
+      const Context &ctxt = s_.wf.sd(ispin,ikp)->c().context();
+      if ( s_.wf.sd(ispin,ikp)->basis().real() )
+      {
+#if 0
+        update_sigma();
+        DoubleMatrix dc_proxy(dwf.sd(ispin,ikp)->c());
+        DoubleMatrix dcref_proxy(dwf_ref.sd(ispin,ikp)->c());
+        dc_proxy += dcref_proxy;
+#else
+        DoubleMatrix matproj1(ctxt,nst,nst);
+        DoubleMatrix matproj2(ctxt,nst,nst);
+        DoubleMatrix matenergy(ctxt,nst,nst);
+
+        DoubleMatrix c_proxy(s_.wf.sd(ispin,ikp)->c());
+        DoubleMatrix dc_proxy(dwf.sd(ispin,ikp)->c());
+        DoubleMatrix cref_proxy(wf_ref.sd(ispin,ikp)->c());
+        DoubleMatrix dcref_proxy(dwf_ref.sd(ispin,ikp)->c());
+
+        // matproj1 = <wf_ref|wf> => matproj1
+        matproj1.gemm('t','n',2.0,cref_proxy,c_proxy,0.0);
+        matproj1.ger(-1.0,cref_proxy,0,c_proxy,0);
+
+        // dwf += mix * |dwf_ref> * matproj1
+        dc_proxy.gemm('n','n',mix,dcref_proxy,matproj1,1.0);
+
+        // matenergy = <dpsi_ref|psi_ref>
+        matenergy.gemm('t','n',2.0,dcref_proxy,cref_proxy,0.0);
+        matenergy.ger(-1.0,dcref_proxy,0,cref_proxy,0);
+
+        // matproj2 = - matenergy * matproj1
+        matproj2.gemm('n','n',-1.0,matenergy,matproj1,0.0);
+
+        // matproj2 += <dwf_ref|wf>
+        matproj2.gemm('t','n',2.0,dcref_proxy,c_proxy,1.0);
+        matproj2.ger(-1.0,dcref_proxy,0,c_proxy,0);
+
+        // |dwf> += mix * |wf_ref> * matproj2
+        dc_proxy.gemm('n','n',mix,cref_proxy,matproj2,1.0);
+#endif
+      }
+      else // complex wave functions
+      {
+        ComplexMatrix matproj1(ctxt,nst,nst);
+        ComplexMatrix matproj2(ctxt,nst,nst);
+        ComplexMatrix matenergy(ctxt,nst,nst);
+
+        ComplexMatrix &c(s_.wf.sd(ispin,ikp)->c());
+        ComplexMatrix &dc(dwf.sd(ispin,ikp)->c());
+        ComplexMatrix &cref(wf_ref.sd(ispin,ikp)->c());
+	ComplexMatrix &dcref(dwf_ref.sd(ispin,ikp)->c());
+
+        // matproj1 = <wf_ref|wf>
+        matproj1.gemm('c','n',1.0,cref,c,0.0);
+
+        // dwf += mix * |dwf_ref> * matproj1
+        dc.gemm('n','n',mix,dcref,matproj1,1.0);
+
+        // matenergy = <dwf_ref|wf_ref>
+        matenergy.gemm('c','n',1.0,dcref,cref,0.0);
+
+        // matproj2 = - matenergy * matproj1
+        matproj2.gemm('n','n',-1.0,matenergy,matproj1,0.0);
+
+        // matproj2 += <dwf_ref|wf>
+        matproj2.gemm('c','n',1.0,dcref,c,1.0);
+
+        // |dpsi> += mix * |psi_ref> * matproj2
+        dc.gemm('n','n',mix,cref,matproj2,1.0);
+      }
+    } // ikp
+  } // ispin
+}
+
+////////////////////////////////////////////////////////////////////////////////
+double ExchangeOperator::apply_sigma(Wavefunction& dwf)
+{
+  // apply sigmaHF to s_.wf and store result in dwf
+  // use the reference function wf0_ and reference sigma(wf) dwf0_
+  apply_VXC_(1.0, wf0_, dwf0_, dwf);
+  return eex_;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Exchange functions
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
+  Wavefunction* dwf)
+{
+  const Wavefunction& wf = s->wf;
+#ifdef DEBUG
+  // basis used for scalar product
+  const Basis& vb = *vbasis_;
+#endif
+
+  cout << setprecision(10);
+  const double omega = wf.cell().volume();
+  const int nkpoints = wf.nkp();
+  const int nspin = wf.nspin();
+
+  // determine the spin factor for the pair densities:
+  // 0.5 if 1 spin, 1 if nspin==2
+  const double spinFactor=0.5*nspin;
+
+  // initialize total exchange energy
+  double extot = 0.0;
+
+  // loop on spins
+  for ( int ispin=0; ispin < nspin; ispin++ )
+  {
+    // initialize the numerical correction
+    // to the exchange integrals over kpoints j
+    vector<double> numerical_correction(nkpoints);
+    for ( int iKpi = 0; iKpi < nkpoints; iKpi++ )
+      numerical_correction[iKpi]=0.0;
+    vector<double> numerical_integral_ref(nkpoints);
+    for ( int iKpi = 0; iKpi < nkpoints; iKpi++ )
+      numerical_integral_ref[iKpi]=0.0;
+
+    // until the very end (==after second k point loop)
+    // we accumulate the exchange of states of ki
+    // in the exchange_ki_ array and exchage of states
+    // of kj in the exchange array. This is because
+    // the states of ki and kj correspond to different
+    // columns.
+    //
+    // the detail of the exchange energy for state i of
+    // kpoint k is then given by the sum
+    // exchange_[k][i]+exchange_ki_[i]
+    //
+    // exchange_ki_ only refers to the actual kpoint iKpi
+    // => so exchange_ki_[i] correspond to part of the
+    // exchange energy of state i of kpoint iKpi
+    //
+    // exchange accumulate exchange enegrgies for all
+    // kpoint => so exchange_[iKpj][i] correspond to
+    // part of exchange energy of state j of kpoint iKpj.
+
+    // initialize exchange energies
+    for ( int iKp=0; iKp<nkpoints; iKp++ )
+    {
+      // initialize the exchange energies associated to the
+      // states of this k point
+      for ( int i = 0; i < nMaxLocalStates_; i++ )
+      {
+        exchange_[iKp][i]=0.0;
+      }
+    }
+
+    // initialize overlaps
+    KPGridPerm_.InitOverlaps();
+    KPGridStat_.InitOverlaps();
+
+    // loop over the kpoints
+    for ( int iKpi = 0; iKpi < nkpoints; iKpi++ )
+    {
+#ifdef DEBUG
+      if ((gcontext_.myrow()==0)&&(gcontext_.mycol()==0))
+      cout << " Getting exchange for kpoint " << iKpi << ": ";
+#endif
+
+      // get the corresponding slater determinant of the wave function
+      SlaterDet& sdi = *(wf.sd(ispin,iKpi));
+
+      // Fourier coefficients of the slater determinant
+      ComplexMatrix& ci = sdi.c();
+
+      // create Fourier transform object for wave functions
+      FourierTransform* wfti_ = new FourierTransform(sdi.basis(),
+        np0v_,np1v_,np2v_);
+
+      // get the corresponding slater determinant of exchange correction
+      SlaterDet& dsdi = *(dwf->sd(ispin,iKpi));
+
+      // get coefficient of the slater determinant for the exchange correction
+      ComplexMatrix& dci = dsdi.c();
+
+      // get the band index and the local number of states
+      nStatesKpi_=sdi.nstloc();
+
+      // get occupation numbers for kpoint i
+      const double* occ = sdi.occ_ptr();
+      for ( int i = 0; i<nStatesKpi_; i++ )
+        occ_ki_[i]=occ[ci.jglobal(i)];
+
+      // get a copy of the local states of kpoint iKpi
+      const complex<double> *p = ci.cvalptr(0);
+      for ( int i = 0, bound = nStatesKpi_ * ci.mloc(); i < bound; i++ )
+      {
+        state_kpi_[i]=p[i];
+      }
+
+      if (dwf)
+      {
+        // initialize forces of kpoint iKpi
+        for ( int i = 0, bound = nStatesKpi_ * dci.mloc(); i < bound; i++ )
+        {
+          force_kpi_[i]=0.0;
+        }
+      }
+
+      // initialize the exchange energies exchange_ki_
+      for ( int i=0; i<nStatesKpi_; i++ ) exchange_ki_[i]=0.0;
+
+      // initialize communications for the permutations
+      InitPermutation();
+
+      //  Start rotation of the states of kpoint i from this point
+      for ( int iRotationStep=0; iRotationStep<gcontext_.npcol();
+            iRotationStep++ )
+      {
+        CompleteReceivingStates(iRotationStep);
+
+        // compute the r coordinate expression of each state of kpi
+        for ( int i = 0; i < nStatesKpi_; i++ )
+        {
+          wfti_->backward( &state_kpi_[i*ci.mloc()], &(statei_[i])[0] );
+        }
+
+        CompleteSendingStates(iRotationStep);
+
+        // copy the states of kpi into the send buffer
+        for ( int i = 0, bound = nStatesKpi_ * ci.mloc(); i < bound; i++ )
+        {
+          send_buf_states_[i]=state_kpi_[i];
+        }
+
+        if (dwf)
+        {
+          // reset the r coordiates expressions of the forces of state iKpi
+          for ( int i = 0; i < nStatesKpi_; i++ )
+          {
+            for ( int j = 0; j < np012loc_; j++ ) dstatei_[i][j]=0.0;
+          }
+        }
+
+        // if we use the Kpoint grid connections
+        if ( KPGridPerm_.Connection() )
+        {
+          if ( iRotationStep != 0 )
+          {
+            KPGridPerm_.EndPermutation();
+          }
+        }
+
+        // set number of states of next permutation step
+        // (contained in nNextStatesKpi_)
+        SetNextPermutationStateNumber();
+
+        // start states permutation
+        StartStatesPermutation(ci.mloc());
+
+        CompleteReceivingEnergies(iRotationStep);
+
+        CompleteReceivingOccupations(iRotationStep);
+
+        // second loop over kpoints
+        for ( int iKpj = iKpi; iKpj < nkpoints; iKpj++ )
+        {
+
+          // get the corresponding slater determinant for the wave function
+          SlaterDet& sdj = *(wf.sd(ispin,iKpj));
+
+          // create Fourier transform object for wave function
+          FourierTransform* wftj_ = new FourierTransform(sdj.basis(),
+            np0v_,np1v_,np2v_);
+
+          // get coefficient of the slater determinant for the wave function
+          ComplexMatrix& cj = sdj.c();
+
+          // compute the r coordinate expression of each state of kpj
+          for ( int i = 0; i < sdj.nstloc(); i++ )
+          {
+            wftj_->backward(cj.cvalptr(i*cj.mloc()),&(statej_[i])[0]);
+          }
+
+          // get the corresponding slater det for the exchange correction
+          SlaterDet& dsdj = *(dwf->sd(ispin,iKpj));
+
+          // get coefficient of the slater det for the exchange correction
+          ComplexMatrix& dcj = dsdj.c();
+
+          // declare pointers for force computation without allocating
+          FourierTransform* dwftj_;
+
+          if (dwf)
+          {
+            // create Fourier transform object for exchange correction
+            dwftj_ = new FourierTransform(dsdj.basis(),np0v_,np1v_,np2v_);
+
+            // reset the r coordinate expression of each state derivative of kpj
+            for ( int i = 0; i < dsdj.nstloc(); i++ )
+            {
+              for ( int j = 0; j < np012loc_; j++ ) dstatej_[i][j]=0.0;
+            }
+          }
+
+          // compute the differences dk between kpoints i and j
+          // and their symmetric equivalent
+          // dk1 = kpi-kpj
+          D3vector dk1 =   wf.kpoint(iKpi) - wf.kpoint(iKpj);
+
+          // set dk1 in absolute reciprocal coordinates to get q1
+          D3vector q1 = dk1.x*sdi.basis().cell().b(0)
+                       +  dk1.y*sdi.basis().cell().b(1)
+                       +  dk1.z*sdi.basis().cell().b(2);
+
+          // dk2 = kpi+kpj
+          D3vector dk2 =   wf.kpoint(iKpi) + wf.kpoint(iKpj);
+
+          // set dk2 in absolute reciprocal coordinates to get q2
+          D3vector q2 = dk2.x*sdi.basis().cell().b(0)
+                       +  dk2.y*sdi.basis().cell().b(1)
+                       +  dk2.z*sdi.basis().cell().b(2);
+
+          // compute values of |q1+G| and |q2+G|
+          double SumExpQpG2 = 0.0;
+          double SumExp2QpG2 = 0.0;
+          const int ngloc = vbasis_->localsize();
+          for ( int ig = 0; ig < ngloc; ig++ )
+          {
+            // get the value of corresponding G
+            D3vector G(vbasis_->gx(ig+ngloc*0),
+                       vbasis_->gx(ig+ngloc*1),
+                       vbasis_->gx(ig+ngloc*2));
+
+            // compute G+q for each qi and find the value of the
+            // correction term: sum_(G,q) exp(-rcut_^2*|G+q|^2)/|G+q|^2
+            // => compute the square norm and inverse of q1+G
+            qpG21_[ig]  = ( G + q1 ) * ( G + q1 );
+            qpG2i1_[ig] = ( qpG21_[ig] > 0.0 ) ? 1.0 / qpG21_[ig] : 0.0;
+
+            // => compute the square norm and inverse of q2+G
+            qpG22_[ig]  = ( G + q2 ) * ( G + q2 );
+            qpG2i2_[ig] = ( qpG22_[ig] > 0.0 ) ? 1.0 / qpG22_[ig] : 0.0;
+
+            // if iKpi=0 (first k point)
+            // => compute the numerical part of the correction
+            // this is the only kpoint for wich we can do this
+            // if we compute only iKpj>=iKpi.
+            if ( (iRotationStep==0) ) // && (iKpi==0)
+            {
+              SumExpQpG2 += ( exp( - rcut_ * qpG21_[ig] ) * qpG2i1_[ig] );
+              SumExpQpG2 += ( exp( - rcut_ * qpG22_[ig] ) * qpG2i2_[ig] );
+              SumExp2QpG2 += ( exp( -2.0 * rcut_ * qpG21_[ig] ) * qpG2i1_[ig] );
+              SumExp2QpG2 += ( exp( -2.0 * rcut_ * qpG22_[ig] ) * qpG2i2_[ig] );
+            }
+          }
+
+          // Add weighted contribution to numerical correction:
+          // add the term sum_G exp(-a*|q+G|^2)/|q+G|^2 to the numerical
+          // correction. Works only if this is the first iKpoint.
+          //
+          // divide weight by 2 as we implicitly counted kpoint j and symmetric
+          if ( (iRotationStep==0) ) // && ( iKpi==0 )
+          {
+            if ( iKpi==iKpj )
+            {
+              numerical_correction[iKpi] += SumExpQpG2 * wf.weight(iKpj)/2.0;
+              numerical_integral_ref[iKpi] += SumExp2QpG2 * wf.weight(iKpj)/2.0;
+            }
+            else
+            {
+              numerical_correction[iKpi] += SumExpQpG2 * wf.weight(iKpj)/2.0;
+              numerical_correction[iKpj] += SumExpQpG2 * wf.weight(iKpi)/2.0;
+              numerical_integral_ref[iKpi] += SumExp2QpG2 * wf.weight(iKpj)/2.0;
+              numerical_integral_ref[iKpj] += SumExp2QpG2 * wf.weight(iKpi)/2.0;
+            }
+          }
+
+          // get occupation numbers for kpoint j
+          const double* occ = sdj.occ_ptr();
+          for ( int i = 0; i<sdj.nstloc(); i++ )
+            occ_kj_[i]=occ[cj.jglobal(i)];
+
+          // loop over the states at kpoint i
+          for ( int i = 0; i < nStatesKpi_; i++ )
+          {
+            // loop over the states at kpoint j
+            for ( int j = 0; j < sdj.nstloc(); j++ )
+            {
+              // check if something to compute for this pair
+              if ( ( occ_ki_[i]!=0.0 && wf.weight(iKpi)!=0.0 )
+                || ( occ_kj_[j]!=0.0 && wf.weight(iKpj)!=0.0 ) )
+              {
+                // compute the pair densities
+                // rhor = statei_(r)' * statej_(r)
+                for ( int ir = 0; ir < np012loc_; ir++ )
+                {
+                  rhor1_[ir] = conj( statej_[j][ir] ) * statei_[i][ir];
+                  rhor2_[ir] =       statej_[j][ir]   * statei_[i][ir];
+                }
+
+                // Fourier transform the codensity to obtain rho(G).
+                vft_->forward(&rhor1_[0], &rhog1_[0]);
+                vft_->forward(&rhor2_[0], &rhog2_[0]);
+
+                // if we use the connexion of the kpoint grid
+                if ( KPGridPerm_.Connection() )
+                {
+                  // keep the overlap and symmetric
+                  if ( iKpi==iKpj )
+                  {
+                    KPGridPerm_.AddOverlap(iKpi, iKpj, i, &rhog1_[0],
+                      &rhog2_[0], occ_kj_[j] * spinFactor);
+                  }
+                  else
+                  {
+                    KPGridPerm_.AddOverlap(iKpi, iKpj, i, &rhog1_[0],
+                      &rhog2_[0], occ_kj_[j] * spinFactor);
+                    KPGridStat_.AddOverlap(iKpj, iKpi, j, &rhog1_[0],
+                      &rhog2_[0], occ_ki_[i] * spinFactor);
+                  }
+                }
+
+                // initialize contrib of the states psi(kj,j) to the exchange
+                // energy associated to state psi(ki,i)
+                double ex_ki_i_kj_j=0.0;
+
+                if (dwf)
+                {
+                  for ( int ig = 0; ig < ngloc; ig++ )
+                  {
+                    // Add the values of |rho1(G)|^2/|G+q1|^2
+                    // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
+                    // This does not take the point G=q=0 into account
+                    // as qpG2i = 0.
+                    ex_ki_i_kj_j += norm(rhog1_[ig]) * qpG2i1_[ig];
+                    ex_ki_i_kj_j += norm(rhog2_[ig]) * qpG2i2_[ig];
+
+                    // compute rhog1_[G]/|G+q1|^2 and rhog2_[G]/|G+q1|^2
+                    rhog1_[ig] *= qpG2i1_[ig];
+                    rhog2_[ig] *= qpG2i2_[ig];
+                  }
+                  // Backtransform rhog[G]/|q+G|^2
+                  vft_->backward(&rhog1_[0], &rhor1_[0]);
+                  vft_->backward(&rhog2_[0], &rhor2_[0]);
+                }
+
+                // if only the total energy is requested
+                else
+                {
+                  for ( int ig = 0; ig < ngloc; ig++ )
+                  {
+                    // Add the values of |rho1(G)|^2/|G+q1|^2
+                    // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
+                    // This does not take the point G=q=0 into account
+                    // as qpG2i = 0.
+                    ex_ki_i_kj_j += norm(rhog1_[ig]) * qpG2i1_[ig];
+                    ex_ki_i_kj_j += norm(rhog2_[ig]) * qpG2i2_[ig];
+                  }
+                }
+
+                // if iKpi=iKpj, simply add this contribution to the
+                // exchange energy of state psi(ki,i)
+                if ( iKpi==iKpj )
+                {
+                  // case iKpi=iKpj
+                  // count only for psi(ki,i)
+                  //
+                  // compute the weights:
+                  //
+                  // => divide the weight of kpoint j by 2 as we implicitly
+                  //    counted both kj and -kj in ex_ki_i_kj_j.
+                  // => take in account the occupation of the state psi(kj,j)
+                  //    (divide by 2 to remove spin factor if only one spin).
+                  // => multiply by the constants of computation
+                  double weight = - 4.0 * M_PI / omega * wf.weight(iKpj) /
+                    2.0 * occ_kj_[j] * spinFactor;
+
+                  // add contribution to exchange energy
+                  exchange_ki_[i] += ex_ki_i_kj_j * weight;
+
+                  if (dwf)
+                  {
+                    // acumulate weighted contributions
+                    // Psi_j,kj(r) * TF( rhog[G]/|q+G|^2 ) and symmetric
+                    // in dpsi_i. We take now into account the mixing coeff
+                    weight *= HFCoeff_;
+                    for ( int ir = 0; ir < np012loc_; ir++ )
+                    {
+                      dstatei_[i][ir] += ( statej_[j][ir] * rhor1_[ir] +
+                        conj(statej_[j][ir] ) * rhor2_[ir]) * weight;
+                    }
+                  }
+                }
+
+                // if iKpi/=iKpj, add this contrib to the exch energy of both
+                // states psi(ki,i) and psi(kj,j)
+                // (as ex(ki,i,kj,j)=ex(kj,j,ki,i))
+                // this way, we can avoid computing ex(ki,i,kj,j) for kj<ki.
+                else
+                {
+                  // case iKpj>iKpi
+                  // count for both psi(ki,i) and psi(kj,j)
+                  //
+                  // compute the weights:
+                  //
+                  // => divide the weight of kpoints j (resp. i) by 2 as we
+                  //    implicitly counted both kj and -kj (resp ki and -ki)
+                  //    in ex_ki_i_kj_j.
+                  // => take in account the occupation of the state psi(kj,j)
+                  //    (resp psi(ki,i)), and divide by 2 to remove spin factor
+                  // => multiply by the constants of computation
+                  double weighti = - 4.0 * M_PI / omega * wf.weight(iKpi) /
+                    2.0 * occ_ki_[i] * spinFactor;
+                  double weightj = - 4.0 * M_PI / omega * wf.weight(iKpj) /
+                    2.0 * occ_kj_[j] * spinFactor;
+
+                  // add contribution to exchange energy
+                  exchange_ki_[i] += ex_ki_i_kj_j * weightj;
+                  exchange_[iKpj][j] += ex_ki_i_kj_j * weighti;
+
+                  if (dwf)
+                  {
+                    // acumulate weighted contributions in dpsi_j and dpsi_j.
+                    // the correspondances between rho12 and rho 21 are given by
+                    //
+                    //                      /
+                    // rho1_12(r) = | psi2*(r')*psi1(r')/|r-r'|dr'
+                    //                      /
+                    //
+                    //                      /
+                    // rho2_12(r) = | psi2(r')*psi1(r')/|r-r'|dr'
+                    //                      /
+                    //
+                    // => rho1_21  = rho1_12*
+                    // => rho2_21  = rho2_12
+                    //
+                    // We take also into account the mixing coefficient.
+                    //
+                    weighti *= HFCoeff_;
+                    weightj *= HFCoeff_;
+                    for ( int ir = 0; ir < np012loc_; ir++ )
+                    {
+                      dstatei_[i][ir] += ( statej_[j][ir] * rhor1_[ir] +
+                        conj( statej_[j][ir] ) * rhor2_[ir] ) * weightj;
+                      dstatej_[j][ir] += ( statei_[i][ir] * conj(rhor1_[ir]) +
+                        conj( statei_[i][ir] )* rhor2_[ir] ) * weighti;
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          if (dwf)
+          {
+            // add the g space contributions to each state derivative of kpj
+            for ( int i = 0; i < dsdj.nstloc(); i++ )
+            {
+              // compute the g space state derivative contribution
+              dwftj_->forward(&(dstatej_[i])[0],&buffer_dstate_[0]);
+
+              // add the g the result to the state derivative of kpj
+              complex<double> *p=dcj.valptr(i*dcj.mloc());
+              for ( int j=0; j<dcj.mloc(); j++ ) p[j]+=buffer_dstate_[j];
+              /*
+              dwftj_->forward(&(dstatej_[i])[0],dcj.valptr(i*dcj.mloc()));
+              */
+            }
+
+            // delete Fourier transform objects on states j
+            //
+            delete dwftj_;
+          }
+          delete wftj_;
+        }
+
+        // End of loop over kpoints j
+        //
+        //
+        // => finish to rotate the columns
+
+        if (dwf)
+        {
+          CompleteReceivingForces(iRotationStep);
+
+          CompleteSendingForces(iRotationStep);
+
+          // add the g coordinate expression contributions to each
+          // state derivative of kpi, store everithing in the send buffer
+          for ( int i=0; i<nStatesKpi_; i++ )
+          {
+            // transform contribution to g coordinates
+            wfti_->forward(&(dstatei_[i])[0], &buffer_dstate_[0]);
+
+            // sum up contributions in send buffer
+            complex<double> *p1=&force_kpi_[i*dci.mloc()];
+            complex<double> *p2=&send_buf_forces_[i*dci.mloc()];
+            for ( int j=0; j<dci.mloc(); j++ ) p2[j]=p1[j]+buffer_dstate_[j];
+          }
+
+          // Start forces permutation
+          StartForcesPermutation(dci.mloc());
+        }
+
+        // if we use the Kpoint grid connections
+        if ( KPGridPerm_.Connection() )
+        {
+          KPGridPerm_.StartPermutation(iKpi, iSendTo_, iRecvFr_);
+        }
+
+        CompleteSendingEnergies(iRotationStep);
+
+        // start energies permutation
+        StartEnergiesPermutation();
+
+        CompleteSendingOccupations(iRotationStep);
+
+        // start occupations permutation
+        StartOccupationsPermutation();
+
+        // set the new number of local states
+        nStatesKpi_ = nNextStatesKpi_;
+      }
+
+      //  end of rotation of the states of kpoint i from this point
+
+      // wait for all communications to be completed
+      {
+        // complete all permutations except forces
+        CompleteReceivingStates(1);
+        CompleteSendingStates(1);
+        CompleteReceivingEnergies(1);
+        CompleteSendingEnergies(1);
+        CompleteReceivingOccupations(1);
+        CompleteSendingOccupations(1);
+
+        if (dwf)
+        {
+          // complete forces permutation
+          CompleteReceivingForces(1);
+          CompleteSendingForces(1);
+        }
+
+        // if we use the Kpoint grid connections
+        if ( KPGridPerm_.Connection() )
+        {
+          KPGridPerm_.EndPermutation();
+        }
+        // Terminate permutation
+        FreePermutation();
+      }
+
+      // => compute the analytical expression of the substracted part
+      const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * sqrt(rcut_) );
+      const double vbz = pow(2.0*M_PI,3.0) / omega;
+      const double integ_ref = 4.0 * M_PI * sqrt(M_PI) /
+        ( 2.0 * sqrt( 2.0 * rcut_) );
+
+      // correct the energy of kpoint i:
+      // the exp(-rcut_^2*|G+q|^2)/|G+q|^2 is
+      // removed 2 times for every i==j as we computed
+      // for ki and -ki
+      for ( int i = 0; i < sdi.nstloc(); i++ )
+      {
+        // compute numerical correction:
+        //
+        // add G=q=0 term to the exchange energy of the state psi(ki,i):
+        // => occurs only if ki=kj & i=j => weight of kpoint i
+        //
+        // As we take in account the occupation numbers
+        // of states psi(kj,j), the term rho(G=q=0) factor for
+        // numerical correction is now equal to :
+        // <psi_i|psi_i>*occ_number_ki[i] (kj=ki and i=j).
+        //
+        // => remove numerical part os the support function.
+        // => add analytical part of the support funcion.
+        // => multiply by the constant of computation.
+        //
+        // We add analytical part and G=0 devel only from the head of the column
+        double beta_x;
+        double beta_y;
+        double beta_z;
+        double s0;
+        double s1_x,s1_y,s1_z;
+        double s2_x,s2_y,s2_z;
+        double d1_x,d1_y,d1_z;
+        double d2_x,d2_y,d2_z;
+        double numerical_error;
+        double numerical_precision;
+        if (vcontext_.myrow()==0)
+        {
+          // compute the curvature terms
+          s0=KPGridPerm_.overlaps_local(iKpi,i);
+
+          s1_x=KPGridPerm_.overlaps_first_kx(iKpi,i)+
+               KPGridStat_.overlaps_first_kx(iKpi,i);
+          s2_x=KPGridPerm_.overlaps_second_kx(iKpi,i)+
+               KPGridStat_.overlaps_second_kx(iKpi,i);
+          d1_x=KPGridPerm_.distance_first_kx(iKpi);
+          d2_x=KPGridPerm_.distance_second_kx(iKpi);
+          beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
+            KPGridPerm_.integral_kx(iKpi);
+
+          s1_y=KPGridPerm_.overlaps_first_ky(iKpi,i)+
+            KPGridStat_.overlaps_first_ky(iKpi,i);
+          s2_y=KPGridPerm_.overlaps_second_ky(iKpi,i)+
+            KPGridStat_.overlaps_second_ky(iKpi,i);
+          d1_y=KPGridPerm_.distance_first_ky(iKpi);
+          d2_y=KPGridPerm_.distance_second_ky(iKpi);
+          beta_y=(s1_y+s2_y-2.0*s0)/(d1_y*d1_y+d2_y*d2_y)*
+            KPGridPerm_.integral_ky(iKpi);
+
+          s1_z=KPGridPerm_.overlaps_first_kz(iKpi,i)+
+            KPGridStat_.overlaps_first_kz(iKpi,i);
+          s2_z=KPGridPerm_.overlaps_second_kz(iKpi,i)+
+            KPGridStat_.overlaps_second_kz(iKpi,i);
+          d1_z=KPGridPerm_.distance_first_kz(iKpi);
+          d2_z=KPGridPerm_.distance_second_kz(iKpi);
+          beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
+            KPGridPerm_.integral_kz(iKpi);
+
+          // beta_x=0;
+          // beta_y=0;
+          // beta_z=0;
+
+          // beta_x, beta_y and beta_z contain the curvature of
+          // the rho(G=0) term
+          // those terms already take into account the occupation numbers
+
+          // we also add the correction of the support function
+          // using the occupation number
+          numerical_error = ( - 4.0 * M_PI / omega ) *
+            ( ( numerical_correction[iKpi] - integ / vbz -
+              rcut_ * KPGridPerm_.weight(iKpi) ) *
+              occ_ki_[i] * spinFactor -
+              ( beta_x + beta_y + beta_z ) * KPGridPerm_.weight(iKpi) );
+
+          numerical_precision = ( - 4.0 * M_PI / omega ) *
+            ( numerical_integral_ref[iKpi] - ( numerical_correction[iKpi] -
+              integ / vbz + rcut_ * KPGridPerm_.weight(iKpi) ) -
+              integ_ref / vbz );
+        }
+        else
+        {
+          s0=KPGridPerm_.overlaps_local(iKpi,i);
+
+          s1_x=KPGridPerm_.overlaps_first_kx(iKpi,i)+
+            KPGridStat_.overlaps_first_kx(iKpi,i);
+          s2_x=KPGridPerm_.overlaps_second_kx(iKpi,i)+
+            KPGridStat_.overlaps_second_kx(iKpi,i);
+          d1_x=KPGridPerm_.distance_first_kx(iKpi);
+          d2_x=KPGridPerm_.distance_second_kx(iKpi);
+          beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
+            KPGridPerm_.integral_kx(iKpi);
+
+          s1_y=KPGridPerm_.overlaps_first_ky(iKpi,i)+
+            KPGridStat_.overlaps_first_ky(iKpi,i);
+          s2_y=KPGridPerm_.overlaps_second_ky(iKpi,i)+
+            KPGridStat_.overlaps_second_ky(iKpi,i);
+          d1_y=KPGridPerm_.distance_first_ky(iKpi);
+          d2_y=KPGridPerm_.distance_second_ky(iKpi);
+          beta_y=(s1_y+s2_y-2.0*s0)/(d1_y*d1_y+d2_y*d2_y)*
+            KPGridPerm_.integral_ky(iKpi);
+
+          s1_z=KPGridPerm_.overlaps_first_kz(iKpi,i)+
+            KPGridStat_.overlaps_first_kz(iKpi,i);
+          s2_z=KPGridPerm_.overlaps_second_kz(iKpi,i)+
+            KPGridStat_.overlaps_second_kz(iKpi,i);
+          d1_z=KPGridPerm_.distance_first_kz(iKpi);
+          d2_z=KPGridPerm_.distance_second_kz(iKpi);
+          beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
+            KPGridPerm_.integral_kz(iKpi);
+
+          // beta_x=0;
+          // beta_y=0;
+          // beta_z=0;
+
+          numerical_error = ( - 4.0 * M_PI / omega ) *
+            ( numerical_correction[iKpi] * occ_ki_[i] *
+              spinFactor - ( beta_x + beta_y + beta_z ) *
+              KPGridPerm_.weight(iKpi) );
+
+          numerical_precision = ( - 4.0 * M_PI / omega ) *
+            ( numerical_integral_ref[iKpi] - numerical_correction[iKpi] );
+        }
+
+        // sum the contribution to exchange of state i of kpoint iKpi
+        // add local part of the correction to the exchange energies of kpoint i
+        exchange_[iKpi][i] += ( exchange_ki_[i] - numerical_error );
+
+        // sum the differents parts of the exchange energies of kpoint i
+        // (so among the corresponding column)
+        vcontext_.dsum('C', 1, 1, &(exchange_[iKpi][i]), 1);
+
+        // add the energies of kpoint i states to the total exchange energy,
+        // (take only 1/2 as each energy is couted twice ij/ji)
+        extot += ( exchange_[iKpi][i] * wf.weight(iKpi) *
+          occ_ki_[i] / 2.0 );
+
+        if (dwf)
+        {
+          // sum the differents parts of the correction for this state
+          // (so among the corresponding column)
+          vcontext_.dsum('C', 1, 1, &numerical_error, 1);
+
+          // add contribution and correct the derivatives of
+          // state i of kpoint iKpi
+          complex<double> *ps=ci.valptr(i*ci.mloc());
+          complex<double> *pf1=dci.valptr(i*dci.mloc());
+          complex<double> *pf2=&force_kpi_[i*dci.mloc()];
+          for ( int j = 0; j < dci.mloc(); j++ )
+          {
+            // Take into account the mixing coeff for the amount of correction
+            pf1[j] += ( pf2[j] - ps[j] * numerical_error * HFCoeff_ );
+          }
+        }
+#ifdef DEBUG
+
+        if (dwf)
+        {
+          // compute exchange energy from scalar product <psi_i,ki|Vex|psi_i,ki>
+          const complex<double> *p = ci.cvalptr(i*ci.mloc());
+          const complex<double> *dp = dci.cvalptr(i*dci.mloc());
+          complex<double> sum;
+          sum = conj( p[0] ) * dp[0];
+          for ( int ig = 1; ig < ci.mloc(); ig++ )
+          {
+            sum += conj( p[ig] ) * dp[ig];
+          }
+          if ( ( sdi.basis().real() ) && ( gcontext_.myrow()==0 ) )
+          {
+            sum = 2.0 * sum - conj( p[0] ) * dp[0];
+          }
+          else if ( sdi.basis().real() )
+          {
+            sum = 2.0 * sum;
+          }
+          double sumr=real(sum);
+          vcontext_.dsum('C', 1, 1, &sumr, 1);
+
+          // compute exchange norm
+          complex<double> sum_ex;
+          sum_ex = conj( dp[0] ) * dp[0];
+          for ( int ig = 1; ig < ci.mloc(); ig++ )
+          {
+            sum_ex += conj( dp[ig] ) * dp[ig];
+          }
+          if ( ( sdi.basis().real() ) && ( gcontext_.myrow()==0 ) )
+          {
+            sum_ex = 2.0 * sum_ex - conj( dp[0] ) * dp[0];
+          }
+          else if ( sdi.basis().real() )
+          {
+            sum_ex = 2.0 * sum_ex;
+          }
+          double sum_exr=real(sum_ex);
+          vcontext_.dsum('C', 1, 1, &sum_exr, 1);
+
+          // print results
+          double temp1=numerical_correction[iKpi];
+          double temp2=integ/vbz;
+          double temp3=( beta_x + beta_y + beta_z ) * KPGridPerm_.weight(iKpi);
+          double temp4=numerical_integral_ref[iKpi];
+          double temp5=integ_ref/vbz;
+          vcontext_.dsum('C', 1, 1, &temp1, 1);
+//          vcontext_.dsum('C', 1, 1, &temp2, 1);
+          vcontext_.dsum('C', 1, 1, &temp3, 1);
+          vcontext_.dsum('C', 1, 1, &temp4, 1);
+//          vcontext_.dsum('C', 1, 1, &temp5, 1);
+          vcontext_.dsum('C', 1, 1, &numerical_precision, 1);
+          if ((gcontext_.myrow()==0)&&(gcontext_.mycol()==0))
+          {
+            cout << exchange_[iKpi][i] << "-> " << sumr << " \n";
+            cout << " correction : " << beta_x << " "
+                 << beta_y << " " << beta_z << "\n";
+            cout << " distance 1 : " << d1_x << " "
+                 << d1_y << " " << d1_z << "\n";
+            cout << " distance 2 : " << d2_x << " "
+                 << d2_y << " " << d2_z << "\n";
+            cout << " overlap  1 : " << s1_x << " "
+                 << s1_y << " " << s1_z << "\n";
+            cout << " overlap  2 : " << s2_x << " "
+                 << s2_y << " " << s2_z << "\n";
+            cout << " num. error : " << numerical_error << "\n";
+            cout << " correction : " << temp1 << "\n";
+            cout << " integral   : " << temp2 << "\n";
+            cout << " curvature  : " << temp3 + rcut_*KPGridPerm_.weight(iKpi)
+                 << "\n";
+            cout << " correction : " << temp4 << "\n";
+            cout << " integral   : " << temp5 << "\n";
+            cout << " curvature  : " << rcut_*KPGridPerm_.weight(iKpi) << "\n";
+            cout << " precision  : " << numerical_precision << "\n";
+            cout << " occupation : " << occ_ki_[i] << "\n";
+            cout << " norm ex    : " << sum_exr << "\n";
+
+            cout << "state detail:\n";
+            for ( int j=0; j<5; j++ )
+            {
+              cout << dp[j] << " ";
+            }
+            cout << "\n";
+          }
+        }
+        else
+        {
+          // print results
+          if ((gcontext_.myrow()==0)&&(gcontext_.mycol()==0))
+          cout << exchange_[iKpi][i] << "  ";
+        }
+#endif
+      }
+      // End of loop over states of kpoints i:
+      delete wfti_;
+    } // end of kpoint iKpi loop
+  } // end of spin loop
+
+  // reduce the total energy
+  double tmp_=extot/gcontext_.nprow();
+  MPI_Allreduce(&tmp_,&extot,1,MPI_DOUBLE,MPI_SUM,gcontext_.comm());
+#ifdef DEBUG
+
+  // End of loop over kpoints i:
+  // print result
+  if ((gcontext_.myrow()==0)&&(gcontext_.mycol()==0))
+  {
+    cout << setprecision(10);
+    cout << " total exchange = " << extot*HFCoeff_ << " Eh\n";
+  }
+#endif
+
+  // return total exchange in Hartree multiplied by mixing coeff
+  return extot * HFCoeff_;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
+  Wavefunction* dwf)
+{
+  Timer tm;
+  Timer tmb;
+
+  assert(KPGridPerm_.Connection());
+
+  cout << setprecision(10);
+  const double omega = wf.cell().volume();
+  const int nspin = wf.nspin();
+
+  // spin factor for the pair densities: 0.5 if 1 spin, 1 if nspin==2
+  const double spinFactor=0.5*nspin;
+
+  // total exchange energy
+  double extot = 0.0;
+
+  // localize the wave functions using bisection if btHF > 0
+  if ( s_.ctrl.btHF > 0.0 )
+  {
+    tmb.start();
+    bisection_->localize(wf, s_.ctrl.btHF);
+    tmb.stop();
+
+    if ( gcontext_.onpe0() )
+    {
+      for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+      {
+        cout << " ExchangeOperator: bisection size: ispin=" << ispin
+             << ": " << bisection_->total_size(ispin) << endl;
+        cout << " ExchangeOperator: pair fraction:  ispin=" << ispin
+             << ": " << bisection_->pair_fraction(ispin) << endl;
+      }
+      cout << setprecision(3);
+      cout << " ExchangeOperator: bisection time: "
+           << tmb.real() << " s" << endl;
+    }
+  }
+
+  tm.start();
+  for ( int ispin = 0; ispin < nspin; ispin++ )
+  {
+    double numerical_correction = 0.0;
+    for ( int i = 0; i < nMaxLocalStates_; i++ )
+    {
+      exchange_[0][i]=0.0;
+      exchange_ki_[i]=0.0;
+      exchange_kj_[i]=0.0;
+    }
+
+    // initialize overlaps
+    KPGridPerm_.InitOverlaps();
+    KPGridStat_.InitOverlaps();
+
+    SlaterDet& sd = *(wf.sd(ispin,0));
+    ComplexMatrix& c = sd.c();
+
+    // real-space local states -> statej_[i][ir]
+    // loop over states 2 by 2
+    for ( int i = 0; i < sd.nstloc()-1; i+=2 )
+    {
+      wft_->backward(c.cvalptr(i*c.mloc()), c.cvalptr((i+1)*c.mloc()),
+                     &tmp_[0]);
+      double *p = (double *)&tmp_[0];
+      for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+      {
+        statej_[i][ir]=p[irp];
+        statej_[i+1][ir]=p[irp+1];
+      }
+    }
+
+    if ( sd.nstloc() % 2 == 1 )
+    {
+      int i = sd.nstloc()-1;
+      wft_->backward(c.cvalptr(i*c.mloc()), &(statej_[i])[0]);
+    }
+
+    SlaterDet& dsd = *(dwf->sd(ispin,0));
+    ComplexMatrix& dc = dsd.c();
+
+    if (dwf)
+    {
+      // reset real space derivatives dstatej_[i][ir]
+      for ( int i = 0; i < dsd.nstloc(); i++ )
+        for ( int j = 0; j < np012loc_; j++ )
+          dstatej_[i][j] = 0.0;
+    }
+
+    const int ngloc = vbasis_->localsize();
+    double SumExpQpG2 = 0.0;
+    const double *g2 = vbasis_->g2_ptr();
+    const double *g2i = vbasis_->g2i_ptr();
+    for ( int ig = 0; ig < ngloc; ig++ )
+    {
+      // compute G and find the value of the
+      // correction term: sum_(G) exp(-rcut_^2*|G|^2)/|G|^2
+      // => compute the numerical part of the correction
+      // this is the only kpoint for which we can do this
+      // if we compute only iKpj>=iKpi.
+      SumExpQpG2 += 2.0 * exp( - rcut_ * g2[ig] ) * g2i[ig];
+    }
+
+    // Add weighted contribution to numerical correction:
+    // add the term sum_G exp(-a*|q+G|^2)/|q+G|^2 to the numerical
+    // correction.
+    numerical_correction += SumExpQpG2;
+
+    // local occupation numbers
+    const double* occ = sd.occ_ptr();
+    for ( int i = 0; i < sd.nstloc(); i++ )
+      occ_kj_[i]=occ[c.jglobal(i)];
+
+    // number of states to be sent
+    nStatesKpi_ = sd.nstloc();
+
+    // occupation numbers of circulating states
+    for ( int i = 0; i < nStatesKpi_; i++ )
+      occ_ki_[i] = occ_kj_[i];
+
+    // copy local states into circulating states
+    const complex<double> *p = c.cvalptr(0);
+    for ( int i = 0; i < nStatesKpi_ * c.mloc(); i++ )
+      state_kpi_[i]=p[i];
+
+    // initialize circulating derivatives
+    if (dwf)
+    {
+      for ( int i = 0; i < nStatesKpi_ * dc.mloc(); i++ )
+        force_kpi_[i]=0.0;
+    }
+
+    // initiate send nStatesKpi_ and receive nNextStatesKpi_
+    InitPermutation();
+
+#if LOAD_MATRIX
+    // collect number of processed pairs in array load_matrix
+    vector<int> load_matrix(gcontext_.npcol()*gcontext_.npcol(),0);
+#endif
+
+    // Start rotation of circulating states
+    for ( int iRotationStep = 0; iRotationStep<gcontext_.npcol();
+          iRotationStep++ )
+    {
+      bool useBisection = (s_.ctrl.btHF > 0);
+
+      // generate a list of pairs of overlapping states
+      int nPair = 0;
+      vector<int> first_member_of_pair;
+      vector<int> second_member_of_pair;
+
+      // flag indicating that a circulating state has been used
+      vector<int> useState(nStatesKpi_,0);
+
+      // finish receiving occupations in occ_ki_[]
+      CompleteReceivingOccupations(iRotationStep);
+
+      // loop over circulating states
+      for ( int i = 0; i < nStatesKpi_; i++ )
+      {
+        // original column index of circulating state i
+        int iColI = gcontext_.mycol() - iRotationStep;
+        iColI = ( iColI < 0 ) ? iColI + gcontext_.npcol() : iColI;
+
+        // global index of circulating state i
+        int iGlobI = c.jglobal(iColI,i);
+
+        // loop over fixed states
+        for ( int j = 0; j < sd.nstloc(); j++ )
+        {
+          // check if there is something to compute for this pair
+          if ( occ_ki_[i]!=0.0 || occ_kj_[j]!=0.0 )
+          {
+            // global index of fixed state j
+            int iGlobJ = c.jglobal(j);
+
+            // determine the overlap between those two states
+            bool overlap_ij = ( !useBisection ||
+              bisection_->overlap(ispin,iGlobI,iGlobJ) );
+
+            // use the chess board condition to
+            // optimize the distribution of work on
+            // each process:
+            // - if i and j have different parity, use
+            // the condition i<j
+            // - if i and j have same parity, use
+            // the condition i>=j
+            int parity_i = iGlobI & 1;
+            int parity_j = iGlobJ & 1;
+
+            if ( parity_i == parity_j )
+            {
+              if ( iGlobI >= iGlobJ && overlap_ij )
+              {
+                first_member_of_pair.push_back( i );
+                second_member_of_pair.push_back( j );
+                nPair++;
+
+                // circulating state i is used
+                useState[i] = 1;
+              }
+            }
+            else
+            {
+              if ( iGlobI < iGlobJ && overlap_ij )
+              {
+                first_member_of_pair.push_back( i );
+                second_member_of_pair.push_back( j );
+                nPair++;
+
+                // circulating state i is used
+                useState[i] = 1;
+              }
+            }
+          }
+        }
+      }
+      // pair list is complete
+
+#if LOAD_MATRIX
+      // collect nPair statistics if on row 0
+      if ( gcontext_.myrow() == 0 )
+        load_matrix[iRotationStep*gcontext_.npcol()+gcontext_.mycol()] = nPair;
+#endif
+
+      // complete receiving states
+      // note: this does nothing if iRotationStep == 0
+      CompleteReceivingStates(iRotationStep);
+      // circulating states in state_kpi_[i+j*mloc] can now be used
+
+      // compute real space circulating states
+      if ( nPair > 0 )
+      {
+        int i = 0;
+        int j = 1;
+
+        // try to associate states 2 by 2
+        while ( i < nStatesKpi_ )
+        {
+          // seek the first next used state
+          while ( i < nStatesKpi_ && !useState[i] ) i++;
+
+          // seek the second next used state
+          j=i+1;
+          while ( j < nStatesKpi_ && !useState[j] ) j++;
+
+          // if i is a valid index
+          if ( i < nStatesKpi_ )
+          {
+            // if j is a valid index
+            if ( j < nStatesKpi_ )
+            {
+              // back transform the couple (i,j)
+              wft_->backward(&state_kpi_[i*c.mloc()],
+                &state_kpi_[j*c.mloc()], &tmp_[0]);
+
+              // copy the result in state[i] and state[j]
+              double *p = (double *)&tmp_[0];
+              for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+              {
+                statei_[i][ir]=p[irp];
+                statei_[j][ir]=p[irp+1];
+              }
+            }
+
+            // else, if there is only one state to transform
+            else
+            {
+              wft_->backward(&state_kpi_[i*c.mloc()], &(statei_[i])[0]);
+            }
+          }
+
+          // increment indices
+          i = j + 1;
+        }
+      }
+
+      // finish sending states in send_buf_states_
+      CompleteSendingStates(iRotationStep);
+      // send_buf_states_ can now be reused
+
+      // copy the states to be sent in the send buffer
+      for ( int i = 0; i < nStatesKpi_ * c.mloc(); i++ )
+        send_buf_states_[i] = state_kpi_[i];
+
+      if (dwf)
+      {
+        for ( int i = 0; i < nStatesKpi_; i++ )
+          for ( int j = 0; j < np012loc_; j++ )
+            dstatei_[i][j] = 0.0;
+      }
+
+      if ( iRotationStep != 0 )
+        KPGridPerm_.EndPermutation();
+
+      // nNextStatesKpi: number of states of next permutation step
+      SetNextPermutationStateNumber();
+      // start sending states in send_buf_states_
+      StartStatesPermutation(c.mloc());
+
+      // finish receiving energies in exchange_ki_[]
+      CompleteReceivingEnergies(iRotationStep);
+
+      // loop over pairs 2 by 2
+      if ( nPair > 0 )
+      {
+        int iPair;
+        for ( iPair=0; iPair<first_member_of_pair.size()-1; iPair+=2 )
+        {
+          int i1 = first_member_of_pair[iPair];
+          int j1 = second_member_of_pair[iPair];
+          int i2 = first_member_of_pair[iPair+1];
+          int j2 = second_member_of_pair[iPair+1];
+
+          // compute the pair densities
+          // rhor = conjg(statei_(r)) * statej_(r)
+          // note: since at gamma point, densities are real
+          {
+            // rhor1_ = psi_i1 * psi_j1 + i * psi_i2 * psi_j2
+            double *p   = (double *)&rhor1_[0];
+            double *pi1 = (double *)&statei_[i1][0];
+            double *pi2 = (double *)&statei_[i2][0];
+            double *pj1 = (double *)&statej_[j1][0];
+            double *pj2 = (double *)&statej_[j2][0];
+
+            for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip+=2 )
+            {
+              p[ip]   = pi1[ip] * pj1[ip];
+              p[ip+1] = pi2[ip] * pj2[ip];
+            }
+          }
+
+          // Fourier transform the pair density
+          vft_->forward(&rhor1_[0], &rhog1_[0], &rhog2_[0]);
+
+          // if i1 = j1 and iRotation=0, add the contribution to the
+          // state psi(0,i1)
+          if ( ( i1==j1 ) && ( iRotationStep==0 ) )
+          {
+            KPGridPerm_.AddOverlap(0, 0, i1, &rhog1_[0], &rhog1_[0],
+              occ_kj_[j1] * spinFactor);
+          }
+          // otherwise, add contributions for both states
+          else
+          {
+            KPGridPerm_.AddOverlap(0, 0, i1, &rhog1_[0], &rhog1_[0],
+              occ_kj_[j1] * spinFactor);
+            KPGridStat_.AddOverlap(0, 0, j1, &rhog1_[0], &rhog1_[0],
+              occ_ki_[i1] * spinFactor);
+          }
+          // if i2=j2 and iRotation=0, add the contribution to the
+          // state psi(0,i2)
+          if ( ( i2==j2 ) && ( iRotationStep==0 ) )
+          {
+            KPGridPerm_.AddOverlap(0, 0, i2, &rhog2_[0], &rhog2_[0],
+            occ_kj_[j2] * spinFactor);
+          }
+          // otherwise, add contributions for both states
+          else
+          {
+            KPGridPerm_.AddOverlap(0, 0, i2, &rhog2_[0], &rhog2_[0],
+              occ_kj_[j2] * spinFactor);
+            KPGridStat_.AddOverlap(0, 0, j2, &rhog2_[0], &rhog2_[0],
+              occ_ki_[i2] * spinFactor);
+          }
+
+          // initialize contrib of the states psi_j1) to the exchange
+          // energy associated to state psi_i1
+          // (and same for the pair (i2,j2))
+          double ex_ki_i_kj_j_1=0.0;
+          double ex_ki_i_kj_j_2=0.0;
+
+          if (dwf)
+          {
+            for ( int ig = 0; ig < ngloc; ig++ )
+            {
+              // Add the values of |rho1(G)|^2/|G+q1|^2
+              // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
+              // note: g2i[G=0] == 0
+              ex_ki_i_kj_j_1 += norm(rhog1_[ig]) * g2i[ig];
+              ex_ki_i_kj_j_2 += norm(rhog2_[ig]) * g2i[ig];
+
+              // compute rhog1_[G]/|G+q1|^2 and rhog2_[G]/|G+q1|^2
+              rhog1_[ig] *= g2i[ig];
+              rhog2_[ig] *= g2i[ig];
+            }
+
+            // add each value 2 times to the
+            // exchange energy as the basis is reduced
+            ex_ki_i_kj_j_1 *= 2.0;
+            ex_ki_i_kj_j_2 *= 2.0;
+
+            // Backtransform rhog[G]/|q+G|^2
+            vft_->backward(&rhog1_[0], &rhog2_[0], &rhor1_[0]);
+          }
+          else
+          {
+            // if only the total energy is requested
+            for ( int ig = 0; ig < ngloc; ig++ )
+            {
+              // Add the values of |rho1(G)|^2/|G+q1|^2
+              // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
+              ex_ki_i_kj_j_1 += norm(rhog1_[ig]) * g2i[ig];
+              ex_ki_i_kj_j_2 += norm(rhog2_[ig]) * g2i[ig];
+            }
+            // add each value 2 times to the
+            // exchange energy as the basis is reduced
+            ex_ki_i_kj_j_1 *= 2.0;
+            ex_ki_i_kj_j_2 *= 2.0;
+          }
+
+          // accumulate contributions to the exchange energy
+          if ( ( i1==j1 ) && ( iRotationStep==0 ) )
+          {
+            // i1 and j1 are the same state
+            double weight = - 4.0 * M_PI / omega * occ_kj_[j1] * spinFactor;
+            exchange_ki_[i1] += ex_ki_i_kj_j_1 * weight;
+
+            if (dwf)
+            {
+              // acumulate weighted contributions
+              // Psi_j,kj(r) * TF( rhog[G]/|q+G|^2 ) in dpsi_i.
+              weight *= HFCoeff_;
+              // rhor contains contributions from pairs 1 and 2
+              double *dp = (double *) &dstatei_[i1][0];
+              double *pj = (double *) &statej_[j1][0];
+              double *pr = (double *) &rhor1_[0];
+              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+                dp[ip] += pj[ip] * pr[ip] * weight;
+            }
+          }
+          else
+          {
+            // i1 and j1 are different states
+            double weightj = - 4.0 * M_PI / omega * occ_kj_[j1] * spinFactor;
+            double weighti = - 4.0 * M_PI / omega * occ_ki_[i1] * spinFactor;
+            exchange_ki_[i1] += ex_ki_i_kj_j_1 * weightj;
+            exchange_kj_[j1] += ex_ki_i_kj_j_1 * weighti;
+
+            if (dwf)
+            {
+              weighti *= HFCoeff_;
+              weightj *= HFCoeff_;
+              double *dpi = (double *) &dstatei_[i1][0];
+              double *dpj = (double *) &dstatej_[j1][0];
+              double *pi = (double *) &statei_[i1][0];
+              double *pj = (double *) &statej_[j1][0];
+              double *pr = (double *) &rhor1_[0];
+
+              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+              {
+                dpi[ip] += pj[ip] * pr[ip] * weightj;
+                dpj[ip] += pi[ip] * pr[ip] * weighti;
+              }
+            }
+          }
+
+          // second pair
+          if ( ( i2==j2 ) && ( iRotationStep==0 ) )
+          {
+            // i2 and j2 are the same state
+            double weight = - 4.0 * M_PI / omega * occ_kj_[j2] * spinFactor;
+            exchange_ki_[i2] += ex_ki_i_kj_j_2 * weight;
+
+            if (dwf)
+            {
+              weight *= HFCoeff_;
+              double *dp = (double *) &dstatei_[i2][0];
+              double *pj = (double *) &statej_[j2][0];
+              double *pr = (double *) &rhor1_[0];
+              pr = pr + 1;
+
+              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+                dp[ip] += pj[ip] * pr[ip] * weight;
+            }
+          }
+          else
+          {
+            // i2 and j2 are different states
+            double weightj = - 4.0 * M_PI / omega * occ_kj_[j2] * spinFactor;
+            double weighti = - 4.0 * M_PI / omega * occ_ki_[i2] * spinFactor;
+            exchange_ki_[i2] += ex_ki_i_kj_j_2 * weightj;
+            exchange_kj_[j2] += ex_ki_i_kj_j_2 * weighti;
+
+            if (dwf)
+            {
+              weighti *= HFCoeff_;
+              weightj *= HFCoeff_;
+              double *dpi = (double *) &dstatei_[i2][0];
+              double *dpj = (double *) &dstatej_[j2][0];
+              double *pi = (double *) &statei_[i2][0];
+              double *pj = (double *) &statej_[j2][0];
+              double *pr = (double *) &rhor1_[0];
+              pr = pr + 1;
+
+              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+              {
+                dpi[ip] += pj[ip] * pr[ip] * weightj;
+                dpj[ip] += pi[ip] * pr[ip] * weighti;
+              }
+            }
+          }
+        } // iPair
+
+        // last pair if necessary
+        if ( iPair < first_member_of_pair.size() )
+        {
+          int i1 = first_member_of_pair[iPair];
+          int j1 = second_member_of_pair[iPair];
+
+          // rhor1_ = psi_i1 * psi_j1
+          double *p   = (double *)&rhor1_[0];
+          double *pi1 = (double *)&statei_[i1][0];
+          double *pj1 = (double *)&statej_[j1][0];
+          for ( int ir = 0, ip=0; ir < np012loc_; ir++, ip+=2 )
+          {
+            p[ip]   = pi1[ip] * pj1[ip];
+            p[ip+1] = 0.0;
+          }
+
+          vft_->forward(&rhor1_[0], &rhog1_[0]);
+
+          // if i1=j1 and iRotation=0, add the contribution to the
+          // state psi(0,i1)
+          if ( ( i1==j1 ) && ( iRotationStep==0 ) )
+          {
+            KPGridPerm_.AddOverlap(0, 0, i1, &rhog1_[0], &rhog1_[0],
+              occ_kj_[j1] * spinFactor);
+          }
+          // otherwise, add contributions for both states
+          else
+          {
+            KPGridPerm_.AddOverlap(0, 0, i1, &rhog1_[0], &rhog1_[0],
+              occ_kj_[j1] * spinFactor);
+            KPGridStat_.AddOverlap(0, 0, j1, &rhog1_[0], &rhog1_[0],
+              occ_ki_[i1] * spinFactor);
+          }
+
+          // initialize contrib of the states psi(kj,j1) to the exchange
+          // energy associated to state psi(ki,i1)
+          // (and same for the pair (i2,j2))
+          double ex_ki_i_kj_j_1=0.0;
+
+          if (dwf)
+          {
+            for ( int ig = 0; ig < ngloc; ig++ )
+            {
+              // Add the values of |rho1(G)|^2/|G+q1|^2
+              // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
+              ex_ki_i_kj_j_1 += norm(rhog1_[ig]) * g2i[ig];
+
+              // compute rhog1_[G]/|G+q1|^2 and rhog2_[G]/|G+q1|^2
+              rhog1_[ig] *= g2i[ig];
+            }
+
+            // add each value 2 times to the
+            // exchange energy as the basis is reduced
+            ex_ki_i_kj_j_1 *= 2.0;
+
+            // Backtransform rhog[G]/|q+G|^2
+            vft_->backward(&rhog1_[0], &rhor1_[0]);
+          }
+          else
+          {
+            // if only the total energy is needed
+            for ( int ig = 0; ig < ngloc; ig++ )
+            {
+              // Add the values of |rho1(G)|^2/|G+q1|^2
+              // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
+              ex_ki_i_kj_j_1 += norm(rhog1_[ig]) * g2i[ig];
+            }
+            // add each value 2 times to the
+            // exchange energy as the basis is reduced
+            ex_ki_i_kj_j_1 *= 2.0;
+          }
+
+          if ( ( i1==j1 ) && ( iRotationStep==0 ) )
+          {
+            // i1 and j1 are the same state
+            double weight = - 4.0 * M_PI / omega *
+              occ_kj_[j1] * spinFactor;
+
+            exchange_ki_[i1] += ex_ki_i_kj_j_1 * weight;
+
+            if (dwf)
+            {
+              weight *= HFCoeff_;
+              double *dp = (double *) &dstatei_[i1][0];
+              double *pj = (double *) &statej_[j1][0];
+              double *pr = (double *) &rhor1_[0];
+              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+                dp[ip] += pj[ip] * pr[ip] * weight;
+            }
+          }
+          else
+          {
+            // i1 and j1 are different states
+            double weightj = - 4.0 * M_PI / omega * occ_kj_[j1] * spinFactor;
+            double weighti = - 4.0 * M_PI / omega * occ_ki_[i1] * spinFactor;
+
+            exchange_ki_[i1] += ex_ki_i_kj_j_1 * weightj;
+            exchange_kj_[j1] += ex_ki_i_kj_j_1 * weighti;
+
+            if (dwf)
+            {
+              weighti *= HFCoeff_;
+              weightj *= HFCoeff_;
+              double *dpi = (double *) &dstatei_[i1][0];
+              double *dpj = (double *) &dstatej_[j1][0];
+              double *pi = (double *) &statei_[i1][0];
+              double *pj = (double *) &statej_[j1][0];
+              double *pr = (double *) &rhor1_[0];
+
+              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+              {
+                dpi[ip] += pj[ip] * pr[ip] * weightj;
+                dpj[ip] += pi[ip] * pr[ip] * weighti;
+              }
+            }
+          }
+        } // if last pair
+      } // if nPair > 0
+      // End of loop over pairs
+
+      if (dwf)
+      {
+        // finish receiving forces in force_kpi_[]
+        CompleteReceivingForces(iRotationStep);
+        // finish sending forces in send_buf_forces_[]
+        CompleteSendingForces(iRotationStep);
+
+        // add locally computed contributions to circulated forces
+        {
+          // copy force_kpi to to send_buf_forces
+          for ( int i = 0; i < nStatesKpi_; i++ )
+          {
+            complex<double> *ps = &send_buf_forces_[i*dc.mloc()];
+            complex<double> *pf = &force_kpi_[i*dc.mloc()];
+            for ( int j = 0; j < dc.mloc(); j++)
+              ps[j] = pf[j];
+          }
+          // backtransform computed forces to G coordinates and
+          // add to send buffer
+          if ( nPair > 0 )
+          {
+            int i = 0;
+            int j = 1;
+
+            // try to associate states 2 by 2
+            while ( i < nStatesKpi_ )
+            {
+              // find the first next used state
+              while ( i < nStatesKpi_ && !useState[i] ) i++;
+
+              // find the second next used state
+              j = i+1;
+              while ( j < nStatesKpi_ && !useState[j] ) j++;
+
+              // if i is a valid index
+              if ( i < nStatesKpi_ )
+              {
+                // if j is a valid index
+                if ( j < nStatesKpi_ )
+                {
+                  // store dstate[i] + i * dstate[j] in tmp_
+                  double *p = (double *)&tmp_[0];
+                  double *dpr = (double *)&dstatei_[i][0];
+                  double *dpi = (double *)&dstatei_[j][0];
+                  for (int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2)
+                  {
+                    p[irp]=dpr[irp];
+                    p[irp+1]=dpi[irp];
+                  }
+
+                  // transform the pair of states
+                  wft_->forward( &(tmp_)[0], &buffer_forces_1_[0],
+                    &buffer_forces_2_[0] );
+
+                  // accumulate contributions in send buffer
+                  complex<double> *ps1=&send_buf_forces_[i*dc.mloc()];
+                  complex<double> *ps2=&send_buf_forces_[j*dc.mloc()];
+                  for ( int k = 0; k < dc.mloc(); k++)
+                  {
+                    ps1[k] += buffer_forces_1_[k];
+                    ps2[k] += buffer_forces_2_[k];
+                  }
+                }
+                else
+                {
+                  // there is only one force to transform
+                  wft_->forward(&(dstatei_[i])[0], &buffer_forces_1_[0]);
+
+                  // accumulate contributions in send buffer
+                  complex<double> *ps1=&send_buf_forces_[i*dc.mloc()];
+                  for ( int k = 0; k < dc.mloc(); k++ )
+                    ps1[k] += buffer_forces_1_[k];
+                }
+                i = j+1;
+              }
+            }
+          }
+        }
+        // end back transform and addition of locally computed
+        // forces to the send buffer
+        StartForcesPermutation(dc.mloc());
+      } // if dwf
+
+      KPGridPerm_.StartPermutation(0, iSendTo_, iRecvFr_);
+      CompleteSendingEnergies(iRotationStep);
+      StartEnergiesPermutation();
+      CompleteSendingOccupations(iRotationStep);
+      StartOccupationsPermutation();
+
+      // set the new number of local states
+      nStatesKpi_ = nNextStatesKpi_;
+    } // iRotationStep
+    // end of rotation of the states of kpoint i from this point
+
+#if LOAD_MATRIX
+    // collect load_matrix
+    gcontext_.isum('R', load_matrix.size(), 1, &load_matrix[0],
+                   load_matrix.size());
+    if ( gcontext_.onpe0() )
+    {
+      cout << " ExchangeOperator: load_matrix" << endl;
+      const int nst = s_.wf.nst(ispin);
+      int spreadsum = 0;
+      for ( int irot = 0; irot < gcontext_.npcol(); irot++ )
+      {
+        int rowsum = 0;
+        int wmin = nst*nst;
+        int wmax = 0;
+        for ( int icol = 0; icol < gcontext_.npcol(); icol++ )
+        {
+          int w = load_matrix[irot*gcontext_.npcol()+icol];
+          cout << " " << setw(5) << w;
+          rowsum += w;
+          wmin = min(wmin,w);
+          wmax = max(wmax,w);
+        }
+        int spread = abs(wmin-wmax);
+        cout << "   " << setw(5) << rowsum
+             << "   spread: " << spread << endl;
+        spreadsum += spread;
+      }
+      cout << endl;
+      // print sums of columns
+      int rowcolsum = 0;
+      for ( int icol = 0; icol < gcontext_.npcol(); icol++ )
+      {
+        int colsum = 0;
+        for ( int irot = 0; irot < gcontext_.npcol(); irot++ )
+        {
+          int w = load_matrix[irot*gcontext_.npcol()+icol];
+          colsum += w;
+        }
+        cout << " " << setw(5) << colsum;
+        rowcolsum += colsum;
+      }
+      cout << "   " << setw(5) << rowcolsum
+           << "   spread: " << spreadsum << endl;
+      cout << " pair fraction: " << ((double) rowcolsum)/(0.5*nst*(nst+1))
+           << endl;
+    }
+#endif
+
+    // wait for all communications to be completed
+    // complete all permutations except forces
+    CompleteReceivingStates(1);
+    CompleteSendingStates(1);
+    CompleteReceivingEnergies(1);
+    CompleteSendingEnergies(1);
+    CompleteReceivingOccupations(1);
+    CompleteSendingOccupations(1);
+
+    if (dwf)
+    {
+      // complete forces permutation
+      CompleteReceivingForces(1);
+      CompleteSendingForces(1);
+    }
+
+    KPGridPerm_.EndPermutation();
+
+    // free permutation chanels
+    FreePermutation();
+
+    // transform accumulated real-space forces to G space
+    // loop over pairs of states
+    for ( int i = 0; i < nStatesKpi_-1; i+=2 )
+    {
+      double *p = (double *)&tmp_[0];
+      double *dpr = (double *)&dstatej_[i][0];
+      double *dpi = (double *)&dstatej_[i+1][0];
+      for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+      {
+        p[irp]=dpr[irp];
+        p[irp+1]=dpi[irp];
+      }
+      // transform the pair of forces
+      wft_->forward(&(tmp_)[0], &buffer_forces_1_[0], &buffer_forces_2_[0]);
+
+      // accumulate contributions into dc
+      complex<double> *p1=dc.valptr(i*dc.mloc());
+      complex<double> *p2=dc.valptr((i+1)*dc.mloc());
+      complex<double> *pf1=&force_kpi_[i*dc.mloc()];
+      complex<double> *pf2=&force_kpi_[(i+1)*dc.mloc()];
+      for ( int j = 0; j < dc.mloc(); j++ )
+      {
+        p1[j] = buffer_forces_1_[j] + pf1[j];
+        p2[j] = buffer_forces_2_[j] + pf2[j];
+      }
+    }
+
+    // transform the last state if necessary
+    if ( nStatesKpi_ % 2 == 1 )
+    {
+      int i = nStatesKpi_ - 1;
+      // transform the force
+      wft_->forward(&(dstatej_[i])[0], &buffer_forces_1_[0]);
+
+      // accumulate contributions into dc
+      complex<double> *p1=dc.valptr(i*dc.mloc());
+      complex<double> *pf1=&force_kpi_[i*dc.mloc()];
+      for ( int j = 0; j < dc.mloc(); j++ )
+        p1[j] = buffer_forces_1_[j] + pf1[j];
+    }
+    // dc now contains the forces
+
+    // analytical expression of the subtracted part
+    const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * sqrt(rcut_) );
+    const double vbz = pow(2.0*M_PI,3.0) / omega;
+
+#define QUAD_CORRECTION 1
+    // correct the energy of state i
+    for ( int i = 0; i < sd.nstloc(); i++ )
+    {
+      double beta_x = 0.0;
+      double beta_y = 0.0;
+      double beta_z = 0.0;
+      double numerical_error = 0.0;
+      // compute the curvature terms
+      // quadratic exchange correction
+#if QUAD_CORRECTION
+      double s0=KPGridPerm_.overlaps_local(0,i);
+      double s1_x=KPGridPerm_.overlaps_first_kx(0,i)+
+           KPGridStat_.overlaps_first_kx(0,i);
+      double s2_x=KPGridPerm_.overlaps_second_kx(0,i)+
+           KPGridStat_.overlaps_second_kx(0,i);
+      double d1_x=KPGridPerm_.distance_first_kx(0);
+      double d2_x=KPGridPerm_.distance_second_kx(0);
+      beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
+        KPGridPerm_.integral_kx(0);
+
+      double s1_y=KPGridPerm_.overlaps_first_ky(0,i)+
+           KPGridStat_.overlaps_first_ky(0,i);
+      double s2_y=KPGridPerm_.overlaps_second_ky(0,i)+
+           KPGridStat_.overlaps_second_ky(0,i);
+      double d1_y=KPGridPerm_.distance_first_ky(0);
+      double d2_y=KPGridPerm_.distance_second_ky(0);
+      beta_y=(s1_y+s2_y-2.0*s0)/(d1_y*d1_y+d2_y*d2_y)*
+        KPGridPerm_.integral_ky(0);
+
+      double s1_z=KPGridPerm_.overlaps_first_kz(0,i)+
+           KPGridStat_.overlaps_first_kz(0,i);
+      double s2_z=KPGridPerm_.overlaps_second_kz(0,i)+
+           KPGridStat_.overlaps_second_kz(0,i);
+      double d1_z=KPGridPerm_.distance_first_kz(0);
+      double d2_z=KPGridPerm_.distance_second_kz(0);
+      beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
+        KPGridPerm_.integral_kz(0);
+#endif
+      if ( vcontext_.myrow() == 0 )
+      {
+        numerical_error = ( - 4.0 * M_PI / omega ) *
+          ( ( numerical_correction - integ / vbz - rcut_ *
+              KPGridPerm_.weight(0) ) * occ_ki_[i] *
+            spinFactor - ( beta_x + beta_y + beta_z ) *
+            KPGridPerm_.weight(0) );
+      }
+      else
+      {
+        numerical_error = ( - 4.0 * M_PI / omega ) *
+          ( numerical_correction * occ_ki_[i] * spinFactor -
+            ( beta_x + beta_y + beta_z ) * KPGridPerm_.weight(0) );
+      }
+
+      // sum the contribution to exchange of state i (ikp==0)
+      // add local part of the correction to the exchange energies
+      exchange_[0][i] = exchange_kj_[i] + exchange_ki_[i] - numerical_error;
+
+      // accumulate partial contributions of the exchange energies
+      // of state i
+      vcontext_.dsum('C', 1, 1, &(exchange_[0][i]), 1);
+
+      // add the energy of state i to the total exchange energy,
+      // => divide contribution by two because ij/ji were both counted
+      extot += ( exchange_[0][i] * occ_ki_[i] / 2.0 );
+
+      if (dwf)
+      {
+        // sum the partial contributions to the correction for state i
+        vcontext_.dsum('C', 1, 1, &numerical_error, 1);
+
+        // add correction to the derivatives of state i
+        complex<double> *ps=c.valptr(i*c.mloc());
+        complex<double> *pf=dc.valptr(i*dc.mloc());
+        for ( int j = 0; j < dc.mloc(); j++ )
+          pf[j] -= ps[j] * numerical_error * HFCoeff_;
+      }
+    } // for i
+  } // end of spin loop
+
+  // reduce the total energy
+  double extmp_ = extot / gcontext_.nprow();
+  MPI_Allreduce(&extmp_,&extot,1,MPI_DOUBLE,MPI_SUM,gcontext_.comm());
+
+  // print result
+  tm.stop();
+  if ( gcontext_.onpe0() )
+  {
+    cout << setprecision(10);
+    cout << " total exchange = " << extot * HFCoeff_ << " (a.u.)\n";
+    cout << " total exchange computation time: " << tm.real()
+         << " s" << endl;
+  }
+
+  // return total exchange in Hartree, multiplied by mixing coeff
+  return extot * HFCoeff_;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Communication functions
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::InitPermutation(void)
+{
+  // determine to whom we send and from whom we receive
+  colSendTo_ = ( gcontext_.mycol() < gcontext_.npcol() - 1 ) ?
+               gcontext_.mycol() + 1 : 0;
+  colRecvFr_ = ( gcontext_.mycol() > 0 ) ?
+               gcontext_.mycol() - 1 : gcontext_.npcol() - 1;
+  iSendTo_ = gcontext_.pmap( vcontext_.myrow(), colSendTo_);
+  iRecvFr_ = gcontext_.pmap( vcontext_.myrow(), colRecvFr_);
+
+  // Get communicator for this context
+  comm_ = gcontext_.comm();
+
+  // Init communication for the number of states
+  MPI_Send_init((void *) &nStatesKpi_, 1, MPI_INT,
+    iSendTo_, Tag_NumberOfStates, comm_, &send_request_NumberOfStates_ );
+  MPI_Recv_init((void *) &nNextStatesKpi_, 1, MPI_INT,
+    iRecvFr_, Tag_NumberOfStates, comm_, &recv_request_NumberOfStates_ );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::FreePermutation(void)
+{
+  // free permanent communications
+  MPI_Request_free(&send_request_NumberOfStates_);
+  MPI_Request_free(&recv_request_NumberOfStates_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Permutation of the state numbers
+// this function sets nNextStatesKpi_
+void ExchangeOperator::SetNextPermutationStateNumber(void)
+{
+  // send the number of states to be send
+  MPI_Start(&send_request_NumberOfStates_);
+  MPI_Start(&recv_request_NumberOfStates_);
+
+  // wait for the number of states to receive to be transmitted
+  {
+    MPI_Status status_recv;
+    MPI_Status status_send;
+    MPI_Wait( &recv_request_NumberOfStates_, &status_recv);
+    MPI_Wait( &send_request_NumberOfStates_, &status_send);
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// send the states in send_buf_states to the next column
+// recieve the states from the previous column in state_kpi_
+void ExchangeOperator::StartStatesPermutation(int mloc)
+{
+  // send the states
+  if ( nStatesKpi_>0 )
+  {
+    wait_send_states_=1;
+    MPI_Isend((void *) &send_buf_states_[0], 2*nStatesKpi_*mloc,
+      MPI_DOUBLE, iSendTo_, Tag_States, comm_, &send_request_States_ );
+  }
+  else
+  {
+    wait_send_states_=0;
+  }
+
+  // receive the states
+  if ( nNextStatesKpi_>0 )
+  {
+    wait_recv_states_=1;
+    MPI_Irecv((void *) &state_kpi_[0], 2*nNextStatesKpi_*mloc,
+      MPI_DOUBLE, iRecvFr_, Tag_States, comm_, &recv_request_States_ );
+  }
+  else
+  {
+    wait_recv_states_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::CompleteReceivingStates(int iRotationStep)
+{
+  // do something only if iRotationStep>0
+  if ( iRotationStep != 0 && wait_recv_states_ )
+  {
+    // wait for the reception
+    MPI_Status status;
+    MPI_Wait( &recv_request_States_, &status);
+
+    // init reception flag
+    wait_recv_states_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::CompleteSendingStates(int iRotationStep)
+{
+  // do something only if iRotationStep>0
+  if ( iRotationStep != 0 && wait_send_states_ )
+  {
+    // wait for the reception
+    MPI_Status status;
+    MPI_Wait( &send_request_States_, &status);
+
+    // init reception flag
+    wait_send_states_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// StartForcesPermutation
+// send the forces in send_buf_forces to the next column
+// receive the forces from the previous column in force_kpi_
+void ExchangeOperator::StartForcesPermutation(int mloc)
+{
+  // send the forces
+  if ( nStatesKpi_>0 )
+  {
+    wait_send_forces_=1;
+    MPI_Isend((void *) &send_buf_forces_[0], 2*nStatesKpi_*mloc,
+      MPI_DOUBLE, iSendTo_, Tag_Forces, comm_, &send_request_Forces_ );
+  }
+  else
+  {
+    wait_send_forces_=0;
+  }
+
+  // receive the forces
+  if ( nNextStatesKpi_>0 )
+  {
+    wait_recv_forces_=1;
+    MPI_Irecv((void *) &force_kpi_[0], 2*nNextStatesKpi_*mloc,
+      MPI_DOUBLE, iRecvFr_, Tag_Forces, comm_, &recv_request_Forces_ );
+  }
+  else
+  {
+    wait_recv_forces_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::CompleteReceivingForces(int iRotationStep)
+{
+  // do something only if iRotationStep>0
+  if ( iRotationStep != 0 && wait_recv_forces_ )
+  {
+    // wait for the reception
+    MPI_Status status;
+    MPI_Wait( &recv_request_Forces_, &status);
+
+    // init reception flag
+    wait_recv_forces_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::CompleteSendingForces(int iRotationStep)
+{
+  // do something only if iRotationStep>0
+  if ( iRotationStep != 0 && wait_send_forces_ )
+  {
+    // wait for the reception
+    MPI_Status status;
+    MPI_Wait( &send_request_Forces_, &status);
+
+    // init reception flag
+    wait_send_forces_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// StartEnergiesPermutation
+// store then send the energies in send_buf_exchange_ to the next column
+// receive the energies from the previous column in exchange_ki_
+void ExchangeOperator::StartEnergiesPermutation(void)
+{
+  // store energies in the send buffer
+  for ( int i=0; i<nStatesKpi_; i++ )
+    send_buf_exchange_[i]=exchange_ki_[i];
+
+  // send the exchange energies
+  if ( nStatesKpi_>0 )
+  {
+    wait_send_energies_=1;
+    MPI_Isend((void *) &send_buf_exchange_[0], nStatesKpi_,
+      MPI_DOUBLE, iSendTo_, Tag_Exchange, comm_, &send_request_Exchange_ );
+  }
+  else
+  {
+    wait_send_energies_=0;
+  }
+
+  // receive the exchange energies
+  if ( nNextStatesKpi_>0 )
+  {
+    wait_recv_energies_=1;
+    MPI_Irecv((void *) &exchange_ki_[0], nNextStatesKpi_,
+      MPI_DOUBLE, iRecvFr_, Tag_Exchange, comm_, &recv_request_Exchange_ );
+  }
+  else
+  {
+    wait_recv_energies_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::CompleteReceivingEnergies(int iRotationStep)
+{
+  if ( iRotationStep != 0 && wait_recv_energies_ )
+  {
+    // wait for the reception
+    MPI_Status status;
+    MPI_Wait( &recv_request_Exchange_, &status);
+
+    // init reception flag
+    wait_recv_energies_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::CompleteSendingEnergies(int iRotationStep)
+{
+  if ( iRotationStep != 0 && wait_send_energies_ )
+  {
+    // wait for the reception
+    MPI_Status status;
+    MPI_Wait( &send_request_Exchange_, &status);
+
+    // init reception flag
+    wait_send_energies_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// StartOccupationsPermutation
+// store then send the occupations in send_buf_occupation_ to the next column
+// receive the occupations from the previous column in occ_ki_
+void ExchangeOperator::StartOccupationsPermutation(void)
+{
+  // store energies in the send buffer
+  for ( int i=0; i<nStatesKpi_; i++ )
+    send_buf_occupation_[i]=occ_ki_[i];
+
+  // send the occupations
+  if ( nStatesKpi_>0 )
+  {
+    wait_send_occupations_=1;
+    MPI_Isend((void *) &send_buf_occupation_[0], nStatesKpi_,
+      MPI_DOUBLE, iSendTo_, Tag_Occupation, comm_, &send_request_Occupation_ );
+  }
+  else
+  {
+    wait_send_occupations_=0;
+  }
+
+  // receive the occupations
+  if ( nNextStatesKpi_>0 )
+  {
+    wait_recv_occupations_=1;
+    MPI_Irecv((void *) &occ_ki_[0], nNextStatesKpi_,
+      MPI_DOUBLE, iRecvFr_, Tag_Occupation, comm_, &recv_request_Occupation_ );
+  }
+  else
+  {
+    wait_recv_occupations_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::CompleteReceivingOccupations(int iRotationStep)
+{
+  if ( iRotationStep != 0 && wait_recv_occupations_ )
+  {
+    // wait for the reception
+    MPI_Status status;
+    MPI_Wait( &recv_request_Occupation_, &status);
+
+    // init reception flag
+    wait_recv_occupations_=0;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ExchangeOperator::CompleteSendingOccupations(int iRotationStep)
+{
+  if ( iRotationStep != 0 && wait_send_occupations_ )
+  {
+    // wait for the reception
+    MPI_Status status;
+    MPI_Wait( &send_request_Occupation_, &status);
+
+    // init reception flag
+    wait_send_occupations_=0;
+  }
+}

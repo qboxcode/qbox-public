@@ -15,7 +15,6 @@
 // jade.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: jade.C,v 1.4 2008-09-08 15:56:20 fgygi Exp $
 
 #include <cmath>
 #include <cassert>
@@ -46,7 +45,13 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
   const bool debug_diag_sum = false;
 
   const double eps = numeric_limits<double>::epsilon();
-  assert(tol>eps);
+  if (tol<eps)
+  {
+    if ( u.context().onpe0() )
+    {
+        cout << " warning: jade tol=" << tol << " < eps=" << eps << endl;
+    }
+  }
   const Context& ctxt = u.context();
   // The input matrices are *a[k]
   // the orthogonal transformation is returned in u
@@ -64,8 +69,8 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
     assert(a[k]->nb()==u.nb());
   }
 
-  const int mloc = a[0]->mloc();
-  const int nloc = a[0]->nloc();
+  int mloc = a[0]->mloc();
+  int nloc = a[0]->nloc();
   //cout << ctxt.mype() << ": nloc: " << nloc << endl;
 
   // identify the last active process column
@@ -193,7 +198,6 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
       // skip the pair if one or both of the vectors is a dummy vector
       // i.e. a vector having jglobal==-1
 
-      int mloc = a[0]->mloc();
       for ( int k = 0; k < a.size(); k++ )
       {
         for ( int ipair = 0; ipair < nploc; ipair++ )
@@ -317,12 +321,10 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
           {
             double *ap = acol[k][top[ipair]];
             double *aq = acol[k][bot[ipair]];
-            int mloc = a[k]->mloc();
             drot(&mloc,ap,&one,aq,&one,&c,&s);
           }
           double *up = ucol[top[ipair]];
           double *uq = ucol[bot[ipair]];
-          int mloc = u.mloc();
           drot(&mloc,up,&one,uq,&one,&c,&s);
 
           // new value of off-diag element apq
@@ -488,7 +490,6 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
           // compute the diagonal elements
           // skip dummy vectors
           int one = 1;
-          int mloc = a[k]->mloc();
           if ( jglobal[top[ipair]] >= 0 )
           {
             const double *ap = acol[k][top[ipair]];
@@ -508,6 +509,7 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
         }
       }
       ctxt.dsum('r',1,1,&diag_sum,1);
+#ifdef DEBUG
       const double diag_sum_increase = diag_sum - previous_diag_sum;
       if ( ctxt.onpe0() )
         cout << " jade: nsweep=" << nsweep
@@ -515,36 +517,80 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
              << setw(15) << setprecision(10) << diag_sum
              << " dsum_inc: "
              << setw(15) << setprecision(10) << diag_sum_increase << endl;
+#endif
     }
-
+#ifdef DEBUG
     if ( ctxt.onpe0() )
       cout << " jade: nsweep=" << nsweep
            << " dchange: "
            << setw(15) << setprecision(10) << diag_change << endl;
-
+#endif
     done = ( ( fabs(diag_change) < tol ) || ( nsweep >= maxsweep ) );
 
   } // while !done
 
-  // if a dummy vector was used, (i.e. if nloc_odd), the dummy vector
-  // may end up anywhere in the array after all rotations are completed.
-  // The array a_aux may contain a (non-dummy) vector.
+#ifdef DEBUG
+  //print final values of jglobal[top[i]] and jglobal[bot[i]]
+  cout << "final jglobal[top/bot] values:" << endl;
+  cout << ctxt.mype() << ": top: ";
+  for ( int i = 0; i < nploc; i++ )
+    cout << " " << jglobal[top[i]];
+  cout << endl;
+  cout << ctxt.mype() << ": bot: ";
+  for ( int i = 0; i < nploc; i++ )
+    cout << " " << jglobal[bot[i]];
+  cout << endl;
+  //print final values of top and bot
+  cout << "final top/bot values:" << endl;
+  cout << ctxt.mype() << ": top: ";
+  for ( int i = 0; i < nploc; i++ )
+    cout << " " << top[i];
+  cout << endl;
+  cout << ctxt.mype() << ": bot: ";
+  for ( int i = 0; i < nploc; i++ )
+    cout << " " << bot[i];
+  cout << endl;
+#endif
 
-  if ( nloc_odd )
+  // rotate columns of a and u to restore original order
+  double *tmpmat = new double[nloc*mloc];
+  // rotate columns of a
+  for ( int k = 0; k < a.size(); k++ )
   {
-    // find position of the dummy vector and copy a_aux onto it
-    int idum = 0;
-    while ( jglobal[idum] != -1 && idum < 2*nploc ) idum++;
-    //cout << ctxt.mype() << ": idum=" << idum << endl;
-    if ( idum != 2*nploc-1 )
+    for ( int ipair = 0; ipair < nploc; ipair++ )
     {
-      for ( int k = 0; k < a.size(); k++ )
+      // copy columns of a[k] to temporary array tmpmat in original order
+      if ( jglobal[top[ipair]] >= 0 )
       {
-        memcpy(acol[k][idum],&a_aux[k][0],mloc*sizeof(double));
+        memcpy(&tmpmat[ipair*mloc], acol[k][top[ipair]], mloc*sizeof(double));
       }
-      memcpy(ucol[idum],&u_aux[0],mloc*sizeof(double));
+      if ( jglobal[bot[nploc-ipair-1]] >= 0 )
+      {
+        memcpy(&tmpmat[(nploc+ipair)*mloc],acol[k][bot[nploc-ipair-1]],
+               mloc*sizeof(double));
+      }
+    }
+    // copy tmpmat back to a[k]
+    memcpy(acol[k][0],tmpmat,nloc*mloc*sizeof(double));
+  }
+
+  // rotate columns of u
+  for ( int ipair = 0; ipair < nploc; ipair++ )
+  {
+    // copy columns of u to temporary array tmpmat in original order
+    if ( jglobal[top[ipair]] >= 0 )
+    {
+      memcpy(&tmpmat[ipair*mloc], ucol[top[ipair]], mloc*sizeof(double));
+    }
+    if ( jglobal[bot[nploc-ipair-1]] >= 0 )
+    {
+      memcpy(&tmpmat[(nploc+ipair)*mloc],ucol[bot[nploc-ipair-1]],
+             mloc*sizeof(double));
     }
   }
+  // copy tmpmat back to u
+  memcpy(ucol[0],tmpmat,nloc*mloc*sizeof(double));
+  delete [] tmpmat;
 
   // compute diagonal values
   for ( int k = 0; k < a.size(); k++ )
@@ -559,7 +605,6 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
         int jjj = y + jblock*a[k]->nb();
         const double *ap = a[k]->valptr(jjj*a[k]->mloc());
         const double *up = u.valptr(jjj*u.mloc());
-        int mloc = a[k]->mloc();
         int one = 1;
         adiag[k][j] = ddot(&mloc,ap,&one,up,&one);
       }
@@ -571,8 +616,9 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
     // u contains the orthogonal transformation minimizing the spread
   }
 
+#ifdef DEBUG
   if ( ctxt.onpe0() )
     cout << " jade: comm time: " << tm_comm.real() << endl;
-
+#endif
   return nsweep;
 }

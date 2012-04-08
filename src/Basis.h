@@ -15,7 +15,6 @@
 //  Basis.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Basis.h,v 1.11 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef BASIS_H
 #define BASIS_H
@@ -24,8 +23,6 @@
 #include "UnitCell.h"
 #include "Context.h"
 #include <vector>
-
-class Context;
 
 class Basis
 {

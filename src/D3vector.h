@@ -17,7 +17,6 @@
 // double 3-vectors
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: D3vector.h,v 1.8 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef D3VECTOR_H
 #define D3VECTOR_H

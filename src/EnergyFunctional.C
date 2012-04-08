@@ -24,7 +24,7 @@
 #include "Basis.h"
 #include "FourierTransform.h"
 #include "StructureFactor.h"
-#include "XCPotential.h"
+#include "XCOperator.h"
 #include "NonLocalPotential.h"
 #include "ConfinementPotential.h"
 
@@ -37,7 +37,7 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
+EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
  : s_(s), cd_(cd)
 {
   const AtomSet& atoms = s_.atoms;
@@ -53,11 +53,8 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
   sigma.resize(6);
 
   vbasis_ = cd_.vbasis();
-  //cout << vbasis_->context().mype() << ": vbasis_->context() = "
-  //     << vbasis_->context() << endl;
 
   // define FT's on vbasis contexts
-
   vft = cd_.vft();
   int np0v = vft->np0();
   int np1v = vft->np1();
@@ -79,7 +76,6 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
   }
 
   const int ngloc = vbasis_->localsize();
-  //cout << " EnergyFunctional: ngloc: " << ngloc << endl;
 
   nsp_ = atoms.nsp();
 
@@ -100,11 +96,16 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
     if ( atoms.na(is) > namax_ ) namax_ = atoms.na(is);
   }
 
-  xcp = new XCPotential(cd_,s_.ctrl.xc);
-  nlp.resize(wf.nkp());
-  for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+  xco = new XCOperator(s_, cd_);
+
+  nlp.resize(wf.nspin());
+  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
   {
-    nlp[ikp] = new NonLocalPotential(s_.atoms, *wf.sd(0,ikp));
+    nlp[ispin].resize(wf.nkp());
+    for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+    {
+      nlp[ispin][ikp] = new NonLocalPotential(s_.atoms, *wf.sd(ispin,ikp));
+    }
   }
 
   vion_local_g.resize(ngloc);
@@ -162,16 +163,18 @@ EnergyFunctional::EnergyFunctional(const Sample& s, const ChargeDensity& cd)
   cell_moved();
 
   atoms_moved();
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 EnergyFunctional::~EnergyFunctional(void)
 {
-  delete xcp;
+  delete xco;
   for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
   {
     delete cfp[ikp];
-    delete nlp[ikp];
+    for ( int ispin = 0; ispin < nlp.size(); ispin++ )
+      delete nlp[ispin][ikp];
   }
 
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
@@ -228,9 +231,15 @@ void EnergyFunctional::update_vhxc(void)
   tmap["exc"].start();
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     fill(v_r[ispin].begin(),v_r[ispin].end(),0.0);
-  xcp->update(v_r);
-  exc_ = xcp->exc();
+  xco->update_v(v_r);
+  exc_ = xco->exc();
   tmap["exc"].stop();
+
+  // update self-energy operator
+  exhf_ = 0.0;
+  tmap["exhf"].start();
+  exhf_ = xco->update_sigma();
+  tmap["exhf"].stop();
 
   // compute local potential energy:
   // integral of el. charge times ionic local pot.
@@ -309,7 +318,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   const double omega_inv = 1.0 / omega;
   const int ngloc = vbasis_->localsize();
   const double *const g2i = vbasis_->g2i_ptr();
-  assert(wf.nspin()==1);
 
   const bool use_confinement = s_.ctrl.ecuts > 0.0;
 
@@ -566,7 +574,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   // Stress from exchange-correlation
   if ( compute_stress )
   {
-    xcp->compute_stress(sigma_exc);
+    xco->compute_stress(sigma_exc);
   }
 
   // Non local energy and forces
@@ -581,8 +589,10 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   sigma_enl = 0.0;
   for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
   {
-    enl_ += wf.weight(ikp) * nlp[ikp]->energy(compute_hpsi,*dwf.sd(0,ikp),
-            compute_forces, fion_enl, compute_stress, sigma_enl_kp);
+    for ( int ispin = 0; ispin < nlp.size(); ispin++ )
+      enl_ += wf.weight(ikp) * nlp[ispin][ikp]->energy(compute_hpsi,
+              *dwf.sd(ispin,ikp), compute_forces, fion_enl, compute_stress,
+              sigma_enl_kp);
 
     if ( compute_forces )
       for ( int is = 0; is < nsp_; is++ )
@@ -592,7 +602,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     if ( compute_stress )
       sigma_enl += wf.weight(ikp) * sigma_enl_kp;
   }
-  // add here sum of enl across rows of kpcontext
   tmap["nonlocal"].stop();
 
   ecoul_ = ehart_ + esr_ - eself_;
@@ -603,12 +612,11 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
     ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
   }
-  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_;
+  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_ + exhf_;
 
   if ( compute_hpsi )
   {
     tmap["hpsi"].start();
-    assert(wf.nspin()==1);
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
       for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
@@ -645,9 +653,15 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
             }
           }
         }
+
+        // local potential
         sd.rs_mul_add(*ft[ikp], &v_r[ispin][0], sdp);
-      }
-    }
+      } //ikp
+    } //ispin
+
+    // apply self-energy operator
+    xco->apply_sigma(dwf);
+
     tmap["hpsi"].stop();
   } // if compute_hpsi
 
@@ -1013,7 +1027,8 @@ void EnergyFunctional::cell_moved(void)
   for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
   {
     cfp[ikp]->update();
-    nlp[ikp]->update_twnl();
+    for ( int ispin = 0; ispin < nlp.size(); ispin++ )
+      nlp[ispin][ikp]->update_twnl();
   }
 }
 
@@ -1023,16 +1038,17 @@ void EnergyFunctional::print(ostream& os) const
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
   os << setprecision(8);
-  os << "  <ekin>   " << setw(15) << ekin() << " </ekin>\n"
-     << "  <econf>  " << setw(15) << econf() << " </econf>\n"
-     << "  <eps>    " << setw(15) << eps() << " </eps>\n"
-     << "  <enl>    " << setw(15) << enl() << " </enl>\n"
-     << "  <ecoul>  " << setw(15) << ecoul() << " </ecoul>\n"
-     << "  <exc>    " << setw(15) << exc() << " </exc>\n"
-     << "  <esr>    " << setw(15) << esr() << " </esr>\n"
-     << "  <eself>  " << setw(15) << eself() << " </eself>\n"
-     << "  <ets>    " << setw(15) << ets() << " </ets>\n"
-     << "  <eexf>   " << setw(15) << eexf() << " </eexf>\n"
+  os << "  <ekin>   " << setw(15) << ekin()   << " </ekin>\n"
+     << "  <econf>  " << setw(15) << econf()  << " </econf>\n"
+     << "  <eps>    " << setw(15) << eps()    << " </eps>\n"
+     << "  <enl>    " << setw(15) << enl()    << " </enl>\n"
+     << "  <ecoul>  " << setw(15) << ecoul()  << " </ecoul>\n"
+     << "  <exc>    " << setw(15) << exc()    << " </exc>\n"
+     << "  <exhf>   " << setw(15) << exhf()   << " </exhf>\n"
+     << "  <esr>    " << setw(15) << esr()    << " </esr>\n"
+     << "  <eself>  " << setw(15) << eself()  << " </eself>\n"
+     << "  <ets>    " << setw(15) << ets()    << " </ets>\n"
+     << "  <eexf>   " << setw(15) << eexf()   << " </eexf>\n"
      << "  <etotal> " << setw(15) << etotal() << " </etotal>\n"
      << flush;
 }

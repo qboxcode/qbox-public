@@ -15,7 +15,6 @@
 // WavefunctionHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: WavefunctionHandler.C,v 1.21 2009-11-30 02:47:04 fgygi Exp $
 
 #if USE_XERCES
 
@@ -128,7 +127,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     wf_.set_nel(nel);
     wf_.set_nspin(nspin);
     wf_.set_nempty(nempty);
-    assert(nspin==1);
+    dmat_.resize(nspin);
   }
   else if ( locname == "domain")
   {
@@ -289,7 +288,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       if ( attrname == "kpoint")
       {
         stst >> current_kx >> current_ky >> current_kz;
-        cout << " read slater_determinant kpoint=" << current_kx
+        cout << " kpoint=" << current_kx
              << " " << current_ky << " " << current_kz;
       }
       else if ( attrname == "weight" )
@@ -300,19 +299,42 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       else if ( attrname == "size" )
       {
         stst >> current_size;
-        cout << " size=" << current_size << endl;
+        cout << " size=" << current_size;
+      }
+      else if ( attrname == "spin" )
+      {
+        std::string spin;
+        stst >> spin;
+        if (spin == "up" ) current_ispin=0;
+        else if (spin == "down" )
+        {
+          int last_ispin=current_ispin;
+          current_ispin=1;
+          // reset kpoint index if necessary
+          if ( last_ispin==0 && current_ispin==1 )
+          {
+            current_ikp=0;
+          }
+        }
+        cout << " read slater_determinant: spin=" << spin;
       }
     }
+    cout << endl;
     // notify listening nodes: slater_determinant
     event = slater_determinant;
     wf_.context().ibcast_send(1,1,(int*)&event,1);
 
     // send kpoint and weight to listening nodes
-    double buf[4];
+    double buf[6];
     buf[0] = current_kx; buf[1] = current_ky; buf[2] = current_kz;
     buf[3] = current_weight;
-    wf_.context().dbcast_send(4,1,buf,4);
-    wf_.add_kpoint(D3vector(current_kx,current_ky,current_kz),current_weight);
+    buf[4] = current_ispin;
+    buf[5] = current_ikp;
+    wf_.context().dbcast_send(6,1,buf,6);
+    // add kpoint only if spin is up (if spin is down,
+    // the kpoint should be defined already)
+    if ( current_ispin == 0 )
+      wf_.add_kpoint(D3vector(current_kx,current_ky,current_kz),current_weight);
     assert(current_size==wf_.sd(current_ispin,current_ikp)->nst());
 
     const Basis& basis = wf_.sd(current_ispin,current_ikp)->basis();

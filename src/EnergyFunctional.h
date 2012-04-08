@@ -15,7 +15,6 @@
 // EnergyFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: EnergyFunctional.h,v 1.20 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef ENERGYFUNCTIONAL_H
 #define ENERGYFUNCTIONAL_H
@@ -35,7 +34,7 @@ class AtomSet;
 class Wavefunction;
 class UnitCell;
 class FourierTransform;
-class XCPotential;
+class XCOperator;
 class NonLocalPotential;
 class ConfinementPotential;
 
@@ -45,14 +44,14 @@ class EnergyFunctional
 {
   private:
 
-  const Sample& s_;
+  Sample& s_;
   const ChargeDensity& cd_;
   Basis* vbasis_;
   FourierTransform *vft;
   std::vector<FourierTransform*> ft;
   StructureFactor sf;
-  XCPotential* xcp;
-  std::vector<NonLocalPotential*> nlp;    // nlp[ikp]
+  XCOperator* xco;
+  std::vector<std::vector<NonLocalPotential*> > nlp;    // nlp[ispin][ikp]
   std::vector<ConfinementPotential*> cfp; // cfp[ikp]
 
   std::vector<std::vector<double> > vps, dvps, rhops;
@@ -67,7 +66,7 @@ class EnergyFunctional
   int namax_;
   int nsp_;
   double ekin_, econf_, eps_, enl_, ehart_,
-         ecoul_, exc_, esr_, eself_, ets_, eexf_, etotal_;
+         ecoul_, exc_, esr_, eself_, ets_, eexf_, exhf_, etotal_;
   std::valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
     sigma_enl, sigma_esr, sigma;
 
@@ -88,6 +87,7 @@ class EnergyFunctional
   double ehart(void) const { return ehart_; }
   double ecoul(void) const { return ecoul_; }
   double exc(void) const { return exc_; }
+  double exhf(void) const { return exhf_; }
   double esr(void) const { return esr_; }
   double eself(void) const { return eself_; }
   double ets(void) const { return ets_; }
@@ -102,7 +102,7 @@ class EnergyFunctional
 
   void print(std::ostream& os) const;
 
-  EnergyFunctional(const Sample& s, const ChargeDensity& cd);
+  EnergyFunctional(Sample& s, const ChargeDensity& cd);
   ~EnergyFunctional();
 };
 std::ostream& operator << ( std::ostream& os, const EnergyFunctional& e );

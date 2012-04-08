@@ -63,5 +63,8 @@ struct Control
   double charge_mix_coeff;
   double charge_mix_rcut;
   int    charge_mix_ndim;
+
+  int blHF[3];
+  double btHF;
 };
 #endif

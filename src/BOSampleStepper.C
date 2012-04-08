@@ -267,6 +267,9 @@ void BOSampleStepper::step(int niter)
   }
 
   MLWFTransform* mlwft=0;
+  MLWFTransform* mlwft_up=0;
+  MLWFTransform* mlwft_dn=0;
+
 
   if ( compute_mlwf || compute_mlwfc )
   {
@@ -282,19 +285,78 @@ void BOSampleStepper::step(int niter)
       }
       return;
     }
-    assert(wf.nspin()==1);
-    mlwft = new MLWFTransform(*wf.sd(0,0));
+    if (wf.nspin()==1)
+    {
+      mlwft = new MLWFTransform(*wf.sd(0,0));
+    }
+    else
+    {
+      mlwft_up = new MLWFTransform(*wf.sd(0,0));
+      mlwft_dn = new MLWFTransform(*wf.sd(1,0));
+    }
   }
 
   // Charge mixing variables
+/*
   vector<complex<double> > rhog_in(cd_.rhog[0]);
   vector<complex<double> > drhog(rhog_in.size());
   vector<complex<double> > rhobar(rhog_in.size());
   vector<complex<double> > drhobar(rhog_in.size());
-  vector<double> wkerker(rhog_in.size());
-  vector<double> wls(rhog_in.size());
+*/
   const int anderson_ndim = s_.ctrl.charge_mix_ndim;
-  AndersonMixer mixer(2*rhog_in.size(),anderson_ndim,&cd_.vcontext());
+  vector<double> wkerker(cd_.rhog[0].size());
+  vector<double> wls(cd_.rhog[0].size());
+
+
+
+  // declare without initializing
+  AndersonMixer* mixer=0;
+  AndersonMixer* mixer_up=0;
+  AndersonMixer* mixer_dn=0;
+
+  vector<complex<double> > rhog_in;
+  vector<complex<double> > drhog;
+  vector<complex<double> > rhobar;
+  vector<complex<double> > drhobar;
+
+  vector<complex<double> > rhog_in_up;
+  vector<complex<double> > drhog_up;
+  vector<complex<double> > rhobar_up;
+  vector<complex<double> > drhobar_up;
+
+  vector<complex<double> > rhog_in_dn;
+  vector<complex<double> > drhog_dn;
+  vector<complex<double> > rhobar_dn;
+  vector<complex<double> > drhobar_dn;
+
+  // initialize according to spin requirement
+  if (wf.nspin()==1)
+  {
+    rhog_in.resize(cd_.rhog[0].size());
+    rhog_in=cd_.rhog[0];
+    drhog.resize(rhog_in.size());
+    rhobar.resize(rhog_in.size());
+    drhobar.resize(rhog_in.size());
+    mixer = new AndersonMixer(2*rhog_in.size(),anderson_ndim,&cd_.vcontext());
+  }
+  else
+  {
+    // spin up
+    rhog_in_up.resize(cd_.rhog[0].size());
+    rhog_in_up=cd_.rhog[0];
+    drhog_up.resize(rhog_in_up.size());
+    rhobar_up.resize(rhog_in_up.size());
+    drhobar_up.resize(rhog_in_up.size());
+    mixer_up = new AndersonMixer(2*rhog_in_up.size(),anderson_ndim,&cd_.vcontext());
+    // spin down
+    rhog_in_dn.resize(cd_.rhog[1].size());
+    rhog_in_dn=cd_.rhog[1];
+    drhog_dn.resize(rhog_in_dn.size());
+    rhobar_dn.resize(rhog_in_dn.size());
+    drhobar_dn.resize(rhog_in_dn.size());
+    mixer_dn = new AndersonMixer(2*rhog_in_dn.size(),anderson_ndim,&cd_.vcontext());
+  }
+
 
   // compute Kerker preconditioning
   // real space Kerker cutoff in a.u.
@@ -370,7 +432,6 @@ void BOSampleStepper::step(int niter)
       const bool compute_forces = true;
       double energy =
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
-      double enthalpy = energy;
 
       if ( onpe0 )
       {
@@ -386,14 +447,12 @@ void BOSampleStepper::step(int niter)
              << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
              << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
              << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
-             << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n";
-        if ( s_.extforces.size() > 0 )
-          cout << "  <eexf>     " << setw(15) << ef_.eexf() << " </eexf>\n";
-        cout << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
+             << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n"
+             << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
         if ( compute_stress )
         {
           const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-          enthalpy = ef_.etotal() + pext * cell.volume();
+          const double enthalpy = ef_.etotal() + pext * cell.volume();
           cout << "  <pv>     " << setw(15) << pext * cell.volume()
                << " </pv>" << endl;
           cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
@@ -440,13 +499,7 @@ void BOSampleStepper::step(int niter)
           }
         }
         cout << "</atomset>" << endl;
-
-        // compute the kinetic energy of the stepper e.g. in the
-        // BDP thermostat
-        double ekin_stepper;
-        if ( ionic_stepper != 0 )
-          ekin_stepper = ionic_stepper->ekin_stepper();
-        cout << "  <econst> " << energy+ekin_ion+ekin_stepper << " </econst>\n";
+        cout << "  <econst> " << energy+ekin_ion << " </econst>\n";
         cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
         cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";
       }
@@ -473,7 +526,7 @@ void BOSampleStepper::step(int niter)
 
         if ( cell_moves )
         {
-          cell_stepper->compute_new_cell(enthalpy,sigma,fion);
+          cell_stepper->compute_new_cell(energy,sigma,fion);
 
           // Update cell
           cell_stepper->update_cell();
@@ -488,28 +541,7 @@ void BOSampleStepper::step(int niter)
     } // if !gs_only
 
     // Recalculate ground state wavefunctions
-#ifdef DEBUG
-    for ( int ispin = 0; ispin < nspin; ispin++ )
-    {
-      for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
-      {
-        double sum = s_.wf.sd(ispin,ikp)->empty_row_error() ;
-        if ( onpe0 )
-        {
-          cout.setf(ios::scientific,ios::floatfield);
-          cout << " sd empty row error: ispin="
-               << ispin << " ikp=" << ikp << "  " << sum << endl;
-        }
-        sum = s_.wf.sd(ispin,ikp)->g0_imag_error() ;
-        if ( onpe0 )
-        {
-          cout.setf(ios::scientific,ios::floatfield);
-          cout << " sd g0 imag error: ispin="
-               << ispin << " ikp=" << ikp << "  " << sum << endl;
-        }
-      }
-    }
-#endif
+
     // wavefunction extrapolation
     if ( atoms_move && extrapolate_wf )
     {
@@ -716,11 +748,19 @@ void BOSampleStepper::step(int niter)
     // do nitscf self-consistent iterations, each with nite electronic steps
     if ( wf_stepper != 0 )
     {
-      assert(cd_.rhog.size()==1); // works for nspin=1 only
-
       wf_stepper->preprocess();
       if ( anderson_charge_mixing )
-        mixer.restart();
+      {
+        if (s_.wf.nspin()==1)
+        {
+          mixer->restart();
+        }
+        else
+        {
+          mixer_up->restart();
+          mixer_dn->restart();
+        }
+      }
 
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
       {
@@ -742,53 +782,160 @@ void BOSampleStepper::step(int niter)
           {
             // at first scf iteration, nothing to mix
             // memorize rhog in rhog_in for next iteration
-            rhog_in = cd_.rhog[0];
+
+            if (s_.wf.nspin()==1)
+            {
+              rhog_in = cd_.rhog[0];
+            }
+            else
+            {
+              rhog_in_up = cd_.rhog[0];
+              rhog_in_dn = cd_.rhog[1];
+            }
           }
           else
           {
             // itscf > 0
             // compute unscreened correction drhog
-            for ( int i=0; i < rhog_in.size(); i++ )
-              drhog[i] = (cd_.rhog[0][i] - rhog_in[i]);
+            if (s_.wf.nspin()==1)
+            {
+              for ( int i=0; i < rhog_in.size(); i++ )
+              {
+                drhog[i] = (cd_.rhog[0][i] - rhog_in[i]);
+              }
+            }
+            else
+            {
+              for ( int i=0; i < rhog_in_up.size(); i++ )
+              {
+                drhog_up[i] = (cd_.rhog[0][i] - rhog_in_up[i]);
+                drhog_dn[i] = (cd_.rhog[1][i] - rhog_in_dn[i]);
+              }
+            }
 
             const double alpha = s_.ctrl.charge_mix_coeff;
             // Anderson acceleration
             if ( anderson_charge_mixing )
             {
               // row weighting of LS calculation
-              for ( int i=0; i < drhog.size(); i++ )
-                drhog[i] /= wls[i];
+              if (s_.wf.nspin()==1)
+              {
+                for ( int i=0; i < drhog.size(); i++ )
+                {
+                  drhog[i] /= wls[i];
+                }
+              }
+              else
+              {
+                for ( int i=0; i < drhog_up.size(); i++ )
+                {
+                  drhog_up[i] /= wls[i];
+                  drhog_dn[i] /= wls[i];
+                }
+              }
 
               const Context * const kpctxt = s_.wf.kpcontext();
               if ( kpctxt->mycol() == 0 )
               {
                 // use AndersonMixer on first column only and bcast results
-                mixer.update((double*)&rhog_in[0],(double*)&drhog[0],
-                           (double*)&rhobar[0],(double*)&drhobar[0]);
-                const int n = 2*rhobar.size();
-                kpctxt->dbcast_send('r',n,1,(double*)&rhobar[0],n);
-                kpctxt->dbcast_send('r',n,1,(double*)&drhobar[0],n);
+                if (s_.wf.nspin()==1)
+                {
+                  mixer->update((double*)&rhog_in[0],(double*)&drhog[0],
+                              (double*)&rhobar[0],(double*)&drhobar[0]);
+                  const int n = 2*rhobar.size();
+                  kpctxt->dbcast_send('r',n,1,(double*)&rhobar[0],n);
+                  kpctxt->dbcast_send('r',n,1,(double*)&drhobar[0],n);
+                }
+                else
+                {
+                  // spin up
+                  mixer_up->update((double*)&rhog_in_up[0],(double*)&drhog_up[0],
+                              (double*)&rhobar_up[0],(double*)&drhobar_up[0]);
+                  int n = 2*rhobar_up.size();
+                  kpctxt->dbcast_send('r',n,1,(double*)&rhobar_up[0],n);
+                  kpctxt->dbcast_send('r',n,1,(double*)&drhobar_up[0],n);
+                  // spin down
+                  mixer_dn->update((double*)&rhog_in_dn[0],(double*)&drhog_dn[0],
+                              (double*)&rhobar_dn[0],(double*)&drhobar_dn[0]);
+                  n = 2*rhobar_dn.size();
+                  kpctxt->dbcast_send('r',n,1,(double*)&rhobar_dn[0],n);
+                  kpctxt->dbcast_send('r',n,1,(double*)&drhobar_dn[0],n);
+                }
               }
               else
               {
-                const int n = 2*rhobar.size();
-                kpctxt->dbcast_recv('r',n,1,(double*)&rhobar[0],n,-1,0);
-                kpctxt->dbcast_recv('r',n,1,(double*)&drhobar[0],n,-1,0);
+                if (s_.wf.nspin()==1)
+                {
+                  const int n = 2*rhobar.size();
+                  kpctxt->dbcast_recv('r',n,1,(double*)&rhobar[0],n,-1,0);
+                  kpctxt->dbcast_recv('r',n,1,(double*)&drhobar[0],n,-1,0);
+                }
+                else
+                {
+                  // spin up
+                  int n = 2*rhobar_up.size();
+                  kpctxt->dbcast_recv('r',n,1,(double*)&rhobar_up[0],n,-1,0);
+                  kpctxt->dbcast_recv('r',n,1,(double*)&drhobar_up[0],n,-1,0);
+                  // spin down
+                  n = 2*rhobar_dn.size();
+                  kpctxt->dbcast_recv('r',n,1,(double*)&rhobar_dn[0],n,-1,0);
+                  kpctxt->dbcast_recv('r',n,1,(double*)&drhobar_dn[0],n,-1,0);
+                }
               }
 
-              for ( int i=0; i < drhog.size(); i++ )
-                drhobar[i] *= wls[i];
-
-              for ( int i=0; i < rhog_in.size(); i++ )
-                rhog_in[i] = rhobar[i] + alpha * drhobar[i] * wkerker[i];
+              if (s_.wf.nspin()==1)
+              {
+                for ( int i=0; i < drhog.size(); i++ )
+                {
+                  drhobar[i] *= wls[i];
+                }
+                for ( int i=0; i < rhog_in.size(); i++ )
+                {
+                  rhog_in[i] = rhobar[i] + alpha * drhobar[i] * wkerker[i];
+                }
+              }
+              else
+              {
+                for ( int i=0; i < drhog_up.size(); i++ )
+                {
+                  drhobar_up[i] *= wls[i];
+                  drhobar_dn[i] *= wls[i];
+                }
+                for ( int i=0; i < rhog_in_up.size(); i++ )
+                {
+                  rhog_in_up[i] = rhobar_up[i] + alpha * drhobar_up[i] * wkerker[i];
+                  rhog_in_dn[i] = rhobar_dn[i] + alpha * drhobar_dn[i] * wkerker[i];
+                }
+              }
             }
             else
             {
-              for ( int i=0; i < rhog_in.size(); i++ )
-                rhog_in[i] += alpha * drhog[i] * wkerker[i];
+              if (s_.wf.nspin()==1)
+              {
+                for ( int i=0; i < rhog_in.size(); i++ )
+                {
+                  rhog_in[i] += alpha * drhog[i] * wkerker[i];
+                }
+              }
+              else
+              {
+                for ( int i=0; i < rhog_in_up.size(); i++ )
+                {
+                  rhog_in_up[i] += alpha * drhog_up[i] * wkerker[i];
+                  rhog_in_dn[i] += alpha * drhog_dn[i] * wkerker[i];
+                }
+              }
             }
 
-            cd_.rhog[0] = rhog_in;
+            if (s_.wf.nspin()==1)
+            {
+              cd_.rhog[0] = rhog_in;
+            }
+            else
+            {
+              cd_.rhog[0] = rhog_in_up;
+              cd_.rhog[1] = rhog_in_dn;
+            }
             cd_.update_rhor();
           }
         } // if nite_ > 1
@@ -801,7 +948,6 @@ void BOSampleStepper::step(int niter)
         for ( int ite = 0; ite < nite_; ite++ )
         {
           double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
-          double enthalpy = energy;
 
           // compute the sum of eigenvalues (with fixed weight)
           // to measure convergence of the subspace update
@@ -825,7 +971,7 @@ void BOSampleStepper::step(int niter)
             if ( compute_stress )
             {
               const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-              enthalpy = energy + pext * cell.volume();
+              const double enthalpy = energy + pext * cell.volume();
               cout << "  <enthalpy_int> " << setw(15)
                    << enthalpy << " </enthalpy_int>\n"
                    << flush;
@@ -885,39 +1031,127 @@ void BOSampleStepper::step(int niter)
 
       if ( compute_mlwf || compute_mlwfc )
       {
-        SlaterDet& sd = *(wf.sd(0,0));
-        mlwft->compute_transform();
+        if (s_.wf.nspin()==1)
+        {
+          mlwft->compute_transform();
+        }
+        else
+        {
+          mlwft_up->compute_transform();
+          mlwft_dn->compute_transform();
+        }
 
         if ( compute_mlwf )
-          mlwft->apply_transform(sd);
+        {
+          if (s_.wf.nspin()==1)
+          {
+            SlaterDet& sd = *(wf.sd(0,0));
+            mlwft->apply_transform(sd);
+          }
+          else
+          {
+            SlaterDet& sd_up = *(wf.sd(0,0));
+            SlaterDet& sd_dn = *(wf.sd(1,0));
+            mlwft_up->apply_transform(sd_up);
+            mlwft_dn->apply_transform(sd_dn);
+          }
+        }
 
         if ( onpe0 )
         {
-          cout << " <mlwf_set size=\"" << sd.nst() << "\">" << endl;
-          for ( int i = 0; i < sd.nst(); i++ )
+          if (s_.wf.nspin()==1)
           {
-            D3vector ctr = mlwft->center(i);
-            double sp = mlwft->spread(i);
-            cout.setf(ios::fixed, ios::floatfield);
-            cout.setf(ios::right, ios::adjustfield);
-            cout << "   <mlwf center=\"" << setprecision(6)
-                 << setw(12) << ctr.x
-                 << setw(12) << ctr.y
-                 << setw(12) << ctr.z
-                 << " \" spread=\" " << sp << " \"/>"
-                 << endl;
+            SlaterDet& sd = *(wf.sd(0,0));
+            cout << " <mlwf_set size=\"" << sd.nst() << "\">" << endl;
+            for ( int i = 0; i < sd.nst(); i++ )
+            {
+              D3vector ctr = mlwft->center(i);
+              double sp = mlwft->spread(i);
+              cout.setf(ios::fixed, ios::floatfield);
+              cout.setf(ios::right, ios::adjustfield);
+              cout << "   <mlwf center=\"" << setprecision(6)
+                   << setw(12) << ctr.x
+                   << setw(12) << ctr.y
+                   << setw(12) << ctr.z
+                   << " \" spread=\" " << sp << " \"/>"
+                   << endl;
+            }
+
+            cout << " </mlwf_set>" << endl;
+            D3vector edipole = mlwft->dipole();
+            cout << " <electronic_dipole> " << edipole
+                 << " </electronic_dipole>" << endl;
+            D3vector idipole = atoms.dipole();
+            cout << " <ionic_dipole> " << idipole
+                 << " </ionic_dipole>" << endl;
+            cout << " <total_dipole> " << idipole + edipole
+                 << " </total_dipole>" << endl;
+            cout << " <total_dipole_length> " << length(idipole + edipole)
+                 << " </total_dipole_length>" << endl;
           }
-          cout << " </mlwf_set>" << endl;
-          D3vector edipole = mlwft->dipole();
-          cout << " <electronic_dipole> " << edipole
-               << " </electronic_dipole>" << endl;
-          D3vector idipole = atoms.dipole();
-          cout << " <ionic_dipole> " << idipole
-               << " </ionic_dipole>" << endl;
-          cout << " <total_dipole> " << idipole + edipole
-               << " </total_dipole>" << endl;
-          cout << " <total_dipole_length> " << length(idipole + edipole)
-               << " </total_dipole_length>" << endl;
+          else
+          {
+            // spin up
+            {
+              SlaterDet& sd = *(wf.sd(0,0));
+              cout << " <mlwf_set_spin_up size=\"" << sd.nst() << "\">" << endl;
+              for ( int i = 0; i < sd.nst(); i++ )
+              {
+                D3vector ctr = mlwft_up->center(i);
+                double sp = mlwft_up->spread(i);
+                cout.setf(ios::fixed, ios::floatfield);
+                cout.setf(ios::right, ios::adjustfield);
+                cout << "   <mlwf center=\"" << setprecision(6)
+                     << setw(12) << ctr.x
+                     << setw(12) << ctr.y
+                     << setw(12) << ctr.z
+                     << " \" spread=\" " << sp << " \"/>"
+                     << endl;
+              }
+
+              cout << " </mlwf_set_spin_up>" << endl;
+              D3vector edipole = mlwft_up->dipole();
+              cout << " <electronic_dipole_spin_up> " << edipole
+                   << " </electronic_dipole_spin_up>" << endl;
+              D3vector idipole = atoms.dipole();
+              cout << " <ionic_dipole_spin_up> " << idipole
+                   << " </ionic_dipole_spin_up>" << endl;
+              cout << " <total_dipole_spin_up> " << idipole + edipole
+                   << " </total_dipole_spin_up>" << endl;
+              cout << " <total_dipole_length_spin_up> " << length(idipole + edipole)
+                   << " </total_dipole_length_spin_up>" << endl;
+            }
+            // spin down
+            {
+              SlaterDet& sd = *(wf.sd(1,0));
+              cout << " <mlwf_set_spin_down size=\"" << sd.nst() << "\">" << endl;
+              for ( int i = 0; i < sd.nst(); i++ )
+              {
+                D3vector ctr = mlwft_dn->center(i);
+                double sp = mlwft_dn->spread(i);
+                cout.setf(ios::fixed, ios::floatfield);
+                cout.setf(ios::right, ios::adjustfield);
+                cout << "   <mlwf center=\"" << setprecision(6)
+                     << setw(12) << ctr.x
+                     << setw(12) << ctr.y
+                     << setw(12) << ctr.z
+                     << " \" spread=\" " << sp << " \"/>"
+                     << endl;
+              }
+
+              cout << " </mlwf_set_spin_down>" << endl;
+              D3vector edipole = mlwft_dn->dipole();
+              cout << " <electronic_dipole_spin_down> " << edipole
+                   << " </electronic_dipole_spin_down>" << endl;
+              D3vector idipole = atoms.dipole();
+              cout << " <ionic_dipole_spin_down> " << idipole
+                   << " </ionic_dipole_spin_down>" << endl;
+              cout << " <total_dipole_spin_down> " << idipole + edipole
+                   << " </total_dipole_spin_down>" << endl;
+              cout << " <total_dipole_length_spin_down> " << length(idipole + edipole)
+                   << " </total_dipole_length_spin_down>" << endl;
+            }
+          }
         }
       }
 
@@ -1088,7 +1322,19 @@ void BOSampleStepper::step(int niter)
     s_.wfv = 0;
   }
 
-  delete mlwft;
+
+  if ( s_.wf.nspin()==1 )
+  {
+   delete mlwft;
+   delete mixer;
+  }
+  else
+  {
+    delete mlwft_up;
+    delete mlwft_dn;
+    delete mixer_up;
+    delete mixer_dn;
+  }
 
   // delete steppers
   delete wf_stepper;

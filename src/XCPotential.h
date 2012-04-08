@@ -51,6 +51,7 @@ class XCPotential
   public:
 
   const XCFunctional* xcf() { return xcf_; }
+  bool isGGA(void);
   XCPotential(const ChargeDensity& cd, const std::string functional_name);
   ~XCPotential();
   void update(std::vector<std::vector<double> >& vr);

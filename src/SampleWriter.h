@@ -21,6 +21,7 @@
 #define SAMPLEWRITER_H
 
 #include "Context.h"
+#include <string>
 class Sample;
 
 class SampleWriter

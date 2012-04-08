@@ -15,7 +15,6 @@
 // Wavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.C,v 1.38 2010-02-20 23:13:02 fgygi Exp $
 
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -77,23 +76,28 @@ void Wavefunction::allocate(void)
 {
   // create SlaterDets using kpoint list
   const int nkp = kpoint_.size();
-  assert(nspin_ == 1);
   sd_.resize(nspin_);
-  sd_[0].resize(nkp);
-
-  for ( int ikp = 0; ikp < nkp; ikp++ )
-    sd_[0][ikp] = new SlaterDet(*sdcontext_,kpoint_[ikp]);
+  for ( int ispin = 0; ispin < nspin_; ispin ++ )
+  {
+    sd_[ispin].resize(nkp);
+    for ( int ikp = 0; ikp < nkp; ikp++ )
+    {
+      sd_[ispin][ikp] = new SlaterDet(*sdcontext_,kpoint_[ikp]);
+    }
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::deallocate(void)
 {
-  assert (nspin_==1);
-  for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+  for ( int ispin = 0; ispin < sd_.size(); ispin ++ )
   {
-    delete sd_[0][ikp];
+    for ( int ikp = 0; ikp < sd_[ispin].size(); ikp++ )
+    {
+      delete sd_[ispin][ikp];
+    }
+    sd_[ispin].resize(0);
   }
-  sd_[0].resize(0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -119,10 +123,13 @@ int Wavefunction::nst(int ispin) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int Wavefunction::nempty() const { return nempty_; } // number of empty states
+int Wavefunction::nempty() const { return nempty_; }
 
 ////////////////////////////////////////////////////////////////////////////////
-int Wavefunction::nspin() const { return nspin_; } // number of spin components
+int Wavefunction::nspin() const { return nspin_; }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::deltaspin() const { return deltaspin_; }
 
 ////////////////////////////////////////////////////////////////////////////////
 double Wavefunction::entropy(void) const
@@ -269,13 +276,23 @@ void Wavefunction::set_nspin(int nspin)
   if ( nspin == nspin_ ) return;
 
   deallocate();
-  cout << " Wavefunction::set_nspin: " << nspin << " deallocate done" << endl;
-
   nspin_ = nspin;
 
   compute_nst();
   allocate();
-  cout << " Wavefunction::set_nspin: " << nspin << " allocate done" << endl;
+  resize(cell_,refcell_,ecut_);
+  reset();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void Wavefunction::set_deltaspin(int deltaspin)
+{
+  if ( deltaspin == deltaspin_ ) return;
+
+  deallocate();
+  deltaspin_ = deltaspin;
+  compute_nst();
+  allocate();
   resize(cell_,refcell_,ecut_);
   init();
 }
@@ -336,10 +353,12 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
   weight_.push_back(weight);
 
   const int nkp = kpoint_.size();
-  assert(nspin_ == 1);
   sd_.resize(nspin_);
-  sd_[0].push_back(new SlaterDet(*sdcontext_,kpoint_[nkp-1]));
-  sd_[0][nkp-1]->resize(cell_,refcell_,ecut_,nst_[0]);
+  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  {
+    sd_[ispin].push_back(new SlaterDet(*sdcontext_,kpoint_[nkp-1]));
+    sd_[ispin][nkp-1]->resize(cell_,refcell_,ecut_,nst_[ispin]);
+  }
   update_occ(0.0);
 }
 

@@ -66,7 +66,15 @@ int main(int argc, char **argv)
       throw;
     }
 
-    cout << basis;
+    for (int ipe = 0; ipe < ctxt.size(); ipe++ )
+    {
+      ctxt.barrier();
+      if ( ipe == ctxt.mype() )
+      {
+        cout << basis;
+        cout << endl;
+      }
+    }
 
     //Basis b2(basis);
     //cout << b2;

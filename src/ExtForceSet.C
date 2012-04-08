@@ -26,6 +26,7 @@
 #include "Context.h"
 #include <iostream>
 #include <iomanip>
+#include <cstdlib> // atof
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////

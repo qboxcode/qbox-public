@@ -15,7 +15,6 @@
 // Wavefunction.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Wavefunction.h,v 1.24 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef WAVEFUNCTION_H
 #define WAVEFUNCTION_H

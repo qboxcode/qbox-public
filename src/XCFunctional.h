@@ -15,7 +15,6 @@
 // XCFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XCFunctional.h,v 1.7 2009-06-29 09:57:57 fgygi Exp $
 
 //
 // Abstract base class for density functionals

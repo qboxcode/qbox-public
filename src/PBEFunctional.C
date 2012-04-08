@@ -15,7 +15,6 @@
 // PBEFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PBEFunctional.C,v 1.9 2009-06-29 09:58:34 fgygi Exp $
 
 #include "PBEFunctional.h"
 #include <cmath>
@@ -378,6 +377,11 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
     vx2_dn = - exunif * fs / ( tworho * 4.0 * fk * fk );
   }
 
+  /* set negative densities to 0 for correlation part */
+
+  if ( rho_up < 1.e-18 ) rho_up=0.0;
+  if ( rho_dn < 1.e-18 ) rho_dn=0.0;
+
   /* correlation */
 
   // Find LSD contributions, using [c] (10) and Table I of [c].
@@ -460,14 +464,14 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   vc1_dn += ccomm - pref;
   vc2 = - ht / ( rhotot * twoksg * twoksg );
 
-  *exc_up = ex_up + ec + h;
-  *exc_dn = ex_dn + ec + h;
-  *vxc1_up = vx1_up + vc1_up;
-  *vxc1_dn = vx1_dn + vc1_dn;
-  *vxc2_upup = 2 * vx2_up + vc2;
-  *vxc2_dndn = 2 * vx2_dn + vc2;
-  *vxc2_updn = vc2;
-  *vxc2_dnup = vc2;
+*exc_up = x_coeff_ * ex_up + c_coeff_ * ( ec + h );
+*exc_dn = x_coeff_ * ex_dn + c_coeff_ * ( ec + h );
+*vxc1_up = x_coeff_ * vx1_up + c_coeff_ * vc1_up;
+*vxc1_dn = x_coeff_ * vx1_dn + c_coeff_ * vc1_dn;
+*vxc2_upup = x_coeff_ * 2 * vx2_up + c_coeff_ * vc2;
+*vxc2_dndn = x_coeff_ * 2 * vx2_dn + c_coeff_ * vc2;
+*vxc2_updn = c_coeff_ * vc2;
+*vxc2_dnup = c_coeff_ * vc2;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

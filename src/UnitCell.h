@@ -21,7 +21,6 @@
 #define UNITCELL_H
 
 #include "D3vector.h"
-#include <valarray>
 #include <iosfwd>
 
 class UnitCell

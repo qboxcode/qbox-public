@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008-2010 The Regents of the University of California
+// Copyright (c) 2008-2012 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -15,7 +15,6 @@
 // qb.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qb.C,v 1.68 2010-05-10 20:07:43 fgygi Exp $
 
 #include <iostream>
 #include <string>
@@ -73,8 +72,11 @@ using namespace std;
 #include "StatusCmd.h"
 #include "StrainCmd.h"
 #include "TorsionCmd.h"
+#include "BisectionCmd.h"
 
 #include "AtomsDyn.h"
+#include "BlHF.h"
+#include "BtHF.h"
 #include "Cell.h"
 #include "CellDyn.h"
 #include "CellLock.h"
@@ -83,6 +85,7 @@ using namespace std;
 #include "ChargeMixNdim.h"
 #include "ChargeMixRcut.h"
 #include "Debug.h"
+#include "Dspin.h"
 #include "Ecut.h"
 #include "Ecutprec.h"
 #include "Ecuts.h"
@@ -93,6 +96,7 @@ using namespace std;
 #include "Nempty.h"
 #include "NetCharge.h"
 #include "Nrowmax.h"
+#include "Nspin.h"
 #include "RefCell.h"
 #include "Stress.h"
 #include "Thermostat.h"
@@ -271,8 +275,11 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new StatusCmd(s));
   ui.addCmd(new StrainCmd(s));
   ui.addCmd(new TorsionCmd(s));
+  ui.addCmd(new BisectionCmd(s));
 
   ui.addVar(new AtomsDyn(s));
+  ui.addVar(new BlHF(s));
+  ui.addVar(new BtHF(s));
   ui.addVar(new Cell(s));
   ui.addVar(new CellDyn(s));
   ui.addVar(new CellLock(s));
@@ -291,6 +298,8 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Nempty(s));
   ui.addVar(new NetCharge(s));
   ui.addVar(new Nrowmax(s));
+  ui.addVar(new Nspin(s));
+  ui.addVar(new Dspin(s));
   ui.addVar(new RefCell(s));
   ui.addVar(new Stress(s));
   ui.addVar(new Thermostat(s));

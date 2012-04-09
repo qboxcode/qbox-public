@@ -995,7 +995,9 @@ void BOSampleStepper::step(int niter)
                 const int nst = wf.sd(ispin,ikp)->nst();
                 const double eVolt = 2.0 * 13.6058;
                 cout <<    "  <eigenvalues spin=\"" << ispin
-                     << "\" kpoint=\"" << wf.sd(ispin,ikp)->kpoint()
+                     << "\" kpoint=\""
+                     << setprecision(8)
+                     << wf.sd(ispin,ikp)->kpoint()
                      << "\" n=\"" << nst << "\">" << endl;
                 for ( int i = 0; i < nst; i++ )
                 {

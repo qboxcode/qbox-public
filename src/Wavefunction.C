@@ -77,7 +77,7 @@ void Wavefunction::allocate(void)
   // create SlaterDets using kpoint list
   const int nkp = kpoint_.size();
   sd_.resize(nspin_);
-  for ( int ispin = 0; ispin < nspin_; ispin ++ )
+  for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
     sd_[ispin].resize(nkp);
     for ( int ikp = 0; ikp < nkp; ikp++ )
@@ -90,7 +90,7 @@ void Wavefunction::allocate(void)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::deallocate(void)
 {
-  for ( int ispin = 0; ispin < sd_.size(); ispin ++ )
+  for ( int ispin = 0; ispin < sd_.size(); ispin++ )
   {
     for ( int ikp = 0; ikp < sd_[ispin].size(); ikp++ )
     {
@@ -281,7 +281,7 @@ void Wavefunction::set_nspin(int nspin)
   compute_nst();
   allocate();
   resize(cell_,refcell_,ecut_);
-  reset();
+  init();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

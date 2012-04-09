@@ -1192,8 +1192,7 @@ void SlaterDet::randomize(double amplitude)
 {
   if ( basis_->size() == 0 )
     return;
-  // Note: randomization results depend on the process grid size and shape
-  srand48(ctxt_.myproc());
+
   for ( int n = 0; n < c_.nloc(); n++ )
   {
     complex<double>* p = c_.valptr(c_.mloc()*n);

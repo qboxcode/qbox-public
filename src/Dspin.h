@@ -62,7 +62,7 @@ class Dspin : public Var
      st.setf(ios::left,ios::adjustfield);
      st << setw(10) << name() << " = ";
      st.setf(ios::right,ios::adjustfield);
-     st << setw(10) << 2 * s->wf.deltaspin();
+     st << setw(10) << s->wf.deltaspin();
      return st.str();
   }
 

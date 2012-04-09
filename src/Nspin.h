@@ -65,7 +65,7 @@ class Nspin : public Var
      st.setf(ios::left,ios::adjustfield);
      st << setw(10) << name() << " = ";
      st.setf(ios::right,ios::adjustfield);
-     st << setw(10) << 2 * s->wf.nspin();
+     st << setw(10) << s->wf.nspin();
      return st.str();
   }
 

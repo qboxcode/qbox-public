@@ -39,7 +39,7 @@ class Dspin : public Var
     if ( argc != 2 )
     {
       if ( ui->onpe0() )
-      cout << " delta_spin takes only one value" << endl;
+        cout << " delta_spin takes only one value" << endl;
       return 1;
     }
 
@@ -48,6 +48,13 @@ class Dspin : public Var
     {
       if ( ui->onpe0() )
         cout << " delta_spin must >= 0" << endl;
+      return 1;
+    }
+
+    if ( s->wf.nspin() < 2 )
+    {
+      if ( ui->onpe0() )
+        cout << " Cannot set delta_spin: nspin == 1" << endl;
       return 1;
     }
 

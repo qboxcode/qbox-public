@@ -335,7 +335,7 @@ int main(int argc, char **argv, char **envp)
     // cmd line: qb -server inputfilename outputfilename
     if ( strcmp(argv[1],"-server") )
     {
-      // first argument is not "-strcmp"
+      // first argument is not "-server"
       cout << " use: qb [infile | -server infile outfile]" << endl;
       ctxt.abort(1);
     }

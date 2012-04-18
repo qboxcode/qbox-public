@@ -20,6 +20,7 @@
 #define CONTEXT_H
 
 #include <iosfwd>
+#include <string>
 
 #if USE_MPI
 #include <mpi.h>

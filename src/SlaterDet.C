@@ -165,7 +165,6 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
           // transform each state from old basis to grid to new basis
           for ( int n = 0; n < nstloc(); n++ )
           {
-            # pragma omp parallel for
             for ( int i = 0; i < tmpr.size(); i++ )
               tmpr[i] = 0.0;
             ft1.backward(ctmp.cvalptr(n*ctmp.mloc()),&tmpr[0]);
@@ -281,7 +280,6 @@ void SlaterDet::compute_density(FourierTransform& ft,
         const double* psi = (double*) &tmp[0];
         int ii = 0;
         //tm_rhosum.start();
-        # pragma omp parallel for
         for ( int i = 0; i < np012loc; i++ )
         {
           const double psi1 = psi[ii];
@@ -304,7 +302,6 @@ void SlaterDet::compute_density(FourierTransform& ft,
         ft.backward(c_.cvalptr(n*c_.mloc()),&tmp[0]);
         const double* psi = (double*) &tmp[0];
         int ii = 0;
-        # pragma omp parallel for
         for ( int i = 0; i < np012loc; i++ )
         {
           const double psi1 = psi[ii];
@@ -326,7 +323,6 @@ void SlaterDet::compute_density(FourierTransform& ft,
       if ( fac > 0.0 )
       {
         ft.backward(c_.cvalptr(n*c_.mloc()),&tmp[0]);
-        # pragma omp parallel for
         for ( int i = 0; i < np012loc; i++ )
           rho[i] += fac * norm(tmp[i]);
       }
@@ -362,7 +358,6 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
       ft.backward(c_.cvalptr(n*mloc),
                  c_.cvalptr((n+1)*mloc),&tmp[0]);
       int ii = 0;
-      # pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
       {
         const double psi1 = p[ii];
@@ -383,7 +378,6 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
       const int n = nstloc()-1;
       ft.backward(c_.cvalptr(n*mloc),&tmp[0]);
       int ii = 0;
-      # pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
       {
         const double psi1 = p[ii];
@@ -405,7 +399,6 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
     for ( int n = 0; n < nstloc(); n++ )
     {
       ft.backward(c_.cvalptr(n*mloc),&tmp[0]);
-      # pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
         tmp[i] *= v[i];
       ft.forward(&tmp[0], &ctmp[0]);
@@ -533,7 +526,6 @@ void SlaterDet::riccati(const SlaterDet& sd)
       // x = s - 0.5 * ( r - xm )^T * ( r - xm )
       // Note: t and r are not symmetric, x, xm, and s are symmetric
 
-      # pragma omp parallel for
       for ( int i = 0; i < t.size(); i++ )
         t[i] = r[i] - xm[i];
 
@@ -543,7 +535,6 @@ void SlaterDet::riccati(const SlaterDet& sd)
       // get full matrix x
       x.symmetrize('l');
 
-      # pragma omp parallel for
       for ( int i = 0; i < t.size(); i++ )
         t[i] = x[i] - xm[i];
 
@@ -595,7 +586,6 @@ void SlaterDet::riccati(const SlaterDet& sd)
       // x = s - 0.5 * ( r - xm )^H * ( r - xm )
       // Note: t and r are not hermitian, x, xm, and s are hermitian
 
-      # pragma omp parallel for
       for ( int i = 0; i < t.size(); i++ )
         t[i] = r[i] - xm[i];
 
@@ -603,7 +593,6 @@ void SlaterDet::riccati(const SlaterDet& sd)
       x.herk('l','c',-0.5,t,1.0);
       x.symmetrize('l');
 
-      # pragma omp parallel for
       for ( int i = 0; i < t.size(); i++ )
         t[i] = x[i] - xm[i];
 
@@ -663,13 +652,11 @@ void SlaterDet::lowdin(void)
       // t now contains X^-T
 
       // xp = 0.5 * ( x + x^-T );
-      # pragma omp parallel for
       for ( int i = 0; i < x.size(); i++ )
         xp[i] = 0.5 * ( x[i] + t[i] );
 
 
       // Next lines: use t as temporary to compute || x - xp ||_F
-      # pragma omp parallel for
       for ( int i = 0; i < t.size(); i++ )
         t[i] = x[i] - xp[i];
 
@@ -812,13 +799,11 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
       // t now contains X^-T
 
       // xp = 0.5 * ( x + x^-T );
-      # pragma omp parallel for
       for ( int i = 0; i < x.size(); i++ )
         xp[i] = 0.5 * ( x[i] + t[i] );
 
 
       // Next lines: use t as temporary to compute || x - xp ||_F
-      # pragma omp parallel for
       for ( int i = 0; i < t.size(); i++ )
         t[i] = x[i] - xp[i];
 
@@ -955,7 +940,6 @@ void SlaterDet::align(const SlaterDet& sd)
       // t now contains X^-T
 
       // xp = 0.5 * ( x + x^-T );
-      # pragma omp parallel for
       for ( int i = 0; i < x.size(); i++ )
         xp[i] = 0.5 * ( x[i] + t[i] );
 

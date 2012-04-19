@@ -74,7 +74,7 @@ int walsh(int l, int n, int i)
 Bisection::Bisection(Sample& s, int nlevels[3]) : s_(s)
 {
   // localization vectors are long int
-  assert(sizeof(long int) == 8);
+  assert(sizeof(long int) >= 4);
 
   Wavefunction& wf = s_.wf;
   gcontext_ = wf.sd(0,0)->context();

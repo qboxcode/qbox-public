@@ -37,6 +37,9 @@ using namespace std;
 #if USE_UUID
 #include "uuid_str.h"
 #endif
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 #include "Context.h"
 #include "UserInterface.h"
@@ -241,6 +244,16 @@ int main(int argc, char **argv, char **envp)
   if ( ctxt.onpe0() )
     cout << "</mpi_processes>" << endl;
 #endif // USE_MPI
+
+#ifdef _OPENMP
+  if ( ctxt.onpe0() )
+  #pragma omp parallel
+  {
+    #pragma omp master
+    cout << "<omp_num_threads> " << omp_get_num_threads() 
+         << " </omp_num_threads>" << endl;
+  }
+#endif
 
   Sample* s = new Sample(ctxt);
 

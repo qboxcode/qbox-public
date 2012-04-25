@@ -33,6 +33,7 @@ void LDAFunctional::setxc(void)
     assert(rho != 0);
     assert(exc != 0);
     assert(vxc1 != 0);
+    #pragma omp parallel for
     for ( int ir = 0; ir < _np; ir++ )
     {
       xc_unpolarized(rho[ir],exc[ir],vxc1[ir]);
@@ -48,6 +49,7 @@ void LDAFunctional::setxc(void)
     assert(vxc1_dn != 0);
     const double fz_prefac = 1.0 / ( cbrt(2.0)*2.0 - 2.0 );
     const double dfz_prefac = (4.0/3.0) * fz_prefac;
+    #pragma omp parallel for
     for ( int ir = 0; ir < _np; ir++ )
     {
       double excir = 0.0;

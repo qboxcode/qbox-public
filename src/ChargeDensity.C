@@ -24,6 +24,7 @@
 #include "SlaterDet.h"
 
 #include <iomanip>
+#include <algorithm> // fill
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -128,9 +129,7 @@ void ChargeDensity::update_density(void)
     assert(rhotmp.size() == vft_->np012loc() );
     const int rhor_size = rhor[ispin].size();
     tmap["charge_compute"].start();
-    double *p = &rhor[ispin][0];
-    for ( int i = 0; i < rhor_size; i++ )
-      p[i] = 0.0;
+    fill(rhor[ispin].begin(),rhor[ispin].end(),0.0);
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
       assert(rhor[ispin].size()==ft_[ikp]->np012loc());
@@ -150,6 +149,7 @@ void ChargeDensity::update_density(void)
     double sum = 0.0;
     const double *const prhor = &rhor[ispin][0];
     tmap["charge_integral"].start();
+    #pragma omp parallel for reduction(+:sum)
     for ( int i = 0; i < rhor_size; i++ )
     {
       const double prh = prhor[i];
@@ -192,6 +192,7 @@ void ChargeDensity::update_rhor(void)
 
     const int rhor_size = rhor[ispin].size();
     double *const prhor = &rhor[ispin][0];
+    #pragma omp parallel for
     for ( int i = 0; i < rhor_size; i++ )
     {
       prhor[i] = rhotmp[i].real() * omega_inv;

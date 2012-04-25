@@ -247,12 +247,8 @@ int main(int argc, char **argv, char **envp)
 
 #ifdef _OPENMP
   if ( ctxt.onpe0() )
-  #pragma omp parallel
-  {
-    #pragma omp master
-    cout << "<omp_num_threads> " << omp_get_num_threads() 
-         << " </omp_num_threads>" << endl;
-  }
+    cout << "<omp_max_threads> " << omp_get_max_threads() 
+         << " </omp_max_threads>" << endl;
 #endif
 
   Sample* s = new Sample(ctxt);

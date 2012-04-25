@@ -76,6 +76,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   int nspin = 1;
   int current_ispin = 0;
   int current_ikp;
+  int current_size;
   dmat.resize(nspin);
 
   MemBufInputSource* memBufIS = 0;
@@ -386,12 +387,17 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
       {
         // process SlaterDet
         // receive kpoint and weight
-        double buf[6];
-        ctxt_.dbcast_recv(6,1,buf,6,0,0);
+        double buf[7];
+        ctxt_.dbcast_recv(7,1,buf,7,0,0);
         current_ispin=(int) buf[4];
         current_ikp=(int) buf[5];
+        current_size=(int) buf[6];
         if ( current_ispin == 0 )
           current_wf->add_kpoint(D3vector(buf[0],buf[1],buf[2]),buf[3]);
+
+        // resize sd(current_ispin,current_ikp)->nst() == current_size
+        current_wf->sd(current_ispin,current_ikp)->resize(current_wf->cell(),
+          current_wf->refcell(), current_wf->ecut(), current_size);
 
         // receive density_matrix
         vector<double> dmat_tmp(current_wf->nst());

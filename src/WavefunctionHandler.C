@@ -325,17 +325,21 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     wf_.context().ibcast_send(1,1,(int*)&event,1);
 
     // send kpoint and weight to listening nodes
-    double buf[6];
+    double buf[7];
     buf[0] = current_kx; buf[1] = current_ky; buf[2] = current_kz;
     buf[3] = current_weight;
     buf[4] = current_ispin;
     buf[5] = current_ikp;
-    wf_.context().dbcast_send(6,1,buf,6);
+    buf[6] = current_size;
+    wf_.context().dbcast_send(7,1,buf,7);
     // add kpoint only if spin is up (if spin is down,
     // the kpoint should be defined already)
     if ( current_ispin == 0 )
       wf_.add_kpoint(D3vector(current_kx,current_ky,current_kz),current_weight);
-    assert(current_size==wf_.sd(current_ispin,current_ikp)->nst());
+
+    // resize sd(current_ispin,current_ikp)->nst() == current_size
+    wf_.sd(current_ispin,current_ikp)->resize(wf_.cell(),
+      wf_.refcell(), wf_.ecut(), current_size);
 
     const Basis& basis = wf_.sd(current_ispin,current_ikp)->basis();
     ft = new FourierTransform(basis,nx_,ny_,nz_);

@@ -94,6 +94,7 @@ void PBEFunctional::setxc(void)
     assert( exc != 0 );
     assert( vxc1 != 0 );
     assert( vxc2 != 0 );
+    #pragma omp parallel for
     for ( int i = 0; i < _np; i++ )
     {
       double grad = sqrt(grad_rho[0][i]*grad_rho[0][i] +
@@ -117,6 +118,7 @@ void PBEFunctional::setxc(void)
     assert( vxc2_dnup != 0 );
     assert( vxc2_dndn != 0 );
 
+    #pragma omp parallel for
     for ( int i = 0; i < _np; i++ )
     {
       double grx_up = grad_rho_up[0][i];

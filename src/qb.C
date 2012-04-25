@@ -247,7 +247,7 @@ int main(int argc, char **argv, char **envp)
 
 #ifdef _OPENMP
   if ( ctxt.onpe0() )
-    cout << "<omp_max_threads> " << omp_get_max_threads() 
+    cout << "<omp_max_threads> " << omp_get_max_threads()
          << " </omp_max_threads>" << endl;
 #endif
 

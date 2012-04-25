@@ -357,16 +357,11 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
     {
       ft.backward(c_.cvalptr(n*mloc),
                  c_.cvalptr((n+1)*mloc),&tmp[0]);
-      int ii = 0;
+
+      #pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
-      {
-        const double psi1 = p[ii];
-        const double psi2 = p[ii+1];
-        const double vii = v[i];
-        p[ii]   = vii * psi1;
-        p[ii+1] = vii * psi2;
-        ii++; ii++;
-      }
+        tmp[i] *= v[i];
+
       ft.forward(&tmp[0], &ctmp[0], &ctmp[mloc]);
       int len = 4 * mloc;
       int inc1 = 1;
@@ -377,15 +372,11 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
     {
       const int n = nstloc()-1;
       ft.backward(c_.cvalptr(n*mloc),&tmp[0]);
-      int ii = 0;
+
+      #pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
-      {
-        const double psi1 = p[ii];
-        const double vii = v[i];
-        p[ii]   = vii * psi1;
-        p[ii+1] = 0.0;
-        ii++; ii++;
-      }
+        tmp[i] *= v[i];
+
       ft.forward(&tmp[0], &ctmp[0]);
       int len = 2 * mloc;
       int inc1 = 1;
@@ -399,8 +390,11 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
     for ( int n = 0; n < nstloc(); n++ )
     {
       ft.backward(c_.cvalptr(n*mloc),&tmp[0]);
+
+      #pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
         tmp[i] *= v[i];
+
       ft.forward(&tmp[0], &ctmp[0]);
       int len = 2 * mloc;
       int inc1 = 1;

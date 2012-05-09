@@ -19,6 +19,7 @@
 #include <cassert>
 #include <vector>
 #include <complex>
+#include <limits>
 #include <iostream>
 using namespace std;
 
@@ -2082,8 +2083,9 @@ void DoubleMatrix::trtri(char uplo, char diag)
 ////////////////////////////////////////////////////////////////////////////////
 // Polar decomposition A = UH
 // Replace *this with its orthogonal polar factor U
+// return when iter > maxiter or ||I - X^T*X|| < tol
 ////////////////////////////////////////////////////////////////////////////////
-void DoubleMatrix::polar(void)
+void DoubleMatrix::polar(double tol, int maxiter)
 {
   DoubleMatrix x(ctxt_,m_,mb_,n_,nb_);
   DoubleMatrix xp(ctxt_,m_,mb_,n_,nb_);
@@ -2093,14 +2095,10 @@ void DoubleMatrix::polar(void)
   DoubleMatrix t(ctxt_,n_,nb_,n_,nb_);
 
 #ifdef SCALAPACK
-  double diff = 1.0;
-  const double epsilon = 1.e-10;
-  const int maxiter = 3;
+  double qnrm2 = numeric_limits<double>::max();
   int iter = 0;
-
   x = *this;
-
-  while ( iter < maxiter && diff > epsilon )
+  while ( iter < maxiter && qnrm2 > tol )
   {
     // q = I - x^T * x
     q.identity();
@@ -2108,8 +2106,10 @@ void DoubleMatrix::polar(void)
     q.symmetrize('l');
 
     double qnrm2 = q.nrm2();
+#ifdef DEBUG
     if ( ctxt_.onpe0() )
       cout << " DoubleMatrix::polar: qnrm2 = " << qnrm2 << endl;
+#endif
 
     // choose Bjork-Bowie or Higham iteration depending on q.nrm2
 
@@ -2142,8 +2142,10 @@ void DoubleMatrix::polar(void)
     }
     else
     {
-      // Higham version
+      // Higham iteration
       assert(m_==n_);
+      //if ( ctxt_.onpe0() )
+      //  cout << " DoubleMatrix::polar: using Higham algorithm" << endl;
       // t = X^T
       t.transpose(1.0,x,0.0);
       t.inverse();

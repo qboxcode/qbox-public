@@ -601,7 +601,6 @@ void SlaterDet::riccati(const SlaterDet& sd)
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::lowdin(void)
 {
-  // Higham algorithm for polar decomposition
   cleanup();
   if ( basis_->real() )
   {
@@ -610,7 +609,6 @@ void SlaterDet::lowdin(void)
     DoubleMatrix c_tmp_proxy(c_tmp);
     DoubleMatrix l(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
 
     l.clear();
@@ -629,39 +627,10 @@ void SlaterDet::lowdin(void)
 
     x.transpose(1.0,l,0.0);
     // x now contains R
-    //cout << "SlaterDet::lowdin: R=\n" << x << endl;
 
-    double diff = 1.0;
-    const double epsilon = 1.e-10;
+    const double tol = 1.e-6;
     const int maxiter = 3;
-    int iter = 0;
-
-    while ( iter < maxiter && diff > epsilon )
-    {
-      // t = X^T
-      t.transpose(1.0,x,0.0);
-      t.inverse();
-
-      // t now contains X^-T
-
-      // xp = 0.5 * ( x + x^-T );
-      for ( int i = 0; i < x.size(); i++ )
-        xp[i] = 0.5 * ( x[i] + t[i] );
-
-
-      // Next lines: use t as temporary to compute || x - xp ||_F
-      for ( int i = 0; i < t.size(); i++ )
-        t[i] = x[i] - xp[i];
-
-      diff = t.nrm2();
-
-      //cout << " SlaterDet::lowdin: diff=" << diff << endl;
-
-      x = xp;
-      //cout << "SlaterDet::lowdin: X=\n" << x << endl;
-
-      iter++;
-    }
+    x.polar(tol,maxiter);
 
     // x now contains the orthogonal polar factor U of the
     // polar decomposition R = UH
@@ -677,7 +646,6 @@ void SlaterDet::lowdin(void)
 
     // Multiply c by L^-T U
     c_proxy.gemm('n','n',1.0,c_tmp_proxy,t,0.0);
-
   }
   else
   {
@@ -693,8 +661,6 @@ void SlaterDet::lowdin(void)
 void SlaterDet::ortho_align(const SlaterDet& sd)
 {
   // Orthogonalize *this and align with sd
-  // Bjork-Bowie algorithm for polar decomposition
-  // Higham algorithm for polar decomposition
   cleanup();
   if ( basis_->real() )
   {
@@ -834,17 +800,15 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 void SlaterDet::align(const SlaterDet& sd)
 {
   // Align *this with sd
-  // Higham algorithm for polar decomposition
   if ( basis_->real() )
   {
     ComplexMatrix c_tmp(c_);
     DoubleMatrix c_proxy(c_);
     DoubleMatrix sdc_proxy(sd.c());
     DoubleMatrix c_tmp_proxy(c_tmp);
-    DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
 
+    DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
 
     // Compute the polar decomposition of B
     // where B = C^T sd.C
@@ -872,40 +836,12 @@ void SlaterDet::align(const SlaterDet& sd)
     //     << c_tmp_proxy.nrm2() << endl;
 
     // compute the polar decomposition of B
-    double diff = 1.0;
-    const double epsilon = 1.e-10;
+    double tol = 1.e-6;
     const int maxiter = 3;
-    int iter = 0;
-
 #if TIMING
-    tmap["align_while"].start();
+    tmap["align_polar"].start();
 #endif
-    while ( iter < maxiter && diff > epsilon )
-    {
-      // t = X^T
-      t.transpose(1.0,x,0.0);
-      t.inverse();
-
-      // t now contains X^-T
-
-      // xp = 0.5 * ( x + x^-T );
-      for ( int i = 0; i < x.size(); i++ )
-        xp[i] = 0.5 * ( x[i] + t[i] );
-
-
-      // Next lines: use t as temporary to compute || x - xp ||_F
-      //for ( int i = 0; i < t.size(); i++ )
-      //  t[i] = x[i] - xp[i];
-
-      //diff = t.nrm2();
-
-      //cout << " SlaterDet::align: diff=" << diff << endl;
-
-      x = xp;
-      //cout << "SlaterDet::align: X=\n" << x << endl;
-
-      iter++;
-    }
+    x.polar(tol,maxiter);
 #if TIMING
     tmap["align_while"].stop();
 #endif

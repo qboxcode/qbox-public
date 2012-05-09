@@ -251,6 +251,9 @@ class DoubleMatrix
     // Inverse of a symmetric matrix from Cholesky factor
     void potri(char uplo);
 
+    // Polar decomposition
+    void polar(void);
+
     // LU decomposition
     void lu(std::valarray<int>& ipiv);
 

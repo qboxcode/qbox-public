@@ -2080,6 +2080,87 @@ void DoubleMatrix::trtri(char uplo, char diag)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Polar decomposition A = UH
+// Replace *this with its orthogonal polar factor U
+////////////////////////////////////////////////////////////////////////////////
+void DoubleMatrix::polar(void)
+{
+  DoubleMatrix x(ctxt_,m_,mb_,n_,nb_);
+  DoubleMatrix xp(ctxt_,m_,mb_,n_,nb_);
+
+  DoubleMatrix q(ctxt_,n_,nb_,n_,nb_);
+  DoubleMatrix qt(ctxt_,n_,nb_,n_,nb_);
+  DoubleMatrix t(ctxt_,n_,nb_,n_,nb_);
+
+#ifdef SCALAPACK
+  double diff = 1.0;
+  const double epsilon = 1.e-10;
+  const int maxiter = 3;
+  int iter = 0;
+
+  x = *this;
+
+  while ( iter < maxiter && diff > epsilon )
+  {
+    // q = I - x^T * x
+    q.identity();
+    q.syrk('l','t',-1.0,x,1.0);
+    q.symmetrize('l');
+
+    double qnrm2 = q.nrm2();
+    if ( ctxt_.onpe0() )
+      cout << " DoubleMatrix::polar: qnrm2 = " << qnrm2 << endl;
+
+    // choose Bjork-Bowie or Higham iteration depending on q.nrm2
+
+    // threshold value
+    // see A. Bjork and C. Bowie, SIAM J. Num. Anal. 8, 358 (1971) p.363
+    if ( qnrm2 < 1.0 )
+    {
+      // Bjork-Bowie iteration
+      // compute xp = x * ( I + 0.5*q * ( I + 0.75 * q ) )
+
+      // t = ( I + 0.75 * q )
+      t.identity();
+      t.axpy(0.75,q);
+
+      // compute q*t
+      qt.gemm('n','n',1.0,q,t,0.0);
+
+      // xp = x * ( I + 0.5*q * ( I + 0.75 * q ) )
+      //    = x * ( I + 0.5 * qt )
+      // Use t to store (I + 0.5 * qt)
+      t.identity();
+      t.axpy(0.5,qt);
+
+      // t now contains (I + 0.5 * qt)
+      // xp = x * t
+      xp.gemm('n','n',1.0,x,t,0.0);
+
+      // update x
+      x = xp;
+    }
+    else
+    {
+      // Higham version
+      assert(m_==n_);
+      // t = X^T
+      t.transpose(1.0,x,0.0);
+      t.inverse();
+      // t now contains X^-T
+      // xp = 0.5 * ( x + x^-T );
+      for ( int i = 0; i < x.size(); i++ )
+        x[i] = 0.5 * ( x[i] + t[i] );
+    }
+    iter++;
+  }
+  *this = x;
+#else
+#error "DoubleMatrix::polar only implemented with SCALAPACK"
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // estimate the reciprocal of the condition number (in the 1-norm) of a
 // real symmetric positive definite matrix using the Cholesky factorization
 // A  = U**T*U or A = L*L**T computed by DoubleMatrix::potrf

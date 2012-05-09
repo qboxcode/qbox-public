@@ -347,7 +347,6 @@ void SlaterDet::rs_mul_add(FourierTransform& ft,
 
   const int np012loc = ft.np012loc();
   const int mloc = c_.mloc();
-  double* p = (double*) &tmp[0];
   double* dcp = (double*) sdp.c().valptr();
 
   if ( basis_->real() )
@@ -694,6 +693,7 @@ void SlaterDet::lowdin(void)
 void SlaterDet::ortho_align(const SlaterDet& sd)
 {
   // Orthogonalize *this and align with sd
+  // Bjork-Bowie algorithm for polar decomposition
   // Higham algorithm for polar decomposition
   cleanup();
   if ( basis_->real() )
@@ -706,6 +706,8 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix q(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix qt(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
 
 #if TIMING
     tmap["syrk"].reset();
@@ -764,6 +766,50 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 
     //cout << "SlaterDet::ortho_align: L^-1 B=\n" << x << endl;
 
+    // compute the polar decomposition of X = L^-1 B
+#if TIMING
+    tmap["polar"].reset();
+    tmap["polar"].start();
+#endif
+#if 1
+    // compute the polar decomposition of X = L^-1 B
+    // Bjork-Bowie version
+    //
+    const int niter = 3;
+    for ( int iter = 0; iter < niter; iter++ )
+    {
+      // q = I - x^T * x
+      q.identity();
+      q.syrk('l','t',-1.0,x,1.0); 
+      q.symmetrize('l');
+
+      cout << " q.nrm2 = " << q.nrm2() << endl;
+  
+      // compute xp = x * ( I + 0.5*q * ( I + 0.75 * q ) )
+
+      // t = ( I + 0.75 * q )
+      t.identity();
+      t.axpy(0.75,q);
+  
+      // compute q*t
+      qt.gemm('n','n',1.0,q,t,0.0);
+  
+      // pk = x * ( I + 0.5*q * ( I + 0.75 * q ) )
+      //    = x * ( I + 0.5 * qt )
+      // Use t to store (I + 0.5 * qt)
+      t.identity();
+      t.axpy(0.5,qt);
+  
+      // t now contains (I + 0.5 * qt)
+      // xp = x * t
+      xp.gemm('n','n',1.0,x,t,0.0);
+  
+      // update x
+      x = xp;
+    }
+    // at convergence, x contains the polar factor of L^-1 B
+#else
+    // Higham version
     // compute the polar decomposition of L^-1 B
     double diff = 1.0;
     const double epsilon = 1.e-10;
@@ -816,6 +862,10 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 
       iter++;
     }
+#endif
+#if TIMING
+    tmap["polar"].stop();
+#endif
 
     // x now contains the orthogonal polar factor X of the
     // polar decomposition L^-1 B = XH

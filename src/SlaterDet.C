@@ -704,10 +704,6 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     DoubleMatrix c_tmp_proxy(c_tmp);
     DoubleMatrix l(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
     DoubleMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    DoubleMatrix q(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
-    DoubleMatrix qt(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
 
 #if TIMING
     tmap["syrk"].reset();
@@ -764,13 +760,20 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 #endif
     // x now contains L^-1 B
 
-    //cout << "SlaterDet::ortho_align: L^-1 B=\n" << x << endl;
-
     // compute the polar decomposition of X = L^-1 B
 #if TIMING
     tmap["polar"].reset();
     tmap["polar"].start();
 #endif
+
+#define MATRIX_POLAR 1
+#if MATRIX_POLAR
+    x.polar();
+#else
+    DoubleMatrix xp(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix q(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    DoubleMatrix qt(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
 #if 1
     // compute the polar decomposition of X = L^-1 B
     // Bjork-Bowie version
@@ -780,30 +783,30 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     {
       // q = I - x^T * x
       q.identity();
-      q.syrk('l','t',-1.0,x,1.0); 
+      q.syrk('l','t',-1.0,x,1.0);
       q.symmetrize('l');
 
       cout << " q.nrm2 = " << q.nrm2() << endl;
-  
+
       // compute xp = x * ( I + 0.5*q * ( I + 0.75 * q ) )
 
       // t = ( I + 0.75 * q )
       t.identity();
       t.axpy(0.75,q);
-  
+
       // compute q*t
       qt.gemm('n','n',1.0,q,t,0.0);
-  
+
       // pk = x * ( I + 0.5*q * ( I + 0.75 * q ) )
       //    = x * ( I + 0.5 * qt )
       // Use t to store (I + 0.5 * qt)
       t.identity();
       t.axpy(0.5,qt);
-  
+
       // t now contains (I + 0.5 * qt)
       // xp = x * t
       xp.gemm('n','n',1.0,x,t,0.0);
-  
+
       // update x
       x = xp;
     }
@@ -862,7 +865,10 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 
       iter++;
     }
-#endif
+#endif // Bjork-Bowie vs Higham
+
+#endif // MATRIX_POLAR
+
 #if TIMING
     tmap["polar"].stop();
 #endif

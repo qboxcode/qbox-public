@@ -2087,12 +2087,12 @@ void DoubleMatrix::trtri(char uplo, char diag)
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::polar(double tol, int maxiter)
 {
-  DoubleMatrix x(ctxt_,m_,mb_,n_,nb_);
-  DoubleMatrix xp(ctxt_,m_,mb_,n_,nb_);
+  DoubleMatrix x(ctxt_,m_,n_,mb_,nb_);
+  DoubleMatrix xp(ctxt_,m_,n_,mb_,nb_);
 
-  DoubleMatrix q(ctxt_,n_,nb_,n_,nb_);
-  DoubleMatrix qt(ctxt_,n_,nb_,n_,nb_);
-  DoubleMatrix t(ctxt_,n_,nb_,n_,nb_);
+  DoubleMatrix q(ctxt_,n_,n_,nb_,nb_);
+  DoubleMatrix qt(ctxt_,n_,n_,nb_,nb_);
+  DoubleMatrix t(ctxt_,n_,n_,nb_,nb_);
 
 #ifdef SCALAPACK
   double qnrm2 = numeric_limits<double>::max();

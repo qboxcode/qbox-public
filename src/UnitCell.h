@@ -35,6 +35,8 @@ class UnitCell
   double an2h_[13];
   double bn2h_[13];
 
+  double a_norm_[3], alpha_, beta_, gamma_;
+
   // 3x3 matrix forms
   double amat_[9];
   double bmat_[9];
@@ -54,6 +56,10 @@ class UnitCell
 
   void set(const D3vector& a0, const D3vector& a1, const D3vector& a2);
   double volume(void) const { return volume_; }
+  double a_norm(int i) const { return a_norm_[i]; }
+  double alpha(void) const { return alpha_; }
+  double beta(void) const { return beta_; }
+  double gamma(void) const { return gamma_; }
 
   const double* amat(void) const { return &amat_[0]; }
   const double* bmat(void) const { return &bmat_[0]; }

@@ -127,6 +127,18 @@ void UnitCell::set(const D3vector& a0, const D3vector& a1, const D3vector& a2)
     an2h_[i] = 0.5 * norm(an_[i]);
     bn2h_[i] = 0.5 * norm(bn_[i]);
   }
+
+  for ( int i = 0; i < 3; i++ )
+    a_norm_[i] = length(a_[i]);
+  double sp = normalized(a_[1]) * normalized(a_[2]);
+  double c = max(-1.0,min(1.0,sp));
+  alpha_ = (180.0/M_PI)*acos(c);
+  sp = normalized(a_[0]) * normalized(a_[2]);
+  c = max(-1.0,min(1.0,sp));
+  beta_ = (180.0/M_PI)*acos(c);
+  sp = normalized(a_[0]) * normalized(a_[1]);
+  c = max(-1.0,min(1.0,sp));
+  gamma_ = (180.0/M_PI)*acos(c);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -458,13 +458,13 @@ void BOSampleStepper::step(int niter)
              << " </unit_cell_b_norm>" << endl;
         cout << "<unit_cell_c_norm> " << atoms.cell().a_norm(2)
              << " </unit_cell_c_norm>" << endl;
-        cout << setprecision(3) << "<unit_cell_alpha>  " 
+        cout << setprecision(3) << "<unit_cell_alpha>  "
              << atoms.cell().alpha() << " </unit_cell_alpha>" << endl;
-        cout << setprecision(3) << "<unit_cell_beta>   " 
+        cout << setprecision(3) << "<unit_cell_beta>   "
              << atoms.cell().beta() << " </unit_cell_beta>" << endl;
-        cout << setprecision(3) << "<unit_cell_gamma>  " 
+        cout << setprecision(3) << "<unit_cell_gamma>  "
              << atoms.cell().gamma() << " </unit_cell_gamma>" << endl;
-        cout << setprecision(3) << "<unit_cell_volume> " 
+        cout << setprecision(3) << "<unit_cell_volume> "
              << atoms.cell().volume() << " </unit_cell_volume>" << endl;
 
         // include the kinetic energy of the stepper
@@ -1041,13 +1041,13 @@ void BOSampleStepper::step(int niter)
                << " </unit_cell_b_norm>" << endl;
           cout << "<unit_cell_c_norm> " << atoms.cell().a_norm(2)
                << " </unit_cell_c_norm>" << endl;
-          cout << setprecision(3) << "<unit_cell_alpha>  " 
+          cout << setprecision(3) << "<unit_cell_alpha>  "
                << atoms.cell().alpha() << " </unit_cell_alpha>" << endl;
-          cout << setprecision(3) << "<unit_cell_beta>   " 
+          cout << setprecision(3) << "<unit_cell_beta>   "
                << atoms.cell().beta() << " </unit_cell_beta>" << endl;
-          cout << setprecision(3) << "<unit_cell_gamma>  " 
+          cout << setprecision(3) << "<unit_cell_gamma>  "
                << atoms.cell().gamma() << " </unit_cell_gamma>" << endl;
-          cout << setprecision(3) << "<unit_cell_volume> " 
+          cout << setprecision(3) << "<unit_cell_volume> "
                << atoms.cell().volume() << " </unit_cell_volume>" << endl;
           if ( compute_stress )
           {

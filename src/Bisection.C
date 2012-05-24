@@ -497,17 +497,6 @@ void Bisection::localize(Wavefunction& wf, double epsilon)
         cout << " Bisection::localize: distribution disabled" << endl;
     }
 
-    // distribute only if the keyword BISECTION_NODIST is not in the debug var
-    if ( s_.ctrl.debug.find("BISECTION_NODIST") == string::npos )
-    {
-      distribute(ispin);
-    }
-    else
-    {
-      if ( gcontext_.onpe0() )
-        cout << " Bisection::localize: distribution disabled" << endl;
-    }
-
 #if DEBUG
     // print localization vectors and overlaps after distribution
     if ( gcontext_.onpe0() )
@@ -786,23 +775,47 @@ void Bisection::distribute(int ispin)
   }
   s_.wf.sd(ispin,0)->set_occ(occ_tmp);
 
+#if DEBUG
+  if ( u_->context().onpe0() )
+  {
+    cout << "index after round robin distrib:" << endl;
+    for ( int j = 0; j < index.size(); j++ )
+      cout << j << " -> " << index[j] << endl;
+  }
+#endif
+
   // transform the permutation defined by index[i] into a sequence of
   // transpositions stored in the vector pivot[i]
+  // compute the inverse of index
+  vector<int> index_inv(index.size());
+  for ( int i = 0; i < index.size(); i++ )
+    index_inv[index[i]] = i;
+  assert(index_inv.size()==index.size());
+
   vector<int> pivot;
-  for ( int i=0; i<index.size(); i++ )
+  for ( int i = 0; i < index.size(); i++ )
   {
-    for ( int j=i; j<index.size(); j++ )
-    {
-      if ( index[j] == i )
-      {
-        int tmp = index[i];
-        index[i] = index[j];
-        index[j] = tmp;
-        pivot.push_back(j);
-        break;
-      }
-    }
+    int j = index_inv[i];
+
+    int tmp = index[i];
+    index[i] = index[j];
+    index[j] = tmp;
+
+    // update elements of index_inv
+    index_inv[index[i]] = i;
+    index_inv[index[j]] = j;
+
+    pivot.push_back(j);
   }
+  assert(pivot.size()==index.size());
+#if DEBUG
+  if ( u_->context().onpe0() )
+  {
+    cout << "pivot:" << endl;
+    for ( int j = 0; j < pivot.size(); j++ )
+      cout << j << " -> " << pivot[j] << endl;
+  }
+#endif
 
   // create a local pivot vector on this process (size u.nloc())
   // this vector must be replicated on all tasks of the process grid columns
@@ -814,9 +827,48 @@ void Bisection::distribute(int ispin)
     int jglobal = u_->jglobal(j);
     locpivot[j] = pivot[jglobal]+1;
   }
+#if DEBUG
+  for ( int ipe = 0; ipe < u_->context().size(); ipe++ )
+  {
+    u_->context().barrier();
+    if ( ipe == u_->context().mype() )
+    {
+      cout << "locpivot:" << endl;
+      for ( int j = 0; j < locpivot.size(); j++ )
+        cout << ipe << ": " << j << " -> " << locpivot[j] << endl;
+    }
+  }
+#endif
 
-  // apply the permutation
-  u_->lapiv('B','C',&locpivot[0]);
+  // apply the permutation to columns of u_
+  if ( u_->context().size() == 1 )
+  {
+    // cout << " u_ before perm: " << endl;
+    // cout << *u_;
+    // local permutation
+    assert(locpivot.size()==u_->n());
+    double *p = u_->valptr(0);
+    const int mloc = u_->mloc();
+    for ( int i = locpivot.size()-1; i >= 0; i-- )
+    //for ( int i = 0; i < locpivot.size(); i++ )
+    {
+      const int j = locpivot[i]-1;
+      // swap columns i and j of u_->c()
+      cout << " swap " << i << " " << j << endl;
+      for ( int k = 0; k < mloc; k++ )
+      {
+        double tmp = p[i*mloc+k];
+        p[i*mloc+k] = p[j*mloc+k];
+        p[j*mloc+k] = tmp;
+      }
+    }
+    // cout << " u_ after perm: " << endl;
+    // cout << *u_;
+  }
+  else
+  {
+    u_->lapiv('B','C',&locpivot[0]);
+  }
 
 #if DEBUG
   // recompute the degree of the vertices of the exchange graph

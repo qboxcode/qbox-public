@@ -1122,6 +1122,8 @@ SlaterDet& SlaterDet::operator=(SlaterDet& rhs)
   if ( this == &rhs ) return *this;
   assert(ctxt_.ictxt() == rhs.context().ictxt());
   c_ = rhs.c_;
+  occ_ = rhs.occ_;
+  eig_ = rhs.eig_;
   return *this;
 }
 

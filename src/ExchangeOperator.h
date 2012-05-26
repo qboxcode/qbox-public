@@ -20,11 +20,11 @@
 #include "SlaterDet.h"
 #include "FourierTransform.h"
 #include "KPGridConnectivity.h"
-#include "Bisection.h"
 
 #ifndef EXCHANGEOPERATOR_H
 #define EXCHANGEOPERATOR_H
 
+class Bisection;
 class ExchangeOperator
 {
   private:
@@ -40,9 +40,11 @@ class ExchangeOperator
   // reference wf and dwf for non scf iteration
   Wavefunction wf0_;
   Wavefunction dwf0_;
+  // copy of wf
+  Wavefunction wfc_;
 
   double compute_exchange_for_general_case_(Sample* s, Wavefunction* dwf);
-  double compute_exchange_at_gamma_(Wavefunction &wf, Wavefunction* dwf);
+  double compute_exchange_at_gamma_(const Wavefunction &wf, Wavefunction* dwf);
   void   apply_VXC_(double mix, Wavefunction& wf_ref,
                     Wavefunction& dwf_ref, Wavefunction& dwf);
 
@@ -166,7 +168,10 @@ class ExchangeOperator
   void CompleteSendingOccupations(int iRotationStep);
 
   // bisection
-  Bisection* bisection_;
+  bool use_bisection_;
+  vector<Bisection*> bisection_;
+  vector<DoubleMatrix*> uc_;
+  vector<long int> localization_;
 
   public:
 

@@ -62,22 +62,47 @@ class BisectionCmd : public Cmd
     nLevels[1]=atoi(argv[2]);
     nLevels[2]=atoi(argv[3]);
 
-    Bisection bisection(*s,nLevels);
-    bisection.localize(wf, epsilon);
-    vector<vector<long int> > localization = bisection.localization();
-
-    if ( ui->onpe0() )
+    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
-      cout << " BisectionCmd: lx=" << nLevels[0]
-           << " ly=" << nLevels[1]
-	   << " lz=" << nLevels[2]
-	   << " threshold=" << epsilon << endl;
-      for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+      SlaterDet& sd = *wf.sd(0,0);
+      Bisection bisection(sd,nLevels);
+      const int maxsweep = 20;
+      const double tol = 1.e-8;
+      bisection.compute_transform(sd,maxsweep,tol);
+      bisection.compute_localization(epsilon);
+      bisection.forward(sd);
+      vector<long int> localization = bisection.localization();
+
+      if ( ui->onpe0() )
       {
+        cout << " BisectionCmd: lx=" << nLevels[0]
+             << " ly=" << nLevels[1]
+	     << " lz=" << nLevels[2]
+	     << " threshold=" << epsilon << endl;
         cout << " Bisection::localize: total size:    ispin=" << ispin
-             << ": " << bisection.total_size(ispin) << endl;
+             << ": " << bisection.total_size() << endl;
         cout << " Bisection::localize: pair fraction: ispin=" << ispin
-             << ": " << bisection.pair_fraction(ispin) << endl;
+             << ": " << bisection.pair_fraction() << endl;
+
+        // print localization vectors and overlaps
+        int sum = 0;
+        const int nst = localization.size();
+        for ( int i = 0; i < nst; i++ )
+        {
+          int count = 0;
+          for ( int j = 0; j < nst; j++ )
+          {
+            if ( bisection.overlap(i,j) )
+              count++;
+          }
+          cout << "localization[" << i << "]: "
+               << localization[i] << " "
+               << bitset<30>(localization[i]) << "  overlaps: "
+               << count << endl;
+          sum += count;
+        }
+        cout << "total overlaps: " << sum << " / " << nst*nst
+             << " = " << ((double) sum)/(nst*nst) << endl;
       }
     }
     return 0;

@@ -16,34 +16,31 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifndef BISECTION_H
+#define BISECTION_H
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <complex>
+#include <vector>
 
 #include "Context.h"
-#include "Sample.h"
-#include "Basis.h"
-#include "FourierTransform.h"
 #include "SlaterDet.h"
 #include "Matrix.h"
-#include "Timer.h"
-#include "isodate.h"
-#include "jade.h"
 
-using namespace std;
-
+class FourierTransform;
 class Bisection
 {
   private:
 
-    Sample& s_;
     Context gcontext_;
 
     // bisection levels in each directions
     int nlevels_[3]; // bisection level
     int ndiv_[3];    // number of subdivisions
     int nlevelsmax_; // max level of bisection
+    int nst_;        // number of states in SlaterDet
+    int nstloc_;
 
     // real space grid
     int np_[3];            // grid size
@@ -52,35 +49,43 @@ class Bisection
     int np012loc_;         // local size
     FourierTransform *ft_;
 
-    vector<vector<long int> > localization_;
+    std::vector<long int> localization_; // localization indices
 
     // xy_proj[ir]: projector in xy plane associated with grid point ir
-    vector<int> xy_proj_;
+    std::vector<int> xy_proj_;
 
     // matrices of real space wave functions in subdomains
-    vector<DoubleMatrix*> rmat_;
+    std::vector<DoubleMatrix*> rmat_;
 
     // a matrices
     int nmat_;
-    vector<DoubleMatrix*> amat_;
+    std::vector<DoubleMatrix*> amat_;
+    std::vector<std::vector<double> > adiag_;
     DoubleMatrix *u_;
 
     // test function
-    bool check_amat(ComplexMatrix &c);
-    void trim_amat(const vector<double>& occ);
-    void distribute(int ispin);
+    bool check_amat(const ComplexMatrix &c);
+    void trim_amat(const std::vector<double>& occ);
 
   public:
 
-    Bisection(Sample& s, int nlevels[3]);
+    Bisection(const SlaterDet& sd, int nlevels[3]);
+    void compute_transform(const SlaterDet& sd, int maxsweep, double tol);
+    void compute_localization(double epsilon);
+    void forward(SlaterDet& sd);
+    void forward(DoubleMatrix& u, SlaterDet& sd);
+    void backward(SlaterDet& sd);
+    void backward(DoubleMatrix& u, SlaterDet& sd);
+
     int nmat(void) const { return nmat_; }
-    void localize(Wavefunction &wf, double epsilon);
-    long int localization(int ispin, int i) const
-    { return localization_[ispin][i]; }
-    vector<vector<long int> > localization(void) const { return localization_; }
-    bool overlap(int ispin, int i, int j);
-    double pair_fraction(int ispin);
-    double size(int ispin, int i);
-    double total_size(int ispin);
+    long int localization(int i) const { return localization_[i]; }
+    std::vector<long int> localization(void) const { return localization_; }
+    bool overlap(int i, int j);
+    bool overlap(std::vector<long int> loc, int i, int j);
+    const DoubleMatrix& u(void) const { return *u_; }
+    double pair_fraction(void);
+    double size(int i);
+    double total_size(void);
     ~Bisection();
 };
+#endif

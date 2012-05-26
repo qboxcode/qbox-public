@@ -19,7 +19,12 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <bitset>
+#include <algorithm>
+#include "VectorLess.h"
+
 #include "ExchangeOperator.h"
+#include "Bisection.h"
 
 using namespace std;
 
@@ -31,8 +36,8 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff)
-: s_(s), wf0_(s.wf), dwf0_(s.wf),
-  KPGridPerm_(s), KPGridStat_(s), bisection_(0), HFCoeff_(HFCoeff)
+: s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf),
+  KPGridPerm_(s), KPGridStat_(s), HFCoeff_(HFCoeff)
 {
   eex_ = 0.0; // exchange energy
   rcut_ = 1.0;  // constant of support function for exchange integration
@@ -168,13 +173,24 @@ ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff)
     statej_[i].resize(np012loc_);
   }
 
+  use_bisection_ = s.ctrl.btHF > 0.0;
+
   // if only at gamma
   if ( gamma_only_ )
   {
     tmp_.resize(np012loc_);
     // allocate bisection object
-    if ( s.ctrl.btHF > 0.0 )
-      bisection_ = new Bisection(s_,s_.ctrl.blHF);
+    if ( use_bisection_ )
+    {
+      bisection_.resize(s_.wf.nspin());
+      uc_.resize(s_.wf.nspin());
+      for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+      {
+        bisection_[ispin] = new Bisection(*s_.wf.sd(ispin,0),s_.ctrl.blHF);
+        const ComplexMatrix& c = s_.wf.sd(ispin,0)->c();
+        uc_[ispin] = new DoubleMatrix(c.context(),c.n(),c.n(),c.nb(),c.nb());
+      }
+    }
   }
 
   // allocate memory for occupation numbers of kpoint iKpi
@@ -212,7 +228,12 @@ ExchangeOperator::~ExchangeOperator()
   // delete Fourier transform and basis for pair densities
   delete vft_;
   delete vbasis_;
-  delete bisection_;
+  if ( use_bisection_ )
+    for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+    {
+      delete bisection_[ispin];
+      delete uc_[ispin];
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -344,10 +365,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   Wavefunction* dwf)
 {
   const Wavefunction& wf = s->wf;
-#ifdef DEBUG
-  // basis used for scalar product
-  const Basis& vb = *vbasis_;
-#endif
 
   cout << setprecision(10);
   const double omega = wf.cell().volume();
@@ -1182,7 +1199,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
+double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
   Wavefunction* dwf)
 {
   Timer tm;
@@ -1190,9 +1207,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
 
   assert(KPGridPerm_.Connection());
 
+  wfc_ = wf;
+
   cout << setprecision(10);
-  const double omega = wf.cell().volume();
-  const int nspin = wf.nspin();
+  const double omega = wfc_.cell().volume();
+  const int nspin = wfc_.nspin();
 
   // spin factor for the pair densities: 0.5 if 1 spin, 1 if nspin==2
   const double spinFactor=0.5*nspin;
@@ -1200,31 +1219,269 @@ double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
   // total exchange energy
   double extot = 0.0;
 
-  // localize the wave functions using bisection if btHF > 0
-  if ( s_.ctrl.btHF > 0.0 )
+  for ( int ispin = 0; ispin < wfc_.nspin(); ispin++ )
   {
-    tmb.start();
-    bisection_->localize(wf, s_.ctrl.btHF);
-    tmb.stop();
+    const int nst = wfc_.sd(ispin,0)->nst();
 
-    if ( gcontext_.onpe0() )
+    // if using bisection, localize the wave functions
+    if ( use_bisection_ )
     {
-      for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-      {
-        cout << " ExchangeOperator: bisection size: ispin=" << ispin
-             << ": " << bisection_->total_size(ispin) << endl;
-        cout << " ExchangeOperator: pair fraction:  ispin=" << ispin
-             << ": " << bisection_->pair_fraction(ispin) << endl;
-      }
-      cout << setprecision(3);
-      cout << " ExchangeOperator: bisection time: "
-           << tmb.real() << " s" << endl;
-    }
-  }
+      tmb.start();
+      const int maxsweep = 50;
+      const double tol = 1.e-12;
+      bisection_[ispin]->compute_transform(*wfc_.sd(ispin,0),maxsweep,tol);
+      bisection_[ispin]->compute_localization(s_.ctrl.btHF);
+      // copy of localization vector from Bisection object
+      localization_ = bisection_[ispin]->localization();
 
-  tm.start();
-  for ( int ispin = 0; ispin < nspin; ispin++ )
-  {
+      if ( gcontext_.onpe0() )
+      {
+          cout << " ExchangeOperator: bisection size: ispin=" << ispin
+               << ": " << bisection_[ispin]->total_size() << endl;
+          cout << " ExchangeOperator: pair fraction:  ispin=" << ispin
+               << ": " << bisection_[ispin]->pair_fraction() << endl;
+      }
+
+      // copy the orthogonal transformation u to uc_[ispin]
+      *uc_[ispin] = bisection_[ispin]->u();
+
+      bool distribute = s_.ctrl.debug.find("BISECTION_NODIST") == string::npos;
+      if ( distribute )
+      {
+        // define a permutation ordering states by increasing degree
+        // permute states according to the order defined by the
+        // localization vector
+
+        // compute the degree of the vertices of the exchange graph
+        // using the localization vector
+        vector<int> degree(nst);
+        for ( int i = 0; i < nst; i++ )
+        {
+          int count = 0;
+          for ( int j = 0; j < nst; j++ )
+          {
+            if ( bisection_[ispin]->overlap(localization_,i,j) )
+              count++;
+          }
+          degree[i] = count;
+        }
+
+        // permutation index
+        vector<int> index(nst);
+        for ( int j = 0; j < index.size(); j++ )
+          index[j] = j;
+
+        // Create function object for comparison of degree
+        VectorLess<int> degree_less(degree);
+        sort(index.begin(), index.end(), degree_less);
+        // At this point degree[index[i]] <= degree[index[j]] if i < j
+        for ( int i = 0; i < index.size()-1; i++ )
+          assert(degree[index[i]] <= degree[index[i+1]]);
+
+#if DEBUG
+        if ( gcontext_.onpe0() )
+        {
+          cout << "degree order after sort:" << endl;
+          for ( int j = 0; j < index.size(); j++ )
+            cout << j << " -> " << index[j]
+                 << "  " << degree[index[j]]
+                 << endl;
+        }
+#endif
+
+        // distribute the states to process columns in round robin fashion
+        // Assume that the states are initially ordered by increasing degree
+        // i.e. degree(index_[i]) < degree(index_[j]) if i < j
+
+        const int nb = uc_[ispin]->nb();
+
+        vector<int> distrib_index(nst);
+        int ibase = 0;
+        int icol = 0;
+        for ( int i = 0; i < nst; i++ )
+        {
+          // check if next slot is beyond n
+          if ( ibase + icol * nb >= nst )
+          {
+            // restart in column 0 with incremented ibase
+            icol = 0;
+            ibase++;
+          }
+          distrib_index[ibase + icol * nb] = i;
+          icol++;
+        }
+
+        // combine index[i] and distrib_index[i]
+        vector<int> itmp(index.size());
+        for ( int i = 0; i < index.size(); i++ )
+          itmp[i] = index[distrib_index[i]];
+        index = itmp;
+
+#if DEBUG
+        if ( gcontext_.onpe0() )
+        {
+          cout << "index after round robin distrib:" << endl;
+          for ( int j = 0; j < index.size(); j++ )
+             cout << j << " -> " << index[j] << endl;
+        }
+#endif
+        // apply the permutation defined by index to the localization vector
+        vector<long int> loc_tmp(localization_.size());
+        for ( int i = 0; i < index.size(); i++ )
+          loc_tmp[i] = localization_[index[i]];
+        localization_ = loc_tmp;
+
+        // compute a pivot vector containing a sequence of transpositions
+        // equivalent to the permutation defined by index[i]
+        // compute the inverse of index
+        vector<int> index_inv(index.size());
+        for ( int i = 0; i < index.size(); i++ )
+          index_inv[index[i]] = i;
+        assert(index_inv.size()==index.size());
+
+        vector<int> pivot;
+        for ( int i = 0; i < index.size(); i++ )
+        {
+          int j = index_inv[i];
+
+          int tmp = index[i];
+          index[i] = index[j];
+          index[j] = tmp;
+
+          // update elements of index_inv
+          index_inv[index[i]] = i;
+          index_inv[index[j]] = j;
+
+          pivot.push_back(j);
+        }
+        assert(pivot.size()==index.size());
+#if DEBUG
+        if ( gcontext_.onpe0() )
+        {
+          cout << "pivot:" << endl;
+          for ( int j = 0; j < pivot.size(); j++ )
+            cout << j << " -> " << pivot[j] << endl;
+        }
+#endif
+
+        // create a local pivot vector on this process (size uc->nloc())
+        // this vector must be replicated on all tasks of the
+        // process grid columns
+        const int nloc = uc_[ispin]->nloc();
+        vector<int> locpivot(nloc);
+        // fill the local pivot vector on all tasks
+        // add 1 to index values for lapack fortran index convention
+        for ( int j=0; j < nloc; j++ )
+        {
+          int jglobal = uc_[ispin]->jglobal(j);
+          locpivot[j] = pivot[jglobal]+1;
+        }
+#if 0
+        for ( int ipe = 0; ipe < uc.context().size(); ipe++ )
+        {
+          uc.context().barrier();
+          if ( ipe == uc.context().mype() )
+          {
+            cout << "locpivot:" << endl;
+            for ( int j = 0; j < locpivot.size(); j++ )
+              cout << ipe << ": " << j << " -> " << locpivot[j] << endl;
+          }
+        }
+#endif
+
+#if 0
+        if ( u_->context().size() == 1 )
+        {
+          // cout << " uc before perm: " << endl;
+          // cout << uc;
+          // local permutation
+          assert(locpivot.size()==u_->n());
+          double *p = uc.valptr(0);
+          const int mloc = uc.mloc();
+          for ( int i = locpivot.size()-1; i >= 0; i-- )
+          {
+            const int j = locpivot[i]-1;
+            // swap columns i and j of u_->c()
+            cout << " swap " << i << " " << j << endl;
+            for ( int k = 0; k < mloc; k++ )
+            {
+              double tmp = p[i*mloc+k];
+              p[i*mloc+k] = p[j*mloc+k];
+              p[j*mloc+k] = tmp;
+            }
+          }
+          // cout << " uc after perm: " << endl;
+          // cout << uc;
+        }
+#endif
+
+        // apply the permutation to the columns of uc
+        uc_[ispin]->lapiv('B','C',&locpivot[0]);
+
+#if DEBUG
+        // recompute the degree of the vertices of the exchange graph
+        for ( int i = 0; i < nst; i++ )
+        {
+          int count = 0;
+          for ( int j = 0; j < nst; j++ )
+          {
+            if ( bisection_[ispin]->overlap(localization_,i,j) )
+              count++;
+          }
+          degree[i] = count;
+        }
+
+        if ( gcontext_.onpe0() )
+        {
+          cout << "degree after permutation:" << endl;
+          for ( int j = 0; j < degree.size(); j++ )
+            cout << " deg[" << j << "] = " << degree[j] << endl;
+        }
+
+        // print localization vectors and overlaps after distribution
+        if ( gcontext_.onpe0() )
+        {
+          int sum = 0;
+          for ( int i = 0; i < nst; i++ )
+          {
+            int count = 0;
+            for ( int j = 0; j < nst; j++ )
+            {
+              if ( bisection_[ispin]->overlap(localization_,i,j) )
+                count++;
+            }
+            cout << "localization[" << i << "]: "
+                 << localization_[i] << " "
+                 << bitset<30>(localization_[i])
+                 << "  overlaps: "
+                 << count << endl;
+            sum += count;
+          }
+          cout << " Bisection::localize: total overlaps: " << sum << " / "
+               << nst*nst << " = " << ((double) sum)/(nst*nst) << endl;
+        }
+#endif
+
+      }
+      else
+      {
+        if ( gcontext_.onpe0() )
+          cout << " ExchangeOperator: bisection distribution disabled" << endl;
+      } // if distribute
+
+      bisection_[ispin]->forward(*uc_[ispin], *wfc_.sd(ispin,0));
+
+      tmb.stop();
+      if ( gcontext_.onpe0() )
+      {
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection time: "
+           << tmb.real() << " s" << endl;
+      }
+    } // if use_bisection_
+
+    tm.start();
+    // compute exchange
     double numerical_correction = 0.0;
     for ( int i = 0; i < nMaxLocalStates_; i++ )
     {
@@ -1237,7 +1494,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
     KPGridPerm_.InitOverlaps();
     KPGridStat_.InitOverlaps();
 
-    SlaterDet& sd = *(wf.sd(ispin,0));
+    SlaterDet& sd = *(wfc_.sd(ispin,0));
     ComplexMatrix& c = sd.c();
 
     // real-space local states -> statej_[i][ir]
@@ -1326,8 +1583,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
     for ( int iRotationStep = 0; iRotationStep<gcontext_.npcol();
           iRotationStep++ )
     {
-      bool useBisection = (s_.ctrl.btHF > 0);
-
       // generate a list of pairs of overlapping states
       int nPair = 0;
       vector<int> first_member_of_pair;
@@ -1359,8 +1614,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
             int iGlobJ = c.jglobal(j);
 
             // determine the overlap between those two states
-            bool overlap_ij = ( !useBisection ||
-              bisection_->overlap(ispin,iGlobI,iGlobJ) );
+            bool overlap_ij = ( !use_bisection_ ||
+              bisection_[ispin]->overlap(localization_,iGlobI,iGlobJ) );
 
             // use the chess board condition to
             // optimize the distribution of work on
@@ -1907,7 +2162,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
     if ( gcontext_.onpe0() )
     {
       cout << " ExchangeOperator: load_matrix" << endl;
-      const int nst = s_.wf.nst(ispin);
+      const int nst = s_.wfc_.nst(ispin);
       int spreadsum = 0;
       for ( int irot = 0; irot < gcontext_.npcol(); irot++ )
       {
@@ -1966,7 +2221,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
 
     KPGridPerm_.EndPermutation();
 
-    // free permutation chanels
     FreePermutation();
 
     // transform accumulated real-space forces to G space
@@ -2028,9 +2282,9 @@ double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
 #if QUAD_CORRECTION
       double s0=KPGridPerm_.overlaps_local(0,i);
       double s1_x=KPGridPerm_.overlaps_first_kx(0,i)+
-           KPGridStat_.overlaps_first_kx(0,i);
+                  KPGridStat_.overlaps_first_kx(0,i);
       double s2_x=KPGridPerm_.overlaps_second_kx(0,i)+
-           KPGridStat_.overlaps_second_kx(0,i);
+                  KPGridStat_.overlaps_second_kx(0,i);
       double d1_x=KPGridPerm_.distance_first_kx(0);
       double d2_x=KPGridPerm_.distance_second_kx(0);
       beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
@@ -2093,7 +2347,13 @@ double ExchangeOperator::compute_exchange_at_gamma_(Wavefunction &wf,
           pf[j] -= ps[j] * numerical_error * HFCoeff_;
       }
     } // for i
-  } // end of spin loop
+
+    if ( use_bisection_ )
+    {
+      bisection_[ispin]->backward(*uc_[ispin], *dwf->sd(ispin,0));
+    }
+
+  } // for ispin
 
   // reduce the total energy
   double extmp_ = extot / gcontext_.nprow();

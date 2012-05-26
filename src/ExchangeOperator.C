@@ -1228,7 +1228,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     {
       tmb.start();
       const int maxsweep = 50;
-      const double tol = 1.e-12;
+      const double tol = 1.e-6;
       bisection_[ispin]->compute_transform(*wfc_.sd(ispin,0),maxsweep,tol);
       bisection_[ispin]->compute_localization(s_.ctrl.btHF);
       // copy of localization vector from Bisection object

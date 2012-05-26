@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <bitset>
 #include "Bisection.h"
+#include "Timer.h"
 
 class BisectionCmd : public Cmd
 {
@@ -55,6 +56,8 @@ class BisectionCmd : public Cmd
       return 1;
     }
 
+    Timer tm;
+
     Wavefunction &wf=s->wf;
     double epsilon=atof(argv[4]);
     int nLevels[3];
@@ -68,7 +71,10 @@ class BisectionCmd : public Cmd
       Bisection bisection(sd,nLevels);
       const int maxsweep = 20;
       const double tol = 1.e-8;
+      tm.reset();
+      tm.start();
       bisection.compute_transform(sd,maxsweep,tol);
+      tm.stop();
       bisection.compute_localization(epsilon);
       bisection.forward(sd);
       vector<long int> localization = bisection.localization();
@@ -79,10 +85,11 @@ class BisectionCmd : public Cmd
              << " ly=" << nLevels[1]
 	     << " lz=" << nLevels[2]
 	     << " threshold=" << epsilon << endl;
-        cout << " Bisection::localize: total size:    ispin=" << ispin
+        cout << " Bisection: total size:    ispin=" << ispin
              << ": " << bisection.total_size() << endl;
-        cout << " Bisection::localize: pair fraction: ispin=" << ispin
+        cout << " Bisection: pair fraction: ispin=" << ispin
              << ": " << bisection.pair_fraction() << endl;
+        cout << " Bisection: time=" << tm.real() << endl;
 
         // print localization vectors and overlaps
         int sum = 0;

@@ -117,7 +117,7 @@ KPConnectivity::KPConnectivity(const Sample& s)
   DimX_=0;
   DimY_=0;
   DimZ_=0;
-  for ( int iKp=0 ; iKp<nkpoints_ ; iKp++ )
+  for ( int iKp=0; iKp<nkpoints_; iKp++ )
   {
     // test direct difference
     D3vector dk =   s.wf.kpoint(iKp) - s.wf.kpoint(0);
@@ -139,7 +139,7 @@ KPConnectivity::KPConnectivity(const Sample& s)
   double length_kz=length(s.wf.cell().b(2));
 
   // get the connectivity of the grid
-  for ( int iKpi=0 ; iKpi<nkpoints_ ; iKpi++ )
+  for ( int iKpi=0; iKpi<nkpoints_; iKpi++ )
   {
     // initialize min distance
     double dminx1=1.e10;
@@ -170,7 +170,7 @@ KPConnectivity::KPConnectivity(const Sample& s)
     {
       // explore the remaining k points
       ConnectivityComplete_=1;
-      for ( int iKpj=0 ; iKpj<nkpoints_ ; iKpj++ )
+      for ( int iKpj=0; iKpj<nkpoints_; iKpj++ )
       {
         // if this kpoint is part of the integration grid
         if ( s.wf.weight(iKpj)!=0.0 )
@@ -473,7 +473,7 @@ KPConnectivity::KPConnectivity(const Sample& s)
   vector<double> y(n);
   vector<double> z(n);
 
-  for ( int i=0 ; i<n ; i++ )
+  for ( int i=0; i<n; i++ )
   {
     x[i]=xmin+deltaX/(n+1)*i;
     y[i]=ymin+deltaY/(n+1)*i;
@@ -486,8 +486,8 @@ KPConnectivity::KPConnectivity(const Sample& s)
   double IntY=0.0;
   double IntZ=0.0;
 
-  for ( int i=0 ; i<n ; i++ )
-  for ( int j=0 ; j<n ; j++ )
+  for ( int i=0; i<n; i++ )
+  for ( int j=0; j<n; j++ )
   {
     double SQRTx2py2=sqrt(x[i]*x[i]+y[j]*y[j]);
     double SQRTy2pz2=sqrt(y[i]*y[i]+z[j]*z[j]);
@@ -528,7 +528,7 @@ KPConnectivity::KPConnectivity(const Sample& s)
 
   // we associate these values with all kpoints
   // (based on the assumption of a regular grid)
-  for ( int iKpi=0 ; iKpi<nkpoints_ ; iKpi++ )
+  for ( int iKpi=0; iKpi<nkpoints_; iKpi++ )
   {
     integral_kx_[iKpi]=IntX;
     integral_ky_[iKpi]=IntY;
@@ -553,25 +553,17 @@ void KPConnectivity::SetOverlapIndices(Basis *vbasis_)
   // first translations of the reciprocal cell
   int indices[3][3][3];
   // init the indices to -1
-  for ( int i=-1 ; i<=1 ; i++ )
-  for ( int j=-1 ; j<=1 ; j++ )
-  for ( int k=-1 ; k<=1 ; k++ )
+  for ( int i=-1; i<=1; i++ )
+  for ( int j=-1; j<=1; j++ )
+  for ( int k=-1; k<=1; k++ )
   {
     indices[i+1][j+1][k+1]=-1;
   }
   // find the corresponding indices in the G basis
   const int ngloc = vbasis_->localsize();
-  const UnitCell& cell = vbasis_->cell();
-  for ( int ig=0 ; ig < ngloc; ig++ )
+  for ( int ig = 0; ig < ngloc; ig++ )
   {
     // get the corresponding index
-    //!! D3vector G;
-    //!! G.x=vbasis_->gx(ig+G_local_basis_size*0);
-    //!! G.y=vbasis_->gx(ig+G_local_basis_size*1);
-    //!! G.z=vbasis_->gx(ig+G_local_basis_size*2);
-    //!! int ix = (int) round( G * cell.a(0) / 6.283185307179586 );
-    //!! int iy = (int) round( G * cell.a(1) / 6.283185307179586 );
-    //!! int iz = (int) round( G * cell.a(2) / 6.283185307179586 );
     int ix = vbasis_->idx(3*ig+0);
     int iy = vbasis_->idx(3*ig+1);
     int iz = vbasis_->idx(3*ig+2);
@@ -581,7 +573,7 @@ void KPConnectivity::SetOverlapIndices(Basis *vbasis_)
       indices[1+ix][1+iy][1+iz]=ig;
   }
   // set the indices of the overlap for each kpoint
-  for ( int iKpi=0 ; iKpi<nkpoints_ ; iKpi++ )
+  for ( int iKpi=0; iKpi<nkpoints_; iKpi++ )
   {
     // local overlap
     local_ig_overlap_[iKpi] = indices[1][1][1];
@@ -695,9 +687,9 @@ void KPConnectivity::SetOverlapIndices(Basis *vbasis_)
 ////////////////////////////////////////////////////////////////////////////////
 void KPConnectivity::InitOverlaps()
 {
-  for ( int iKpi=0 ; iKpi<nkpoints_ ; iKpi++ )
+  for ( int iKpi=0; iKpi<nkpoints_; iKpi++ )
   {
-    for ( int iState=0 ; iState<nStateMax_ ; iState++ )
+    for ( int iState=0; iState<nStateMax_; iState++ )
     {
       local_overlap_[iKpi*nStateMax_+iState]=0.0;
       first_overlap_kx_[iKpi*nStateMax_+iState]=0.0;
@@ -791,141 +783,111 @@ void KPConnectivity::AddOverlap(int iKpi, int iKpj, int iLocStatei,
 void KPConnectivity::StartPermutation(int iKp, int iSendTo, int iRecvFr)
 {
   // local overlaps
-  if (1)
+  // copy overlaps into send buffer
+  for ( int i=0; i<nStateMax_; i++ )
   {
-    // copy overlaps into send buffer
-    for ( int i=0 ; i<nStateMax_ ; i++ )
-    {
-      local_send_buff_[i]=local_overlap_[iKp*nStateMax_+i];
-    }
-    // send the data in non blocking mode
-    MPI_Isend((void *) &local_send_buff_[0], nStateMax_, MPI_DOUBLE,
-      iSendTo, TAG_Overlaps_local, comm_, &send_request_local_ );
-    // receive the data in non blocking mode
-    MPI_Irecv((void *) &local_overlap_[iKp*nStateMax_], nStateMax_, MPI_DOUBLE,
-      iRecvFr, TAG_Overlaps_local, comm_, &recv_request_local_ );
+    local_send_buff_[i]=local_overlap_[iKp*nStateMax_+i];
   }
+  // send the data in non blocking mode
+  MPI_Isend((void *) &local_send_buff_[0], nStateMax_, MPI_DOUBLE,
+    iSendTo, TAG_Overlaps_local, comm_, &send_request_local_ );
+  // receive the data in non blocking mode
+  MPI_Irecv((void *) &local_overlap_[iKp*nStateMax_], nStateMax_, MPI_DOUBLE,
+    iRecvFr, TAG_Overlaps_local, comm_, &recv_request_local_ );
 
-  // if direction kx is used
-  if (DimX_==1)
+  // copy overlaps into send buffer
+  for ( int i=0; i<nStateMax_; i++ )
   {
-    // copy overlaps into send buffer
-    for ( int i=0 ; i<nStateMax_ ; i++ )
-    {
-      first_send_buff_kx_[i]=first_overlap_kx_[iKp*nStateMax_+i];
-      second_send_buff_kx_[i]=second_overlap_kx_[iKp*nStateMax_+i];
-    }
-    // send the data in non blocking mode
-    MPI_Isend((void *) &first_send_buff_kx_[0], nStateMax_, MPI_DOUBLE,
-      iSendTo, TAG_Overlaps_first_kx, comm_, &send_request_first_kx_ );
-    MPI_Isend((void *) &second_send_buff_kx_[0], nStateMax_, MPI_DOUBLE,
-      iSendTo, TAG_Overlaps_second_kx, comm_, &send_request_second_kx_ );
-    // receive the data in non blocking mode
-    MPI_Irecv((void *) &first_overlap_kx_[iKp*nStateMax_], nStateMax_,
-      MPI_DOUBLE, iRecvFr, TAG_Overlaps_first_kx, comm_,
-      &recv_request_first_kx_ );
-    MPI_Irecv((void *) &second_overlap_kx_[iKp*nStateMax_], nStateMax_,
-      MPI_DOUBLE, iRecvFr, TAG_Overlaps_second_kx, comm_,
-      &recv_request_second_kx_ );
+    first_send_buff_kx_[i]=first_overlap_kx_[iKp*nStateMax_+i];
+    second_send_buff_kx_[i]=second_overlap_kx_[iKp*nStateMax_+i];
   }
+  // send the data in non blocking mode
+  MPI_Isend((void *) &first_send_buff_kx_[0], nStateMax_, MPI_DOUBLE,
+    iSendTo, TAG_Overlaps_first_kx, comm_, &send_request_first_kx_ );
+  MPI_Isend((void *) &second_send_buff_kx_[0], nStateMax_, MPI_DOUBLE,
+    iSendTo, TAG_Overlaps_second_kx, comm_, &send_request_second_kx_ );
+  // receive the data in non blocking mode
+  MPI_Irecv((void *) &first_overlap_kx_[iKp*nStateMax_], nStateMax_,
+    MPI_DOUBLE, iRecvFr, TAG_Overlaps_first_kx, comm_,
+    &recv_request_first_kx_ );
+  MPI_Irecv((void *) &second_overlap_kx_[iKp*nStateMax_], nStateMax_,
+    MPI_DOUBLE, iRecvFr, TAG_Overlaps_second_kx, comm_,
+    &recv_request_second_kx_ );
 
-  // if direction ky is used
-  if (DimY_==1)
+  // copy overlaps into send buffer
+  for ( int i=0; i<nStateMax_; i++ )
   {
-    // copy overlaps into send buffer
-    for ( int i=0 ; i<nStateMax_ ; i++ )
-    {
-      first_send_buff_ky_[i]=first_overlap_ky_[iKp*nStateMax_+i];
-      second_send_buff_ky_[i]=second_overlap_ky_[iKp*nStateMax_+i];
-    }
-    // send the data in non blocking mode
-    MPI_Isend((void *) &first_send_buff_ky_[0], nStateMax_, MPI_DOUBLE,
-      iSendTo, TAG_Overlaps_first_ky, comm_, &send_request_first_ky_ );
-    MPI_Isend((void *) &second_send_buff_ky_[0], nStateMax_, MPI_DOUBLE,
-      iSendTo, TAG_Overlaps_second_ky, comm_, &send_request_second_ky_ );
-    // receive the data in non blocking mode
-    MPI_Irecv((void *) &first_overlap_ky_[iKp*nStateMax_], nStateMax_,
-      MPI_DOUBLE, iRecvFr, TAG_Overlaps_first_ky, comm_,
-      &recv_request_first_ky_ );
-    MPI_Irecv((void *) &second_overlap_ky_[iKp*nStateMax_], nStateMax_,
-      MPI_DOUBLE, iRecvFr, TAG_Overlaps_second_ky, comm_,
-      &recv_request_second_ky_ );
+    first_send_buff_ky_[i]=first_overlap_ky_[iKp*nStateMax_+i];
+    second_send_buff_ky_[i]=second_overlap_ky_[iKp*nStateMax_+i];
   }
+  // send the data in non blocking mode
+  MPI_Isend((void *) &first_send_buff_ky_[0], nStateMax_, MPI_DOUBLE,
+    iSendTo, TAG_Overlaps_first_ky, comm_, &send_request_first_ky_ );
+  MPI_Isend((void *) &second_send_buff_ky_[0], nStateMax_, MPI_DOUBLE,
+    iSendTo, TAG_Overlaps_second_ky, comm_, &send_request_second_ky_ );
+  // receive the data in non blocking mode
+  MPI_Irecv((void *) &first_overlap_ky_[iKp*nStateMax_], nStateMax_,
+    MPI_DOUBLE, iRecvFr, TAG_Overlaps_first_ky, comm_,
+    &recv_request_first_ky_ );
+  MPI_Irecv((void *) &second_overlap_ky_[iKp*nStateMax_], nStateMax_,
+    MPI_DOUBLE, iRecvFr, TAG_Overlaps_second_ky, comm_,
+    &recv_request_second_ky_ );
 
-  // if direction kz is used
-  if (DimZ_==1)
+  // copy overlaps into send buffer
+  for ( int i=0; i<nStateMax_; i++ )
   {
-    // copy overlaps into send buffer
-    for ( int i=0 ; i<nStateMax_ ; i++ )
-    {
-      first_send_buff_kz_[i]=first_overlap_kz_[iKp*nStateMax_+i];
-      second_send_buff_kz_[i]=second_overlap_kz_[iKp*nStateMax_+i];
-    }
-    // send the data in non blocking mode
-    MPI_Isend((void *) &first_send_buff_kz_[0], nStateMax_, MPI_DOUBLE,
-      iSendTo, TAG_Overlaps_first_kz, comm_, &send_request_first_kz_ );
-    MPI_Isend((void *) &second_send_buff_kz_[0], nStateMax_, MPI_DOUBLE,
-      iSendTo, TAG_Overlaps_second_kz, comm_, &send_request_second_kz_ );
-    // receive the data in non blocking mode
-    MPI_Irecv((void *) &first_overlap_kz_[iKp*nStateMax_], nStateMax_,
-      MPI_DOUBLE, iRecvFr, TAG_Overlaps_first_kz, comm_,
-      &recv_request_first_kz_ );
-    MPI_Irecv((void *) &second_overlap_kz_[iKp*nStateMax_], nStateMax_,
-      MPI_DOUBLE, iRecvFr, TAG_Overlaps_second_kz, comm_,
-      &recv_request_second_kz_ );
+    first_send_buff_kz_[i]=first_overlap_kz_[iKp*nStateMax_+i];
+    second_send_buff_kz_[i]=second_overlap_kz_[iKp*nStateMax_+i];
   }
+  // send the data in non blocking mode
+  MPI_Isend((void *) &first_send_buff_kz_[0], nStateMax_, MPI_DOUBLE,
+    iSendTo, TAG_Overlaps_first_kz, comm_, &send_request_first_kz_ );
+  MPI_Isend((void *) &second_send_buff_kz_[0], nStateMax_, MPI_DOUBLE,
+    iSendTo, TAG_Overlaps_second_kz, comm_, &send_request_second_kz_ );
+  // receive the data in non blocking mode
+  MPI_Irecv((void *) &first_overlap_kz_[iKp*nStateMax_], nStateMax_,
+    MPI_DOUBLE, iRecvFr, TAG_Overlaps_first_kz, comm_,
+    &recv_request_first_kz_ );
+  MPI_Irecv((void *) &second_overlap_kz_[iKp*nStateMax_], nStateMax_,
+    MPI_DOUBLE, iRecvFr, TAG_Overlaps_second_kz, comm_,
+    &recv_request_second_kz_ );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void KPConnectivity::EndPermutation()
 {
   // local overlaps
-  if (1)
-  {
-    MPI_Status status_recv_local;
-    MPI_Status status_send_local;
-    MPI_Wait( &recv_request_local_, &status_recv_local);
-    MPI_Wait( &send_request_local_, &status_send_local);
-  }
+  MPI_Status status_recv_local;
+  MPI_Status status_send_local;
+  MPI_Wait( &recv_request_local_, &status_recv_local);
+  MPI_Wait( &send_request_local_, &status_send_local);
 
-  // if direction kx is used
-  if (DimX_==1)
-  {
-    MPI_Status status_recv_first;
-    MPI_Status status_send_first;
-    MPI_Status status_recv_second;
-    MPI_Status status_send_second;
-    MPI_Wait( &recv_request_first_kx_, &status_recv_first);
-    MPI_Wait( &send_request_first_kx_, &status_send_first);
-    MPI_Wait( &recv_request_second_kx_, &status_recv_second);
-    MPI_Wait( &send_request_second_kx_, &status_send_second);
-  }
+  MPI_Status status_recv_first_kx;
+  MPI_Status status_send_first_kx;
+  MPI_Status status_recv_second_kx;
+  MPI_Status status_send_second_kx;
+  MPI_Wait( &recv_request_first_kx_, &status_recv_first_kx);
+  MPI_Wait( &send_request_first_kx_, &status_send_first_kx);
+  MPI_Wait( &recv_request_second_kx_, &status_recv_second_kx);
+  MPI_Wait( &send_request_second_kx_, &status_send_second_kx);
 
-  // if direction ky is used
-  if (DimY_==1)
-  {
-    MPI_Status status_recv_first;
-    MPI_Status status_send_first;
-    MPI_Status status_recv_second;
-    MPI_Status status_send_second;
-    MPI_Wait( &recv_request_first_ky_, &status_recv_first);
-    MPI_Wait( &send_request_first_ky_, &status_send_first);
-    MPI_Wait( &recv_request_second_ky_, &status_recv_second);
-    MPI_Wait( &send_request_second_ky_, &status_send_second);
-  }
+  MPI_Status status_recv_first_ky;
+  MPI_Status status_send_first_ky;
+  MPI_Status status_recv_second_ky;
+  MPI_Status status_send_second_ky;
+  MPI_Wait( &recv_request_first_ky_, &status_recv_first_ky);
+  MPI_Wait( &send_request_first_ky_, &status_send_first_ky);
+  MPI_Wait( &recv_request_second_ky_, &status_recv_second_ky);
+  MPI_Wait( &send_request_second_ky_, &status_send_second_ky);
 
-  // if direction kz is used
-  if (DimZ_==1)
-  {
-    MPI_Status status_recv_first;
-    MPI_Status status_send_first;
-    MPI_Status status_recv_second;
-    MPI_Status status_send_second;
-    MPI_Wait( &recv_request_first_kz_, &status_recv_first);
-    MPI_Wait( &send_request_first_kz_, &status_send_first);
-    MPI_Wait( &recv_request_second_kz_, &status_recv_second);
-    MPI_Wait( &send_request_second_kz_, &status_send_second);
-  }
+  MPI_Status status_recv_first_kz;
+  MPI_Status status_send_first_kz;
+  MPI_Status status_recv_second_kz;
+  MPI_Status status_send_second_kz;
+  MPI_Wait( &recv_request_first_kz_, &status_recv_first_kz);
+  MPI_Wait( &send_request_first_kz_, &status_send_first_kz);
+  MPI_Wait( &recv_request_second_kz_, &status_recv_second_kz);
+  MPI_Wait( &send_request_second_kz_, &status_send_second_kz);
 }
 
 // access to the accumulated overlaps

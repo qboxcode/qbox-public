@@ -18,14 +18,15 @@
 
 #ifndef VECTORLESS_H
 #define VECTORLESS_H
+#include <vector>
 
 template <class T>
 struct VectorLess
 {
   // function object for indirect comparison of vector elements
   public:
-  vector<T>& a_;
-  VectorLess<T>(vector<T>& a) : a_(a) {};
+  std::vector<T>& a_;
+  VectorLess<T>(std::vector<T>& a) : a_(a) {};
   bool operator() (int i, int j) const
   {
     return a_[i] < a_[j];

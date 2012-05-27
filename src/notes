@@ -1,11 +1,20 @@
-TODO:
-Sample.h: replace ExtForceSet and ConstraintSet members by pointers.
-Check behavior of net_charge during save/load.
 --------------------------------------------------------------------------------
-Issues: 
-BOSampleStepper.C:Using run 0 modifies the wavefunctions. Need to set 
-wf_dyn=LOCKED to only compute energy without modif of wfs.
-kpgen for non-rectangular cells yields non-symmetric kpoint sets.
+wrk
+Redesign of Bisection and ExchangeOperator separates bisection transformation
+and load-balancing permutation.
+Fixed KPGridConnectivity
+Added unit_cell info in BOSampleStepper output.
+SlatedDet: added occ_ and eig_ to operator=
+--------------------------------------------------------------------------------
+rel1_55_5
+Added polar decomposition in Matrix class. 
+Use polar in ortho_align, align, lowdin ortho.
+--------------------------------------------------------------------------------
+rel1_55_4
+Added OpenMP pragmas
+--------------------------------------------------------------------------------
+rel1_55_0
+merge of hfb functionality
 --------------------------------------------------------------------------------
 rel1_54_6
 Added USE_DFFTW macro for platforms providing the dfftw.h header only

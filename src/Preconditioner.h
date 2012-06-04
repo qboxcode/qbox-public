@@ -32,7 +32,8 @@ class Preconditioner
 
   const Sample& s_;
   const EnergyFunctional& ef_;
-  std::vector<std::vector<std::valarray<double> > > diag_; // diag_[ispin][ikp][ig]
+  // diag_[ispin][ikp][ig]
+  std::vector<std::vector<std::valarray<double> > > diag_;
 
   public:
 

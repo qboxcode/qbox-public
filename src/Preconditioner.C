@@ -39,7 +39,7 @@ void Preconditioner::update(void)
   bool use_confinement = s_.ctrl.ecuts > 0.0;
   const Wavefunction& wf = s_.wf;
   // If ecutprec is zero, use ecut
-  const double ecutpr = s_.ctrl.ecutprec> 0.0 ? s_.ctrl.ecutprec : wf.ecut();
+  const double ecutpr = s_.ctrl.ecutprec > 0.0 ? s_.ctrl.ecutprec : wf.ecut();
 
   diag_.resize(wf.nspin());
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )

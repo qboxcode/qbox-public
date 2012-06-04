@@ -65,18 +65,18 @@ class BisectionCmd : public Cmd
     nLevels[1]=atoi(argv[2]);
     nLevels[2]=atoi(argv[3]);
 
+    tm.reset();
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
       SlaterDet& sd = *wf.sd(0,0);
       Bisection bisection(sd,nLevels);
       const int maxsweep = 20;
       const double tol = 1.e-8;
-      tm.reset();
       tm.start();
       bisection.compute_transform(sd,maxsweep,tol);
-      tm.stop();
       bisection.compute_localization(epsilon);
       bisection.forward(sd);
+      tm.stop();
       vector<long int> localization = bisection.localization();
 
       if ( ui->onpe0() )
@@ -85,11 +85,6 @@ class BisectionCmd : public Cmd
              << " ly=" << nLevels[1]
 	     << " lz=" << nLevels[2]
 	     << " threshold=" << epsilon << endl;
-        cout << " Bisection: total size:    ispin=" << ispin
-             << ": " << bisection.total_size() << endl;
-        cout << " Bisection: pair fraction: ispin=" << ispin
-             << ": " << bisection.pair_fraction() << endl;
-        cout << " Bisection: time=" << tm.real() << endl;
 
         // print localization vectors and overlaps
         int sum = 0;
@@ -104,14 +99,19 @@ class BisectionCmd : public Cmd
           }
           cout << "localization[" << i << "]: "
                << localization[i] << " "
-               << bitset<30>(localization[i]) << "  overlaps: "
-               << count << endl;
+               << bitset<30>(localization[i])
+               << " size: " << bisection.size(i)
+               << " overlaps: " << count << endl;
           sum += count;
         }
-        cout << "total overlaps: " << sum << " / " << nst*nst
-             << " = " << ((double) sum)/(nst*nst) << endl;
+        cout << " Bisection: total size:    ispin=" << ispin
+             << ": " << bisection.total_size() << endl;
+        cout << " Bisection: pair fraction: ispin=" << ispin
+             << ": " << bisection.pair_fraction() << endl;
       }
     }
+    if ( ui->onpe0() )
+      cout << " Bisection: time=" << tm.real() << endl;
     return 0;
   }
 };

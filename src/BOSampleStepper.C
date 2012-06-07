@@ -305,7 +305,8 @@ void BOSampleStepper::step(int niter)
 
   vector<AndersonMixer*> mixer(nspin);
   for ( int ispin = 0; ispin < nspin; ispin++ )
-    mixer[ispin] = new AndersonMixer(2*rhog_in[ispin].size(),anderson_ndim,&cd_.vcontext());
+    mixer[ispin] =
+      new AndersonMixer(2*rhog_in[ispin].size(),anderson_ndim,&cd_.vcontext());
 
   // compute Kerker preconditioning
   // real space Kerker cutoff in a.u.
@@ -750,6 +751,8 @@ void BOSampleStepper::step(int niter)
           mixer[ispin]->restart();
       }
 
+      double ehart, ehart_m;
+
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
       {
         if ( nite_ > 1 && onpe0 )
@@ -855,10 +858,25 @@ void BOSampleStepper::step(int niter)
         // reset stepper only if multiple non-selfconsistent steps
         if ( nite_ > 1 ) wf_stepper->preprocess();
 
-        for ( int ite = 0; ite < nite_; ite++ )
+        // non-self-consistent loop
+        // repeat until the change in the eigenvalue sum is smaller than
+        // the change in Hartree energy in the last scf iteration
+        bool nscf_converged = false;
+        ehart_m = ehart;
+        ehart = ef_.ehart();
+        const double delta_ehart = fabs(ehart - ehart_m);
+        if ( onpe0 && nite_ > 1 )
+          cout << " delta_ehart = " << delta_ehart << endl;
+        int ite = 0;
+        double etotal_int;
+        double eigenvalue_sum;
+        while ( !nscf_converged && ite < nite_ )
         {
           double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
           double enthalpy = energy;
+
+          const double etotal_int_m = etotal_int;
+          etotal_int = energy;
 
           // compute the sum of eigenvalues (with fixed weight)
           // to measure convergence of the subspace update
@@ -866,7 +884,9 @@ void BOSampleStepper::step(int niter)
           // scalar product of Y and (HY): tr Y^T (HY) = sum_ij Y_ij (HY)_ij
           // Note: since the hamiltonian is hermitian and dwf=H*wf
           // the dot product in the following line is real
-          const double eigenvalue_sum = real(s_.wf.dot(dwf));
+
+          const double eigenvalue_sum_m = eigenvalue_sum;
+          eigenvalue_sum = real(s_.wf.dot(dwf));
           if ( onpe0 )
             cout << "  <eigenvalue_sum> "
                  << eigenvalue_sum << " </eigenvalue_sum>" << endl;
@@ -888,7 +908,29 @@ void BOSampleStepper::step(int niter)
                    << flush;
             }
           }
-        } // for ite
+
+          // compare delta_etotal_int only after first iteration
+          if ( ite > 0 )
+          {
+#if 1
+            double delta_etotal_int = fabs(etotal_int - etotal_int_m);
+            nscf_converged |= (delta_etotal_int < 0.2 * delta_ehart);
+            if ( onpe0 )
+              cout << " BOSampleStepper::step: delta_e_int: "
+                   << delta_etotal_int << endl;
+#else
+            double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
+            nscf_converged |= (delta_eig_sum < 0.2 * delta_ehart);
+            if ( onpe0 )
+              cout << " delta_eig_sum: " << delta_eig_sum << endl;
+#endif
+
+          }
+          ite++;
+        }
+        if ( onpe0 && nite_ > 1 && ite >= nite_ )
+          cout << " BOSampleStepper::step: nscf loop not converged after "
+               << nite_ << " iterations" << endl;
 
         // subspace diagonalization
         if ( compute_eigvec || s_.ctrl.wf_diag == "EIGVAL" )

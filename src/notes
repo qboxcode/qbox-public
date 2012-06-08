@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------
 wrk
-Adaptive preconditioner.
+BOSampleStepper: fixed bug in mixing with charge_mix_ndim=0
+r1212: Adaptive preconditioner.
 r1211: tolerance for non-self consistent iterations
 --------------------------------------------------------------------------------
 rel1_55_6

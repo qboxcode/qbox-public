@@ -847,9 +847,12 @@ void BOSampleStepper::step(int niter)
         // repeat until the change in the eigenvalue sum is smaller than
         // the change in Hartree energy in the last scf iteration
         bool nscf_converged = false;
-        ehart_m = ehart;
+        if ( itscf > 0 )
+          ehart_m = ehart;
         ehart = ef_.ehart();
-        const double delta_ehart = fabs(ehart - ehart_m);
+        double delta_ehart = 0.0;
+        if ( itscf > 0 )
+          delta_ehart = fabs(ehart - ehart_m);
         // if ( onpe0 && nite_ > 1 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;

@@ -825,7 +825,7 @@ void BOSampleStepper::step(int niter)
             {
               for ( int ispin = 0; ispin < nspin; ispin++ )
               {
-                for ( int i = 0; i < rhog_in.size(); i++ )
+                for ( int i = 0; i < rhog_in[ispin].size(); i++ )
                   rhog_in[ispin][i] += alpha * drhog[ispin][i] * wkerker[i];
               }
             }
@@ -844,8 +844,9 @@ void BOSampleStepper::step(int niter)
         if ( nite_ > 1 ) wf_stepper->preprocess();
 
         // non-self-consistent loop
-        // repeat until the change in the eigenvalue sum is smaller than
-        // the change in Hartree energy in the last scf iteration
+        // repeat until the change in etotal_int or in the
+        // eigenvalue sum is smaller than a fraction of the change in
+        // Hartree energy in the last scf iteration
         bool nscf_converged = false;
         if ( itscf > 0 )
           ehart_m = ehart;
@@ -856,14 +857,16 @@ void BOSampleStepper::step(int niter)
         // if ( onpe0 && nite_ > 1 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
-        double etotal_int;
-        double eigenvalue_sum;
+        double etotal_int, etotal_int_m;
+        double eigenvalue_sum, eigenvalue_sum_m;
         while ( !nscf_converged && ite < nite_ )
         {
           double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
           double enthalpy = energy;
 
-          const double etotal_int_m = etotal_int;
+          if ( ite > 0 )
+            etotal_int_m = etotal_int;
+
           etotal_int = energy;
 
           // compute the sum of eigenvalues (with fixed weight)
@@ -873,7 +876,9 @@ void BOSampleStepper::step(int niter)
           // Note: since the hamiltonian is hermitian and dwf=H*wf
           // the dot product in the following line is real
 
-          const double eigenvalue_sum_m = eigenvalue_sum;
+          if ( ite > 0 )
+            eigenvalue_sum_m = eigenvalue_sum;
+
           eigenvalue_sum = real(s_.wf.dot(dwf));
           if ( onpe0 )
             cout << "  <eigenvalue_sum> "
@@ -904,21 +909,31 @@ void BOSampleStepper::step(int niter)
             double delta_etotal_int = fabs(etotal_int - etotal_int_m);
             nscf_converged |= (delta_etotal_int < 0.2 * delta_ehart);
             if ( onpe0 )
+            {
               cout << " BOSampleStepper::step: delta_e_int: "
                    << delta_etotal_int << endl;
+              cout << " BOSampleStepper::step: delta_ehart: "
+                   << delta_ehart << endl;
+            }
 #else
             double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
             nscf_converged |= (delta_eig_sum < 0.2 * delta_ehart);
             if ( onpe0 )
-              cout << " delta_eig_sum: " << delta_eig_sum << endl;
+            {
+              cout << " BOSampleStepper::step delta_eig_sum: "
+                   << delta_eig_sum << endl;
+              cout << " BOSampleStepper::step: delta_ehart: "
+                   << delta_ehart << endl;
+            }
 #endif
 
           }
           ite++;
         }
-        if ( onpe0 && nite_ > 1 && ite >= nite_ )
-          cout << " BOSampleStepper::step: nscf loop not converged after "
-               << nite_ << " iterations" << endl;
+
+        // if ( onpe0 && nite_ > 1 && ite >= nite_ )
+        //   cout << " BOSampleStepper::step: nscf loop not converged after "
+        //        << nite_ << " iterations" << endl;
 
         // subspace diagonalization
         if ( compute_eigvec || s_.ctrl.wf_diag == "EIGVAL" )
@@ -1025,7 +1040,6 @@ void BOSampleStepper::step(int niter)
                << " </total_dipole_length>" << endl;
         }
       }
-
 
       // If GS calculation only, print energy and atomset at end of iterations
       if ( gs_only )

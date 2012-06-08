@@ -1,5 +1,9 @@
 --------------------------------------------------------------------------------
 wrk
+Adaptive preconditioner.
+r1211: tolerance for non-self consistent iterations
+--------------------------------------------------------------------------------
+rel1_55_6
 Redesign of Bisection and ExchangeOperator separates bisection transformation
 and load-balancing permutation.
 Fixed KPGridConnectivity

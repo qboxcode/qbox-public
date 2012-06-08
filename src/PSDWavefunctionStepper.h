@@ -15,7 +15,6 @@
 // PSDWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.h,v 1.7 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef PSDWAVEFUNCTIONSTEPPER_H
 #define PSDWAVEFUNCTIONSTEPPER_H
@@ -27,13 +26,13 @@ class PSDWavefunctionStepper : public WavefunctionStepper
 {
   private:
 
-  Preconditioner& prec_;
+  Preconditioner *prec_;
 
   public:
 
   void update(Wavefunction& dwf);
 
-  PSDWavefunctionStepper(Wavefunction& wf, Preconditioner& p, TimerMap& tmap);
-  ~PSDWavefunctionStepper() {};
+  PSDWavefunctionStepper(Wavefunction& wf, double ecutprec, TimerMap& tmap);
+  ~PSDWavefunctionStepper();
 };
 #endif

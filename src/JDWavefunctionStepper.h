@@ -15,7 +15,6 @@
 // JDWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: JDWavefunctionStepper.h,v 1.2 2009-09-08 05:36:49 fgygi Exp $
 
 #ifndef JDWAVEFUNCTIONSTEPPER_H
 #define JDWAVEFUNCTIONSTEPPER_H
@@ -29,7 +28,7 @@ class JDWavefunctionStepper : public WavefunctionStepper
 {
   private:
 
-  Preconditioner& prec_;
+  Preconditioner *prec_;
   EnergyFunctional& ef_;
   Wavefunction wft_, dwft_;
 
@@ -38,8 +37,8 @@ class JDWavefunctionStepper : public WavefunctionStepper
   void update(Wavefunction& dwf);
   virtual void preprocess(void) {}
 
-  JDWavefunctionStepper(Wavefunction& wf, Preconditioner& p,
+  JDWavefunctionStepper(Wavefunction& wf, double ecutprec,
                         EnergyFunctional& ef, TimerMap& tmap);
-  ~JDWavefunctionStepper() {};
+  ~JDWavefunctionStepper();
 };
 #endif

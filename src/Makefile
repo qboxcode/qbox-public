@@ -287,12 +287,26 @@ BOSampleStepper.o: JDWavefunctionStepper.h SDIonicStepper.h IonicStepper.h
 BOSampleStepper.o: Species.h SDAIonicStepper.h LineMinimizer.h
 BOSampleStepper.o: CGIonicStepper.h CGOptimizer.h MDIonicStepper.h
 BOSampleStepper.o: BMDIonicStepper.h SDCellStepper.h CellStepper.h
-BOSampleStepper.o: CGCellStepper.h Preconditioner.h AndersonMixer.h
-BOSampleStepper.o: MLWFTransform.h BasisMapping.h
+BOSampleStepper.o: CGCellStepper.h AndersonMixer.h MLWFTransform.h
+BOSampleStepper.o: BasisMapping.h
 BOSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 BOSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 BOSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 BOSampleStepper.o: Wavefunction.h Control.h
+BOSampleStepper-merge.o: BOSampleStepper.h SampleStepper.h Timer.h
+BOSampleStepper-merge.o: EnergyFunctional.h ChargeDensity.h Context.h
+BOSampleStepper-merge.o: StructureFactor.h Sample.h AtomSet.h Atom.h
+BOSampleStepper-merge.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
+BOSampleStepper-merge.o: Wavefunction.h Control.h SlaterDet.h Basis.h
+BOSampleStepper-merge.o: Matrix.h WavefunctionStepper.h
+BOSampleStepper-merge.o: SDWavefunctionStepper.h PSDWavefunctionStepper.h
+BOSampleStepper-merge.o: PSDAWavefunctionStepper.h JDWavefunctionStepper.h
+BOSampleStepper-merge.o: SDIonicStepper.h IonicStepper.h Species.h
+BOSampleStepper-merge.o: SDAIonicStepper.h LineMinimizer.h CGIonicStepper.h
+BOSampleStepper-merge.o: CGOptimizer.h MDIonicStepper.h BMDIonicStepper.h
+BOSampleStepper-merge.o: SDCellStepper.h CellStepper.h CGCellStepper.h
+BOSampleStepper-merge.o: Preconditioner.h AndersonMixer.h MLWFTransform.h
+BOSampleStepper-merge.o: BasisMapping.h
 BtHF.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 BtHF.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 CellDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
@@ -511,11 +525,8 @@ PlotCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 PositionConstraint.o: PositionConstraint.h Constraint.h AtomSet.h Context.h
 PositionConstraint.o: Atom.h D3vector.h UnitCell.h Species.h
 PositionConstraint.o: Constraint.h
-Preconditioner.o: Preconditioner.h EnergyFunctional.h ChargeDensity.h Timer.h
-Preconditioner.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
-Preconditioner.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
-Preconditioner.o: Wavefunction.h Control.h Basis.h SlaterDet.h Matrix.h
-Preconditioner.o: ConfinementPotential.h
+Preconditioner.o: Preconditioner.h Basis.h D3vector.h UnitCell.h Context.h
+Preconditioner.o: Wavefunction.h SlaterDet.h Matrix.h Timer.h
 PrintCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 PrintCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 PSDAWavefunctionStepper.o: PSDAWavefunctionStepper.h WavefunctionStepper.h

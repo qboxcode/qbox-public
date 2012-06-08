@@ -32,7 +32,6 @@
 #include "BMDIonicStepper.h"
 #include "SDCellStepper.h"
 #include "CGCellStepper.h"
-#include "Preconditioner.h"
 #include "AndersonMixer.h"
 #include "MLWFTransform.h"
 
@@ -201,17 +200,6 @@ void BOSampleStepper::step(int niter)
 
   Timer tm_iter;
 
-  const bool use_preconditioner = wf_dyn == "PSD" ||
-                                  wf_dyn == "PSDA"||
-                                  wf_dyn == "JD";
-  Preconditioner *preconditioner = 0;
-  if ( use_preconditioner )
-  {
-    // create a preconditioner using the information about wf in s_.wf
-    // and the information about the hessian in df
-    preconditioner = new Preconditioner(s_,ef_);
-  }
-
   WavefunctionStepper* wf_stepper = 0;
   if ( wf_dyn == "SD" )
   {
@@ -227,11 +215,11 @@ void BOSampleStepper::step(int niter)
     wf_stepper = new SDWavefunctionStepper(wf,dt2bye,tmap);
   }
   else if ( wf_dyn == "PSD" )
-    wf_stepper = new PSDWavefunctionStepper(wf,*preconditioner,tmap);
+    wf_stepper = new PSDWavefunctionStepper(wf,s_.ctrl.ecutprec,tmap);
   else if ( wf_dyn == "PSDA" )
-    wf_stepper = new PSDAWavefunctionStepper(wf,*preconditioner,tmap);
+    wf_stepper = new PSDAWavefunctionStepper(wf,s_.ctrl.ecutprec,tmap);
   else if ( wf_dyn == "JD" )
-    wf_stepper = new JDWavefunctionStepper(wf,*preconditioner,ef_,tmap);
+    wf_stepper = new JDWavefunctionStepper(wf,s_.ctrl.ecutprec,ef_,tmap);
 
   // wf_stepper == 0 indicates that wf_dyn == LOCKED
 
@@ -508,9 +496,6 @@ void BOSampleStepper::step(int niter)
 
           ef_.cell_moved();
           ef_.atoms_moved(); // modifications of the cell also move ions
-
-          if ( use_preconditioner )
-            preconditioner->update();
         }
       }
     } // if !gs_only
@@ -865,8 +850,8 @@ void BOSampleStepper::step(int niter)
         ehart_m = ehart;
         ehart = ef_.ehart();
         const double delta_ehart = fabs(ehart - ehart_m);
-        if ( onpe0 && nite_ > 1 )
-          cout << " delta_ehart = " << delta_ehart << endl;
+        // if ( onpe0 && nite_ > 1 )
+        //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
         double etotal_int;
         double eigenvalue_sum;
@@ -1232,8 +1217,6 @@ void BOSampleStepper::step(int niter)
   delete ionic_stepper;
   delete cell_stepper;
 
-  // delete preconditioner
-  if ( use_preconditioner ) delete preconditioner;
   if ( ntc_extrapolation || asp_extrapolation ) delete wfmm;
 
   initial_atomic_density = false;

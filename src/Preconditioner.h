@@ -15,13 +15,11 @@
 // Preconditioner.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Preconditioner.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef PRECONDITIONER_H
 #define PRECONDITIONER_H
 
-class Sample;
-class EnergyFunctional;
+class Wavefunction;
 
 #include <vector>
 #include <valarray>
@@ -30,19 +28,21 @@ class Preconditioner
 {
   private:
 
-  const Sample& s_;
-  const EnergyFunctional& ef_;
-  // diag_[ispin][ikp][ig]
-  std::vector<std::vector<std::valarray<double> > > diag_;
+  // kpg2_[ispin][ikp][ig]
+  std::vector<std::vector<const double *> > kpg2_;
+  // ekin_[ispin][ikp][n]
+  std::vector<std::vector<std::valarray<double> > > ekin_;
+
+  double ecutprec_;
 
   public:
 
-  void update(void);
+  // update values of ekin_
+  void update(const Wavefunction& wf);
 
-  const std::valarray<double>& diag(int ispin, int ikp) const
-  { return diag_[ispin][ikp]; }
+  double diag(int ispin, int ikp, int n, int ig) const;
 
-  Preconditioner(const Sample& s, const EnergyFunctional& ef);
+  Preconditioner(const Wavefunction& wf, double ecutprec);
   //~Preconditioner();
 };
 #endif

@@ -15,7 +15,6 @@
 // PSDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDWavefunctionStepper.C,v 1.12 2008-09-08 15:56:18 fgygi Exp $
 
 #include "PSDWavefunctionStepper.h"
 #include "Wavefunction.h"
@@ -26,9 +25,16 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 PSDWavefunctionStepper::PSDWavefunctionStepper(Wavefunction& wf,
-  Preconditioner& p, TimerMap& tmap) :
-  WavefunctionStepper(wf,tmap), prec_(p)
-{}
+  double ecutprec, TimerMap& tmap) : WavefunctionStepper(wf,tmap)
+{
+  prec_ = new Preconditioner(wf,ecutprec);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+PSDWavefunctionStepper::~PSDWavefunctionStepper(void)
+{
+  delete prec_;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 void PSDWavefunctionStepper::update(Wavefunction& dwf)
@@ -38,7 +44,6 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
       // compute A = V^T H V  and descent direction HV - VA
-
       tmap_["psd_residual"].start();
       if ( wf_.sd(ispin,ikp)->basis().real() )
       {
@@ -66,12 +71,19 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
         cp.gemm('n','n',-1.0,c,a,1.0);
       }
       tmap_["psd_residual"].stop();
+    }
+  }
 
-      // dwf.sd->c() now contains the descent direction (HV-VA)
+  // dwf.sd->c() now contains the descent direction (HV-VA)
 
+  // update preconditioner using the residual
+  prec_->update(dwf);
+
+  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  {
+    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    {
       tmap_["psd_update_wf"].start();
-      const valarray<double>& diag = prec_.diag(ispin,ikp);
-
       double* coeff = (double*) wf_.sd(ispin,ikp)->c().valptr();
       const double* dcoeff =
         (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
@@ -83,10 +95,10 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
         // note: double mloc length for complex<double> indices
         double* c = &coeff[2*mloc*n];
         const double* dc = &dcoeff[2*mloc*n];
-        // loop to ngwl only since diag[i] is defined on [0:mloc-1]
+
         for ( int i = 0; i < ngwl; i++ )
         {
-          const double fac = diag[i];
+          const double fac = prec_->diag(ispin,ikp,n,i);
           const double delta_re = fac * dc[2*i];
           const double delta_im = fac * dc[2*i+1];
           c[2*i]   -= delta_re;

@@ -15,7 +15,6 @@
 // PSDAWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PSDAWavefunctionStepper.h,v 1.7 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef PSDAWAVEFUNCTIONSTEPPER_H
 #define PSDAWAVEFUNCTIONSTEPPER_H
@@ -28,7 +27,7 @@ class PSDAWavefunctionStepper : public WavefunctionStepper
 {
   private:
 
-  Preconditioner& prec_;
+  Preconditioner *prec_;
   Wavefunction wf_last_, dwf_last_;
 
   // Anderson acceleration flag
@@ -39,7 +38,7 @@ class PSDAWavefunctionStepper : public WavefunctionStepper
   void update(Wavefunction& dwf);
   virtual void preprocess(void) { extrapolate_ = false; }
 
-  PSDAWavefunctionStepper(Wavefunction& wf, Preconditioner& p, TimerMap& tmap);
-  ~PSDAWavefunctionStepper() {};
+  PSDAWavefunctionStepper(Wavefunction& wf, double ecutprec, TimerMap& tmap);
+  ~PSDAWavefunctionStepper();
 };
 #endif

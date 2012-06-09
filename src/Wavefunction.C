@@ -282,6 +282,7 @@ void Wavefunction::set_nspin(int nspin)
   allocate();
   resize(cell_,refcell_,ecut_);
   init();
+  update_occ(0.0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -295,6 +296,7 @@ void Wavefunction::set_deltaspin(int deltaspin)
   allocate();
   resize(cell_,refcell_,ecut_);
   init();
+  update_occ(0.0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,5 +1,8 @@
 --------------------------------------------------------------------------------
-wrk
+rel1_56_1
+ExchangeOperator.C: Fixed permutation of occupation numbers when using bisection
+--------------------------------------------------------------------------------
+rel1_56_0
 BOSampleStepper: fixed bug in mixing with charge_mix_ndim=0
 r1212: Adaptive preconditioner.
 r1211: tolerance for non-self consistent iterations

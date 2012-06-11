@@ -1221,7 +1221,9 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
   for ( int ispin = 0; ispin < wfc_.nspin(); ispin++ )
   {
-    const int nst = wfc_.sd(ispin,0)->nst();
+    SlaterDet& sd = *(wfc_.sd(ispin,0));
+    ComplexMatrix& c = sd.c();
+    const int nst = sd.nst();
 
     // if using bisection, localize the wave functions
     if ( use_bisection_ )
@@ -1330,6 +1332,12 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         for ( int i = 0; i < index.size(); i++ )
           loc_tmp[i] = localization_[index[i]];
         localization_ = loc_tmp;
+
+        // apply the permutation defined by index to the occupation vector
+        vector<double> occ_tmp(nst);
+        for ( int i = 0; i < index.size(); i++ )
+          occ_tmp[i] = sd.occ(index[i]);
+        sd.set_occ(occ_tmp);
 
         // compute a pivot vector containing a sequence of transpositions
         // equivalent to the permutation defined by index[i]
@@ -1493,9 +1501,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     // initialize overlaps
     KPGridPerm_.InitOverlaps();
     KPGridStat_.InitOverlaps();
-
-    SlaterDet& sd = *(wfc_.sd(ispin,0));
-    ComplexMatrix& c = sd.c();
 
     // real-space local states -> statej_[i][ir]
     // loop over states 2 by 2

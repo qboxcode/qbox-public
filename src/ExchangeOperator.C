@@ -1230,7 +1230,17 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     {
       tmb.start();
       const int maxsweep = 50;
-      const double tol = 1.e-6;
+      double tol = 1.e-6;
+      if ( s_.ctrl.debug.find("BISECTION_TOL") != string::npos )
+      {
+        // override tolerance for bisection
+        istringstream is(s_.ctrl.debug);
+        string s;
+        is >> s >> tol;
+        if ( gcontext_.onpe0() )
+          cout << " override bisection tol value: tol = " << tol << endl;
+        assert(tol > 0.0);
+      }
       bisection_[ispin]->compute_transform(*wfc_.sd(ispin,0),maxsweep,tol);
       bisection_[ispin]->compute_localization(s_.ctrl.btHF);
       // copy of localization vector from Bisection object

@@ -1,0 +1,17 @@
+#!/bin/bash
+#$ -A TG-ASC090004
+#$ -N qbtwin
+#$ -V
+#$ -q development 
+#$ -cwd
+#$ -j y
+#$ -pe 4way 16
+#$ -l h_rt=00:10:00
+
+exe=$HOME/qb/export/rel1_51_1/qb/src/qb
+export OMP_NUM_THREADS=1
+# ibrun -n <# of cores> -o <hostlist offset> exec <args>
+ibrun -n 1 -o 0 $exe -server qbin_0 qbout_0 &
+ibrun -n 1 -o 1 $exe -server qbin_1 qbout_1 &
+ibrun -n 1 -o 2 ./twin qbin qbout &
+wait

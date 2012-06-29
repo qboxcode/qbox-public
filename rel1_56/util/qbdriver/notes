@@ -1,0 +1,53 @@
+--------------------------------------------------------------------------------
+ Using Qbox in client-server mode 
+--------------------------------------------------------------------------------
+
+Qbox is used in client-server mode by invoking it with the "-server" argument:
+
+$ mpirun -np 32 qb -server qbin qbout 
+
+Qbox starts executing the commands in qbin (if there are any)
+Qbox erases the file qbout and writes output to qbout.
+When Qbox is done executing commands in file qbin, it creates a file 
+named qbin.lock. 
+Qbox then waits for the file qbin.lock to disappear.
+
+The client program:
+Waits for the file qbin.lock to appear
+Reads qbout
+Erases qbin
+Writes commands on qbin
+Removes the file qbin.lock
+
+Testing for the presence of qbin.lock:
+
+In a C/C++ program:
+- trying to open the file until the open() call is successful.
+- using the stat() function (see man 2 stat).
+
+In a shell script:
+- Checking the presence of a file using
+
+ if [[ -a qbin.lock ]]
+ then
+   ...
+ fi
+
+Waiting for the lock file to appear:
+
+ while [[ ! -a qbin.lock ]]
+ do
+   usleep 500000
+ done
+
+In interactive use:
+
+$ cat > qbin
+qbox command 1
+qbox command 2
+^D
+$ rm qbin.lock
+
+Using other programming languages (Fortran, etc.):
+- trying to open the link and writing to it when successful.
+

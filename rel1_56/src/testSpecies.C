@@ -1,0 +1,168 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2008 The Regents of the University of California
+//
+// This file is part of Qbox
+//
+// Qbox is distributed under the terms of the GNU General Public License
+// as published by the Free Software Foundation, either version 2 of
+// the License, or (at your option) any later version.
+// See the file COPYING in the root directory of this distribution
+// or <http://www.gnu.org/licenses/>.
+//
+//
+// testSpecies.C
+//
+// use: testSpecies uri
+//
+
+#include "Species.h"
+#include "Context.h"
+#include "SpeciesReader.h"
+#include <iostream>
+#include <cassert>
+#include <string>
+using namespace std;
+
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
+int main(int argc, char **argv)
+{
+#if USE_MPI
+  MPI_Init(&argc,&argv);
+#endif
+  {
+
+  Context ctxt;
+  if ( argc != 2 )
+  {
+    cerr << "use: testSpecies uri" << endl;
+    return 1;
+  }
+
+  Species s(ctxt,"unknown_name");
+
+  SpeciesReader rdr(ctxt);
+
+  string uri(argv[1]);
+
+  try
+  {
+    cerr << " s.uri() = " << s.uri() << endl;
+    cerr << " testSpecies: invoking readSpecies: uri=" << uri << endl;
+    rdr.readSpecies(s,uri);
+  }
+  catch ( const SpeciesReaderException& e )
+  {
+    cerr << " SpeciesReaderException caught in testSpecies" << endl;
+    throw;
+  }
+  cerr << " SpeciesReader::readSpecies done" << endl;
+
+  const double rcps = 1.0;
+
+  try
+  {
+    s.initialize(rcps);
+  }
+  catch ( SpeciesInitException& e )
+  {
+    cerr << " Exception in Species initialization: " << e.msg << endl;
+    throw;
+  }
+  cerr << s;
+
+#if 1
+
+  if ( ctxt.onpe0() )
+  {
+
+  double dr = 0.01;
+  double dg = 0.02;
+  double v,dv;
+
+  int n = 1500;
+
+  for ( int l = 0; l <= s.lmax(); l++ )
+  {
+    cout << "# " << n << " Vps(l=" << l << ",r) " << endl;
+    for ( int i = 0; i < n; i++ )
+    {
+      double r = i * dr;
+      s.vpsr(l,r,v);
+      cout << r << " " << v << endl;
+    }
+    cout << endl << endl;
+
+    cout << "# " << n << " phi(l=" << l << ",r) " << endl;
+    for ( int i = 0; i < n; i++ )
+    {
+      double r = i * dr;
+      double val;
+      s.phi(l,r,val);
+      cout << r << " " << val << endl;
+    }
+    cout << endl << endl;
+
+    cout << "# " << n << " dVps(l=" << l << ",r)/dr " << endl;
+    for ( int i = 0; i < n; i++ )
+    {
+      double r = i * dr;
+      s.dvpsr(l,r,v,dv);
+      cout << r << " " << dv << endl;
+    }
+    cout << endl << endl;
+  }
+
+  cout << "# " << n << " Vloc(g) " << endl;
+  for ( int i = 0; i < n; i++ )
+  {
+    double g = i * dg;
+    s.vlocg(g,v);
+    cout << g << " " << v << endl;
+  }
+  cout << endl << endl;
+
+  cout << "# " << n << " dVloc(g)/dg " << endl;
+  for ( int i = 0; i < n; i++ )
+  {
+    double g = i * dg;
+    s.dvlocg(g,v,dv);
+    cout << g << " " << dv << endl;
+  }
+  cout << endl << endl;
+
+  for ( int l = 0; l <= s.lmax(); l++ )
+  {
+    if ( l != s.llocal() )
+    {
+      cout << "# " << n << " Vnl(l=" << l << ",g) " << endl;
+      for ( int i = 0; i < n; i++ )
+      {
+        double g = i * dg;
+        s.vnlg(l,g,v);
+        cout << g << " " << v << endl;
+      }
+      cout << endl << endl;
+
+      cout << "# " << n << " dVnl(l=" << l << ",g)/dg " << endl;
+      for ( int i = 0; i < n; i++ )
+      {
+        double g = i * dg;
+        s.dvnlg(l,g,v,dv);
+        cout << g << " " << dv << endl;
+      }
+      cout << endl << endl;
+    }
+  }
+
+  } // onpe0
+#endif
+
+  }
+#if USE_MPI
+  MPI_Finalize();
+#endif
+  return 0;
+}

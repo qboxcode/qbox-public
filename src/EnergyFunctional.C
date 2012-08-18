@@ -196,7 +196,7 @@ EnergyFunctional::~EnergyFunctional(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void EnergyFunctional::update_vhxc(void)
+void EnergyFunctional::update_vhxc(bool compute_stress)
 {
   // called when the charge density has changed
   // update Hartree and xc potentials using the charge density cd_
@@ -227,19 +227,16 @@ void EnergyFunctional::update_vhxc(void)
     }
   }
 
-  // update XC energy and potential
+  // update XC operator
+  // compute xc energy, update self-energy operator and potential
   tmap["exc"].start();
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     fill(v_r[ispin].begin(),v_r[ispin].end(),0.0);
-  xco->update_v(v_r);
+  xco->update(v_r, compute_stress);
   exc_ = xco->exc();
+  if ( compute_stress )
+    xco->compute_stress(sigma_exc);
   tmap["exc"].stop();
-
-  // update self-energy operator
-  exhf_ = 0.0;
-  tmap["exhf"].start();
-  exhf_ = xco->update_sigma();
-  tmap["exhf"].stop();
 
   // compute local potential energy:
   // integral of el. charge times ionic local pot.
@@ -571,12 +568,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     sigma_ehart[5] = - 2.0 * fpi * tsum[5];
   } // compute_stress
 
-  // Stress from exchange-correlation
-  if ( compute_stress )
-  {
-    xco->compute_stress(sigma_exc);
-  }
-
   // Non local energy and forces
   tmap["nonlocal"].start();
   // modify next loop to span only local ikp
@@ -612,7 +603,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
     ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
   }
-  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_ + exhf_;
+  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_;
 
   if ( compute_hpsi )
   {
@@ -660,7 +651,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     } //ispin
 
     // apply self-energy operator
-    xco->apply_sigma(dwf);
+    xco->apply_self_energy(dwf);
 
     tmap["hpsi"].stop();
   } // if compute_hpsi
@@ -1044,7 +1035,6 @@ void EnergyFunctional::print(ostream& os) const
      << "  <enl>    " << setw(15) << enl()    << " </enl>\n"
      << "  <ecoul>  " << setw(15) << ecoul()  << " </ecoul>\n"
      << "  <exc>    " << setw(15) << exc()    << " </exc>\n"
-     << "  <exhf>   " << setw(15) << exhf()   << " </exhf>\n"
      << "  <esr>    " << setw(15) << esr()    << " </esr>\n"
      << "  <eself>  " << setw(15) << eself()  << " </eself>\n"
      << "  <ets>    " << setw(15) << ets()    << " </ets>\n"

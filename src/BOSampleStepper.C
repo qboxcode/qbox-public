@@ -366,7 +366,7 @@ void BOSampleStepper::step(int niter)
       cd_.update_density();
       tmap["charge"].stop();
 
-      ef_.update_vhxc();
+      ef_.update_vhxc(compute_stress);
       const bool compute_forces = true;
       double energy =
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
@@ -838,7 +838,7 @@ void BOSampleStepper::step(int niter)
           }
         } // if nite_ > 1
 
-        ef_.update_vhxc();
+        ef_.update_vhxc(compute_stress);
 
         // reset stepper only if multiple non-selfconsistent steps
         if ( nite_ > 1 ) wf_stepper->preprocess();
@@ -1048,7 +1048,7 @@ void BOSampleStepper::step(int niter)
         cd_.update_density();
         tmap["charge"].stop();
 
-        ef_.update_vhxc();
+        ef_.update_vhxc(compute_stress);
         const bool compute_forces = true;
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
 
@@ -1109,7 +1109,7 @@ void BOSampleStepper::step(int niter)
       tmap["charge"].start();
       cd_.update_density();
       tmap["charge"].stop();
-      ef_.update_vhxc();
+      ef_.update_vhxc(compute_stress);
       ef_.energy(true,dwf,false,fion,false,sigma_eks);
       if ( onpe0 )
       {
@@ -1146,7 +1146,7 @@ void BOSampleStepper::step(int niter)
     cd_.update_density();
     tmap["charge"].stop();
 
-    ef_.update_vhxc();
+    ef_.update_vhxc(compute_stress);
     const bool compute_forces = true;
     double energy =
       ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
@@ -1206,7 +1206,7 @@ void BOSampleStepper::step(int niter)
     cd_.update_density();
     tmap["charge"].stop();
 
-    ef_.update_vhxc();
+    ef_.update_vhxc(compute_stress);
     const bool compute_forces = true;
     double energy =
       ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);

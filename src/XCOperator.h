@@ -33,8 +33,9 @@ class XCOperator
 
   const ChargeDensity& cd_;
   double HFmixCoeff_ ;
-  double exc_; // local XC energy
-  double exhf_; // Hartree-Fock exchange energy
+  double exc_; // XC energy: includes local and HF terms
+
+  std::valarray<double> sigma_exc_;
 
   bool hasPotential_;
   bool hasGGA_;
@@ -57,12 +58,10 @@ class XCOperator
   bool hasGGA(void) { return hasGGA_; };
   bool hasHF(void) { return hasHF_; };
 
-  void update_v(std::vector<std::vector<double> >& vr);
-  double update_sigma(void);
-  void apply_sigma(Wavefunction &dwf);
-  void compute_stress(std::valarray<double>& sigma_exc);
-  double exc(void) { return exc_; };
-  double exhf(void) { return exhf_; };
+  void update(std::vector<std::vector<double> >& vr, bool compute_stress);
+  void apply_self_energy(Wavefunction &dwf);
+  void compute_stress(std::valarray<double>& sigma);
+  double exc(void) { return exc_ ; };
 };
 
 class XCOperatorException

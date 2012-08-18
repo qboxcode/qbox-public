@@ -37,16 +37,21 @@ class ExchangeOperator
   // mixing coefficient for exchange energy and dwf accumulation
   double HFCoeff_;
 
+  // HF stress tensor
+  std::valarray<double> sigma_exhf_;
+
   // reference wf and dwf for non scf iteration
   Wavefunction wf0_;
   Wavefunction dwf0_;
   // copy of wf
   Wavefunction wfc_;
 
-  double compute_exchange_for_general_case_(Sample* s, Wavefunction* dwf);
-  double compute_exchange_at_gamma_(const Wavefunction &wf, Wavefunction* dwf);
+  double compute_exchange_for_general_case_(Sample* s, Wavefunction* dwf,
+    bool compute_stress);
+  double compute_exchange_at_gamma_(const Wavefunction &wf, Wavefunction* dwf,
+    bool compute_stress);
   void   apply_VXC_(double mix, Wavefunction& wf_ref,
-                    Wavefunction& dwf_ref, Wavefunction& dwf);
+    Wavefunction& dwf_ref, Wavefunction& dwf);
 
   // Connectivity of the kpoint Grid
   KPConnectivity KPGridPerm_;
@@ -183,15 +188,14 @@ class ExchangeOperator
 
   // parameters
   void setmixCoeff(double value) { HFCoeff_ = value; };
-  void setIntegrationCoeff(double value) { rcut_ = value; };
   double HFCoeff() { return HFCoeff_; };
-  double integrationCoeff() { return rcut_; };
 
   // exchange energy and forces computation
   double eex() { return eex_; };
-  double update_energy();
-  double update_sigma();
-  double apply_sigma(Wavefunction& dwf);
+  double update_energy(bool compute_stress);
+  double update_operator(bool compute_stress);
+  double apply_operator(Wavefunction& dwf);
+  void add_stress (std::valarray<double> & sigma_exc);
 };
 
 class ExchangeOperatorException

@@ -581,17 +581,19 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
   {
     for ( int ispin = 0; ispin < nlp.size(); ispin++ )
+    {
       enl_ += wf.weight(ikp) * nlp[ispin][ikp]->energy(compute_hpsi,
               *dwf.sd(ispin,ikp), compute_forces, fion_enl, compute_stress,
               sigma_enl_kp);
 
-    if ( compute_forces )
-      for ( int is = 0; is < nsp_; is++ )
-        for ( int i = 0; i < 3*na_[is]; i++ )
-          fion[is][i] += wf.weight(ikp) * fion_enl[is][i];
+      if ( compute_forces )
+        for ( int is = 0; is < nsp_; is++ )
+          for ( int i = 0; i < 3*na_[is]; i++ )
+            fion[is][i] += wf.weight(ikp) * fion_enl[is][i];
 
-    if ( compute_stress )
-      sigma_enl += wf.weight(ikp) * sigma_enl_kp;
+      if ( compute_stress )
+        sigma_enl += wf.weight(ikp) * sigma_enl_kp;
+    }
   }
   tmap["nonlocal"].stop();
 

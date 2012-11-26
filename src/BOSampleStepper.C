@@ -907,7 +907,7 @@ void BOSampleStepper::step(int niter)
           {
 #if 1
             double delta_etotal_int = fabs(etotal_int - etotal_int_m);
-            nscf_converged |= (delta_etotal_int < 0.2 * delta_ehart);
+            nscf_converged |= (delta_etotal_int < 0.1 * delta_ehart);
             if ( onpe0 )
             {
               cout << " BOSampleStepper::step: delta_e_int: "

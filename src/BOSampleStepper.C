@@ -145,7 +145,17 @@ void BOSampleStepper::initialize_density(void)
     }
   }
 
+  // Initialize charge equally for both spins
   cd_.rhog[0] = rhopst;
+  if ( cd_.rhog.size() == 2 )
+  {
+    assert(cd_.rhog[0].size()==cd_.rhog[1].size());
+    for ( int i = 0; i < cd_.rhog[0].size(); i++ )
+    {
+      cd_.rhog[0][i] = 0.5 * rhopst[i];
+      cd_.rhog[1][i] = 0.5 * rhopst[i];
+    }
+  }
   initial_atomic_density = true;
 }
 

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2008-2012 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -15,7 +15,6 @@
 // SpeciesHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesHandler.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef SPECIESHANDLER_H
 #define SPECIESHANDLER_H

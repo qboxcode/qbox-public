@@ -145,7 +145,17 @@ void BOSampleStepper::initialize_density(void)
     }
   }
 
+  // Initialize charge equally for both spins
   cd_.rhog[0] = rhopst;
+  if ( cd_.rhog.size() == 2 )
+  {
+    assert(cd_.rhog[0].size()==cd_.rhog[1].size());
+    for ( int i = 0; i < cd_.rhog[0].size(); i++ )
+    {
+      cd_.rhog[0][i] = 0.5 * rhopst[i];
+      cd_.rhog[1][i] = 0.5 * rhopst[i];
+    }
+  }
   initial_atomic_density = true;
 }
 
@@ -740,7 +750,7 @@ void BOSampleStepper::step(int niter)
 
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
       {
-        if ( nite_ > 1 && onpe0 )
+        if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: start scf iteration" << endl;
 
         // compute new density in cd_.rhog
@@ -752,7 +762,7 @@ void BOSampleStepper::step(int niter)
         tmap["charge"].stop();
 
         // charge mixing
-        if ( nite_ > 1 )
+        if ( nite_ > 0 )
         {
           if ( itscf == 0 )
           {
@@ -836,12 +846,12 @@ void BOSampleStepper::step(int niter)
             }
             cd_.update_rhor();
           }
-        } // if nite_ > 1
+        } // if nite_ > 0
 
         ef_.update_vhxc(compute_stress);
 
         // reset stepper only if multiple non-selfconsistent steps
-        if ( nite_ > 1 ) wf_stepper->preprocess();
+        if ( nite_ > 0 ) wf_stepper->preprocess();
 
         // non-self-consistent loop
         // repeat until the change in etotal_int or in the
@@ -854,11 +864,13 @@ void BOSampleStepper::step(int niter)
         double delta_ehart = 0.0;
         if ( itscf > 0 )
           delta_ehart = fabs(ehart - ehart_m);
-        // if ( onpe0 && nite_ > 1 )
+        // if ( onpe0 && nite_ > 0 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
         double etotal_int, etotal_int_m;
         double eigenvalue_sum, eigenvalue_sum_m;
+        // if nite == 0: do 1 iteration, no screening in charge mixing
+        // if nite > 0: do nite iterations, use screening in charge mixing
         while ( !nscf_converged && ite < nite_ )
         {
           double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
@@ -905,9 +917,9 @@ void BOSampleStepper::step(int niter)
           // compare delta_etotal_int only after first iteration
           if ( ite > 0 )
           {
-#if 1
+#if 0
             double delta_etotal_int = fabs(etotal_int - etotal_int_m);
-            nscf_converged |= (delta_etotal_int < 0.2 * delta_ehart);
+            nscf_converged |= (delta_etotal_int < 0.01 * delta_ehart);
             if ( onpe0 )
             {
               cout << " BOSampleStepper::step: delta_e_int: "
@@ -917,7 +929,7 @@ void BOSampleStepper::step(int niter)
             }
 #else
             double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
-            nscf_converged |= (delta_eig_sum < 0.2 * delta_ehart);
+            nscf_converged |= (delta_eig_sum < 0.01 * delta_ehart);
             if ( onpe0 )
             {
               cout << " BOSampleStepper::step delta_eig_sum: "
@@ -931,7 +943,7 @@ void BOSampleStepper::step(int niter)
           ite++;
         }
 
-        // if ( onpe0 && nite_ > 1 && ite >= nite_ )
+        // if ( onpe0 && nite_ > 0 && ite >= nite_ )
         //   cout << " BOSampleStepper::step: nscf loop not converged after "
         //        << nite_ << " iterations" << endl;
 
@@ -983,7 +995,7 @@ void BOSampleStepper::step(int niter)
           }
         }
 
-        if ( nite_ > 1 && onpe0 )
+        if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: end scf iteration" << endl;
       } // for itscf
 

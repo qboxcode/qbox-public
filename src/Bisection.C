@@ -428,9 +428,9 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
     double time = (*i).second.real();
     double tmin = time;
     double tmax = time;
-    wf.context().dmin(1,1,&tmin,1);
-    wf.context().dmax(1,1,&tmax,1);
-    if ( wf.context().myproc()==0 )
+    gcontext_.dmin(1,1,&tmin,1);
+    gcontext_.dmax(1,1,&tmax,1);
+    if ( gcontext_.myproc()==0 )
     {
       cout << "<timing name=\""
            << setw(15) << (*i).first << "\""

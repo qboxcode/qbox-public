@@ -2,11 +2,11 @@
 todo: fix SampleReader for nspin=2
 todo: fix Exchange stress for general k-points
 --------------------------------------------------------------------------------
-rel1_57_1 r1265
+rel1_57_1
 r1265: BOSampleStepper.C: changed behavior for nite=1, use eigenvalue_sum for
 convergence test of nite loop, changed threshold value to 0.01*delta_ehart
 r1264: RunCmd.C: changed default nite value to 0
-r1263: ExchangeOperator.C: Added EXCHANGE_NOQUAD debug string. Cleanup.
+r1268: ExchangeOperator.C: Added EXCHANGE_NOQUAD debug string. Cleanup.
 --------------------------------------------------------------------------------
 rel1_57_0 r1262
 Cleanup of XCOperator and ExchangeOperator to include stress at gamma point

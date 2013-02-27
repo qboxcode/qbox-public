@@ -376,7 +376,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   if ( compute_stress )
   {
     cout << " stress at general k-point not implemented" << endl;
-    gcontext_.abort();
+    gcontext_.abort(1);
   }
 
   Timer tm;

@@ -2,6 +2,9 @@
 todo: fix SampleReader for nspin=2
 todo: fix Exchange stress for general k-points
 --------------------------------------------------------------------------------
+rel1_57_2
+r1272: BOSampleStepper.C: fixed nite loop test for nite==0 case
+--------------------------------------------------------------------------------
 rel1_57_1
 r1265: BOSampleStepper.C: changed behavior for nite=1, use eigenvalue_sum for
 convergence test of nite loop, changed threshold value to 0.01*delta_ehart

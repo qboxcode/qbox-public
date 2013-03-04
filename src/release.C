@@ -19,5 +19,5 @@
 #include "release.h"
 std::string release(void)
 {
-  return std::string("1.57.1");
+  return std::string("1.57.2");
 }

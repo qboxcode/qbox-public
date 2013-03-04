@@ -871,7 +871,7 @@ void BOSampleStepper::step(int niter)
         double eigenvalue_sum, eigenvalue_sum_m;
         // if nite == 0: do 1 iteration, no screening in charge mixing
         // if nite > 0: do nite iterations, use screening in charge mixing
-        while ( !nscf_converged && ite < nite_ )
+        while ( !nscf_converged && ite < max(nite_,1) )
         {
           double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
           double enthalpy = energy;

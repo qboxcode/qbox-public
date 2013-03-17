@@ -1321,6 +1321,9 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   vector<double> wftmpr(wftmpr_loc_size);
   Base64Transcoder xcdr;
 
+  // do not write anything if nst==0
+  if ( nst() == 0 ) return;
+
 #if USE_MPI
   char* wbuf = 0;
   size_t wbufsize = 0;

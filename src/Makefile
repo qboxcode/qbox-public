@@ -139,7 +139,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testBasisMapping: testBasisMapping.o BasisMapping.o Basis.o \
         Context.o UnitCell.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testSpecies: testSpecies.o Species.o sinft.o spline.o Context.o \
+ testSpecies: testSpecies.o Species.o sinft.o spline.o \
 	SpeciesReader.o StructuredDocumentHandler.o SpeciesHandler.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testXCFunctional: testXCFunctional.o LDAFunctional.o PBEFunctional.o
@@ -293,20 +293,6 @@ BOSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
 BOSampleStepper.o: Context.h StructureFactor.h Sample.h AtomSet.h Atom.h
 BOSampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 BOSampleStepper.o: Wavefunction.h Control.h
-BOSampleStepper-merge.o: BOSampleStepper.h SampleStepper.h Timer.h
-BOSampleStepper-merge.o: EnergyFunctional.h ChargeDensity.h Context.h
-BOSampleStepper-merge.o: StructureFactor.h Sample.h AtomSet.h Atom.h
-BOSampleStepper-merge.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
-BOSampleStepper-merge.o: Wavefunction.h Control.h SlaterDet.h Basis.h
-BOSampleStepper-merge.o: Matrix.h WavefunctionStepper.h
-BOSampleStepper-merge.o: SDWavefunctionStepper.h PSDWavefunctionStepper.h
-BOSampleStepper-merge.o: PSDAWavefunctionStepper.h JDWavefunctionStepper.h
-BOSampleStepper-merge.o: SDIonicStepper.h IonicStepper.h Species.h
-BOSampleStepper-merge.o: SDAIonicStepper.h LineMinimizer.h CGIonicStepper.h
-BOSampleStepper-merge.o: CGOptimizer.h MDIonicStepper.h BMDIonicStepper.h
-BOSampleStepper-merge.o: SDCellStepper.h CellStepper.h CGCellStepper.h
-BOSampleStepper-merge.o: Preconditioner.h AndersonMixer.h MLWFTransform.h
-BOSampleStepper-merge.o: BasisMapping.h
 BtHF.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 BtHF.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 CellDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
@@ -468,9 +454,6 @@ LineMinimizer.o: LineMinimizer.h
 ListAtomsCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 ListAtomsCmd.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 ListAtomsCmd.o: Wavefunction.h Control.h
-ListConstraintsCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
-ListConstraintsCmd.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
-ListConstraintsCmd.o: Wavefunction.h Control.h
 ListSpeciesCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
 ListSpeciesCmd.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 ListSpeciesCmd.o: Wavefunction.h Control.h
@@ -592,9 +575,8 @@ SampleHandler.o: StrX.h
 SampleHandler.o: StructureHandler.h
 SampleReader.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 SampleReader.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-SampleReader.o: SampleReader.h SpeciesReader.h Species.h Basis.h
-SampleReader.o: FourierTransform.h Timer.h SlaterDet.h Matrix.h
-SampleReader.o: XMLGFPreprocessor.h SampleHandler.h StructureHandler.h
+SampleReader.o: SampleReader.h XMLGFPreprocessor.h Matrix.h Timer.h
+SampleReader.o: SampleHandler.h StructureHandler.h
 SampleReader.o: StructuredDocumentHandler.h StrX.h
 SampleStepper.o: SampleStepper.h Timer.h Sample.h AtomSet.h Context.h Atom.h
 SampleStepper.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
@@ -609,8 +591,6 @@ SaveCmd.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 SaveCmd.o: Control.h SampleWriter.h isodate.h release.h
 SaveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SaveCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-ScfTol.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
-ScfTol.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 SDAIonicStepper.o: SDAIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 SDAIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h ConstraintSet.h
 SDAIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h
@@ -643,21 +623,17 @@ SlaterDet.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h Matrix.h
 SlaterDet.o: Timer.h FourierTransform.h blas.h Base64Transcoder.h
 SlaterDet.o: SharedFilePtr.h
 SlaterDet.o: Context.h Basis.h D3vector.h UnitCell.h Matrix.h Timer.h
-Species.o: Species.h Context.h spline.h sinft.h
+Species.o: Species.h spline.h sinft.h
 SpeciesCmd.o: SpeciesCmd.h UserInterface.h Sample.h AtomSet.h Context.h
 SpeciesCmd.o: Atom.h D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h
 SpeciesCmd.o: Wavefunction.h Control.h SpeciesReader.h Species.h
 SpeciesCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SpeciesCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 SpeciesCmd.o: Control.h
-Species.o: Context.h
-SpeciesHandler.o: SpeciesHandler.h StructureHandler.h Species.h Context.h
-SpeciesHandler.o: StrX.h
+SpeciesHandler.o: SpeciesHandler.h StructureHandler.h Species.h StrX.h
 SpeciesHandler.o: StructureHandler.h
-SpeciesReader.o: Species.h Context.h SpeciesReader.h
-SpeciesReader.o: StructuredDocumentHandler.h StrX.h StructureHandler.h
-SpeciesReader.o: SpeciesHandler.h
-SpeciesReader.o: Context.h
+SpeciesReader.o: Species.h SpeciesReader.h StructuredDocumentHandler.h StrX.h
+SpeciesReader.o: StructureHandler.h SpeciesHandler.h
 spline.o: spline.h
 StatusCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 StatusCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
@@ -690,17 +666,16 @@ testFourierTransform.o: Context.h Basis.h D3vector.h UnitCell.h
 testFourierTransform.o: FourierTransform.h Timer.h
 testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h Matrix.h jade.h
-test_lapiv.o: Context.h Matrix.h
 testLDAFunctional.o: LDAFunctional.h XCFunctional.h
 testLineMinimizer.o: LineMinimizer.h
 testMatrix.o: Timer.h Context.h Matrix.h
+testPParse.o: StrX.h
 testSample.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
 testSample.o: Timer.h Sample.h AtomSet.h Atom.h ConstraintSet.h ExtForceSet.h
 testSample.o: Wavefunction.h Control.h
-test_sinft.o: sinft.h readTSC.h
 testSlaterDet.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
 testSlaterDet.o: Timer.h FourierTransform.h
-testSpecies.o: Species.h Context.h SpeciesReader.h
+testSpecies.o: Species.h SpeciesReader.h
 testUnitCell.o: UnitCell.h D3vector.h
 testWavefunction.o: Context.h Wavefunction.h D3vector.h UnitCell.h
 testWavefunction.o: SlaterDet.h Basis.h Matrix.h Timer.h
@@ -723,8 +698,6 @@ TorsionConstraint.o: Constraint.h D3vector.h
 UnitCell.o: UnitCell.h D3vector.h
 UnitCell.o: D3vector.h
 UserInterface.o: UserInterface.h qbox_xmlns.h
-VWNFunctional.o: VWNFunctional.h XCFunctional.h
-VWNFunctional.o: XCFunctional.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SlaterDet.h Context.h
 Wavefunction.o: Basis.h Matrix.h Timer.h jacobi.h SharedFilePtr.h
 Wavefunction.o: D3vector.h UnitCell.h

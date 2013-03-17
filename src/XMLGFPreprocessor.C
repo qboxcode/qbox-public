@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2008-2012 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -15,7 +15,6 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.C,v 1.17 2009-11-30 02:47:20 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
@@ -39,19 +38,27 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 //
 // XMLGFPreprocessor class
-// Used to preprocess <grid_function> elements in an XML document
-// Input: filename, DoubleMatrix& gfdata, string xmlcontent
-// The preprocessor reads the file in parallel, processes all <grid_function>
-// elements and stores the values of the grid_functions in the matrix gfdata
-// which has dimensions (ngf,maxgridsize), where ngf is the total number of
+//
+// Used to preprocess a sample document.
+// The contents of all <grid_function> elements is removed from the XML
+// document and stored in the distributed matrix gfdata.
+// All <species> elements are expanded from their url or file name and
+// inserted in the xmlcontent string.
+//
+// Input: filename or uri, DoubleMatrix& gfdata, string xmlcontent
+// If the uri is a file name, the preprocessor reads the file in parallel,
+// then processes all <grid_function> elements and stores the values of
+// the grid_functions in the matrix gfdata which has dimensions
+// (ngf,maxgridsize), where ngf is the total number of
 // <grid_function> elements found in the file, and maxgridsize is the size of
 // the largest grid_function.
-// On return, the string xmlcontent contains (on task 0) the XML file
-// with <grid_function> elements reduced to empty strings.
+// On return, the string xmlcontent contains (on all tasks) the XML document
+// with <grid_function> elements reduced to empty strings and <species>
+// elements expanded to include all species information.
 //
 ////////////////////////////////////////////////////////////////////////////////
-void XMLGFPreprocessor::process(const char* const filename,
-    DoubleMatrix& gfdata, string& xmlcontent)
+void XMLGFPreprocessor::process(const char* const uri,
+     DoubleMatrix& gfdata, string& xmlcontent, bool serial)
 {
   cout.precision(4);
 
@@ -70,87 +77,109 @@ void XMLGFPreprocessor::process(const char* const filename,
   ttm.start();
   string st;
 
+  // determine if the given uri refers to a local file or to an URL
   struct stat statbuf;
-  bool found_file = !stat(filename,&statbuf);
-  // Note: process should only be called if a file is present
-  assert(found_file);
+  bool read_from_file = !stat(uri,&statbuf);
+
+  if ( read_from_file && rctxt.onpe0() )
+    cout << " XMLGFPreprocessor: reading from "
+           << uri << " size: " << statbuf.st_size << endl;
+
 #if DEBUG
     cout << " process " << ctxt.mype() << " found file "
-         << filename << " size: "
-         << statbuf.st_size << endl;
+         << uri << " size: " << statbuf.st_size << endl;
 #endif
-  off_t sz = statbuf.st_size;
 
-  FILE* infile;
-  infile = fopen(filename,"r");
-  if ( !infile )
+  // check if serial flag: force serial reading even if file is present
+  read_from_file &= !serial;
+
+  string buf;
+
+  // if reading from a file, read the entire file in parallel on all tasks
+  if ( read_from_file )
   {
-    cout << " process " << ctxt.mype() << " could not open file "
-         << filename << " for reading" << endl;
-    return;
-  }
+    FILE* infile;
+    infile = fopen(uri,"r");
+    if ( !infile )
+    {
+      cout << " process " << ctxt.mype() << " could not open file "
+           << uri << " for reading" << endl;
+      return;
+    }
 
-//  ifstream is(filename);
+    off_t sz = statbuf.st_size;
+    // determine local size
+    off_t block_size = sz / ctxt.size();
+    off_t local_size = block_size;
+    off_t max_local_size = local_size + sz % ctxt.size();
+    // adjust local_size on last task
+    if ( ctxt.mype()==ctxt.size()-1 )
+    {
+      local_size = max_local_size;
+    }
 
-  // determine local size
-  off_t block_size = sz / ctxt.size();
-  off_t local_size = block_size;
-  off_t max_local_size = local_size + sz % ctxt.size();
-  // adjust local_size on last task
-  if ( ctxt.mype()==ctxt.size()-1 )
-  {
-    local_size = max_local_size;
-  }
-
-  // use contiguous read buffer, to be copied later to a string
-  char *rdbuf = new char[local_size];
+    // use contiguous read buffer, to be copied later to a string
+    char *rdbuf = new char[local_size];
 #if DEBUG
-  cout << ctxt.mype() << ": local_size: " << local_size << endl;
+    cout << ctxt.mype() << ": local_size: " << local_size << endl;
 #endif
 
-  tm.start();
-  off_t offset = ctxt.mype()*block_size;
-  int fseek_status = fseeko(infile,offset,SEEK_SET);
-  if ( fseek_status != 0 )
-  {
-    cout << "fseeko failed: offset=" << offset << " file_size=" << sz << endl;
-  }
+    tm.start();
+    off_t offset = ctxt.mype()*block_size;
+    int fseek_status = fseeko(infile,offset,SEEK_SET);
+    if ( fseek_status != 0 )
+    {
+      cout << "fseeko failed: offset=" << offset << " file_size=" << sz << endl;
+    }
 
-  assert(fseek_status==0);
-  size_t items_read;
+    assert(fseek_status==0);
+    size_t items_read;
 #if PARALLEL_FS
-  // parallel file system: all nodes read at once
-  items_read = fread(rdbuf,sizeof(char),local_size,infile);
+    // parallel file system: all nodes read at once
+    items_read = fread(rdbuf,sizeof(char),local_size,infile);
 #else
-  // serial (or NFS) file system: tasks read by increasing row order
-  // No more than ctxt.npcol() tasks are reading at any given time
-  for ( int irow = 0; irow < ctxt.nprow(); irow++ )
-  {
-    if ( irow == ctxt.myrow() )
-      items_read = fread(rdbuf,sizeof(char),local_size,infile);
-  }
+    // On a serial (or NFS) file system: tasks read by increasing row order
+    // to avoid overloading the NFS server
+    // No more than ctxt.npcol() tasks are reading at any given time
+    for ( int irow = 0; irow < ctxt.nprow(); irow++ )
+    {
+      if ( irow == ctxt.myrow() )
+        items_read = fread(rdbuf,sizeof(char),local_size,infile);
+    }
 #endif
-  assert(items_read==local_size);
+    assert(items_read==local_size);
 
-  //std::streampos offset = ctxt.mype()*block_size;
-  //is.seekg(offset);
-  //std::streampos new_offset = is.tellg();
-  //assert(offset == new_offset);
-  //is.read(&buf[0],local_size);
-  //is.close();
+    buf.assign(rdbuf,local_size);
+    delete [] rdbuf;
 
-  string buf(rdbuf,local_size);
-  delete [] rdbuf;
+    ctxt.barrier();
+    tm.stop();
 
-  tm.stop();
+    if ( ctxt.onpe0() )
+    {
+      cout << " XMLGFPreprocessor: read time: " << tm.real() << endl;
+      cout << " XMLGFPreprocessor: local read rate: "
+           << local_size/(tm.real()*1024*1024) << " MB/s"
+           << "  aggregate read rate: "
+           << sz/(tm.real()*1024*1024) << " MB/s" << endl;
+    }
 
-  if ( ctxt.onpe0() )
+    // At this point all tasks hold a fragment of size local_size in buf
+
+  } // if (read_from_file)
+  else
   {
-    cout << " XMLGFPreprocessor: read time: " << tm.real() << endl;
-    cout << " XMLGFPreprocessor: local read rate: "
-         << local_size/(tm.real()*1024*1024) << " MB/s"
-         << "  aggregate read rate: "
-         << sz/(tm.real()*1024*1024) << " MB/s" << endl;
+    // read from a URL
+    // task 0 reads the data.
+    // Use a parser on task 0 to access the document. Use a simple handler to
+    // distribute the data to all tasks. Use progressive parsing to
+    // catch the end of the <atomset> element if reading "atoms only" and
+    // interrupt parsing.
+
+    // Distribute fragements of fixed size to all tasks in round-robin
+    // fashion. Then reassemble the document into a single string using
+    // an MPI call
+    assert(0=="XMLGFPreprocessor::process: URL source not implemented");
   }
 
   tm.reset();
@@ -455,7 +484,8 @@ void XMLGFPreprocessor::process(const char* const filename,
   for ( int i = 0; i < local_start_tag_offset.size(); i++ )
   {
     // determine encoding of tag at local_start_tag_offset[i]
-    string::size_type encoding_pos = buf.find("encoding",local_start_tag_offset[i]);
+    string::size_type encoding_pos =
+      buf.find("encoding",local_start_tag_offset[i]);
     assert(encoding_pos != string::npos);
     encoding_pos = buf.find("\"",encoding_pos)+1;
     string::size_type end = buf.find("\"",encoding_pos);
@@ -737,7 +767,8 @@ void XMLGFPreprocessor::process(const char* const filename,
 #if DEBUG
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
   {
-    cout << rctxt.mype() << ": seg_data[iseg=" << iseg << "]: size=" << dbuf[iseg].size() << "  ";
+    cout << rctxt.mype() << ": seg_data[iseg=" << iseg << "]: size="
+         << dbuf[iseg].size() << "  ";
     if ( dbuf[iseg].size() >=3 )
       cout << dbuf[iseg][0] << " " << dbuf[iseg][1]
            << " " << dbuf[iseg][2];
@@ -1062,7 +1093,7 @@ void XMLGFPreprocessor::process(const char* const filename,
   }
   //cout << " buf.size() after erase: " << buf.size() << endl;
 
-  // collect all XML data on task 0
+  // collect all XML data
   // Distribute sizes of local strings to all tasks
   // and store in array rcounts
 

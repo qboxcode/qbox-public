@@ -15,7 +15,6 @@
 // Species.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.C,v 1.16 2010-02-20 23:25:38 fgygi Exp $
 
 #include "Species.h"
 #include "spline.h"
@@ -47,7 +46,7 @@ static double simpsn ( int n, double *t )
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-Species::Species(const Context& ctxt, string name) : ctxt_(ctxt), name_(name),
+Species::Species(string name) : name_(name),
 zval_(-1), mass_(0.0), lmax_(-1), deltar_(0.0), atomic_number_(0),
 llocal_(-1), nquad_(-1), rquad_(0.0),
 rcps_(0.0), uri_(""), description_("undefined"), symbol_("Undef")
@@ -67,7 +66,7 @@ bool Species::initialize(double rcpsval)
   if (zval_ < 0) throw SpeciesInitException("zval_ < 0");
   if (rcps_ < 0.0) throw SpeciesInitException("rcps_ < 0");
   if (mass_ < 0.0) throw SpeciesInitException("mass_ < 0");
-  if (lmax_ < 0 || lmax_ > 3) throw SpeciesInitException("lmax_ <0 or lmax_ >3");
+  if (lmax_ < 0 || lmax_ > 3) throw SpeciesInitException("lmax_<0 or lmax_>3");
 
   if (vps_.size() < lmax_+1) throw SpeciesInitException("vps_.size < lmax_+1");
 
@@ -565,43 +564,50 @@ double Species::rhopsg( double g )
 
 ostream& operator << ( ostream &os, Species &s )
 {
+  s.print(os, false);
+  return os;
+}
+
+void Species::print(ostream &os, bool expanded_form)
+{
   // XML output of species
-  // If the uri is known, use href to refer to it
-  if ( s.uri() != "" )
+  // print in compact form if the uri is known
+  // and if expanded_form==false
+  if ( !expanded_form && uri() != "" )
   {
-    os <<"<species name=\"" << s.name()
-       << "\" href=\"" << s.uri() << "\"/>" << endl;
+    os <<"<species name=\"" << name()
+       << "\" href=\"" << uri() << "\"/>" << endl;
   }
   else
   {
-    os <<"<species name=\"" << s.name() << "\">" << endl;
-    os << "<description>" << s.description() << "</description>" << endl;
-    os << "<symbol>" << s.symbol() << "</symbol>" << endl;
-    os << "<atomic_number>" << s.atomic_number() << "</atomic_number>" << endl;
-    os << "<mass>" << s.mass() << "</mass>" << endl;
+    os <<"<species name=\"" << name() << "\">" << endl;
+    os << "<description>" << description() << "</description>" << endl;
+    os << "<symbol>" << symbol() << "</symbol>" << endl;
+    os << "<atomic_number>" << atomic_number() << "</atomic_number>" << endl;
+    os << "<mass>" << mass() << "</mass>" << endl;
     os << "<norm_conserving_pseudopotential>" << endl;
-    os << "<valence_charge>" << s.zval() << "</valence_charge>" << endl;
-    os << "<lmax>" << s.lmax() << "</lmax>" << endl;
-    os << "<llocal>" << s.llocal() << "</llocal>" << endl;
-    os << "<nquad>" << s.nquad() << "</nquad>" << endl;
-    os << "<rquad>" << s.rquad() << "</rquad>" << endl;
-    os << "<mesh_spacing>" << s.deltar() << "</mesh_spacing>" << endl;
+    os << "<valence_charge>" << zval() << "</valence_charge>" << endl;
+    os << "<lmax>" << lmax() << "</lmax>" << endl;
+    os << "<llocal>" << llocal() << "</llocal>" << endl;
+    os << "<nquad>" << nquad() << "</nquad>" << endl;
+    os << "<rquad>" << rquad() << "</rquad>" << endl;
+    os << "<mesh_spacing>" << deltar() << "</mesh_spacing>" << endl;
     os.setf(ios::fixed,ios::floatfield);
     os << setprecision(6);
-    for ( int l = 0; l <= s.lmax(); l++ )
+    for ( int l = 0; l <= lmax(); l++ )
     {
-      const int size = s.vps()[l].size();
+      const int size = vps()[l].size();
       os << "<projector l=\"" << l << "\" size=\"" << size
          << "\">" << endl;
       os << "<radial_potential>\n";
       for ( int i = 0; i < size; i++ )
-        os << s.vps()[l][i] << "\n";
+        os << vps()[l][i] << "\n";
       os << "</radial_potential>\n";
-      if ( l < s.phi().size() && s.phi()[l].size() == size )
+      if ( l < phi().size() && phi()[l].size() == size )
       {
         os << "<radial_function>\n";
         for ( int i = 0; i < size; i++ )
-          os << s.phi()[l][i] << "\n";
+          os << phi()[l][i] << "\n";
         os << "</radial_function>\n";
       }
       os << "</projector>" << endl;
@@ -609,8 +615,6 @@ ostream& operator << ( ostream &os, Species &s )
     os << "</norm_conserving_pseudopotential>" << endl;
     os << "</species>" << endl;
   }
-
-  return os;
 }
 
 void Species::info(ostream &os)
@@ -626,7 +630,7 @@ void Species::info(ostream &os)
   {
     os <<"<species name=\"" << name() << "\">" << endl;
   }
-  os << " <description>" << description() << "</description>" << endl;
+  os << " <description>" << description() << " </description>" << endl;
   os << " <symbol>" << symbol() << "</symbol>" << endl;
   os << " <atomic_number>" << atomic_number() << "</atomic_number>" << endl;
   os << " <mass>" << mass() << "</mass>" << endl;

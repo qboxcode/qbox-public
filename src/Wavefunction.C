@@ -290,6 +290,17 @@ void Wavefunction::set_deltaspin(int deltaspin)
 {
   if ( deltaspin == deltaspin_ ) return;
 
+  // check if value of deltaspin would result in nst[1] < 0
+  // nst_[1] = nel_ / 2 - deltaspin_ + nempty_;
+  if ( nel_ / 2 - deltaspin + nempty_ < 0 )
+  {
+    if ( ctxt_.onpe0() )
+    {
+      cout << " Wavefunction::set_deltaspin: nel+nempty too small" << endl;
+      cout << " Wavefunction::set_deltaspin: cannot set deltaspin" << endl;
+      return;
+    }
+  }
   deallocate();
   deltaspin_ = deltaspin;
   compute_nst();

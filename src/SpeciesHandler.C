@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2008-2012 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -15,9 +15,6 @@
 // SpeciesHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesHandler.C,v 1.6 2008-09-08 15:56:19 fgygi Exp $
-
-#if USE_XERCES
 
 #include "SpeciesHandler.h"
 #include "Species.h"
@@ -29,8 +26,7 @@ using namespace xercesc;
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-SpeciesHandler::SpeciesHandler(Species& sp) :
-  sp_(sp) {}
+SpeciesHandler::SpeciesHandler(Species& sp) : sp_(sp) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 SpeciesHandler::~SpeciesHandler() {}
@@ -59,9 +55,6 @@ void SpeciesHandler::startElement(const XMLCh* const uri,
       else if ( attrname == "href" )
       {
         current_href = StrX(attributes.getValue(index)).localForm();
-        cout << " SpeciesHandler: found href in species definition" << endl
-           << " name=" << current_name << " href=" << current_href
-           << endl;
         sp_.uri_ = current_href;
       }
     }
@@ -180,5 +173,3 @@ void SpeciesHandler::endSubHandler(const XMLCh* const uri,
   // if any StructureHandler was created by startSubHandler, delete it
   // delete subHandler;
 }
-
-#endif

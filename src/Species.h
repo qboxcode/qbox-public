@@ -15,7 +15,6 @@
 // Species.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Species.h,v 1.9 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef SPECIES_H
 #define SPECIES_H
@@ -24,24 +23,23 @@
 #include <string>
 #include <vector>
 #include <cmath>
-#include "Context.h"
 
 class Species
 {
   private:
 
-  const Context& ctxt_;
   int nlm_;             // number of non-local projectors:
   int ndft_;
 
   std::vector<std::vector<double> > vps_spl_, phi_spl_;
   std::vector<double>          gspl_, vlocg_, vlocg_spl;
   std::vector<std::vector<double> > vnlg_, vnlg_spl;
-  std::vector<double> wsg_;  // wsg_[l] Kleinman-Bylander weight 1/<phi|delta_V|phi>
+  std::vector<double> wsg_;  // wsg_[l] Kleinman-Bylander weight
+                             // 1/<phi|delta_V|phi>
 
   std::vector<double> rps_;  // radial linear mesh (same for all l)
 
-  std::string name_;         // name used to refer to species in current application
+  std::string name_;         // name used in current application
   std::string uri_;          // uri of the resource defining the pseudopotential
 
   std::string symbol_;
@@ -61,9 +59,8 @@ class Species
 
   public:
 
-  Species(const Context& ctxt, std::string name);
+  Species(std::string name);
 
-  const Context& context(void) const { return ctxt_; }
   const std::string& name(void) const { return name_; }
   const std::string& symbol(void) const { return symbol_; }
   const std::string& description(void) const { return description_; }
@@ -101,6 +98,7 @@ class Species
 
   bool initialize(double rcps);
   void info(std::ostream& os);
+  void print(std::ostream& os, bool expanded_form);
 
   friend class SpeciesReader;
   friend class SpeciesHandler;

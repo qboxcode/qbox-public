@@ -1,6 +1,10 @@
 --------------------------------------------------------------------------------
-todo: fix SampleReader for nspin=2
-todo: fix Exchange stress for general k-points
+remaining issues:
+- save command writes full species info rather than URL.
+- fix Exchange stress for general k-points
+--------------------------------------------------------------------------------
+rel1_57_3
+r1275: fix sample read/write for nspin=2
 --------------------------------------------------------------------------------
 rel1_57_2
 r1272: BOSampleStepper.C: fixed nite loop test for nite==0 case

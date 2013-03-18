@@ -15,9 +15,6 @@
 // AtomSetHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSetHandler.C,v 1.13 2008-09-08 15:56:18 fgygi Exp $
-
-#if USE_XERCES
 
 #include "AtomSetHandler.h"
 #include "AtomSet.h"
@@ -104,20 +101,6 @@ void AtomSetHandler::endElement(const XMLCh* const uri,
   istringstream stst(content);
   if ( locname == "unit_cell")
   {
-    event_type event = unit_cell;
-    as_.context().ibcast_send(1,1,(int*)&event,1);
-    // notify listening nodes
-    double buf[9];
-    buf[0] = as_.cell().a(0).x;
-    buf[1] = as_.cell().a(0).y;
-    buf[2] = as_.cell().a(0).z;
-    buf[3] = as_.cell().a(1).x;
-    buf[4] = as_.cell().a(1).y;
-    buf[5] = as_.cell().a(1).z;
-    buf[6] = as_.cell().a(2).x;
-    buf[7] = as_.cell().a(2).y;
-    buf[8] = as_.cell().a(2).z;
-    as_.context().dbcast_send(9,1,buf,9);
   }
   else if ( locname == "atom")
   {
@@ -142,21 +125,6 @@ void AtomSetHandler::endElement(const XMLCh* const uri,
            << " in AtomSet::addAtom" << endl;
       throw;
     }
-
-    // notify listening nodes and broadcast atom info
-    event_type event = atom;
-    as_.context().ibcast_send(1,1,(int*)&event,1);
-    as_.context().string_bcast(current_atom_name,0);
-    as_.context().string_bcast(current_atom_species,0);
-    double buf[3];
-    buf[0] = current_atom_position.x;
-    buf[1] = current_atom_position.y;
-    buf[2] = current_atom_position.z;
-    as_.context().dbcast_send(3,1,buf,3);
-    buf[0] = current_atom_velocity.x;
-    buf[1] = current_atom_velocity.y;
-    buf[2] = current_atom_velocity.z;
-    as_.context().dbcast_send(3,1,buf,3);
 
   }
   else if ( locname == "position" )
@@ -193,7 +161,7 @@ StructureHandler* AtomSetHandler::startSubHandler(const XMLCh* const uri,
     }
 
     // delegate to SpeciesHandler
-    current_species = new Species(as_.context(),current_species_name);
+    current_species = new Species(current_species_name);
     return new SpeciesHandler(*current_species);
   }
   else
@@ -211,7 +179,7 @@ void AtomSetHandler::endSubHandler(const XMLCh* const uri,
   // cout << " AtomSetHandler::endSubHandler " << locname << endl;
   if ( locname == "species" )
   {
-    SpeciesReader sp_reader(current_species->context());
+    SpeciesReader sp_reader;
 
     // check if only the uri was provided
     if ( current_species->uri() != "" )
@@ -219,21 +187,8 @@ void AtomSetHandler::endSubHandler(const XMLCh* const uri,
       // href was found in species definition
       // attempt to read the species from that uri
 
-      try
-      {
-        sp_reader.readSpecies(*current_species,current_species->uri());
-      }
-      catch ( const SpeciesReaderException& e )
-      {
-        cout << " SpeciesReaderException caught in AtomSetHandler" << endl;
-      }
+      sp_reader.uri_to_species(current_species->uri(),*current_species);
     }
-
-    // notify listening nodes and broadcast species info
-    event_type event = species;
-    as_.context().ibcast_send(1,1,(int*)&event,1);
-    as_.context().string_bcast(current_species_name,0);
-    sp_reader.bcastSpecies(*current_species);
 
     // cout << "AtomSetHandler::endSubHandler: adding Species:"
     //      << current_species_name << endl;
@@ -250,5 +205,3 @@ void AtomSetHandler::endSubHandler(const XMLCh* const uri,
   }
   delete last;
 }
-
-#endif

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2008-2012 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -15,29 +15,28 @@
 // SpeciesReader.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesReader.h,v 1.7 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef SPECIESREADER_H
 #define SPECIESREADER_H
 
 #include <string>
-#include "Context.h"
 
 class SpeciesReader
 {
   private:
 
-  const Context& ctxt_;
-
-  std::string uri_;   // uri from which Species is read
-
   public:
 
-  SpeciesReader(const Context& ctxt);
-  void readSpecies(Species& sp, const std::string uri);
-  void bcastSpecies(Species& sp);
+  SpeciesReader(void);
+
+  // initialize a Species object using a species URI
+  void uri_to_species(const std::string uri, Species& sp);
+
+  // initialize a string containing an XML <species> element using a species URI
+  void uri_to_string(const std::string uri, const std::string name,
+       std::string& xmlstr);
+
+  // initialize a Species object using a string containing a <species> element
+  void string_to_species(const std::string xmlstr, Species& sp);
 };
-
-class SpeciesReaderException {};
-
 #endif

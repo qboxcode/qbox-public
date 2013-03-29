@@ -44,7 +44,7 @@ bool in_BZ(D3vector k, D3vector b0, D3vector b1, D3vector b2)
 
 int main(int argc, char** argv)
 {
-  cout << "kpgen-1.0" << endl;
+  cout << "# kpgen-1.0" << endl;
   if ( argc != 16 )
   {
     cerr << " use: " << argv[0] << " nx ny nz shiftx shifty shiftz {cell}"

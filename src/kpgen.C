@@ -88,10 +88,6 @@ int main(int argc, char** argv)
   D3vector b1 = fac * a2 ^ a0;
   D3vector b2 = fac * a0 ^ a1;
 
-  cout << "# b0/(2pi): " << b0/(2*M_PI) << endl;
-  cout << "# b1/(2pi): " << b1/(2*M_PI) << endl;
-  cout << "# b2/(2pi): " << b2/(2*M_PI) << endl;
-
   list<vector<int> > kplist;
   vector<int> kpint(4);
 
@@ -224,11 +220,15 @@ int main(int argc, char** argv)
   // traverse list  backwards to have increasing indices
   // kpoints are output in reciprocal lattice coordinates
   cout.setf(ios::right,ios::adjustfield);
-  cout << "# kpgen     " << nx << " " << ny << " " << nz << endl;
-  cout << "# sx,sy,sz= " << sx << " " << sy << " " << sz << endl;
-  cout << "# a0 = " << a0 << endl;
-  cout << "# a1 = " << a1 << endl;
-  cout << "# a2 = " << a2 << endl;
+  cout << "# nx,ny,nz: " << nx << " " << ny << " " << nz << endl;
+  cout << "# sx,sy,sz: " << sx << " " << sy << " " << sz << endl;
+  cout << "# a0: " << a0 << endl;
+  cout << "# a1: " << a1 << endl;
+  cout << "# a2: " << a2 << endl;
+  cout << "# b0/(2pi): " << b0/(2*M_PI) << endl;
+  cout << "# b1/(2pi): " << b1/(2*M_PI) << endl;
+  cout << "# b2/(2pi): " << b2/(2*M_PI) << endl;
+
   cout << "# " << kplist.size() << " k-points" << endl;
   cout << " kpoint delete 0 0 0" << endl;
   for (list<vector<int> >::reverse_iterator i = kplist.rbegin();

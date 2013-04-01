@@ -1,7 +1,10 @@
 --------------------------------------------------------------------------------
 remaining issues:
-- save command writes full species info rather than URL.
 - fix Exchange stress for general k-points
+--------------------------------------------------------------------------------
+rel1_57_4
+r1283: PSDAWavefunctionStepper.C: fixed extrapolate flag
+r1282: rewrite of kpgen.C
 --------------------------------------------------------------------------------
 rel1_57_3
 r1275: fix sample read/write for nspin=2

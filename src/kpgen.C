@@ -17,6 +17,7 @@
 #include<iomanip>
 #include<vector>
 #include<cassert>
+#include<cstdlib>
 #include<list>
 #include "D3vector.h"
 using namespace std;

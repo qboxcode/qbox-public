@@ -200,7 +200,6 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
           dc_last[i] = f;
         }
       }
-      extrapolate_ = true;
       tmap_["psda_update_wf"].stop();
 
       enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
@@ -236,4 +235,5 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
       }
     } // ikp
   } // ispin
+  extrapolate_ = true;
 }

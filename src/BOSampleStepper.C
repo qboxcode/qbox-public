@@ -904,14 +904,14 @@ void BOSampleStepper::step(int niter)
             cout.setf(ios::right,ios::adjustfield);
             cout << "  <etotal_int> " << setprecision(8) << setw(15)
                  << energy << " </etotal_int>\n";
-            if ( compute_stress )
-            {
-              const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-              enthalpy = energy + pext * cell.volume();
+          }
+          if ( compute_stress )
+          {
+            const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
+            enthalpy = energy + pext * cell.volume();
+            if ( onpe0 )
               cout << "  <enthalpy_int> " << setw(15)
-                   << enthalpy << " </enthalpy_int>\n"
-                   << flush;
-            }
+                   << enthalpy << " </enthalpy_int>\n" << flush;
           }
 
           // compare delta_etotal_int only after first iteration

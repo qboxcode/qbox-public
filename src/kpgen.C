@@ -138,7 +138,7 @@ int main(int argc, char** argv)
           // transfer weight to (*i)
           (*i)[3] += (*j)[3];
           (*j)[3] = 0;
-          //cout << " erasing  " << "(" << kpint[0] << "," 
+          //cout << " erasing  " << "(" << kpint[0] << ","
           //     << kpint[1] << "," << kpint[2] << ") == -("
           //     << (*j)[0] << "," << (*j)[1] << "," << (*j)[2] << ")" << endl;
         }
@@ -167,7 +167,7 @@ int main(int argc, char** argv)
           // transfer the weight of kj to ki
           (*i)[3] += (*j)[3];
           (*j)[3] = 0;
-          //cout << " erasing equivalent point " << "(" << (*j)[0] << "," 
+          //cout << " erasing equivalent point " << "(" << (*j)[0] << ","
           //     << (*j)[1] << "," << (*j)[2] << ") == ("
           //     << (*i)[0] << "," << (*i)[1] << "," << (*i)[2] << ")" << endl;
         }
@@ -177,7 +177,7 @@ int main(int argc, char** argv)
 #endif
 
   // remove elements with zero weight
-  for (list<vector<int> >::iterator i = kplist.begin(); 
+  for (list<vector<int> >::iterator i = kplist.begin();
        i != kplist.end(); /* nothing */ )
   {
     if ( (*i)[3] == 0 )
@@ -260,7 +260,7 @@ int main(int argc, char** argv)
          << setw(13) << k.x << " "
          << setw(13) << k.y << " "
          << setw(13) << k.z << endl;
-         
+
   }
 #endif
 }

@@ -42,6 +42,7 @@ int ComputeMLWFCmd::action(int argc, char **argv)
   if ( ui->onpe0() )
     cout << "<mlwfs>" << endl;
 
+  D3vector edipole_sum;
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
   {
     SlaterDet& sd = *(wf.sd(ispin,0));
@@ -68,20 +69,24 @@ int ComputeMLWFCmd::action(int argc, char **argv)
              << endl;
       }
       D3vector edipole = mlwft->dipole();
-      cout << "   <electronic_dipole> " << edipole
+      cout << " <electronic_dipole spin=\"" << ispin << "\"> " << edipole
            << " </electronic_dipole>" << endl;
-      D3vector idipole = s->atoms.dipole();
-      cout << "   <ionic_dipole> " << idipole
-           << " </ionic_dipole>" << endl;
-      cout << "   <total_dipole> " << idipole + edipole
-           << " </total_dipole>" << endl;
-      cout << "   <total_dipole_length> " << length(idipole + edipole)
-           << " </total_dipole_length>" << endl;
       cout << " </mlwfset>" << endl;
+      edipole_sum += edipole;
     }
     delete mlwft;
   }
+
   if ( ui->onpe0() )
+  {
+    D3vector idipole = s->atoms.dipole();
+    cout << "   <ionic_dipole> " << idipole
+         << " </ionic_dipole>" << endl;
+    cout << "   <total_dipole> " << idipole + edipole_sum
+         << " </total_dipole>" << endl;
+    cout << "   <total_dipole_length> " << length(idipole + edipole_sum)
+         << " </total_dipole_length>" << endl;
     cout << "</mlwfs>" << endl;
+  }
   return 0;
 }

@@ -998,10 +998,11 @@ void BOSampleStepper::step(int niter)
         if ( onpe0 )
         {
           D3vector edipole_sum;
+          cout << "<mlwfs>" << endl;
           for ( int ispin = 0; ispin < nspin; ispin++ )
           {
             SlaterDet& sd = *(wf.sd(ispin,0));
-            cout << " <mlwf_set spin=\"" << ispin
+            cout << " <mlwfset spin=\"" << ispin
                  << "\" size=\"" << sd.nst() << "\">" << endl;
             for ( int i = 0; i < sd.nst(); i++ )
             {
@@ -1017,11 +1018,11 @@ void BOSampleStepper::step(int niter)
                    << endl;
             }
 
-            cout << " </mlwf_set>" << endl;
             D3vector edipole = mlwft[ispin]->dipole();
             cout << " <electronic_dipole spin=\"" << ispin << "\"> " << edipole
                  << " </electronic_dipole>" << endl;
             edipole_sum += edipole;
+            cout << " </mlwfset>" << endl;
           }
           D3vector idipole = atoms.dipole();
           cout << " <ionic_dipole> " << idipole
@@ -1030,6 +1031,7 @@ void BOSampleStepper::step(int niter)
                << " </total_dipole>" << endl;
           cout << " <total_dipole_length> " << length(idipole + edipole_sum)
                << " </total_dipole_length>" << endl;
+          cout << "</mlwfs>" << endl;
         }
       }
 

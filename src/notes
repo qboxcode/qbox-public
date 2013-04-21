@@ -1,13 +1,20 @@
 --------------------------------------------------------------------------------
-remaining issues:
+remaining bugs/issues:
 - fix Exchange stress for general k-points
 --------------------------------------------------------------------------------
-rel1_57_4
+r1293: rel1_57_5
+--------------------------------------------------------------------------------
+r1292: fixed mlwf calc for spin-polarized case
+r1291: ComputeMLWFCmd.C: added spin implementation
+r1290: Anderson charge mixing on both spins simultaneously
+r1288: BOSampleStepper: moved enthalpy definition out of onpe0 test
+--------------------------------------------------------------------------------
+r1286: rel1_57_4
 r1283: PSDAWavefunctionStepper.C: fixed extrapolate flag
 r1282: rewrite of kpgen.C
 --------------------------------------------------------------------------------
 rel1_57_3
-r1275: fix sample read/write for nspin=2
+r1275: fix sample read/write for nspin=2. Save cmd writes full species info.
 --------------------------------------------------------------------------------
 rel1_57_2
 r1272: BOSampleStepper.C: fixed nite loop test for nite==0 case

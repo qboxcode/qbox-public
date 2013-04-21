@@ -72,7 +72,8 @@ StructureHandler* SampleHandler::startSubHandler(const XMLCh* const uri,
   else if ( qnm == "wavefunction_velocity" )
   {
     read_wfv = true;
-    s_.wfv = new Wavefunction(s_.ctxt_);
+    assert(read_wf);
+    s_.wfv = new Wavefunction(s_.wf);
     return new WavefunctionHandler(*s_.wfv,gfdata_);
   }
   else

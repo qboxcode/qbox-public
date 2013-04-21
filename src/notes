@@ -2,7 +2,11 @@
 remaining bugs/issues:
 - fix Exchange stress for general k-points
 --------------------------------------------------------------------------------
-r1293: rel1_57_5
+rel1_57_6
+--------------------------------------------------------------------------------
+r1296: SampleHandler.C: set wfv to use same ctxt as s_.wf
+--------------------------------------------------------------------------------
+rel1_57_5
 --------------------------------------------------------------------------------
 r1292: fixed mlwf calc for spin-polarized case
 r1291: ComputeMLWFCmd.C: added spin implementation

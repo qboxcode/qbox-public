@@ -2,6 +2,8 @@
 remaining bugs/issues:
 - fix Exchange stress for general k-points
 --------------------------------------------------------------------------------
+r1301: BOSampleStepper.C: print RC1 override msg on pe0 only
+--------------------------------------------------------------------------------
 rel1_57_6
 --------------------------------------------------------------------------------
 r1296: SampleHandler.C: set wfv to use same ctxt as s_.wf

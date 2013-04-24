@@ -312,7 +312,8 @@ void BOSampleStepper::step(int niter)
     istringstream is(s_.ctrl.debug);
     string s;
     is >> s >> rc1;
-    cout << " override rc1 value: rc1 = " << rc1 << endl;
+    if ( onpe0 )
+      cout << " override rc1 value: rc1 = " << rc1 << endl;
     assert(rc1 >= 0.0);
   }
 

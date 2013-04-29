@@ -2,6 +2,12 @@
 remaining bugs/issues:
 - fix Exchange stress for general k-points
 --------------------------------------------------------------------------------
+r1304: BOSampleStepper.C: removed printing of delta_ehart and delta_eigsum.
+Renamed variable nscf_converged.
+r1303: Wavefunction.C: fixed add_kpoint to avoid modifying occ of existing kpts
+This caused incorrect occupation numbers when loading wf with multiple kpts.
+r1301: BOSampleStepper.C: print RC1 override msg on pe0 only
+--------------------------------------------------------------------------------
 rel1_57_6
 --------------------------------------------------------------------------------
 r1296: SampleHandler.C: set wfv to use same ctxt as s_.wf

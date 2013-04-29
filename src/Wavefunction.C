@@ -372,7 +372,23 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
     sd_[ispin].push_back(new SlaterDet(*sdcontext_,kpoint_[nkp-1]));
     sd_[ispin][nkp-1]->resize(cell_,refcell_,ecut_,nst_[ispin]);
   }
-  update_occ(0.0);
+
+  if ( nspin_ == 1 )
+  {
+    sd_[0][nkp-1]->update_occ(nel_,nspin_);
+  }
+  else if ( nspin_ == 2 )
+  {
+    const int nocc_up = (nel_+1)/2+deltaspin_;
+    const int nocc_dn = nel_/2 - deltaspin_;
+    sd_[0][nkp-1]->update_occ(nocc_up,nspin_);
+    sd_[1][nkp-1]->update_occ(nocc_dn,nspin_);
+  }
+  else
+  {
+    // incorrect value of nspin_
+    assert(false);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

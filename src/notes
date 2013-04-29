@@ -2,6 +2,8 @@
 remaining bugs/issues:
 - fix Exchange stress for general k-points
 --------------------------------------------------------------------------------
+r1306: rel1_57_7
+--------------------------------------------------------------------------------
 r1304: BOSampleStepper.C: removed printing of delta_ehart and delta_eigsum.
 Renamed variable nscf_converged.
 r1303: Wavefunction.C: fixed add_kpoint to avoid modifying occ of existing kpts

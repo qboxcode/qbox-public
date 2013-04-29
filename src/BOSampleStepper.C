@@ -838,7 +838,7 @@ void BOSampleStepper::step(int niter)
         // repeat until the change in etotal_int or in the
         // eigenvalue sum is smaller than a fraction of the change in
         // Hartree energy in the last scf iteration
-        bool nscf_converged = false;
+        bool nonscf_converged = false;
         if ( itscf > 0 )
           ehart_m = ehart;
         ehart = ef_.ehart();
@@ -852,7 +852,7 @@ void BOSampleStepper::step(int niter)
         double eigenvalue_sum, eigenvalue_sum_m;
         // if nite == 0: do 1 iteration, no screening in charge mixing
         // if nite > 0: do nite iterations, use screening in charge mixing
-        while ( !nscf_converged && ite < max(nite_,1) )
+        while ( !nonscf_converged && ite < max(nite_,1) )
         {
           double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
           double enthalpy = energy;
@@ -900,7 +900,7 @@ void BOSampleStepper::step(int niter)
           {
 #if 0
             double delta_etotal_int = fabs(etotal_int - etotal_int_m);
-            nscf_converged |= (delta_etotal_int < 0.01 * delta_ehart);
+            nonscf_converged |= (delta_etotal_int < 0.01 * delta_ehart);
             if ( onpe0 )
             {
               cout << " BOSampleStepper::step: delta_e_int: "
@@ -910,7 +910,8 @@ void BOSampleStepper::step(int niter)
             }
 #else
             double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
-            nscf_converged |= (delta_eig_sum < 0.01 * delta_ehart);
+            nonscf_converged |= (delta_eig_sum < 0.01 * delta_ehart);
+#ifdef DEBUG
             if ( onpe0 )
             {
               cout << " BOSampleStepper::step delta_eig_sum: "
@@ -918,6 +919,7 @@ void BOSampleStepper::step(int niter)
               cout << " BOSampleStepper::step: delta_ehart: "
                    << delta_ehart << endl;
             }
+#endif
 #endif
 
           }

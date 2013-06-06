@@ -108,14 +108,10 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
       double* cptrv = (double*) wfv_->sd(ispin,ikp)->c().valptr();
       const double* dcptr =
         (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
-      const vector<double>& occ = sd->occ();
       const int mloc = sd->c().mloc();
       const int nloc = sd->c().nloc();
-      const bool onrow0 = ( wf_.context().myrow() == 0 );
       for ( int n = 0; n < nloc; n++ )
       {
-        const int nglobal = sd->c().j(0,n);
-        const double occn = occ[nglobal];
         // note: double mloc length for complex<double> indices
         double* c = &cptr[2*mloc*n];
         double* cv = &cptrv[2*mloc*n];

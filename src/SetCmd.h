@@ -36,9 +36,8 @@ class SetCmd : public Cmd
 
   SetCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "set"; }
-
-  char *help_msg(void) const
+  const char *name(void) const { return "set"; }
+  const char *help_msg(void) const
   {
     return
     "\n set\n\n"

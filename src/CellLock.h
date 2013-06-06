@@ -33,7 +33,7 @@ class CellLock : public Var
 
   public:
 
-  char *name ( void ) const { return "cell_lock"; };
+  const char *name ( void ) const { return "cell_lock"; };
 
   int set ( int argc, char **argv )
   {

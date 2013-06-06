@@ -33,7 +33,7 @@ class CellMass : public Var
 
   public:
 
-  char *name ( void ) const { return "cell_mass"; };
+  const char *name ( void ) const { return "cell_mass"; };
 
   int set ( int argc, char **argv )
   {

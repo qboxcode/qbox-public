@@ -33,7 +33,7 @@ class ThTime : public Var
 
   public:
 
-  char *name ( void ) const { return "th_time"; };
+  const char *name ( void ) const { return "th_time"; };
 
   int set ( int argc, char **argv )
   {

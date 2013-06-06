@@ -31,8 +31,8 @@ class ExtForceCmd : public Cmd
 
   ExtForceCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "extforce"; }
-  char *help_msg(void) const
+  const char *name(void) const { return "extforce"; }
+  const char *help_msg(void) const
   {
     return
     "\n extforce\n\n"

@@ -33,7 +33,7 @@ class Thermostat : public Var
 
   public:
 
-  char *name ( void ) const { return "thermostat"; };
+  const char *name ( void ) const { return "thermostat"; };
 
   int set ( int argc, char **argv )
   {

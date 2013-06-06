@@ -33,7 +33,7 @@ class Ecut : public Var
 
   public:
 
-  char *name ( void ) const { return "ecut"; };
+  const char *name ( void ) const { return "ecut"; };
 
   int set ( int argc, char **argv )
   {

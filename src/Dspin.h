@@ -44,12 +44,6 @@ class Dspin : public Var
     }
 
     int v = atoi(argv[1]);
-    if ( v < 0 )
-    {
-      if ( ui->onpe0() )
-        cout << " delta_spin must >= 0" << endl;
-      return 1;
-    }
 
     if ( s->wf.nspin() < 2 )
     {

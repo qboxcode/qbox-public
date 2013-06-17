@@ -20,8 +20,9 @@
 #define XCOPERATOR_H
 
 #include "Sample.h"
-#include "ChargeDensity.h"
+#include <valarray>
 
+class ChargeDensity;
 class XCPotential;
 class ExchangeOperator;
 class XCOperator

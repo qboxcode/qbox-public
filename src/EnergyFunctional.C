@@ -20,6 +20,7 @@
 #include "Sample.h"
 #include "Species.h"
 #include "Wavefunction.h"
+#include "ChargeDensity.h"
 #include "SlaterDet.h"
 #include "Basis.h"
 #include "FourierTransform.h"

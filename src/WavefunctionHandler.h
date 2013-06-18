@@ -38,7 +38,7 @@ class WavefunctionHandler : public StructureHandler
   int nx_, ny_, nz_;
   int current_gf_nx,current_gf_ny,current_gf_nz;
   std::string current_gf_encoding;
-  int current_ispin,current_ikp;
+  int current_ispin,current_ikp, current_gfdata_pos;
   std::vector<double> dmat_;
   double current_kx, current_ky, current_kz, current_weight;
   int current_size;
@@ -68,7 +68,8 @@ class WavefunctionHandler : public StructureHandler
     const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const subHandler);
 
-  WavefunctionHandler(Wavefunction& wf, DoubleMatrix& gfdata);
+  WavefunctionHandler(Wavefunction& wf, DoubleMatrix& gfdata,
+    int& current_gfdata_pos);
   ~WavefunctionHandler();
 };
 #endif

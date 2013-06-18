@@ -28,7 +28,7 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 SampleHandler::SampleHandler(Sample& s, DoubleMatrix& gfdata) :
-  s_(s), gfdata_(gfdata) {}
+  s_(s), gfdata_(gfdata), current_gfdata_pos(0) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 SampleHandler::~SampleHandler() {}
@@ -67,14 +67,14 @@ StructureHandler* SampleHandler::startSubHandler(const XMLCh* const uri,
   else if ( qnm == "wavefunction" )
   {
     read_wf = true;
-    return new WavefunctionHandler(s_.wf,gfdata_);
+    return new WavefunctionHandler(s_.wf,gfdata_,current_gfdata_pos);
   }
   else if ( qnm == "wavefunction_velocity" )
   {
     read_wfv = true;
     assert(read_wf);
     s_.wfv = new Wavefunction(s_.wf);
-    return new WavefunctionHandler(*s_.wfv,gfdata_);
+    return new WavefunctionHandler(*s_.wfv,gfdata_,current_gfdata_pos);
   }
   else
   {

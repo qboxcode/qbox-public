@@ -35,7 +35,7 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 WavefunctionHandler::WavefunctionHandler(Wavefunction& wf,
-  DoubleMatrix& gfdata) : wf_(wf), gfdata_(gfdata) {}
+  DoubleMatrix& gfdata, int& current_gfdata_pos ) : wf_(wf), gfdata_(gfdata) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 WavefunctionHandler::~WavefunctionHandler() {}
@@ -335,7 +335,8 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
 void WavefunctionHandler::endElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname, string& content)
 {
-  bool onpe0 = wf_.context().onpe0();
+  const Context& ctxt = wf_.context();
+  bool onpe0 = ctxt.onpe0();
   string locname(XMLString::transcode(localname));
   //cout << " WavefunctionHandler::endElement " << locname << endl;
   if ( locname == "density_matrix")
@@ -361,19 +362,19 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
     SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
 
 #if DEBUG
-    cout << ctxt_.mype() << ": mapping gfdata matrix..."
+    cout << ctxt.mype() << ": mapping gfdata matrix..."
          << endl;
-    cout << ctxt_.mype() << ": gfdata: (" << gfdata.m() << "x" << gfdata.n()
-         << ") (" << gfdata.mb() << "x" << gfdata.nb() << ") blocks" << endl;
-    cout << ctxt_.mype() << ": gfdata.mloc()=" << gfdata.mloc()
-         << " gfdata.nloc()=" << gfdata.nloc() << endl;
+    cout << ctxt.mype() << ": gfdata: (" << gfdata_.m() << "x" << gfdata_.n()
+         << ") (" << gfdata_.mb() << "x" << gfdata_.nb() << ") blocks" << endl;
+    cout << ctxt.mype() << ": gfdata.mloc()=" << gfdata_.mloc()
+         << " gfdata.nloc()=" << gfdata_.nloc() << endl;
 #endif
 
     sd->set_occ(dmat_);
     const Basis& basis = sd->basis();
 #if DEBUG
-    cout << ctxt_.mype() << ": ft->np012loc()=" << ft->np012loc() << endl;
-    cout << ctxt_.mype() << ": ft->context(): " << ft->context();
+    cout << ctxt.mype() << ": ft->np012loc()=" << ft->np012loc() << endl;
+    cout << ctxt.mype() << ": ft->context(): " << ft->context();
 #endif
 
     ComplexMatrix& c = sd->c();
@@ -391,15 +392,26 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
       wftmpr_block_size = 2*ft->np012loc(0);
     }
 #if DEBUG
-    cout << ctxt_.mype() << ": wftmpr_size: " << wftmpr_size << endl;
-    cout << ctxt_.mype() << ": wftmpr_block_size: "
+    cout << ctxt.mype() << ": wftmpr_size: " << wftmpr_size << endl;
+    cout << ctxt.mype() << ": wftmpr_block_size: "
          << wftmpr_block_size << endl;
 #endif
     DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
                         wftmpr_block_size,c.nb());
 
-    wftmpr.getsub(gfdata_,wftmpr_size,sd->nst(),0,
-                  current_ikp*sd->nst()+current_ispin*wf_.nkp()*sd->nst());
+#if DEBUG
+    // parameters of the getsub operation
+    cout << "WavefunctionHandler: current_ikp=  " << current_ikp << endl;
+    cout << "WavefunctionHandler: current_ispin=" << current_ispin << endl;
+    cout << "WavefunctionHandler: sd->nst()=    " << sd->nst() << endl;
+    cout << "WavefunctionHandler: wf_.nkp()=    " << wf_.nkp() << endl;
+    cout << "WavefunctionHandler: current_gfdata_pos= "
+     << current_gfdata_pos << endl;
+#endif
+
+    assert(current_gfdata_pos < gfdata_.n());
+    wftmpr.getsub(gfdata_,wftmpr_size,sd->nst(),0,current_gfdata_pos);
+    current_gfdata_pos += sd->nst();
 
 #if DEBUG
     // Check orthogonality by computing overlap matrix
@@ -451,6 +463,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
     for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
       wf_.nst_[ispin] = wf_.sd_[ispin][0]->nst();
 
+#if 1
     // if nspin==2, adjust deltaspin_ to reflect the number of states
     // of each spin that were read
     if ( wf_.nspin() == 2 )
@@ -461,6 +474,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
       // even and odd number of electrons
       wf_.deltaspin_ = (wf_.nst(0)-wf_.nst(1))/2;
     }
+#endif
   }
 }
 

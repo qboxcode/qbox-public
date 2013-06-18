@@ -35,8 +35,8 @@ class BisectionCmd : public Cmd
 
   BisectionCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "bisection"; }
-  char *help_msg(void) const
+  const char *name(void) const { return "bisection"; }
+  const char *help_msg(void) const
   {
     return
     "\n bisection\n\n"

@@ -36,8 +36,8 @@ class StatusCmd : public Cmd
 
   StatusCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "status"; }
-  char *help_msg(void) const
+  const char *name(void) const { return "status"; }
+  const char *help_msg(void) const
   {
     return
     "\n run\n\n"

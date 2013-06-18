@@ -35,9 +35,8 @@ class RseedCmd : public Cmd
 
   RseedCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "rseed"; }
-
-  char *help_msg(void) const
+  const char *name(void) const { return "rseed"; }
+  const char *help_msg(void) const
   {
     return
     "\n rseed\n\n"

@@ -33,7 +33,7 @@ class Nempty : public Var
 
   public:
 
-  char *name ( void ) const { return "nempty"; };
+  const char *name ( void ) const { return "nempty"; };
 
   int set ( int argc, char **argv )
   {

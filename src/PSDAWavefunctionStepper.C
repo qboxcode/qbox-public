@@ -25,18 +25,14 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 PSDAWavefunctionStepper::PSDAWavefunctionStepper(Wavefunction& wf,
-  double ecutprec, TimerMap& tmap) : prec_(0),
+  Preconditioner& prec, TimerMap& tmap) : prec_(prec),
   WavefunctionStepper(wf,tmap), wf_last_(wf), dwf_last_(wf),
   extrapolate_(false)
-{
-  prec_ = new Preconditioner(wf,ecutprec);
-}
+{}
 
 ////////////////////////////////////////////////////////////////////////////////
 PSDAWavefunctionStepper::~PSDAWavefunctionStepper(void)
-{
-  delete prec_;
-}
+{}
 
 ////////////////////////////////////////////////////////////////////////////////
 void PSDAWavefunctionStepper::update(Wavefunction& dwf)
@@ -76,7 +72,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
 
   // dwf.sd->c() now contains the descent direction (HV-VA) (residual)
   // update the preconditioner using the residual
-  prec_->update(dwf);
+  prec_.update(dwf);
 
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
@@ -98,7 +94,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
         double* dcn = &dc[2*mloc*n];
         for ( int i = 0; i < ngwl; i++ )
         {
-          const double fac = prec_->diag(ispin,ikp,n,i);
+          const double fac = prec_.diag(ispin,ikp,n,i);
           const double f0 = -fac * dcn[2*i];
           const double f1 = -fac * dcn[2*i+1];
           dcn[2*i] = f0;

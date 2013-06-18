@@ -33,7 +33,7 @@ class ThWidth : public Var
 
   public:
 
-  char *name ( void ) const { return "th_width"; };
+  const char *name ( void ) const { return "th_width"; };
 
   int set ( int argc, char **argv )
   {

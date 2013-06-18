@@ -33,8 +33,8 @@ class TorsionCmd : public Cmd
 
   TorsionCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "torsion"; }
-  char *help_msg(void) const
+  const char *name(void) const { return "torsion"; }
+  const char *help_msg(void) const
   {
     return
     "\n torsion\n\n"

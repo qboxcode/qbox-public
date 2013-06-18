@@ -36,8 +36,8 @@ class MoveCmd : public Cmd
 
   MoveCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "move"; }
-  char *help_msg(void) const
+  const char *name(void) const { return "move"; }
+  const char *help_msg(void) const
   {
     return
     "\n move\n\n"

@@ -33,6 +33,7 @@ class SampleHandler : public StructureHandler
 
   Sample& s_;
   DoubleMatrix& gfdata_;
+  int current_gfdata_pos;
 
   public:
 

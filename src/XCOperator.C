@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 #include "XCOperator.h"
+#include "ChargeDensity.h"
 #include "XCPotential.h"
 #include "ExchangeOperator.h"
 using namespace std;

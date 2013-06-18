@@ -33,7 +33,7 @@ class Cell : public Var
 
   public:
 
-  char *name ( void ) const { return "cell"; };
+  const char *name ( void ) const { return "cell"; };
 
   int set ( int argc, char **argv )
   {

@@ -33,8 +33,8 @@ class ListSpeciesCmd : public Cmd
 
   ListSpeciesCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "list_species"; }
-  char *help_msg(void) const
+  const char *name(void) const { return "list_species"; }
+  const char *help_msg(void) const
   {
     return
     "\n list_species\n\n"

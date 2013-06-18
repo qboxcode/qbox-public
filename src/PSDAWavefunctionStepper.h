@@ -27,7 +27,7 @@ class PSDAWavefunctionStepper : public WavefunctionStepper
 {
   private:
 
-  Preconditioner *prec_;
+  Preconditioner& prec_;
   Wavefunction wf_last_, dwf_last_;
 
   // Anderson acceleration flag
@@ -38,7 +38,8 @@ class PSDAWavefunctionStepper : public WavefunctionStepper
   void update(Wavefunction& dwf);
   virtual void preprocess(void) { extrapolate_ = false; }
 
-  PSDAWavefunctionStepper(Wavefunction& wf, double ecutprec, TimerMap& tmap);
+  PSDAWavefunctionStepper(Wavefunction& wf, Preconditioner& prec,
+    TimerMap& tmap);
   ~PSDAWavefunctionStepper();
 };
 #endif

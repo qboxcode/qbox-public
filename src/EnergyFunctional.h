@@ -24,7 +24,6 @@
 #include <valarray>
 #include <map>
 #include <string>
-#include "ChargeDensity.h"
 #include "StructureFactor.h"
 #include "Timer.h"
 
@@ -32,6 +31,7 @@ class Sample;
 class Basis;
 class AtomSet;
 class Wavefunction;
+class ChargeDensity;
 class UnitCell;
 class FourierTransform;
 class XCOperator;

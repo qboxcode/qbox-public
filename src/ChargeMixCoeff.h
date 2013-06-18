@@ -33,7 +33,7 @@ class ChargeMixCoeff : public Var
 
   public:
 
-  char *name ( void ) const { return "charge_mix_coeff"; };
+  const char *name ( void ) const { return "charge_mix_coeff"; };
 
   int set ( int argc, char **argv )
   {

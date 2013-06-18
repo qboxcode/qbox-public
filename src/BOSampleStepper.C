@@ -25,6 +25,7 @@
 #include "PSDWavefunctionStepper.h"
 #include "PSDAWavefunctionStepper.h"
 #include "JDWavefunctionStepper.h"
+#include "Preconditioner.h"
 #include "SDIonicStepper.h"
 #include "SDAIonicStepper.h"
 #include "CGIonicStepper.h"
@@ -210,6 +211,8 @@ void BOSampleStepper::step(int niter)
 
   Timer tm_iter;
 
+  Preconditioner prec(wf,ef_,s_.ctrl.ecutprec);
+
   WavefunctionStepper* wf_stepper = 0;
   if ( wf_dyn == "SD" )
   {
@@ -225,11 +228,11 @@ void BOSampleStepper::step(int niter)
     wf_stepper = new SDWavefunctionStepper(wf,dt2bye,tmap);
   }
   else if ( wf_dyn == "PSD" )
-    wf_stepper = new PSDWavefunctionStepper(wf,s_.ctrl.ecutprec,tmap);
+    wf_stepper = new PSDWavefunctionStepper(wf,prec,tmap);
   else if ( wf_dyn == "PSDA" )
-    wf_stepper = new PSDAWavefunctionStepper(wf,s_.ctrl.ecutprec,tmap);
+    wf_stepper = new PSDAWavefunctionStepper(wf,prec,tmap);
   else if ( wf_dyn == "JD" )
-    wf_stepper = new JDWavefunctionStepper(wf,s_.ctrl.ecutprec,ef_,tmap);
+    wf_stepper = new JDWavefunctionStepper(wf,prec,ef_,tmap);
 
   // wf_stepper == 0 indicates that wf_dyn == LOCKED
 

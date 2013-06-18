@@ -2,6 +2,20 @@
 remaining bugs/issues:
 - fix Exchange stress for general k-points
 --------------------------------------------------------------------------------
+rel1_57_8
+--------------------------------------------------------------------------------
+r1317: undo r1312: keep positive constraint on delta_spin
+r1316: Fixed loading of gfdata into slater_det with non-zero delta_spin
+r1315: Restored correct preconditioning when using stress confinement
+r1314: EnergyFunctional.[Ch]: removed dependency on ChargeDensity.h from header
+r1313: XCOperator.[Ch]: removed dependency on ChargeDensity.h from header
+r1312: allow negative delta_spin
+r1311: MDWavefunctionStepper.C: removed unused vars
+r1310: NonLocalPotential.C: removed unused vars
+r1309: removed deprecated conversions from string const to char* in headers
+--------------------------------------------------------------------------------
+rel1_57_7
+--------------------------------------------------------------------------------
 r1304: BOSampleStepper.C: removed printing of delta_ehart and delta_eigsum.
 Renamed variable nscf_converged.
 r1303: Wavefunction.C: fixed add_kpoint to avoid modifying occ of existing kpts
@@ -52,7 +66,7 @@ Added unit_cell info in BOSampleStepper output.
 SlatedDet: added occ_ and eig_ to operator=
 --------------------------------------------------------------------------------
 rel1_55_5
-Added polar decomposition in Matrix class. 
+Added polar decomposition in Matrix class.
 Use polar in ortho_align, align, lowdin ortho.
 --------------------------------------------------------------------------------
 rel1_55_4
@@ -102,7 +116,7 @@ member functions to CellStepper.C.
 --------------------------------------------------------------------------------
 rel1_53_0
 RseedCmd.h: rseed command to initialize random number generator
-BOSampleStepper.C: reintroduced wf extrapolation when nite>1 (leads to 
+BOSampleStepper.C: reintroduced wf extrapolation when nite>1 (leads to
 much improved energy conservation in liquid Si)
 Matrix.[Ch]: added IntegerMatrix, permutations
 ComputeMLWF.C: test if not at Gamma point
@@ -110,7 +124,7 @@ StructureFactor.C, SampleWriter.C: added <cstring> for memset
 XCPotential.h: moved header dependencies to XCPotential.C
 --------------------------------------------------------------------------------
 rel1_52_4
-Introduced a USE_UUID macro in qb.C, uuid_str.[Ch] (some platforms have no 
+Introduced a USE_UUID macro in qb.C, uuid_str.[Ch] (some platforms have no
 uuid library)
 Fix bug 23: Wavefunction::set_nempty: added update occ when nempty=0.
 --------------------------------------------------------------------------------
@@ -207,12 +221,12 @@ SlaterDet.C: added timing ifdefs in gram ortho.
 rel1_47_1
 Added a virtual member function in Constraint that returns the number of DOFs to
 be subtracted due to that constraint. That number is 1 for all constraints,
-except for PositionConstraint, for which it is 3. This function is used 
-by ConstraintSet to keep track of the total number of DOFs to be removed 
+except for PositionConstraint, for which it is 3. This function is used
+by ConstraintSet to keep track of the total number of DOFs to be removed
 when computing the system temperature. The ConstraintSet class maintains the
 total number of DOFs and modifies it only when constraints are added or deleted.
-MDIonicStepper::ekin() modified to compute kinetic energy correctly in the 
-presence of constraints. 
+MDIonicStepper::ekin() modified to compute kinetic energy correctly in the
+presence of constraints.
 Emass.h: allow reset to zero
 BOSampleStepper.C: fix print format of etotal_int
 --------------------------------------------------------------------------------
@@ -225,9 +239,9 @@ given in the species file.
 WavefunctionHandler.C: fix XMLString::release() call for Xerces 3.0.1
 --------------------------------------------------------------------------------
 rel1_46_0
-AndersonMixer.C, BOSampleStepper.C: Implemented multidimensional Anderson 
+AndersonMixer.C, BOSampleStepper.C: Implemented multidimensional Anderson
 acceleration of charge mixing.
-Added charge_mix_ndim to specify dimension of Anderson acceleration of 
+Added charge_mix_ndim to specify dimension of Anderson acceleration of
 charge mixing. charge_mix_ndim=0 results in simple mixing.
 --------------------------------------------------------------------------------
 rel1_45_3
@@ -245,7 +259,7 @@ StrainCmd.h: fix error in usage message.
 XMLGFPreprocessor.C: new macro PARALLEL_FS. Limit the number of simultaneous
 fread calls if PARALLEL_FS is not defined.
 --------------------------------------------------------------------------------
-rel1_45_1: fixed SDCellStepper.C: make local copy of sigma to avoid 
+rel1_45_1: fixed SDCellStepper.C: make local copy of sigma to avoid
 PGI compiler error on franklin: "must be lvalue or...".
 --------------------------------------------------------------------------------
 rel1_45_0
@@ -261,12 +275,12 @@ BOSampleStepper.C: Fix uninitialized mlwft ptr. Fixed delete statements.
 --------------------------------------------------------------------------------
 rel1_44_4
 BOSampleStepper.C: reintroduced feature that keeps memory of wfv between run
-commands. Allows for smooth continuation of multiple runs. Added MLWF and 
+commands. Allows for smooth continuation of multiple runs. Added MLWF and
 MLWFC calculation in the niter loop.
 Modified wf extrapolation to include alignment in all cases. Use lowdin
 orthogonalization after extrapolation.
 WfDiag.h: Added MLWF and MLWFC option for the wf_diag variable: computes MLWFs
-or MLWF centers at each ionic step. 
+or MLWF centers at each ionic step.
 SaveCmd.[Ch], SampleWriter.[Ch]: added -no_wfv option: save without wf velocity.
 --------------------------------------------------------------------------------
 rel1_44_3
@@ -338,16 +352,16 @@ SampleReader.C, SpeciesReader.C: set validation scheme to Val_Auto to allow
 successful parsing in the absence of a local copy of sample.xsd or species.xsd.
 Added fold_in_ws command: fold all atoms in the WS cell.
 MDIonicStepper.C: removed collision debug info printout.
-MDIonicStepper.C: make calc of collisions on task 0, then sync in LOWE and 
+MDIonicStepper.C: make calc of collisions on task 0, then sync in LOWE and
 ANDERSEN thermostats. Ensures that all velocities are consistent on all nodes.
-PSDAWavefunctionStepper.C: removed psda_enhancement_factor which caused 
+PSDAWavefunctionStepper.C: removed psda_enhancement_factor which caused
 oscillations in some PSDA optimizations.
-BOSampleStepper.C: use wf velocity only inside BOSampleStepper. wfv is not 
+BOSampleStepper.C: use wf velocity only inside BOSampleStepper. wfv is not
 saved at end of steps. wfv is not used at first step for wf extrapolation.
 --------------------------------------------------------------------------------
 rel1_38_0
 MDIonicStepper.C: Modified minimum image convention in LOWE thermostat to
-conserve angular momentum in clusters. Fixed LOWE and ANDERSEN thermostats to 
+conserve angular momentum in clusters. Fixed LOWE and ANDERSEN thermostats to
 have correct collision rate.
 UserInterface.C: fixed endl in output to avoid double endl.
 Basis.C: remove pimpl implementation.
@@ -365,7 +379,7 @@ Included unit cell in saved samples.
 --------------------------------------------------------------------------------
 rel1_35_0
 Implemented parallel I/O for writing sample files. Uses MPI-IO.
-This does not work on BG/L with PVFS since PVFS does not support the 
+This does not work on BG/L with PVFS since PVFS does not support the
 collective calls MPI_File_write_ordered and MPI_File_write_shared.
 Option -serial added to the save command to use the old serial mode.
 --------------------------------------------------------------------------------
@@ -408,7 +422,7 @@ removed trailing blanks in *.[Ch] *.mk Makefile
 rel1_33_4
 ComputeMLWFCmd.C: fixed memory leak.
 blas.h: added zgemm, dnrm2.
-BOSampleStepper.C: disabled Anderson acceleration of charge mixing by default, 
+BOSampleStepper.C: disabled Anderson acceleration of charge mixing by default,
 can be enabled with debug="AND_CHMIX"
 AtomSet.C: removed unused variables.
 --------------------------------------------------------------------------------
@@ -479,9 +493,9 @@ XMLGFPreprocessor.C: added tests to avoid div by zero if no local grid
 --------------------------------------------------------------------------------
 rel1_29_0
 BOSampleStepper.C: major rewrite:
-added a wf_stepper->preprocess before the itscf loop to 
+added a wf_stepper->preprocess before the itscf loop to
 get correct extrapolation when ions move.
-Modified NTC extrapolation: activated if NTC_EXTRAPOLATION is found in the 
+Modified NTC extrapolation: activated if NTC_EXTRAPOLATION is found in the
 debug variable.
 ReadTSC.h: added missing #define statement
 Debug.h: modified to take arbitrary strings
@@ -510,11 +524,11 @@ rel1_26_1e
 redefine constraint command and subcommands, output format.
 Introduce constraint names.
 Remove ListConstraintsCmd.h
-SDAIonicStepper.h: fixed bug: 
+SDAIonicStepper.h: fixed bug:
 Use of ndofs_ incorrect when ndofs<3*na (when constraints are defined).
 Use CHOLESKY_REMAP macro value for size of square context in SlaterDet.C (bgl).
 --------------------------------------------------------------------------------
-rel1_26_0 
+rel1_26_0
 Species.C: changed spline BC for local potential.
 SlaterDet.C: randomize: return if basis size is zero.
 Implementation of a new logic in all IonicStepper classes.
@@ -534,11 +548,11 @@ BOSampleStepper.C: added APC counters
 qb.C: added APC counters
 --------------------------------------------------------------------------------
 rel1_24_2
-NonLocalPotential.C: Fixed bug in G=0 component of l=0 non-local projector in 
+NonLocalPotential.C: Fixed bug in G=0 component of l=0 non-local projector in
 semilocal form (merged bugfix from rel1_23_4)
 --------------------------------------------------------------------------------
 rel1_24_1
-SlaterDet.C: fixed bug introduced in 1.24.0: Cholesky decomp was skipped if 
+SlaterDet.C: fixed bug introduced in 1.24.0: Cholesky decomp was skipped if
 CHOLESKY_REMAP is not defined.
 --------------------------------------------------------------------------------
 rel1_24_0
@@ -560,12 +574,12 @@ NonLocalPotential.C: fixed bug: double fnl_size should be int fnl_size.
 --------------------------------------------------------------------------------
 rel1_23_2
 FourierTransform.C: Fixed bug #39: When unit cells are non-orthogonal, the
-transforms along x are not done correctly. Bounds including all non-zero 
+transforms along x are not done correctly. Bounds including all non-zero
 transforms are redefined.
 Basis.C: Simplified basis set construction.
 NonLocalPotential.C: removed variables used in old implementation (pre 1.23.0)
 --------------------------------------------------------------------------------
-rel1_23_1 
+rel1_23_1
 PSDAWavefunctionStepper.C: Reset default theta for negative curvature to 0.0.
 AndersonMixer: added settable default theta value for negative curvature.
 --------------------------------------------------------------------------------
@@ -573,7 +587,7 @@ rel1_23_0
 Added SDA algorithm for atoms dynamics: Anderson acceleration of SD.
 New implementation of NonLocalPotential::energy, recomputing anl array at
 every call.
-Modified IonicStepper to make ekin and temp virtual. Implemented only in 
+Modified IonicStepper to make ekin and temp virtual. Implemented only in
 MDIonicStepper.
 --------------------------------------------------------------------------------
 rel1_22_0
@@ -602,12 +616,12 @@ Nrowmax.h: add update_occ when changing nrowmax.
 Matrix.C:219 and similar: removed assert. Some valptr may be 0 on some blocks.
 SlaterDet.C: print sdcontext dimensions in SlaterDet::info.
 ChargeDensity.C: added (void*) cast to delete statements (for xlC 7.0).
-Known bug #38: incorrect forces with nrowmax=16 with 512 tasks. Occurs when 
+Known bug #38: incorrect forces with nrowmax=16 with 512 tasks. Occurs when
 nrowmax <= (ntasks/nrowmax)/2.
 --------------------------------------------------------------------------------
 rel1_19_0 2004-10-04
 BOSampleStepper.C: Implemented simple charge mixing for SCF iterations.
-Disabled potential mixing. 
+Disabled potential mixing.
 SpeciesReader.C: fixed parsing of species files.
 SlaterDet.C in print and write: fixed incorrect allocation of char buffer b:
 caused segfaults when saving sample.
@@ -618,12 +632,12 @@ Known bug: Wavefunction::update_occ iteration on mu does not converge in some
 systems.
 --------------------------------------------------------------------------------
 rel1_18_0 2004-09-14 (not for distribution)
-BOSampleStepper modified for scf iterations. Update of charge density and 
+BOSampleStepper modified for scf iterations. Update of charge density and
 calculation of VHXC is taken out of EnergyFunctional.
 RunCmd modified. Use run niter nitscf nite.
 Added FermiTemp variable.
 Modifications for calculation of occupation numbers if nempty > 0.
-Added USE_XERCES macro. If not defined, the Xerces library is not used, and 
+Added USE_XERCES macro. If not defined, the Xerces library is not used, and
 only species files can be read. Loading of sample files without the Xerces lib
 is not implemented yet.
 SlaterDet.C modified to remove dependency on xercesc. Uses Base64Transcoder.
@@ -632,7 +646,7 @@ Known bug: SpeciesReader.C incorrect if not USE_XERCES
 Known bug: Base64 encoding not done in SlaterDet.C
 --------------------------------------------------------------------------------
 rel1_17_1 2004-08-18
-Fixed bug #27: overrun of variable tmpfion in NonLocalPotential.C is due to 
+Fixed bug #27: overrun of variable tmpfion in NonLocalPotential.C is due to
 incorrect index calculation in situations where na[is] % (ntasks/nrowmax) != 0.
 This is the case for (CdSe)_110 on 128 tasks, nrowmax=32, since na[is]/4 = 27.5.
 Note: bug #27 does not affect calculations with a single non-local projector
@@ -665,13 +679,13 @@ Modified mcr.mk to use library mkl_p4 instead of mkl: -lmkl_p4 before -lmkl
 This change of library accelerates the si432 calculation by 12% overall
 --------------------------------------------------------------------------------
 rel1_15_2
-Ecut.h: exit without any action if ecut is same as current value. Caused 
+Ecut.h: exit without any action if ecut is same as current value. Caused
 zeroing of the wavefunction velocity when used in a redundant manner.
 Added isodate.C/isodate.h and release.C/release.h files for separate access
 to these functions from any other object.
 Added a <description> tag in the sample file in SaveCmd.C including the ISO
-date and the release of qbox that was used to create the file. 
-(Note: the tag was already allowed by the Schema specification, but the 
+date and the release of qbox that was used to create the file.
+(Note: the tag was already allowed by the Schema specification, but the
 save command did not write any description information.)
 --------------------------------------------------------------------------------
 rel1_15_1
@@ -711,12 +725,12 @@ Note: the determination of enclosure should be revised.
 SDCellStepper.C: removed debug messages. New "S" option to preserve shape.
 BOSampleStepper.C: Added output of cell dimensions if cell is not locked.
 Preconditioner.C: bug fixed in calculation of diag when using confinement.
-Known bugs: 
+Known bugs:
 Does not use ionic velocities at first step of CP dynamics.
 Thermostat is not working.
 --------------------------------------------------------------------------------
 rel1_14_0
-Matrix.h Reintroduced the clear() call in the resize members. Working with 
+Matrix.h Reintroduced the clear() call in the resize members. Working with
 uninitialized matrices sometimes caused NaNs to appear in the padding areas
 of the danl matrix in NonLocalPotential.C.
 Note that the clear() call was removed in rel1_13_0, which invalidates 1_13_0.
@@ -725,10 +739,10 @@ BOSampleStepper.C: Introduced quadratic wf extrapolation option (switch
 in BOSampleStepper.C, currently disabled in 1.14.0. Added calculation
 of forces at each electronic step to monitor the convergence
 of the force x velocity product (disabled in 1.14.0).
-PSDWavefunctionStepper.C: Fixed bug in usage of preconditioner (affects 
+PSDWavefunctionStepper.C: Fixed bug in usage of preconditioner (affects
 1_13_0 only).
 PSDAWavefunctionStepper.C: Fixed bug in usage of preconditioner (see above).
-SlaterDet.[Ch]: introduced new orthogonalization and alignment functions:lowdin, 
+SlaterDet.[Ch]: introduced new orthogonalization and alignment functions:lowdin,
 align, ortho_align.
 
 
@@ -743,17 +757,17 @@ from the update r0 := rp.
 Removed a bug in calculation of eta at first step (was not using ekin_ion)
 --------------------------------------------------------------------------------
 rel1_13_0a1 (not for release)
-Computes stress tensor. Limited to s-only n-l projectors. No cell eq. of 
+Computes stress tensor. Limited to s-only n-l projectors. No cell eq. of
 motion yet. Tested against GP results in cubic Si64.
 --------------------------------------------------------------------------------
 rel1_12_1
 Removed Gauss-Jacobi quadrature in NonLocalPotential introduced in 1_12_0 and
 reverted to trapezoidal rule. Tests on Si64 using trapezoidal, Simpson, Gauss-
-Legendre and Gauss-Jacobi show that the trapezoidal rule is more efficient 
-than all other methods, likely because higher order methods are not in their 
-asymptotic range for reasonable numbers of points  (4-32). A possible 
-improvement over the present status may be to use Richardson extrapolation, 
-since the trapezoidal rule has O(h^2) error. However, from the example of Si64, 
+Legendre and Gauss-Jacobi show that the trapezoidal rule is more efficient
+than all other methods, likely because higher order methods are not in their
+asymptotic range for reasonable numbers of points  (4-32). A possible
+improvement over the present status may be to use Richardson extrapolation,
+since the trapezoidal rule has O(h^2) error. However, from the example of Si64,
 little improvement is obtained for small (4-8) numbers of points.
 --------------------------------------------------------------------------------
 rel1_12_0
@@ -763,26 +777,26 @@ Fixed bug in PSDWavefunctionStepper.C and PSDAWavefunctionStepper.C:
 use ecut if ecutprec==0.0. Caused nans when ecutprec was not set.
 --------------------------------------------------------------------------------
 rel1_11_2 2003-12-04
-Fixed Elan allocation failure problem in SlaterDet::write. Problem was caused 
+Fixed Elan allocation failure problem in SlaterDet::write. Problem was caused
 by the large number of buffers allocated by the elan lib for all the messages
 sent to task 0 before a receive was posted for them. A barrier in the loop
 over states limits the number of messages sent to task 0 at any given time.
-Note: the problem likely doesn't show on AIX since the MPI implementation may 
-limit the number of buffered received messages. The barrier is added in the 
+Note: the problem likely doesn't show on AIX since the MPI implementation may
+limit the number of buffered received messages. The barrier is added in the
 AIX code too (SlaterDet::print).
 --------------------------------------------------------------------------------
 rel1_11_1
 Fixed uninitialized var eta_ in MDIonicStepper that caused errors on AIX.
 Known problem: elan allocation failure on mcr when writing h2o64 sample
 using 140 tasks on 70 nodes. Possible bug in SlaterDet::write if USE_CSTDIO_LFS.
-When running on AIX (using SlaterDet::print instead of SlaterDet::write) no 
+When running on AIX (using SlaterDet::print instead of SlaterDet::write) no
 problem arises, and memory usage per node is low.(fixed in 1_11_2).
 --------------------------------------------------------------------------------
 rel1_11_0
-BOSampleStepper: changed to do extrapolation and ionic move before 
+BOSampleStepper: changed to do extrapolation and ionic move before
 smoothing the wf. Uses wf velocity if available. Creates it if not
 Included PSDA wf stepper.
-BO dyn Works ok with PSDA. 
+BO dyn Works ok with PSDA.
 Tested 1pe vs 2pe on CH4 BO dynamics: ok.
 Corrected bug in SampleReader.C (reading of wf velocity, appeared in rel1_9_0)
 --------------------------------------------------------------------------------
@@ -790,29 +804,29 @@ rel1_10_0 (not for release) (Note: known bugs)
 Complete rewrite of the SampleStepper hierarchy, including CP and BO classes.
 Runs CP and BO/SD and BO/PSD tests ok. No extrapolation of wavefunctions yet.
 Note: wavefunction extrapolation implemented yet.
-Planned work: interchange nite iterations and ionic move in BO stepper, so 
+Planned work: interchange nite iterations and ionic move in BO stepper, so
 that the wfs at the end of the iteration are the GS for the ionic positions at
 the same time.
 XML files: a <description> tag (optional) was added to the sample.xsd file
 to include any information about the sample that a user may want to include.
-Bug in SampleReader.C: reading of density matrix for the 
+Bug in SampleReader.C: reading of density matrix for the
 wavefunction velocity is incorrect. Causes out of sync MPI call and Abort
 Corrected in 1_11_0 (candidate)
 --------------------------------------------------------------------------------
 rel1_9_0 (Note: known bugs)
 Large file support (LFS): LFS is not correctly supported for <iostream> in icc
-and gcc 3.2. A workaround is implemented in SaveCmd.C, Wavefunction.C, 
+and gcc 3.2. A workaround is implemented in SaveCmd.C, Wavefunction.C,
 SlaterDet.C. The workaround is activated by defining the USE_CSTDIO_LFS macro.
 Occupation numbers moved to the SlaterDet class.
 Occupation numbers are not fixed to 2.0 anymore. Load and save now use
 occupation numbers.
-Bug in SampleReader.C: reading of density matrix for the 
+Bug in SampleReader.C: reading of density matrix for the
 wavefunction velocity is incorrect. Causes out of sync MPI call and Abort
 Corrected in 1_11_0 (candidate)
 --------------------------------------------------------------------------------
 rel1_8_2
-Fixed problem with wfvtmp in SampleReader: cannot load sample and 
-then set wf_dyn = MD. Also, the order of load and set wf_dyn MD commands causes 
+Fixed problem with wfvtmp in SampleReader: cannot load sample and
+then set wf_dyn = MD. Also, the order of load and set wf_dyn MD commands causes
 a seg fault.
 --------------------------------------------------------------------------------
 rel1_8_1
@@ -835,7 +849,7 @@ Implemented parallel XML preprocessing of sample files for fast loading.
 Added -serial option to the load command to force serial parsing of files.
 Fixed a bug in Context::string_send: was incorrect for zero-length strings
 initialization of ibuf removed, unnecessary.
-Added new dmin,dmax,imin,imax,string_send,string_recv,pmap functions in 
+Added new dmin,dmax,imin,imax,string_send,string_recv,pmap functions in
 Context
 Changed the block distribution of the slabs in FourierTransform to adopt the
 same type of block distribution used in ScaLAPACK. Needed in SampleReader.C
@@ -845,11 +859,11 @@ rel1_6_1exp
 2003-07-24:modified initialization of coefficients in SlaterDet constructor
 to choose g vectors of minimum norm. Note: reverting to -O2 option using xlC
 after noting that -O3 causes incorrect results in testBasis.
-Added dmin,dmax,imin,imax members to Context.C to identify process where 
+Added dmin,dmax,imin,imax members to Context.C to identify process where
 max or min is found.
 --------------------------------------------------------------------------------
 rel1_6_0
-Implemented MD for wfs and for ions, print ekin_e, ekin_ion, econst in 
+Implemented MD for wfs and for ions, print ekin_e, ekin_ion, econst in
 SampleStepper.C. Use Stoermer's rule to compute velocities at end points.
 Implemented load/save of wf velocities
 --------------------------------------------------------------------------------
@@ -885,10 +899,10 @@ Clean-up of FourierTransform: convention of fwd/bwd changed to be consistent
 with usually accepted definitions (forward transform is Fourier analysis, i.e.
 computation of Fourier coefficients, and involves scaling by 1/np012. Backward
 transform is computation of real-space function from coefficients, no scaling).
-Load command includes reading of sample and appropriate resizing of all 
+Load command includes reading of sample and appropriate resizing of all
 variables.
 The "locked" variable is removed from the Atom class, and will be reintroduced
-as a Constraint. This is to avoid having to include the "locked" info in the 
+as a Constraint. This is to avoid having to include the "locked" info in the
 XML definition of an Atom.
 Builds and runs on Linux (linuc-pc_mpi_icc.mk) and on snow (aix_mpi.mk)
 --------------------------------------------------------------------------------
@@ -903,6 +917,6 @@ This forces the order in which ecut, cell and atoms are defined.
 --------------------------------------------------------------------------------
 Tue Sep 24 14:19:13 PDT 2002
 SlaterDet can exist on any context.
-Developing a Wavefunction that can hold any number of SlaterDets for 
+Developing a Wavefunction that can hold any number of SlaterDets for
 arbitrary nspin and nkpoints.
 --------------------------------------------------------------------------------

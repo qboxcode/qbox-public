@@ -35,7 +35,8 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 WavefunctionHandler::WavefunctionHandler(Wavefunction& wf,
-  DoubleMatrix& gfdata, int& current_gfdata_pos ) : wf_(wf), gfdata_(gfdata) {}
+  DoubleMatrix& gfdata, int& current_gfdata_pos ) : wf_(wf), gfdata_(gfdata),
+  current_gfdata_pos_(current_gfdata_pos) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 WavefunctionHandler::~WavefunctionHandler() {}
@@ -406,12 +407,12 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
     cout << "WavefunctionHandler: sd->nst()=    " << sd->nst() << endl;
     cout << "WavefunctionHandler: wf_.nkp()=    " << wf_.nkp() << endl;
     cout << "WavefunctionHandler: current_gfdata_pos= "
-     << current_gfdata_pos << endl;
+     << current_gfdata_pos_ << endl;
 #endif
 
-    assert(current_gfdata_pos < gfdata_.n());
-    wftmpr.getsub(gfdata_,wftmpr_size,sd->nst(),0,current_gfdata_pos);
-    current_gfdata_pos += sd->nst();
+    assert(current_gfdata_pos_ < gfdata_.n());
+    wftmpr.getsub(gfdata_,wftmpr_size,sd->nst(),0,current_gfdata_pos_);
+    current_gfdata_pos_ += sd->nst();
 
 #if DEBUG
     // Check orthogonality by computing overlap matrix

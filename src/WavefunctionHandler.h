@@ -38,7 +38,8 @@ class WavefunctionHandler : public StructureHandler
   int nx_, ny_, nz_;
   int current_gf_nx,current_gf_ny,current_gf_nz;
   std::string current_gf_encoding;
-  int current_ispin,current_ikp, current_gfdata_pos;
+  int current_ispin,current_ikp;
+  int& current_gfdata_pos_;
   std::vector<double> dmat_;
   double current_kx, current_ky, current_kz, current_weight;
   int current_size;

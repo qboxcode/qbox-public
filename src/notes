@@ -2,6 +2,8 @@
 remaining bugs/issues:
 - fix Exchange stress for general k-points
 --------------------------------------------------------------------------------
+r1326: WavefunctionHandler.[Ch]: fixed current_gfdata_pos variable
+--------------------------------------------------------------------------------
 rel1_57_8
 --------------------------------------------------------------------------------
 r1317: undo r1312: keep positive constraint on delta_spin

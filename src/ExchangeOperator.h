@@ -117,9 +117,9 @@ class ExchangeOperator
   vector<complex<double> > buffer_forces_1_;
   vector<complex<double> > buffer_forces_2_;
 
-  // context
-  Context vcontext_;
+  // contexts and communicators
   Context gcontext_;
+  MPI_Comm vcomm_;
 
   // Communications
   int colSendTo_;

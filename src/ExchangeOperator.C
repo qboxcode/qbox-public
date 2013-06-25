@@ -44,8 +44,8 @@ ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff)
 
   sigma_exhf_.resize(6);
 
-  // column context
-  vcontext_ = s_.wf.sd(0,0)->basis().context();
+  // column communicator
+  vcomm_ = s_.wf.sd(0,0)->basis().comm();
 
   // global context
   gcontext_ = s_.wf.sd(0,0)->context();
@@ -56,13 +56,13 @@ ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff)
   if ( gamma_only_ )
   {
     // create a real basis for the pair densities
-    vbasis_ = new Basis(vcontext_, D3vector(0.0,0.0,0.0));
+    vbasis_ = new Basis(vcomm_, D3vector(0.0,0.0,0.0));
   }
   else
   {
     // create a complex basis
     //!! should avoid the finite k trick to get a complex basis at gamma
-    vbasis_ = new Basis(vcontext_, D3vector(0.00000001,0.00000001,0.00000001));
+    vbasis_ = new Basis(vcomm_, D3vector(0.00000001,0.00000001,0.00000001));
   }
   // the size of the basis for the pair density should be
   // twice the size of the wave function basis
@@ -840,7 +840,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
         // add here contributions to stress from div_corr_1;
 
         // rcut*rcut divergence correction
-        if ( vcontext_.myrow() == 0 )
+        if ( vbasis_->mype() == 0 )
         {
           const double div_corr_2 = - exfac * rcut_ * rcut_ * occ_ki_[i] *
                                     KPGridPerm_.weight(iKpi);
@@ -908,7 +908,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
         if (dwf)
         {
           // sum the partial contributions to the correction for state i
-          vcontext_.dsum('C', 1, 1, &div_corr, 1);
+          gcontext_.dsum('C', 1, 1, &div_corr, 1);
 
           // add correction to the derivatives of state i
           complex<double> *ps=ci.valptr(i*ci.mloc());
@@ -2094,7 +2094,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       sigma_exhf_[5] += ( fac1 * sigma_sumexp[5] ) / omega;
 
       // rcut*rcut divergence correction
-      if ( vcontext_.myrow() == 0 )
+      if ( vbasis_->mype() == 0 )
       {
         const double div_corr_2 = - exfac * rcut_ * rcut_ * occ_ki_[i];
         div_corr += div_corr_2;
@@ -2109,7 +2109,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ );
       const double vbz = pow(2.0*M_PI,3.0) / omega;
 
-      if ( vcontext_.myrow() == 0 )
+      if ( vbasis_->mype() == 0 )
       {
         const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
         div_corr += div_corr_3;
@@ -2168,7 +2168,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       if (dwf)
       {
         // sum the partial contributions to the correction for state i
-        vcontext_.dsum('C', 1, 1, &div_corr, 1);
+        gcontext_.dsum('C', 1, 1, &div_corr, 1);
 
         // add correction to the derivatives of state i
         complex<double> *ps=c.valptr(i*c.mloc());
@@ -2244,8 +2244,8 @@ void ExchangeOperator::InitPermutation(void)
                gcontext_.mycol() + 1 : 0;
   colRecvFr_ = ( gcontext_.mycol() > 0 ) ?
                gcontext_.mycol() - 1 : gcontext_.npcol() - 1;
-  iSendTo_ = gcontext_.pmap( vcontext_.myrow(), colSendTo_);
-  iRecvFr_ = gcontext_.pmap( vcontext_.myrow(), colRecvFr_);
+  iSendTo_ = gcontext_.pmap( vbasis_->mype(), colSendTo_);
+  iRecvFr_ = gcontext_.pmap( vbasis_->mype(), colRecvFr_);
 
   // Get communicator for this context
   comm_ = gcontext_.comm();

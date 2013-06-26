@@ -57,13 +57,11 @@ class EnergyFunctional
   std::vector<std::vector<double> > vps, dvps, rhops;
   std::vector<std::complex<double> > tmp_r, vion_local_g,
     dvion_local_g, vlocal_g, rhopst, rhogt, rhoelg, vtemp;
-  std::vector<double> ftmp;
 
   std::vector<std::vector<double> > tau0, fion_esr;
   std::vector<std::vector<double> > fext;
   std::vector<double> zv_, rcps_;
   std::vector<int> na_;
-  int namax_;
   int nsp_;
   double ekin_, econf_, eps_, enl_, ehart_,
          ecoul_, exc_, esr_, eself_, ets_, eexf_, etotal_;

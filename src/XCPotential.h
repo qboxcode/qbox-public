@@ -32,7 +32,6 @@ class XCPotential
 {
   private:
 
-  const Context& ctxt_;
   const ChargeDensity& cd_;
   XCFunctional* xcf_;
 

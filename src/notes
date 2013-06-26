@@ -1,8 +1,10 @@
 --------------------------------------------------------------------------------
-remaining bugs/issues:
-- fix Exchange stress for general k-points
+rel1_57_10
 --------------------------------------------------------------------------------
-rel1_57_8
+r1344: removed dependency on Context in multiple classes
+       SlaterDet uses MPI column communicator instead of Context
+--------------------------------------------------------------------------------
+rel1_57_9
 --------------------------------------------------------------------------------
 r1326: WavefunctionHandler.[Ch]: fixed current_gfdata_pos variable
 --------------------------------------------------------------------------------

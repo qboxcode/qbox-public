@@ -871,10 +871,11 @@ Wavefunction& Wavefunction::operator=(const Wavefunction& wf)
   assert(nspin_ == wf.nspin_);
   assert(nrowmax_ == wf.nrowmax_);
   assert(deltaspin_ == wf.deltaspin_);
-  assert(cell_ == wf.cell_);
+  //!!assert(cell_ == wf.cell_);
   assert(refcell_ == wf.refcell_);
   assert(ecut_ == wf.ecut_);
 
+  cell_ = wf.cell_;
   weight_ = wf.weight_;
   kpoint_ = wf.kpoint_;
 

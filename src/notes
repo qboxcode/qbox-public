@@ -1,4 +1,9 @@
 --------------------------------------------------------------------------------
+rel1_57_11
+--------------------------------------------------------------------------------
+r1349: modified Wavefunction::operator= to allow assignment between wfs with
+different cell sizes. Needed for variable cell calculations.
+--------------------------------------------------------------------------------
 rel1_57_10
 --------------------------------------------------------------------------------
 r1344: removed dependency on Context in multiple classes

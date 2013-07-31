@@ -1024,6 +1024,9 @@ void EnergyFunctional::cell_moved(void)
     for ( int ispin = 0; ispin < nlp.size(); ispin++ )
       nlp[ispin][ikp]->update_twnl();
   }
+
+  // Update exchange-correlation operator
+  xco->cell_moved();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

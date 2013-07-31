@@ -134,3 +134,10 @@ void XCOperator::compute_stress(std::valarray<double>& sigma)
 {
   sigma = sigma_exc_;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+void XCOperator::cell_moved(void)
+{
+  if ( hasHF() )
+    xop_->cell_moved();
+}

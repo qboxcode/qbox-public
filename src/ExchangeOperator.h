@@ -196,6 +196,7 @@ class ExchangeOperator
   double update_operator(bool compute_stress);
   double apply_operator(Wavefunction& dwf);
   void add_stress (std::valarray<double> & sigma_exc);
+  void cell_moved(void);
 };
 
 class ExchangeOperatorException

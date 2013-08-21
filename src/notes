@@ -1,4 +1,8 @@
 --------------------------------------------------------------------------------
+r1358: ExchangeOperator.C: Fixed exchange contributions to stress.
+KPGridConnectivity.[Ch]: Added cell_moved() member to update cell-dependent 
+quantities during cell optimization.
+--------------------------------------------------------------------------------
 rel1_57_12
 --------------------------------------------------------------------------------
 r1354: Added cell_moved() member in ExchangeOperator to resize vbasis

@@ -369,6 +369,8 @@ void ExchangeOperator::add_stress(valarray<double>& sigma_exc)
 void ExchangeOperator::cell_moved(void)
 {
   vbasis_->resize( s_.wf.cell(),s_.wf.refcell(),4.0*s_.wf.ecut());
+  KPGridStat_.cell_moved();
+  KPGridPerm_.cell_moved();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -903,10 +905,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           div_corr += div_corr_4;
           const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
           exchange_sum += e_div_corr_4;
-          //const double fac4 = ( 4.0 * M_PI / omega );
-          //sigma_exhf_[0] += ( e_div_corr_4 + fac4 * 2.0 * beta_x ) / omega;
-          //sigma_exhf_[1] += ( e_div_corr_4 + fac4 * 2.0 * beta_y ) / omega;
-          //sigma_exhf_[2] += ( e_div_corr_4 + fac4 * 2.0 * beta_z ) / omega;
 
         } // if quad_correction
 
@@ -2157,18 +2155,27 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         double beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
           KPGridPerm_.integral_kz(0);
 
+#if 0
+if (gcontext_.onpe0())
+{
+  cout << "i=" << i << " beta=" << beta_x << " " << beta_y << " " << beta_z
+  << "  integral=" << KPGridPerm_.integral_kx(0) << " "
+  << KPGridPerm_.integral_ky(0) << " "
+  << KPGridPerm_.integral_kz(0) << endl;
+}
+#endif
+
         // note: factor occ_ki_[i] * spinFactor already in beta
         const double beta_sum = beta_x + beta_y + beta_z ;
         const double div_corr_4 = (4.0 * M_PI / omega ) * beta_sum;
         div_corr += div_corr_4;
         const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
         exchange_sum += e_div_corr_4;
-        const double fac4 = ( 4.0 * M_PI / omega );
-        sigma_exhf_[0] += ( e_div_corr_4 + fac4 * 2.0 * beta_x ) / omega;
-        sigma_exhf_[1] += ( e_div_corr_4 + fac4 * 2.0 * beta_y ) / omega;
-        sigma_exhf_[2] += ( e_div_corr_4 + fac4 * 2.0 * beta_z ) / omega;
+        const double fac4 = ( 4.0 * M_PI / omega ) * occ_ki_[i];
+        sigma_exhf_[0] += ( e_div_corr_4 + fac4 * beta_x ) / omega;
+        sigma_exhf_[1] += ( e_div_corr_4 + fac4 * beta_y ) / omega;
+        sigma_exhf_[2] += ( e_div_corr_4 + fac4 * beta_z ) / omega;
       }
-
 
       // contribution of divergence corrections to forces on wave functions
       if (dwf)
@@ -2204,8 +2211,9 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
   // scale stress tensor with HF coefficient
   sigma_exhf_ *= HFCoeff_;
 
-  // print result
   tm.stop();
+
+#ifdef DEBUG
   if ( gcontext_.onpe0() )
   {
     cout << setprecision(10);
@@ -2235,6 +2243,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
            << endl;
     }
   }
+#endif
 
   // return total exchange in Hartree, scaled by HF coefficient
   return extot;

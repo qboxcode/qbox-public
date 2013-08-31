@@ -36,6 +36,6 @@ class XMLGFPreprocessor
 {
   public:
 
-  void process(const char* const filename,
+  int process(const char* const filename,
     DoubleMatrix& gfdata, std::string& xmlcontent, bool serial);
 };

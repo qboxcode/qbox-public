@@ -75,16 +75,20 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
 
   catch (const XMLException& toCatch)
   {
-    cout << "  Sample::readSample: Error during XML initialization :\n"
+    cout << "  SampleReader::readSample: Error during XML initialization :\n"
          << StrX(toCatch.getMessage()) << endl;
-    s.ctxt_.abort(1);
+    return;
   }
 
   string xmlcontent;
   DoubleMatrix gfdata(ctxt_);
 
   XMLGFPreprocessor xmlgfp;
-  xmlgfp.process(uri.c_str(),gfdata,xmlcontent,serial);
+  if ( xmlgfp.process(uri.c_str(),gfdata,xmlcontent,serial) )
+  {
+    cout << "  SampleReader::readSample: Error in XMLGFPreprocessor" << endl;
+    return;
+  }
 
   // Each task holds a copy of xmlcontent
   // The distributed matrix gfdata contains the grid function data

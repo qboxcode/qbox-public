@@ -1,4 +1,6 @@
 --------------------------------------------------------------------------------
+r1363: XMLGFPreprocessor.C: implemented sample loading using http connection.
+--------------------------------------------------------------------------------
 r1358: ExchangeOperator.C: Fixed exchange contributions to stress.
 KPGridConnectivity.[Ch]: Added cell_moved() member to update cell-dependent 
 quantities during cell optimization.

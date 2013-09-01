@@ -479,8 +479,6 @@ int XMLGFPreprocessor::process(const char* const uri,
       }
       else
       {
-        cout << " XMLGFPreprocessor: HTTP header:" << endl;
-        cout << buf.substr(0,xml_start);
         cout << " XMLGFPreprocessor:  <?xml > declaration found at position "
              << xml_start << endl;
       }

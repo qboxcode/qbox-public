@@ -36,6 +36,7 @@
 #include <cassert>
 #include <cmath>
 #include <numeric>
+#include <iostream>
 
 using namespace std;
 
@@ -265,7 +266,7 @@ void approximateIntegral(const double omega_kF, const double Hs2,
         integral.begin() + 2, 0.0);
     *dAppInt_ds = -dotpr * dHs2_ds;
     *dAppInt_dkF = -inner_product(ai_wi.begin(), ai_wi.end(), integral.begin(),
-        r2bw2 * dotpr);
+        -r2bw2 * dotpr);
 
   } else {
 
@@ -328,12 +329,16 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   const bool correction = s_inp > s_thresh;
   const double s = (correction) ? s_max - s_chg / (s_inp * s_inp) : s_inp;
 
+  // sanity check
+  assert( s > 0 );
+
   // prefactor for exchange hole
   const double r8_9 = 8.0 / 9.0;
 
   // derived quantities
   const double SQRT_PI = sqrt(M_PI);
-  const double sqrtA = sqrt(A), r9_4A = 2.25 * A;
+  const double sqrtA = sqrt(A);
+  const double r9_4A = 2.25 / A;
 
   // evaluate
   //                 2       4
@@ -369,12 +374,14 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   const double dHs2_ds = (first - second * H) * r_denom;
 
   // evaluate
-  // F(s) = 6.475 H(s) + 0.4797
-  // d( s^2 F(s) )         d( s^2 H(s) )
-  // ------------- = 6.475 ------------- + 2 * 0.4797
-  //     d s
-  const double slope = 6.475;
-  const double intercept = 0.4797;
+  // F(s) = Int + Sl * H(s)
+  // d( s^2 F(s) )                  d( s^2 H(s) )
+  // ------------- = 2 * Int + Sl * -------------
+  //     d s                             d s
+  // Int - intercept
+  // Sl  - slope
+  const double slope = 6.4753871;
+  const double intercept = 0.4796583;
 
   const double F = slope * H + intercept;
   const double Fs2 = F * s2;
@@ -468,8 +475,6 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   const double r1_kF = 1.0 / kF;
   const double w_kF = w * r1_kF;
   const double w_kF_Sqr = w_kF * w_kF;
-  const double r1_a = w_kF_Sqr / D_term;
-  const double r1_sqrta = sqrt(r1_a);
 
   // approximate the integral using an expansion of the error function
   double appInt, dAppInt_ds, dAppInt_dkF;
@@ -486,23 +491,28 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   // /                                    \  F  /
   //  0
   // we use that
-  // inf                                                      n
-  //   /                  2                           /     -----                                  \
-  //  |     2 n + 1  - a y                 n   n!    |       \     (2n - 1)!!             -(2n + 1) |
-  //  | dy y        e      Erfc(y) = ( -1 )  ----n-  |  1 -   )    ---------- sqrt( a + 1 )         |
-  //  |                                       2 a    |       /       (2n)!!                         |
-  // /                                                \     -----                                  /
-  //  0                                                     m = 0
-  // with a = (D + H(s)s^2) k_F^2 / w^2
+  // inf                                                n
+  //   /                  2                     /     -----                                     \
+  //  |     2 n + 1  - q y              n!     |       \     (2m - 1)!!  m             -(2m + 1) |
+  //  | dy y        e      Erfc(y) = ----n+1-  |  1 -   )    ---------- q  sqrt( q + 1 )         |
+  //  |                               2 q      |       /       (2m)!!                            |
+  // /                                          \     -----                                     /
+  //  0                                               m = 0
+  // with q = (D + H(s)s^2) k_F^2 / w^2
   // and n!! = n * (n-2) * (n-4) ...; if (n <= 0) := 1
 
   // allocate array
   vector<double> intYExpErfc(0);
   intYExpErfc.reserve(4);
 
+  // helper variables
+  const double q = D_term / w_kF_Sqr;
+  const double q_q_1 = q / (q + 1);
+  const double sqrtq_1 = sqrt(q + 1);
+
   // initialize
   double prefactor = 0.5 / D_term; // note w_kF cancels in transformation
-  double summand = r1_sqrta;
+  double summand = 1.0 / sqrtq_1;
   double sum = 1 - summand;
   intYExpErfc.push_back(prefactor * sum);
 
@@ -510,9 +520,9 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   for (int i = 1; i < 4; i++) {
 
     // update values
-    prefactor *= -static_cast<double> (i) * r1_D_term;
+    prefactor *= static_cast<double> (i) * r1_D_term;
     summand *= static_cast<double> (2 * i - 1) / static_cast<double> (2 * i)
-        * r1_a;
+        * q_q_1;
     sum -= summand;
 
     intYExpErfc.push_back(prefactor * sum);

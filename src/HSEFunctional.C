@@ -47,7 +47,7 @@ const double A = 1.0161144, B = -0.37170836, C = -0.077215461, D = 0.57786348,
 
 // constructor
 HSEFunctional::HSEFunctional(const vector<vector<double> > &rhoe) :
-  x_coeff_(0.75), c_coeff_(1.0) {
+  x_coeff_(0.75), c_coeff_(1.0), omega_(0.11) {
   // nonmagnetic or magnetic
   _nspin = rhoe.size();
   // in magnetic calculations both density arrays must have the same size
@@ -168,18 +168,12 @@ void approximateIntegral(const double omega_kF, const double Hs2,
     const int no_integral = 11;
 
     // Calculate more helper variables
-    const double bw2_Hs2_Sqr = bw2_Hs2 * bw2_Hs2;
-    const double bw2_Hs2_Cub = bw2_Hs2 * bw2_Hs2_Sqr;
     const double sqrt_bw2_Hs2 = sqrt(bw2_Hs2);
-    const double bw2_D_term_Sqr = bw2_D_term * bw2_D_term;
-    const double bw2_D_term_Cub = bw2_D_term * bw2_D_term_Sqr;
-    const double bw2_D_term_Tet = bw2_D_term_Sqr * bw2_D_term_Sqr;
     const double sqrt_bw2_D_term = sqrt(bw2_D_term);
 
     // arg = 9/4 * (b w^2/kF^2 + H s^2) / A
     const double arg = r9_4A * bw2_Hs2;
     const double sqrt_arg = sqrt(arg);
-    const double r1_arg = 1.0 / arg;
 
     // calculate e^(arg), E1(arg), and erfc(sqrt(arg))
     const double exp_arg = exp(arg);
@@ -411,7 +405,6 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
 
   // calculate the helper variables
   const double AHs2_1_2 = sqrtA * sqrt(Hs2);
-  const double AHs2_3_2 = AHs2_1_2 * A * Hs2;
   const double r1_Fs2 = 1.0 + Fs2;
   const double D_Hs2 = D + Hs2;
   const double D_Hs2Sqr = D_Hs2 * D_Hs2;
@@ -419,7 +412,6 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   const double D_Hs2_5_2 = D_Hs2Sqr * sqrt(D_Hs2);
   const double D_Hs2_7_2 = D_Hs2_5_2 * D_Hs2;
   const double D_Hs2_9_2 = D_Hs2_5_2 * D_Hs2Sqr;
-  const double D_Hs2_11_2 = D_Hs2_5_2 * D_Hs2Cub;
 
   // part 1 and derivatives w.r.t. Hs^2 and Fs^2
   const double part1 = SQRT_PI * (15.0 * E + 6.0 * C * r1_Fs2 * D_Hs2 + 4.0 * B
@@ -688,11 +680,6 @@ void PBE_correlation(const double rho, const double grad, double *ec,
     double *vc1, double *vc2) {
 
   const double third = 1.0 / 3.0;
-  const double third4 = 4.0 / 3.0;
-  const double ax = -0.7385587663820224058; /* -0.75*pow(3.0/pi,third) */
-  const double um = 0.2195149727645171;
-  const double uk = 0.804;
-  const double ul = um / uk;
   const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
   const double alpha = 1.91915829267751; /* pow(9.0*pi/4.0, third)*/
   const double seven_sixth = 7.0 / 6.0;
@@ -761,10 +748,6 @@ void PBE_correlation_sp(const double rho_up, const double rho_dn,
   const double third2 = 2.0 / 3.0;
   const double third4 = 4.0 / 3.0;
   const double sixthm = -1.0 / 6.0;
-  const double ax = -0.7385587663820224058; /* -0.75*pow(3.0/pi,third) */
-  const double um = 0.2195149727645171;
-  const double uk = 0.804;
-  const double ul = um / uk;
   const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
   const double alpha = 1.91915829267751; /* pow(9.0*pi/4.0, third)*/
   const double seven_sixth = 7.0 / 6.0;
@@ -865,6 +848,87 @@ void PBE_correlation_sp(const double rho_up, const double rho_dn,
 
 }
 
+// update exchange correlation energy and potential
 void HSEFunctional::setxc(void) {
-  // dummy
+  if (_np == 0)
+    return;
+  if (_nspin == 1) {
+    // test for void pointer
+    assert( rho != 0 );
+    assert( grad_rho[0] != 0 && grad_rho[1] != 0 && grad_rho[2] != 0 );
+    assert( exc != 0 );
+    assert( vxc1 != 0 );
+    assert( vxc2 != 0 );
+
+#pragma omp parallel for
+    for (int i = 0; i < _np; i++) {
+      // evaluate gradient
+      const double grad = sqrt(grad_rho[0][i] * grad_rho[0][i] + grad_rho[1][i]
+          * grad_rho[1][i] + grad_rho[2][i] * grad_rho[2][i]);
+
+      // calculate HSE exchange and PBE correlation
+      double ex, vx1, vx2, ec, vc1, vc2;
+      HSE_exchange(rho[i], grad, x_coeff_, omega_, &ex, &vx1, &vx2);
+      PBE_correlation(rho[i], grad, &ec, &vc1, &vc2);
+
+      // combine exchange and correlation energy
+      exc[i] = ex + c_coeff_ * ec;
+      vxc1[i] = vx1 + c_coeff_ * vc1;
+      vxc2[i] = vx2 + c_coeff_ * vc2;
+    }
+
+  } else {
+    // test for void pointer
+    assert( rho_up != 0 );
+    assert( rho_dn != 0 );
+    assert( grad_rho_up[0] != 0 && grad_rho_up[1] != 0 && grad_rho_up[2] != 0 );
+    assert( grad_rho_dn[0] != 0 && grad_rho_dn[1] != 0 && grad_rho_dn[2] != 0 );
+    assert( exc_up != 0 );
+    assert( exc_dn != 0 );
+    assert( vxc1_up != 0 );
+    assert( vxc1_dn != 0 );
+    assert( vxc2_upup != 0 );
+    assert( vxc2_updn != 0 );
+    assert( vxc2_dnup != 0 );
+    assert( vxc2_dndn != 0 );
+
+#pragma omp parallel for
+    for (int i = 0; i < _np; i++) {
+      // evaluate gradient
+      double grx_up = grad_rho_up[0][i];
+      double gry_up = grad_rho_up[1][i];
+      double grz_up = grad_rho_up[2][i];
+      double grx_dn = grad_rho_dn[0][i];
+      double gry_dn = grad_rho_dn[1][i];
+      double grz_dn = grad_rho_dn[2][i];
+      double grx = grx_up + grx_dn;
+      double gry = gry_up + gry_dn;
+      double grz = grz_up + grz_dn;
+      double grad_up =
+          sqrt(grx_up * grx_up + gry_up * gry_up + grz_up * grz_up);
+      double grad_dn =
+          sqrt(grx_dn * grx_dn + gry_dn * gry_dn + grz_dn * grz_dn);
+      double grad = sqrt(grx * grx + gry * gry + grz * grz);
+
+      // calculate HSE exchange and PBE correlation
+      double ex_up, vx1_up, vx2_up, ex_dn, vx1_dn, vx2_dn;
+      double ec, vc1_up, vc1_dn, vc2;
+      HSE_exchange(2.0 * rho_up[i], grad_up, x_coeff_, omega_, &ex_up, &vx1_up,
+          &vx2_up);
+      HSE_exchange(2.0 * rho_dn[i], grad_dn, x_coeff_, omega_, &ex_dn, &vx1_dn,
+          &vx2_dn);
+      PBE_correlation_sp(rho_up[i], rho_dn[i], grad_up, grad_dn, grad, &ec,
+          &vc1_up, &vc1_dn, &vc2);
+
+      // combine exchange and correlation energy
+      exc_up[i] = ex_up + c_coeff_ * ec;
+      exc_dn[i] = ex_dn + c_coeff_ * ec;
+      vxc1_up[i] = vx1_up + c_coeff_ * vc1_up;
+      vxc1_dn[i] = vx1_dn + c_coeff_ * vc1_dn;
+      vxc2_upup[i] = 2 * vx2_up + c_coeff_ * vc2;
+      vxc2_dndn[i] = 2 * vx2_dn + c_coeff_ * vc2;
+      vxc2_updn[i] = c_coeff_ * vc2;
+      vxc2_dnup[i] = c_coeff_ * vc2;
+    }
+  }
 }

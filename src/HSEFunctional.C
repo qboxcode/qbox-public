@@ -324,8 +324,8 @@ void approximateIntegral(const double omega_kF, const double Hs2,
 //                                   /          |
 //                                             /
 // see references for a definition of the functions F(s), G(s), and H(s)
-void HSE_enhance(const double s_inp, const double kF, const double w, double *fx,
-    double *dfx_ds, double* dfx_dkf) {
+void HSE_enhance(const double s_inp, const double kF, const double w,
+    double *fx, double *dfx_ds, double* dfx_dkf) {
 
   // Correction of the reduced gradient to ensure Lieb-Oxford bound
   // If a large value of s would violate the Lieb-Oxford bound, the value of s is reduced,
@@ -571,9 +571,72 @@ void HSE_enhance(const double s_inp, const double kF, const double w, double *fx
 
   // if the value of s has been corrected to satisfy Lieb-Oxford bound, derivative
   // must be adjusted as well
-  if ( correction ) {
-    *dfx_ds *= 2.0 * s_chg * pow( s_inp, -3 );
+  if (correction) {
+    *dfx_ds *= 2.0 * s_chg * pow(s_inp, -3);
   }
+
+}
+
+// exchange helper function
+// input:
+// rho  - charge density
+// grad - absolute value of gradient
+// a_ex - amount of HF exchange
+// w    - screening
+// output:
+// ex       - exchange energy
+// vx1, vx2 - exchange potential such that vx = vx1 + div( vx2 * grad(n) )
+void HSE_exchange(const double rho, const double grad, const double a_ex,
+    const double w, double *ex, double *vx1, double *vx2) {
+
+  // constants employed in the PBE/HSE exchange
+  const double third = 1.0 / 3.0;
+  const double third4 = 4.0 / 3.0;
+  const double ax = -0.7385587663820224058; /* -0.75*pow(3.0/pi,third) */
+  const double um = 0.2195149727645171;
+  const double uk = 0.804;
+  const double ul = um / uk;
+  const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
+
+  // intialize
+  *ex = 0;
+  *vx1 = 0;
+  *vx2 = 0;
+
+  // very small densities do not contribute
+  if (rho < 1e-18)
+    return;
+
+  // LDA exchange energy
+  const double rho13 = pow(rho, third);
+  const double exLDA = ax * rho13;
+
+  // Fermi wave vector kF = ( 3 * pi^2 n )^(1/3)
+  const double kF = pi32third * rho13;
+  // reduced density gradient
+  const double s = grad / (2.0 * kF * rho);
+
+  // calculate PBE enhancement factor
+  const double s2 = s * s;
+  const double p0 = 1.0 + ul * s2;
+  const double fxpbe = 1.0 + uk - uk / p0;
+  // fs = (1/s) * d Fx / d s
+  const double fs = 2.0 * uk * ul / (p0 * p0);
+  // calculate HSE enhancement factor and derivatives w.r.t. s and kF
+  double fxhse, dfx_ds, dfx_dkf;
+  HSE_enhance(s, kF, w, &fxhse, &dfx_ds, &dfx_dkf);
+
+  // calculate exchange energy
+  // ex = (1 - a) ex,SR + ex,LR
+  //    = (1 - a) ex,SR + ex,PBE - ex,SR
+  //    = ex,PBE - a ex,SR
+  *ex = exLDA * (fxpbe - a_ex * fxhse);
+
+  // calculate potential
+  *vx1 = third4 * exLDA * (fxpbe - s2 * fs - a_ex * (fxhse - s * dfx_ds + 0.25
+      * kF * dfx_dkf));
+  *vx2 = -exLDA * (fs / (rho * 4.0 * kF * kF) - a_ex * dfx_ds / (2.0 * kF
+      * grad));
 
 }
 

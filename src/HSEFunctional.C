@@ -640,6 +640,118 @@ void HSE_exchange(const double rho, const double grad, const double a_ex,
 
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+//  gcor2.c: Interpolate LSD correlation energy
+//  as given by (10) of Perdew & Wang, Phys Rev B45 13244 (1992)
+//  Translated into C by F.Gygi, Dec 9, 1996
+//
+////////////////////////////////////////////////////////////////////////////////
+
+void gcor2(double a, double a1, double b1, double b2, double b3, double b4,
+    double rtrs, double *gg, double *ggrs) {
+  double q0, q1, q2, q3;
+  q0 = -2.0 * a * (1.0 + a1 * rtrs * rtrs);
+  q1 = 2.0 * a * rtrs * (b1 + rtrs * (b2 + rtrs * (b3 + rtrs * b4)));
+  q2 = log(1.0 + 1.0 / q1);
+  *gg = q0 * q2;
+  q3 = a * (b1 / rtrs + 2.0 * b2 + rtrs * (3.0 * b3 + 4.0 * b4 * rtrs));
+  *ggrs = -2.0 * a * a1 * q2 - q0 * q3 / (q1 * (1.0 + q1));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  calculate correletation energy of PBE functional
+//  K.Burke's modification of PW91 codes, May 14, 1996.
+//  Modified again by K.Burke, June 29, 1996, with simpler Fx(s)
+//  Translated into C and modified by F.Gygi, Dec 9, 1996.
+//
+//  input:
+//    rho:  density
+//    grad: abs(grad(rho))
+//  output:
+//    exc: exchange-correlation energy per electron
+//    vxc1, vxc2 : quantities such that the total exchange potential is:
+//
+//      vxc = vxc1 + div ( vxc2 * grad(n) )
+//
+//  References:
+//  [a] J.P.Perdew, K.Burke, and M.Ernzerhof,
+//      "Generalized gradient approximation made simple,
+//      Phys.Rev.Lett. 77, 3865, (1996).
+//  [b] J.P.Perdew and Y.Wang, Phys.Rev. B33, 8800 (1986),
+//      Phys.Rev. B40, 3399 (1989) (E).
+//
+////////////////////////////////////////////////////////////////////////////////
+
+void PBE_correlation(const double rho, const double grad, double *ec,
+    double *vc1, double *vc2) {
+
+  const double third = 1.0 / 3.0;
+  const double third4 = 4.0 / 3.0;
+  const double ax = -0.7385587663820224058; /* -0.75*pow(3.0/pi,third) */
+  const double um = 0.2195149727645171;
+  const double uk = 0.804;
+  const double ul = um / uk;
+  const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
+  const double alpha = 1.91915829267751; /* pow(9.0*pi/4.0, third)*/
+  const double seven_sixth = 7.0 / 6.0;
+  const double four_over_pi = 1.27323954473516;
+  const double gamma = 0.03109069086965489; /* gamma = (1-ln2)/pi^2 */
+  const double bet = 0.06672455060314922; /* see [a] (4) */
+  const double delt = bet / gamma;
+
+  // Fermi wave vector kF = ( 3 * pi^2 n )^(1/3)
+  const double rho13 = pow(rho, third);
+  const double fk = pi32third * rho13;
+
+  /* Find LSD contributions, using [c] (10) and Table I of [c]. */
+  /* ec = unpolarized LSD correlation energy */
+  /* ecrs = d ec / d rs */
+  /* construct ec, using [c] (8) */
+
+  const double rs = alpha / fk;
+  const double twoks = 2.0 * sqrt(four_over_pi * fk);
+  const double t = grad / (twoks * rho);
+
+  const double rtrs = sqrt(rs);
+  double ecrs;
+  gcor2(0.0310907, 0.2137, 7.5957, 3.5876, 1.6382, 0.49294, rtrs, ec, &ecrs);
+
+  /* LSD potential from [c] (A1) */
+  /* ecrs = d ec / d rs [c] (A2) */
+
+  const double vc = *ec - rs * ecrs * third;
+
+  /* PBE correlation energy */
+  /* b = A of [a] (8) */
+
+  const double pon = - *ec / gamma;
+  const double b = delt / (exp(pon) - 1.0);
+  const double b2 = b * b;
+  const double t2 = t * t;
+  const double t4 = t2 * t2;
+  const double q4 = 1.0 + b * t2;
+  const double q5 = q4 + b2 * t4;
+  const double h = gamma * log(1.0 + delt * q4 * t2 / q5);
+
+  // Energy done, now the potential, using appendix E of [b]
+
+  const double t6 = t4 * t2;
+  const double rsthrd = rs * third;
+  const double fac = delt / b + 1.0;
+  const double bec = b2 * fac / bet;
+  const double q8 = q5 * q5 + delt * q4 * q5 * t2;
+  const double q9 = 1.0 + 2.0 * b * t2;
+  const double hb = -bet * b * t6 * (2.0 + b * t2) / q8;
+  const double hrs = -rsthrd * hb * bec * ecrs;
+  const double ht = 2.0 * bet * q9 / q8;
+
+  *vc1 = vc + h + hrs - t2 * ht * seven_sixth;
+  *vc2 = -ht / (rho * twoks * twoks);
+
+}
+
 void HSEFunctional::setxc(void) {
   // dummy
 }

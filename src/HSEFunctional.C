@@ -327,6 +327,9 @@ void approximateIntegral(const double omega_kF, const double Hs2,
 void HSE_enhance(const double s, const double kF, const double w, double *fx,
     double *dfx_ds, double* dfx_dkf) {
 
+  // prefactor for exchange hole
+  const double r8_9 = 8.0 / 9.0;
+
   // derived quantities
   const double SQRT_PI = sqrt(M_PI);
   const double sqrtA = sqrt(A), r9_4A = 2.25 * A;
@@ -520,8 +523,8 @@ void HSE_enhance(const double s, const double kF, const double w, double *fx,
   // Calculate the integrals
   //
   //       inf
-  //         /                 /                      2    \
-  //   2    |     2 (n+1)     |          2   2   omega   2  |
+  //         /                 /                    2      \
+  //   2    |     2 (n+1)     |          2   2     w     2  |
   // -----  | dy y         Exp| -(D+H(s)s ) y  - ------ y   |
   //  ____  |                 |                   k ^2      |
   // V Pi  /                   \                   F       /
@@ -534,6 +537,30 @@ void HSE_enhance(const double s, const double kF, const double w, double *fx,
   intYGauss[0] = 0.5 * sqrt(r1_arg) * r1_arg;
   intYGauss[1] = 1.5 * intYGauss[0] * r1_arg;
   intYGauss[2] = 2.5 * intYGauss[1] * r1_arg;
+
+  // put everything together
+
+  // Calculate the integral
+  //  inf
+  //    /                 /      \
+  //   |                 |  w     |
+  //   | dy y J(s,y) Erfc| ---- y |
+  //   |                 |  k     |
+  //  /                   \  F   /
+  //   0
+  // where J(s, y) is the exchange hole defined in the references
+  // the exchange factor is proportional to this integral
+  *fx = -r8_9 * (appInt + B * intYExpErfc[0] + C_term * intYExpErfc[1] + E_term
+      * intYExpErfc[2]);
+
+  // Calculate the derivatives with respect to s using that the derivatative of the integral
+  // yields higher orders of the same kind of integral intY1 -> -intY3 -> intY5 ... times
+  // the derivative of the exponent
+  *dfx_ds = -r8_9 * (dAppInt_ds - (B * intYExpErfc[1] + C_term * intYExpErfc[2]
+      + E_term * intYExpErfc[3]) * dHs2_ds + dCt_ds * intYExpErfc[1] + dEt_ds
+      * intYExpErfc[2]);
+  *dfx_dkf = -r8_9 * r1_kF * (w_kF * (B * intYGauss[0] + C_term * intYGauss[1]
+      + E_term * intYGauss[2]) + dAppInt_dkF);
 
 }
 

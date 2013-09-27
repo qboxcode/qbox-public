@@ -34,7 +34,10 @@
 
 class HSEFunctional : public XCFunctional
 {
-  const double x_coeff_, c_coeff_, omega_;
+  const double x_coeff_, c_coeff_;
+
+  // screening parameter of the HSE functional
+  static const double omega = 0.11;
 
   // vectors common to all GGA exchange functionals 
   std::vector<double> _exc, _exc_up, _exc_dn;
@@ -60,6 +63,10 @@ class HSEFunctional : public XCFunctional
   }
 
   void setxc(void);
+
+  // evaluate fourier transform of nonlocal potential for given G vector
+  // input g2 = G^2
+  static double interaction_potential( const double& g2 );
 
 };
 

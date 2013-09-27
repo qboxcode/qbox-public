@@ -36,19 +36,17 @@
 #include <cassert>
 #include <cmath>
 #include <numeric>
-#include <iostream>
+#include <algorithm>
 
 using namespace std;
 
-// screening parameter of the HSE functional
-const double omega = 0.11;
 // parameters of the exchange hole
 const double A = 1.0161144, B = -0.37170836, C = -0.077215461, D = 0.57786348,
     E = -0.051955731;
 
 // constructor
 HSEFunctional::HSEFunctional(const vector<vector<double> > &rhoe) :
-  x_coeff_(0.75), c_coeff_(1.0), omega_(0.11) {
+  x_coeff_(0.75), c_coeff_(1.0) {
   // nonmagnetic or magnetic
   _nspin = rhoe.size();
   // in magnetic calculations both density arrays must have the same size
@@ -744,6 +742,7 @@ void PBE_correlation(const double rho, const double grad, double *ec,
   const double hrs = -rsthrd * hb * bec * ecrs;
   const double ht = 2.0 * bet * q9 / q8;
 
+  *ec += h;
   *vc1 = vc + h + hrs - t2 * ht * seven_sixth;
   *vc2 = -ht / (rho * twoks * twoks);
 
@@ -878,7 +877,7 @@ void HSEFunctional::setxc(void) {
 
       // calculate HSE exchange and PBE correlation
       double ex, vx1, vx2, ec, vc1, vc2;
-      HSE_exchange(rho[i], grad, x_coeff_, omega_, &ex, &vx1, &vx2);
+      HSE_exchange(rho[i], grad, 1 - x_coeff_, omega, &ex, &vx1, &vx2);
       PBE_correlation(rho[i], grad, &ec, &vc1, &vc2);
 
       // combine exchange and correlation energy
@@ -923,10 +922,10 @@ void HSEFunctional::setxc(void) {
       // calculate HSE exchange and PBE correlation
       double ex_up, vx1_up, vx2_up, ex_dn, vx1_dn, vx2_dn;
       double ec, vc1_up, vc1_dn, vc2;
-      HSE_exchange(2.0 * rho_up[i], grad_up, x_coeff_, omega_, &ex_up, &vx1_up,
-          &vx2_up);
-      HSE_exchange(2.0 * rho_dn[i], grad_dn, x_coeff_, omega_, &ex_dn, &vx1_dn,
-          &vx2_dn);
+      HSE_exchange(2.0 * rho_up[i], grad_up, 1 - x_coeff_, omega, &ex_up,
+          &vx1_up, &vx2_up);
+      HSE_exchange(2.0 * rho_dn[i], grad_dn, 1 - x_coeff_, omega, &ex_dn,
+          &vx1_dn, &vx2_dn);
       PBE_correlation_sp(rho_up[i], rho_dn[i], grad_up, grad_dn, grad, &ec,
           &vc1_up, &vc1_dn, &vc2);
 
@@ -941,4 +940,27 @@ void HSEFunctional::setxc(void) {
       vxc2_dnup[i] = c_coeff_ * vc2;
     }
   }
+}
+
+// evaluate fourier transform of nonlocal potential for given
+// input g2 = G^2
+// fourier transform of erfc ( w r ) / r
+// 1/g2 * [ 1 - exp( -g2 / 4 w^2 ) ]
+double HSEFunctional::interaction_potential(const double& g2) {
+
+  // helper variable
+  const double r1_4w2 = 0.25 / (omega * omega);
+  const double x = g2 * r1_4w2;
+
+  if (g2 == 0) {
+    // trivial limit for g2 = 0
+    return r1_4w2;
+  } else if (g2 < 1e-6) {
+    // taylor expansion near origin
+    return (1.0 + x * (-0.5 + x / 6.0)) * r1_4w2;
+  } else {
+    // exact fourier transform
+    return (1.0 - exp(-x)) / g2;
+  }
+
 }

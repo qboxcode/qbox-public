@@ -726,7 +726,7 @@ void PBE_correlation(const double rho, const double grad, double *ec,
   /* PBE correlation energy */
   /* b = A of [a] (8) */
 
-  const double pon = - *ec / gamma;
+  const double pon = -*ec / gamma;
   const double b = delt / (exp(pon) - 1.0);
   const double b2 = b * b;
   const double t2 = t * t;
@@ -749,6 +749,119 @@ void PBE_correlation(const double rho, const double grad, double *ec,
 
   *vc1 = vc + h + hrs - t2 * ht * seven_sixth;
   *vc2 = -ht / (rho * twoks * twoks);
+
+}
+
+// spin polarized case
+void PBE_correlation_sp(const double rho_up, const double rho_dn,
+    const double grad_up, const double grad_dn, const double grad, double *ec,
+    double *vc1_up, double *vc1_dn, double *vc2) {
+
+  const double third = 1.0 / 3.0;
+  const double third2 = 2.0 / 3.0;
+  const double third4 = 4.0 / 3.0;
+  const double sixthm = -1.0 / 6.0;
+  const double ax = -0.7385587663820224058; /* -0.75*pow(3.0/pi,third) */
+  const double um = 0.2195149727645171;
+  const double uk = 0.804;
+  const double ul = um / uk;
+  const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
+  const double alpha = 1.91915829267751; /* pow(9.0*pi/4.0, third)*/
+  const double seven_sixth = 7.0 / 6.0;
+  const double four_over_pi = 1.27323954473516;
+  const double gam = 0.5198420997897463; /* gam = 2^(4/3) - 2 */
+  const double fzz = 8.0 / (9.0 * gam);
+  const double gamma = 0.03109069086965489; /* gamma = (1-ln2)/pi^2 */
+  const double bet = 0.06672455060314922; /* see [a] (4) */
+  const double delt = bet / gamma;
+  const double eta = 1.e-12; // small number to avoid blowup as |zeta|->1
+
+  /* correlation */
+
+  // Find LSD contributions, using [c] (10) and Table I of [c].
+  // eu = unpolarized LSD correlation energy
+  // eurs = d eu / d rs
+  // ep = fully polarized LSD correlation energy
+  // eprs = d ep / d rs
+  // alfm = - spin stiffness, [c] (3)
+  // alfrsm = -d alpha / d rs
+  // f = spin-scaling factor from [c] (9)
+  // construct ec, using [c] (8)
+
+  const double rhotot = rho_up + rho_dn;
+
+  const double rh13 = pow(rhotot, third);
+  const double zet = (rho_up - rho_dn) / rhotot;
+  const double g = 0.5 * (pow(1.0 + zet, third2) + pow(1.0 - zet, third2));
+  const double fk = pi32third * rh13;
+  const double rs = alpha / fk;
+  const double twoksg = 2.0 * sqrt(four_over_pi * fk) * g;
+  const double t = grad / (twoksg * rhotot);
+
+  const double rtrs = sqrt(rs);
+  double eu, eurs, ep, eprs, alfm, alfrsm;
+  gcor2(0.0310907, 0.2137, 7.5957, 3.5876, 1.6382, 0.49294, rtrs, &eu, &eurs);
+  gcor2(0.01554535, 0.20548, 14.1189, 6.1977, 3.3662, 0.62517, rtrs, &ep, &eprs);
+  gcor2(0.0168869, 0.11125, 10.357, 3.6231, 0.88026, 0.49671, rtrs, &alfm,
+      &alfrsm);
+  const double z4 = zet * zet * zet * zet;
+  const double f = (pow(1.0 + zet, third4) + pow(1.0 - zet, third4) - 2.0)
+      / gam;
+  *ec = eu * (1.0 - f * z4) + ep * f * z4 - alfm * f * (1.0 - z4) / fzz;
+
+  /* LSD potential from [c] (A1) */
+  /* ecrs = d ec / d rs [c] (A2) */
+  const double ecrs = eurs * (1.0 - f * z4) + eprs * f * z4 - alfrsm * f * (1.0
+      - z4) / fzz;
+  const double fz = third4 * (pow(1.0 + zet, third) - pow(1.0 - zet, third))
+      / gam;
+  const double eczet = 4.0 * (zet * zet * zet) * f * (ep - eu + alfm / fzz)
+      + fz * (z4 * ep - z4 * eu - (1.0 - z4) * alfm / fzz);
+  const double comm = *ec - rs * ecrs * third - zet * eczet;
+  *vc1_up = comm + eczet;
+  *vc1_dn = comm - eczet;
+
+  /* PBE correlation energy */
+  /* b = A of [a] (8) */
+
+  const double g3 = g * g * g;
+  const double pon = -*ec / (g3 * gamma);
+  const double b = delt / (exp(pon) - 1.0);
+  const double b2 = b * b;
+  const double t2 = t * t;
+  const double t4 = t2 * t2;
+  const double q4 = 1.0 + b * t2;
+  const double q5 = q4 + b2 * t4;
+  const double h = g3 * gamma * log(1.0 + delt * q4 * t2 / q5);
+
+  /* Energy done, now the potential, using appendix E of [b] */
+
+  const double g4 = g3 * g;
+  const double t6 = t4 * t2;
+  const double rsthrd = rs * third;
+  const double gz = (pow((1.0 + zet) * (1.0 + zet) + eta, sixthm) - pow((1.0
+      - zet) * (1.0 - zet) + eta, sixthm)) * third;
+  const double fac = delt / b + 1.0;
+  const double bg = -3.0 * b2 * *ec * fac / (bet * g4);
+  const double bec = b2 * fac / (bet * g3);
+  const double q8 = q5 * q5 + delt * q4 * q5 * t2;
+  const double q9 = 1.0 + 2.0 * b * t2;
+  const double hb = -bet * g3 * b * t6 * (2.0 + b * t2) / q8;
+  const double hrs = -rsthrd * hb * bec * ecrs;
+  const double hzed = 3.0 * gz * h / g + hb * (bg * gz + bec * eczet);
+  const double ht = 2.0 * bet * g3 * q9 / q8;
+
+  double ccomm = h + hrs - t2 * ht * seven_sixth;
+  const double pref = hzed - gz * t2 * ht / g;
+
+  ccomm -= pref * zet;
+
+  *ec += h;
+
+  *vc1_up += ccomm + pref;
+  *vc1_dn += ccomm - pref;
+
+  *vc2 = -ht / (rhotot * twoksg * twoksg);
 
 }
 

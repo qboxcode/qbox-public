@@ -456,6 +456,85 @@ void HSE_enhance(const double s, const double kF, const double w, double *fx,
   const double dGs2_ds = ((r3Pi_4_alpha * dbeta_dh / beta_s2 - dalpha_dh)
       * dHs2_ds - dalpha_df * dFs2_ds) / Ebeta_s2;
 
+  // helper variables for the integration of the exchange hole
+  const double C_term = C * (1 + s2 * F);
+  const double dCt_ds = C * dFs2_ds;
+  const double E_term = E * (1 + s2 * G);
+  const double dEt_ds = E * dGs2_ds;
+  const double D_term = D + Hs2;
+  const double r1_D_term = 1.0 / D_term;
+  const double r1_kF = 1.0 / kF;
+  const double w_kF = w * r1_kF;
+  const double w_kF_Sqr = w_kF * w_kF;
+  const double r1_a = w_kF_Sqr / D_term;
+  const double r1_sqrta = sqrt(r1_a);
+
+  // approximate the integral using an expansion of the error function
+  double appInt, dAppInt_ds, dAppInt_dkF;
+  approximateIntegral(w_kF, Hs2, D_term, dHs2_ds, &appInt, &dAppInt_ds,
+      &dAppInt_dkF);
+
+  // Calculate the integrals
+  //
+  // inf
+  //   /                       2   2      /     \
+  //  |     2 n + 1   -(D+H(s)s ) y      |  w    |
+  //  | dy y         e               Erfc| --- y |
+  //  |                                  |  k    |
+  // /                                    \  F  /
+  //  0
+  // we use that
+  // inf                                                      n
+  //   /                  2                           /     -----                                  \
+  //  |     2 n + 1  - a y                 n   n!    |       \     (2n - 1)!!             -(2n + 1) |
+  //  | dy y        e      Erfc(y) = ( -1 )  ----n-  |  1 -   )    ---------- sqrt( a + 1 )         |
+  //  |                                       2 a    |       /       (2n)!!                         |
+  // /                                                \     -----                                  /
+  //  0                                                     m = 0
+  // with a = (D + H(s)s^2) k_F^2 / w^2
+  // and n!! = n * (n-2) * (n-4) ...; if (n <= 0) := 1
+
+  // allocate array
+  vector<double> intYExpErfc(0);
+  intYExpErfc.reserve(4);
+
+  // initialize
+  double prefactor = 0.5 / D_term; // note w_kF cancels in transformation
+  double summand = r1_sqrta;
+  double sum = 1 - summand;
+  intYExpErfc.push_back(prefactor * sum);
+
+  // calculate higher n integrals
+  for (int i = 1; i < 4; i++) {
+
+    // update values
+    prefactor *= -static_cast<double> (i) * r1_D_term;
+    summand *= static_cast<double> (2 * i - 1) / static_cast<double> (2 * i)
+        * r1_a;
+    sum -= summand;
+
+    intYExpErfc.push_back(prefactor * sum);
+
+  }
+
+  // Calculate the integrals
+  //
+  //       inf
+  //         /                 /                      2    \
+  //   2    |     2 (n+1)     |          2   2   omega   2  |
+  // -----  | dy y         Exp| -(D+H(s)s ) y  - ------ y   |
+  //  ____  |                 |                   k ^2      |
+  // V Pi  /                   \                   F       /
+  //        0
+  // for n = 0, 1, 2
+  //
+  const double r1_arg = 1.0 / (D_term + w_kF_Sqr);
+  // allocate array
+  vector<double> intYGauss(3);
+  intYGauss[0] = 0.5 * sqrt(r1_arg) * r1_arg;
+  intYGauss[1] = 1.5 * intYGauss[0] * r1_arg;
+  intYGauss[2] = 2.5 * intYGauss[1] * r1_arg;
+
 }
 
 void HSEFunctional::setxc(void) {

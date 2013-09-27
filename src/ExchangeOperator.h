@@ -81,8 +81,8 @@ class ExchangeOperator
   valarray<double> qpG22_;
   valarray<double> qpG2i1_;
   valarray<double> qpG2i2_;
-  valarray<double> G2_;
-  valarray<double> G2i_;
+  valarray<double> FT1_;
+  valarray<double> FT2_;
 
   // numbers of states
   int nLocalStates_;
@@ -178,10 +178,16 @@ class ExchangeOperator
   vector<DoubleMatrix*> uc_;
   vector<long int> localization_;
 
+  // fourier transform of nonlocal potential
+  double (*interaction_potential_)(const double&);
+
+  // coulomb potential
+  bool coulomb_;
+
   public:
 
   // constructor
-  ExchangeOperator(Sample& s_, double HFCoeff);
+  ExchangeOperator(Sample& s_, double HFCoeff, double (*interaction_potential)(const double&) = 0);
 
   // destructor
   ~ExchangeOperator();

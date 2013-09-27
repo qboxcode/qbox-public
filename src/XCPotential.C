@@ -20,6 +20,7 @@
 #include "LDAFunctional.h"
 #include "PBEFunctional.h"
 #include "BLYPFunctional.h"
+#include "HSEFunctional.h"
 #include "B3LYPFunctional.h"
 #include "Basis.h"
 #include "FourierTransform.h"
@@ -48,6 +49,10 @@ cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
     const double x_coeff = 0.75;
     const double c_coeff = 1.0;
     xcf_ = new PBEFunctional(cd_.rhor,x_coeff,c_coeff);
+  }
+  else if ( functional_name == "HSE" )
+  {
+    xcf_ = new HSEFunctional(cd_.rhor);
   }
   else if ( functional_name == "B3LYP" )
   {

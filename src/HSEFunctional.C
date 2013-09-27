@@ -179,8 +179,87 @@ void HSE_enhance(double s, double kF, double w, double *fx, double *dfx_ds,
   const double Fs2 = F * s2;
   const double dFs2_ds = slope * dHs2_ds + 2 * intercept;
 
-}
+  // evaluate alpha and beta
+  // alpha = part1 - part2
+  //               __  2
+  //           15 VPi s
+  // beta = -----------------
+  //                  2  7/2
+  //         16 (D + H s  )
+  // with
+  //
+  //                          2      2           2 2          2 3
+  //          __ 15E + 6C(1+Fs )(D+Hs ) + 4B(D+Hs )  + 8A(D+Hs )
+  // part1 = VPi ------------------------------------------------
+  //                                    2  7/2
+  //                        16 ( D + H s  )
+  // and
+  //                                            ________
+  //                       /     2 \       /   /     2   \
+  //         3 Pi  ___    | 9 H s   |     |   / 9 H s     |
+  // part2 = ---- V A  Exp| ------- | Erfc|  /  -------   |
+  //          4           |   4 A   |     | V     4 A     |
+  //                       \       /       \             /
+  // and the derivatives with respect to s
 
+  // calculate the helper variables
+  const double AHs2_1_2 = sqrtA * sqrt(Hs2);
+  const double AHs2_3_2 = AHs2_1_2 * A * Hs2;
+  const double r1_Fs2 = 1.0 + Fs2;
+  const double D_Hs2 = D + Hs2;
+  const double D_Hs2Sqr = D_Hs2 * D_Hs2;
+  const double D_Hs2Cub = D_Hs2 * D_Hs2Sqr;
+  const double D_Hs2_5_2 = D_Hs2Sqr * sqrt(D_Hs2);
+  const double D_Hs2_7_2 = D_Hs2_5_2 * D_Hs2;
+  const double D_Hs2_9_2 = D_Hs2_5_2 * D_Hs2Sqr;
+  const double D_Hs2_11_2 = D_Hs2_5_2 * D_Hs2Cub;
+
+  // part 1 and derivatives w.r.t. Hs^2 and Fs^2
+  const double part1 = SQRT_PI * (15.0 * E + 6.0 * C * r1_Fs2 * D_Hs2 + 4.0 * B
+      * D_Hs2Sqr + 8.0 * A * D_Hs2Cub) / (16.0 * D_Hs2_7_2);
+  const double dpart1_dh = -SQRT_PI * (105.0 * E + 30.0 * C * r1_Fs2 * D_Hs2
+      + 12.0 * B * D_Hs2Sqr + 8.0 * A * D_Hs2Cub) / (32.0 * D_Hs2_9_2);
+  const double dpart1_df = SQRT_PI * 0.375 * C / D_Hs2_5_2;
+
+  // part 2 and derivative w.r.t. Hs^2
+  const double arg1 = r9_4A * Hs2;
+  const double arg2 = sqrt(arg1);
+  const double exp_erfc = exp(arg1) * erfc(arg2);
+  const double part2 = 0.75 * M_PI * sqrtA * exp_erfc;
+  const double dpart2_dh = 0.75 * M_PI * sqrtA * (r9_4A * exp_erfc - 1.5
+      / (SQRT_PI * AHs2_1_2));
+
+  // combine parts and derivatives
+  const double alpha = part1 - part2;
+  const double dalpha_dh = dpart1_dh - dpart2_dh;
+  const double dalpha_df = dpart1_df;
+
+  // calculate beta / s^2, its derivative w.r.t. Hs^2 and E * beta
+  const double beta_s2 = 0.9375 * SQRT_PI / D_Hs2_7_2;
+  const double Ebeta = E * beta_s2 * s2;
+  const double dbeta_dh = -3.5 * beta_s2 / D_Hs2;
+
+  // combine alpha and beta to function G
+  //       3 Pi / 4 + alpha
+  // G = - ----------------
+  //             beta
+  const double r3Pi_4_alpha = 0.75 * M_PI + alpha;
+  const double G = -r3Pi_4_alpha / Ebeta;
+
+  // calculate derivative w.r.t. s
+  //
+  //             /  /3 Pi    \  d(b/s^2)   /           d a    \  d(Hs^2)       d a   d(Fs^2)
+  //            <  ( ---- + a ) -------   /  b/s^2  - -------  > -------  -  ------- -------
+  // d (Gs^2)    \  \ 4      /  d(Hs^2)  /            d(Hs^2) /    d s       d(Fs^2)   ds
+  // -------- = ----------------------------------------------------------------------------
+  //    ds                                     E b/s^2
+  //
+  // notice that alpha and beta are abbreviated by a and b in this equation
+  const double Ebeta_s2 = E * beta_s2;
+  const double dGs2_ds = ((r3Pi_4_alpha * dbeta_dh / beta_s2 - dalpha_dh)
+      * dHs2_ds - dalpha_df * dFs2_ds) / Ebeta_s2;
+
+}
 
 void HSEFunctional::setxc(void) {
   // dummy

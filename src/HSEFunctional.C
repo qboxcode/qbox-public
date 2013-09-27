@@ -277,6 +277,25 @@ void approximateIntegral(const double omega_kF, const double Hs2,
 
     // large x limit
 
+    // inf
+    //   /    /        2                  \      /         2              \
+    //  |    |  A   -Dy           A        |    |    /    w         2\   2 |
+    //  | dy | --- e     - --------------  | Exp| - (  2 --2-- + H s  ) y  |
+    //  |    |  y            /    4   2\   |    |    \    k          /     |
+    // /      \            y( 1 + - Ay  ) /      \         F              /
+    //  0                    \    9    /
+
+    const double r2w2 = 2.0 * w2;
+    const double r4w2 = 4.0 * w2;
+    const double r2w2_Hs2 = r2w2 + Hs2;
+    const double r2w2_D_term = r2w2 + D_term;
+    const double arg = r9_4A * r2w2_Hs2;
+    const double exp_e1 = util::gauss_laguerre(arg);
+    *appInt = A_2 * (log(r2w2_Hs2 / r2w2_D_term) + exp_e1);
+    const double dAppInt_dh = -A_2 / r2w2_D_term + 1.125 * exp_e1;
+    *dAppInt_ds = dAppInt_dh * dHs2_ds;
+    *dAppInt_dkF = -dAppInt_dh * r4w2;
+
   }
 
 }
@@ -438,7 +457,6 @@ void HSE_enhance(const double s, const double kF, const double w, double *fx,
       * dHs2_ds - dalpha_df * dFs2_ds) / Ebeta_s2;
 
 }
-
 
 void HSEFunctional::setxc(void) {
   // dummy

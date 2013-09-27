@@ -32,10 +32,18 @@
 //
 
 #include "HSEFunctional.h"
+#include "ExponentialIntegral.h"
 #include <cassert>
 #include <cmath>
+#include <numeric>
 
 using namespace std;
+
+// screening parameter of the HSE functional
+const double omega = 0.11;
+// parameters of the exchange hole
+const double A = 1.0161144, B = -0.37170836, C = -0.077215461, D = 0.57786348,
+    E = -0.051955731;
 
 // constructor
 HSEFunctional::HSEFunctional(const vector<vector<double> > &rhoe) :
@@ -100,6 +108,179 @@ HSEFunctional::HSEFunctional(const vector<vector<double> > &rhoe) :
 
 }
 
+// helper function to calculate the integral
+//
+// inf
+//   /                   /        2                  \
+//  |         / w y \   |  A   -Dy           A        |     /        2  2 \
+//  | dy Erfc( ----- )  | --- e     - --------------  | Exp( - H(s) s  y   )
+//  |         \ k   /   |  y            /    4   2\   |     \             /
+// /             F       \            y( 1 + - Ay  ) /
+//  0                                   \    9    /
+//
+// complementary error function is approximated by polynomial
+//             8
+//           -----             2
+//            \        i  - b x
+// erfc(x) =   )   a  x  e          for x < 14
+//            /     i
+//           -----
+//           i = 1
+// and by exp( -2 x^2 ) above x = 14
+// then the integrals with the first part of the exchange hole
+// become analytically solvable
+void approximateIntegral(const double omega_kF, const double Hs2,
+    const double D_term, const double dHs2_ds, double *appInt,
+    double *dAppInt_ds, double *dAppInt_dkF) {
+
+  // constant parameterization of error function
+  const double a[] = { 1.0, -1.128223946706117, 1.452736265762971,
+      -1.243162299390327, 0.971824836115601, -0.568861079687373,
+      0.246880514820192, -0.065032363850763, 0.008401793031216 };
+  const double b = 1.455915450052607, cutoff = 14.0;
+
+  // helper variables
+  const double SQRT_PI = sqrt(M_PI);
+  const double A_2 = 0.5 * A, r9_4A = 2.25 / A, sqrtA = sqrt(A);
+  const double w2 = omega_kF * omega_kF;
+  const double bw2 = b * w2;
+  const double r2bw2 = 2.0 * bw2;
+  const double bw2_Hs2 = bw2 + Hs2;
+  const double bw2_D_term = bw2 + D_term;
+
+  if (bw2_Hs2 < cutoff) {
+
+    // small x limit
+
+    // ### begin calculation of integrals ###
+
+    // inf
+    //   /        /        2                  \      /         2              \
+    //  |     n  |  A   -Dy           A        |    |    /    w         2\   2 |
+    //  | dy y   | --- e     - --------------  | Exp| - (  b --2-- + H s  ) y  |
+    //  |        |  y            /    4   2\   |    |    \    k          /     |
+    // /          \            y( 1 + - Ay  ) /      \         F              /
+    //  0                        \    9    /
+    //
+
+    // maximum n in above expression
+    // note: to calculate higher derivatives you may need to increase this value
+    const int no_integral = 11;
+
+    // Calculate more helper variables
+    const double bw2_Hs2_Sqr = bw2_Hs2 * bw2_Hs2;
+    const double bw2_Hs2_Cub = bw2_Hs2 * bw2_Hs2_Sqr;
+    const double sqrt_bw2_Hs2 = sqrt(bw2_Hs2);
+    const double bw2_D_term_Sqr = bw2_D_term * bw2_D_term;
+    const double bw2_D_term_Cub = bw2_D_term * bw2_D_term_Sqr;
+    const double bw2_D_term_Tet = bw2_D_term_Sqr * bw2_D_term_Sqr;
+    const double sqrt_bw2_D_term = sqrt(bw2_D_term);
+
+    // arg = 9/4 * (b w^2/kF^2 + H s^2) / A
+    const double arg = r9_4A * bw2_Hs2;
+    const double sqrt_arg = sqrt(arg);
+    const double r1_arg = 1.0 / arg;
+
+    // calculate e^(arg), E1(arg), and erfc(sqrt(arg))
+    const double exp_arg = exp(arg);
+    const double exp_erfc = exp_arg * erfc(sqrt_arg);
+
+    // evaluate exponenential integral
+    double term2 = (arg < util::series_cutoff) ? exp_arg * util::E1(arg)
+        : util::gauss_laguerre(arg);
+
+    // allocate array
+    vector<double> integral(no_integral);
+
+    // The n = 0 integral is
+    // A/2 ( ln((b (w/kF)^2 + H s^2) / (b (w/kF)^2 + D + H s^2))
+    //     + e^(arg) E1(arg) )
+    integral[0] = A_2 * (log(bw2_Hs2 / bw2_D_term) + term2);
+
+    // Calculate now all even n's by successive derivation
+    // The log(...) term gives term proportional to 1/(b (w/kF)^2 + D + H s^2)^i
+    // The e^(arg) E1(arg) term reproduces itself with a prefactor and
+    // generates an additional 1/arg term which produces higher 1/arg^i terms
+    // when further deriviated
+    double term1 = A_2 / bw2_D_term;
+    double factor2 = -1.125;
+    double arg_n = -1.0 / arg;
+    integral[2] = term1 + factor2 * term2;
+
+    for (int i = 1; i < no_integral / 2; i++) {
+      term1 = term1 / bw2_D_term * static_cast<double> (i);
+      factor2 = -factor2 * r9_4A;
+      term2 = term2 + arg_n;
+
+      integral[2 * (i + 1)] = term1 + factor2 * term2;
+
+      arg_n = -arg_n * static_cast<double> (i) / arg;
+    }
+
+    // The n = 1 integral is
+    // A/2 ( sqrt(pi) / sqrt( b (w/kF)^2 + D + H s2 )
+    // - 3/4 sqrt(A) pi e^(arg) erfc(sqrt(arg))
+    term1 = A_2 * SQRT_PI / sqrt_bw2_D_term;
+    term2 = M_PI * exp_erfc;
+    factor2 = -0.75 * sqrtA;
+
+    integral[1] = term1 + factor2 * term2;
+
+    // Calculate now all uneven n's by successive derivation
+    // The 1 / sqrt(...) term gives higher orders of 1 / (...)^((2i+1)/2)
+    // The e^(arg) erfc(sqrt(arg)) term reproduces itself with a prefactor
+    // and generates an additional 1/sqrt(arg) term which produces higher
+    // 1/(arg)^((2i+1)/2) terms when further deriviated
+    double sum_term = -1.125 * SQRT_PI / sqrt_bw2_Hs2;
+    double add_term = sum_term;
+    double half_i2_1 = -0.5;
+
+    for (int i = 3; i < no_integral; i += 2) {
+      factor2 = -factor2 * r9_4A;
+      term1 = -term1 * half_i2_1 / bw2_D_term;
+      integral[i] = term1 + term2 * factor2 + sum_term;
+
+      add_term = -add_term * half_i2_1 / bw2_Hs2;
+      sum_term = -sum_term * r9_4A + add_term;
+      half_i2_1 = half_i2_1 - 1.0;
+    }
+
+    // ### end calculation of integrals ###
+
+    const int no_coeff = sizeof(a) / sizeof(double);
+
+    // allocate vector
+    vector<double> a_wi, ai_wi;
+    // will contain a[i] * (w/kF)^i
+    a_wi.reserve(no_coeff);
+    // will contain a[i] * i * (w/kF)^i
+    ai_wi.reserve(no_coeff);
+
+    // initialize array
+    double wi = 1.0;
+    for (int i = 0; i < no_coeff; i++) {
+      a_wi.push_back(a[i] * wi);
+      ai_wi.push_back(a_wi[i] * i);
+      wi *= omega_kF;
+    }
+
+    //  combine the solutions of the integrals with the appropriate prefactors
+    *appInt = inner_product(a_wi.begin(), a_wi.end(), integral.begin(), 0.0);
+    // for derivative shift integral index by 2
+    const double dotpr = inner_product(a_wi.begin(), a_wi.end(),
+        integral.begin() + 2, 0.0);
+    *dAppInt_ds = -dotpr * dHs2_ds;
+    *dAppInt_dkF = -inner_product(ai_wi.begin(), ai_wi.end(), integral.begin(),
+        r2bw2 * dotpr);
+
+  } else {
+
+    // large x limit
+
+  }
+
+}
+
 // helper function to calculate the HSE enhancement factor
 // and its derivative w.r.t. s and k_F
 //                inf
@@ -124,12 +305,9 @@ HSEFunctional::HSEFunctional(const vector<vector<double> > &rhoe) :
 //                                   /          |
 //                                             /
 // see references for a definition of the functions F(s), G(s), and H(s)
-void HSE_enhance(double s, double kF, double w, double *fx, double *dfx_ds,
-    double* dfx_dkf) {
+void HSE_enhance(const double s, const double kF, const double w, double *fx,
+    double *dfx_ds, double* dfx_dkf) {
 
-  // definition of constants
-  const double A = 1.0161144, B = -0.37170836, C = -0.077215461,
-      D = 0.57786348, E = -0.051955731;
   // derived quantities
   const double SQRT_PI = sqrt(M_PI);
   const double sqrtA = sqrt(A), r9_4A = 2.25 * A;
@@ -260,6 +438,7 @@ void HSE_enhance(double s, double kF, double w, double *fx, double *dfx_ds,
       * dHs2_ds - dalpha_df * dFs2_ds) / Ebeta_s2;
 
 }
+
 
 void HSEFunctional::setxc(void) {
   // dummy

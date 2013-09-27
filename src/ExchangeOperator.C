@@ -976,7 +976,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
   bool quad_correction = s_.ctrl.debug.find("EXCHANGE_NOQUAD") == string::npos;
 
   assert(KPGridPerm_.Connection());
-  assert(coulomb_);
+  assert(coulomb_ or not compute_stress);
 
   wfc_ = wf;
 
@@ -1321,26 +1321,31 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     const double *g2 = vbasis_->g2_ptr();
     const double *g2i = vbasis_->g2i_ptr();
     const double rc2 = rcut_*rcut_;
-    for ( int ig = 0; ig < ngloc; ig++ )
-    {
-      // factor 2.0: real basis
-      const double tg2i = g2i[ig];
-      double t = 2.0 * exp( - rc2 * g2[ig] ) * tg2i;
-      SumExpG2 += t;
 
-      if ( compute_stress )
+    // correction only for Coulomb potential
+    if (coulomb_)
+    {
+      for ( int ig = 0; ig < ngloc; ig++ )
       {
-        const double tgx = g_x[ig];
-        const double tgy = g_y[ig];
-        const double tgz = g_z[ig];
-        // factor 2.0: derivative of G^2
-        const double fac = t * 2.0 * ( rc2 + tg2i );
-        sigma_sumexp[0] += fac * tgx * tgx;
-        sigma_sumexp[1] += fac * tgy * tgy;
-        sigma_sumexp[2] += fac * tgz * tgz;
-        sigma_sumexp[3] += fac * tgx * tgy;
-        sigma_sumexp[4] += fac * tgy * tgz;
-        sigma_sumexp[5] += fac * tgz * tgx;
+        // factor 2.0: real basis
+        const double tg2i = g2i[ig];
+        double t = 2.0 * exp( - rc2 * g2[ig] ) * tg2i;
+        SumExpG2 += t;
+
+        if ( compute_stress )
+        {
+          const double tgx = g_x[ig];
+          const double tgy = g_y[ig];
+          const double tgz = g_z[ig];
+          // factor 2.0: derivative of G^2
+          const double fac = t * 2.0 * ( rc2 + tg2i );
+          sigma_sumexp[0] += fac * tgx * tgx;
+          sigma_sumexp[1] += fac * tgy * tgy;
+          sigma_sumexp[2] += fac * tgz * tgz;
+          sigma_sumexp[3] += fac * tgx * tgy;
+          sigma_sumexp[4] += fac * tgy * tgz;
+          sigma_sumexp[5] += fac * tgz * tgx;
+        }
       }
     }
 
@@ -1618,16 +1623,17 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // note: g2i[G=0] == 0
             // factor 2.0: real basis
             const double tg2i = g2i[ig];
-            const double t1 = 2.0 * norm(rhog1_[ig]) * tg2i;
-            const double t2 = 2.0 * norm(rhog2_[ig]) * tg2i;
+            const double int_pot = ( coulomb_ ) ? tg2i : interaction_potential_(g2[ig]);
+            const double t1 = 2.0 * norm(rhog1_[ig]) * int_pot;
+            const double t2 = 2.0 * norm(rhog2_[ig]) * int_pot;
             ex_sum_1 += t1;
             ex_sum_2 += t2;
 
             if (dwf)
             {
               // compute rhog1_[G]/|G+q1|^2 and rhog2_[G]/|G+q1|^2
-              rhog1_[ig] *= tg2i;
-              rhog2_[ig] *= tg2i;
+              rhog1_[ig] *= int_pot;
+              rhog2_[ig] *= int_pot;
             }
 
             if ( compute_stress )
@@ -1816,12 +1822,13 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // note: g2i[G=0] == 0
             // factor 2.0: real basis
             const double tg2i = g2i[ig];
-            const double t1 = 2.0 * norm(rhog1_[ig]) * tg2i;
+            const double int_pot = ( coulomb_ ) ? tg2i : interaction_potential_(g2[ig]);
+            const double t1 = 2.0 * norm(rhog1_[ig]) * int_pot;
             ex_sum_1 += t1;
 
             if (dwf)
             {
-              rhog1_[ig] *= tg2i;
+              rhog1_[ig] *= int_pot;
             }
 
             if ( compute_stress )

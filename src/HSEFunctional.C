@@ -324,8 +324,15 @@ void approximateIntegral(const double omega_kF, const double Hs2,
 //                                   /          |
 //                                             /
 // see references for a definition of the functions F(s), G(s), and H(s)
-void HSE_enhance(const double s, const double kF, const double w, double *fx,
+void HSE_enhance(const double s_inp, const double kF, const double w, double *fx,
     double *dfx_ds, double* dfx_dkf) {
+
+  // Correction of the reduced gradient to ensure Lieb-Oxford bound
+  // If a large value of s would violate the Lieb-Oxford bound, the value of s is reduced,
+  // so that this condition is fullfilled
+  const double s_thresh = 8.3, s_max = 8.572844, s_chg = 18.796223;
+  const bool correction = s_inp > s_thresh;
+  const double s = (correction) ? s_max - s_chg / (s_inp * s_inp) : s_inp;
 
   // prefactor for exchange hole
   const double r8_9 = 8.0 / 9.0;
@@ -561,6 +568,12 @@ void HSE_enhance(const double s, const double kF, const double w, double *fx,
       * intYExpErfc[2]);
   *dfx_dkf = -r8_9 * r1_kF * (w_kF * (B * intYGauss[0] + C_term * intYGauss[1]
       + E_term * intYGauss[2]) + dAppInt_dkF);
+
+  // if the value of s has been corrected to satisfy Lieb-Oxford bound, derivative
+  // must be adjusted as well
+  if ( correction ) {
+    *dfx_ds *= 2.0 * s_chg * pow( s_inp, -3 );
+  }
 
 }
 

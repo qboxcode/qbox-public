@@ -104,19 +104,21 @@ bool Species::initialize(double rcpsval)
   while ( ndft_ * deltar_ < rdftmin )
     ndft_ *= 2;
 
-  rps_.resize(ndft_);
+  rps_spl_.resize(ndft_);
   for ( int i = 0; i < ndft_; i++ )
-    rps_[i] = i * deltar_;
+    rps_spl_[i] = i * deltar_;
 
   vps_spl_.resize(lmax_+1);
+  vps_spl2_.resize(lmax_+1);
   phi_spl_.resize(lmax_+1);
+  phi_spl2_.resize(lmax_+1);
 
   for ( int l = 0; l <= lmax_; l++ )
   {
-    vps_[l].resize(ndft_);
-    phi_[l].resize(ndft_);
     vps_spl_[l].resize(ndft_);
+    vps_spl2_[l].resize(ndft_);
     phi_spl_[l].resize(ndft_);
+    phi_spl2_[l].resize(ndft_);
   }
 
   // extend rps and vps_ to full mesh (up to i==ndft_-1)
@@ -125,11 +127,11 @@ bool Species::initialize(double rcpsval)
 
   wsg_.resize(lmax_+1);
   gspl_.resize(ndft_);
-  vlocg_.resize(ndft_);
-  vlocg_spl.resize(ndft_);
+  vlocg_spl_.resize(ndft_);
+  vlocg_spl2_.resize(ndft_);
 
-  vnlg_.resize(lmax_+1);
-  vnlg_spl.resize(lmax_+1);
+  vnlg_spl_.resize(lmax_+1);
+  vnlg_spl2_.resize(lmax_+1);
 
   vector<double> vlocr(ndft_);
   vector<vector<double> > vnlr(lmax_+1);
@@ -137,41 +139,48 @@ bool Species::initialize(double rcpsval)
   for ( int l = 0; l <= lmax_; l++ )
   {
     vnlr[l].resize(ndft_);
-    vnlg_[l].resize(ndft_+1);
-    vnlg_spl[l].resize(ndft_+1);
+    vnlg_spl_[l].resize(ndft_+1);
+    vnlg_spl2_[l].resize(ndft_+1);
   }
 
   // Extend vps_[l][i] up to ndft_ using -zv/r
 
   for ( int l = 0; l <= lmax_; l++ )
   {
+    for ( int i = 0; i < np; i++ )
+    {
+      vps_spl_[l][i] = vps_[l][i];
+      phi_spl_[l][i] = phi_[l][i];
+    }
     for ( int i = np; i < ndft_; i++ )
     {
-      vps_[l][i] = - zval_ / rps_[i];
+      vps_spl_[l][i] = - zval_ / rps_spl_[i];
+      phi_spl_[l][i] = 0.0;
     }
   }
 
-  // compute spline coefficients of vps_ and phi_
+  // compute spline coefficients of vps_spl_ and phi_spl_
   for ( int l = 0; l <= lmax_; l++ )
   {
-    const double dvdr = zval_ / (rps_[ndft_-1]*rps_[ndft_-1]);
-    spline(ndft_,&rps_[0],&vps_[l][0],0.0,dvdr,0,0,&vps_spl_[l][0]);
+    const double dvdr = zval_ / (rps_spl_[ndft_-1]*rps_spl_[ndft_-1]);
+    spline(ndft_,&rps_spl_[0],&vps_spl_[l][0],0.0,dvdr,0,0,&vps_spl2_[l][0]);
   }
   for ( int l = 0; l <= lmax_; l++ )
   {
     if ( l != llocal_ )
     {
-      spline(ndft_,&rps_[0],&phi_[l][0],0.0,0.0,0,1,&phi_spl_[l][0]);
+      spline(ndft_,&rps_spl_[0],&phi_spl_[l][0],0.0,0.0,0,1,&phi_spl2_[l][0]);
     }
   }
 
   // local potential: subtract the long range part due to the smeared charge
   // Next line: constant is 2/sqrt(pi)
   // math.h: # define M_2_SQRTPI     1.12837916709551257390  /* 2/sqrt(pi) */
-  vlocr[0] = vps_[llocal_][0] + (zval_/rcps_) * M_2_SQRTPI;
+  vlocr[0] = vps_spl_[llocal_][0] + (zval_/rcps_) * M_2_SQRTPI;
   for ( int i = 1; i < ndft_; i++ )
   {
-    vlocr[i] = vps_[llocal_][i] + (zval_/rps_[i]) * erf( rps_[i]/rcps_ );
+    vlocr[i] = vps_spl_[llocal_][i] + (zval_/rps_spl_[i]) *
+               erf( rps_spl_[i]/rcps_ );
   }
 
   //  Prepare the function vlocr to be used later in the Bessel transforms:
@@ -184,7 +193,7 @@ bool Species::initialize(double rcpsval)
 
   for ( int i = 0; i < ndft_; i++ )
   {
-    vlocr[i] *= fpi * rps_[i] * deltar_;
+    vlocr[i] *= fpi * rps_spl_[i] * deltar_;
   }
   //  Local potential
   //  Compute Fourier coefficients of the local potential
@@ -202,7 +211,7 @@ bool Species::initialize(double rcpsval)
 
   for ( int i = 0; i < ndft_; i++ )
   {
-    fint[i] = vlocr[i] * rps_[i];
+    fint[i] = vlocr[i] * rps_spl_[i];
   }
 
   const double v0 = simpsn(ndft_,&fint[0]);
@@ -211,25 +220,25 @@ bool Species::initialize(double rcpsval)
 
   for ( int i = 0; i < ndft_; i++ )
   {
-    vlocg_[i] = vlocr[i];
+    vlocg_spl_[i] = vlocr[i];
   }
 
-  sinft(ndft_,&vlocg_[0]);
+  sinft(ndft_,&vlocg_spl_[0]);
 
   //  Divide by g's
   gspl_[0] = 0.0;
-  vlocg_[0] = v0;
+  vlocg_spl_[0] = v0;
   double fac = M_PI/(ndft_*deltar_);
   for ( int i = 1; i < ndft_; i++ )
   {
     gspl_[i] = i * fac;
-    vlocg_[i] /= gspl_[i];
+    vlocg_spl_[i] /= gspl_[i];
   }
 
   //  Initialize cubic spline interpolation for local potential Vloc(G)
   //  Use zero first derivative at G=0 and natural (y"=0) at Gmax
 
-  spline(ndft_,&gspl_[0],&vlocg_[0],0.0,0.0,0,1,&vlocg_spl[0]);
+  spline(ndft_,&gspl_[0],&vlocg_spl_[0],0.0,0.0,0,1,&vlocg_spl2_[0]);
 
   // Non-local KB projectors
   if ( nquad_ == 0 && lmax_ > 0)
@@ -244,8 +253,8 @@ bool Species::initialize(double rcpsval)
         //  Compute weight wsg_[l] by integration on the linear mesh
         for ( int i = 0; i < ndft_; i++ )
         {
-          double tmp = phi_[l][i] * rps_[i];
-          fint[i] = ( vps_[l][i] - vps_[llocal_][i] ) * tmp * tmp;
+          double tmp = phi_spl_[l][i] * rps_spl_[i];
+          fint[i] = ( vps_spl_[l][i] - vps_spl_[llocal_][i] ) * tmp * tmp;
         }
         double tmp = simpsn(ndft_,&fint[0]);
         assert(tmp != 0.0);
@@ -269,7 +278,7 @@ bool Species::initialize(double rcpsval)
         for ( int i = 0; i < ndft_; i++ )
         {
           vnlr[l][i] = fpi * deltar_ *
-                       ( vps_[l][i] - vps_[llocal_][i] ) * phi_[l][i];
+            ( vps_spl_[l][i] - vps_spl_[llocal_][i] ) * phi_spl_[l][i];
         }
 
       }
@@ -277,7 +286,7 @@ bool Species::initialize(double rcpsval)
 
     //  compute radial Fourier transforms of vnlr
 
-    //  Next line: vnlg_ is dimensioned ndft_+1 since it is passed to cosft1
+    //  Next line: vnlg_spl_ dimensioned ndft_+1 since it is passed to cosft1
 
     // Non-local potentials
     //
@@ -310,28 +319,29 @@ bool Species::initialize(double rcpsval)
 
           for ( int i = 0; i < ndft_; i++ )
           {
-            fint[i] = vnlr[l][i] * rps_[i] * rps_[i];
+            fint[i] = vnlr[l][i] * rps_spl_[i] * rps_spl_[i];
           }
           const double v0 = simpsn(ndft_, &fint[0]);
 
           for ( int i = 0; i < ndft_; i++ )
           {
-            vnlg_[l][i] = vnlr[l][i] * rps_[i];
+            vnlg_spl_[l][i] = vnlr[l][i] * rps_spl_[i];
           }
 
-          sinft(ndft_,&vnlg_[l][0]);
+          sinft(ndft_,&vnlg_spl_[l][0]);
 
-          vnlg_[l][0] = v0;
+          vnlg_spl_[l][0] = v0;
           // Divide by g
           for ( int i = 1; i < ndft_; i++ )
           {
-            vnlg_[l][i] /= gspl_[i];
+            vnlg_spl_[l][i] /= gspl_[i];
           }
 
           //  Initialize cubic spline interpolation
           //  Use zero first derivative at G=0 and natural (y"=0) at Gmax
 
-          spline(ndft_,&gspl_[0],&vnlg_[l][0],0.0,0.0,0,1,&vnlg_spl[l][0]);
+          spline(ndft_,&gspl_[0],&vnlg_spl_[l][0],0.0,0.0,0,1,
+                 &vnlg_spl2_[l][0]);
 
         }
         else if ( l == 1 )
@@ -347,43 +357,44 @@ bool Species::initialize(double rcpsval)
           //  First part: 1/G^2 \sum_r sin(Gr) vnlr
           for ( int i = 0; i < ndft_; i++ )
           {
-            vnlg_[l][i] = vnlr[l][i];
+            vnlg_spl_[l][i] = vnlr[l][i];
           }
 
-          sinft(ndft_,&vnlg_[l][0]);
+          sinft(ndft_,&vnlg_spl_[l][0]);
 
           // Divide by g**2 and store in fint */
           fint[0] = v0;
           for ( int i = 1; i < ndft_; i++ )
           {
-            fint[i] = vnlg_[l][i] / ( gspl_[i] * gspl_[i] );
+            fint[i] = vnlg_spl_[l][i] / ( gspl_[i] * gspl_[i] );
           }
 
           //  Second part: cosine transform: 1/G   \sum_r cos(Gr) r vnlr
 
           for ( int i = 0; i < ndft_; i++ )
           {
-            vnlg_[l][i] = vnlr[l][i] * rps_[i];
+            vnlg_spl_[l][i] = vnlr[l][i] * rps_spl_[i];
           }
 
           //  N.B. Next line: Initialize also vnlg_[l][ndft_] to zero
           //  since it is used and modified by cosft1
           //  vnlg_ was dimensioned ndft_[is]+1
 
-          vnlg_[l][ndft_] = 0.0;
-          cosft1(ndft_,&vnlg_[l][0]);
+          vnlg_spl_[l][ndft_] = 0.0;
+          cosft1(ndft_,&vnlg_spl_[l][0]);
 
           // Divide by g and add to fint to get vnlg_
-          vnlg_[l][0] = v0;
+          vnlg_spl_[l][0] = v0;
           for ( int i = 1; i < ndft_; i++ )
           {
-            vnlg_[l][i] = fint[i] - vnlg_[l][i]/gspl_[i];
+            vnlg_spl_[l][i] = fint[i] - vnlg_spl_[l][i]/gspl_[i];
           }
 
           // Initialize spline interpolation
           // Use natural bc (y"=0) at G=0 and natural bc (y"=0) at Gmax
 
-          spline(ndft_,&gspl_[0],&vnlg_[l][0],0.0,0.0,1,1,&vnlg_spl[l][0]);
+          spline(ndft_,&gspl_[0],&vnlg_spl_[l][0],0.0,0.0,1,1,
+                 &vnlg_spl2_[l][0]);
         }
         else if ( l == 2 )
         {
@@ -399,67 +410,68 @@ bool Species::initialize(double rcpsval)
 
           // First part: sine transform 3/G^3 \sum_r sin(Gr)/r vnlr
           // Note: the integrand is linear near r=0 since vnlr(r) ~ r^2
-          vnlg_[l][0] = 0.0;
+          vnlg_spl_[l][0] = 0.0;
           for ( int i = 1; i < ndft_; i++ )
           {
-            vnlg_[l][i] = vnlr[l][i] / rps_[i];
+            vnlg_spl_[l][i] = vnlr[l][i] / rps_spl_[i];
           }
 
-          sinft(ndft_,&vnlg_[l][0]);
+          sinft(ndft_,&vnlg_spl_[l][0]);
 
           // multiply by 3/G^3 and store in fint */
           fint[0] = v0;
           for ( int i = 1; i < ndft_; i++ )
           {
-            fint[i] = 3.0 * vnlg_[l][i] / ( gspl_[i] * gspl_[i] * gspl_[i] );
+            fint[i] = 3.0 * vnlg_spl_[l][i] / ( gspl_[i]*gspl_[i]*gspl_[i] );
           }
 
           // Second part: sine transform -1/G \sum_r sin(Gr)*r vnlr
           for ( int i = 0; i < ndft_; i++ )
           {
-            vnlg_[l][i] = vnlr[l][i] * rps_[i];
+            vnlg_spl_[l][i] = vnlr[l][i] * rps_spl_[i];
           }
 
-          sinft(ndft_,&vnlg_[l][0]);
+          sinft(ndft_,&vnlg_spl_[l][0]);
 
           // multiply by -1/G and accumulate in fint */
           fint[0] += v0;
           for ( int i = 1; i < ndft_; i++ )
           {
-            fint[i] += - vnlg_[l][i] / gspl_[i];
+            fint[i] += - vnlg_spl_[l][i] / gspl_[i];
           }
 
           // Third part: cosine transform: -3/G^2 \sum_r cos(Gr) vnlr
 
           for ( int i = 0; i < ndft_; i++ )
           {
-            vnlg_[l][i] = vnlr[l][i];
+            vnlg_spl_[l][i] = vnlr[l][i];
           }
 
           //  N.B. Next line: Initialize also vnlg_[l][ndft_] to zero
           //  since it is used and modified by cosft1
           //  vnlg_ was dimensioned ndft_[is]+1
 
-          vnlg_[l][ndft_] = 0.0;
-          cosft1(ndft_,&vnlg_[l][0]);
+          vnlg_spl_[l][ndft_] = 0.0;
+          cosft1(ndft_,&vnlg_spl_[l][0]);
 
           // Multiply by -3/G^2 and add to fint
           fint[0] += v0;
           for ( int i = 1; i < ndft_; i++ )
           {
-            fint[i] += - 3.0 * vnlg_[l][i] / (gspl_[i] * gspl_[i]);
+            fint[i] += - 3.0 * vnlg_spl_[l][i] / (gspl_[i] * gspl_[i]);
           }
 
-          vnlg_[l][0] = v0;
+          vnlg_spl_[l][0] = v0;
           for ( int i = 1; i < ndft_; i++ )
           {
-            vnlg_[l][i] = fint[i];
+            vnlg_spl_[l][i] = fint[i];
           }
 
           // Initialize spline interpolation
           // Use zero first derivative at G=0 and natural (y"=0) at Gmax
 
-          spline(ndft_,&gspl_[0],&vnlg_[l][0],0.0,0.0,0,1,&vnlg_spl[l][0]);
+          spline(ndft_,&gspl_[0],&vnlg_spl_[l][0],0.0,0.0,0,1,
+                 &vnlg_spl2_[l][0]);
         }
       } // l != llocal_
     } // l
@@ -469,38 +481,38 @@ bool Species::initialize(double rcpsval)
 
 void Species::phi(int l, double r, double &val)
 {
-  if ( l > lmax_ || r > rps_[ndft_-1] )
+  if ( l > lmax_ || r > rps_spl_[ndft_-1] )
   {
     val = 0.0;
   }
   else
   {
-    splint(ndft_,&rps_[0],&phi_[l][0],&phi_spl_[l][0],r,&val);
+    splint(ndft_,&rps_spl_[0],&phi_spl_[l][0],&phi_spl2_[l][0],r,&val);
   }
 }
 
 void Species::vpsr(int l, double r, double &v)
 {
-  if ( l > lmax_ || r > rps_[ndft_-1] )
+  if ( l > lmax_ || r > rps_spl_[ndft_-1] )
   {
     v = 0.0;
   }
   else
   {
-    splint(ndft_,&rps_[0],&vps_[l][0],&vps_spl_[l][0],r,&v);
+    splint(ndft_,&rps_spl_[0],&vps_spl_[l][0],&vps_spl2_[l][0],r,&v);
   }
 }
 
 void Species::dvpsr(int l, double r, double &v, double &dv)
 {
-  if ( l > lmax_ || r > rps_[ndft_-1] )
+  if ( l > lmax_ || r > rps_spl_[ndft_-1] )
   {
     v = 0.0;
     dv = 0.0;
   }
   else
   {
-    splintd(ndft_,&rps_[0],&vps_[l][0],&vps_spl_[l][0],r,&v,&dv);
+    splintd(ndft_,&rps_spl_[0],&vps_spl_[l][0],&vps_spl2_[l][0],r,&v,&dv);
   }
 }
 
@@ -512,7 +524,7 @@ void Species::vlocg(double g, double &v)
   }
   else
   {
-    splint(ndft_,&gspl_[0],&vlocg_[0],&vlocg_spl[0],g,&v);
+    splint(ndft_,&gspl_[0],&vlocg_spl_[0],&vlocg_spl2_[0],g,&v);
   }
 }
 
@@ -525,7 +537,7 @@ void Species::dvlocg(double g, double &v, double &dv)
   }
   else
   {
-    splintd(ndft_,&gspl_[0],&vlocg_[0],&vlocg_spl[0],g,&v,&dv);
+    splintd(ndft_,&gspl_[0],&vlocg_spl_[0],&vlocg_spl2_[0],g,&v,&dv);
   }
 }
 
@@ -538,7 +550,7 @@ void Species::vnlg(int l, double g, double &v)
   }
   else
   {
-    splint(ndft_,&gspl_[0],&vnlg_[l][0],&vnlg_spl[l][0],g,&v);
+    splint(ndft_,&gspl_[0],&vnlg_spl_[l][0],&vnlg_spl2_[l][0],g,&v);
   }
 }
 
@@ -552,7 +564,7 @@ void Species::dvnlg(int l, double g, double &v, double &dv)
   }
   else
   {
-    splintd(ndft_,&gspl_[0],&vnlg_[l][0],&vnlg_spl[l][0],g,&v,&dv);
+    splintd(ndft_,&gspl_[0],&vnlg_spl_[l][0],&vnlg_spl2_[l][0],g,&v,&dv);
   }
 }
 
@@ -596,18 +608,18 @@ void Species::print(ostream &os, bool expanded_form)
     os << setprecision(6);
     for ( int l = 0; l <= lmax(); l++ )
     {
-      const int size = vps()[l].size();
+      const int size = vps_[l].size();
       os << "<projector l=\"" << l << "\" size=\"" << size
          << "\">" << endl;
       os << "<radial_potential>\n";
       for ( int i = 0; i < size; i++ )
-        os << vps()[l][i] << "\n";
+        os << vps_[l][i] << "\n";
       os << "</radial_potential>\n";
-      if ( l < phi().size() && phi()[l].size() == size )
+      if ( l < phi_.size() && phi_[l].size() == size )
       {
         os << "<radial_function>\n";
         for ( int i = 0; i < size; i++ )
-          os << phi()[l][i] << "\n";
+          os << phi_[l][i] << "\n";
         os << "</radial_function>\n";
       }
       os << "</projector>" << endl;
@@ -681,7 +693,7 @@ double Species::rcut_loc(double epsilon)
       if ( l != llocal_ )
       {
         // compute deviation vps_[l][i]
-        double dv = fabs( vps_[l][i] - vps_[llocal_][i] );
+        double dv = fabs( vps_spl_[l][i] - vps_spl_[llocal_][i] );
         delta = dv > delta ? dv : delta;
       }
     }
@@ -689,5 +701,5 @@ double Species::rcut_loc(double epsilon)
   // adjust i so that delta_v[i] < epsilon
   if ( i < ndft_-1 ) i++;
 
-  return rps_[i];
+  return rps_spl_[i];
 }

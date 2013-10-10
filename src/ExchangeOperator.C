@@ -673,7 +673,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     2.0 * occ_kj_[j] * spinFactor;
 
                   // add contribution to exchange energy
-                  exchange_sum += ex_ki_i_kj_j * weight;
+                  exchange_sum += ex_ki_i_kj_j * weight * wf.weight(iKpj);
 
                   if (dwf)
                   {
@@ -712,8 +712,8 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     2.0 * occ_kj_[j] * spinFactor;
 
                   // add contribution to exchange energy
-                  exchange_sum += ex_ki_i_kj_j * weightj;
-                  exchange_sum += ex_ki_i_kj_j * weighti;
+                  exchange_sum += ex_ki_i_kj_j * weightj * wf.weight(iKpi);
+                  exchange_sum += ex_ki_i_kj_j * weighti * wf.weight(iKpj);
 
                   if (dwf)
                   {
@@ -775,7 +775,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           CompleteSendingForces(iRotationStep);
 
           // add the g coordinate expression contributions to each
-          // state derivative of kpi, store everithing in the send buffer
+          // state derivative of kpi, store everything in the send buffer
           for ( int i=0; i<nStatesKpi_; i++ )
           {
             // transform contribution to g coordinates
@@ -841,10 +841,10 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
       {
         double div_corr = 0.0;
 
-        const double div_corr_1 = exfac * numerical_correction[iKpi];
+        const double div_corr_1 = 2.0 * exfac * numerical_correction[iKpi];
         div_corr += div_corr_1;
-        const double e_div_corr_1 = - div_corr_1 * occ_ki_[i];
-        exchange_sum += e_div_corr_1;
+        const double e_div_corr_1 = - 0.5 * div_corr_1 * occ_ki_[i];
+        exchange_sum += e_div_corr_1 * wf.weight(iKpi);
         // add here contributions to stress from div_corr_1;
 
         // rcut*rcut divergence correction
@@ -854,14 +854,14 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                                     KPGridPerm_.weight(iKpi);
           div_corr += div_corr_2;
           const double e_div_corr_2 = -0.5 * div_corr_2 * occ_ki_[i];
-          exchange_sum += e_div_corr_2;
+          exchange_sum += e_div_corr_2 * wf.weight(iKpi);
           // add here contributions of div_corr_2 to stress
 
-          const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i] *
-                                    KPGridPerm_.weight(iKpi);
+          const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
+
           div_corr += div_corr_3;
           const double e_div_corr_3 = -0.5 * div_corr_3 * occ_ki_[i];
-          exchange_sum += e_div_corr_3;
+          exchange_sum += e_div_corr_3 * wf.weight(iKpi);
           // no contribution to stress from div_corr_3
         }
 
@@ -904,7 +904,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                                     KPGridPerm_.weight(iKpi);
           div_corr += div_corr_4;
           const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
-          exchange_sum += e_div_corr_4;
+          exchange_sum += e_div_corr_4 * wf.weight(iKpi);
 
         } // if quad_correction
 
@@ -936,7 +936,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   if ( gcontext_.onpe0() )
   {
     cout << setprecision(10);
-    cout << " total exchange = " << extot << " Eh\n";
+    cout << " total exchange = " << extot << " (a.u.)\n";
     cout << " total exchange computation time: " << tm.real()
          << " s" << endl;
   }

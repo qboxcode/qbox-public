@@ -673,7 +673,8 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     2.0 * occ_kj_[j] * spinFactor;
 
                   // add contribution to exchange energy
-                  exchange_sum += ex_ki_i_kj_j * weight * wf.weight(iKpj);
+                  exchange_sum += ex_ki_i_kj_j * weight * wf.weight(iKpi) *
+                                  0.5 * occ_ki_[i];
 
                   if (dwf)
                   {
@@ -712,8 +713,10 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     2.0 * occ_kj_[j] * spinFactor;
 
                   // add contribution to exchange energy
-                  exchange_sum += ex_ki_i_kj_j * weightj * wf.weight(iKpi);
-                  exchange_sum += ex_ki_i_kj_j * weighti * wf.weight(iKpj);
+                  exchange_sum += ex_ki_i_kj_j * weightj * wf.weight(iKpi) *
+                                  0.5 * occ_ki_[i];
+                  exchange_sum += ex_ki_i_kj_j * weighti * wf.weight(iKpj) *
+                                  0.5 * occ_kj_[j];
 
                   if (dwf)
                   {
@@ -2154,16 +2157,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         double d2_z=KPGridPerm_.distance_second_kz(0);
         double beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
           KPGridPerm_.integral_kz(0);
-
-#if 0
-if (gcontext_.onpe0())
-{
-  cout << "i=" << i << " beta=" << beta_x << " " << beta_y << " " << beta_z
-  << "  integral=" << KPGridPerm_.integral_kx(0) << " "
-  << KPGridPerm_.integral_ky(0) << " "
-  << KPGridPerm_.integral_kz(0) << endl;
-}
-#endif
 
         // note: factor occ_ki_[i] * spinFactor already in beta
         const double beta_sum = beta_x + beta_y + beta_z ;

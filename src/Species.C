@@ -117,8 +117,11 @@ bool Species::initialize(double rcpsval)
   {
     vps_spl_[l].resize(ndft_);
     vps_spl2_[l].resize(ndft_);
-    phi_spl_[l].resize(ndft_);
-    phi_spl2_[l].resize(ndft_);
+    if ( phi_[l].size() > 0 )
+    {
+      phi_spl_[l].resize(ndft_);
+      phi_spl2_[l].resize(ndft_);
+    }
   }
 
   // extend rps and vps_ to full mesh (up to i==ndft_-1)
@@ -148,14 +151,15 @@ bool Species::initialize(double rcpsval)
   for ( int l = 0; l <= lmax_; l++ )
   {
     for ( int i = 0; i < np; i++ )
-    {
       vps_spl_[l][i] = vps_[l][i];
-      phi_spl_[l][i] = phi_[l][i];
-    }
     for ( int i = np; i < ndft_; i++ )
-    {
       vps_spl_[l][i] = - zval_ / rps_spl_[i];
-      phi_spl_[l][i] = 0.0;
+    if ( phi_[l].size() > 0 )
+    {
+      for ( int i = 0; i < np; i++ )
+        phi_spl_[l][i] = phi_[l][i];
+      for ( int i = np; i < ndft_; i++ )
+        phi_spl_[l][i] = 0.0;
     }
   }
 
@@ -167,7 +171,7 @@ bool Species::initialize(double rcpsval)
   }
   for ( int l = 0; l <= lmax_; l++ )
   {
-    if ( l != llocal_ )
+    if ( l != llocal_ && phi_[l].size() > 0 )
     {
       spline(ndft_,&rps_spl_[0],&phi_spl_[l][0],0.0,0.0,0,1,&phi_spl2_[l][0]);
     }
@@ -481,14 +485,10 @@ bool Species::initialize(double rcpsval)
 
 void Species::phi(int l, double r, double &val)
 {
-  if ( l > lmax_ || r > rps_spl_[ndft_-1] )
-  {
-    val = 0.0;
-  }
-  else
-  {
-    splint(ndft_,&rps_spl_[0],&phi_spl_[l][0],&phi_spl2_[l][0],r,&val);
-  }
+  val = 0.0;
+  if ( phi_[l].size() == 0 || l > lmax_ || r > rps_spl_[ndft_-1] )
+    return;
+  splint(ndft_,&rps_spl_[0],&phi_spl_[l][0],&phi_spl2_[l][0],r,&val);
 }
 
 void Species::vpsr(int l, double r, double &v)

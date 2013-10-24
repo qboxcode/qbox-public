@@ -30,6 +30,7 @@
 #define HSEFUNCTIONAL_H
 
 #include "XCFunctional.h"
+#include "InteractionPotential.h"
 #include <vector>
 
 class HSEFunctional : public XCFunctional
@@ -66,7 +67,16 @@ class HSEFunctional : public XCFunctional
 
   // evaluate fourier transform of nonlocal potential for given G vector
   // input g2 = G^2
-  static double interaction_potential( const double& g2 );
+  static double interaction_potential(const double& g2);
+  // derivative of interaction potential
+  static double derivative_interaction_potential(const double& g2);
+
+  // construct interaction potential class
+  static const InteractionPotential make_interaction_potential()
+  {
+    return InteractionPotential(&interaction_potential,
+      &derivative_interaction_potential);
+  }
 
 };
 

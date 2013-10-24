@@ -964,3 +964,28 @@ double HSEFunctional::interaction_potential(const double& g2) {
   }
 
 }
+
+// derivative of interaction potential
+// input g2 = G^2
+// exp( -g2 / 4 w^2 )   V(g2)
+// ------------------ - -----
+//      4 g2 w^2         g2
+double HSEFunctional::derivative_interaction_potential(const double& g2) {
+
+  // helper variable
+  const double r1_4w2 = 0.25 / (omega * omega);
+  const double x = g2 * r1_4w2;
+  const double third = 1.0 / 3.0;
+
+  if (g2 == 0) {
+    // trivial limit for g2 = 0
+    return -0.5 * r1_4w2 * r1_4w2;
+  } else if (g2 < 1e-6) {
+    // taylor expansion near origin
+    return (-0.5 + x * (third - 0.125 * x)) * r1_4w2 * r1_4w2;
+  } else {
+    // exact derivative
+    return (exp(-x) * r1_4w2 - interaction_potential(g2)) / g2;
+  }
+
+}

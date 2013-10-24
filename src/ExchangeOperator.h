@@ -20,6 +20,7 @@
 #include "SlaterDet.h"
 #include "FourierTransform.h"
 #include "KPGridConnectivity.h"
+#include "InteractionPotential.h"
 
 #ifndef EXCHANGEOPERATOR_H
 #define EXCHANGEOPERATOR_H
@@ -179,7 +180,7 @@ class ExchangeOperator
   vector<long int> localization_;
 
   // fourier transform of nonlocal potential
-  double (*interaction_potential_)(const double&);
+  const InteractionPotential interaction_potential_;
 
   // coulomb potential
   bool coulomb_;
@@ -187,7 +188,7 @@ class ExchangeOperator
   public:
 
   // constructor
-  ExchangeOperator(Sample& s_, double HFCoeff, double (*interaction_potential)(const double&) = 0);
+  ExchangeOperator(Sample& s_, double HFCoeff, const InteractionPotential& interaction_potential = InteractionPotential() );
 
   // destructor
   ~ExchangeOperator();

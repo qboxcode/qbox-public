@@ -35,10 +35,10 @@ using namespace std;
 #define Tag_States 5
 
 ////////////////////////////////////////////////////////////////////////////////
-ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff, double (*interaction_potential)(const double&) )
+ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff, const InteractionPotential& interaction_potential )
 : s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf),
   KPGridPerm_(s), KPGridStat_(s), HFCoeff_(HFCoeff),
-  interaction_potential_(interaction_potential), coulomb_( interaction_potential == 0 )
+  interaction_potential_(interaction_potential), coulomb_(interaction_potential.coulomb())
 {
   eex_ = 0.0; // exchange energy
   rcut_ = 1.0;  // constant of support function for exchange integration

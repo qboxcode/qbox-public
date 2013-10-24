@@ -976,7 +976,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
   bool quad_correction = s_.ctrl.debug.find("EXCHANGE_NOQUAD") == string::npos;
 
   assert(KPGridPerm_.Connection());
-  assert(coulomb_ or not compute_stress);
 
   wfc_ = wf;
 
@@ -1642,7 +1641,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
               // factor 2.0: derivative of 1/G^2
-              const double fac1 = 2.0 * t1 * tg2i;
+              const double fac1 = 2.0 * ( coulomb_ ? (t1 * tg2i) :
+                  2.0 * norm(rhog1_[ig]) * interaction_potential_.derivative(g2[ig]) );
               sigma_sum_1[0] += fac1 * tgx * tgx;
               sigma_sum_1[1] += fac1 * tgy * tgy;
               sigma_sum_1[2] += fac1 * tgz * tgz;
@@ -1650,7 +1650,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               sigma_sum_1[4] += fac1 * tgy * tgz;
               sigma_sum_1[5] += fac1 * tgz * tgx;
 
-              const double fac2 = 2.0 * t2 * tg2i;
+              const double fac2 = 2.0 * ( coulomb_ ? (t2 * tg2i) :
+                  2.0 * norm(rhog2_[ig]) * interaction_potential_.derivative(g2[ig]) );
               sigma_sum_2[0] += fac2 * tgx * tgx;
               sigma_sum_2[1] += fac2 * tgy * tgy;
               sigma_sum_2[2] += fac2 * tgz * tgz;
@@ -1837,7 +1838,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
               // factor 2.0: derivative of 1/G^2
-              const double fac = 2.0 * t1 * tg2i;
+              const double fac = 2.0 * ( coulomb_ ? (t1 * tg2i) :
+                  2.0 * norm(rhog1_[ig]) * interaction_potential_.derivative(g2[ig]) );
               sigma_sum_1[0] += fac * tgx * tgx;
               sigma_sum_1[1] += fac * tgy * tgy;
               sigma_sum_1[2] += fac * tgz * tgz;

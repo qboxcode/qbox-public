@@ -1,7 +1,12 @@
 --------------------------------------------------------------------------------
+rel1_57_14
+--------------------------------------------------------------------------------
+r1396: util/kpgen/kpgen.C: fixed odd numbered case and added test.
+r1395: Species.C: fix for case of missing radial functions
+r1394: BOSampleStepper.C: include weight info in eigenvalues
+r1390,r1391: Fix exchange calculation with multiple k-points
 r1388: Species.[Ch]: ensure that print outputs the same data as was read
 from the pseudopotential file.
---------------------------------------------------------------------------------
 r1363: XMLGFPreprocessor.C: implemented sample loading using http connection.
 --------------------------------------------------------------------------------
 rel1_57_13

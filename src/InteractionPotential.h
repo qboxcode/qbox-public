@@ -27,30 +27,48 @@
 #ifndef INTERACTIONPOTENTIAL_H
 #define INTERACTIONPOTENTIAL_H
 
+#include <cassert>
+
 class InteractionPotential
 {
   public:
 
+  // default constructor = Coulomb potential
+  InteractionPotential():
+    coulomb_(true)
+  { 
+  }
+  
   // constructor - define function and derivative
   InteractionPotential(double(*V)(const double&), double(*dV)(const double&)) :
-    V_(V), dV_(dV)
+    V_(V), dV_(dV), coulomb_(false)
   {
   }
 
+  // is the interaction potential a coulomb potential?
+  inline bool coulomb() const {
+    return coulomb_;
+  }
+  
   // evaluate the interaction potential for given norm of G vector
   inline double operator()(const double G2) const
   {
+    // the current implementation expects that coulomb potential is treated externaly
+    assert( not coulomb_ );
     return V_(G2);
   }
 
   // evaluate the derivative of the interaction potential w.r.t. G^2
   inline double derivative(const double G2) const
   {
+    // the current implementation expects that coulomb potential is treated externaly
+    assert( not coulomb_ );
     return dV_(G2);
   }
 
   private:
 
+  const bool coulomb_;
   double (*V_)(const double&);
   double (*dV_)(const double&);
 

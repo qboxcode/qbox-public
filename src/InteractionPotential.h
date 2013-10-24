@@ -34,27 +34,29 @@ class InteractionPotential
   public:
 
   // default constructor = Coulomb potential
-  InteractionPotential():
+  InteractionPotential() :
     coulomb_(true)
-  { 
+  {
   }
-  
+
   // constructor - define function and derivative
-  InteractionPotential(double(*V)(const double&), double(*dV)(const double&)) :
-    V_(V), dV_(dV), coulomb_(false)
+  InteractionPotential(double(*V)(const double&), double(*dV)(const double&),
+    double(*div_scale)(const double&)) :
+    V_(V), dV_(dV), div_scale_(div_scale), coulomb_(false)
   {
   }
 
   // is the interaction potential a coulomb potential?
-  inline bool coulomb() const {
+  inline bool coulomb() const
+  {
     return coulomb_;
   }
-  
+
   // evaluate the interaction potential for given norm of G vector
   inline double operator()(const double G2) const
   {
     // the current implementation expects that coulomb potential is treated externaly
-    assert( not coulomb_ );
+    assert(not coulomb_);
     return V_(G2);
   }
 
@@ -62,8 +64,15 @@ class InteractionPotential
   inline double derivative(const double G2) const
   {
     // the current implementation expects that coulomb potential is treated externaly
-    assert( not coulomb_ );
+    assert(not coulomb_);
     return dV_(G2);
+  }
+
+  inline double divergence_scaling(const double rcut) const
+  {
+    // the current implementation expects that coulomb potential is treated externaly
+    assert(not coulomb_);
+    return div_scale_(rcut);
   }
 
   private:
@@ -71,6 +80,7 @@ class InteractionPotential
   const bool coulomb_;
   double (*V_)(const double&);
   double (*dV_)(const double&);
+  double (*div_scale_)(const double&);
 
 };
 

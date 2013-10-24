@@ -1321,30 +1321,35 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     const double *g2i = vbasis_->g2i_ptr();
     const double rc2 = rcut_*rcut_;
 
-    // correction only for Coulomb potential
-    if (coulomb_)
+    // "divergence" correction (only truly divergent for Coulomb potential)
+    // subtract exp(-alpha G^2) V(G)
+    for ( int ig = 0; ig < ngloc; ig++ )
     {
-      for ( int ig = 0; ig < ngloc; ig++ )
-      {
-        // factor 2.0: real basis
-        const double tg2i = g2i[ig];
-        double t = 2.0 * exp( - rc2 * g2[ig] ) * tg2i;
-        SumExpG2 += t;
+      // no correction for G = 0
+      if ( g2[ig] == 0 ) continue;
 
-        if ( compute_stress )
-        {
-          const double tgx = g_x[ig];
-          const double tgy = g_y[ig];
-          const double tgz = g_z[ig];
-          // factor 2.0: derivative of G^2
-          const double fac = t * 2.0 * ( rc2 + tg2i );
-          sigma_sumexp[0] += fac * tgx * tgx;
-          sigma_sumexp[1] += fac * tgy * tgy;
-          sigma_sumexp[2] += fac * tgz * tgz;
-          sigma_sumexp[3] += fac * tgx * tgy;
-          sigma_sumexp[4] += fac * tgy * tgz;
-          sigma_sumexp[5] += fac * tgz * tgx;
-        }
+      // factor 2.0: real basis
+      const double tg2i = g2i[ig];
+      // V(G) = 1/G^2 for Coulomb potential
+      const double int_pot = (coulomb_) ? tg2i : interaction_potential_(g2[ig]);
+      const double expG2 = exp( - rc2 * g2[ig] );
+      double t = 2.0 * expG2 * int_pot;
+      SumExpG2 += t;
+
+      if ( compute_stress )
+      {
+        const double tgx = g_x[ig];
+        const double tgy = g_y[ig];
+        const double tgz = g_z[ig];
+        // factor 2.0: derivative of G^2
+        const double fac = 2.0 * ( (coulomb_) ? t * ( rc2 + tg2i ) :
+          ( t * rc2 - 2.0 * expG2 * interaction_potential_.derivative(g2[ig]) ) );
+        sigma_sumexp[0] += fac * tgx * tgx;
+        sigma_sumexp[1] += fac * tgy * tgy;
+        sigma_sumexp[2] += fac * tgz * tgz;
+        sigma_sumexp[3] += fac * tgx * tgy;
+        sigma_sumexp[4] += fac * tgy * tgz;
+        sigma_sumexp[5] += fac * tgz * tgx;
       }
     }
 
@@ -1620,20 +1625,14 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // Add the values of |rho1(G)|^2/|G+q1|^2
             // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
             // note: g2i[G=0] == 0
-            // factor 2.0: real basis
+            // factor 2.0: real basis (G=0 -> no contribution)
             const double tg2i = g2i[ig];
             const double int_pot = ( coulomb_ ) ? tg2i : interaction_potential_(g2[ig]);
-            const double t1 = 2.0 * norm(rhog1_[ig]) * int_pot;
-            const double t2 = 2.0 * norm(rhog2_[ig]) * int_pot;
+            const double factor2 = ( g2[ig] == 0 ) ? 0 : 2.0;
+            const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
+            const double t2 = factor2 * norm(rhog2_[ig]) * int_pot;
             ex_sum_1 += t1;
             ex_sum_2 += t2;
-
-            if (dwf)
-            {
-              // compute rhog1_[G]/|G+q1|^2 and rhog2_[G]/|G+q1|^2
-              rhog1_[ig] *= int_pot;
-              rhog2_[ig] *= int_pot;
-            }
 
             if ( compute_stress )
             {
@@ -1642,7 +1641,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgz = g_z[ig];
               // factor 2.0: derivative of 1/G^2
               const double fac1 = 2.0 * ( coulomb_ ? (t1 * tg2i) :
-                  2.0 * norm(rhog1_[ig]) * interaction_potential_.derivative(g2[ig]) );
+                  -factor2 * norm(rhog1_[ig]) * interaction_potential_.derivative(g2[ig]) );
               sigma_sum_1[0] += fac1 * tgx * tgx;
               sigma_sum_1[1] += fac1 * tgy * tgy;
               sigma_sum_1[2] += fac1 * tgz * tgz;
@@ -1651,13 +1650,20 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               sigma_sum_1[5] += fac1 * tgz * tgx;
 
               const double fac2 = 2.0 * ( coulomb_ ? (t2 * tg2i) :
-                  2.0 * norm(rhog2_[ig]) * interaction_potential_.derivative(g2[ig]) );
+                  -factor2 * norm(rhog2_[ig]) * interaction_potential_.derivative(g2[ig]) );
               sigma_sum_2[0] += fac2 * tgx * tgx;
               sigma_sum_2[1] += fac2 * tgy * tgy;
               sigma_sum_2[2] += fac2 * tgz * tgz;
               sigma_sum_2[3] += fac2 * tgx * tgy;
               sigma_sum_2[4] += fac2 * tgy * tgz;
               sigma_sum_2[5] += fac2 * tgz * tgx;
+            }
+
+            if (dwf)
+            {
+              // compute rhog1_[G]/|G+q1|^2 and rhog2_[G]/|G+q1|^2
+              rhog1_[ig] *= int_pot;
+              rhog2_[ig] *= int_pot;
             }
           }
 
@@ -1821,16 +1827,12 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // Add the values of |rho1(G)|^2/|G|^2
             // and |rho2(G)|^2/|G|^2 to the exchange energy.
             // note: g2i[G=0] == 0
-            // factor 2.0: real basis
+            // factor 2.0: real basis (no contribution for G=0)
             const double tg2i = g2i[ig];
             const double int_pot = ( coulomb_ ) ? tg2i : interaction_potential_(g2[ig]);
-            const double t1 = 2.0 * norm(rhog1_[ig]) * int_pot;
+            const double factor2 = ( g2[ig] == 0 ) ? 0 : 2.0;
+            const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
             ex_sum_1 += t1;
-
-            if (dwf)
-            {
-              rhog1_[ig] *= int_pot;
-            }
 
             if ( compute_stress )
             {
@@ -1839,13 +1841,18 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgz = g_z[ig];
               // factor 2.0: derivative of 1/G^2
               const double fac = 2.0 * ( coulomb_ ? (t1 * tg2i) :
-                  2.0 * norm(rhog1_[ig]) * interaction_potential_.derivative(g2[ig]) );
+                  -factor2 * norm(rhog1_[ig]) * interaction_potential_.derivative(g2[ig]) );
               sigma_sum_1[0] += fac * tgx * tgx;
               sigma_sum_1[1] += fac * tgy * tgy;
               sigma_sum_1[2] += fac * tgz * tgz;
               sigma_sum_1[3] += fac * tgx * tgy;
               sigma_sum_1[4] += fac * tgy * tgz;
               sigma_sum_1[5] += fac * tgz * tgx;
+            }
+
+            if (dwf)
+            {
+              rhog1_[ig] *= int_pot;
             }
           }
 
@@ -2109,115 +2116,118 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     }
     // dc now contains the forces
 
-    // divergence corrections
-    if ( coulomb_ ) {
+    // "divergence" corrections (only truly divergent for Coulomb potential)
 
-      // correct the energy of state i
-      for ( int i = 0; i < sd.nstloc(); i++ )
+    // correct the energy of state i
+    for ( int i = 0; i < sd.nstloc(); i++ )
+    {
+
+      // divergence corrections
+      double div_corr = 0.0;
+
+      // SumExpG2 contribution
+      const double  div_corr_1 = exfac * SumExpG2 * occ_ki_[i];
+      div_corr += div_corr_1;
+      const double e_div_corr_1 = -0.5 * div_corr_1 * occ_ki_[i];
+      exchange_sum += e_div_corr_1;
+      const double fac1 = 0.5 * exfac * occ_ki_[i] * occ_ki_[i];
+      sigma_exhf_[0] += ( e_div_corr_1 + fac1 * sigma_sumexp[0] ) / omega;
+      sigma_exhf_[1] += ( e_div_corr_1 + fac1 * sigma_sumexp[1] ) / omega;
+      sigma_exhf_[2] += ( e_div_corr_1 + fac1 * sigma_sumexp[2] ) / omega;
+      sigma_exhf_[3] += ( fac1 * sigma_sumexp[3] ) / omega;
+      sigma_exhf_[4] += ( fac1 * sigma_sumexp[4] ) / omega;
+      sigma_exhf_[5] += ( fac1 * sigma_sumexp[5] ) / omega;
+
+      // rcut*rcut divergence correction (is O(Omega^(-5/3)) for screened Coulomb potential)
+      if ( vbasis_->mype() == 0 and coulomb_ )
       {
+        const double div_corr_2 = - exfac * rcut_ * rcut_ * occ_ki_[i];
+        div_corr += div_corr_2;
+        const double e_div_corr_2 = -0.5 * div_corr_2 * occ_ki_[i];
+        exchange_sum += e_div_corr_2;
+        sigma_exhf_[0] += e_div_corr_2 / omega;
+        sigma_exhf_[1] += e_div_corr_2 / omega;
+        sigma_exhf_[2] += e_div_corr_2 / omega;
+      }
 
-        // divergence corrections
-        double div_corr = 0.0;
+      // analytical part
+      // scaling factor relative to Coulomb potential
+      const double factor = (coulomb_) ? 1.0 : interaction_potential_.divergence_scaling(rcut_);
+      const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ ) * factor;
+      const double vbz = pow(2.0*M_PI,3.0) / omega;
 
-        // SumExpG2 contribution
-        const double  div_corr_1 = exfac * SumExpG2 * occ_ki_[i];
-        div_corr += div_corr_1;
-        const double e_div_corr_1 = -0.5 * div_corr_1 * occ_ki_[i];
-        exchange_sum += e_div_corr_1;
-        const double fac1 = 0.5 * exfac * occ_ki_[i] * occ_ki_[i];
-        sigma_exhf_[0] += ( e_div_corr_1 + fac1 * sigma_sumexp[0] ) / omega;
-        sigma_exhf_[1] += ( e_div_corr_1 + fac1 * sigma_sumexp[1] ) / omega;
-        sigma_exhf_[2] += ( e_div_corr_1 + fac1 * sigma_sumexp[2] ) / omega;
-        sigma_exhf_[3] += ( fac1 * sigma_sumexp[3] ) / omega;
-        sigma_exhf_[4] += ( fac1 * sigma_sumexp[4] ) / omega;
-        sigma_exhf_[5] += ( fac1 * sigma_sumexp[5] ) / omega;
+      if ( vbasis_->mype() == 0 )
+      {
+        const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
+        div_corr += div_corr_3;
+        const double e_div_corr_3 = -0.5 * div_corr_3 * occ_ki_[i];
+        exchange_sum += e_div_corr_3;
+        // no contribution to stress
+      }
 
-        // rcut*rcut divergence correction
-        if ( vbasis_->mype() == 0 )
-        {
-          const double div_corr_2 = - exfac * rcut_ * rcut_ * occ_ki_[i];
-          div_corr += div_corr_2;
-          const double e_div_corr_2 = -0.5 * div_corr_2 * occ_ki_[i];
-          exchange_sum += e_div_corr_2;
-          sigma_exhf_[0] += e_div_corr_2 / omega;
-          sigma_exhf_[1] += e_div_corr_2 / omega;
-          sigma_exhf_[2] += e_div_corr_2 / omega;
-        }
+      // Quadratic corrections (only implemented for Coulomb potential)
+      if ( quad_correction and coulomb_ )
+      {
+        // compute the curvature terms
+        // quadratic exchange correction
+        double s0=KPGridPerm_.overlaps_local(0,i);
+        double s1_x=KPGridPerm_.overlaps_first_kx(0,i)+
+                    KPGridStat_.overlaps_first_kx(0,i);
+        double s2_x=KPGridPerm_.overlaps_second_kx(0,i)+
+                    KPGridStat_.overlaps_second_kx(0,i);
+        double d1_x=KPGridPerm_.distance_first_kx(0);
+        double d2_x=KPGridPerm_.distance_second_kx(0);
+        double beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
+          KPGridPerm_.integral_kx(0);
 
-        // analytical part
-        const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ );
-        const double vbz = pow(2.0*M_PI,3.0) / omega;
+        double s1_y=KPGridPerm_.overlaps_first_ky(0,i)+
+                    KPGridStat_.overlaps_first_ky(0,i);
+        double s2_y=KPGridPerm_.overlaps_second_ky(0,i)+
+                    KPGridStat_.overlaps_second_ky(0,i);
+        double d1_y=KPGridPerm_.distance_first_ky(0);
+        double d2_y=KPGridPerm_.distance_second_ky(0);
+        double beta_y=(s1_y+s2_y-2.0*s0)/(d1_y*d1_y+d2_y*d2_y)*
+          KPGridPerm_.integral_ky(0);
 
-        if ( vbasis_->mype() == 0 )
-        {
-          const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
-          div_corr += div_corr_3;
-          const double e_div_corr_3 = -0.5 * div_corr_3 * occ_ki_[i];
-          exchange_sum += e_div_corr_3;
-          // no contribution to stress
-        }
+        double s1_z=KPGridPerm_.overlaps_first_kz(0,i)+
+                    KPGridStat_.overlaps_first_kz(0,i);
+        double s2_z=KPGridPerm_.overlaps_second_kz(0,i)+
+                    KPGridStat_.overlaps_second_kz(0,i);
+        double d1_z=KPGridPerm_.distance_first_kz(0);
+        double d2_z=KPGridPerm_.distance_second_kz(0);
+        double beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
+          KPGridPerm_.integral_kz(0);
 
-        // Quadratic corrections
-        if ( quad_correction )
-        {
-          // compute the curvature terms
-          // quadratic exchange correction
-          double s0=KPGridPerm_.overlaps_local(0,i);
-          double s1_x=KPGridPerm_.overlaps_first_kx(0,i)+
-                      KPGridStat_.overlaps_first_kx(0,i);
-          double s2_x=KPGridPerm_.overlaps_second_kx(0,i)+
-                      KPGridStat_.overlaps_second_kx(0,i);
-          double d1_x=KPGridPerm_.distance_first_kx(0);
-          double d2_x=KPGridPerm_.distance_second_kx(0);
-          double beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
-            KPGridPerm_.integral_kx(0);
-
-          double s1_y=KPGridPerm_.overlaps_first_ky(0,i)+
-                      KPGridStat_.overlaps_first_ky(0,i);
-          double s2_y=KPGridPerm_.overlaps_second_ky(0,i)+
-                      KPGridStat_.overlaps_second_ky(0,i);
-          double d1_y=KPGridPerm_.distance_first_ky(0);
-          double d2_y=KPGridPerm_.distance_second_ky(0);
-          double beta_y=(s1_y+s2_y-2.0*s0)/(d1_y*d1_y+d2_y*d2_y)*
-            KPGridPerm_.integral_ky(0);
-
-          double s1_z=KPGridPerm_.overlaps_first_kz(0,i)+
-                      KPGridStat_.overlaps_first_kz(0,i);
-          double s2_z=KPGridPerm_.overlaps_second_kz(0,i)+
-                      KPGridStat_.overlaps_second_kz(0,i);
-          double d1_z=KPGridPerm_.distance_first_kz(0);
-          double d2_z=KPGridPerm_.distance_second_kz(0);
-          double beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
-            KPGridPerm_.integral_kz(0);
-
-          // note: factor occ_ki_[i] * spinFactor already in beta
-          const double beta_sum = beta_x + beta_y + beta_z ;
-          const double div_corr_4 = (4.0 * M_PI / omega ) * beta_sum;
-          div_corr += div_corr_4;
-          const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
-          exchange_sum += e_div_corr_4;
-          const double fac4 = ( 4.0 * M_PI / omega );
-          sigma_exhf_[0] += ( e_div_corr_4 + fac4 * 2.0 * beta_x ) / omega;
-          sigma_exhf_[1] += ( e_div_corr_4 + fac4 * 2.0 * beta_y ) / omega;
-          sigma_exhf_[2] += ( e_div_corr_4 + fac4 * 2.0 * beta_z ) / omega;
-        }
+        // note: factor occ_ki_[i] * spinFactor already in beta
+        const double beta_sum = beta_x + beta_y + beta_z ;
+        const double div_corr_4 = (4.0 * M_PI / omega ) * beta_sum;
+        div_corr += div_corr_4;
+        const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
+        exchange_sum += e_div_corr_4;
+        const double fac4 = ( 4.0 * M_PI / omega );
+        sigma_exhf_[0] += ( e_div_corr_4 + fac4 * 2.0 * beta_x ) / omega;
+        sigma_exhf_[1] += ( e_div_corr_4 + fac4 * 2.0 * beta_y ) / omega;
+        sigma_exhf_[2] += ( e_div_corr_4 + fac4 * 2.0 * beta_z ) / omega;
+      }
 
 
-        // contribution of divergence corrections to forces on wave functions
-        if (dwf)
-        {
-          // sum the partial contributions to the correction for state i
-          gcontext_.dsum('C', 1, 1, &div_corr, 1);
+      // contribution of divergence corrections to forces on wave functions
+      // (other than Coulomb, no divergence correction for wave functions)
+      if (dwf and coulomb_)
+      {
+        // sum the partial contributions to the correction for state i
+        gcontext_.dsum('C', 1, 1, &div_corr, 1);
 
-          // add correction to the derivatives of state i
-          complex<double> *ps=c.valptr(i*c.mloc());
-          complex<double> *pf=dc.valptr(i*dc.mloc());
-          for ( int j = 0; j < dc.mloc(); j++ )
-            pf[j] -= ps[j] * div_corr * HFCoeff_;
-        }
+        // add correction to the derivatives of state i
+        complex<double> *ps=c.valptr(i*c.mloc());
+        complex<double> *pf=dc.valptr(i*dc.mloc());
+        for ( int j = 0; j < dc.mloc(); j++ )
+          pf[j] -= ps[j] * div_corr * HFCoeff_;
+      }
 
-      } // for i
-    } // divergence corrections
+    } // for i
+
+    // divergence corrections done
 
     if ( use_bisection_ )
     {

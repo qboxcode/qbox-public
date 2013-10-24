@@ -70,12 +70,14 @@ class HSEFunctional : public XCFunctional
   static double interaction_potential(const double& g2);
   // derivative of interaction potential
   static double derivative_interaction_potential(const double& g2);
+  // scaling of the divergence correction relative to the Coulomb potential
+  static double divergence_scaling(const double& rcut);
 
   // construct interaction potential class
   static const InteractionPotential make_interaction_potential()
   {
     return InteractionPotential(&interaction_potential,
-      &derivative_interaction_potential);
+      &derivative_interaction_potential,&divergence_scaling);
   }
 
 };

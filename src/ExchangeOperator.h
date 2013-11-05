@@ -82,8 +82,8 @@ class ExchangeOperator
   valarray<double> qpG22_;
   valarray<double> qpG2i1_;
   valarray<double> qpG2i2_;
-  valarray<double> FT1_;
-  valarray<double> FT2_;
+  valarray<double> int_pot1_;
+  valarray<double> int_pot2_;
 
   // numbers of states
   int nLocalStates_;

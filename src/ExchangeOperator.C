@@ -105,8 +105,8 @@ ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff, const Interaction
     qpG22_.resize(ngloc);
     qpG2i1_.resize(ngloc);
     qpG2i2_.resize(ngloc);
-    FT1_.resize(ngloc);
-    FT2_.resize(ngloc);
+    int_pot1_.resize(ngloc);
+    int_pot2_.resize(ngloc);
   }
 
   // get both local and maximum amount of states on a proc
@@ -220,7 +220,6 @@ ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff, const Interaction
   // set indices for overlaps
   KPGridPerm_.SetOverlapIndices(vbasis_);
   KPGridStat_.SetOverlapIndices(vbasis_);
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -560,23 +559,25 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
             // for Coulomb potential use 1/|G+q|^2
             if ( coulomb_ )
             {
-              FT1_[ig] = qpG2i1_[ig];
-              FT2_[ig] = qpG2i2_[ig];
+              int_pot1_[ig] = qpG2i1_[ig];
+              int_pot2_[ig] = qpG2i2_[ig];
             }
             // otherwise use given function of |G+q|^2
             else
             {
-              FT1_[ig] = interaction_potential_(qpG21_[ig]);
-              FT2_[ig] = interaction_potential_(qpG22_[ig]);
+              int_pot1_[ig] = interaction_potential_(qpG21_[ig]);
+              int_pot2_[ig] = interaction_potential_(qpG22_[ig]);
             }
 
             // if iKpi=0 (first k point)
             // compute the numerical part of the correction
-            if ( (iRotationStep==0) and coulomb_ )
+            if ( (iRotationStep==0) )
             {
               const double rc2 = rcut_*rcut_;
-              SumExpQpG2 += (exp(-rc2*qpG21_[ig]) * qpG2i1_[ig] );
-              SumExpQpG2 += (exp(-rc2*qpG22_[ig]) * qpG2i2_[ig] );
+              if ( qpG21_[ig] > 0.0 )
+                SumExpQpG2 += (exp(-rc2*qpG21_[ig]) * int_pot1_[ig] );
+              if ( qpG22_[ig] > 0.0 )
+                SumExpQpG2 += (exp(-rc2*qpG22_[ig]) * int_pot2_[ig] );
             }
           }
 
@@ -585,7 +586,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           // correction. Works only if this is the first iKpoint.
           //
           // divide weight by 2 as we implicitly counted kpoint j and symmetric
-          if ( (iRotationStep==0) and coulomb_ ) // && ( iKpi==0 )
+          if ( (iRotationStep==0) ) // && ( iKpi==0 )
           {
             if ( iKpi==iKpj )
             {
@@ -653,16 +654,18 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                   // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
                   // This does not take the point G=q=0 into account
                   // as qpG2i = 0.
-                  const double t1 = norm(rhog1_[ig]) * FT1_[ig];
-                  const double t2 = norm(rhog2_[ig]) * FT2_[ig];
-                  ex_ki_i_kj_j += t1;
-                  ex_ki_i_kj_j += t2;
+                  const double t1 = norm(rhog1_[ig]) * int_pot1_[ig];
+                  const double t2 = norm(rhog2_[ig]) * int_pot2_[ig];
+                  if ( qpG21_[ig] > 0.0 )
+                    ex_ki_i_kj_j += t1;
+                  if ( qpG22_[ig] > 0.0 )
+                    ex_ki_i_kj_j += t2;
 
                   if ( dwf )
                   {
                     // compute rhog1_[G]/|G+q1|^2 and rhog2_[G]/|G+q1|^2
-                    rhog1_[ig] *= FT1_[ig];
-                    rhog2_[ig] *= FT2_[ig];
+                    rhog1_[ig] *= int_pot1_[ig];
+                    rhog2_[ig] *= int_pot2_[ig];
                   }
                 }
                 if ( dwf )
@@ -854,102 +857,101 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
       }
 
       // divergence corrections
-      if ( coulomb_ ) {
+      const double factor = (coulomb_) ? 1.0 : interaction_potential_.divergence_scaling(rcut_);
+      const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ ) * factor;
+      const double vbz = pow(2.0*M_PI,3.0) / omega;
 
-        const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ );
-        const double vbz = pow(2.0*M_PI,3.0) / omega;
+      for ( int i = 0; i < sdi.nstloc(); i++ )
+      {
+        double div_corr = 0.0;
 
-        for ( int i = 0; i < sdi.nstloc(); i++ )
+        const double div_corr_1 = 2.0 * exfac * numerical_correction[iKpi];
+        div_corr += div_corr_1;
+        const double e_div_corr_1 = - 0.5 * div_corr_1 * occ_ki_[i];
+        exchange_sum += e_div_corr_1 * wf.weight(iKpi);
+        // add here contributions to stress from div_corr_1;
+
+        // rcut*rcut divergence correction
+        if ( vbasis_->mype() == 0 )
         {
-          double div_corr = 0.0;
-
-          const double div_corr_1 = exfac * numerical_correction[iKpi];
-          div_corr += div_corr_1;
-          const double e_div_corr_1 = - div_corr_1 * occ_ki_[i];
-          exchange_sum += e_div_corr_1;
-          // add here contributions to stress from div_corr_1;
-
-          // rcut*rcut divergence correction
-          if ( vbasis_->mype() == 0 )
-          {
+          // for screened Coulomb potential O(Omega^{-5/3})
+          if ( coulomb_ ) {
             const double div_corr_2 = - exfac * rcut_ * rcut_ * occ_ki_[i] *
                                       KPGridPerm_.weight(iKpi);
             div_corr += div_corr_2;
             const double e_div_corr_2 = -0.5 * div_corr_2 * occ_ki_[i];
-            exchange_sum += e_div_corr_2;
+            exchange_sum += e_div_corr_2 * wf.weight(iKpi);
             // add here contributions of div_corr_2 to stress
-
-            const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i] *
-                                      KPGridPerm_.weight(iKpi);
-            div_corr += div_corr_3;
-            const double e_div_corr_3 = -0.5 * div_corr_3 * occ_ki_[i];
-            exchange_sum += e_div_corr_3;
-            // no contribution to stress from div_corr_3
           }
 
-          // Quadratic corrections
-          if ( quad_correction )
-          {
-            // beta_x, beta_y and beta_z: curvature of rho(G=0)
-            double s0=KPGridPerm_.overlaps_local(iKpi,i);
+          const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
 
-            double s1_x=KPGridPerm_.overlaps_first_kx(iKpi,i)+
-                   KPGridStat_.overlaps_first_kx(iKpi,i);
-            double s2_x=KPGridPerm_.overlaps_second_kx(iKpi,i)+
-                   KPGridStat_.overlaps_second_kx(iKpi,i);
-            double d1_x=KPGridPerm_.distance_first_kx(iKpi);
-            double d2_x=KPGridPerm_.distance_second_kx(iKpi);
-            double beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
-              KPGridPerm_.integral_kx(iKpi);
+          div_corr += div_corr_3;
+          const double e_div_corr_3 = -0.5 * div_corr_3 * occ_ki_[i];
+          exchange_sum += e_div_corr_3 * wf.weight(iKpi);
+          // no contribution to stress from div_corr_3
+        }
 
-            double s1_y=KPGridPerm_.overlaps_first_ky(iKpi,i)+
-                   KPGridStat_.overlaps_first_ky(iKpi,i);
-            double s2_y=KPGridPerm_.overlaps_second_ky(iKpi,i)+
-                   KPGridStat_.overlaps_second_ky(iKpi,i);
-            double d1_y=KPGridPerm_.distance_first_ky(iKpi);
-            double d2_y=KPGridPerm_.distance_second_ky(iKpi);
-            double beta_y=(s1_y+s2_y-2.0*s0)/(d1_y*d1_y+d2_y*d2_y)*
-              KPGridPerm_.integral_ky(iKpi);
+        // Quadratic corrections
+        // only implemented for Coulomb potential
+        if ( quad_correction and coulomb_ )
+        {
+          // beta_x, beta_y and beta_z: curvature of rho(G=0)
+          double s0=KPGridPerm_.overlaps_local(iKpi,i);
 
-            double s1_z=KPGridPerm_.overlaps_first_kz(iKpi,i)+
-                   KPGridStat_.overlaps_first_kz(iKpi,i);
-            double s2_z=KPGridPerm_.overlaps_second_kz(iKpi,i)+
-                   KPGridStat_.overlaps_second_kz(iKpi,i);
-            double d1_z=KPGridPerm_.distance_first_kz(iKpi);
-            double d2_z=KPGridPerm_.distance_second_kz(iKpi);
-            double beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
-              KPGridPerm_.integral_kz(iKpi);
+          double s1_x=KPGridPerm_.overlaps_first_kx(iKpi,i)+
+                 KPGridStat_.overlaps_first_kx(iKpi,i);
+          double s2_x=KPGridPerm_.overlaps_second_kx(iKpi,i)+
+                 KPGridStat_.overlaps_second_kx(iKpi,i);
+          double d1_x=KPGridPerm_.distance_first_kx(iKpi);
+          double d2_x=KPGridPerm_.distance_second_kx(iKpi);
+          double beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
+            KPGridPerm_.integral_kx(iKpi);
 
-            // note: factor occ_ki_[i] * spinFactor already in beta
-            const double beta_sum = beta_x + beta_y + beta_z ;
-            const double div_corr_4 = (4.0 * M_PI / omega ) * beta_sum *
-                                      KPGridPerm_.weight(iKpi);
-            div_corr += div_corr_4;
-            const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
-            exchange_sum += e_div_corr_4;
-            //const double fac4 = ( 4.0 * M_PI / omega );
-            //sigma_exhf_[0] += ( e_div_corr_4 + fac4 * 2.0 * beta_x ) / omega;
-            //sigma_exhf_[1] += ( e_div_corr_4 + fac4 * 2.0 * beta_y ) / omega;
-            //sigma_exhf_[2] += ( e_div_corr_4 + fac4 * 2.0 * beta_z ) / omega;
+          double s1_y=KPGridPerm_.overlaps_first_ky(iKpi,i)+
+                 KPGridStat_.overlaps_first_ky(iKpi,i);
+          double s2_y=KPGridPerm_.overlaps_second_ky(iKpi,i)+
+                 KPGridStat_.overlaps_second_ky(iKpi,i);
+          double d1_y=KPGridPerm_.distance_first_ky(iKpi);
+          double d2_y=KPGridPerm_.distance_second_ky(iKpi);
+          double beta_y=(s1_y+s2_y-2.0*s0)/(d1_y*d1_y+d2_y*d2_y)*
+            KPGridPerm_.integral_ky(iKpi);
 
-          } // if quad_correction
+          double s1_z=KPGridPerm_.overlaps_first_kz(iKpi,i)+
+                 KPGridStat_.overlaps_first_kz(iKpi,i);
+          double s2_z=KPGridPerm_.overlaps_second_kz(iKpi,i)+
+                 KPGridStat_.overlaps_second_kz(iKpi,i);
+          double d1_z=KPGridPerm_.distance_first_kz(iKpi);
+          double d2_z=KPGridPerm_.distance_second_kz(iKpi);
+          double beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
+            KPGridPerm_.integral_kz(iKpi);
 
-          // contribution of divergence corrections to forces on wave functions
-          if (dwf)
-          {
-            // sum the partial contributions to the correction for state i
-            gcontext_.dsum('C', 1, 1, &div_corr, 1);
+          // note: factor occ_ki_[i] * spinFactor already in beta
+          const double beta_sum = beta_x + beta_y + beta_z ;
+          const double div_corr_4 = (4.0 * M_PI / omega ) * beta_sum *
+                                    KPGridPerm_.weight(iKpi);
+          div_corr += div_corr_4;
+          const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
+          exchange_sum += e_div_corr_4 * wf.weight(iKpi);
 
-            // add correction to the derivatives of state i
-            complex<double> *ps=ci.valptr(i*ci.mloc());
-            complex<double> *pf1=dci.valptr(i*dci.mloc());
-            complex<double> *pf2=&force_kpi_[i*dci.mloc()];
-            for ( int j = 0; j < dci.mloc(); j++ )
-              pf1[j] += pf2[j] - ps[j] * div_corr * HFCoeff_;
-          }
+        } // if quad_correction
 
-        } // for i
-      } // divergence corrections
+        // contribution of divergence corrections to forces on wave functions
+        // wave functions treated explicitly for screened Coulomb potential
+        if (dwf) // and coulomb_)
+        {
+          // sum the partial contributions to the correction for state i
+          gcontext_.dsum('C', 1, 1, &div_corr, 1);
+
+          // add correction to the derivatives of state i
+          complex<double> *ps=ci.valptr(i*ci.mloc());
+          complex<double> *pf1=dci.valptr(i*dci.mloc());
+          complex<double> *pf2=&force_kpi_[i*dci.mloc()];
+          for ( int j = 0; j < dci.mloc(); j++ )
+            pf1[j] += pf2[j] - ps[j] * div_corr * HFCoeff_;
+        }
+
+      } // for i
       delete wfti_;
     } // for iKpi
   } // for ispin

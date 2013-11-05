@@ -307,10 +307,10 @@ void approximateIntegral(const double omega_kF, const double Hs2,
 // and its derivative w.r.t. s and k_F
 //                inf
 //                  /
-//  HSE         8  |                  w y
-// F (s,k ) = - -  | dy J(s,y) erfc( ----- )
-//  x    F      9  |                   k
-//                /                     F
+//  HSE         8  |                    w y
+// F (s,k ) = - -  | dy y J(s,y) erfc( ----- )
+//  x    F      9  |                    k
+//                /                      F
 //                 0
 // where s:   reduced density gradient
 //       k_F: Fermi vector
@@ -355,9 +355,9 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   // H(s) = ---------4------5------6-
   //         1 + a3 s + a4 s + a5 s
   // and
-  //     2                 3         5            3        4        5
-  // d( s H(s) )   ( 4 a1 s  + 6 a2 s ) - ( 4 a3 s + 5 a4 s + 6 a5 s ) * H(s)
-  // ----------- = ---------------------4------5------6----------------------
+  //     2                 3         5            3        4        5          2
+  // d( s H(s) )   ( 4 a1 s  + 6 a2 s ) - ( 4 a3 s + 5 a4 s + 6 a5 s ) * H(s) s
+  // ----------- = ---------------------4------5------6--------------------------
   //     d s                    1 + a3 s + a4 s + a5 s
 
   const double a1 = 0.00979681, a2 = 0.0410834, a3 = 0.187440, a4 = 0.00120824,
@@ -380,13 +380,13 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   // put everything together
   const double H = numerator * r_denom;
   const double Hs2 = H * s2;
-  const double dHs2_ds = ( first - second * H ) * r_denom;
+  const double dHs2_ds = ( first - second * Hs2 ) * r_denom;
 
   // evaluate
   // F(s) = Int + Sl * H(s)
-  // d( s^2 F(s) )                  d( s^2 H(s) )
-  // ------------- = 2 * Int + Sl * -------------
-  //     d s                             d s
+  // d( s^2 F(s) )                     d( s^2 H(s) )
+  // ------------- = 2 * Int *s + Sl * -------------
+  //     d s                                d s
   // Int - intercept
   // Sl  - slope
   const double slope = 6.4753871;
@@ -394,14 +394,14 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
 
   const double F = slope * H + intercept;
   const double Fs2 = F * s2;
-  const double dFs2_ds = slope * dHs2_ds + 2 * intercept;
+  const double dFs2_ds = slope * dHs2_ds + 2 * intercept * s;
 
   // evaluate alpha and beta
   // alpha = part1 - part2
   //               __  2
   //           15 VPi s
   // beta = -----------------
-  //                  2  7/2
+  //                    2  7/2
   //         16 (D + H s  )
   // with
   //
@@ -450,16 +450,16 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   const double dalpha_df = dpart1_df;
 
   // calculate beta / s^2, its derivative w.r.t. Hs^2 and E * beta
-  const double beta_s2 = 0.9375 * SQRT_PI / D_Hs2_7_2;
-  const double Ebeta = E * beta_s2 * s2;
-  const double dbeta_dh = -3.5 * beta_s2 / D_Hs2;
+  const double Ebeta_s2 = E * 0.9375 * SQRT_PI / D_Hs2_7_2;
+  const double dEbeta_dh = -3.5 * Ebeta_s2 / D_Hs2;
 
   // combine alpha and beta to function G
   //       3 Pi / 4 + alpha
   // G = - ----------------
-  //             beta
+  //            E beta
   const double r3Pi_4_alpha = 0.75 * M_PI + alpha;
-  const double G = -r3Pi_4_alpha / Ebeta;
+  // Gs2 = G * s^2
+  const double Gs2 = -r3Pi_4_alpha / Ebeta_s2;
 
   // calculate derivative w.r.t. s
   //
@@ -470,14 +470,13 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   //    ds                                     E b/s^2
   //
   // notice that alpha and beta are abbreviated by a and b in this equation
-  const double Ebeta_s2 = E * beta_s2;
-  const double dGs2_ds = ( ( r3Pi_4_alpha * dbeta_dh / beta_s2 - dalpha_dh )
-    * dHs2_ds - dalpha_df * dFs2_ds ) / Ebeta_s2;
+  const double dGs2_ds = ( ( r3Pi_4_alpha * dEbeta_dh / Ebeta_s2 - dalpha_dh ) * dHs2_ds
+    - dalpha_df * dFs2_ds ) / Ebeta_s2;
 
   // helper variables for the integration of the exchange hole
   const double C_term = C * ( 1 + s2 * F );
   const double dCt_ds = C * dFs2_ds;
-  const double E_term = E * ( 1 + s2 * G );
+  const double E_term = E * ( 1 + Gs2 );
   const double dEt_ds = E * dGs2_ds;
   const double D_term = D + Hs2;
   const double r1_D_term = 1.0 / D_term;
@@ -941,10 +940,10 @@ void HSEFunctional::setxc(void)
       // calculate HSE exchange and PBE correlation
       double ex_up, vx1_up, vx2_up, ex_dn, vx1_dn, vx2_dn;
       double ec, vc1_up, vc1_dn, vc2;
-      HSE_exchange(2.0 * rho_up[i],grad_up,1 - x_coeff_,omega,&ex_up,&vx1_up,
-        &vx2_up);
-      HSE_exchange(2.0 * rho_dn[i],grad_dn,1 - x_coeff_,omega,&ex_dn,&vx1_dn,
-        &vx2_dn);
+      HSE_exchange(2.0 * rho_up[i],2.0 * grad_up,1 - x_coeff_,omega,&ex_up,
+        &vx1_up,&vx2_up);
+      HSE_exchange(2.0 * rho_dn[i],2.0 * grad_dn,1 - x_coeff_,omega,&ex_dn,
+        &vx1_dn,&vx2_dn);
       PBE_correlation_sp(rho_up[i],rho_dn[i],grad_up,grad_dn,grad,&ec,&vc1_up,
         &vc1_dn,&vc2);
 

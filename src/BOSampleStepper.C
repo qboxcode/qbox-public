@@ -953,6 +953,9 @@ void BOSampleStepper::step(int niter)
                      << "\" kpoint=\""
                      << setprecision(8)
                      << wf.sd(ispin,ikp)->kpoint()
+                     << "\" weight=\""
+                     << setprecision(8)
+                     << wf.weight(ikp)
                      << "\" n=\"" << nst << "\">" << endl;
                 for ( int i = 0; i < nst; i++ )
                 {

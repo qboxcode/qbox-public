@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 
   cout << " testSpecies: testing SpeciesReader::uri_to_string: " << endl;
   string xmlstr;
-  rdr.uri_to_string(uri,xmlstr);
+  rdr.uri_to_string(uri,"unknown",xmlstr);
   cout << xmlstr;
 
 #if 0

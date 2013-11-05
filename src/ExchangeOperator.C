@@ -373,6 +373,8 @@ void ExchangeOperator::add_stress(valarray<double>& sigma_exc)
 void ExchangeOperator::cell_moved(void)
 {
   vbasis_->resize( s_.wf.cell(),s_.wf.refcell(),4.0*s_.wf.ecut());
+  KPGridStat_.cell_moved();
+  KPGridPerm_.cell_moved();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -688,7 +690,8 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     2.0 * occ_kj_[j] * spinFactor;
 
                   // add contribution to exchange energy
-                  exchange_sum += ex_ki_i_kj_j * weight;
+                  exchange_sum += ex_ki_i_kj_j * weight * wf.weight(iKpi) *
+                                  0.5 * occ_ki_[i];
 
                   if (dwf)
                   {
@@ -727,8 +730,10 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     2.0 * occ_kj_[j] * spinFactor;
 
                   // add contribution to exchange energy
-                  exchange_sum += ex_ki_i_kj_j * weightj;
-                  exchange_sum += ex_ki_i_kj_j * weighti;
+                  exchange_sum += ex_ki_i_kj_j * weightj * wf.weight(iKpi) *
+                                  0.5 * occ_ki_[i];
+                  exchange_sum += ex_ki_i_kj_j * weighti * wf.weight(iKpj) *
+                                  0.5 * occ_kj_[j];
 
                   if (dwf)
                   {
@@ -790,7 +795,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           CompleteSendingForces(iRotationStep);
 
           // add the g coordinate expression contributions to each
-          // state derivative of kpi, store everithing in the send buffer
+          // state derivative of kpi, store everything in the send buffer
           for ( int i=0; i<nStatesKpi_; i++ )
           {
             // transform contribution to g coordinates
@@ -882,7 +887,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
             // no contribution to stress from div_corr_3
           }
 
-            // Quadratic corrections
+          // Quadratic corrections
           if ( quad_correction )
           {
             // beta_x, beta_y and beta_z: curvature of rho(G=0)
@@ -958,7 +963,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   if ( gcontext_.onpe0() )
   {
     cout << setprecision(10);
-    cout << " total exchange = " << extot << " Eh\n";
+    cout << " total exchange = " << extot << " (a.u.)\n";
     cout << " total exchange computation time: " << tm.real()
          << " s" << endl;
   }
@@ -2204,12 +2209,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         div_corr += div_corr_4;
         const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
         exchange_sum += e_div_corr_4;
-        const double fac4 = ( 4.0 * M_PI / omega );
-        sigma_exhf_[0] += ( e_div_corr_4 + fac4 * 2.0 * beta_x ) / omega;
-        sigma_exhf_[1] += ( e_div_corr_4 + fac4 * 2.0 * beta_y ) / omega;
-        sigma_exhf_[2] += ( e_div_corr_4 + fac4 * 2.0 * beta_z ) / omega;
+        const double fac4 = ( 4.0 * M_PI / omega ) * occ_ki_[i];
+        sigma_exhf_[0] += ( e_div_corr_4 + fac4 * beta_x ) / omega;
+        sigma_exhf_[1] += ( e_div_corr_4 + fac4 * beta_y ) / omega;
+        sigma_exhf_[2] += ( e_div_corr_4 + fac4 * beta_z ) / omega;
       }
-
 
       // contribution of divergence corrections to forces on wave functions
       // (other than Coulomb, no divergence correction for wave functions)
@@ -2248,8 +2252,9 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
   // scale stress tensor with HF coefficient
   sigma_exhf_ *= HFCoeff_;
 
-  // print result
   tm.stop();
+
+#ifdef DEBUG
   if ( gcontext_.onpe0() )
   {
     cout << setprecision(10);
@@ -2279,6 +2284,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
            << endl;
     }
   }
+#endif
 
   // return total exchange in Hartree, scaled by HF coefficient
   return extot;

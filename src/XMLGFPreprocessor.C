@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
+#include <unistd.h> // close
 
 #include <vector>
 #include <valarray>

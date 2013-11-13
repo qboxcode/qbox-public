@@ -33,6 +33,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         XCOperator.o ExchangeOperator.o Bisection.o KPGridConnectivity.o \
 	XCPotential.o LDAFunctional.o \
         PBEFunctional.o BLYPFunctional.o B3LYPFunctional.o  \
+	ExponentialIntegral.o HSEFunctional.o \
 	NonLocalPotential.o SampleReader.o StructuredDocumentHandler.o \
 	SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \
         XMLGFPreprocessor.o Base64Transcoder.o \

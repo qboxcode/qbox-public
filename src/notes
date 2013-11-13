@@ -1,4 +1,9 @@
 --------------------------------------------------------------------------------
+rel1_57_15
+--------------------------------------------------------------------------------
+r1409: ExchangeOperator.C: fixed coeffs of divergent terms for empty states
+r1407: XMLGFPreprocessor.C: add unistd header for close function
+--------------------------------------------------------------------------------
 rel1_57_14
 --------------------------------------------------------------------------------
 r1396: util/kpgen/kpgen.C: fixed odd numbered case and added test.

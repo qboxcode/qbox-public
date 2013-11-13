@@ -80,8 +80,6 @@ class ExchangeOperator
   // G vectors
   valarray<double> qpG21_;
   valarray<double> qpG22_;
-  valarray<double> qpG2i1_;
-  valarray<double> qpG2i2_;
   valarray<double> int_pot1_;
   valarray<double> int_pot2_;
 

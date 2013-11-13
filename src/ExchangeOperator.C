@@ -103,8 +103,6 @@ ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff, const Interaction
     // allocate memory for |q+G| and related quantities
     qpG21_.resize(ngloc);
     qpG22_.resize(ngloc);
-    qpG2i1_.resize(ngloc);
-    qpG2i2_.resize(ngloc);
     int_pot1_.resize(ngloc);
     int_pot2_.resize(ngloc);
   }
@@ -547,26 +545,26 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                        vbasis_->gx(ig+ngloc*2));
 
             // compute G+q for each qi and find the value of the
-            // correction term: sum_(G,q) exp(-rcut_^2*|G+q|^2)/|G+q|^2
-            // => compute the square norm and inverse of q1+G
+            // correction term: sum_(G,q) exp(-rcut_^2*|G+q|^2) V(|G+q|)
+            // => compute the square norm of q1+G
             qpG21_[ig]  = ( G + q1 ) * ( G + q1 );
-            qpG2i1_[ig] = ( qpG21_[ig] > 0.0 ) ? 1.0 / qpG21_[ig] : 0.0;
 
-            // => compute the square norm and inverse of q2+G
+            // => compute the square norm of q2+G
             qpG22_[ig]  = ( G + q2 ) * ( G + q2 );
-            qpG2i2_[ig] = ( qpG22_[ig] > 0.0 ) ? 1.0 / qpG22_[ig] : 0.0;
 
-            // for Coulomb potential use 1/|G+q|^2
+            // for Coulomb potential V(|G+q|) = 1/|G+q|^2
             if ( coulomb_ )
             {
-              int_pot1_[ig] = qpG2i1_[ig];
-              int_pot2_[ig] = qpG2i2_[ig];
+              int_pot1_[ig] = ( qpG21_[ig] > 0.0 ) ? 1.0 / qpG21_[ig] : 0.0;
+              int_pot2_[ig] = ( qpG22_[ig] > 0.0 ) ? 1.0 / qpG22_[ig] : 0.0;
             }
-            // otherwise use given function of |G+q|^2
+            // otherwise use given function V(|G+q|^2)
             else
             {
-              int_pot1_[ig] = interaction_potential_(qpG21_[ig]);
-              int_pot2_[ig] = interaction_potential_(qpG22_[ig]);
+              int_pot1_[ig] = ( qpG21_[ig] > 0.0 ) ?
+                  interaction_potential_(qpG21_[ig]) : 0;
+              int_pot2_[ig] = ( qpG22_[ig] > 0.0 ) ?
+                  interaction_potential_(qpG22_[ig]) : 0;
             }
 
             // if iKpi=0 (first k point)
@@ -653,24 +651,22 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                   // Add the values of |rho1(G)|^2/|G+q1|^2
                   // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
                   // This does not take the point G=q=0 into account
-                  // as qpG2i = 0.
+                  // where int_pot is set to 0.
                   const double t1 = norm(rhog1_[ig]) * int_pot1_[ig];
                   const double t2 = norm(rhog2_[ig]) * int_pot2_[ig];
-                  if ( qpG21_[ig] > 0.0 )
-                    ex_ki_i_kj_j += t1;
-                  if ( qpG22_[ig] > 0.0 )
-                    ex_ki_i_kj_j += t2;
+                  ex_ki_i_kj_j += t1;
+                  ex_ki_i_kj_j += t2;
 
                   if ( dwf )
                   {
-                    // compute rhog1_[G]/|G+q1|^2 and rhog2_[G]/|G+q1|^2
+                    // compute rhog1_[G]*V(|G+q1|) and rhog2_[G]*V(|G+q1|)
                     rhog1_[ig] *= int_pot1_[ig];
                     rhog2_[ig] *= int_pot2_[ig];
                   }
                 }
                 if ( dwf )
                 {
-                  // Backtransform rhog[G]/|q+G|^2
+                  // Backtransform rhog[G]*V(|q+G|)
                   vft_->backward(&rhog1_[0], &rhor1_[0]);
                   vft_->backward(&rhog2_[0], &rhor2_[0]);
                 }
@@ -865,9 +861,9 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
       {
         double div_corr = 0.0;
 
-        const double div_corr_1 = 2.0 * exfac * numerical_correction[iKpi];
+        const double div_corr_1 = exfac * numerical_correction[iKpi] * occ_ki_[i];
         div_corr += div_corr_1;
-        const double e_div_corr_1 = - 0.5 * div_corr_1 * occ_ki_[i];
+        const double e_div_corr_1 = -div_corr_1;
         exchange_sum += e_div_corr_1 * wf.weight(iKpi);
         // add here contributions to stress from div_corr_1;
 
@@ -937,8 +933,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
         } // if quad_correction
 
         // contribution of divergence corrections to forces on wave functions
-        // wave functions treated explicitly for screened Coulomb potential
-        if (dwf) // and coulomb_)
+        if (dwf)
         {
           // sum the partial contributions to the correction for state i
           gcontext_.dsum('C', 1, 1, &div_corr, 1);

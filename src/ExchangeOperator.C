@@ -1624,13 +1624,20 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
           for ( int ig = 0; ig < ngloc; ig++ )
           {
-            // Add the values of |rho1(G)|^2/|G+q1|^2
-            // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
-            // note: g2i[G=0] == 0
-            // factor 2.0: real basis (G=0 -> no contribution)
+            // G=0 is treated in divergence correction -> no contribution
+            if ( g2[ig] == 0 )
+            {
+              rhog1_[ig] = 0;
+              rhog2_[ig] = 0;
+              continue;
+            }
+
+            // Add the values of |rho1(G)|^2*V(|G+q1|)
+            // and |rho2(G)|^2*V(|G+q2|) to the exchange energy.
+            // factor 2.0: real basis
             const double tg2i = g2i[ig];
             const double int_pot = ( coulomb_ ) ? tg2i : interaction_potential_(g2[ig]);
-            const double factor2 = ( g2[ig] == 0 ) ? 0 : 2.0;
+            const double factor2 = 2.0;
             const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
             const double t2 = factor2 * norm(rhog2_[ig]) * int_pot;
             ex_sum_1 += t1;
@@ -1826,13 +1833,18 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           }
           for ( int ig = 0; ig < ngloc; ig++ )
           {
-            // Add the values of |rho1(G)|^2/|G|^2
-            // and |rho2(G)|^2/|G|^2 to the exchange energy.
-            // note: g2i[G=0] == 0
-            // factor 2.0: real basis (no contribution for G=0)
+            // no contribution for G=0 as it is treated separately in the divergence correction
+            if ( g2[ig] == 0 )
+            {
+              rhog1_[ig] = 0;
+              continue;
+            }
+            // Add the values of |rho1(G)|^2*V(|G|)
+            // and |rho2(G)|^2*V(|G|) to the exchange energy.
+            // factor 2.0: real basis
             const double tg2i = g2i[ig];
             const double int_pot = ( coulomb_ ) ? tg2i : interaction_potential_(g2[ig]);
-            const double factor2 = ( g2[ig] == 0 ) ? 0 : 2.0;
+            const double factor2 = 2.0;
             const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
             ex_sum_1 += t1;
 
@@ -2213,8 +2225,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       }
 
       // contribution of divergence corrections to forces on wave functions
-      // (other than Coulomb, no divergence correction for wave functions)
-      if (dwf and coulomb_)
+      if (dwf)
       {
         // sum the partial contributions to the correction for state i
         gcontext_.dsum('C', 1, 1, &div_corr, 1);

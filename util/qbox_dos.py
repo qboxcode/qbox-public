@@ -1,7 +1,9 @@
 #!/usr/bin/python
-# qbox_dos.py: extract dos from Qbox output
-# generate dos plot in gnuplot format
+# qbox_dos.py: extract electronic DOS from Qbox output
+# generate DOS plot in gnuplot format
 # use: qbox_dos.py emin emax width file.r
+# emin, emax: bounds of plot in [eV]
+# width: gaussian broadening in [eV]
 # the DOS is accumulated separately for each spin
 
 import xml.sax

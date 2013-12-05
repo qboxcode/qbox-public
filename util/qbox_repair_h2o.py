@@ -12,6 +12,26 @@ hlist = []
 def distance(a,b,sx,sy,sz):
   return math.sqrt((a[3]-b[3]-sx)**2+(a[4]-b[4]-sy)**2+(a[5]-b[5]-sz)**2)
 
+def fold_in_ws(atom):
+  x = atom[3]
+  y = atom[4]
+  z = atom[5]
+  while x > 0.5*a_cell + 1.e-5:
+    x -= a_cell
+  while x < -0.5*a_cell - 1.e-5:
+    x += a_cell
+  while y > 0.5*b_cell + 1.e-5:
+    y -= b_cell
+  while y < -0.5*b_cell - 1.e-5:
+    y += b_cell
+  while z > 0.5*c_cell + 1.e-5:
+    z -= c_cell
+  while z < -0.5*c_cell - 1.e-5:
+    z += c_cell
+  atom[3] = x
+  atom[4] = y
+  atom[5] = z
+
 f = open(sys.argv[1])
 for line in f:
   l = line.split()
@@ -26,6 +46,11 @@ for line in f:
     olist.append([l[0],l[1],l[2],float(l[3]),float(l[4]),float(l[5])])
   elif ( l[0] == "atom" ) & ( l[2] == "hydrogen" ):
     hlist.append([l[0],l[1],l[2],float(l[3]),float(l[4]),float(l[5])])
+
+for o in olist:
+  fold_in_ws(o)
+for h in hlist:
+  fold_in_ws(h)
 
 for h in hlist:
   # find nearest oxygen atom in olist

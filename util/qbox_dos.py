@@ -1,23 +1,33 @@
 #!/usr/bin/python
 # qbox_dos.py: extract electronic DOS from Qbox output
 # generate DOS plot in gnuplot format
-# use: qbox_dos.py emin emax width file.r
+# use: qbox_dos.py [-last] emin emax width file.r
 # emin, emax: bounds of plot in [eV]
 # width: gaussian broadening in [eV]
 # the DOS is accumulated separately for each spin
+# With the -last option, only the last <eigenset> is used to compute the DOS
 
 import xml.sax
 import sys
 import math
 
-if len(sys.argv) != 5:
-  print "use: ",sys.argv[0]," emin emax width file.r"
+if (len(sys.argv) != 5) and (len(sys.argv) != 6) :
+  print "use: ",sys.argv[0]," [-last] emin emax width file.r"
   sys.exit()
 
-emin = float(sys.argv[1])
-emax = float(sys.argv[2])
-width = float(sys.argv[3])
-infile = sys.argv[4]
+iarg = 1
+lastonly = False
+if (sys.argv[iarg] == "-last") :
+  lastonly = True
+  iarg += 1
+
+emin = float(sys.argv[iarg])
+iarg += 1
+emax = float(sys.argv[iarg])
+iarg += 1
+width = float(sys.argv[iarg])
+iarg += 1
+infile = sys.argv[iarg]
 
 ndos = 501
 de = (emax - emin)/(ndos-1)
@@ -36,6 +46,9 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     self.dos_dn = [0] * ndos
 
   def startElement(self, name, attributes):
+    if (name == "eigenset") and (lastonly):
+      self.dos_up = [0] * ndos
+      self.dos_dn = [0] * ndos
     if name == "eigenvalues":
       self.n = attributes["n"]
       self.spin = int(attributes["spin"])

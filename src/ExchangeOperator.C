@@ -2130,7 +2130,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     }
     // dc now contains the forces
 
-    // "divergence" corrections (only truly divergent for Coulomb potential)
+    // "divergence" corrections
 
     // correct the energy of state i
     for ( int i = 0; i < sd.nstloc(); i++ )

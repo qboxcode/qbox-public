@@ -66,5 +66,7 @@ struct Control
 
   int blHF[3];
   double btHF;
+
+  double scf_tol;
 };
 #endif

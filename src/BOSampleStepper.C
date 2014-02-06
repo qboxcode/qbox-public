@@ -740,8 +740,10 @@ void BOSampleStepper::step(int niter)
         mixer.restart();
 
       double ehart, ehart_m;
+      bool scf_converged = false;
+      int itscf = 0;
 
-      for ( int itscf = 0; itscf < nitscf_; itscf++ )
+      while ( !scf_converged && itscf < nitscf_ )
       {
         if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: start scf iteration" << endl;
@@ -852,13 +854,17 @@ void BOSampleStepper::step(int niter)
         // if ( onpe0 && nite_ > 0 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
-        double etotal_int, etotal_int_m;
-        double eigenvalue_sum, eigenvalue_sum_m;
+        double etotal_int, etotal_int_m = 0.0;
+        double etotal, etotal_m = 0.0;
+
+        double eigenvalue_sum, eigenvalue_sum_m = 0.0;
         // if nite == 0: do 1 iteration, no screening in charge mixing
         // if nite > 0: do nite iterations, use screening in charge mixing
+        //
+        double energy;
         while ( !nonscf_converged && ite < max(nite_,1) )
         {
-          double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+          energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
           double enthalpy = energy;
 
           if ( ite > 0 )
@@ -930,6 +936,10 @@ void BOSampleStepper::step(int niter)
           ite++;
         }
 
+        if ( itscf > 0 )
+          etotal_m = etotal;
+        etotal = energy;
+
         // if ( onpe0 && nite_ > 0 && ite >= nite_ )
         //   cout << " BOSampleStepper::step: nscf loop not converged after "
         //        << nite_ << " iterations" << endl;
@@ -987,7 +997,11 @@ void BOSampleStepper::step(int niter)
 
         if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: end scf iteration" << endl;
-      } // for itscf
+
+        double delta_etotal = fabs(etotal - etotal_m);
+        scf_converged |= (delta_etotal < s_.ctrl.scf_tol);
+        itscf++;
+      } // while scf
 
       if ( compute_mlwf || compute_mlwfc )
       {

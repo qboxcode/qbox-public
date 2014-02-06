@@ -533,7 +533,8 @@ qb.o: SlaterDet.h Basis.h Matrix.h AtomsDyn.h BlHF.h BtHF.h Cell.h CellDyn.h
 qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
 qb.o: Debug.h Dspin.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h
 qb.o: FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h Nspin.h RefCell.h
-qb.o: Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: ScfTol.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h
+qb.o: WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
@@ -588,6 +589,8 @@ SaveCmd.o: D3vector.h UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 SaveCmd.o: Control.h SampleWriter.h isodate.h release.h
 SaveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SaveCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+ScfTol.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+ScfTol.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 SDAIonicStepper.o: SDAIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 SDAIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h ConstraintSet.h
 SDAIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h
@@ -659,8 +662,8 @@ testEnergyFunctional.o: UnitCell.h ConstraintSet.h ExtForceSet.h
 testEnergyFunctional.o: Wavefunction.h Control.h EnergyFunctional.h
 testEnergyFunctional.o: StructureFactor.h Timer.h
 test_fftw.o: Timer.h readTSC.h
-testFourierTransform.o: Context.h Basis.h D3vector.h UnitCell.h
-testFourierTransform.o: FourierTransform.h Timer.h
+testFourierTransform.o: Basis.h D3vector.h UnitCell.h FourierTransform.h
+testFourierTransform.o: Timer.h
 testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h Matrix.h jade.h
 testLDAFunctional.o: LDAFunctional.h XCFunctional.h

@@ -101,6 +101,7 @@ using namespace std;
 #include "Nrowmax.h"
 #include "Nspin.h"
 #include "RefCell.h"
+#include "ScfTol.h"
 #include "Stress.h"
 #include "Thermostat.h"
 #include "ThTemp.h"
@@ -310,6 +311,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Nspin(s));
   ui.addVar(new Dspin(s));
   ui.addVar(new RefCell(s));
+  ui.addVar(new ScfTol(s));
   ui.addVar(new Stress(s));
   ui.addVar(new Thermostat(s));
   ui.addVar(new ThTemp(s));

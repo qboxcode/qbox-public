@@ -60,11 +60,11 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
     xcp_ = new XCPotential(cd, functional_name);
 
     // create the exchange operator with mixing coeff=0.25
-    xop_ = new ExchangeOperator(s, 0.25);
+    xop_ = new ExchangeOperator(s, s.ctrl.alpha_PBE0);
     hasPotential_ = true;
     hasGGA_ = xcp_->isGGA();
     hasHF_ = true;
-    HFmixCoeff_ = 0.25;
+    HFmixCoeff_ = s.ctrl.alpha_PBE0;;
   }
   else if ( functional_name == "B3LYP" )
   {

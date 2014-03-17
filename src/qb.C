@@ -77,6 +77,7 @@ using namespace std;
 #include "TorsionCmd.h"
 #include "BisectionCmd.h"
 
+#include "AlphaPBE0.h"
 #include "AtomsDyn.h"
 #include "BlHF.h"
 #include "BtHF.h"
@@ -287,6 +288,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new StrainCmd(s));
   ui.addCmd(new TorsionCmd(s));
 
+  ui.addVar(new AlphaPBE0(s));
   ui.addVar(new AtomsDyn(s));
   ui.addVar(new BlHF(s));
   ui.addVar(new BtHF(s));

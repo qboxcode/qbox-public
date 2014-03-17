@@ -53,6 +53,7 @@ struct Control
   double ext_stress[6]; // external stress tensor: xx,yy,zz,xy,yz,xz
 
   std::string xc;
+  double alpha_PBE0;
   std::string spin;
   int delta_spin;
 

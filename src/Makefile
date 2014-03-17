@@ -229,6 +229,8 @@ SampleStepper.o EnergyFunctional.o
 #------------------------------------------------------------------------------
 # DO NOT DELETE
 
+AlphaPBE0.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+AlphaPBE0.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 AndersonMixer.o: AndersonMixer.h blas.h
 AngleCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 AngleCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
@@ -529,12 +531,12 @@ qb.o: ListSpeciesCmd.h LoadCmd.h MoveCmd.h PlotCmd.h PrintCmd.h QuitCmd.h
 qb.o: RandomizeRCmd.h RandomizeVCmd.h RandomizeWfCmd.h ResetVcmCmd.h
 qb.o: RescaleVCmd.h RseedCmd.h RunCmd.h SaveCmd.h SetCmd.h SpeciesCmd.h
 qb.o: StatusCmd.h StrainCmd.h TorsionCmd.h BisectionCmd.h Bisection.h
-qb.o: SlaterDet.h Basis.h Matrix.h AtomsDyn.h BlHF.h BtHF.h Cell.h CellDyn.h
-qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
-qb.o: Debug.h Dspin.h Ecut.h Ecutprec.h Ecuts.h Emass.h ExtStress.h
-qb.o: FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h Nspin.h RefCell.h
-qb.o: ScfTol.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h
-qb.o: WfDyn.h Xc.h
+qb.o: SlaterDet.h Basis.h Matrix.h AlphaPBE0.h AtomsDyn.h BlHF.h BtHF.h
+qb.o: Cell.h CellDyn.h CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h
+qb.o: ChargeMixRcut.h Debug.h Dspin.h Ecut.h Ecutprec.h Ecuts.h Emass.h
+qb.o: ExtStress.h FermiTemp.h Dt.h Nempty.h NetCharge.h Nrowmax.h Nspin.h
+qb.o: RefCell.h ScfTol.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h
+qb.o: WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: UnitCell.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h

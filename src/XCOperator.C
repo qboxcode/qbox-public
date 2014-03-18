@@ -39,7 +39,7 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
        ( functional_name == "BLYP" ) )
   {
     // create only an xc potential
-    xcp_ = new XCPotential(cd, functional_name);
+    xcp_ = new XCPotential(cd, functional_name, s.ctrl);
     hasPotential_ = true;
     hasGGA_ = xcp_->isGGA();
     hasHF_ = false;
@@ -57,7 +57,7 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
   else if ( functional_name == "PBE0" )
   {
     // create an exchange potential
-    xcp_ = new XCPotential(cd, functional_name);
+    xcp_ = new XCPotential(cd, functional_name, s.ctrl);
 
     // create the exchange operator with mixing coeff=0.25
     xop_ = new ExchangeOperator(s, s.ctrl.alpha_PBE0);
@@ -69,7 +69,7 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
   else if ( functional_name == "B3LYP" )
   {
     // create an exchange potential
-    xcp_ = new XCPotential(cd, functional_name);
+    xcp_ = new XCPotential(cd, functional_name, s.ctrl);
 
     // create the exchange operator with mixing coeff=0.20
     xop_ = new ExchangeOperator(s, 0.20);

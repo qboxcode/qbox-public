@@ -724,11 +724,11 @@ XCOperator.o: ExchangeOperator.h SlaterDet.h Basis.h Matrix.h
 XCOperator.o: FourierTransform.h KPGridConnectivity.h
 XCOperator.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 XCOperator.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-XCPotential.o: XCPotential.h ChargeDensity.h Timer.h Context.h
+XCPotential.o: XCPotential.h Control.h ChargeDensity.h Timer.h Context.h
 XCPotential.o: LDAFunctional.h XCFunctional.h PBEFunctional.h
 XCPotential.o: BLYPFunctional.h B3LYPFunctional.h Basis.h D3vector.h
 XCPotential.o: UnitCell.h FourierTransform.h blas.h
-XCPotential.o: ChargeDensity.h Timer.h Context.h
+XCPotential.o: Control.h ChargeDensity.h Timer.h Context.h
 XMLGFPreprocessor.o: Timer.h Context.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h
 XMLGFPreprocessor.o: Matrix.h

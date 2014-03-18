@@ -18,6 +18,7 @@
 #ifndef XCPOTENTIAL_H
 #define XCPOTENTIAL_H
 
+#include "Control.h"
 #include "ChargeDensity.h"
 #include <string>
 #include <vector>
@@ -51,7 +52,8 @@ class XCPotential
 
   const XCFunctional* xcf() { return xcf_; }
   bool isGGA(void);
-  XCPotential(const ChargeDensity& cd, const std::string functional_name);
+  XCPotential(const ChargeDensity& cd, const std::string functional_name,
+    const Control& ctrl);
   ~XCPotential();
   void update(std::vector<std::vector<double> >& vr);
   void compute_stress(std::valarray<double>& sigma_exc);

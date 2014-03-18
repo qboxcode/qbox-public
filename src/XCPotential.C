@@ -28,8 +28,8 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name):
-cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
+XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
+  const Control& ctrl): cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
 {
   if ( functional_name == "LDA" )
   {
@@ -45,7 +45,7 @@ cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
   }
   else if ( functional_name == "PBE0" )
   {
-    const double x_coeff = 0.75;
+    const double x_coeff = 1.0 - ctrl.alpha_PBE0;
     const double c_coeff = 1.0;
     xcf_ = new PBEFunctional(cd_.rhor,x_coeff,c_coeff);
   }

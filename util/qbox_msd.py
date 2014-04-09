@@ -1,18 +1,17 @@
 #!/usr/bin/python
-# qbox_msd.py: compute the mean-square displacement of atoms of a given species
-# generate plot of <r^2(t)> in gnuplot format
-# use: qbox_msd.py species file.r
+# qbox_msd.py: compute mean-square displacement in an MD simulation
+# generate plot of <r^2>(t) in gnuplot format
+# use: qbox_msd.py species file.r [file.r ...]
 
 import xml.sax
 import sys
 import math
 
-if len(sys.argv) != 3:
-  print "use: ",sys.argv[0]," species file.r"
+if len(sys.argv) < 3:
+  print "use: ",sys.argv[0]," species file [file ...]"
   sys.exit()
 
 species = sys.argv[1]
-infile = sys.argv[2]
 
 # Qbox output handler to extract and process data
 class QboxOutputHandler(xml.sax.handler.ContentHandler):
@@ -57,10 +56,13 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       print self.step,'%12.6f'%(disp2sum/len(self.tau))
       self.step += 1
 
-print "# ",species,infile
+print "# ",species
 parser = xml.sax.make_parser()
 handler = QboxOutputHandler()
 parser.setContentHandler(handler)
-parser.parse(infile)
+for i in range(len(sys.argv)-2):
+  infile = sys.argv[i+2]
+  parser.parse(infile)
+
 print
 print

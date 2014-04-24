@@ -53,7 +53,7 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
         dy = self.tau[i][1]-self.tau0[i][1]
         dz = self.tau[i][2]-self.tau0[i][2]
         disp2sum += dx*dx + dy*dy + dz*dz
-      print self.step,'%12.6f'%(disp2sum/len(self.tau))
+      print '%12.6f'%(disp2sum/len(self.tau))
       self.step += 1
 
 print "# ",species

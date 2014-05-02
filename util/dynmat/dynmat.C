@@ -121,7 +121,7 @@ int main(int argc, char **argv)
   // cout << a;
   valarray<double> w(a.m());
   DoubleMatrix asave(a);
-  a.syevd('u',w);
+  a.syev('u',w);
 
   cout << " frequencies:" << endl;
   for ( int i = 0; i < a.n(); i++ )
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
   }
 
   a = asave;
-  a.syevd('l',w);
+  a.syev('l',w);
   cout << " frequencies:" << endl;
   for ( int i = 0; i < a.n(); i++ )
   {

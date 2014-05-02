@@ -16,7 +16,7 @@
 #
 include $(TARGET).mk
 #------------------------------------------------------------------------------
-SRCDIR = $(HOME)/qb/export/rel1_52_1/qb/src/
+SRCDIR = ../../src/
 EXEC = dynmat
 # use source files in SRCDIR but not objects, which may use MPI
 vpath %.h $(SRCDIR)

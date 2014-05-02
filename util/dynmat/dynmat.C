@@ -40,8 +40,9 @@
 #include <vector>
 using namespace std;
 
-#include "Context.h"
-#include "Matrix.h"
+extern "C" 
+void dsyev_(const char *jobz, const char *uplo, const int *n, double *a, 
+  const int *lda, double *w, double *wrk, int *lwrk, int *info);
 
 int main(int argc, char **argv)
 {
@@ -95,9 +96,8 @@ int main(int argc, char **argv)
   // a[3*ia1+idir1][3*ia2+idir2] = 
   //  ( f[1][ia1][idir1][ia2][idir2] - f[0][ia1][idir1][ia2][idir2] ) / ( 2 h )
 
-  Context ctxt;
   const int n = 3*nat;
-  DoubleMatrix a(ctxt,n,n);
+  valarray<double> a(n*n);
 
   for ( int ia1 = 0; ia1 < nat; ia1++ )
   {
@@ -112,19 +112,25 @@ int main(int argc, char **argv)
           double aij = ( f[1][ia1][idir1][ia2][idir2] - 
                          f[0][ia1][idir1][ia2][idir2] ) / ( 2.0 * h );
           aij = aij / sqrt(mass[ia1]*mass[ia2]);
-          a[j*a.n()+i] = aij;
+          a[j*n+i] = aij;
         }
       }
     }
   }
 
   // cout << a;
-  valarray<double> w(a.m());
-  DoubleMatrix asave(a);
-  a.syev('u',w);
+  valarray<double> w(n);
+  valarray<double> asave(a);
+  char jobz = 'n';
+  char uplo = 'u';
+  int lwrk = 3*n;
+  valarray<double> wrk(lwrk);
+  int info;
+  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w[0],&wrk[0],&lwrk,&info);
+  assert(info==0);
 
   cout << " frequencies:" << endl;
-  for ( int i = 0; i < a.n(); i++ )
+  for ( int i = 0; i < n; i++ )
   {
     if ( w[i] < 0.0 )
       cout << setw(8) << (int) (Ha2cm1 * sqrt(-w[i])) << " I" << endl;
@@ -133,9 +139,11 @@ int main(int argc, char **argv)
   }
 
   a = asave;
-  a.syev('l',w);
+  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w[0],&wrk[0],&lwrk,&info);
+  assert(info==0);
+
   cout << " frequencies:" << endl;
-  for ( int i = 0; i < a.n(); i++ )
+  for ( int i = 0; i < n; i++ )
   {
     if ( w[i] < 0.0 )
       cout << setw(8) << (int) (Ha2cm1 * sqrt(-w[i])) << " I" << endl;

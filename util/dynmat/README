@@ -31,7 +31,7 @@
 
 4) Run the dynmat program using "force.dat"
 
-   use: dynmat force.dat Nat1 mass1 [Nat2 mass2] ...
+   use: ./dynmat force.dat h Nat1 mass1 [Nat2 mass2] ...
    where Nat1 is the number of atoms of mass mass1 
    Nat2 is the number of atoms of mass mass2, etc.
    The mass parameters are in amu (C=12)

@@ -1,4 +1,8 @@
 --------------------------------------------------------------------------------
+rel1_60_1
+CGCellStepper.C: fixed incorrect use of amat_inv() in calc of gradient.
+CGCellStepper.C: reduced initial alpha value to 0.01, max to 0.5.
+--------------------------------------------------------------------------------
 qbox_msd.py: print msd value only, not step index
 --------------------------------------------------------------------------------
 Context.C: fixed deprecated cast to const char*

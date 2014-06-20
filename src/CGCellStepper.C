@@ -25,7 +25,7 @@ CGCellStepper::CGCellStepper(Sample& s) : CellStepper(s),
   cgopt_(CGOptimizer(3*s.atoms.size()+9)), cell0(s_.atoms.cell())
 {
   nat_ = atoms_.size();
-  cgopt_.set_alpha_start(0.01);
+  cgopt_.set_alpha_start(0.002);
   cgopt_.set_alpha_max(0.5);
   cgopt_.set_beta_max(10.0);
 #ifdef DEBUG
@@ -86,7 +86,7 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
     gvec[is].resize(r0[is].size());
     for ( int ia = 0; ia < r0[is].size()/3; ia++ )
     {
-      cell.vecmult3x3(cell.amat(),&fion[is][3*ia],tmp3);
+      cell.vecmult3x3(cell.amat_inv(),&fion[is][3*ia],tmp3);
       gvec[is][3*ia+0]=-tmp3[0];
       gvec[is][3*ia+1]=-tmp3[1];
       gvec[is][3*ia+2]=-tmp3[2];

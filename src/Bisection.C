@@ -672,6 +672,7 @@ void Bisection::trim_amat(const vector<double>& occ)
   // set to zero the matrix elements of the matrices amat_[k] if they couple
   // states with differing occupation numbers
 
+  const double trim_tol = 1.e-6;
   // check if all occupation numbers are the same
   double occ_max = 0.0, occ_min = 2.0;
   for ( int i = 0; i < occ.size(); i++ )
@@ -680,7 +681,7 @@ void Bisection::trim_amat(const vector<double>& occ)
     occ_min = min(occ_min, occ[i]);
   }
   // return if all occupation numbers are equal
-  if ( fabs(occ_max-occ_min) < 1.e-12 )
+  if ( fabs(occ_max-occ_min) < trim_tol )
     return;
 
   const int mloc = amat_[0]->mloc();
@@ -694,7 +695,7 @@ void Bisection::trim_amat(const vector<double>& occ)
       const int jglobal = amat_[0]->jglobal(j);
 
       const int ival = i + mloc * j;
-      if ( fabs(occ[iglobal] - occ[jglobal]) > 1.e-12 )
+      if ( fabs(occ[iglobal] - occ[jglobal]) > trim_tol )
         for ( int k = 0; k < amat_.size(); k++ )
           (*amat_[k])[ival] = 0.0;
     }

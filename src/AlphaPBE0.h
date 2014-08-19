@@ -16,8 +16,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef BTHF_ALPHAPBE0
-#define BTHF_ALPHAPBE0H
+#ifndef ALPHAPBE0_H
+#define ALPHAPBE0_H
 
 #include<iostream>
 #include<iomanip>

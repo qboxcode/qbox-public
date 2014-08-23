@@ -1,4 +1,6 @@
 --------------------------------------------------------------------------------
+r1506: Fixed typo in AlphaPBE0.h
+--------------------------------------------------------------------------------
 rel1_60_2
 CGCellStepper.C: revert to 1.60.0 use of matrix transformations
 Use reduced alpha_init (0.002)

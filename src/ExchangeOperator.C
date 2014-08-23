@@ -555,7 +555,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
 
             // if iKpi=0 (first k point)
             // compute the numerical part of the correction
-            if ( (iRotationStep==0) )
+            if ( iRotationStep==0 )
             {
               const double rc2 = rcut_*rcut_;
               SumExpQpG2 += (exp(-rc2*qpG21_[ig]) * qpG2i1_[ig] );
@@ -568,7 +568,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           // correction. Works only if this is the first iKpoint.
           //
           // divide weight by 2 as we implicitly counted kpoint j and symmetric
-          if ( (iRotationStep==0) ) // && ( iKpi==0 )
+          if ( iRotationStep==0 ) // && ( iKpi==0 )
           {
             if ( iKpi==iKpj )
             {

@@ -15,17 +15,19 @@
 // sinft.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: sinft.C,v 1.4 2008-09-08 15:56:20 fgygi Exp $
 
 #include "sinft.h"
 #include <math.h>
 #include <assert.h>
-#if USE_FFTW
+#if USE_FFTW2
 #if USE_DFFTW
 #include "dfftw.h"
 #else
 #include "fftw.h"
 #endif
+#endif
+#if USE_FFTW3
+#include "fftw3.h"
 #endif
 #include <vector>
 #include <complex>
@@ -33,9 +35,17 @@ using namespace std;
 
 void sinft(int n, double *y)
 {
-  fftw_plan fwplan;
-  fwplan = fftw_create_plan(2*n,FFTW_FORWARD,FFTW_ESTIMATE);
   vector<complex<double> > zin(2*n), zout(2*n);
+  fftw_plan fwplan;
+#if USE_FFTW2
+  fwplan = fftw_create_plan(2*n,FFTW_FORWARD,FFTW_ESTIMATE);
+#elif USE_FFTW3
+  fwplan = fftw_plan_dft_1d(2*n,(fftw_complex*)&zin[0],(fftw_complex*)&zout[0],
+                            FFTW_FORWARD, FFTW_ESTIMATE);
+#else
+#error
+#endif
+
   zin[0] = 0.0;
   for ( int i = 1; i < n; i++ )
   {
@@ -43,7 +53,13 @@ void sinft(int n, double *y)
     zin[i] = t;
     zin[2*n-i] = -t;
   }
+#if USE_FFTW2
   fftw_one(fwplan,(fftw_complex*)&zin[0],(fftw_complex*)&zout[0]);
+#elif USE_FFTW3
+  fftw_execute(fwplan);
+#else
+#error
+#endif
   for ( int i = 0; i < n; i++ )
   {
     y[i] = -0.5 * imag(zout[i]);
@@ -54,9 +70,16 @@ void sinft(int n, double *y)
 void cosft1(int n, double *y)
 {
   /* Note: the array y contains n+1 elements */
-  fftw_plan fwplan;
-  fwplan = fftw_create_plan(2*n,FFTW_FORWARD,FFTW_ESTIMATE);
   vector<complex<double> > zin(2*n), zout(2*n);
+  fftw_plan fwplan;
+#if USE_FFTW2
+  fwplan = fftw_create_plan(2*n,FFTW_FORWARD,FFTW_ESTIMATE);
+#elif USE_FFTW3
+  fwplan = fftw_plan_dft_1d(2*n,(fftw_complex*)&zin[0],(fftw_complex*)&zout[0],
+                            FFTW_FORWARD, FFTW_ESTIMATE);
+#else
+#error
+#endif
 
   zin[0] = y[0];
   for ( int i = 1; i < n+1; i++ )
@@ -65,7 +88,13 @@ void cosft1(int n, double *y)
     zin[i] = t;
     zin[2*n-i] = t;
   }
+#if USE_FFTW2
   fftw_one(fwplan,(fftw_complex*)&zin[0],(fftw_complex*)&zout[0]);
+#elif USE_FFTW3
+  fftw_execute(fwplan);
+#else
+#error
+#endif
   y[0] = 0.5 * real(zout[0]);
   for ( int i = 1; i < n; i++ )
   {

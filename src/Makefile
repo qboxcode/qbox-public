@@ -201,6 +201,14 @@ SampleStepper.o EnergyFunctional.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  test_spline: test_spline.o spline.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testfftw2: testfftw2.o $(PLTOBJECTS)
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testfftw3: testfftw3.o $(PLTOBJECTS)
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testfftw3mkl: testfftw3mkl.o $(PLTOBJECTS)
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testessl: testessl.o $(PLTOBJECTS)
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
 #------------------------------------------------------------------------------
 # generate dependencies in makefile: use -Y to avoid library header files
 # that are likely to be different on other platforms.

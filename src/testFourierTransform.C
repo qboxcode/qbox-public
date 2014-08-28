@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <cstdlib>
 using namespace std;
 
 #include "Basis.h"
@@ -142,7 +143,7 @@ int main(int argc, char **argv)
   cout << " backward done " << endl;
   MPI_Barrier(MPI_COMM_WORLD);
 
-#if 0
+#if 1
 
   tm.reset();
   ft2.reset_timers();

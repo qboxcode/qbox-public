@@ -60,7 +60,7 @@ typedef int MPI_Comm;
 
 #if defined(USE_FFTW2) || defined(USE_FFTW3)
 extern "C" void zdscal(int *n,double *alpha,std::complex<double> *x,int *incx);
-#elif USE_ESSL
+#elif USE_ESSL_FFT
 extern "C" {
   void dcft_(int *initflag, std::complex<double> *x, int *inc2x, int *inc3x,
              std::complex<double> *y, int *inc2y, int *inc3y,
@@ -579,7 +579,7 @@ void FourierTransform::bwd(complex<double>* val)
   tm_b_z.start();
 #endif
 
-#if USE_ESSL
+#if USE_ESSL_FFT
   int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = -1, initflag = 0;
   double scale = 1.0;
 
@@ -804,7 +804,7 @@ void FourierTransform::bwd(complex<double>* val)
   }
 #endif // USE_FFTW3_2D
 
-#elif USE_ESSL // USE_FFTW3
+#elif USE_ESSL_FFT // USE_FFTW3
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
     // transform along x for non-zero vectors only
@@ -1033,7 +1033,7 @@ void FourierTransform::fwd(complex<double>* val)
 #endif
   }
 #endif // use FFTW3_2D
-#elif USE_ESSL
+#elif USE_ESSL_FFT
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
     // transform along x for non-zero vectors only
@@ -1265,7 +1265,7 @@ void FourierTransform::fwd(complex<double>* val)
   tm_f_z.start();
 #endif
 
-#if USE_ESSL
+#if USE_ESSL_FFT
   int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = 1, initflag = 0;
   double scale = 1.0 / (np0_ * np1_ * np2_);
 
@@ -1345,7 +1345,7 @@ void FourierTransform::init_lib(void)
 {
   // initialization of FFT libs
 
-#if USE_ESSL
+#if USE_ESSL_FFT
   complex<double> *p = 0;
 #if USE_ESSL_2DFFT
   // use 2D FFT for x and y transforms and 1D FFT for z transforms

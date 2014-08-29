@@ -74,7 +74,7 @@ class FourierTransform
 
   void init_lib(void);
 
-#if USE_ESSL
+#if USE_ESSL_FFT
 #if USE_ESSL_2DFFT
   std::vector<double> aux1xyf,aux1zf;
   std::vector<double> aux1xyb,aux1zb;

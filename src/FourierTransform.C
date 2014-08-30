@@ -585,9 +585,7 @@ void FourierTransform::bwd(complex<double>* val)
 
   dcft_(&initflag,&zvec_[0],&inc1,&inc2,&zvec_[0],&inc1,&inc2,&np2_,&ntrans,
        &isign,&scale,&aux1zb[0],&naux1z,&aux2[0],&naux2);
-#endif
-
-#if USE_FFTW2
+#elif USE_FFTW2
    /*
     * void fftw(fftw_plan plan, int howmany,
     *    FFTW_COMPLEX *in, int istride, int idist,
@@ -804,7 +802,7 @@ void FourierTransform::bwd(complex<double>* val)
   }
 #endif // USE_FFTW3_2D
 
-#elif USE_ESSL_FFT // USE_FFTW3
+#elif USE_ESSL_FFT
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
     // transform along x for non-zero vectors only
@@ -981,7 +979,7 @@ void FourierTransform::fwd(complex<double>* val)
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
     fftw_execute_dft ( fwplan2d, (fftw_complex*)&val[k*np0_*np1_],
                        (fftw_complex*)&val[k*np0_*np1_] );
-#endif
+#endif // USE_FFTW3_THREADS
 #else // USE_FFTW3_2D
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
@@ -1032,7 +1030,7 @@ void FourierTransform::fwd(complex<double>* val)
     tm_f_x.stop();
 #endif
   }
-#endif // use FFTW3_2D
+#endif
 #elif USE_ESSL_FFT
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
@@ -1122,7 +1120,7 @@ void FourierTransform::fwd(complex<double>* val)
                        (FFTW_COMPLEX*)0);
     }
   }
-#else
+#else // _OPENMP
     int inc1, inc2, istart;
 
     // transform along y for all values of x
@@ -1146,8 +1144,8 @@ void FourierTransform::fwd(complex<double>* val)
     istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
                         (FFTW_COMPLEX*)0,0,0);
+#endif // _OPENMP
   } // k
-#endif
 #else
   // No library
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )

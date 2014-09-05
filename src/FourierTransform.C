@@ -52,9 +52,9 @@ typedef int MPI_Comm;
 
 #if defined(USE_FFTW3)
 #if defined(FFTWMEASURE)
-#define FFTW_ALGO (FFTW_MEASURE|FFTW_UNALIGNED)
+#define FFTW_ALGO ( FFTW_MEASURE | FFTW_UNALIGNED )
 #else
-#define FFTW_ALGO (FFTW_ESTIMATE|FFTW_UNALIGNED)
+#define FFTW_ALGO ( FFTW_ESTIMATE | FFTW_UNALIGNED )
 #endif
 #endif
 
@@ -740,16 +740,14 @@ void FourierTransform::bwd(complex<double>* val)
 #endif
 
 #if USE_FFTW3
-#if USE_FFTW3_2D
 #if USE_FFTW3_THREADS
   fftw_execute_dft ( bwplan2d, (fftw_complex*)&val[0],
                      (fftw_complex*)&val[0] );
-#else
+#elif USE_FFTW3_2D
   #pragma omp parallel for
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
     fftw_execute_dft ( bwplan2d, (fftw_complex*)&val[k*np0_*np1_],
                        (fftw_complex*)&val[k*np0_*np1_] );
-#endif // FFTW3_THREADS
 #else // FFTW3_2D
   // fftw3 1d
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
@@ -970,16 +968,14 @@ void FourierTransform::fwd(complex<double>* val)
 
 //fftw_execute_dft is thread safe
 #if USE_FFTW3
-#if USE_FFTW3_2D
 #if USE_FFTW3_THREADS
   fftw_execute_dft ( fwplan2d, (fftw_complex*)&val[0],
                      (fftw_complex*)&val[0] );
-#else // USE_FFTW3_THREADS
+#elif USE_FFTW3_2D // USE_FFTW3_2D
   #pragma omp parallel for
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
     fftw_execute_dft ( fwplan2d, (fftw_complex*)&val[k*np0_*np1_],
                        (fftw_complex*)&val[k*np0_*np1_] );
-#endif // USE_FFTW3_THREADS
 #else // USE_FFTW3_2D
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
@@ -1030,7 +1026,7 @@ void FourierTransform::fwd(complex<double>* val)
     tm_f_x.stop();
 #endif
   }
-#endif
+#endif // USE_FFTW3_2D
 #elif USE_ESSL_FFT
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {

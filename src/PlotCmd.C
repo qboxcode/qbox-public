@@ -15,7 +15,6 @@
 // PlotCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PlotCmd.C,v 1.4 2009-08-26 15:03:50 fgygi Exp $
 
 #include "PlotCmd.h"
 #include "isodate.h"
@@ -42,95 +41,146 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 int PlotCmd::action(int argc, char **argv)
 {
-  string usage("  Use: plot [-density|-wf <nmin> [<nmax>]] filename");
+  string usage("  Use: plot filename\n"
+               "       plot -density [-spin {1|2}] filename\n"
+               "       plot -wf n [-spin {1|2}] filename\n"
+               "       plot -wfs nmin nmax [-spin {1|2}] filename");
 
   // parse arguments
   // plot filename               : plot atoms in xyz format
   // plot -density filename      : plot atoms and density in cube format
   // plot -wf <n> filename       : plot atoms and wf <n> in cube format
   // plot -wf <n1> <n2> filename : plot atoms and wfs <n1> to <n2> in cube fmt
-  if ( (argc < 2) || (argc > 5) )
+  // spin: 1 = first spin (up), 2 = second spin (down)
+  if ( (argc < 2) || (argc > 7) )
   {
     if ( ui->onpe0() )
       cout << usage << endl;
     return 1;
   }
 
-  bool plot_atoms = false;
+  bool plot_atoms = true;
+  bool xyz = true;
   bool plot_density = false;
   bool plot_wf = false;
-  bool xyz = false;
   int nmin,nmax,nwf;
+  // ispin = 0: plot both spins
+  // ispin = 1: plot first spin
+  // ispin = 2: plot second spin
+  int ispin = 0;
+
   string filename;
 
-  if ( argc == 2 )
+  // process arguments
+  int iarg = 1;
+  while ( iarg < argc )
   {
-    // plot filename : plot atoms in xyz format
-    plot_atoms = true;
-    xyz = true;
-    filename = argv[1];
-  }
-  else if ( argc == 3 )
-  {
-    // plot -density filename  : plot atoms and density in cube format
-    if ( strcmp(argv[1],"-density") )
+    if ( !strcmp(argv[iarg],"-density") )
     {
-      if ( ui->onpe0() )
-        cout << usage << endl;
-      return 1;
+      plot_density = true;
+      xyz = false;
+      filename = argv[iarg];
     }
-    filename = argv[2];
-    plot_atoms = true;
-    plot_density = true;
-  }
-  else if ( argc == 4 )
-  {
-    // plot -wf <n> filename : plot wavefunction <n>
-    if ( strcmp(argv[1],"-wf") )
+    else if ( !strcmp(argv[iarg],"-wf") )
     {
-      if ( ui->onpe0() )
+      plot_wf = true;
+      xyz = false;
+      // process argument: n
+      iarg++;
+      if ( iarg == argc )
+      {
+        if ( ui->onpe0() )
         cout << usage << endl;
-      return 1;
+        return 1;
+      }
+      nmin = atoi(argv[iarg]) - 1;
+      nmax = nmin;
+      nwf = 1;
+      if ( nmin < 0 || nmax >= s->wf.nst() || nmin > nmax )
+      {
+        if ( ui->onpe0() )
+          cout << " nmin or nmax incompatible with nst="
+               << s->wf.nst() << endl;
+        return 1;
+      }
     }
-    filename = argv[3];
-    plot_atoms = true;
-    plot_wf = true;
-    nmin = atoi(argv[2]) - 1;
-    nmax = nmin;
-    nwf = 1;
+    else if ( !strcmp(argv[iarg],"-wfs") )
+    {
+      plot_wf = true;
+      xyz = false;
+      // process argument: nmin
+      iarg++;
+      if ( iarg==argc )
+      {
+        if ( ui->onpe0() )
+        cout << usage << endl;
+        return 1;
+      }
+      nmin = atoi(argv[iarg]) - 1;
+      // process argument: nmax
+      iarg++;
+      if ( iarg==argc )
+      {
+        if ( ui->onpe0() )
+        cout << usage << endl;
+        return 1;
+      }
+      nmax = atoi(argv[iarg]) - 1;
+      nwf = nmax-nmin+1;
+      if ( nmin < 0 || nmax >= s->wf.nst() || nmin > nmax )
+      {
+        if ( ui->onpe0() )
+          cout << " nmin or nmax incompatible with nst="
+               << s->wf.nst() << endl;
+        return 1;
+      }
+    }
+    else if ( !strcmp(argv[iarg],"-spin") )
+    {
+      if ( !(plot_density || plot_wf ) )
+      {
+        if ( ui->onpe0() )
+          cout << usage << endl;
+        return 1;
+      }
+      if ( s->wf.nspin() != 2 )
+      {
+        if ( ui->onpe0() )
+          cout << "nspin = 1, cannot select spin" << endl;
+        return 1;
+      }
+      // process argument: ispin
+      iarg++;
+      if ( iarg==argc )
+      {
+        if ( ui->onpe0() )
+          cout << usage << endl;
+        return 1;
+      }
+      ispin = atoi(argv[iarg]);
+      if ( ispin < 1 || ispin > 2 )
+      {
+        if ( ui->onpe0() )
+          cout << " spin must be 1 or 2" <<  endl;
+        return 1;
+      }
+    }
+    else
+    {
+      // argument must be the file name
+      filename = argv[iarg];
+    }
 
-    if ( nmin < 0 || nmax >= s->wf.nst() || nmin > nmax )
-    {
-      if ( ui->onpe0() )
-        cout << " nmin or nmax incompatible with nst="
-             << s->wf.nst() << endl;
-      return 1;
-    }
-  }
-  else if ( argc == 5 )
-  {
-    // plot -wf <nmin> <nmin> filename :
-    // plot density of wfs <nmin> to <nmax>
-    if ( strcmp(argv[1],"-wf") )
-    {
-      if ( ui->onpe0() )
-        cout << usage << endl;
-      return 1;
-    }
-    filename = argv[4];
-    plot_atoms = true;
-    plot_wf = true;
-    nmin = atoi(argv[2]) - 1;
-    nmax = atoi(argv[3]) - 1;
-    nwf = nmax-nmin+1;
+    iarg++;
 
-    if ( nmin < 0 || nmax >= s->wf.nst() || nmin > nmax )
-    {
-      if ( ui->onpe0() )
-        cout << " nmin or nmax incompatible with nst="
-             << s->wf.nst() << endl;
-      return 1;
-    }
+  } // while iarg
+
+  // Must specify spin if plotting wave functions when nspin==2
+  if ( s->wf.nspin()==2 && plot_wf && ispin==0 )
+  {
+    if ( ui->onpe0() )
+      cout << " must use -spin if nspin==2" <<  endl;
+    return 1;
   }
 
   ofstream os;
@@ -148,8 +198,27 @@ int PlotCmd::action(int argc, char **argv)
     np2 = cd.vft()->np2();
     const int np012 = cd.vft()->np012();
     tmpr.resize(np012);
-    for ( int i = 0; i < cd.vft()->np012loc(); i++ )
-      tmpr[i] = cd.rhor[0][i];
+    if ( s->wf.nspin() == 1 )
+    {
+      for ( int i = 0; i < cd.vft()->np012loc(); i++ )
+        tmpr[i] = cd.rhor[0][i];
+    }
+    else
+    {
+      if ( ispin == 0 )
+      {
+        // plot both spins
+        for ( int i = 0; i < cd.vft()->np012loc(); i++ )
+          tmpr[i] = cd.rhor[0][i] + cd.rhor[1][i];
+      }
+      else
+      {
+        // plot one spin only
+        // ispin==1 or ispin==2
+        for ( int i = 0; i < cd.vft()->np012loc(); i++ )
+          tmpr[i] = cd.rhor[ispin-1][i];
+      }
+    }
 
     // send blocks of tmpr to pe0
     // send from first context column only
@@ -222,116 +291,146 @@ int PlotCmd::action(int argc, char **argv)
       return 1;
     }
 
-    SlaterDet *sdp = s->wf.sd(0,0);
-    const Basis& basis = sdp->basis();
+    int isp_min, isp_max;
+    SlaterDet *sdp;
+    if ( ispin == 0 )
+    {
+      // -spin was not specified:
+      if ( s->wf.nspin() == 1 )
+      {
+        isp_min = 0; isp_max = 0;
+      }
+      else
+      {
+        isp_min = 0; isp_max = 1;
+      }
+    }
+    else
+    {
+      isp_min = ispin-1; isp_max = ispin-1;
+    }
+
+    const Basis& basis = s->wf.sd(0,0)->basis();
     np0 = basis.np(0);
     np1 = basis.np(1);
     np2 = basis.np(2);
     FourierTransform ft(basis,np0,np1,np2);
-    const ComplexMatrix& c = sdp->c();
 
     vector<complex<double> > wftmp(ft.np012loc());
     vector<double> wftmpr(ft.np012());
     tmpr.resize(ft.np012());
-    for ( int n = nmin; n <= nmax; n++ )
+
+    for ( int isp = isp_min; isp <= isp_max; isp++ )
     {
-      assert(n < s->wf.nst());
+      sdp = s->wf.sd(isp,0);
+      const ComplexMatrix& c = sdp->c();
 
-      // compute real-space wavefunction
-
-      // transform wf on ctxt.mycol() hosting state n
-      if ( c.pc(n) == c.context().mycol() )
+      for ( int n = nmin; n <= nmax; n++ )
       {
-        //os << " state " << n << " is stored on column "
-        //     << ctxt_.mycol() << " local index: " << c_.y(n) << endl;
-        int nloc = c.y(n); // local index
-        ft.backward(c.cvalptr(c.mloc()*nloc),&wftmp[0]);
-
-        double *a = (double*) &wftmp[0];
-        if ( basis.real() )
+        if ( n >= s->wf.nst(isp) )
         {
-          // real function: plot wf
-          for ( int i = 0; i < ft.np012loc(); i++ )
-            wftmpr[i] = a[2*i];
+          if ( ui->onpe0() )
+            cout << "invalid wave function index: " << n+1
+                 << " > nst(ispin)" << endl;
+          return 1;
         }
-        else
-        {
-          // complex function: plot modulus
-          for ( int i = 0; i < ft.np012loc(); i++ )
-            wftmpr[i] = sqrt(a[2*i]*a[2*i] + a[2*i+1]*a[2*i+1]);
-        }
-      }
 
-      // send blocks of wftmpr to pe0
-      for ( int i = 0; i < c.context().nprow(); i++ )
-      {
-        bool iamsending = c.pc(n) == c.context().mycol() &&
-                          i == c.context().myrow();
+        // compute real-space wavefunction
 
-        // send size of wftmpr block
-        int size=-1;
-        if ( c.context().onpe0() )
+        // transform wf on ctxt.mycol() hosting state n
+        if ( c.pc(n) == c.context().mycol() )
         {
-          if ( iamsending )
+          //os << " state " << n << " is stored on column "
+          //     << ctxt_.mycol() << " local index: " << c_.y(n) << endl;
+          int nloc = c.y(n); // local index
+          ft.backward(c.cvalptr(c.mloc()*nloc),&wftmp[0]);
+
+          double *a = (double*) &wftmp[0];
+          if ( basis.real() )
           {
-            // sending to self, size not needed
-          }
-          else
-            c.context().irecv(1,1,&size,1,i,c.pc(n));
-        }
-        else
-        {
-          if ( iamsending )
-          {
-            size = ft.np012loc();
-            c.context().isend(1,1,&size,1,0,0);
-          }
-        }
-
-        // send wftmpr block
-        if ( c.context().onpe0() )
-        {
-          if ( iamsending )
-          {
-            // do nothing, data is already in place
+            // real function: plot wf
+            for ( int i = 0; i < ft.np012loc(); i++ )
+              wftmpr[i] = a[2*i];
           }
           else
           {
-            int istart = ft.np0() * ft.np1() * ft.np2_first(i);
-            c.context().drecv(size,1,&wftmpr[istart],1,i,c.pc(n));
+            // complex function: plot modulus
+            for ( int i = 0; i < ft.np012loc(); i++ )
+              wftmpr[i] = sqrt(a[2*i]*a[2*i] + a[2*i+1]*a[2*i+1]);
           }
         }
-        else
-        {
-          if ( iamsending )
-          {
-            c.context().dsend(size,1,&wftmpr[0],1,0,0);
-          }
-        }
-      }
 
-      // process the data on task 0
-      if ( c.context().onpe0() )
-      {
-        // wftmpr is now complete on task 0
-        if ( nwf == 1 )
+        // send blocks of wftmpr to pe0
+        for ( int i = 0; i < c.context().nprow(); i++ )
         {
-          // only one wf
-          for ( int i = 0; i < ft.np012(); i++ )
+          bool iamsending = c.pc(n) == c.context().mycol() &&
+                            i == c.context().myrow();
+
+          // send size of wftmpr block
+          int size=-1;
+          if ( c.context().onpe0() )
           {
-            tmpr[i] = wftmpr[i];
+            if ( iamsending )
+            {
+              // sending to self, size not needed
+            }
+            else
+              c.context().irecv(1,1,&size,1,i,c.pc(n));
+          }
+          else
+          {
+            if ( iamsending )
+            {
+              size = ft.np012loc();
+              c.context().isend(1,1,&size,1,0,0);
+            }
+          }
+
+          // send wftmpr block
+          if ( c.context().onpe0() )
+          {
+            if ( iamsending )
+            {
+              // do nothing, data is already in place
+            }
+            else
+            {
+              int istart = ft.np0() * ft.np1() * ft.np2_first(i);
+              c.context().drecv(size,1,&wftmpr[istart],1,i,c.pc(n));
+            }
+          }
+          else
+          {
+            if ( iamsending )
+            {
+              c.context().dsend(size,1,&wftmpr[0],1,0,0);
+            }
           }
         }
-        else
+
+        // process the data on task 0
+        if ( c.context().onpe0() )
         {
-          // multiple wfs, accumulate square
-          for ( int i = 0; i < ft.np012(); i++ )
+          // wftmpr is now complete on task 0
+          if ( nwf == 1 )
           {
-            tmpr[i] += wftmpr[i]*wftmpr[i];
+            // only one wf
+            for ( int i = 0; i < ft.np012(); i++ )
+            {
+              tmpr[i] = wftmpr[i];
+            }
+          }
+          else
+          {
+            // multiple wfs, accumulate square
+            for ( int i = 0; i < ft.np012(); i++ )
+            {
+              tmpr[i] += wftmpr[i]*wftmpr[i];
+            }
           }
         }
-      }
-    } // for n
+      } // for n
+    } // for isp
   } // if plot_wf
 
   // tmpr now contains the function to plot on task 0

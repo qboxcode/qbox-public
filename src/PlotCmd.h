@@ -15,7 +15,6 @@
 // PlotCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PlotCmd.h,v 1.1 2009-06-29 09:59:41 fgygi Exp $
 
 #ifndef PLOTCMD_H
 #define PLOTCMD_H
@@ -42,9 +41,9 @@ class PlotCmd : public Cmd
     return
     "\n plot\n\n"
     " syntax: plot filename\n"
-    "         plot -density filename\n"
-    "         plot -wf <n> filename\n"
-    "         plot -wf <nmin> <nmax> filename\n\n"
+    "         plot -density [-spin {1|2}] filename\n"
+    "         plot -wf <n> [-spin {1|2}] filename\n"
+    "         plot -wfs <nmin> <nmax> [-spin {1|2}] filename\n\n"
     "   The plot command creates a plot file in xyz or cube format.\n\n"
     "   The default format is xyz, used for plotting atoms only.\n"
     "   When using the -density option, the charge density is written\n"

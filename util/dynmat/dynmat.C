@@ -119,35 +119,55 @@ int main(int argc, char **argv)
   }
 
   // cout << a;
-  valarray<double> w(n);
+  valarray<double> w_upper(n),w_lower(n),w_sym(n);
   valarray<double> asave(a);
   char jobz = 'n';
   char uplo = 'u';
   int lwrk = 3*n;
   valarray<double> wrk(lwrk);
-  int info;
-  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w[0],&wrk[0],&lwrk,&info);
-  assert(info==0);
 
-  cout << " frequencies:" << endl;
-  for ( int i = 0; i < n; i++ )
-  {
-    if ( w[i] < 0.0 )
-      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w[i])) << " I" << endl;
-    else
-      cout << setw(8) << (int) (Ha2cm1 * sqrt(w[i])) << endl;
-  }
+  // use the upper part of the dynamical matrix
+  int info;
+  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w_upper[0],&wrk[0],&lwrk,&info);
+  assert(info==0);
 
   a = asave;
-  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w[0],&wrk[0],&lwrk,&info);
+  // use the lower part of the dynamical matrix
+  uplo = 'l';
+  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w_lower[0],&wrk[0],&lwrk,&info);
   assert(info==0);
 
-  cout << " frequencies:" << endl;
+  a = asave;
+  // symmetrize the matrix a
   for ( int i = 0; i < n; i++ )
   {
-    if ( w[i] < 0.0 )
-      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w[i])) << " I" << endl;
+    for ( int j = i+1; j < n; j++ )
+    {
+      double aij = 0.5 * ( a[j*n+i] + a[i*n+j] );
+      a[j*n+i] = aij;
+      a[i*n+j] = aij;
+    }
+  }
+  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w_sym[0],&wrk[0],&lwrk,&info);
+  assert(info==0);
+
+  cout << " frequencies (upper/lower/sym):" << endl;
+  for ( int i = 0; i < n; i++ )
+  {
+    if ( w_upper[i] < 0.0 )
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w_upper[i])) << " I"; 
     else
-      cout << setw(8) << (int) (Ha2cm1 * sqrt(w[i])) << endl;
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(w_upper[i]));
+
+    if ( w_lower[i] < 0.0 )
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w_lower[i])) << " I";
+    else
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(w_lower[i]));
+
+    if ( w_sym[i] < 0.0 )
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w_sym[i])) << " I";
+    else
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(w_sym[i]));
+    cout << endl;
   }
 }

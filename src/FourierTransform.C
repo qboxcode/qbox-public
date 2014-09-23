@@ -74,10 +74,11 @@ extern "C" {
              double *aux2, int *naux2);
 #define USE_GATHER_SCATTER 1
 }
-#else
-#define NO_FFT_LIB 1
+#elif defined(FFT_NOLIB)
 void cfftm ( std::complex<double> *ain, std::complex<double> *aout,
   double scale, int ntrans, int length, int ainc, int ajmp, int idir );
+#else
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
 #if USE_GATHER_SCATTER
@@ -617,7 +618,7 @@ void FourierTransform::bwd(complex<double>* val)
   }
 #endif // USE_FFTW3_THREADS
 
-#else // USE_FFTW3
+#elif defined(FFT_NOLIB) // USE_FFTW3
   // No library
   /* Transform along z */
   int ntrans = nvec_;
@@ -627,6 +628,8 @@ void FourierTransform::bwd(complex<double>* val)
   double scale = 1.0;
   int idir = -1;
   cfftm ( &zvec_[0], &zvec_[0], scale, ntrans, length, ainc, ajmp, idir );
+#else
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif // USE_FFTW3
 
 #if TIMING
@@ -921,7 +924,7 @@ void FourierTransform::bwd(complex<double>* val)
                         (FFTW_COMPLEX*)0,0,0);
 #endif // _OPENMP
   } // k
-#else // USE_FFTW2
+#elif defined(FFT_NOLIB) // USE_FFTW2
   // No library
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
@@ -950,6 +953,8 @@ void FourierTransform::bwd(complex<double>* val)
     ajmp = 1;
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
   } // for k
+#else
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
 #if TIMING
@@ -1083,7 +1088,7 @@ void FourierTransform::fwd(complex<double>* val)
     // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
 #if _OPENMP
   int ibase = k * np0_ * np1_;
-  complex<double> *tmp1 = new complex<double>[np1_];
+  //complex<double> *tmp1 = new complex<double>[np1_];
   #pragma omp parallel for
   for ( int i = 0; i < np0_; i++ )
   {
@@ -1102,7 +1107,7 @@ void FourierTransform::fwd(complex<double>* val)
       #endif
     }
   }
-  delete [] tmp1;
+  //delete [] tmp1;
 
   #pragma omp parallel for
   for ( int i = 0; i < ntrans0_; i++ )
@@ -1142,7 +1147,7 @@ void FourierTransform::fwd(complex<double>* val)
                         (FFTW_COMPLEX*)0,0,0);
 #endif // _OPENMP
   } // k
-#else
+#elif defined(FFT_NOLIB)
   // No library
   for ( int k = 0; k < np2_loc_[myproc_]; k++ )
   {
@@ -1169,6 +1174,8 @@ void FourierTransform::fwd(complex<double>* val)
     istart = np0_ * ( (np1_-ntrans) + k * np1_ );
     cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
   } // for k
+#else
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
 #if TIMING
@@ -1316,7 +1323,7 @@ void FourierTransform::fwd(complex<double>* val)
   int len = zvec_.size();
   int inc1 = 1;
   zdscal(&len,&fac,&zvec_[0],&inc1);
-#else
+#elif defined(FFT_NOLIB)
   // No library
   /* Transform along z */
   int ntrans = nvec_;
@@ -1326,6 +1333,8 @@ void FourierTransform::fwd(complex<double>* val)
   double scale = 1.0 / ( np0_ * np1_ * np2_ );
   int idir = 1;
   cfftm ( &zvec_[0], &zvec_[0], scale, ntrans, length, ainc, ajmp, idir );
+#else
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
 #if TIMING
@@ -1444,7 +1453,7 @@ void FourierTransform::init_lib(void)
 
 #elif USE_FFTW3
   vector<complex<double> > aux(np0_*np1_);
-#if USE_FFTW3MKL & !(USE_FFTW3_THREADS)
+#if defined(USE_FFTW3MKL) && !defined(USE_FFTW3_THREADS)
   fftw3_mkl.number_of_user_threads = omp_get_num_threads();
 #endif
 
@@ -1543,8 +1552,10 @@ void FourierTransform::init_lib(void)
                                 FFTW_ALGO );
 #endif //USE_FFTW3_THREADS
 
-#else // USE_FFTW3
+#elif FFT_NOLIB // USE_FFTW3
   /* no library */
+#else
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
 }
@@ -1681,7 +1692,7 @@ void FourierTransform::zvec_to_doublevector(complex<double> *c1,
 }
 
 
-#if NO_FFT_LIB
+#if defined(FFT_NOLIB)
 
 ////////////////////////////////////////////////////////////////////////////////
 //

@@ -22,8 +22,12 @@
 #include <complex>
 #include <vector>
 
+#if !( defined(USE_FFTW2) || defined(USE_FFTW3) || defined(USE_ESSL_FFT) || defined(FFT_NOLIB) )
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
+#endif
+
 #if defined(USE_FFTW2) && defined(USE_FFTW3)
-#error
+#error "Cannot define USE_FFTW2 and USE_FFTW3"
 #endif
 
 #if USE_FFTW2
@@ -96,8 +100,10 @@ class FourierTransform
 #else
   fftw_plan fwplanx, fwplany, bwplanx, bwplany;
 #endif
-#else
+#elif defined(FFT_NOLIB)
   // no library
+#else
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
   void vector_to_zvec(const std::complex<double>* c);

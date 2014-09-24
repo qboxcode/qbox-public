@@ -110,6 +110,9 @@ Bisection::Bisection(const SlaterDet& sd, int nlevels[3])
       if ( np_[idim] % base != 0 ) np_[idim] += base/2;
     }
   }
+  while (!sd.basis().factorizable(np_[0])) np_[0] += (1<<nlevels[0]);
+  while (!sd.basis().factorizable(np_[1])) np_[1] += (1<<nlevels[1]);
+  while (!sd.basis().factorizable(np_[2])) np_[2] += (1<<nlevels[2]);
 
   // number of grid points of augmented grid for normalization
   ft_ = new FourierTransform(sd.basis(),np_[0],np_[1],np_[2]);

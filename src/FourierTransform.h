@@ -22,11 +22,26 @@
 #include <complex>
 #include <vector>
 
-#if USE_FFTW
+#if !( defined(USE_FFTW2) || defined(USE_FFTW3) || defined(USE_ESSL_FFT) || defined(FFT_NOLIB) )
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
+#endif
+
+#if defined(USE_FFTW2) && defined(USE_FFTW3)
+#error "Cannot define USE_FFTW2 and USE_FFTW3"
+#endif
+
+#if USE_FFTW2
 #if USE_DFFTW
 #include "dfftw.h"
 #else
 #include "fftw.h"
+#endif
+#endif
+
+#if USE_FFTW3
+#include "fftw3.h"
+#if USE_FFTW3MKL
+#include "fftw3_mkl.h"
 #endif
 #endif
 
@@ -63,21 +78,32 @@ class FourierTransform
 
   void init_lib(void);
 
-#if USE_ESSL
+#if USE_ESSL_FFT
 #if USE_ESSL_2DFFT
-  std::vector<double> aux1xyf;
-  std::vector<double> aux1xyb;
-  int naux1xy;
+  std::vector<double> aux1xyf,aux1zf;
+  std::vector<double> aux1xyb,aux1zb;
+  std::vector<double> aux2;
+  int naux1xy,naux1z,naux2;
 #else
   std::vector<double> aux1xf, aux1yf, aux1zf;
   std::vector<double> aux1xb, aux1yb, aux1zb;
   std::vector<double> aux2;
   int naux1x,naux1y,naux1z,naux2;
 #endif
-#elif USE_FFTW || USE_FFTW3
+#elif USE_FFTW2
   fftw_plan fwplan0,fwplan1,fwplan2,bwplan0,bwplan1,bwplan2;
+#elif USE_FFTW3
+  //plans for np2_
+  fftw_plan fwplan, bwplan;
+#if defined(USE_FFTW3_2D) || defined(USE_FFTW3_THREADS)
+  fftw_plan fwplan2d, bwplan2d;
 #else
+  fftw_plan fwplanx, fwplany, bwplanx, bwplany;
+#endif
+#elif defined(FFT_NOLIB)
   // no library
+#else
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
   void vector_to_zvec(const std::complex<double>* c);
@@ -124,6 +150,10 @@ class FourierTransform
 
   void reset_timers(void);
   Timer tm_f_map, tm_f_fft, tm_f_pack, tm_f_mpi, tm_f_zero, tm_f_unpack,
-        tm_b_map, tm_b_fft, tm_b_pack, tm_b_mpi, tm_b_zero, tm_b_unpack;
+        tm_b_map, tm_b_fft, tm_b_pack, tm_b_mpi, tm_b_zero, tm_b_unpack,
+        tm_f_xy, tm_f_z, tm_f_x, tm_f_y,
+        tm_b_xy, tm_b_z, tm_b_x, tm_b_y,
+        tm_init, tm_b_com, tm_f_com;
+
 };
 #endif

@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 #
-# Copyright (c) 2008 The Regents of the University of California
+# Copyright (c) 2008-2014 The Regents of the University of California
 #
 # This file is part of Qbox
 #
@@ -11,15 +11,12 @@
 # or <http://www.gnu.org/licenses/>.
 #
 #-------------------------------------------------------------------------------
-# $Id: Makefile,v 1.70 2010-05-10 20:51:00 fgygi Exp $
-#------------------------------------------------------------------------------
-#
 include $(TARGET).mk
 #------------------------------------------------------------------------------
 #
 EXEC=qb
-TESTEXECS=testMatrix testFTGrid testGridFunction testBasis \
-testBlacsContext testSlaterDet testEnergyFunctional testSample \
+TESTEXECS=testMatrix testBasis \
+testSlaterDet testEnergyFunctional testSample \
 testChargeDensity  testFourierTransform testSpecies testContext
 
 OBJECTS=qb.o AtomSet.o Atom.o Species.o \
@@ -58,8 +55,6 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  lib:   $(OBJECTS)
 	ar cr libqb.a $^
- kpgen:	kpgen.C
-	$(CXX) -o $@ $^
  testLineMinimizer: testLineMinimizer.o LineMinimizer.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testCGOptimizer: testCGOptimizer.o CGOptimizer.o LineMinimizer.o
@@ -74,50 +69,6 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         AngleConstraint.o TorsionConstraint.o PositionConstraint.o \
         ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
         GlobalExtForce.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testreadSample: testreadSample.o \
-         Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
-         Constraint.o ConstraintSet.o Wavefunction.o UnitCell.o Matrix.o \
-         SampleReader.o StructuredDocumentHandler.o FourierTransform.o \
-         Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
-         SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
-         Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
-         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o \
-         PositionConstraint.o \
-        ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
-        GlobalExtForce.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- truncateMLWF: truncateMLWF.o \
-         MLWFTransform.o BasisMapping.o jade.o \
-         Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
-         Constraint.o ConstraintSet.o Wavefunction.o UnitCell.o Matrix.o \
-         SampleReader.o StructuredDocumentHandler.o FourierTransform.o \
-         Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
-         SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
-         Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
-         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o \
-         SampleWriter.o qbox_xmlns.o isodate.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- bisection: bisection.o jade.o \
-         Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
-         Constraint.o ConstraintSet.o Wavefunction.o UnitCell.o Matrix.o \
-         SampleReader.o StructuredDocumentHandler.o FourierTransform.o \
-         Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
-         SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
-         Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
-         AngleConstraint.o TorsionConstraint.o PositionConstraint.o \
-         XMLGFPreprocessor.o \
-         SampleWriter.o qbox_xmlns.o isodate.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- plotSample: plotSample.o \
-         Context.o AtomSet.o Atom.o Basis.o SlaterDet.o \
-         Constraint.o ConstraintSet.o Wavefunction.o UnitCell.o Matrix.o \
-         SampleReader.o StructuredDocumentHandler.o FourierTransform.o \
-         Species.o SpeciesReader.o sinft.o spline.o SpeciesHandler.o \
-         SampleHandler.o WavefunctionHandler.o AtomSetHandler.o \
-         Base64Transcoder.o ConstraintSet.o DistanceConstraint.o \
-         AngleConstraint.o TorsionConstraint.o XMLGFPreprocessor.o \
-         ChargeDensity.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testChargeDensity: testChargeDensity.o ChargeDensity.o \
         Wavefunction.o SlaterDet.o \
@@ -144,7 +95,6 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testXCFunctional: testXCFunctional.o LDAFunctional.o PBEFunctional.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
-#testMatrix: testMatrix.o Matrix.o Context.o pdgetri.o
  testMatrix: testMatrix.o Matrix.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testjacobi: testjacobi.o jacobi.o Matrix.o Context.o
@@ -154,52 +104,16 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testFourierTransform: testFourierTransform.o FourierTransform.o \
         Basis.o UnitCell.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testFTGrid: testFTGrid.o FTGrid.o BlacsContext.o Basis.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testGridFunction: testGridFunction.o GridFunction.o BlacsContext.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testUnitCell: testUnitCell.o UnitCell.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testBasis: testBasis.o Basis.o UnitCell.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testMapping: testMapping.o Basis.o UnitCell.o Context.o ShiftMapping.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testBlacsContext: testBlacsContext.o BlacsContext.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testContext: testContext.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testHandler: testHandler.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testPParse: testPParse.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testMemParse: testMemParse.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- upf2qso: upf2qso.o PeriodicTable.o spline.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- xmlSpecies: xmlSpecies.o qbox_xmlns.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- xmlget: xmlget.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- xmlextract: xmlextract.o
-	$(LD) -o xmlextract xmlextract.C -I$(XERCESCDIR)/include \
-        -L$(XERCESCDIR)/lib -lxerces-c
  testXMLGFPreprocessor: testXMLGFPreprocessor.o XMLGFPreprocessor.o Context.o \
         Base64Transcoder.o Matrix.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testwrite: testwrite.o Context.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testStepper: testStepper.o AtomSet.o Context.o MDIonicStepper.o \
-Wavefunction.o Species.o SlaterDet.o spline.o sinft.o Basis.o Matrix.o \
-FourierTransform.o UnitCell.o Atom.o BOSampleStepper.o \
-SampleStepper.o EnergyFunctional.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  test_fftw: test_fftw.o $(PLTOBJECTS)
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- test_fftw3: test_fftw3.o
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- test_sinft: test_sinft.o sinft.o $(PLTOBJECTS)
-	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- test_spline: test_spline.o spline.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
 #------------------------------------------------------------------------------
 # generate dependencies in makefile: use -Y to avoid library header files

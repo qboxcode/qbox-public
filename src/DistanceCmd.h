@@ -15,7 +15,6 @@
 // DistanceCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: DistanceCmd.h,v 1.6 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef DISTANCECMD_H
 #define DISTANCECMD_H
@@ -38,23 +37,46 @@ class DistanceCmd : public Cmd
   {
     return
     "\n distance\n\n"
-    " syntax: distance name1 name2\n\n"
-    "   The distance command prints the distance between two atoms.\n\n";
+    " syntax: distance [-pbc] name1 name2\n\n"
+    "   The distance command prints the distance between two atoms.\n"
+    "   If the -pbc option is used, the smallest distance is\n"
+    "   computed taking into account periodic boundary conditions.\n\n";
   }
 
   int action(int argc, char **argv)
   {
-    if ( argc != 3 )
+    if ( ! ( argc == 3 || argc == 4 ) )
     {
       if ( ui->onpe0() )
       {
-        cout << " use: distance name1 name2" << endl;
+        cout << " use: distance [-pbc] name1 name2" << endl;
       }
       return 1;
     }
 
-    string name1(argv[1]);
-    string name2(argv[2]);
+    string name1, name2;
+    bool use_pbc = false;
+
+    if ( argc == 3 )
+    {
+      name1 = argv[1];
+      name2 = argv[2];
+    }
+    if ( argc == 4 )
+    {
+      if ( strcmp(argv[1],"-pbc") )
+      {
+        if ( ui->onpe0() )
+        {
+          cout << " use: distance [-pbc] name1 name2" << endl;
+        }
+        return 1;
+      }
+      use_pbc = true;
+      name1 = argv[2];
+      name2 = argv[3];
+    }
+
     Atom* a1 = s->atoms.findAtom(name1);
     Atom* a2 = s->atoms.findAtom(name2);
     if ( a1 == 0 || a2 == 0 )
@@ -74,7 +96,13 @@ class DistanceCmd : public Cmd
 
     if ( ui->onpe0() )
     {
-      const double d = length(a1->position()-a2->position());
+      D3vector r12 = a1->position()-a2->position();
+      if ( use_pbc )
+      {
+        const UnitCell& cell = s->wf.cell();
+        cell.fold_in_ws(r12);
+      }
+      const double d = length(r12);
       cout.setf(ios::fixed,ios::floatfield);
       cout << " distance " << name1 << "-" << name2 << ": "
            << setprecision(3)

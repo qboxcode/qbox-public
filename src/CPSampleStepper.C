@@ -244,8 +244,10 @@ void CPSampleStepper::step(int niter)
         cout << "  <temp_ion> " << mdionic_stepper->temp() << " </temp_ion>\n";
         cout << "  <eta_ion> " << mdionic_stepper->eta() << " </eta_ion>\n";
       }
-      cout << "  <econst> " << energy+ekin_ion+ekin_e << " </econst>\n";
-      cout << "  <ekin_ec> " << energy+ekin_ion+2*ekin_e << " </ekin_ec>\n";
+      double econst = energy + ekin_ion + ekin_e +
+                      mdionic_stepper->ekin_stepper();
+      cout << "  <econst> " << econst << " </econst>\n";
+      cout << "  <ekin_ec> " << econst + ekin_e << " </ekin_ec>\n";
     }
 
     if ( compute_stress )

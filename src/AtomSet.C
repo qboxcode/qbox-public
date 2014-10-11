@@ -497,6 +497,7 @@ void AtomSet::randomize_velocities(double temp)
       v[is][3*ia+2] = width * xi2;
     }
   }
+  reset_vcm();
   set_velocities(v);
 }
 

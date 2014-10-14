@@ -63,6 +63,7 @@ int PlotCmd::action(int argc, char **argv)
   bool xyz = true;
   bool plot_density = false;
   bool plot_wf = false;
+  bool plot_wfs = false;
   int nmin,nmax,nwf;
   // ispin = 0: plot both spins
   // ispin = 1: plot first spin
@@ -79,7 +80,6 @@ int PlotCmd::action(int argc, char **argv)
     {
       plot_density = true;
       xyz = false;
-      filename = argv[iarg];
     }
     else if ( !strcmp(argv[iarg],"-wf") )
     {
@@ -106,7 +106,7 @@ int PlotCmd::action(int argc, char **argv)
     }
     else if ( !strcmp(argv[iarg],"-wfs") )
     {
-      plot_wf = true;
+      plot_wfs = true;
       xyz = false;
       // process argument: nmin
       iarg++;
@@ -137,7 +137,7 @@ int PlotCmd::action(int argc, char **argv)
     }
     else if ( !strcmp(argv[iarg],"-spin") )
     {
-      if ( !(plot_density || plot_wf ) )
+      if ( !(plot_density || plot_wf || plot_wfs) )
       {
         if ( ui->onpe0() )
           cout << usage << endl;
@@ -176,7 +176,7 @@ int PlotCmd::action(int argc, char **argv)
   } // while iarg
 
   // Must specify spin if plotting wave functions when nspin==2
-  if ( s->wf.nspin()==2 && plot_wf && ispin==0 )
+  if ( s->wf.nspin()==2 && (plot_wf||plot_wfs) && ispin==0 )
   {
     if ( ui->onpe0() )
       cout << " must use -spin if nspin==2" <<  endl;
@@ -269,9 +269,9 @@ int PlotCmd::action(int argc, char **argv)
       }
     }
   } // plot_density
-  else if ( plot_wf )
+  else if ( plot_wf || plot_wfs )
   {
-    // compute wf and store in tmpr
+    // compute wf or wf squared and store in tmpr
     if ( ctxt.onpe0() )
     {
       ctxt.ibcast_send(1,1,&nwf,1);
@@ -319,6 +319,7 @@ int PlotCmd::action(int argc, char **argv)
     vector<complex<double> > wftmp(ft.np012loc());
     vector<double> wftmpr(ft.np012());
     tmpr.resize(ft.np012());
+    tmpr.assign(ft.np012(),0.0);
 
     for ( int isp = isp_min; isp <= isp_max; isp++ )
     {
@@ -412,15 +413,7 @@ int PlotCmd::action(int argc, char **argv)
         if ( c.context().onpe0() )
         {
           // wftmpr is now complete on task 0
-          if ( nwf == 1 )
-          {
-            // only one wf
-            for ( int i = 0; i < ft.np012(); i++ )
-            {
-              tmpr[i] = wftmpr[i];
-            }
-          }
-          else
+          if ( plot_wfs )
           {
             // multiple wfs, accumulate square
             for ( int i = 0; i < ft.np012(); i++ )
@@ -428,10 +421,18 @@ int PlotCmd::action(int argc, char **argv)
               tmpr[i] += wftmpr[i]*wftmpr[i];
             }
           }
+          else
+          {
+            // plot individual wf
+            for ( int i = 0; i < ft.np012(); i++ )
+            {
+              tmpr[i] = wftmpr[i];
+            }
+          }
         }
       } // for n
     } // for isp
-  } // if plot_wf
+  } // if plot_wf || plot_wfs
 
   // tmpr now contains the function to plot on task 0
 
@@ -495,7 +496,7 @@ int PlotCmd::action(int argc, char **argv)
     }
   } // if plot_atoms
 
-  if ( plot_density || plot_wf )
+  if ( plot_density || plot_wf || plot_wfs )
   {
     // process the function in tmpr
     if ( ctxt.onpe0() )

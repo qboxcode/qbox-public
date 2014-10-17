@@ -27,6 +27,11 @@
 
 #if _OPENMP
 #include <omp.h>
+#else
+// _OPENMP is not defined
+#if defined(USE_FFTW3_THREADS)
+#error "Need OpenMP to use FFTW3 threads"
+#endif
 #endif
 
 #if USE_MPI
@@ -1453,13 +1458,13 @@ void FourierTransform::init_lib(void)
 
 #elif USE_FFTW3
   vector<complex<double> > aux(np0_*np1_);
-#if defined(USE_FFTW3MKL) && !defined(USE_FFTW3_THREADS)
-  fftw3_mkl.number_of_user_threads = omp_get_num_threads();
+#if defined(USE_FFTW3MKL) && !defined(USE_FFTW3_THREADS) && _OPENMP
+  fftw3_mkl.number_of_user_threads = omp_get_max_threads();
 #endif
 
 #if USE_FFTW3_THREADS
   fftw_init_threads();
-  fftw_plan_with_nthreads(omp_get_num_threads());
+  fftw_plan_with_nthreads(omp_get_max_threads());
   vector<complex<double> > aux1(np0_*np1_*np2_loc_[myproc_]);
 
   // xy

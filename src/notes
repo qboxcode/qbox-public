@@ -1,4 +1,15 @@
 --------------------------------------------------------------------------------
+rel1_60_5
+--------------------------------------------------------------------------------
+r1564: modify FFTW3 use of threads
+Added -pbc option to distance, angle and torsion functions
+PlotCmd.C: fixed -wfs option.
+r1552 CPSampleStepper.C: added stepper kinetic energy to econst
+Added reset_vcm at end of randomize_v
+--------------------------------------------------------------------------------
+rel1_60_4 r1550
+--------------------------------------------------------------------------------
+added FFTW3 option and restored ESSL_FFT functionality
 r1506: Fixed typo in AlphaPBE0.h
 --------------------------------------------------------------------------------
 rel1_60_2

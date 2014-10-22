@@ -325,7 +325,7 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
         ComplexMatrix &c(s_.wf.sd(ispin,ikp)->c());
         ComplexMatrix &dc(dwf.sd(ispin,ikp)->c());
         ComplexMatrix &cref(wf_ref.sd(ispin,ikp)->c());
-	ComplexMatrix &dcref(dwf_ref.sd(ispin,ikp)->c());
+        ComplexMatrix &dcref(dwf_ref.sd(ispin,ikp)->c());
 
         // matproj1 = <wf_ref|wf>
         matproj1.gemm('c','n',1.0,cref,c,0.0);

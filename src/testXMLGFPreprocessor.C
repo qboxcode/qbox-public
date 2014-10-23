@@ -41,7 +41,7 @@ int main(int argc, char** argv)
     const int nc = atoi(argv[2]);
     const char* const filename = argv[3];
 
-    Context ctxt(nr,nc,'c'); // context on which gfdata is defined
+    Context ctxt(nr,nc); // context on which gfdata is defined
     DoubleMatrix gfdata(ctxt);
     string xmlcontent;
 
@@ -52,7 +52,8 @@ int main(int argc, char** argv)
          << " on " << processor_name << endl;
 
     XMLGFPreprocessor xmlgfp;
-    xmlgfp.process(filename,gfdata,xmlcontent);
+    bool serial = true;
+    xmlgfp.process(filename,gfdata,xmlcontent,serial);
 
 #if 0
     // write all gfdata on file

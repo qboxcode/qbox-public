@@ -16,7 +16,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 #include "XCOperator.h"
-#include "ChargeDensity.h"
 #include "XCPotential.h"
 #include "ExchangeOperator.h"
 using namespace std;
@@ -28,8 +27,7 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
   xcp_ = 0;
   xop_ = 0;
   exc_ = 0.0 ;
-
-  sigma_exc_.resize(6);
+  exhf_ = 0.0 ;
 
   string functional_name = s.ctrl.xc;
 
@@ -92,10 +90,9 @@ XCOperator::~XCOperator()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void XCOperator::update(std::vector<std::vector<double> >& vr, bool compute_stress)
+void XCOperator::update_v(std::vector<std::vector<double> >& vr)
 {
-  // update xc potential and self-energy
-  // used whenever the charge density and/or wave functions have changed
+  // update: used whenever the charge density has changed
   // compute vxc potential and energy
   if ( hasPotential_ )
   {
@@ -104,40 +101,45 @@ void XCOperator::update(std::vector<std::vector<double> >& vr, bool compute_stre
 
     // LDA/GGA exchange energy
     exc_ = xcp_->exc();
-
-    if ( compute_stress )
-      xcp_->compute_stress(sigma_exc_);
   }
   else
   {
     exc_ = 0.0;
-    sigma_exc_ = 0.0;
   }
+}
 
+////////////////////////////////////////////////////////////////////////////////
+double XCOperator::update_sigma(void)
+{
   if ( hasHF() )
   {
-    exc_ += xop_->update_operator(compute_stress);
-    if ( compute_stress )
-      xop_->add_stress(sigma_exc_);
+    return xop_->update_sigma();
+  }
+  return 0.0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void XCOperator::apply_sigma(Wavefunction &dwf)
+{
+  if ( hasHF() )
+  {
+    xop_->apply_sigma(dwf);
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void XCOperator::apply_self_energy(Wavefunction &dwf)
+void XCOperator::compute_stress(std::valarray<double>& sigma_exc)
 {
-  if ( hasHF() )
-    xop_->apply_operator(dwf);
+  if ( hasPotential_ )
+  {
+    // LDA/GGA stress
+    xcp_->compute_stress( sigma_exc );
+  }
+
+  if ( hasHF_ )
+  {
+    throw XCOperatorException("stress not implemented with HF exchange");
+  }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-void XCOperator::compute_stress(std::valarray<double>& sigma)
-{
-  sigma = sigma_exc_;
-}
 
-////////////////////////////////////////////////////////////////////////////////
-void XCOperator::cell_moved(void)
-{
-  if ( hasHF() )
-    xop_->cell_moved();
-}

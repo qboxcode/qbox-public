@@ -37,8 +37,8 @@ class RescaleVCmd : public Cmd
 
   RescaleVCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "rescale_v"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "rescale_v"; }
+  char *help_msg(void) const
   {
     return
     "\n rescale_v\n\n"

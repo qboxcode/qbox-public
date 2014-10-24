@@ -29,7 +29,7 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name):
-cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
+cd_(cd), ctxt_(cd.vcontext()), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
 {
   if ( functional_name == "LDA" )
   {
@@ -148,9 +148,8 @@ void XCPotential::update(vector<vector<double> >& vr)
         vr[1][i] += v_dn[i];
       }
     }
-    double sum = exc_ * vbasis_.cell().volume() / vft_.np012();
-    double tsum;
-    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+    double tsum = exc_ * vbasis_.cell().volume() / vft_.np012();
+    ctxt_.dsum(1,1,&tsum,1);
     exc_ = tsum;
   }
   else
@@ -319,9 +318,8 @@ void XCPotential::update(vector<vector<double> >& vr)
         vr[1][ir] += v1_dn[ir] + vxctmp[1][ir];
       }
     }
-    double sum = esum * vbasis_.cell().volume() / vft_.np012();
-    double tsum;
-    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+    double tsum = esum * vbasis_.cell().volume() / vft_.np012();
+    ctxt_.dsum(1,1,&tsum,1);
     exc_ = tsum;
   }
 }
@@ -362,11 +360,11 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
       }
     }
     const double fac = 1.0 / vft_.np012();
-    double sum, tsum;
+    double tsum;
     // Next line: factor omega in volume element cancels 1/omega in
     // definition of sigma_exc
-    sum = - fac * dxc_;
-    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+    tsum = - fac * dxc_;
+    ctxt_.dsum(1,1,&tsum,1);
 
     // Note: contribution to sigma_exc is a multiple of the identity
     sigma_exc[0] = tsum;
@@ -483,16 +481,16 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
       }
     }
     double fac = 1.0 / vft_.np012();
-    double sum[6],tsum[6];
+    double tsum[6];
     // Next line: factor omega in volume element cancels 1/omega in
     // definition of sigma_exc
-    sum[0] = - fac * ( dsum + sum0 );
-    sum[1] = - fac * ( dsum + sum1 );
-    sum[2] = - fac * ( dsum + sum2 );
-    sum[3] = - fac * sum3;
-    sum[4] = - fac * sum4;
-    sum[5] = - fac * sum5;
-    MPI_Allreduce(sum,tsum,6,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+    tsum[0] = - fac * ( dsum + sum0 );
+    tsum[1] = - fac * ( dsum + sum1 );
+    tsum[2] = - fac * ( dsum + sum2 );
+    tsum[3] = - fac * sum3;
+    tsum[4] = - fac * sum4;
+    tsum[5] = - fac * sum5;
+    ctxt_.dsum(6,1,&tsum[0],6);
 
     sigma_exc[0] = tsum[0];
     sigma_exc[1] = tsum[1];

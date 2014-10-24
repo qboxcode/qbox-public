@@ -33,7 +33,7 @@ class ChargeMixNdim : public Var
 
   public:
 
-  const char *name ( void ) const { return "charge_mix_ndim"; };
+  char *name ( void ) const { return "charge_mix_ndim"; };
 
   int set ( int argc, char **argv )
   {

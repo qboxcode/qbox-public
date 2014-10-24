@@ -34,7 +34,7 @@ class CellDyn : public Var
 
   public:
 
-  const char *name ( void ) const { return "cell_dyn"; };
+  char *name ( void ) const { return "cell_dyn"; };
 
   int set ( int argc, char **argv )
   {

@@ -36,8 +36,8 @@ class StrainCmd : public Cmd
 
   StrainCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "strain"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "strain"; }
+  char *help_msg(void) const
   {
     return
     "\n strain\n\n"

@@ -116,8 +116,6 @@ class Wavefunction
   void print(std::ostream& os, std::string encoding, std::string tag) const;
   void write(SharedFilePtr& fh, std::string encoding, std::string tag) const;
   void info(std::ostream& os, std::string tag) const;
-
-  friend class WavefunctionHandler;
 };
 std::ostream& operator << ( std::ostream& os, const Wavefunction& wf );
 #endif

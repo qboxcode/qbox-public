@@ -32,8 +32,8 @@ class KpointCmd : public Cmd
 
   KpointCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "kpoint"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "kpoint"; }
+  char *help_msg(void) const
   {
     return
     "\n kpoint\n\n"

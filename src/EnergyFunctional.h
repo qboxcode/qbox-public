@@ -24,6 +24,7 @@
 #include <valarray>
 #include <map>
 #include <string>
+#include "ChargeDensity.h"
 #include "StructureFactor.h"
 #include "Timer.h"
 
@@ -31,7 +32,6 @@ class Sample;
 class Basis;
 class AtomSet;
 class Wavefunction;
-class ChargeDensity;
 class UnitCell;
 class FourierTransform;
 class XCOperator;
@@ -57,14 +57,16 @@ class EnergyFunctional
   std::vector<std::vector<double> > vps, dvps, rhops;
   std::vector<std::complex<double> > tmp_r, vion_local_g,
     dvion_local_g, vlocal_g, rhopst, rhogt, rhoelg, vtemp;
+  std::vector<double> ftmp;
 
   std::vector<std::vector<double> > tau0, fion_esr;
   std::vector<std::vector<double> > fext;
   std::vector<double> zv_, rcps_;
   std::vector<int> na_;
+  int namax_;
   int nsp_;
   double ekin_, econf_, eps_, enl_, ehart_,
-         ecoul_, exc_, esr_, eself_, ets_, eexf_, etotal_;
+         ecoul_, exc_, esr_, eself_, ets_, eexf_, exhf_, etotal_;
   std::valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
     sigma_enl, sigma_esr, sigma;
 
@@ -85,6 +87,7 @@ class EnergyFunctional
   double ehart(void) const { return ehart_; }
   double ecoul(void) const { return ecoul_; }
   double exc(void) const { return exc_; }
+  double exhf(void) const { return exhf_; }
   double esr(void) const { return esr_; }
   double eself(void) const { return eself_; }
   double ets(void) const { return ets_; }
@@ -92,7 +95,7 @@ class EnergyFunctional
 
   const ConfinementPotential *confpot(int ikp) const { return cfp[ikp]; }
 
-  void update_vhxc(bool compute_stress);
+  void update_vhxc(void);
 
   void atoms_moved(void);
   void cell_moved(void);

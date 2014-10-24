@@ -31,8 +31,8 @@ class ExtForceCmd : public Cmd
 
   ExtForceCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "extforce"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "extforce"; }
+  char *help_msg(void) const
   {
     return
     "\n extforce\n\n"
@@ -40,8 +40,8 @@ class ExtForceCmd : public Cmd
     "   extforce define atomic name atom fx fy fz\n"
     "   extforce define pair name atom1 atom2 force\n"
     "   extforce define global name fx fy fz\n"
-    "   extforce set name fx fy fz\n"
-    "   extforce set name f\n"
+    "   extforce set name value fx fy fz\n"
+    "   extforce set name value f\n"
     "   extforce delete name\n"
     "   extforce list\n"
     "   External forces are added to ionic forces at each MD step.\n\n";

@@ -32,7 +32,7 @@ class BlHF : public Var
 
   public:
 
-  const char *name ( void ) const { return "blHF"; };
+  char *name ( void ) const { return "blHF"; };
 
   int set ( int argc, char **argv )
   {

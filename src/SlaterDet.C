@@ -36,54 +36,34 @@ using namespace std;
 SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt),
  c_(ctxt)
 {
-  // create cartesian communicator mapped on ctxt
-  int ndims=2;
-  // Note: MPI_Cart_comm uses row-major ordering. Need to give
-  // transposed dimensions as input arguments
-  int dims[2] = {ctxt.npcol(), ctxt.nprow()};
-  int periods[2] = { 0, 0};
-  int reorder = 0;
-  MPI_Comm comm;
-  MPI_Cart_create(ctxt.comm(),ndims,dims,periods,reorder,&comm);
-
-  int size, myrank;
-  MPI_Comm_size(comm,&size);
-  MPI_Comm_rank(comm,&myrank);
-  int coords[2];
-  MPI_Cart_coords(comm,myrank,2,coords);
-
-#ifdef DEBUG
-  for ( int i = 0; i < size; i++ )
+  //cout << ctxt.mype() << ": SlaterDet::SlaterDet: ctxt.mycol="
+  //     << ctxt.mycol() << " basis_->context(): "
+  //     << basis_->context();
+  my_col_ctxt_ = 0;
+  for ( int icol = 0; icol < ctxt_.npcol(); icol++ )
   {
-    MPI_Barrier(comm);
-    if ( myrank == i )
-      cout << myrank << ": myrow=" << ctxt.myrow() << " mycol=" << ctxt.mycol()
-           << " coords= " << coords[0] << ", " << coords[1] << endl;
+    Context* col_ctxt = new Context(ctxt_,ctxt_.nprow(),1,0,icol);
+    ctxt_.barrier();
+    if ( icol == ctxt_.mycol() )
+      my_col_ctxt_ = col_ctxt;
+    else
+      delete col_ctxt;
   }
-#endif
-
-  // Split the cartesian communicator comm to define my_col_comm_
-  // MPI_Cart_create uses row-major ordering. Need to keep the second
-  // dimension to get a communicator corresponding to a column of ctxt
-  int remain_dims[2] = { 0, 1 };
-  MPI_Cart_sub(comm, remain_dims, &my_col_comm_);
-
-  // Free the cartesian communicator
-  MPI_Comm_free(&comm);
-
-  // define basis on the column subcommunicator
-  basis_ = new Basis(my_col_comm_,kpoint);
+  //cout << ctxt_.mype() << ": SlaterDet::SlaterDet: my_col_ctxt: "
+  //     << *my_col_ctxt_;
+  basis_ = new Basis(*my_col_ctxt_,kpoint);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const SlaterDet& rhs) : ctxt_(rhs.context()),
   basis_(new Basis(*(rhs.basis_))),
-  my_col_comm_(rhs.my_col_comm_), c_(rhs.c_){}
+  my_col_ctxt_(new Context(*(rhs.my_col_ctxt_))) , c_(rhs.c_){}
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::~SlaterDet()
 {
   delete basis_;
+  delete my_col_ctxt_;
   // cout << ctxt_.mype() << ": SlaterDet::dtor: ctxt=" << ctxt_;
 #ifdef TIMING
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
@@ -1341,12 +1321,10 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   vector<double> wftmpr(wftmpr_loc_size);
   Base64Transcoder xcdr;
 
-  // do not write anything if nst==0
-  if ( nst() == 0 ) return;
-
 #if USE_MPI
   char* wbuf = 0;
   size_t wbufsize = 0;
+  const Context& colctxt = basis_->context();
 #endif
 
   // Segment n on process iprow is sent to row (n*nprow+iprow)/(nprow)
@@ -1627,7 +1605,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     scounts[idest] = seg.size();
 
     // send sendcounts to all procs
-    MPI_Alltoall(&scounts[0],1,MPI_INT,&rcounts[0],1,MPI_INT,my_col_comm_);
+    MPI_Alltoall(&scounts[0],1,MPI_INT,&rcounts[0],1,MPI_INT,colctxt.comm());
 
     // dimension receive buffer
     int rbufsize = rcounts[0];
@@ -1640,7 +1618,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     char* rbuf = new char[rbufsize];
 
     int err = MPI_Alltoallv((void*)seg.data(),&scounts[0],&sdispl[0],
-              MPI_CHAR,rbuf,&rcounts[0],&rdispl[0],MPI_CHAR,my_col_comm_);
+              MPI_CHAR,rbuf,&rcounts[0],&rdispl[0],MPI_CHAR,colctxt.comm());
 
     if ( err != 0 )
        cout << ctxt_.mype()

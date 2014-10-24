@@ -15,39 +15,12 @@
 // AndersonMixer.C
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: AndersonMixer.C,v 1.12 2009-09-08 14:26:01 fgygi Exp $
 
 #include "AndersonMixer.h"
 #include "blas.h"
 #include <iostream>
-#if USE_MPI
-#include <mpi.h>
-#else
-typedef int MPI_Comm;
-#endif
 using namespace std;
-
-////////////////////////////////////////////////////////////////////////////////
-AndersonMixer::AndersonMixer(const int m, const int nmax,
-  const MPI_Comm* const pcomm) : m_(m), nmax_(nmax), pcomm_(pcomm)
-{
-#if USE_MPI
-  if ( pcomm_ != 0 )
-  {
-    MPI_Comm_rank(*pcomm_,&mype_);
-    MPI_Comm_size(*pcomm_,&npes_);
-  }
-#endif
-
-  assert( nmax >= 0 );
-  x_.resize(nmax_+1);
-  f_.resize(nmax_+1);
-  for ( int n = 0; n < nmax_+1; n++ )
-  {
-    x_[n].resize(m_);
-    f_[n].resize(m_);
-  }
-  restart();
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 void AndersonMixer::restart(void)
@@ -79,17 +52,15 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
     f_[k_][i] = f[i];
   }
 
-  valarray<double> a,atmp;
-  valarray<double> b,btmp;
+  valarray<double> a;
+  valarray<double> b;
   valarray<double> theta;
   if ( n_ > 0 )
   {
     // compute matrix A = F^T F and rhs b = F^T f
     // compute the lower part of A only (i>=j)
     a.resize(n_*n_);
-    atmp.resize(n_*n_);
     b.resize(n_);
-    btmp.resize(n_);
     theta.resize(n_);
     for ( int i = 0; i < n_; i++ )
     {
@@ -114,19 +85,42 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
       b[i] = bsum;
     }
 
-#if USE_MPI
-    if ( pcomm_ != 0 )
+    if ( pctxt_ != 0 )
     {
-      MPI_Allreduce(&a[0],&atmp[0],n_*n_,MPI_DOUBLE,MPI_SUM,*pcomm_);
-      a = atmp;
-      MPI_Allreduce(&b[0],&btmp[0],n_,MPI_DOUBLE,MPI_SUM,*pcomm_);
-      b = btmp;
+      pctxt_->dsum(n_*n_,1,&a[0],n_*n_);
+      pctxt_->dsum(n_,1,&b[0],n_);
+    }
+
+#if 0
+    // print matrix a and rhs b
+    if ( pctxt_ != 0 )
+    {
+      for ( int ip =0; ip < pctxt_->size(); ip++ )
+      {
+        pctxt_->barrier();
+        if ( pctxt_->mype() == ip )
+        {
+          // print matrix a and rhs b
+          double anrm = 0.0;
+          for ( int i = 0; i < n_; i++ )
+            for ( int j = 0; j <=i; j++ )
+            {
+              cout << pctxt_->mype() << ": "
+                   << "a("<<i<<","<<j<<")=" << a[i+j*n_] << endl;
+              anrm += a[i+j*n_]*a[i+j*n_];
+            }
+            for ( int i = 0; i < n_; i++ )
+              cout << pctxt_->mype() << ": "
+                   <<  "b("<<i<<")=" << b[i] << endl;
+          //cout << " AndersonMixer: n=" << n_ << " anorm = " << anrm << endl;
+        }
+      }
     }
 #endif
 
     // solve the linear system a * theta = b
     // solve on task 0 and bcast result
-    if ( pcomm_ == 0 || mype_ == 0 )
+    if ( pctxt_ == 0 || pctxt_->onpe0() )
     {
       const bool diag = false;
       if ( diag )
@@ -247,11 +241,27 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
 
     }
 
-#if USE_MPI
     // broadcast theta from task 0
-    if ( pcomm_ != 0 )
+    if ( pctxt_ != 0 )
     {
-      MPI_Bcast(&theta[0],n_,MPI_DOUBLE,0,*pcomm_);
+      if ( pctxt_->onpe0() )
+        pctxt_->dbcast_send(n_,1,&theta[0],n_);
+      else
+        pctxt_->dbcast_recv(n_,1,&theta[0],n_,0,0);
+    }
+
+#if 0
+    for ( int ip = 0; ip < pctxt_->size(); ip++ )
+    {
+      pctxt_->barrier();
+      if ( pctxt_->mype() == ip )
+      {
+        cout << pctxt_->mype() << ": ";
+        cout << " AndersonMixer: theta = ";
+        for ( int i = 0; i < theta.size(); i++ )
+          cout << theta[i] << " ";
+        cout << endl;
+      }
     }
 #endif
 

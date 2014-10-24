@@ -20,7 +20,6 @@
 #include "Sample.h"
 #include "Species.h"
 #include "Wavefunction.h"
-#include "ChargeDensity.h"
 #include "SlaterDet.h"
 #include "Basis.h"
 #include "FourierTransform.h"
@@ -87,12 +86,14 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
   zv_.resize(nsp_);
   rcps_.resize(nsp_);
   na_.resize(nsp_);
+  namax_ = 0;
 
   for ( int is = 0; is < nsp_; is++ )
   {
     vps[is].resize(ngloc);
     dvps[is].resize(ngloc);
     rhops[is].resize(ngloc);
+    if ( atoms.na(is) > namax_ ) namax_ = atoms.na(is);
   }
 
   xco = new XCOperator(s_, cd_);
@@ -118,6 +119,7 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
   tau0.resize(nsp_);
   fion_esr.resize(nsp_);
   fext.resize(nsp_);
+  ftmp.resize(3*namax_);
 
   eself_ = 0.0;
 
@@ -194,7 +196,7 @@ EnergyFunctional::~EnergyFunctional(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void EnergyFunctional::update_vhxc(bool compute_stress)
+void EnergyFunctional::update_vhxc(void)
 {
   // called when the charge density has changed
   // update Hartree and xc potentials using the charge density cd_
@@ -207,7 +209,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   const double *const g2i = vbasis_->g2i_ptr();
   const double fpi = 4.0 * M_PI;
   const int ngloc = vbasis_->localsize();
-  double sum[2], tsum[2];
+  double tsum[2];
 
   // compute total electronic density: rhoelg = rho_up + rho_dn
   if ( wf.nspin() == 1 )
@@ -225,28 +227,31 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
     }
   }
 
-  // update XC operator
-  // compute xc energy, update self-energy operator and potential
+  // update XC energy and potential
   tmap["exc"].start();
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     fill(v_r[ispin].begin(),v_r[ispin].end(),0.0);
-  xco->update(v_r, compute_stress);
+  xco->update_v(v_r);
   exc_ = xco->exc();
-  if ( compute_stress )
-    xco->compute_stress(sigma_exc);
   tmap["exc"].stop();
+
+  // update self-energy operator
+  exhf_ = 0.0;
+  tmap["exhf"].start();
+  exhf_ = xco->update_sigma();
+  tmap["exhf"].stop();
 
   // compute local potential energy:
   // integral of el. charge times ionic local pot.
   int len=2*ngloc,inc1=1;
-  sum[0] = 2.0 * ddot(&len,(double*)&rhoelg[0],&inc1,
+  tsum[0] = 2.0 * ddot(&len,(double*)&rhoelg[0],&inc1,
          (double*)&vion_local_g[0],&inc1);
   // remove double counting for G=0
-  if ( vbasis_->mype() == 0 )
+  if ( vbasis_->context().myrow() == 0 )
   {
-    sum[0] -= real(conj(rhoelg[0])*vion_local_g[0]);
+    tsum[0] -= real(conj(rhoelg[0])*vion_local_g[0]);
   }
-  sum[0] *= omega; // sum[0] contains eps
+  tsum[0] *= omega; // tsum[0] contains eps
 
   // Hartree energy
   ehart_ = 0.0;
@@ -260,10 +265,10 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   // factor 1/2 from definition of Ehart cancels with half sum over G
   // Note: rhogt[ig] includes a factor 1/Omega
   // Factor omega in next line yields prefactor 4 pi / omega in
-  sum[1] = omega * fpi * ehsum;
+  tsum[1] = omega * fpi * ehsum;
   // tsum[1] contains ehart
 
-  MPI_Allreduce(sum,tsum,2,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
+  vbasis_->context().dsum(2,1,&tsum[0],2);
   eps_   = tsum[0];
   ehart_ = tsum[1];
 
@@ -469,7 +474,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   sigma_eps = 0.0;
   if ( compute_stress )
   {
-    sum = 0.0;
+    tsum = 0.0;
     const double *const gi  = vbasis_->gi_ptr();
     const double *const g_x = vbasis_->gx_ptr(0);
     const double *const g_y = vbasis_->gx_ptr(1);
@@ -485,14 +490,14 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       const double tgy = g_y[ig];
       const double tgz = g_z[ig];
 
-      sum[0] += fac * tgx * tgx;
-      sum[1] += fac * tgy * tgy;
-      sum[2] += fac * tgz * tgz;
-      sum[3] += fac * tgx * tgy;
-      sum[4] += fac * tgy * tgz;
-      sum[5] += fac * tgx * tgz;
+      tsum[0] += fac * tgx * tgx;
+      tsum[1] += fac * tgy * tgy;
+      tsum[2] += fac * tgz * tgz;
+      tsum[3] += fac * tgx * tgy;
+      tsum[4] += fac * tgy * tgz;
+      tsum[5] += fac * tgx * tgz;
     }
-    MPI_Allreduce(&sum[0],&tsum[0],6,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
+    vbasis_->context().dsum(6,1,&tsum[0],6);
 
     sigma_eps[0] = eps_ * omega_inv + tsum[0];
     sigma_eps[1] = eps_ * omega_inv + tsum[1];
@@ -505,7 +510,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   // Stress from Hartree energy
   if ( compute_stress )
   {
-    sum = 0.0;
+    tsum = 0.0;
     const double *const g_x = vbasis_->gx_ptr(0);
     const double *const g_y = vbasis_->gx_ptr(1);
     const double *const g_z = vbasis_->gx_ptr(2);
@@ -517,12 +522,12 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       const double tgy = g_y[ig];
       const double tgz = g_z[ig];
 
-      sum[0] += temp * tgx * tgx;
-      sum[1] += temp * tgy * tgy;
-      sum[2] += temp * tgz * tgz;
-      sum[3] += temp * tgx * tgy;
-      sum[4] += temp * tgy * tgz;
-      sum[5] += temp * tgx * tgz;
+      tsum[0] += temp * tgx * tgx;
+      tsum[1] += temp * tgy * tgy;
+      tsum[2] += temp * tgz * tgz;
+      tsum[3] += temp * tgx * tgy;
+      tsum[4] += temp * tgy * tgz;
+      tsum[5] += temp * tgx * tgz;
     }
 
     for ( int is = 0; is < nsp_; is++ )
@@ -545,15 +550,15 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
         const double tgy = g_y[ig];
         const double tgz = g_z[ig];
 
-        sum[0] += temp * tgx * tgx;
-        sum[1] += temp * tgy * tgy;
-        sum[2] += temp * tgz * tgz;
-        sum[3] += temp * tgx * tgy;
-        sum[4] += temp * tgy * tgz;
-        sum[5] += temp * tgx * tgz;
+        tsum[0] += temp * tgx * tgx;
+        tsum[1] += temp * tgy * tgy;
+        tsum[2] += temp * tgz * tgz;
+        tsum[3] += temp * tgx * tgy;
+        tsum[4] += temp * tgy * tgz;
+        tsum[5] += temp * tgx * tgz;
       }
     }
-    MPI_Allreduce(&sum[0],&tsum[0],6,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
+    vbasis_->context().dsum(6,1,&tsum[0],6);
     // Factor in next line:
     //  factor 2 from G and -G
     //  factor fpi from definition of sigma
@@ -565,6 +570,12 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     sigma_ehart[4] = - 2.0 * fpi * tsum[4];
     sigma_ehart[5] = - 2.0 * fpi * tsum[5];
   } // compute_stress
+
+  // Stress from exchange-correlation
+  if ( compute_stress )
+  {
+    xco->compute_stress(sigma_exc);
+  }
 
   // Non local energy and forces
   tmap["nonlocal"].start();
@@ -579,19 +590,17 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
   {
     for ( int ispin = 0; ispin < nlp.size(); ispin++ )
-    {
       enl_ += wf.weight(ikp) * nlp[ispin][ikp]->energy(compute_hpsi,
               *dwf.sd(ispin,ikp), compute_forces, fion_enl, compute_stress,
               sigma_enl_kp);
 
-      if ( compute_forces )
-        for ( int is = 0; is < nsp_; is++ )
-          for ( int i = 0; i < 3*na_[is]; i++ )
-            fion[is][i] += wf.weight(ikp) * fion_enl[is][i];
+    if ( compute_forces )
+      for ( int is = 0; is < nsp_; is++ )
+        for ( int i = 0; i < 3*na_[is]; i++ )
+          fion[is][i] += wf.weight(ikp) * fion_enl[is][i];
 
-      if ( compute_stress )
-        sigma_enl += wf.weight(ikp) * sigma_enl_kp;
-    }
+    if ( compute_stress )
+      sigma_enl += wf.weight(ikp) * sigma_enl_kp;
   }
   tmap["nonlocal"].stop();
 
@@ -603,7 +612,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
     ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
   }
-  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_;
+  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_ + exhf_;
 
   if ( compute_hpsi )
   {
@@ -651,7 +660,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     } //ispin
 
     // apply self-energy operator
-    xco->apply_self_energy(dwf);
+    xco->apply_sigma(dwf);
 
     tmap["hpsi"].stop();
   } // if compute_hpsi
@@ -662,7 +671,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     const double* gx0 = vbasis_->gx_ptr(0);
     const double* gx1 = vbasis_->gx_ptr(1);
     const double* gx2 = vbasis_->gx_ptr(2);
-    valarray<double> fion_nl, fion_nl_tmp;
 
     for ( int is = 0; is < nsp_; is++ )
     {
@@ -671,9 +679,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
         double tmp = fpi * rhops[is][ig] * g2i[ig];
         vtemp[ig] =  tmp * conj(rhogt[ig]) + vps[is][ig] * conj(rhoelg[ig]);
       }
-      fion_nl.resize(3*na_[is]);
-      fion_nl = 0.0;
-      fion_nl_tmp.resize(3*na_[is]);
+      memset((void*)&ftmp[0],0,3*namax_*sizeof(double));
       // loop over atoms of species is
       for ( int ia = 0; ia < na_[is]; ia++ )
       {
@@ -720,19 +726,19 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
           sum1 += tmp * gx1[ig];
           sum2 += tmp * gx2[ig];
         }
-        fion_nl[3*ia]   = sum0;
-        fion_nl[3*ia+1] = sum1;
-        fion_nl[3*ia+2] = sum2;
+        ftmp[3*ia]   = sum0;
+        ftmp[3*ia+1] = sum1;
+        ftmp[3*ia+2] = sum2;
 
       }
 
-      MPI_Allreduce(&fion_nl[0],&fion_nl_tmp[0],3*na_[is],
-                    MPI_DOUBLE,MPI_SUM,vbasis_->comm());
+      int len = 3*na_[is];
+      vbasis_->context().dsum(len,1,&ftmp[0],len);
 
       double fac = -2.0 * omega;
       for ( int i = 0; i < 3*na_[is]; i++ )
       {
-        fion[is][i] += fion_esr[is][i] + fac * fion_nl_tmp[i];
+        fion[is][i] += fion_esr[is][i] + fac * ftmp[i];
       }
 
       // add external forces
@@ -1024,9 +1030,6 @@ void EnergyFunctional::cell_moved(void)
     for ( int ispin = 0; ispin < nlp.size(); ispin++ )
       nlp[ispin][ikp]->update_twnl();
   }
-
-  // Update exchange-correlation operator
-  xco->cell_moved();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1041,6 +1044,7 @@ void EnergyFunctional::print(ostream& os) const
      << "  <enl>    " << setw(15) << enl()    << " </enl>\n"
      << "  <ecoul>  " << setw(15) << ecoul()  << " </ecoul>\n"
      << "  <exc>    " << setw(15) << exc()    << " </exc>\n"
+     << "  <exhf>   " << setw(15) << exhf()   << " </exhf>\n"
      << "  <esr>    " << setw(15) << esr()    << " </esr>\n"
      << "  <eself>  " << setw(15) << eself()  << " </eself>\n"
      << "  <ets>    " << setw(15) << ets()    << " </ets>\n"

@@ -33,7 +33,7 @@ class FermiTemp : public Var
 
   public:
 
-  const char *name ( void ) const { return "fermi_temp"; };
+  char *name ( void ) const { return "fermi_temp"; };
 
   int set ( int argc, char **argv )
   {

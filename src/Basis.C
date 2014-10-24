@@ -17,6 +17,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "Basis.h"
+#include "Context.h"
+
 #include <cmath>
 #include <cassert>
 #include <cstdlib>
@@ -32,12 +34,12 @@ using namespace std;
 double Basis::localmemsize(void) const
 {
   return
-  5.0 * (npes_*nrods_*sizeof(int)) // x[ipe][irod]
-  + localsize_[mype_] * (3.0*sizeof(int) + 10 * sizeof(double));
+  5.0 * (nprow_*nrods_*sizeof(int)) // x[ipe][irod]
+  + localsize_[myrow_] * (3.0*sizeof(int) + 10 * sizeof(double));
 }
-double Basis::memsize(void) const { return npes_*localmemsize(); }
+double Basis::memsize(void) const { return nprow_*localmemsize(); }
 
-MPI_Comm Basis::comm(void) const { return comm_; }
+const Context& Basis::context(void) const { return ctxt_; }
 
 const UnitCell& Basis::cell() const { return cell_; }
 const UnitCell& Basis::refcell() const { return refcell_; }
@@ -46,32 +48,32 @@ int Basis::idxmax(int i) const { return idxmax_[i]; }
 double Basis::ecut() const { return ecut_; }
 
 int Basis::size() const { return size_; }
-int Basis::localsize() const { return localsize_[mype_]; }
+int Basis::localsize() const { return localsize_[myrow_]; }
 int Basis::localsize(int ipe) const { return localsize_[ipe]; }
 int Basis::maxlocalsize() const { return maxlocalsize_; }
 int Basis::minlocalsize() const { return minlocalsize_; }
 
 int Basis::nrods() const { return nrods_; }
-int Basis::nrod_loc() const { return nrod_loc_[mype_]; }
+int Basis::nrod_loc() const { return nrod_loc_[myrow_]; }
 int Basis::nrod_loc(int ipe) const { return nrod_loc_[ipe]; }
 
 int Basis::rod_h(int irod) const
-{ return rod_h_[mype_][irod]; }
+{ return rod_h_[myrow_][irod]; }
 int Basis::rod_h(int ipe, int irod) const
 { return rod_h_[ipe][irod]; }
 
-int Basis::rod_k(int irod) const { return rod_k_[mype_][irod]; }
+int Basis::rod_k(int irod) const { return rod_k_[myrow_][irod]; }
 int Basis::rod_k(int ipe, int irod) const { return rod_k_[ipe][irod]; }
 
-int Basis::rod_lmin(int irod) const { return rod_lmin_[mype_][irod]; }
+int Basis::rod_lmin(int irod) const { return rod_lmin_[myrow_][irod]; }
 int Basis::rod_lmin(int ipe, int irod) const { return rod_lmin_[ipe][irod]; }
 
 // size of rod irod on current process
-int Basis::rod_size(int irod) const { return rod_size_[mype_][irod]; }
+int Basis::rod_size(int irod) const { return rod_size_[myrow_][irod]; }
 int Basis::rod_size(int ipe, int irod) const { return rod_size_[ipe][irod]; }
 
 // position of first elem. of rod irod in the local list of g vectors
-int Basis::rod_first(int irod) const { return rod_first_[mype_][irod]; }
+int Basis::rod_first(int irod) const { return rod_first_[myrow_][irod]; }
 int Basis::rod_first(int ipe, int irod) const { return rod_first_[ipe][irod]; }
 
 int    Basis::idx(int i) const   { return idx_[i]; }
@@ -97,9 +99,9 @@ const double* Basis::kpg2_ptr(void) const  { return &(kpg2_[0]); }
 const double* Basis::g2i_ptr(void) const   { return &(g2i_[0]); }
 const double* Basis::kpg2i_ptr(void) const { return &(kpg2i_[0]); }
 const double* Basis::gx_ptr(int j) const
-{ return &(gx_[j*localsize_[mype_]]); }
+{ return &(gx_[j*localsize_[myrow_]]); }
 const double* Basis::kpgx_ptr(int j) const
-{ return &(kpgx_[j*localsize_[mype_]]); }
+{ return &(kpgx_[j*localsize_[myrow_]]); }
 
 ////////////////////////////////////////////////////////////////////////////////
 bool Basis::factorizable(int n) const
@@ -217,24 +219,24 @@ struct VectorLess
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-Basis::Basis(MPI_Comm comm, D3vector kpoint) : comm_(comm)
+Basis::Basis(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt)
 {
   // Construct the default empty basis
   // cell and refcell are (0,0,0)
-  MPI_Comm_rank(comm_,&mype_);
-  MPI_Comm_size(comm_,&npes_);
+  myrow_ = ctxt.myrow();
+  nprow_ = ctxt.nprow();
 
   ecut_ = 0.0;
   kpoint_ = kpoint;
   real_ = ( kpoint == D3vector(0.0,0.0,0.0) );
 
-  localsize_.resize(npes_);
-  nrod_loc_.resize(npes_);
-  rod_h_.resize(npes_);
-  rod_k_.resize(npes_);
-  rod_lmin_.resize(npes_);
-  rod_size_.resize(npes_);
-  rod_first_.resize(npes_);
+  localsize_.resize(nprow_);
+  nrod_loc_.resize(nprow_);
+  rod_h_.resize(nprow_);
+  rod_k_.resize(nprow_);
+  rod_lmin_.resize(nprow_);
+  rod_size_.resize(nprow_);
+  rod_first_.resize(nprow_);
 
   // resize with zero cutoff to initialize empty Basis
   resize(cell_,refcell_,0.0);
@@ -274,25 +276,25 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
 
     size_ = 0;
     nrods_ = 0;
-    for ( int ipe = 0; ipe < npes_; ipe++ )
+    for ( int ipe = 0; ipe < nprow_; ipe++ )
     {
       localsize_[ipe] = 0;
       nrod_loc_[ipe] = 0;
     }
     maxlocalsize_ = minlocalsize_ = 0;
     np_[0] = np_[1] = np_[2] = 0;
-    idx_.resize(3*localsize_[mype_]);
-    g_.resize(localsize_[mype_]);
-    kpg_.resize(localsize_[mype_]);
-    gi_.resize(localsize_[mype_]);
-    kpgi_.resize(localsize_[mype_]);
-    g2_.resize(localsize_[mype_]);
-    kpg2_.resize(localsize_[mype_]);
-    g2i_.resize(localsize_[mype_]);
-    kpg2i_.resize(localsize_[mype_]);
-    gx_.resize(3*localsize_[mype_]);
-    kpgx_.resize(3*localsize_[mype_]);
-    isort_loc.resize(localsize_[mype_]);
+    idx_.resize(3*localsize_[myrow_]);
+    g_.resize(localsize_[myrow_]);
+    kpg_.resize(localsize_[myrow_]);
+    gi_.resize(localsize_[myrow_]);
+    kpgi_.resize(localsize_[myrow_]);
+    g2_.resize(localsize_[myrow_]);
+    kpg2_.resize(localsize_[myrow_]);
+    g2i_.resize(localsize_[myrow_]);
+    kpg2i_.resize(localsize_[myrow_]);
+    gx_.resize(3*localsize_[myrow_]);
+    kpgx_.resize(3*localsize_[myrow_]);
+    isort_loc.resize(localsize_[myrow_]);
     return true;
   }
 
@@ -327,7 +329,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
 
   if ( !cell.in_bz(kp) )
   {
-    if ( mype_ == 0 )
+    if ( ctxt_.onpe0() )
       cout << " Basis::resize: warning: " << kpoint_
            << " out of the BZ: " << kp << endl;
   }
@@ -511,13 +513,13 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   while ( !factorizable(n) ) n+=2;
   np_[2] = n;
 
-  // Distribute the basis on npes_ processors
+  // Distribute the basis on nprow_ processors
 
   // build a min-heap of Nodes
 
-  vector<Node*> nodes(npes_);
+  vector<Node*> nodes(nprow_);
 
-  for ( int ipe = 0; ipe < npes_; ipe++ )
+  for ( int ipe = 0; ipe < nprow_; ipe++ )
   {
     nodes[ipe] = new Node(ipe);
     localsize_[ipe] = 0;
@@ -540,8 +542,8 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     pop_heap(nodes.begin(), nodes.end(), ptr_greater<Node>());
 
     // add rod size to smaller element
-    nodes[npes_-1]->addrod(*p);
-    int ipe = nodes[npes_-1]->id();
+    nodes[nprow_-1]->addrod(*p);
+    int ipe = nodes[nprow_-1]->id();
 
     // update info about rod on process ipe
     nrod_loc_[ipe]++;
@@ -553,7 +555,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     if ( p->h() == 0 && p->k() == 0 )
     {
       pe_rod0 = ipe;
-      rank_rod0 = nodes[npes_-1]->nrods()-1;
+      rank_rod0 = nodes[nprow_-1]->nrods()-1;
     }
 
     // push modified element back in the heap
@@ -567,7 +569,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   minlocalsize_ = (*min_element(nodes.begin(), nodes.end(),
     ptr_less<Node>()))->size();
 
-  for ( int ipe = 0; ipe < npes_; ipe++ )
+  for ( int ipe = 0; ipe < nprow_; ipe++ )
   {
     delete nodes[ipe];
   }
@@ -589,7 +591,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   swap(rod_size_[0][rank_rod0], rod_size_[0][0]);
 
   // compute position of first element of rod (ipe,irod)
-  for ( int ipe = 0; ipe < npes_; ipe++ )
+  for ( int ipe = 0; ipe < nprow_; ipe++ )
   {
     rod_first_[ipe].resize(nrod_loc_[ipe]);
     if ( nrod_loc_[ipe] > 0 )
@@ -601,31 +603,31 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   }
 
   // local arrays idx, g, gi, g2i, g2, gx
-  idx_.resize(3*localsize_[mype_]);
+  idx_.resize(3*localsize_[myrow_]);
   int i = 0;
-  for ( int irod = 0; irod < nrod_loc_[mype_]; irod++ )
+  for ( int irod = 0; irod < nrod_loc_[myrow_]; irod++ )
   {
-    for ( int l = 0; l < rod_size_[mype_][irod]; l++ )
+    for ( int l = 0; l < rod_size_[myrow_][irod]; l++ )
     {
-      idx_[3*i]   = rod_h_[mype_][irod];
-      idx_[3*i+1] = rod_k_[mype_][irod];
-      idx_[3*i+2] = rod_lmin_[mype_][irod] + l;
+      idx_[3*i]   = rod_h_[myrow_][irod];
+      idx_[3*i+1] = rod_k_[myrow_][irod];
+      idx_[3*i+2] = rod_lmin_[myrow_][irod] + l;
 
       i++;
     }
   }
 
-  g_.resize(localsize_[mype_]);
-  kpg_.resize(localsize_[mype_]);
-  gi_.resize(localsize_[mype_]);
-  kpgi_.resize(localsize_[mype_]);
-  g2_.resize(localsize_[mype_]);
-  kpg2_.resize(localsize_[mype_]);
-  g2i_.resize(localsize_[mype_]);
-  kpg2i_.resize(localsize_[mype_]);
-  gx_.resize(3*localsize_[mype_]);
-  kpgx_.resize(3*localsize_[mype_]);
-  isort_loc.resize(localsize_[mype_]);
+  g_.resize(localsize_[myrow_]);
+  kpg_.resize(localsize_[myrow_]);
+  gi_.resize(localsize_[myrow_]);
+  kpgi_.resize(localsize_[myrow_]);
+  g2_.resize(localsize_[myrow_]);
+  kpg2_.resize(localsize_[myrow_]);
+  g2i_.resize(localsize_[myrow_]);
+  kpg2i_.resize(localsize_[myrow_]);
+  gx_.resize(3*localsize_[myrow_]);
+  kpgx_.resize(3*localsize_[myrow_]);
+  isort_loc.resize(localsize_[myrow_]);
 
   update_g();
 
@@ -640,7 +642,7 @@ void Basis::update_g(void)
   // compute the values of g, kpg, gi, g2i, g2, kpg2, gx
   // N.B. use the values of cell (not defcell)
 
-  const int locsize = localsize_[mype_];
+  const int locsize = localsize_[myrow_];
   for ( int i = 0; i < locsize; i++ )
   {
     D3vector gt = idx_[3*i+0] * cell_.b(0) +
@@ -676,7 +678,7 @@ void Basis::update_g(void)
 #if DEBUG
   for ( int i = 0; i < locsize; i++ )
   {
-    cout << mype_ << " sorted " << i << " " << g2_[isort_loc[i]] << endl;
+    cout << ctxt_.mype() << " sorted " << i << " " << g2_[isort_loc[i]] << endl;
   }
 #endif
 }
@@ -684,53 +686,53 @@ void Basis::update_g(void)
 ////////////////////////////////////////////////////////////////////////////////
 void Basis::print(ostream& os)
 {
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.kpoint():   " << kpoint() << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.kpoint():   " << kpoint().x << " * b0 + "
                               << kpoint().y << " * b1 + "
                               << kpoint().z << " * b2" << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.kpoint():   " << kpoint().x * cell().b(0) +
                                  kpoint().y * cell().b(1) +
                                  kpoint().z * cell().b(2) << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.cell():     " << endl << cell() << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.ref cell(): " << endl << refcell() << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.ecut():     " << ecut() << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.np(0,1,2):  " << np(0) << " "
        << np(1) << " " << np(2) << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.idxmin:       " << idxmin(0) << " "
        << idxmin(1) << " " << idxmin(2) << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.idxmax:       " << idxmax(0) << " "
        << idxmax(1) << " " << idxmax(2) << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.size():     " << size() << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.localsize(): " << localsize() << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.nrods():    " << nrods() << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis.real():     " << real() << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis total mem size (MB): " << memsize() / 1048576 << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << " Basis local mem size (MB): " << localmemsize() / 1048576 << endl;
 
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << "   ig      i   j   k        gx      gy      gz       |k+g|^2"
      << endl;
-  os << mype_ << ": ";
+  os << context().mype() << ": ";
   os << "   --      -   -   -        --      --      --       -------"
      << endl;
   for ( int i = 0; i < localsize(); i++ )
   {
-    os << mype_ << ": ";
+    os << context().mype() << ": ";
     os << setw(5) << i << "   "
        << setw(4) << idx(3*i)
        << setw(4) << idx(3*i+1)

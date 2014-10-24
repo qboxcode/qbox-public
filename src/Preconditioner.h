@@ -20,7 +20,6 @@
 #define PRECONDITIONER_H
 
 class Wavefunction;
-class EnergyFunctional;
 
 #include <vector>
 #include <valarray>
@@ -28,8 +27,6 @@ class EnergyFunctional;
 class Preconditioner
 {
   private:
-
-  EnergyFunctional& ef_;
 
   // kpg2_[ispin][ikp][ig]
   std::vector<std::vector<const double *> > kpg2_;
@@ -45,7 +42,7 @@ class Preconditioner
 
   double diag(int ispin, int ikp, int n, int ig) const;
 
-  Preconditioner(const Wavefunction& wf, EnergyFunctional& ef, double ecutprec);
+  Preconditioner(const Wavefunction& wf, double ecutprec);
   //~Preconditioner();
 };
 #endif

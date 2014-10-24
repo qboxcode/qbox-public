@@ -36,8 +36,9 @@ class QuitCmd : public Cmd
 
   QuitCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "quit"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "quit"; }
+
+  char *help_msg(void) const
   {
     return
     "\n quit\n\n"

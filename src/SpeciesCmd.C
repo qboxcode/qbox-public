@@ -15,6 +15,7 @@
 // SpeciesCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: SpeciesCmd.C,v 1.12 2008-09-08 15:56:19 fgygi Exp $
 
 #include "SpeciesCmd.h"
 #include "SpeciesReader.h"
@@ -34,20 +35,28 @@ int SpeciesCmd::action(int argc, char **argv)
   }
 
   if ( ui->onpe0() )
-  {
     cout << "  SpeciesCmd: defining species " << argv[1]
          << " as " << argv[2] << endl;
+
+  SpeciesReader sp_reader(s->ctxt_);
+
+  Species* sp = new Species(s->ctxt_,argv[1]);
+
+  try
+  {
+    sp_reader.readSpecies(*sp,argv[2]);
+    sp_reader.bcastSpecies(*sp);
+    s->atoms.addSpecies(sp,argv[1]);
   }
-
-  string xmlstr;
-  SpeciesReader sp_reader;
-  if ( ui->onpe0() )
-    sp_reader.uri_to_string(argv[2], argv[1], xmlstr);
-
-  s->ctxt_.string_bcast(xmlstr,0);
-  Species* sp = new Species("argv[1]");
-  sp_reader.string_to_species(xmlstr,*sp);
-  s->atoms.addSpecies(sp,argv[1]);
+  catch ( const SpeciesReaderException& e )
+  {
+    cout << " SpeciesReaderException caught in SpeciesCmd" << endl;
+    cout << " SpeciesReaderException: cannot define Species" << endl;
+  }
+  catch (...)
+  {
+    cout << " SpeciesCmd: cannot define Species" << endl;
+  }
 
   return 0;
 }

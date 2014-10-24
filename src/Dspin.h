@@ -32,7 +32,7 @@ class Dspin : public Var
 
   public:
 
-  const char *name ( void ) const { return "delta_spin"; };
+  char *name ( void ) const { return "delta_spin"; };
 
   int set ( int argc, char **argv )
   {

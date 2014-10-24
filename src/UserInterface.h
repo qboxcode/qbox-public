@@ -33,8 +33,8 @@ class Cmd
 {
   public:
   UserInterface *ui;
-  virtual const char *name(void) const = 0;
-  virtual const char *help_msg(void) const = 0;
+  virtual char *name(void) const = 0;
+  virtual char *help_msg(void) const = 0;
   virtual int action(int argc, char **argv) = 0;
   virtual ~Cmd(void) {}
 };
@@ -43,7 +43,7 @@ class Var
 {
   public:
   UserInterface *ui;
-  virtual const char *name ( void ) const = 0;
+  virtual char *name ( void ) const = 0;
   virtual int set ( int argc, char **argv ) = 0;
   virtual std::string print ( void ) const = 0;
   virtual ~Var(void) {}
@@ -68,7 +68,7 @@ class UserInterface
     cmdlist.push_back( newcmd );
   };
 
-  Cmd *findCmd(const char *cmdname)
+  Cmd *findCmd(char *cmdname)
   {
     std::list<Cmd*>::iterator cmd;
     for ( cmd = cmdlist.begin();
@@ -91,7 +91,7 @@ class UserInterface
     varlist.push_back( newvar );
   };
 
-  Var *findVar(const char *varname)
+  Var *findVar(char *varname)
   {
     std::list<Var*>::iterator var;
     for ( var = varlist.begin();

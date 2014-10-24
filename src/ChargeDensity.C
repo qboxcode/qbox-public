@@ -15,6 +15,7 @@
 // ChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: ChargeDensity.C,v 1.19 2008-09-08 15:56:18 fgygi Exp $
 
 #include "ChargeDensity.h"
 #include "Basis.h"
@@ -28,10 +29,10 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 ChargeDensity::ChargeDensity(const Wavefunction& wf) : ctxt_(wf.context()),
-wf_(wf), vcomm_(wf.sd(0,0)->basis().comm())
+wf_(wf), vcontext_(wf.sd(0,0)->basis().context())
 
 {
-  vbasis_ = new Basis(vcomm_, D3vector(0,0,0));
+  vbasis_ = new Basis(vcontext_, D3vector(0,0,0));
   vbasis_->resize(wf.cell(),wf.refcell(),4.0*wf.ecut());
   const Basis& vb = *vbasis_;
 

@@ -132,7 +132,7 @@ void CPSampleStepper::step(int niter)
   cd_.update_density();
   tmap["charge"].stop();
 
-  ef_.update_vhxc(compute_stress);
+  ef_.update_vhxc();
   double energy =
     ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
 
@@ -273,7 +273,7 @@ void CPSampleStepper::step(int niter)
     tmap["charge"].start();
     cd_.update_density();
     tmap["charge"].stop();
-    ef_.update_vhxc(compute_stress);
+    ef_.update_vhxc();
     energy =
       ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
 

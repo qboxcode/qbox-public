@@ -33,7 +33,7 @@ class ChargeMixRcut : public Var
 
   public:
 
-  const char *name ( void ) const { return "charge_mix_rcut"; };
+  char *name ( void ) const { return "charge_mix_rcut"; };
 
   int set ( int argc, char **argv )
   {

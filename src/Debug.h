@@ -33,7 +33,7 @@ class Debug : public Var
 
   public:
 
-  const char *name ( void ) const { return "debug"; };
+  char *name ( void ) const { return "debug"; };
 
   int set ( int argc, char **argv )
   {

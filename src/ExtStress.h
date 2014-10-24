@@ -33,7 +33,7 @@ class ExtStress : public Var
 
   public:
 
-  const char *name ( void ) const { return "ext_stress"; };
+  char *name ( void ) const { return "ext_stress"; };
 
   int set ( int argc, char **argv )
   {

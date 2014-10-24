@@ -15,11 +15,11 @@
 // testContext.c
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: testContext.C,v 1.9 2008-09-08 15:56:20 fgygi Exp $
 
 #include <cassert>
 #include <iostream>
 #include <vector>
-#include <cstdlib>
 using namespace std;
 
 #ifdef USE_MPI
@@ -44,18 +44,12 @@ int main(int argc, char **argv)
   { // start Context scope
 
     Context ctxt;
-    for ( int i = 0; i < npes; i++ )
-    {
-      MPI_Barrier(MPI_COMM_WORLD);
-      if ( i == mype )
-        cout << mype << ":" << ctxt.mype() << ":" << ctxt.myproc()
+    cout << mype << ":" << ctxt.mype() << ":" << ctxt.myproc()
          << " base: " << ctxt;
-    }
 
     vector<Context*> c;
 
     c.push_back(new Context(nr,nc));
-#if 0
     if ( nr >= 2 && nc >= 2 )
       c.push_back(new Context(*c[0],2,2,1,1));
     for ( int icol = 0; icol < c[0]->npcol(); icol++ )
@@ -63,19 +57,13 @@ int main(int argc, char **argv)
       ctxt.barrier();
       c.push_back(new Context(*c[0],c[0]->nprow(),1,0,icol));
     }
-#endif
 
     for ( int i = 0; i < c.size(); i++ )
     {
       Context* pc = c[i];
-      for ( int i = 0; i < npes; i++ )
-      {
-        MPI_Barrier(MPI_COMM_WORLD);
-        if ( i == mype )
-          cout << mype << ":" << pc->mype() << ":" << pc->myproc()
+      cout << mype << ":" << pc->mype() << ":" << pc->myproc()
            << " at (" << pc->myrow() << "," << pc->mycol() << ")"
            << " in c" << i << ": " << *pc;
-      }
     }
 
 #if 0

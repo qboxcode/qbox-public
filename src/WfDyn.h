@@ -35,7 +35,7 @@ class WfDyn : public Var
 
   public:
 
-  const char *name ( void ) const { return "wf_dyn"; };
+  char *name ( void ) const { return "wf_dyn"; };
 
   int set ( int argc, char **argv )
   {

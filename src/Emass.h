@@ -33,7 +33,7 @@ class Emass : public Var
 
   public:
 
-  const char *name ( void ) const { return "emass"; };
+  char *name ( void ) const { return "emass"; };
 
   int set ( int argc, char **argv )
   {

@@ -15,6 +15,7 @@
 // FourierTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: FourierTransform.h,v 1.13 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef FOURIERTRANSFORM_H
 #define FOURIERTRANSFORM_H
@@ -30,19 +31,16 @@
 #endif
 #endif
 
-#if USE_MPI
-#include <mpi.h>
-#endif
-
 #include "Timer.h"
 
 class Basis;
+class Context;
 
 class FourierTransform
 {
   private:
 
-  MPI_Comm comm_;
+  const Context& ctxt_;
   const Basis& basis_;
   int nprocs_, myproc_;
 
@@ -92,7 +90,7 @@ class FourierTransform
 
   FourierTransform (const Basis &basis, int np0, int np1, int np2);
   ~FourierTransform ();
-  MPI_Comm comm(void) const { return comm_; }
+  const Context& context(void) const { return ctxt_; }
 
   // backward: Fourier synthesis, compute real-space function
   // forward:  Fourier analysis, compute Fourier coefficients

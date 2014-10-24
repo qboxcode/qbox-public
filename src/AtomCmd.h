@@ -34,8 +34,8 @@ class AtomCmd : public Cmd
 
   AtomCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "atom"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "atom"; }
+  char *help_msg(void) const
   {
     return
     "\n atom\n\n"

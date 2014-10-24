@@ -25,7 +25,6 @@
 #include "PSDWavefunctionStepper.h"
 #include "PSDAWavefunctionStepper.h"
 #include "JDWavefunctionStepper.h"
-#include "Preconditioner.h"
 #include "SDIonicStepper.h"
 #include "SDAIonicStepper.h"
 #include "CGIonicStepper.h"
@@ -146,17 +145,7 @@ void BOSampleStepper::initialize_density(void)
     }
   }
 
-  // Initialize charge equally for both spins
   cd_.rhog[0] = rhopst;
-  if ( cd_.rhog.size() == 2 )
-  {
-    assert(cd_.rhog[0].size()==cd_.rhog[1].size());
-    for ( int i = 0; i < cd_.rhog[0].size(); i++ )
-    {
-      cd_.rhog[0][i] = 0.5 * rhopst[i];
-      cd_.rhog[1][i] = 0.5 * rhopst[i];
-    }
-  }
   initial_atomic_density = true;
 }
 
@@ -211,8 +200,6 @@ void BOSampleStepper::step(int niter)
 
   Timer tm_iter;
 
-  Preconditioner prec(wf,ef_,s_.ctrl.ecutprec);
-
   WavefunctionStepper* wf_stepper = 0;
   if ( wf_dyn == "SD" )
   {
@@ -228,11 +215,11 @@ void BOSampleStepper::step(int niter)
     wf_stepper = new SDWavefunctionStepper(wf,dt2bye,tmap);
   }
   else if ( wf_dyn == "PSD" )
-    wf_stepper = new PSDWavefunctionStepper(wf,prec,tmap);
+    wf_stepper = new PSDWavefunctionStepper(wf,s_.ctrl.ecutprec,tmap);
   else if ( wf_dyn == "PSDA" )
-    wf_stepper = new PSDAWavefunctionStepper(wf,prec,tmap);
+    wf_stepper = new PSDAWavefunctionStepper(wf,s_.ctrl.ecutprec,tmap);
   else if ( wf_dyn == "JD" )
-    wf_stepper = new JDWavefunctionStepper(wf,prec,ef_,tmap);
+    wf_stepper = new JDWavefunctionStepper(wf,s_.ctrl.ecutprec,ef_,tmap);
 
   // wf_stepper == 0 indicates that wf_dyn == LOCKED
 
@@ -288,18 +275,26 @@ void BOSampleStepper::step(int niter)
       mlwft[ispin] = new MLWFTransform(*wf.sd(ispin,0));
   }
 
-  // Charge mixing variables: include both spins in the same vector
-  if ( nspin > 1 ) assert(cd_.rhog[0].size()==cd_.rhog[1].size());
-  const int ng = cd_.rhog[0].size();
-  vector<complex<double> > rhog_in(nspin*ng), drhog(nspin*ng),
-    rhobar(nspin*ng), drhobar(nspin*ng);
+  // Charge mixing variables
+  vector<vector<complex<double> > > rhog_in(nspin);
+  vector<vector<complex<double> > > drhog(nspin);
+  vector<vector<complex<double> > > rhobar(nspin);
+  vector<vector<complex<double> > > drhobar(nspin);
+  for ( int ispin = 0; ispin < nspin; ispin++ )
+  {
+    rhog_in[ispin].resize(cd_.rhog[ispin].size());
+    drhog[ispin].resize(rhog_in[ispin].size());
+    rhobar[ispin].resize(rhog_in[ispin].size());
+    drhobar[ispin].resize(rhog_in[ispin].size());
+  }
   const int anderson_ndim = s_.ctrl.charge_mix_ndim;
-  vector<double> wkerker(ng), wls(ng);
+  vector<double> wkerker(cd_.rhog[0].size());
+  vector<double> wls(cd_.rhog[0].size());
 
-  // Anderson charge mixer: include both spins in the same vector
-  // Factor of 2: complex coeffs stored as double
-  MPI_Comm vcomm = cd_.vcomm();
-  AndersonMixer mixer(2*nspin*ng,anderson_ndim,&vcomm);
+  vector<AndersonMixer*> mixer(nspin);
+  for ( int ispin = 0; ispin < nspin; ispin++ )
+    mixer[ispin] =
+      new AndersonMixer(2*rhog_in[ispin].size(),anderson_ndim,&cd_.vcontext());
 
   // compute Kerker preconditioning
   // real space Kerker cutoff in a.u.
@@ -316,8 +311,7 @@ void BOSampleStepper::step(int niter)
     istringstream is(s_.ctrl.debug);
     string s;
     is >> s >> rc1;
-    if ( onpe0 )
-      cout << " override rc1 value: rc1 = " << rc1 << endl;
+    cout << " override rc1 value: rc1 = " << rc1 << endl;
     assert(rc1 >= 0.0);
   }
 
@@ -372,7 +366,7 @@ void BOSampleStepper::step(int niter)
       cd_.update_density();
       tmap["charge"].stop();
 
-      ef_.update_vhxc(compute_stress);
+      ef_.update_vhxc();
       const bool compute_forces = true;
       double energy =
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
@@ -737,13 +731,16 @@ void BOSampleStepper::step(int niter)
     {
       wf_stepper->preprocess();
       if ( anderson_charge_mixing )
-        mixer.restart();
+      {
+        for ( int ispin = 0; ispin < nspin; ispin++ )
+          mixer[ispin]->restart();
+      }
 
       double ehart, ehart_m;
 
       for ( int itscf = 0; itscf < nitscf_; itscf++ )
       {
-        if ( nite_ > 0 && onpe0 )
+        if ( nite_ > 1 && onpe0 )
           cout << "  BOSampleStepper: start scf iteration" << endl;
 
         // compute new density in cd_.rhog
@@ -755,7 +752,7 @@ void BOSampleStepper::step(int niter)
         tmap["charge"].stop();
 
         // charge mixing
-        if ( nite_ > 0 )
+        if ( nite_ > 1 )
         {
           if ( itscf == 0 )
           {
@@ -763,8 +760,7 @@ void BOSampleStepper::step(int niter)
             // memorize rhog in rhog_in for next iteration
 
             for ( int ispin = 0; ispin < nspin; ispin++ )
-              for ( int i = 0; i < ng; i++ )
-                rhog_in[i+ng*ispin] = cd_.rhog[ispin][i];
+              rhog_in[ispin] = cd_.rhog[ispin];
           }
           else
           {
@@ -772,9 +768,9 @@ void BOSampleStepper::step(int niter)
             // compute unscreened correction drhog
             for ( int ispin = 0; ispin < nspin; ispin++ )
             {
-              for ( int i = 0; i < ng; i++ )
+              for ( int i = 0; i < rhog_in[ispin].size(); i++ )
               {
-                drhog[i+ng*ispin] = (cd_.rhog[ispin][i]-rhog_in[i+ng*ispin]);
+                drhog[ispin][i] = (cd_.rhog[ispin][i] - rhog_in[ispin][i]);
               }
             }
 
@@ -785,78 +781,85 @@ void BOSampleStepper::step(int niter)
               // row weighting of LS calculation
               for ( int ispin = 0; ispin < nspin; ispin++ )
               {
-                for ( int i = 0; i < ng; i++ )
-                  drhog[i+ng*ispin] /= wls[i];
+                for ( int i = 0; i < drhog[ispin].size(); i++ )
+                  drhog[ispin][i] /= wls[i];
               }
 
               const Context * const kpctxt = s_.wf.kpcontext();
               if ( kpctxt->mycol() == 0 )
               {
                 // use AndersonMixer on first column only and bcast results
-                mixer.update((double*)&rhog_in[0], (double*)&drhog[0],
-                             (double*)&rhobar[0], (double*)&drhobar[0]);
-                const int n = 2*nspin*ng;
-                kpctxt->dbcast_send('r',n,1,(double*)&rhobar[0],n);
-                kpctxt->dbcast_send('r',n,1,(double*)&drhobar[0],n);
+                for ( int ispin = 0; ispin < nspin; ispin++ )
+                {
+                  mixer[ispin]->update((double*)&rhog_in[ispin][0],
+                                (double*)&drhog[ispin][0],
+                                (double*)&rhobar[ispin][0],
+                                (double*)&drhobar[ispin][0]);
+                  const int n = 2*rhobar[ispin].size();
+                  kpctxt->dbcast_send('r',n,1,(double*)&rhobar[ispin][0],n);
+                  kpctxt->dbcast_send('r',n,1,(double*)&drhobar[ispin][0],n);
+                }
               }
               else
               {
-                const int n = 2*nspin*ng;
-                kpctxt->dbcast_recv('r',n,1,(double*)&rhobar[0],n,-1,0);
-                kpctxt->dbcast_recv('r',n,1,(double*)&drhobar[0],n,-1,0);
+                for ( int ispin = 0; ispin < nspin; ispin++ )
+                {
+                  const int n = 2*rhobar[ispin].size();
+                  kpctxt->dbcast_recv('r',n,1,
+                          (double*)&rhobar[ispin][0],n,-1,0);
+                  kpctxt->dbcast_recv('r',n,1,
+                          (double*)&drhobar[ispin][0],n,-1,0);
+                }
               }
 
               for ( int ispin = 0; ispin < nspin; ispin++ )
               {
-                for ( int i = 0; i < ng; i++ )
-                  drhobar[i+ng*ispin] *= wls[i];
-                for ( int i = 0; i < ng; i++ )
-                  rhog_in[i+ng*ispin] = rhobar[i+ng*ispin] +
-                    alpha * drhobar[i+ng*ispin] * wkerker[i];
+                for ( int i = 0; i < drhog[ispin].size(); i++ )
+                  drhobar[ispin][i] *= wls[i];
+                for ( int i = 0; i < rhog_in[ispin].size(); i++ )
+                  rhog_in[ispin][i] = rhobar[ispin][i] +
+                    alpha * drhobar[ispin][i] * wkerker[i];
               }
             }
             else
             {
               for ( int ispin = 0; ispin < nspin; ispin++ )
               {
-                for ( int i = 0; i < ng; i++ )
-                  rhog_in[i+ng*ispin] += alpha * drhog[i+ng*ispin] * wkerker[i];
+                for ( int i = 0; i < rhog_in[ispin].size(); i++ )
+                  rhog_in[ispin][i] += alpha * drhog[ispin][i] * wkerker[i];
               }
             }
 
             for ( int ispin = 0; ispin < nspin; ispin++ )
             {
-              for ( int i = 0; i < ng; i++ )
-                cd_.rhog[ispin][i] = rhog_in[i+ng*ispin];
+              cd_.rhog[ispin] = rhog_in[ispin];
             }
             cd_.update_rhor();
           }
-        } // if nite_ > 0
+        } // if nite_ > 1
 
-        ef_.update_vhxc(compute_stress);
+        ef_.update_vhxc();
 
         // reset stepper only if multiple non-selfconsistent steps
-        if ( nite_ > 0 ) wf_stepper->preprocess();
+        if ( nite_ > 1 ) wf_stepper->preprocess();
 
         // non-self-consistent loop
         // repeat until the change in etotal_int or in the
         // eigenvalue sum is smaller than a fraction of the change in
         // Hartree energy in the last scf iteration
-        bool nonscf_converged = false;
+        bool nscf_converged = false;
         if ( itscf > 0 )
           ehart_m = ehart;
         ehart = ef_.ehart();
         double delta_ehart = 0.0;
         if ( itscf > 0 )
           delta_ehart = fabs(ehart - ehart_m);
-        // if ( onpe0 && nite_ > 0 )
+        // if ( onpe0 && nite_ > 1 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
         double etotal_int, etotal_int_m;
         double eigenvalue_sum, eigenvalue_sum_m;
-        // if nite == 0: do 1 iteration, no screening in charge mixing
-        // if nite > 0: do nite iterations, use screening in charge mixing
-        while ( !nonscf_converged && ite < max(nite_,1) )
+        while ( !nscf_converged && ite < nite_ )
         {
           double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
           double enthalpy = energy;
@@ -889,22 +892,22 @@ void BOSampleStepper::step(int niter)
             cout.setf(ios::right,ios::adjustfield);
             cout << "  <etotal_int> " << setprecision(8) << setw(15)
                  << energy << " </etotal_int>\n";
-          }
-          if ( compute_stress )
-          {
-            const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-            enthalpy = energy + pext * cell.volume();
-            if ( onpe0 )
+            if ( compute_stress )
+            {
+              const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
+              enthalpy = energy + pext * cell.volume();
               cout << "  <enthalpy_int> " << setw(15)
-                   << enthalpy << " </enthalpy_int>\n" << flush;
+                   << enthalpy << " </enthalpy_int>\n"
+                   << flush;
+            }
           }
 
           // compare delta_etotal_int only after first iteration
           if ( ite > 0 )
           {
-#if 0
+#if 1
             double delta_etotal_int = fabs(etotal_int - etotal_int_m);
-            nonscf_converged |= (delta_etotal_int < 0.01 * delta_ehart);
+            nscf_converged |= (delta_etotal_int < 0.2 * delta_ehart);
             if ( onpe0 )
             {
               cout << " BOSampleStepper::step: delta_e_int: "
@@ -914,8 +917,7 @@ void BOSampleStepper::step(int niter)
             }
 #else
             double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
-            nonscf_converged |= (delta_eig_sum < 0.01 * delta_ehart);
-#ifdef DEBUG
+            nscf_converged |= (delta_eig_sum < 0.2 * delta_ehart);
             if ( onpe0 )
             {
               cout << " BOSampleStepper::step delta_eig_sum: "
@@ -924,13 +926,12 @@ void BOSampleStepper::step(int niter)
                    << delta_ehart << endl;
             }
 #endif
-#endif
 
           }
           ite++;
         }
 
-        // if ( onpe0 && nite_ > 0 && ite >= nite_ )
+        // if ( onpe0 && nite_ > 1 && ite >= nite_ )
         //   cout << " BOSampleStepper::step: nscf loop not converged after "
         //        << nite_ << " iterations" << endl;
 
@@ -953,9 +954,6 @@ void BOSampleStepper::step(int niter)
                      << "\" kpoint=\""
                      << setprecision(8)
                      << wf.sd(ispin,ikp)->kpoint()
-                     << "\" weight=\""
-                     << setprecision(8)
-                     << wf.weight(ikp)
                      << "\" n=\"" << nst << "\">" << endl;
                 for ( int i = 0; i < nst; i++ )
                 {
@@ -985,7 +983,7 @@ void BOSampleStepper::step(int niter)
           }
         }
 
-        if ( nite_ > 0 && onpe0 )
+        if ( nite_ > 1 && onpe0 )
           cout << "  BOSampleStepper: end scf iteration" << endl;
       } // for itscf
 
@@ -1008,11 +1006,10 @@ void BOSampleStepper::step(int niter)
         if ( onpe0 )
         {
           D3vector edipole_sum;
-          cout << "<mlwfs>" << endl;
           for ( int ispin = 0; ispin < nspin; ispin++ )
           {
             SlaterDet& sd = *(wf.sd(ispin,0));
-            cout << " <mlwfset spin=\"" << ispin
+            cout << " <mlwf_set spin=\"" << ispin
                  << "\" size=\"" << sd.nst() << "\">" << endl;
             for ( int i = 0; i < sd.nst(); i++ )
             {
@@ -1028,11 +1025,11 @@ void BOSampleStepper::step(int niter)
                    << endl;
             }
 
+            cout << " </mlwf_set>" << endl;
             D3vector edipole = mlwft[ispin]->dipole();
             cout << " <electronic_dipole spin=\"" << ispin << "\"> " << edipole
                  << " </electronic_dipole>" << endl;
             edipole_sum += edipole;
-            cout << " </mlwfset>" << endl;
           }
           D3vector idipole = atoms.dipole();
           cout << " <ionic_dipole> " << idipole
@@ -1041,7 +1038,6 @@ void BOSampleStepper::step(int niter)
                << " </total_dipole>" << endl;
           cout << " <total_dipole_length> " << length(idipole + edipole_sum)
                << " </total_dipole_length>" << endl;
-          cout << "</mlwfs>" << endl;
         }
       }
 
@@ -1052,7 +1048,7 @@ void BOSampleStepper::step(int niter)
         cd_.update_density();
         tmap["charge"].stop();
 
-        ef_.update_vhxc(compute_stress);
+        ef_.update_vhxc();
         const bool compute_forces = true;
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
 
@@ -1113,7 +1109,7 @@ void BOSampleStepper::step(int niter)
       tmap["charge"].start();
       cd_.update_density();
       tmap["charge"].stop();
-      ef_.update_vhxc(compute_stress);
+      ef_.update_vhxc();
       ef_.energy(true,dwf,false,fion,false,sigma_eks);
       if ( onpe0 )
       {
@@ -1150,7 +1146,7 @@ void BOSampleStepper::step(int niter)
     cd_.update_density();
     tmap["charge"].stop();
 
-    ef_.update_vhxc(compute_stress);
+    ef_.update_vhxc();
     const bool compute_forces = true;
     double energy =
       ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
@@ -1210,7 +1206,7 @@ void BOSampleStepper::step(int niter)
     cd_.update_density();
     tmap["charge"].stop();
 
-    ef_.update_vhxc(compute_stress);
+    ef_.update_vhxc();
     const bool compute_forces = true;
     double energy =
       ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
@@ -1226,9 +1222,11 @@ void BOSampleStepper::step(int niter)
     s_.wfv = 0;
   }
 
+
   for ( int ispin = 0; ispin < nspin; ispin++ )
   {
    delete mlwft[ispin];
+   delete mixer[ispin];
   }
 
   // delete steppers

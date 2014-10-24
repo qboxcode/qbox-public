@@ -15,6 +15,7 @@
 // NonLocalPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: NonLocalPotential.C,v 1.28 2009-11-30 02:32:13 fgygi Exp $
 
 #include "NonLocalPotential.h"
 #include "Species.h"
@@ -251,6 +252,7 @@ void NonLocalPotential::update_twnl(void)
   const double s3 = sqrt(3.0);
 
   const double *kpg   = basis_.kpg_ptr();
+  const double *kpg2  = basis_.kpg2_ptr();
   const double *kpgi  = basis_.kpgi_ptr();
   const double *kpg_x = basis_.kpgx_ptr(0);
   const double *kpg_y = basis_.kpgx_ptr(1);
@@ -297,6 +299,9 @@ void NonLocalPotential::update_twnl(void)
               const double tgx = kpg_x[ig];
               const double tgy = kpg_y[ig];
               const double tgz = kpg_z[ig];
+              const double tgx2 = tgx * tgx;
+              const double tgy2 = tgy * tgy;
+              const double tgz2 = tgz * tgz;
 
               const double tmp = kpgi[ig] * s14pi * dv;
               dt0_xx[ig] = tmp * tgx * tgx;
@@ -685,6 +690,7 @@ void NonLocalPotential::update_twnl(void)
               const double tgz2 = tgz * tgz;
 
               const double tgi = kpgi[ig];
+              const double tg2 = tg * tg;
               const double tgi2 = tgi * tgi;
 
               const double tgxx = tgx2 * tgi2;
@@ -862,6 +868,7 @@ void NonLocalPotential::update_twnl(void)
                 const double tgz2 = tgz * tgz;
 
                 const double tgi = kpgi[ig];
+                const double tg2 = tg * tg;
                 const double tgi2 = tgi * tgi;
 
                 const double tgxx = tgx2 * tgi2;
@@ -1137,7 +1144,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
 #if USE_MPI
         tmap["fnl_allreduce"].start();
         // Allreduce fnl partial sum
-        MPI_Comm basis_comm = basis_.comm();
+        MPI_Comm basis_comm = basis_.context().comm();
         int fnl_size = basis_.real() ? nprnaloc*nstloc : 2*nprnaloc*nstloc;
         MPI_Allreduce(&fnl_loc[0],&fnl_buf[0],fnl_size,
                       MPI_DOUBLE,MPI_SUM,basis_comm);

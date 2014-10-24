@@ -15,6 +15,9 @@
 // SampleHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: SampleHandler.C,v 1.11 2008-09-08 15:56:19 fgygi Exp $
+
+#if USE_XERCES
 
 #include "SampleHandler.h"
 #include "Sample.h"
@@ -27,8 +30,13 @@ using namespace xercesc;
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-SampleHandler::SampleHandler(Sample& s, DoubleMatrix& gfdata) :
-  s_(s), gfdata_(gfdata), current_gfdata_pos(0) {}
+SampleHandler::SampleHandler(Sample& s, DoubleMatrix& gfdata,
+  int& nx, int& ny, int& nz,
+  vector<vector<vector<double> > > &dmat,
+  Wavefunction& wfvtmp) :
+  s_(s), gfdata_(gfdata), nx_(nx), ny_(ny), nz_(nz),
+  dmat_(dmat), read_wf(false), read_wfv(false),
+  wfvtmp_(wfvtmp) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 SampleHandler::~SampleHandler() {}
@@ -45,8 +53,8 @@ void SampleHandler::startElement(const XMLCh* const uri,
 void SampleHandler::endElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname, string& content)
 {
-  // istringstream stst(st);
-  // string locname(XMLString::transcode(localname));
+  //istringstream stst(st);
+  string locname(XMLString::transcode(localname));
   // cout << " SampleHandler::endElement " << locname << endl;
 }
 
@@ -67,14 +75,12 @@ StructureHandler* SampleHandler::startSubHandler(const XMLCh* const uri,
   else if ( qnm == "wavefunction" )
   {
     read_wf = true;
-    return new WavefunctionHandler(s_.wf,gfdata_,current_gfdata_pos);
+    return new WavefunctionHandler(s_.wf,gfdata_,nx_,ny_,nz_,dmat_);
   }
   else if ( qnm == "wavefunction_velocity" )
   {
     read_wfv = true;
-    assert(read_wf);
-    s_.wfv = new Wavefunction(s_.wf);
-    return new WavefunctionHandler(*s_.wfv,gfdata_,current_gfdata_pos);
+    return new WavefunctionHandler(wfvtmp_,gfdata_,nx_,ny_,nz_,dmat_);
   }
   else
   {
@@ -90,3 +96,4 @@ void SampleHandler::endSubHandler(const XMLCh* const uri,
   // cout << " SampleHandler::endSubHandler " << StrX(qname) << endl;
   delete subHandler;
 }
+#endif

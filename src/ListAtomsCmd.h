@@ -33,8 +33,8 @@ class ListAtomsCmd : public Cmd
 
   ListAtomsCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "list_atoms"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "list_atoms"; }
+  char *help_msg(void) const
   {
     return
     "\n list_atoms\n\n"

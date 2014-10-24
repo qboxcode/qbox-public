@@ -15,6 +15,7 @@
 // MLWFTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: MLWFTransform.h,v 1.5 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef MLWFTRANSFORM_H
 #define MLWFTRANSFORM_H
@@ -26,8 +27,6 @@ class UnitCell;
 class DoubleMatrix;
 #include "D3vector.h"
 #include "BasisMapping.h"
-
-class Context;
 
 class MLWFTransform
 {

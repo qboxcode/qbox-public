@@ -17,6 +17,7 @@
 //
 
 #include "Species.h"
+#include "Context.h"
 #include "SpeciesReader.h"
 #include <iostream>
 #include <cassert>
@@ -33,22 +34,31 @@ int main(int argc, char **argv)
 #endif
   {
 
+  Context ctxt;
   if ( argc != 2 )
   {
     cerr << "use: testSpecies uri" << endl;
     return 1;
   }
 
-  Species s("unknown_name");
+  Species s(ctxt,"unknown_name");
 
-  SpeciesReader rdr;
+  SpeciesReader rdr(ctxt);
 
   string uri(argv[1]);
 
-  cout << " s.uri() = " << s.uri() << endl;
-  cout << " testSpecies: invoking SpeciesReader::uri_to_species:" << endl;
-  rdr.uri_to_species(uri,s);
-  cout << " SpeciesReader::uri_to_species done" << endl;
+  try
+  {
+    cerr << " s.uri() = " << s.uri() << endl;
+    cerr << " testSpecies: invoking readSpecies: uri=" << uri << endl;
+    rdr.readSpecies(s,uri);
+  }
+  catch ( const SpeciesReaderException& e )
+  {
+    cerr << " SpeciesReaderException caught in testSpecies" << endl;
+    throw;
+  }
+  cerr << " SpeciesReader::readSpecies done" << endl;
 
   const double rcps = 1.0;
 
@@ -61,19 +71,9 @@ int main(int argc, char **argv)
     cerr << " Exception in Species initialization: " << e.msg << endl;
     throw;
   }
-  cout << s;
+  cerr << s;
 
-  cout << " testSpecies: output of species done" << endl;
-
-  cout << " testSpecies: invoking s.info(cout):" << endl;
-  s.info(cout);
-
-  cout << " testSpecies: testing SpeciesReader::uri_to_string: " << endl;
-  string xmlstr;
-  rdr.uri_to_string(uri,"unknown",xmlstr);
-  cout << xmlstr;
-
-#if 0
+#if 1
 
   if ( ctxt.onpe0() )
   {

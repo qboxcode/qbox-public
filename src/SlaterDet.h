@@ -39,7 +39,7 @@ class SlaterDet
   private:
 
   const Context& ctxt_;
-  MPI_Comm my_col_comm_;
+  Context* my_col_ctxt_;
   Basis* basis_;
   ComplexMatrix c_;
   std::vector<double> occ_;

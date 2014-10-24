@@ -32,8 +32,8 @@ class RandomizeVCmd : public Cmd
 
   RandomizeVCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "randomize_v"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "randomize_v"; }
+  char *help_msg(void) const
   {
     return
     "\n randomize_v\n\n"

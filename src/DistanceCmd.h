@@ -33,8 +33,8 @@ class DistanceCmd : public Cmd
 
   DistanceCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "distance"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "distance"; }
+  char *help_msg(void) const
   {
     return
     "\n distance\n\n"

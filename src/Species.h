@@ -15,6 +15,7 @@
 // Species.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: Species.h,v 1.9 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef SPECIES_H
 #define SPECIES_H
@@ -23,23 +24,24 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include "Context.h"
 
 class Species
 {
   private:
 
+  const Context& ctxt_;
   int nlm_;             // number of non-local projectors:
   int ndft_;
 
-  std::vector<std::vector<double> > vps_spl_, vps_spl2_, phi_spl_, phi_spl2_;
-  std::vector<double>               gspl_, vlocg_spl_, vlocg_spl2_;
-  std::vector<std::vector<double> > vnlg_spl_, vnlg_spl2_;
-  std::vector<double> wsg_;  // wsg_[l] Kleinman-Bylander weight
-                             // 1/<phi|delta_V|phi>
+  std::vector<std::vector<double> > vps_spl_, phi_spl_;
+  std::vector<double>          gspl_, vlocg_, vlocg_spl;
+  std::vector<std::vector<double> > vnlg_, vnlg_spl;
+  std::vector<double> wsg_;  // wsg_[l] Kleinman-Bylander weight 1/<phi|delta_V|phi>
 
-  std::vector<double> rps_spl_;  // radial linear mesh (same for all l)
+  std::vector<double> rps_;  // radial linear mesh (same for all l)
 
-  std::string name_;         // name used in current application
+  std::string name_;         // name used to refer to species in current application
   std::string uri_;          // uri of the resource defining the pseudopotential
 
   std::string symbol_;
@@ -53,14 +55,15 @@ class Species
   int nquad_;          // number of semi-local quadrature points
   double rquad_;       // end of semi-local quadrature interval
   double deltar_;      // mesh spacing for potentials and wavefunctions
-  std::vector<std::vector<double> > vps_;  // potentials for each l (input)
-  std::vector<std::vector<double> > phi_;  // atomic wf for each l (input)
+  std::vector<std::vector<double> > vps_;  // potentials for each l
+  std::vector<std::vector<double> > phi_;  // atomic wavefunctions for each l
   double rcps_;        // cutoff radius of gaussian pseudocharge
 
   public:
 
-  Species(std::string name);
+  Species(const Context& ctxt, std::string name);
 
+  const Context& context(void) const { return ctxt_; }
   const std::string& name(void) const { return name_; }
   const std::string& symbol(void) const { return symbol_; }
   const std::string& description(void) const { return description_; }
@@ -93,12 +96,11 @@ class Species
   double wsg(int l) { return wsg_[l]; };
   double rcut_loc(double epsilon); // radius beyond which potential is local
 
-  const std::vector<std::vector<double> >& vps(void) const { return vps_spl_; }
-  const std::vector<std::vector<double> >& phi(void) const { return phi_spl_; }
+  const std::vector<std::vector<double> >& vps(void) const { return vps_; }
+  const std::vector<std::vector<double> >& phi(void) const { return phi_; }
 
   bool initialize(double rcps);
   void info(std::ostream& os);
-  void print(std::ostream& os, bool expanded_form);
 
   friend class SpeciesReader;
   friend class SpeciesHandler;

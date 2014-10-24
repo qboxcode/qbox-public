@@ -15,6 +15,7 @@
 // ChargeDensity.h
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: ChargeDensity.h,v 1.8 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef CHARGEDENSITY_H
 #define CHARGEDENSITY_H
@@ -38,7 +39,7 @@ class ChargeDensity
   private:
 
   const Context& ctxt_;
-  MPI_Comm vcomm_;
+  const Context& vcontext_;
   const Wavefunction& wf_;
   Basis* vbasis_;
   FourierTransform* vft_;
@@ -55,9 +56,8 @@ class ChargeDensity
   void update_density(void);
   void update_rhor(void);
 
-  const Context& context(void) const { return ctxt_; }
-  MPI_Comm vcomm(void) const { return vcomm_; }
   Basis* vbasis(void) const { return vbasis_; }
+  const Context& vcontext(void) const { return vcontext_; }
   FourierTransform* vft(void) const { return vft_; }
   FourierTransform* ft(int ikp) const { return ft_[ikp]; }
 

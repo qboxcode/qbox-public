@@ -15,9 +15,13 @@
 // FourierTransform.C
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: FourierTransform.C,v 1.22 2010-04-16 22:42:27 fgygi Exp $
+
+// The following macros must be defined: USE_FFTW, USE_ESSL, USE_ESSL_2DFFT
 
 #include "FourierTransform.h"
 #include "Basis.h"
+#include "Context.h"
 #include "blas.h"
 
 #include <complex>
@@ -89,11 +93,15 @@ FourierTransform::~FourierTransform()
 
 ////////////////////////////////////////////////////////////////////////////////
 FourierTransform::FourierTransform (const Basis &basis,
-  int np0, int np1, int np2) : comm_(basis.comm()), basis_(basis),
+  int np0, int np1, int np2) : ctxt_(basis.context()), basis_(basis),
   np0_(np0), np1_(np1), np2_(np2)
 {
-  MPI_Comm_size(comm_,&nprocs_);
-  MPI_Comm_rank(comm_,&myproc_);
+  assert(ctxt_.npcol() == 1);
+  nprocs_ = ctxt_.size();
+  myproc_ = ctxt_.myproc();
+
+  //if ( ctxt_.onpe0() )
+  //  cout << " FourierTransform: " << np0 << " " << np1 << " " << np2 << endl;
 
   np2_loc_.resize(nprocs_);
   np2_first_.resize(nprocs_);
@@ -616,11 +624,11 @@ void FourierTransform::bwd(complex<double>* val)
 #if USE_MPI
   int status = MPI_Alltoallv((double*)&sbuf[0],&scounts[0],&sdispl[0],
       MPI_DOUBLE,(double*)&rbuf[0],&rcounts[0],&rdispl[0],MPI_DOUBLE,
-      comm_);
+      ctxt_.comm());
   if ( status != 0 )
   {
     cout << " FourierTransform: status = " << status << endl;
-    MPI_Abort(MPI_COMM_WORLD,2);
+    ctxt_.abort(2);
   }
 #else
   assert(sbuf.size()==rbuf.size());
@@ -1008,7 +1016,7 @@ void FourierTransform::fwd(complex<double>* val)
 #if USE_MPI
   int status = MPI_Alltoallv((double*)&rbuf[0],&rcounts[0],&rdispl[0],
       MPI_DOUBLE,(double*)&sbuf[0],&scounts[0],&sdispl[0],MPI_DOUBLE,
-      comm_);
+      ctxt_.comm());
   assert ( status == 0 );
 #else
   assert(sbuf.size()==rbuf.size());

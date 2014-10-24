@@ -19,14 +19,12 @@
 #include "Preconditioner.h"
 #include "Basis.h"
 #include "Wavefunction.h"
-#include "EnergyFunctional.h"
-#include "ConfinementPotential.h"
 #include "SlaterDet.h"
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-Preconditioner::Preconditioner(const Wavefunction& wf, EnergyFunctional& ef,
-  double ecutprec) : ef_(ef), ecutprec_(ecutprec)
+Preconditioner::Preconditioner(const Wavefunction& wf, double ecutprec)
+ : ecutprec_(ecutprec)
 {
   kpg2_.resize(wf.nspin());
   ekin_.resize(wf.nspin());
@@ -48,13 +46,12 @@ Preconditioner::Preconditioner(const Wavefunction& wf, EnergyFunctional& ef,
 ////////////////////////////////////////////////////////////////////////////////
 double Preconditioner::diag(int ispin, int ikp, int n, int ig) const
 {
-  const valarray<double>& fstress = ef_.confpot(ikp)->fstress();
   if ( ecutprec_ == 0.0 )
   {
     const double ekin_n = ekin_[ispin][ikp][n];
     if ( ekin_n == 0.0 )
       return 0.0;
-    const double q2 = kpg2_[ispin][ikp][ig] + fstress[ig];
+    const double q2 = kpg2_[ispin][ikp][ig];
 #if 0
     // Payne Teter Allan adaptive preconditioner
     const double x = 0.5 * q2 / ekin_n;
@@ -72,7 +69,11 @@ double Preconditioner::diag(int ispin, int ikp, int n, int ig) const
   else
   {
     // next lines: inclusion of fstress if confinement potential is used
-    double e = 0.5 * ( kpg2_[ispin][ikp][ig] + fstress[ig] );
+    // const valarray<double>& fstress = ef_.confpot(ikp)->fstress();
+    // double e = 0.5 * ( kpg2_ptr[ig] + fstress[ig] );
+    // diag_[ispin][ikp][ig] = ( e < ecutpr ) ? 0.5 / ecutpr : 0.5 / e;
+
+    const double e = 0.5 * kpg2_[ispin][ikp][ig];
     return ( e < ecutprec_ ) ? 0.5 / ecutprec_ : 0.5 / e;
   }
 }

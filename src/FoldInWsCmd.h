@@ -36,8 +36,8 @@ class FoldInWsCmd : public Cmd
 
   FoldInWsCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "fold_in_ws"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "fold_in_ws"; }
+  char *help_msg(void) const
   {
     return
     "\n fold_in_ws\n\n"

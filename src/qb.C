@@ -257,7 +257,6 @@ int main(int argc, char **argv, char **envp)
 
   ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
-  ui.addCmd(new BisectionCmd(s));
   ui.addCmd(new ComputeMLWFCmd(s));
   ui.addCmd(new ConstraintCmd(s));
   ui.addCmd(new DistanceCmd(s));
@@ -275,8 +274,8 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new RandomizeRCmd(s));
   ui.addCmd(new RandomizeVCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
-  ui.addCmd(new RescaleVCmd(s));
   ui.addCmd(new ResetVcmCmd(s));
+  ui.addCmd(new RescaleVCmd(s));
   ui.addCmd(new RseedCmd(s));
   ui.addCmd(new RunCmd(s));
   ui.addCmd(new SaveCmd(s));
@@ -285,6 +284,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new StatusCmd(s));
   ui.addCmd(new StrainCmd(s));
   ui.addCmd(new TorsionCmd(s));
+  ui.addCmd(new BisectionCmd(s));
 
   ui.addVar(new AtomsDyn(s));
   ui.addVar(new BlHF(s));
@@ -292,18 +292,18 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Cell(s));
   ui.addVar(new CellDyn(s));
   ui.addVar(new CellLock(s));
-  ui.addVar(new CellMass(s));
   ui.addVar(new ChargeMixCoeff(s));
   ui.addVar(new ChargeMixNdim(s));
   ui.addVar(new ChargeMixRcut(s));
+  ui.addVar(new CellMass(s));
   ui.addVar(new Debug(s));
-  ui.addVar(new Dt(s));
   ui.addVar(new Ecut(s));
   ui.addVar(new Ecutprec(s));
   ui.addVar(new Ecuts(s));
   ui.addVar(new Emass(s));
   ui.addVar(new ExtStress(s));
   ui.addVar(new FermiTemp(s));
+  ui.addVar(new Dt(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new NetCharge(s));
   ui.addVar(new Nrowmax(s));

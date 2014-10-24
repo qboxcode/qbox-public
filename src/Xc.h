@@ -32,7 +32,7 @@ class Xc : public Var
 
   public:
 
-  const char *name ( void ) const { return "xc"; };
+  char *name ( void ) const { return "xc"; };
 
   int set ( int argc, char **argv )
   {

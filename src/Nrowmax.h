@@ -33,7 +33,7 @@ class Nrowmax : public Var
 
   public:
 
-  const char *name ( void ) const { return "nrowmax"; };
+  char *name ( void ) const { return "nrowmax"; };
 
   int set ( int argc, char **argv )
   {

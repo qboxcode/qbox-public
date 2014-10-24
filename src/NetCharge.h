@@ -33,7 +33,7 @@ class NetCharge : public Var
 
   public:
 
-  const char *name ( void ) const { return "net_charge"; };
+  char *name ( void ) const { return "net_charge"; };
 
   int set ( int argc, char **argv )
   {

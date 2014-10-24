@@ -33,7 +33,7 @@ class AtomsDyn : public Var
 
   public:
 
-  const char *name ( void ) const { return "atoms_dyn"; };
+  char *name ( void ) const { return "atoms_dyn"; };
 
   int set ( int argc, char **argv )
   {

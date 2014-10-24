@@ -37,8 +37,9 @@ class ComputeMLWFCmd : public Cmd
 
   ComputeMLWFCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "compute_mlwf"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "compute_mlwf"; }
+
+  char *help_msg(void) const
   {
     return
     "\n compute_mlwf\n\n"

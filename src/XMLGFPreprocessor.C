@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008-2012 The Regents of the University of California
+// Copyright (c) 2008 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -15,24 +15,19 @@
 // XMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: XMLGFPreprocessor.C,v 1.17 2009-11-30 02:47:20 fgygi Exp $
 
+#include <cassert>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <cstring> // memcpy
+#include <vector>
 #include <cstdlib>
 #include <cstdio>
-#include <cassert>
-#include <unistd.h> // close
-
-#include <vector>
 #include <valarray>
-
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
 
 #include "Timer.h"
 #include "Context.h"
@@ -44,27 +39,19 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 //
 // XMLGFPreprocessor class
-//
-// Used to preprocess a sample document.
-// The contents of all <grid_function> elements is removed from the XML
-// document and stored in the distributed matrix gfdata.
-// All <species> elements are expanded from their url or file name and
-// inserted in the xmlcontent string.
-//
-// Input: filename or uri, DoubleMatrix& gfdata, string xmlcontent
-// If the uri is a file name, the preprocessor reads the file in parallel,
-// then processes all <grid_function> elements and stores the values of
-// the grid_functions in the matrix gfdata which has dimensions
-// (ngf,maxgridsize), where ngf is the total number of
+// Used to preprocess <grid_function> elements in an XML document
+// Input: filename, DoubleMatrix& gfdata, string xmlcontent
+// The preprocessor reads the file in parallel, processes all <grid_function>
+// elements and stores the values of the grid_functions in the matrix gfdata
+// which has dimensions (ngf,maxgridsize), where ngf is the total number of
 // <grid_function> elements found in the file, and maxgridsize is the size of
 // the largest grid_function.
-// On return, the string xmlcontent contains (on all tasks) the XML document
-// with <grid_function> elements reduced to empty strings and <species>
-// elements expanded to include all species information.
+// On return, the string xmlcontent contains (on task 0) the XML file
+// with <grid_function> elements reduced to empty strings.
 //
 ////////////////////////////////////////////////////////////////////////////////
-int XMLGFPreprocessor::process(const char* const uri,
-    DoubleMatrix& gfdata, string& xmlcontent, bool serial)
+void XMLGFPreprocessor::process(const char* const filename,
+    DoubleMatrix& gfdata, string& xmlcontent)
 {
   cout.precision(4);
 
@@ -83,428 +70,88 @@ int XMLGFPreprocessor::process(const char* const uri,
   ttm.start();
   string st;
 
-  // determine if the given uri refers to a local file or to an URL
   struct stat statbuf;
-  bool read_from_file = !stat(uri,&statbuf);
-
-  if ( read_from_file && rctxt.onpe0() )
-    cout << " XMLGFPreprocessor: reading from "
-           << uri << " size: " << statbuf.st_size << endl;
-
+  bool found_file = !stat(filename,&statbuf);
+  // Note: process should only be called if a file is present
+  assert(found_file);
 #if DEBUG
     cout << " process " << ctxt.mype() << " found file "
-         << uri << " size: " << statbuf.st_size << endl;
+         << filename << " size: "
+         << statbuf.st_size << endl;
 #endif
+  off_t sz = statbuf.st_size;
 
-  // check if serial flag: force serial reading even if file is present
-  read_from_file &= !serial;
-
-  string buf;
-
-  // if reading from a file, read the entire file in parallel on all tasks
-  if ( read_from_file )
+  FILE* infile;
+  infile = fopen(filename,"r");
+  if ( !infile )
   {
-    FILE* infile;
-    infile = fopen(uri,"r");
-    if ( !infile )
-    {
-      cout << " process " << ctxt.mype() << " could not open file "
-           << uri << " for reading" << endl;
-      return 1;
-    }
-
-    off_t sz = statbuf.st_size;
-    // determine local size
-    off_t block_size = sz / ctxt.size();
-    off_t local_size = block_size;
-    off_t max_local_size = local_size + sz % ctxt.size();
-    // adjust local_size on last task
-    if ( ctxt.mype()==ctxt.size()-1 )
-    {
-      local_size = max_local_size;
-    }
-
-    // use contiguous read buffer, to be copied later to a string
-    char *rdbuf = new char[local_size];
-#if DEBUG
-    cout << ctxt.mype() << ": local_size: " << local_size << endl;
-#endif
-
-    tm.start();
-    off_t offset = ctxt.mype()*block_size;
-    int fseek_status = fseeko(infile,offset,SEEK_SET);
-    if ( fseek_status != 0 )
-    {
-      cout << "fseeko failed: offset=" << offset << " file_size=" << sz << endl;
-    }
-
-    assert(fseek_status==0);
-    size_t items_read;
-#if PARALLEL_FS
-    // parallel file system: all nodes read at once
-    items_read = fread(rdbuf,sizeof(char),local_size,infile);
-#else
-    // On a serial (or NFS) file system: tasks read by increasing row order
-    // to avoid overloading the NFS server
-    // No more than ctxt.npcol() tasks are reading at any given time
-    for ( int irow = 0; irow < ctxt.nprow(); irow++ )
-    {
-      if ( irow == ctxt.myrow() )
-        items_read = fread(rdbuf,sizeof(char),local_size,infile);
-    }
-#endif
-    assert(items_read==local_size);
-
-    buf.assign(rdbuf,local_size);
-    delete [] rdbuf;
-
-    ctxt.barrier();
-    tm.stop();
-
-    if ( ctxt.onpe0() )
-    {
-      cout << " XMLGFPreprocessor: read time: " << tm.real() << endl;
-      cout << " XMLGFPreprocessor: local read rate: "
-           << local_size/(tm.real()*1024*1024) << " MB/s"
-           << "  aggregate read rate: "
-           << sz/(tm.real()*1024*1024) << " MB/s" << endl;
-    }
-
-  } // if (read_from_file)
-  else
-  {
-    // read from a URI
-    // task 0 connects to the server, gets the data and distributes it
-    // to MPI tasks
-    tm.start();
-
-    int mype = rctxt.mype();
-    int nprocs = rctxt.size();
-    bool onpe0 = rctxt.onpe0();
-
-    // get a document from an http server
-    // the host name is e.g. "128.120.80.40" or "fpmd.ucdavis.edu"
-    // the document name is e.g. "/index.html"
-    //
-    // the document is distributed in local strings localdoc
-    //
-    // check that the uri starts with http://
-    string suri(uri);
-    if ( suri.substr(0,7) != string("http://") )
-    {
-      if ( onpe0 )
-      {
-        cout << " URI must start with http://" << endl;
-        cout << " could not access URI: " << uri << endl;
-      }
-      // return with error code
-      return 2;
-    }
-    else
-    {
-      // erase "http://" from the URI
-      suri.erase(0,7);
-    }
-
-    string localdoc;
-    int sockfd;
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
-    const int blocksize = 1024*1024;
-    int nblocal = 0; // local number of blocks received
-    int total_received = 0;
-
-    if ( onpe0 )
-    {
-      cout << " XMLGFPreprocessor: blocksize: " << blocksize << endl;
-      char recvbuffer[blocksize];
-      string buffer;
-
-      // parse URI
-      // e.g. URI = "www.example.com/file.html" or "123.45.678.90/index.html"
-      // find position of first "/" in argument
-      string::size_type first_slash_pos = suri.find_first_of("/");
-      string host = suri.substr(0,first_slash_pos);
-      string docname = suri.substr(first_slash_pos);
-      cout << " XMLGFPreprocessor: host: " << host << endl;
-      cout << " XMLGFPreprocessor: docname: " << docname << endl;
-
-      memset(&hints, 0, sizeof hints);
-      hints.ai_family = AF_UNSPEC;
-      hints.ai_socktype = SOCK_STREAM;
-
-      if ( (rv = getaddrinfo(host.c_str(), "http", &hints, &servinfo)) != 0)
-      {
-        cout << " XMLGFPreprocessor: getaddrinfo: "
-             << gai_strerror(rv) << endl;
-        return 3;
-      }
-
-      // loop through all the results and connect to the first working address
-      for ( p = servinfo; p != NULL; p = p->ai_next )
-      {
-        if ( (sockfd = socket(p->ai_family, p->ai_socktype,
-              p->ai_protocol)) == -1 )
-        {
-          perror("socket");
-          continue;
-        }
-
-        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1)
-        {
-          close(sockfd);
-          perror("connect");
-          continue;
-        }
-
-        break; // if we get here, we must have connected successfully
-      }
-
-      if (p == NULL)
-      {
-        // looped off the end of the list with no connection
-        cout << " XMLGFPreprocessor: failed to connect" << endl;
-        return 4;
-      }
-
-      cout << " XMLGFPreprocessor: connected to " << host << " .. " << endl;
-
-      // assemble request string
-      string req = "GET " + docname + " HTTP/1.0\r\nHOST:" + host + "\r\n\r\n";
-      // cout << " req = " << req << endl;
-
-      // send request
-      if ( send(sockfd, req.c_str(), req.size(), 0) == -1)
-      {
-        perror("send");
-        return 5;
-      }
-
-      cout << " XMLGFPreprocessor: waiting for response..." << endl;
-
-      // read packets and append to document
-      int ibglobal = 0;
-      int len = 0;
-      do
-      {
-        // read a block into buffer
-        do
-        {
-          len = recv(sockfd, recvbuffer, blocksize, 0);
-          total_received += len;
-          if ( len > 0 )
-          {
-            buffer.append(recvbuffer,len);
-          }
-        } while ( len > 0 && buffer.size() < blocksize );
-
-        if ( len > 0 )
-        {
-          // buffer contains at least blocksize characters
-          // send first blocksize chars of buffer
-          int dest = ibglobal%nprocs;
-          if ( dest == 0 )
-          {
-            localdoc.append(buffer.c_str(),blocksize);
-            nblocal++;
-          }
-          else
-          {
-            int tag = 0;
-            MPI_Send((void*) buffer.c_str(),blocksize,
-                     MPI_CHAR,dest,tag,rctxt.comm());
-          }
-          ibglobal++;
-          // remove first blocksize chars from localdoc
-          buffer.erase(0,blocksize);
-        }
-        else
-        {
-          // len = 0: reached end of file
-          // send remaining chars in buffer
-          int dest = ibglobal%nprocs;
-          if ( dest == 0 )
-          {
-            localdoc.append(buffer);
-            nblocal++;
-          }
-          else
-          {
-            int tag = 0;
-            MPI_Send((void*) buffer.c_str(),buffer.size(),
-                     MPI_CHAR,dest,tag,rctxt.comm());
-          }
-          ibglobal++;
-        }
-      } while ( len != 0 );
-      cout << " XMLGFPreprocessor: received " << total_received
-           << " bytes" << endl;
-
-      freeaddrinfo(servinfo);
-
-      // send empty message to all listening tasks to signify end
-      for ( int i = 1; i < nprocs; i++ )
-        MPI_Send(recvbuffer,0,MPI_CHAR,i,0,rctxt.comm());
-
-      // broadcast total number of characters received
-      MPI_Bcast(&total_received,1,MPI_INT,0,rctxt.comm());
-
-    }
-    else // onpe0
-    {
-      // start listening
-      // cout << mype << ": listening.." << endl;
-      bool done = false;
-      while ( !done )
-      {
-        MPI_Status status;
-        char rbuffer[blocksize];
-        // blocking receive of message from task 0
-        int ierr = MPI_Recv(rbuffer, blocksize, MPI_CHAR, 0, 0,
-                            rctxt.comm(), &status);
-        if ( ierr != 0 )
-        {
-          cout << " XMLGFPreprocessor::process: Error in MPI_Recv on node "
-               << mype << endl;
-          MPI_Abort(rctxt.comm(),2);
-        }
-        int count = -1;
-        MPI_Get_count(&status,MPI_CHAR,&count);
-        done = ( count == 0 );
-        if ( !done )
-        {
-          localdoc.append(rbuffer,count);
-          nblocal++;
-        }
-      }
-
-      MPI_Bcast(&total_received,1,MPI_INT,0,rctxt.comm());
-      // cout << "node " << mype << " done" << endl;
-    }
-
-    MPI_Barrier(rctxt.comm());
-
-    if ( onpe0 )
-      cout << " XMLGFPreprocessor: done reading" << endl;
-    // cout << mype << ": localdoc.size(): " << localdoc.size() << endl;
-    // cout << mype << ": localdoc: " << localdoc << endl;
-    // cout << mype << ": nblocal: " << nblocal << endl;
-
-    // redistribute data to all tasks
-    // cyclic to cyclic array redistribution
-
-    // determine nbglobal: total number of blocks
-    int nbglobal;
-    MPI_Allreduce(&nblocal, &nbglobal, 1, MPI_INT, MPI_SUM, rctxt.comm());
-
-    // maximum number of messages received on a task =
-    // maximum number of local blocks nblocalmax
-    int nblocalmax = (nbglobal+nprocs-1)/nprocs;
-
-    // Send messages
-    int nsend = 0;
-    MPI_Request *send_req = new MPI_Request[nblocal];
-    for ( int iblocal = 0; iblocal < nblocal; iblocal++ )
-    {
-      int ibglobal = mype + iblocal * nprocs;
-      int dest = ibglobal / nblocalmax;
-      const char *p = localdoc.c_str();
-      int len = ibglobal < nbglobal-1 ? blocksize : total_received % blocksize;
-      MPI_Isend((void*) &p[iblocal*blocksize],len,MPI_CHAR,dest,ibglobal,
-                rctxt.comm(),&send_req[iblocal]);
-      // cout << mype << ": sending block " << ibglobal
-      //      << " to " << dest << endl;
-      nsend++;
-    }
-    int tmpnsend;
-    MPI_Reduce(&nsend,&tmpnsend,1,MPI_INT,MPI_SUM,0,rctxt.comm());
-    nsend = tmpnsend;
-
-    int nrecv = 0;
-    MPI_Request *recv_req = new MPI_Request[nblocalmax];
-    valarray<char> rbuf(nblocalmax*blocksize);
-    int ireq = 0;
-    int localsize = 0;
-    // post non-blocking receives
-    for ( int ibglobal = 0; ibglobal < nbglobal; ibglobal++ )
-    {
-      // coordinates of block ibglobal in final configuration: (i,j)
-      int j = ibglobal / nblocalmax;
-      // check if block (i,j) will be received on this task
-      if ( j == mype )
-      {
-        // determine task sending block (i,j)
-        int src = ibglobal % nprocs;
-        int iblocal = ibglobal % nblocalmax;
-        int len = ibglobal<nbglobal-1 ? blocksize : total_received % blocksize;
-        MPI_Irecv(&rbuf[iblocal*blocksize],len,MPI_CHAR,src,ibglobal,
-                  rctxt.comm(),&recv_req[ireq]);
-        // cout << mype << ": receiving block " << ibglobal
-        //      << " from " << src << endl;
-        nrecv++;
-        ireq++;
-        localsize += len;
-      }
-    }
-    int tmpnrecv;
-    MPI_Reduce(&nrecv,&tmpnrecv,1,MPI_INT,MPI_SUM,0,rctxt.comm());
-    nrecv = tmpnrecv;
-
-    // if ( onpe0 )
-    //   cout << "total msgs sent/received: " << nsend << "/" << nrecv << endl;
-    // cout << mype << ": localsize: " << localsize << endl;
-
-    // wait for send calls to complete
-    MPI_Waitall(nblocal, send_req, MPI_STATUSES_IGNORE);
-    MPI_Waitall(ireq, recv_req, MPI_STATUSES_IGNORE);
-
-    delete [] recv_req;
-    delete [] send_req;
-
-    // the data now resides in rbuf on each task
-
-    buf.assign(&rbuf[0],localsize);
-
-    // on task 0, remove HTTP header
-    // erase characters before "<?xml " header
-    int xml_decl_error = 0;
-    string::size_type xml_start;
-    if ( onpe0 )
-    {
-      xml_start = buf.find("<?xml ");
-      if ( xml_start == string::npos )
-      {
-        cout << " XMLGFPreprocessor: could not find <?xml > declaration"
-             << endl;
-        xml_decl_error = true;
-      }
-      else
-      {
-        cout << " XMLGFPreprocessor:  <?xml > declaration found at position "
-             << xml_start << endl;
-      }
-    }
-    MPI_Bcast(&xml_decl_error,1,MPI_INT,0,rctxt.comm());
-    if ( xml_decl_error )
-      return 6;
-
-    // An <?xml > declaration was found
-
-    if ( onpe0 )
-      buf.erase(0,xml_start);
-
-    ctxt.barrier();
-    tm.stop();
-
-    if ( ctxt.onpe0() )
-    {
-      cout << " XMLGFPreprocessor: read time: " << tm.real() << endl;
-      cout << " XMLGFPreprocessor: read rate: "
-           << total_received/(tm.real()*1024*1024) << " MB/s" << endl;
-    }
+    cout << " process " << ctxt.mype() << " could not open file "
+         << filename << " for reading" << endl;
+    return;
   }
 
-  // At this point all tasks hold a fragment of size local_size in buf
+//  ifstream is(filename);
+
+  // determine local size
+  off_t block_size = sz / ctxt.size();
+  off_t local_size = block_size;
+  off_t max_local_size = local_size + sz % ctxt.size();
+  // adjust local_size on last task
+  if ( ctxt.mype()==ctxt.size()-1 )
+  {
+    local_size = max_local_size;
+  }
+
+  // use contiguous read buffer, to be copied later to a string
+  char *rdbuf = new char[local_size];
+#if DEBUG
+  cout << ctxt.mype() << ": local_size: " << local_size << endl;
+#endif
+
+  tm.start();
+  off_t offset = ctxt.mype()*block_size;
+  int fseek_status = fseeko(infile,offset,SEEK_SET);
+  if ( fseek_status != 0 )
+  {
+    cout << "fseeko failed: offset=" << offset << " file_size=" << sz << endl;
+  }
+
+  assert(fseek_status==0);
+  size_t items_read;
+#if PARALLEL_FS
+  // parallel file system: all nodes read at once
+  items_read = fread(rdbuf,sizeof(char),local_size,infile);
+#else
+  // serial (or NFS) file system: tasks read by increasing row order
+  // No more than ctxt.npcol() tasks are reading at any given time
+  for ( int irow = 0; irow < ctxt.nprow(); irow++ )
+  {
+    if ( irow == ctxt.myrow() )
+      items_read = fread(rdbuf,sizeof(char),local_size,infile);
+  }
+#endif
+  assert(items_read==local_size);
+
+  //std::streampos offset = ctxt.mype()*block_size;
+  //is.seekg(offset);
+  //std::streampos new_offset = is.tellg();
+  //assert(offset == new_offset);
+  //is.read(&buf[0],local_size);
+  //is.close();
+
+  string buf(rdbuf,local_size);
+  delete [] rdbuf;
+
+  tm.stop();
+
+  if ( ctxt.onpe0() )
+  {
+    cout << " XMLGFPreprocessor: read time: " << tm.real() << endl;
+    cout << " XMLGFPreprocessor: local read rate: "
+         << local_size/(tm.real()*1024*1024) << " MB/s"
+         << "  aggregate read rate: "
+         << sz/(tm.real()*1024*1024) << " MB/s" << endl;
+  }
 
   tm.reset();
   tm.start();
@@ -808,8 +455,7 @@ int XMLGFPreprocessor::process(const char* const uri,
   for ( int i = 0; i < local_start_tag_offset.size(); i++ )
   {
     // determine encoding of tag at local_start_tag_offset[i]
-    string::size_type encoding_pos =
-      buf.find("encoding",local_start_tag_offset[i]);
+    string::size_type encoding_pos = buf.find("encoding",local_start_tag_offset[i]);
     assert(encoding_pos != string::npos);
     encoding_pos = buf.find("\"",encoding_pos)+1;
     string::size_type end = buf.find("\"",encoding_pos);
@@ -1091,8 +737,7 @@ int XMLGFPreprocessor::process(const char* const uri,
 #if DEBUG
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
   {
-    cout << rctxt.mype() << ": seg_data[iseg=" << iseg << "]: size="
-         << dbuf[iseg].size() << "  ";
+    cout << rctxt.mype() << ": seg_data[iseg=" << iseg << "]: size=" << dbuf[iseg].size() << "  ";
     if ( dbuf[iseg].size() >=3 )
       cout << dbuf[iseg][0] << " " << dbuf[iseg][1]
            << " " << dbuf[iseg][2];
@@ -1417,7 +1062,7 @@ int XMLGFPreprocessor::process(const char* const uri,
   }
   //cout << " buf.size() after erase: " << buf.size() << endl;
 
-  // collect all XML data
+  // collect all XML data on task 0
   // Distribute sizes of local strings to all tasks
   // and store in array rcounts
 
@@ -1473,5 +1118,4 @@ int XMLGFPreprocessor::process(const char* const uri,
   {
     cout << " XMLGFPreprocessor: total time: " << ttm.real() << endl;
   }
-  return 0;
 }

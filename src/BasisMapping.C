@@ -15,6 +15,7 @@
 //  BasisMapping.C
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: BasisMapping.C,v 1.4 2008-09-08 15:56:18 fgygi Exp $
 
 #include "Basis.h"
 #include "Context.h"
@@ -25,10 +26,13 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-BasisMapping::BasisMapping (const Basis &basis) : basis_(basis)
+BasisMapping::BasisMapping (const Basis &basis) : ctxt_(basis.context()),
+ basis_(basis)
+
 {
-  nprocs_ = basis_.npes();
-  myproc_ = basis_.mype();
+  assert(ctxt_.npcol() == 1);
+  nprocs_ = ctxt_.size();
+  myproc_ = ctxt_.myproc();
 
   np0_ = basis.np(0);
   np1_ = basis.np(1);
@@ -424,11 +428,11 @@ void BasisMapping::transpose_fwd(const complex<double> *zvec,
 #if USE_MPI
   int status = MPI_Alltoallv((double*)&sbuf[0],&scounts[0],&sdispl[0],
       MPI_DOUBLE,(double*)&rbuf[0],&rcounts[0],&rdispl[0],MPI_DOUBLE,
-      basis_.comm());
+      ctxt_.comm());
   if ( status != 0 )
   {
     cout << " BasisMapping: status = " << status << endl;
-    MPI_Abort(basis_.comm(),2);
+    ctxt_.abort(2);
   }
 #else
   assert(sbuf.size()==rbuf.size());
@@ -509,7 +513,7 @@ void BasisMapping::transpose_bwd(const complex<double> *ct,
 #if USE_MPI
   int status = MPI_Alltoallv((double*)&rbuf[0],&rcounts[0],&rdispl[0],
       MPI_DOUBLE,(double*)&sbuf[0],&scounts[0],&sdispl[0],MPI_DOUBLE,
-      basis_.comm());
+      ctxt_.comm());
   assert ( status == 0 );
 #else
   assert(sbuf.size()==rbuf.size());

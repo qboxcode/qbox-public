@@ -28,20 +28,22 @@ using namespace std;
 #define TAG_Overlaps_local 12
 
 ////////////////////////////////////////////////////////////////////////////////
-KPConnectivity::KPConnectivity(const Sample& s) :s_(s), kdist_tol_(1.e-5)
+KPConnectivity::KPConnectivity(const Sample& s)
 {
+  const double kdist_tol = 1.e-5;
+  int onpe0 = ( ( s.ctxt_.myrow()==0 ) && ( s.ctxt_.mycol()==0 ) );
+
 #ifdef DEBUG
-  int onpe0 = ( ( s_.ctxt_.myrow()==0 ) && ( s_.ctxt_.mycol()==0 ) );
   if ( onpe0 )
     cout << "Building kp grid connection for quad HF exchange convergence\n";
 #endif
 
   // get number of kpoints
-  nkpoints_ = s_.wf.nkp();
-  comm_     = s_.wf.sd(0,0)->context().comm();
+  nkpoints_ = s.wf.nkp();
+  comm_     = s.wf.sd(0,0)->context().comm();
 
   // get maximum number of local states
-  int nStateLoc_= s_.wf.sd(0,0)->nstloc();
+  int nStateLoc_= s.wf.sd(0,0)->nstloc();
   MPI_Allreduce(&nStateLoc_,&nStateMax_,1,MPI_INT,MPI_MAX,comm_);
 
   // allocate memory for kpoint weights
@@ -118,31 +120,23 @@ KPConnectivity::KPConnectivity(const Sample& s) :s_(s), kdist_tol_(1.e-5)
   for ( int iKp=0; iKp<nkpoints_; iKp++ )
   {
     // test direct difference
-    D3vector dk =   s_.wf.kpoint(iKp) - s_.wf.kpoint(0);
-    if ( abs(dk.x)>kdist_tol_ ) DimX_=1;
-    if ( abs(dk.y)>kdist_tol_ ) DimY_=1;
-    if ( abs(dk.z)>kdist_tol_ ) DimZ_=1;
+    D3vector dk =   s.wf.kpoint(iKp) - s.wf.kpoint(0);
+    if ( abs(dk.x)>kdist_tol ) DimX_=1;
+    if ( abs(dk.y)>kdist_tol ) DimY_=1;
+    if ( abs(dk.z)>kdist_tol ) DimZ_=1;
 
     // test diference with symmetric
-    dk =   s_.wf.kpoint(iKp) + s_.wf.kpoint(0);
-    if ( abs(dk.x)>kdist_tol_ ) DimX_=1;
-    if ( abs(dk.y)>kdist_tol_ ) DimY_=1;
-    if ( abs(dk.z)>kdist_tol_ ) DimZ_=1;
+    dk =   s.wf.kpoint(iKp) + s.wf.kpoint(0);
+    if ( abs(dk.x)>kdist_tol ) DimX_=1;
+    if ( abs(dk.y)>kdist_tol ) DimY_=1;
+    if ( abs(dk.z)>kdist_tol ) DimZ_=1;
   }
 
-  cell_moved();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void KPConnectivity::cell_moved(void)
-{
-  // recompute all quantities that depend on the cell dimensions
-
-  int onpe0 = ( ( s_.ctxt_.myrow()==0 ) && ( s_.ctxt_.mycol()==0 ) );
-  // get the length of each vector of the reciprocal cell
-  double length_kx=length(s_.wf.cell().b(0));
-  double length_ky=length(s_.wf.cell().b(1));
-  double length_kz=length(s_.wf.cell().b(2));
+  // get the length of each vector of the
+  // reciprocal cell
+  double length_kx=length(s.wf.cell().b(0));
+  double length_ky=length(s.wf.cell().b(1));
+  double length_kz=length(s.wf.cell().b(2));
 
   // get the connectivity of the grid
   for ( int iKpi=0; iKpi<nkpoints_; iKpi++ )
@@ -172,14 +166,14 @@ void KPConnectivity::cell_moved(void)
     second_distance_kz_[iKpi]=1;
 
     // if this kpoint is part of the integration grid
-    if ( s_.wf.weight(iKpi)!=0.0 )
+    if ( s.wf.weight(iKpi)!=0.0 )
     {
       // explore the remaining k points
       ConnectivityComplete_=1;
       for ( int iKpj=0; iKpj<nkpoints_; iKpj++ )
       {
         // if this kpoint is part of the integration grid
-        if ( s_.wf.weight(iKpj)!=0.0 )
+        if ( s.wf.weight(iKpj)!=0.0 )
         {
           for ( int itx = -1; itx <=1; itx++ )
           for ( int ity = -1; ity <=1; ity++ )
@@ -187,14 +181,14 @@ void KPConnectivity::cell_moved(void)
           {
 	    D3vector T(itx, ity, itz);
             // first test direct difference
-            D3vector dk = s_.wf.kpoint(iKpi) - s_.wf.kpoint(iKpj) - T;
+            D3vector dk = s.wf.kpoint(iKpi) - s.wf.kpoint(iKpj) - T;
 
             // make sure that we are not just considering 0 vector
             if ( dk.x!=0 || dk.y!=0 || dk.z!=0 )
             {
               // kx direction
-              if ( abs(dk.x)<dminx1+kdist_tol_ && abs(dk.y)<kdist_tol_ &&
-                   abs(dk.z)<kdist_tol_ )
+              if ( abs(dk.x)<dminx1+kdist_tol && abs(dk.y)<kdist_tol &&
+                   abs(dk.z)<kdist_tol )
               {
                 // copy first neighbour in second
                 dminx2=dminx1;
@@ -209,8 +203,8 @@ void KPConnectivity::cell_moved(void)
                 first_T_overlap_kx_[iKpi]=T;
                 first_distance_kx_[iKpi] =dk.x*length_kx;
               }
-              else if ( abs(dk.x)<dminx2+kdist_tol_ && abs(dk.y)<kdist_tol_ &&
-                        abs(dk.z)<kdist_tol_ )
+              else if ( abs(dk.x)<dminx2+kdist_tol && abs(dk.y)<kdist_tol &&
+                        abs(dk.z)<kdist_tol )
               {
                 // set new second neighbour
                 dminx2=abs(dk.x);
@@ -221,8 +215,8 @@ void KPConnectivity::cell_moved(void)
               }
 
               // ky direction
-              if ( abs(dk.x)<kdist_tol_ && abs(dk.y)<dminy1+kdist_tol_ &&
-                   abs(dk.z)<kdist_tol_ )
+              if ( abs(dk.x)<kdist_tol && abs(dk.y)<dminy1+kdist_tol &&
+                   abs(dk.z)<kdist_tol )
               {
                 // copy first neighbour in second
                 dminy2=dminy1;
@@ -237,8 +231,8 @@ void KPConnectivity::cell_moved(void)
                 first_T_overlap_ky_[iKpi]=T;
                 first_distance_ky_[iKpi] =dk.y*length_ky;
               }
-              else if ( abs(dk.x)<kdist_tol_ && abs(dk.y)<dminy2+kdist_tol_ &&
-                        abs(dk.z)<kdist_tol_ )
+              else if ( abs(dk.x)<kdist_tol && abs(dk.y)<dminy2+kdist_tol &&
+                        abs(dk.z)<kdist_tol )
               {
                 // set new second neighbour
                 dminy2=abs(dk.y);
@@ -249,8 +243,8 @@ void KPConnectivity::cell_moved(void)
               }
 
               // kz direction
-              if ( abs(dk.x)<kdist_tol_ && abs(dk.y)<kdist_tol_ &&
-                   abs(dk.z)<dminz1+kdist_tol_ )
+              if ( abs(dk.x)<kdist_tol && abs(dk.y)<kdist_tol &&
+                   abs(dk.z)<dminz1+kdist_tol )
               {
                 // copy first neighbour in second
                 dminz2=dminz1;
@@ -265,8 +259,8 @@ void KPConnectivity::cell_moved(void)
                 first_T_overlap_kz_[iKpi]=T;
                 first_distance_kz_[iKpi] =dk.z*length_kz;
               }
-              else if ( abs(dk.x)<kdist_tol_ && abs(dk.y)<kdist_tol_ &&
-                        abs(dk.z)<dminz2+kdist_tol_ )
+              else if ( abs(dk.x)<kdist_tol && abs(dk.y)<kdist_tol &&
+                        abs(dk.z)<dminz2+kdist_tol )
               {
                 // set new second neighbour
                 dminz2=abs(dk.z);
@@ -279,21 +273,21 @@ void KPConnectivity::cell_moved(void)
 
             // then test difference with symmetric
             // (except for gamma and 0.5 vectors)
-            if ( ( s_.wf.kpoint(iKpj).x!=0.0 &&
-                   fabs(s_.wf.kpoint(iKpj).x)!=0.5 ) ||
-                 ( s_.wf.kpoint(iKpj).y!=0.0 &&
-                   fabs(s_.wf.kpoint(iKpj).y)!=0.5 ) ||
-                 ( s_.wf.kpoint(iKpj).z!=0.0 &&
-                   fabs(s_.wf.kpoint(iKpj).z)!=0.5 ) )
+            if ( ( s.wf.kpoint(iKpj).x!=0.0 &&
+                   fabs(s.wf.kpoint(iKpj).x)!=0.5 ) ||
+                 ( s.wf.kpoint(iKpj).y!=0.0 &&
+                   fabs(s.wf.kpoint(iKpj).y)!=0.5 ) ||
+                 ( s.wf.kpoint(iKpj).z!=0.0 &&
+                   fabs(s.wf.kpoint(iKpj).z)!=0.5 ) )
             {
-              dk = s_.wf.kpoint(iKpi) + s_.wf.kpoint(iKpj) + T;
+              dk = s.wf.kpoint(iKpi) + s.wf.kpoint(iKpj) + T;
 
               // make sure that we are not just considering 0 vector
               if ( dk.x!=0 || dk.y!=0 || dk.z!=0 )
               {
                 // kx direction
-                if ( abs(dk.x)<dminx1+kdist_tol_ && abs(dk.y)<kdist_tol_ &&
-                     abs(dk.z)<kdist_tol_ )
+                if ( abs(dk.x)<dminx1+kdist_tol && abs(dk.y)<kdist_tol &&
+                     abs(dk.z)<kdist_tol )
                 {
                   // copy first neighbour in second
                   dminx2=dminx1;
@@ -308,8 +302,8 @@ void KPConnectivity::cell_moved(void)
                   first_T_overlap_kx_[iKpi]=T;
                   first_distance_kx_[iKpi] =dk.x*length_kx;
                 }
-                else if ( abs(dk.x)<dminx2+kdist_tol_ && abs(dk.y)<kdist_tol_ &&
-                          abs(dk.z)<kdist_tol_ )
+                else if ( abs(dk.x)<dminx2+kdist_tol && abs(dk.y)<kdist_tol &&
+                          abs(dk.z)<kdist_tol )
                 {
                   // set new second neighbour
                   dminx2=abs(dk.x);
@@ -320,8 +314,8 @@ void KPConnectivity::cell_moved(void)
                 }
 
                 // ky direction
-                if ( abs(dk.x)<kdist_tol_ && abs(dk.y)<dminy1+kdist_tol_ &&
-                     abs(dk.z)<kdist_tol_ )
+                if ( abs(dk.x)<kdist_tol && abs(dk.y)<dminy1+kdist_tol &&
+                     abs(dk.z)<kdist_tol )
                 {
                   // copy first neighbour in second
                   dminy2=dminy1;
@@ -336,8 +330,8 @@ void KPConnectivity::cell_moved(void)
                   first_T_overlap_ky_[iKpi]=T;
                   first_distance_ky_[iKpi] =dk.y*length_ky;
                 }
-                else if ( abs(dk.x)<kdist_tol_ && abs(dk.y)<dminy2+kdist_tol_ &&
-                          abs(dk.z)<kdist_tol_ )
+                else if ( abs(dk.x)<kdist_tol && abs(dk.y)<dminy2+kdist_tol &&
+                          abs(dk.z)<kdist_tol )
                 {
                   // set new second neighbour
                   dminy2=abs(dk.y);
@@ -348,8 +342,8 @@ void KPConnectivity::cell_moved(void)
                 }
 
                 // kz direction
-                if ( abs(dk.x)<kdist_tol_ && abs(dk.y)<kdist_tol_ &&
-                     abs(dk.z)<dminz1+kdist_tol_ )
+                if ( abs(dk.x)<kdist_tol && abs(dk.y)<kdist_tol &&
+                     abs(dk.z)<dminz1+kdist_tol )
                 {
                   // copy first neighbour in second
                   dminz2=dminz1;
@@ -364,8 +358,8 @@ void KPConnectivity::cell_moved(void)
                   first_T_overlap_kz_[iKpi]=T;
                   first_distance_kz_[iKpi] =dk.z*length_kz;
                 }
-                else if ( abs(dk.x)<kdist_tol_ && abs(dk.y)<kdist_tol_ &&
-                          abs(dk.z)<dminz2+kdist_tol_ )
+                else if ( abs(dk.x)<kdist_tol && abs(dk.y)<kdist_tol &&
+                          abs(dk.z)<dminz2+kdist_tol )
                 {
                   // set new second neighbour
                   dminz2=abs(dk.z);
@@ -408,9 +402,9 @@ void KPConnectivity::cell_moved(void)
 
       // check if the grid is irregular (not implemented yet)
       // take into account only the kpoint with non zero weight
-      if (fabs(second_distance_kx_[iKpi]+first_distance_kx_[iKpi])>kdist_tol_ ||
-          fabs(second_distance_ky_[iKpi]+first_distance_ky_[iKpi])>kdist_tol_ ||
-          fabs(second_distance_kz_[iKpi]+first_distance_kz_[iKpi])>kdist_tol_)
+      if (fabs(second_distance_kx_[iKpi]+first_distance_kx_[iKpi])>kdist_tol ||
+          fabs(second_distance_ky_[iKpi]+first_distance_ky_[iKpi])>kdist_tol ||
+          fabs(second_distance_kz_[iKpi]+first_distance_kz_[iKpi])>kdist_tol)
       {
         if ( onpe0 )
         {
@@ -437,7 +431,7 @@ void KPConnectivity::cell_moved(void)
     // compute the weight of this kpoint
     // this weight should be non zero only for kpoints
     // taken into account during the computation
-    if ( s_.wf.weight(iKpi)!=0.0 )
+    if ( s.wf.weight(iKpi)!=0.0 )
     {
       weight_[iKpi]=fabs((first_distance_kx_[iKpi]-second_distance_kx_[iKpi]) *
                          (first_distance_ky_[iKpi]-second_distance_ky_[iKpi]) *
@@ -486,7 +480,7 @@ void KPConnectivity::cell_moved(void)
     z[i]=zmin+deltaZ/(n+1)*i;
   }
 
-  // integrate analytically over the first coordinate
+  // integrate analytically over tha first coordinate
   // then integrate numerically
   double IntX=0.0;
   double IntY=0.0;
@@ -512,7 +506,7 @@ void KPConnectivity::cell_moved(void)
   IntY/=(n*n);
   IntZ/=(n*n);
 
-  // the sum of the three integrals should be equal to 2
+  // the sum of the three integral should be equal to 2
   // renormalize
   //!! note: this step should not be necessary
   //!! replace with an assert to check if the sum is correct

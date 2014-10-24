@@ -7,60 +7,34 @@
 //       a2x a2y a2z = third basis vector of the unit cell
 //
 //       nx,ny,nz: number of kpoints in each direction
-//       sx,sy,sz: shift in each direction (floating point)
+//       sx,sy,sz: shift in each direction
 //       shift: 0: symmetric set: boundary points not included
-// even-numbered sets do not include the gamma point
-// odd-numbered sets include the gamma point
+//              1: shifted set: boundary points included
 //
 #include<iostream>
-#include<fstream>
 #include<iomanip>
 #include<vector>
 #include<cassert>
-#include<cstdlib>
 #include<list>
 #include "D3vector.h"
 using namespace std;
 
-// ib_BZ: test if the vector k is in the BZ defined by b0,b1,b2
-bool in_BZ(D3vector k, D3vector b0, D3vector b1, D3vector b2)
-{
-  const double epsilon = 1.e-8;
-  D3vector g;
-  // check projection of kpoint k along all 26 reciprocal lattice vectors
-  // that are nearest g=0
-  // use a shift by epsilon*(1,1,1) to avoid including zone boundary
-  // equivalent vectors
-
-  bool in_bz = true;
-  D3vector kshifted = k + epsilon * D3vector(1.0,1.0,1.0);
-  for ( int i0 = -1; i0 <= 1; i0++ )
-    for ( int i1 = -1; i1 <= 1; i1++ )
-      for ( int i2 = -1; i2 <= 1; i2++ )
-      if ( !(i0 == 0 && i1 == 0 && i2 == 0) )
-      {
-        D3vector g = i0 * b0 + i1 * b1 + i2 * b2;
-        if ( kshifted*g >  0.5 * g*g )
-          in_bz = false;
-      }
-  return in_bz;
-}
-
 int main(int argc, char** argv)
 {
-  cout << "# kpgen-1.1" << endl;
   if ( argc != 16 )
   {
     cerr << " use: " << argv[0] << " nx ny nz shiftx shifty shiftz {cell}"
          << endl;
+    cerr << "      shift==0: symmetric set, zone boundary not included" << endl;
+    cerr << "      shift==1: shifted set, zone boundary included" << endl;
     return 1;
   }
   int nx = atoi(argv[1]);
   int ny = atoi(argv[2]);
   int nz = atoi(argv[3]);
-  double sx = atof(argv[4]);
-  double sy = atof(argv[5]);
-  double sz = atof(argv[6]);
+  int sx = atoi(argv[4]);
+  int sy = atoi(argv[5]);
+  int sz = atoi(argv[6]);
   if ( nx <= 0 || ny <= 0 || nz <=0 )
   {
     cerr << " use: " << argv[0] << " nx ny nz shiftx shifty shiftz {cell}"
@@ -74,7 +48,7 @@ int main(int argc, char** argv)
   {
     cerr << " use: " << argv[0] << " nx ny nz shiftx shifty shiftz {cell}"
          << endl;
-    cerr << " shifts must be in [0,1]" << endl;
+    cerr << " shifts must be 0 or 1" << endl;
     return 1;
   }
   D3vector a0(atof(argv[7]),atof(argv[8]),atof(argv[9]));
@@ -93,195 +67,117 @@ int main(int argc, char** argv)
 
   list<vector<int> > kplist;
   vector<int> kpint(4);
-
-  // scan volume enclosing the BZ
-  for ( int ii = -2; ii <= 2; ii++ )
-  for ( int jj = -2; jj <= 2; jj++ )
-  for ( int kk = -2; kk <= 2; kk++ )
-  for ( int i = 0; i < nx; i++ )
+  for ( int i = nx-1; i >= 0; i-- )
   {
-    for ( int j = 0; j < ny; j++ )
+    for ( int j = ny-1; j >= 0; j-- )
     {
-      for ( int k = 0; k < nz; k++ )
+      for ( int k = nz-1; k >= 0; k-- )
       {
-        kpint[0] = ii*2*nx + 2*i-nx+1;
-        kpint[1] = jj*2*ny + 2*j-ny+1;
-        kpint[2] = kk*2*nz + 2*k-nz+1;
+        kpint[0] = 2*i-nx+sx+1;
+        kpint[1] = 2*j-ny+sy+1;
+        kpint[2] = 2*k-nz+sz+1;
         kpint[3] = 1;
-
-        D3vector k = ( (kpint[0] + sx)/(2.0*nx) ) * b0 +
-                     ( (kpint[1] + sy)/(2.0*ny) ) * b1 +
-                     ( (kpint[2] + sz)/(2.0*nz) ) * b2;
-
-        if ( in_BZ(k,b0,b1,b2) )
-          kplist.push_back(kpint);
+        kplist.push_back(kpint);
       }
     }
   }
 
-  int total_weight = kplist.size();
-
-#if 1
-  // remove -k
-  for (list<vector<int> >::iterator i = kplist.begin(); i != kplist.end(); i++)
+  // fold kpoints back in the BZ
+  for (list<vector<int> >::iterator i = kplist.begin();
+       i != kplist.end(); i++)
   {
-    // test if -k is in the set (and is not 0 0 0)
     kpint[0] = (*i)[0];
     kpint[1] = (*i)[1];
     kpint[2] = (*i)[2];
     kpint[3] = (*i)[3];
-    D3vector ki = (((*i)[0]+sx)/(2.0*nx)) * b0 +
-                  (((*i)[1]+sy)/(2.0*ny)) * b1 +
-                  (((*i)[2]+sz)/(2.0*nz)) * b2;
-    if ( length(ki) != 0.0 )
+    bool done = false;
+    while (!done)
     {
-      // look for -k in the rest of the list
-      for ( list<vector<int> >::iterator j = i; j != kplist.end(); j++ )
+      done = true;
+      D3vector kabs = kpint[0]/(2.0*nx) * b0 +
+                      kpint[1]/(2.0*ny) * b1 +
+                      kpint[2]/(2.0*nz) * b2;
+      D3vector g;
+      // check projection of kpoint along all 26 reciprocal lattice vectors
+      // that are nearest g=0
+
+      for ( int i0 = -1; i0 <= 1; i0++ )
+      for ( int i1 = -1; i1 <= 1; i1++ )
+      for ( int i2 = -1; i2 <= 1; i2++ )
+      if ( !(i0 == 0 && i1 == 0 && i2 == 0) )
       {
-        D3vector kj = (((*j)[0]+sx)/(2.0*nx)) * b0 +
-                      (((*j)[1]+sy)/(2.0*ny)) * b1 +
-                      (((*j)[2]+sz)/(2.0*nz)) * b2;
-        if ( length(ki+kj) < 1.e-5 )
+        D3vector g = i0 * b0 + i1 * b1 + i2 * b2;
+        if ( kabs*g >  (0.5 + 1.e-4) * g*g )
         {
-          // transfer weight to (*i)
-          (*i)[3] += (*j)[3];
-          (*j)[3] = 0;
+          kpint[0]-= i0*2*nx;
+          kpint[1]-= i1*2*ny;
+          kpint[2]-= i2*2*nz;
+          kabs = kpint[0]/(2.0*nx) * b0 +
+                 kpint[1]/(2.0*ny) * b1 +
+                 kpint[2]/(2.0*nz) * b2;
+          done = false;
         }
       }
-    }
+    } // while !done
+    // kpint is now inside the BZ
+    (*i)[0] = kpint[0];
+    (*i)[1] = kpint[1];
+    (*i)[2] = kpint[2];
   }
-#endif
 
-#if 1
-  // remove duplicate points
+  // remove -k
   for (list<vector<int> >::iterator i = kplist.begin(); i != kplist.end(); i++)
   {
-    D3vector ki = (((*i)[0]+sx)/(2.0*nx)) * b0 +
-                  (((*i)[1]+sy)/(2.0*ny)) * b1 +
-                  (((*i)[2]+sz)/(2.0*nz)) * b2;
-    // look for duplicate points in the rest of the list
-    for ( list<vector<int> >::iterator j = i; j != kplist.end(); j++ )
+    // test if -k is in the set (and is not 0 0 0)
+    kpint[0] = -(*i)[0];
+    kpint[1] = -(*i)[1];
+    kpint[2] = -(*i)[2];
+    kpint[3] =  (*i)[3];
+    if ( kpint[0]*kpint[0]+kpint[1]*kpint[1]+kpint[2]*kpint[2] != 0 )
     {
-      if ( j != i )
+      // look for -k in the rest of the list
+      list<vector<int> >::iterator j = find(i,kplist.end(),kpint);
+      if ( j != kplist.end() )
       {
-        D3vector kj = (((*j)[0]+sx)/(2.0*nx)) * b0 +
-                      (((*j)[1]+sy)/(2.0*ny)) * b1 +
-                      (((*j)[2]+sz)/(2.0*nz)) * b2;
-        if ( length(ki-kj) < 1.e-5 )
-        {
-          // transfer the weight of kj to ki
-          (*i)[3] += (*j)[3];
-          (*j)[3] = 0;
-        }
+        kplist.erase(j);
+        // double the weight of kpint
+        (*i)[3] *= 2;
       }
     }
   }
-#endif
 
-
-#if 1
-  // check that the sum of weights is one
+  // check that sum of weights is one
   int sum = 0;
   for (list<vector<int> >::iterator i = kplist.begin(); i != kplist.end(); i++)
   {
     sum += (*i)[3];
   }
-  assert(sum==total_weight);
-#endif
+  assert(sum==nx*ny*nz);
 
-#if 1
-  // remove elements with zero weight
-  // For a description of safe erase, see S. Meyers, Effective STL, item 9
-  for (list<vector<int> >::iterator i = kplist.begin();
-       i != kplist.end(); /* nothing */)
-  {
-    int w = (*i)[3];
-    if ( w == 0 )
-      kplist.erase(i++);
-    else
-      ++i;
-  }
-#endif
-
-#if 1
   // output list
-  // change the sign of the k vector if the first element is negative
   // traverse list  backwards to have increasing indices
   // kpoints are output in reciprocal lattice coordinates
   cout.setf(ios::right,ios::adjustfield);
-  cout << "# nx,ny,nz: " << nx << " " << ny << " " << nz << endl;
-  cout << "# sx,sy,sz: " << sx << " " << sy << " " << sz << endl;
-  cout << "# a0: " << a0 << endl;
-  cout << "# a1: " << a1 << endl;
-  cout << "# a2: " << a2 << endl;
-  cout << "# b0/(2pi): " << b0/(2*M_PI) << endl;
-  cout << "# b1/(2pi): " << b1/(2*M_PI) << endl;
-  cout << "# b2/(2pi): " << b2/(2*M_PI) << endl;
-
+  cout << "# kpgen     " << nx << " " << ny << " " << nz << endl;
+  cout << "# sx,sy,sz= " << sx << " " << sy << " " << sz << endl;
+  cout << "# a0 = " << a0 << endl;
+  cout << "# a1 = " << a1 << endl;
+  cout << "# a2 = " << a2 << endl;
   cout << "# " << kplist.size() << " k-points" << endl;
   cout << " kpoint delete 0 0 0" << endl;
   for (list<vector<int> >::reverse_iterator i = kplist.rbegin();
        i != kplist.rend(); i++)
   {
-    D3vector ki = ( ((*i)[0]+sx)/(2.0*nx) ) * b0 +
-                  ( ((*i)[1]+sy)/(2.0*ny) ) * b1 +
-                  ( ((*i)[2]+sz)/(2.0*nz) ) * b2;
     cout.setf(ios::fixed,ios::floatfield);
-    double kx = ((*i)[0]+sx)/(2.0*nx);
-    double ky = ((*i)[1]+sy)/(2.0*ny);
-    double kz = ((*i)[2]+sz)/(2.0*nz);
-    double w = (*i)[3]/((double) total_weight);
-    if ( ki.x < 0.0 )
-    {
-      kx = -kx;
-      // next lines: test before changing sign to avoid -0.0
-      if ( ky != 0.0 ) ky = -ky;
-      if ( kz != 0.0 ) kz = -kz;
-    }
-
     cout << " kpoint add "
          << setprecision(10)
-         << setw(13) << kx << " "
-         << setw(13) << ky << " "
-         << setw(13) << kz << "   ";
+         << setw(13) << (*i)[0]/(2.0*nx) << " "
+         << setw(13) << (*i)[1]/(2.0*ny) << " "
+         << setw(13) << (*i)[2]/(2.0*nz) << "   ";
     cout.setf(ios::scientific,ios::floatfield);
     cout << setprecision(14)
-         << setw(16) << w << endl;
+         << setw(16) << (*i)[3]/((double) nx*ny*nz)
+         << endl;
   }
-#endif
 
-#if 1
-  // test the k-point set
-  // compute the numerical integral of the function exp(ikR) for
-  // a set of vectors R. The integral should be zero, except for R=0 and
-  // vectors R of large norm (larger than the nx,ny,nz parameters used).
-  double minlen = 1.e10;
-  for ( int ii = -nx; ii <= nx; ii++ )
-  {
-    for ( int jj = -ny; jj <= ny; jj++ )
-    {
-      for ( int kk = -nz; kk <= nz; kk++ )
-      {
-        D3vector R = ii * a0 + jj * a1 + kk * a2;
-        double len = length(R);
-        double sum = 0.0;
-        for (list<vector<int> >::iterator ikp = kplist.begin();
-             ikp != kplist.end(); ikp++)
-        {
-          D3vector k = ( ((*ikp)[0]+sx)/(2.0*nx) ) * b0 +
-                       ( ((*ikp)[1]+sy)/(2.0*ny) ) * b1 +
-                       ( ((*ikp)[2]+sz)/(2.0*nz) ) * b2;
-          double w = (*ikp)[3]/((double) total_weight);
-          sum += w * cos(k*R);
-        }
-
-        if ( len != 0 && fabs(sum) > 1.e-6 )
-          minlen = min(minlen,len);
-      }
-    }
-  }
-  cerr << " smallest R with non-zero sum has length " << minlen << endl;
-#endif
 }
-
-

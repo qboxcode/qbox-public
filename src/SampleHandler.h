@@ -32,12 +32,16 @@ class SampleHandler : public StructureHandler
   private:
 
   Sample& s_;
+  std::vector<std::vector<std::vector<double> > > &dmat_;
   DoubleMatrix& gfdata_;
-  int current_gfdata_pos;
+  Wavefunction& wfvtmp_;
 
   public:
 
   bool read_wf,read_wfv;
+  int& nx_;
+  int& ny_;
+  int& nz_;
 
   // Start of the root element in the structure being handled
   virtual void startElement(const XMLCh* const uri,const XMLCh* const localname,
@@ -57,7 +61,9 @@ class SampleHandler : public StructureHandler
     const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const subHandler);
 
-  SampleHandler(Sample& s, DoubleMatrix& gfdata);
+  SampleHandler(Sample& s, DoubleMatrix& gfdata, int& nx, int& ny, int& nz,
+                std::vector<std::vector<std::vector<double> > > &dmat,
+                Wavefunction& wfvtmp);
   ~SampleHandler();
 };
 #endif

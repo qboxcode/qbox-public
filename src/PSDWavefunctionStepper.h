@@ -21,20 +21,18 @@
 
 #include "WavefunctionStepper.h"
 class Preconditioner;
-class EnergyFunctional;
 
 class PSDWavefunctionStepper : public WavefunctionStepper
 {
   private:
 
-  Preconditioner& prec_;
+  Preconditioner *prec_;
 
   public:
 
   void update(Wavefunction& dwf);
 
-  PSDWavefunctionStepper(Wavefunction& wf, Preconditioner& prec,
-    TimerMap& tmap);
+  PSDWavefunctionStepper(Wavefunction& wf, double ecutprec, TimerMap& tmap);
   ~PSDWavefunctionStepper();
 };
 #endif

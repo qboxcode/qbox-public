@@ -18,6 +18,7 @@
 #include <iomanip>
 using namespace std;
 
+#include "Context.h"
 #include "Basis.h"
 #include "FourierTransform.h"
 #include "Timer.h"
@@ -40,6 +41,8 @@ int main(int argc, char **argv)
 #if USE_APC
   ApcInit();
 #endif
+  // extra scope to ensure that Context objects get destructed before
+  // the MPI_Finalize call
   {
 
 #if USE_MPI
@@ -50,8 +53,8 @@ int main(int argc, char **argv)
   const char* processor_name = "serial";
 #endif
 
-  int mype;
-  MPI_Comm_rank(MPI_COMM_WORLD,&mype);
+  Context ctxt_global;
+  int mype = ctxt_global.mype();
   cout << " Process " << mype << " on " << processor_name << endl;
 
   D3vector a,b,c,kpoint;
@@ -86,11 +89,17 @@ int main(int argc, char **argv)
   UnitCell cell(a,b,c);
   const double omega = cell.volume();
 
+  //cout << " ctxt_global: " << ctxt_global;
+  //cout << " ctxt_global.comm(): " << ctxt_global.comm() << endl;
+  Context ctxt(ctxt_global.size(),1);
+  //cout << " ctxt: " << ctxt;
+  //cout << " ctxt.comm(): " << ctxt.comm() << endl;
+
   // start scope of wf-v transforms
   {
   // transform and interpolate as for wavefunctions
 
-  Basis basis(MPI_COMM_WORLD,kpoint);
+  Basis basis(ctxt,kpoint);
   basis.resize(cell,cell,ecut);
   FourierTransform ft(basis,basis.np(0),basis.np(1),basis.np(2));
   FourierTransform ft2(basis,2*basis.np(0),2*basis.np(1),2*basis.np(2));
@@ -103,7 +112,7 @@ int main(int argc, char **argv)
   double flops = 2*basis.nrod_loc() *      fft_flops(ft2.np2()) +
                  ft2.np1()/2 * ft2.np2() * fft_flops(ft2.np0()) +
                  ft2.np0()   * ft2.np2() * fft_flops(ft2.np1());
-  if ( mype == 0 )
+  if ( ctxt.onpe0() )
   {
     cout << " wfbasis.size() = " << basis.size() << endl;
     cout << " wfbasis.np() = " << basis.np(0) << " " << basis.np(1)
@@ -134,13 +143,13 @@ int main(int argc, char **argv)
 #endif
 
   // test ft (small grid)
-  cout << mype << ": ft.np2_loc(): " << ft.np2_loc() << endl;
+  cout << ctxt.mype() << ": ft.np2_loc(): " << ft.np2_loc() << endl;
   cout << " test ft: ";
   ft.forward(&f1[0],&x[0]);
   cout << " forward done ";
   ft.backward(&x[0],&f1[0]);
   cout << " backward done " << endl;
-  MPI_Barrier(MPI_COMM_WORLD);
+  ctxt.barrier();
 
 #if 0
 
@@ -319,7 +328,7 @@ int main(int argc, char **argv)
 #if 1
   ////////////////////////////////////////////////////////////
   // v(g)->vgrid
-  Basis vbasis(MPI_COMM_WORLD,kpoint);
+  Basis vbasis(ctxt,kpoint);
   vbasis.resize(cell,cell,4.0*ecut);
   cout << " vbasis.np() = " << vbasis.np(0) << " " << vbasis.np(1)
        << " " << vbasis.np(2) << endl;

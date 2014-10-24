@@ -15,6 +15,7 @@
 // AndersonMixer.h
 //
 ////////////////////////////////////////////////////////////////////////////////
+// $Id: AndersonMixer.h,v 1.8 2009-03-08 01:10:30 fgygi Exp $
 
 #ifndef ANDERSONMIXER_H
 #define ANDERSONMIXER_H
@@ -22,11 +23,7 @@
 #include <vector>
 #include <valarray>
 #include <cassert>
-#ifdef USE_MPI
-#include <mpi.h>
-#else
-typedef int MPI_Comm;
-#endif
+#include "Context.h"
 
 class AndersonMixer
 {
@@ -37,15 +34,26 @@ class AndersonMixer
   int     nmax_;                 // maximum number of vectors (without current)
   int     n_;                    // number of vectors
   int     k_;                    // index of current vector
-  const   MPI_Comm* const pcomm_;// pointer to relevant Context, null if local
-  int     mype_;
-  int     npes_;
+  const   Context* const pctxt_; // pointer to relevant Context, null if local
 
   std::vector<std::valarray<double> > x_,f_;
 
   public:
 
-  AndersonMixer(const int m, const int nmax, const MPI_Comm* const pcomm);
+  AndersonMixer(const int m, const int nmax, const Context* const pctxt) :
+    m_(m), nmax_(nmax), pctxt_(pctxt)
+  {
+    assert( nmax >= 0 );
+    x_.resize(nmax_+1);
+    f_.resize(nmax_+1);
+    for ( int n = 0; n < nmax_+1; n++ )
+    {
+      x_[n].resize(m_);
+      f_[n].resize(m_);
+    }
+    restart();
+  }
+
   void update(double* x, double* f, double* xbar, double* fbar);
   void restart(void);
 };

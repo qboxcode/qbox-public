@@ -36,8 +36,9 @@ class PlotCmd : public Cmd
 
   PlotCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "plot"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "plot"; }
+
+  char *help_msg(void) const
   {
     return
     "\n plot\n\n"

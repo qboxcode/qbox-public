@@ -36,8 +36,9 @@ class SpeciesCmd : public Cmd
 
   SpeciesCmd(Sample *sample) : s(sample) {};
 
-  const char *name(void) const { return "species"; }
-  const char *help_msg(void) const
+  char *name(void) const { return "species"; }
+
+  char *help_msg(void) const
   {
     return
     "\n species\n\n"

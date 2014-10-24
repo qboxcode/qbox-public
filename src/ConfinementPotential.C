@@ -68,19 +68,11 @@ void ConfinementPotential::update(void)
     // gfgp = G f'(G)
     const double gfgp = gsq * fg * fp * sigmas_inv;
 
-    if ( ecuts_ > 0.0 )
-    {
-      // fstress[ig] = G^2 * f(G)
-      fstress_[ig] = gsq * fg;
+    // fstress[ig] = G^2 * f(G)
+    fstress_[ig] = gsq * fg;
 
-      // dfstress =  2 f(G) + G * f'(G)
-      dfstress_[ig] = 2.0 * fg + gfgp;
-    }
-    else
-    {
-      fstress_[ig] = 0.0;
-      dfstress_[ig] = 0.0;
-    }
+    // dfstress =  2 f(G) + G * f'(G)
+    dfstress_[ig] = 2.0 * fg + gfgp;
 
     // ekin = sum_G |c_G|^2  G^2
     // econf = sum_G |c_G|^2 fstress[G]

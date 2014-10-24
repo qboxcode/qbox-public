@@ -23,7 +23,6 @@
 #include "SampleStepper.h"
 #include "EnergyFunctional.h"
 #include "Sample.h"
-#include "ChargeDensity.h"
 #include "Wavefunction.h"
 
 class WavefunctionStepper;

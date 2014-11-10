@@ -15,7 +15,6 @@
 // FourierTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FourierTransform.h,v 1.13 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef FOURIERTRANSFORM_H
 #define FOURIERTRANSFORM_H
@@ -119,6 +118,9 @@ class FourierTransform
   int np012loc() const { return np0_ * np1_ * np2_loc_[myproc_]; }
   int index(int i, int j, int k) const
   { return i + np0_ * ( j +  np1_ * k ); }
+  int i(int ind) const { return ind % np0_; }
+  int j(int ind) const { return (ind / np0_) % np1_; }
+  int k(int ind) const { return (ind / np0_) / np1_ + np2_first(); }
 
   void reset_timers(void);
   Timer tm_f_map, tm_f_fft, tm_f_pack, tm_f_mpi, tm_f_zero, tm_f_unpack,

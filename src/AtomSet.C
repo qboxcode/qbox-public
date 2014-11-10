@@ -15,7 +15,6 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.29 2010-04-16 21:40:50 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -569,6 +568,24 @@ D3vector AtomSet::dipole(void) const
     {
       D3vector p = atom_list[is][ia]->position();
       sum += charge * p;
+    }
+  }
+  return sum;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+D3tensor AtomSet::quadrupole(void) const
+{
+  D3tensor sum;
+  for ( int is = 0; is < atom_list.size(); is++ )
+  {
+    double charge = species_list[is]->zval();
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      D3vector p = atom_list[is][ia]->position();
+      for ( int idir = 0; idir < 3; idir++ )
+        for ( int jdir = 0; jdir < 3; jdir++ )
+          sum[idir*3+jdir] += charge * p[idir] * p[jdir];
     }
   }
   return sum;

@@ -15,13 +15,13 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.15 2009-03-08 01:11:31 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
 
 #include <string>
 #include <vector>
+#include "D3vector.h"
 
 struct Control
 {
@@ -66,5 +66,8 @@ struct Control
 
   int blHF[3];
   double btHF;
+
+  D3vector e_field;
+  std::string polarization_type;
 };
 #endif

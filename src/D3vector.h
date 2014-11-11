@@ -45,6 +45,14 @@ class D3vector
     else return z;
   }
 
+  double operator[] (const int &i) const
+  {
+    assert(i>=0 && i <3);
+    if ( i == 0 ) return x;
+    else if ( i == 1 ) return y;
+    else return z;
+  }
+
   bool operator==(const D3vector &rhs) const
   {
     return x == rhs.x && y == rhs.y && z == rhs.z;

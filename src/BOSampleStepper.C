@@ -1079,11 +1079,11 @@ void BOSampleStepper::step(int niter)
                << setw(16) << mlwfc[i].y
                << setw(16) << mlwfc[i].z
                << " \" spread=\" " << mlwfs[i] << " \"/>" << endl
-               << "    <correction_real center=\"" << setprecision(10)
-               << setw(16) << cor_real[i].x
-               << setw(16) << cor_real[i].y
-               << setw(16) << cor_real[i].z
-               << " \"/>" << endl
+               //<< "    <correction_real center=\"" << setprecision(10)
+               //<< setw(16) << cor_real[i].x
+               //<< setw(16) << cor_real[i].y
+               //<< setw(16) << cor_real[i].z
+               //<< " \"/>" << endl
                << "    <mlwf_ref center=\"" << setprecision(10)
                << setw(16) << mlwfc[i].x + cor_real[i].x
                << setw(16) << mlwfc[i].y + cor_real[i].y

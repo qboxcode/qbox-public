@@ -15,7 +15,6 @@
 // ComputeMLWFCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ComputeMLWFCmd.C,v 1.8 2008-11-14 22:11:30 fgygi Exp $
 
 #include "ComputeMLWFCmd.h"
 #include<iostream>
@@ -42,6 +41,7 @@ int ComputeMLWFCmd::action(int argc, char **argv)
 
   MLWFTransform* mlwft = new MLWFTransform(sd);
 
+  mlwft->update();
   mlwft->compute_transform();
   mlwft->apply_transform(sd);
 

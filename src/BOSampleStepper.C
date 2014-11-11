@@ -34,6 +34,7 @@
 #include "CGCellStepper.h"
 #include "AndersonMixer.h"
 #include "MLWFTransform.h"
+#include "D3tensor.h"
 
 #ifdef USE_APC
 #include "apc.h"
@@ -991,6 +992,7 @@ void BOSampleStepper::step(int niter)
       {
         for ( int ispin = 0; ispin < nspin; ispin++ )
         {
+          mlwft[ispin]->update();
           mlwft[ispin]->compute_transform();
         }
 
@@ -1011,21 +1013,38 @@ void BOSampleStepper::step(int niter)
             SlaterDet& sd = *(wf.sd(ispin,0));
             cout << " <mlwf_set spin=\"" << ispin
                  << "\" size=\"" << sd.nst() << "\">" << endl;
+            double total_spread[6];
+            for ( int j = 0; j < 6; j++ )
+               total_spread[j] = 0.0;
             for ( int i = 0; i < sd.nst(); i++ )
             {
               D3vector ctr = mlwft[ispin]->center(i);
               double sp = mlwft[ispin]->spread(i);
+              double spi[6];
+              for (int j=0; j<3; j++)
+              {
+                spi[j] = mlwft[ispin]->spread2(i,j);
+                total_spread[j] += spi[j];
+              }
+
               cout.setf(ios::fixed, ios::floatfield);
               cout.setf(ios::right, ios::adjustfield);
               cout << "   <mlwf center=\"" << setprecision(6)
                    << setw(12) << ctr.x
                    << setw(12) << ctr.y
                    << setw(12) << ctr.z
-                   << " \" spread=\" " << sp << " \"/>"
+                   << " \" spread=\" "
+                   << setw(12) << spi[0]
+                   << setw(12) << spi[1]
+                   << setw(12) << spi[2] << " \"/>"
                    << endl;
             }
 
             cout << " </mlwf_set>" << endl;
+            cout << " <total_spread> ";
+            for ( int j = 0; j < 3; j++ )
+              cout << setw(10) << total_spread[j];
+            cout << " </total_spread>" << endl;
             D3vector edipole = mlwft[ispin]->dipole();
             cout << " <electronic_dipole spin=\"" << ispin << "\"> " << edipole
                  << " </electronic_dipole>" << endl;
@@ -1039,6 +1058,52 @@ void BOSampleStepper::step(int niter)
           cout << " <total_dipole_length> " << length(idipole + edipole_sum)
                << " </total_dipole_length>" << endl;
         }
+      }
+
+      if ( onpe0 && ef_.el_enth() )
+      {
+        vector<D3vector>& mlwfc = ef_.el_enth()->mlwfc();
+        vector<double>& mlwfs = ef_.el_enth()->mlwfs();
+        vector<D3vector>& cor_real = ef_.el_enth()->cor_real();
+        vector<D3tensor>& quad = ef_.el_enth()->quad();
+
+        int nst = wf.sd(0,0)->nst();
+
+        cout << " <mlwf_set size=\"" << nst << "\">" << endl;
+        for ( int i = 0; i < nst; i++ )
+        {
+          cout.setf(ios::fixed, ios::floatfield);
+          cout.setf(ios::right, ios::adjustfield);
+          cout << "   <mlwf center=\"" << setprecision(10)
+               << setw(16) << mlwfc[i].x
+               << setw(16) << mlwfc[i].y
+               << setw(16) << mlwfc[i].z
+               << " \" spread=\" " << mlwfs[i] << " \"/>" << endl
+               << "    <correction_real center=\"" << setprecision(10)
+               << setw(16) << cor_real[i].x
+               << setw(16) << cor_real[i].y
+               << setw(16) << cor_real[i].z
+               << " \"/>" << endl
+               << "    <mlwf_ref center=\"" << setprecision(10)
+               << setw(16) << mlwfc[i].x + cor_real[i].x
+               << setw(16) << mlwfc[i].y + cor_real[i].y
+               << setw(16) << mlwfc[i].z + cor_real[i].z;
+
+          cout << " \" spread=\" "
+               << sqrt ( quad[i].trace() );
+
+          cout << " \"/>" << endl;
+
+          cout << "    <quad>"
+               << setw(16) << quad[i][0]
+               << setw(16) << quad[i][4]
+               << setw(16) << quad[i][8]
+               << setw(16) << quad[i][1]
+               << setw(16) << quad[i][2]
+               << setw(16) << quad[i][5]
+               << " </quad>" << endl;
+        }
+        cout << " </mlwf_set>" << endl;
       }
 
       // If GS calculation only, print energy and atomset at end of iterations

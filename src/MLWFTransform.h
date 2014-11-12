@@ -15,7 +15,6 @@
 // MLWFTransform.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MLWFTransform.h,v 1.5 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef MLWFTRANSFORM_H
 #define MLWFTRANSFORM_H
@@ -39,14 +38,37 @@ class MLWFTransform
   BasisMapping bm_;
   std::vector<DoubleMatrix*> a_;  // cosine and sine matrices
   DoubleMatrix* u_;               // orthogonal transformation
-  std::vector<std::vector<double> > adiag_; // diagonal elements
+  std::vector<std::vector<double> > adiag_; // diagonal elements adiag_[k][i]
+
+  SlaterDet *sdcosx_, *sdsinx_,
+            *sdcosy_, *sdsiny_,
+            *sdcosz_, *sdsinz_;
+
+  double tol_;
+  int maxsweep_;
 
   public:
 
+  DoubleMatrix* a(int k) { return a_[k]; };
+
+  SlaterDet* sdcosx(void) { return sdcosx_; };
+  SlaterDet* sdcosy(void) { return sdcosy_; };
+  SlaterDet* sdcosz(void) { return sdcosz_; };
+  SlaterDet* sdsinx(void) { return sdsinx_; };
+  SlaterDet* sdsiny(void) { return sdsiny_; };
+  SlaterDet* sdsinz(void) { return sdsinz_; };
+
+  // diagonal element i of matrix a_[k]
+  double adiag(int k, int i) { return adiag_[k][i]; }
+
+  void update(void); // compute matrices for Berry phase and MLWF
   void compute_transform(void);
   void compute_sincos(const int n, const std::complex<double>* f,
     std::complex<double>* fc, std::complex<double>* fs);
   void apply_transform(SlaterDet& sd);
+
+  void set_tol(double t) { tol_ = t; }
+  void set_maxsweep(int n) { maxsweep_ = n; }
 
   double spread2(int i, int j);
   double spread2(int i);

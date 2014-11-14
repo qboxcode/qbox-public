@@ -1960,7 +1960,6 @@ void DoubleMatrix::inverse(void)
 ////////////////////////////////////////////////////////////////////////////////
 double DoubleMatrix::inverse_det(void)
 {
-  int info;
   if ( active() )
   {
     assert(m_==n_);
@@ -1984,17 +1983,7 @@ double DoubleMatrix::inverse_det(void)
       det *= diag[ii];
 
     inverse_from_lu(ipiv);
-
-    if(info!=0)
-    {
-      cout << " DoubleMatrix::inverse_det, info(getri)=" << info << endl;
-#ifdef USE_MPI
-      MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
-    }
-  return det;
+    return det;
   }
 }
 
@@ -2063,7 +2052,6 @@ void ComplexMatrix::inverse(void)
 ////////////////////////////////////////////////////////////////////////////////
 complex<double> ComplexMatrix::inverse_det(void)
 {
-  int info;
   if ( active() )
   {
     assert(m_==n_);
@@ -2087,17 +2075,7 @@ complex<double> ComplexMatrix::inverse_det(void)
       det *= diag[ii];
 
     inverse_from_lu(ipiv);
-
-    if(info!=0)
-    {
-      cout << " ComplexMatrix::inverse_det, info(getri)=" << info << endl;
-#ifdef USE_MPI
-      MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
-    }
-  return det;
+    return det;
   }
 }
 

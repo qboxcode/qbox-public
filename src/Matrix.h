@@ -259,6 +259,9 @@ class DoubleMatrix
 
     // compute inverse of a square matrix
     void inverse(void);
+    // compute inverse and determinant of a square matrix
+    double inverse_det(void);
+    void inverse_from_lu(std::valarray<int>& ipiv);
 
     // Inverse of triangular matrix
     void trtri(char uplo,char diag);
@@ -528,6 +531,15 @@ class ComplexMatrix
     void potrf(char uplo);
     // Inverse of a symmetric matrix from Cholesky factor
     void potri(char uplo);
+
+    // LU decomposition
+    void lu(std::valarray<int>& ipiv);
+
+    // compute inverse of a square matrix
+    void inverse(void);
+    // compute inverse and determinant of a square matrix
+    std::complex<double> inverse_det(void);
+    void inverse_from_lu(std::valarray<int>& ipiv);
 
     // Inverse of triangular matrix
     void trtri(char uplo,char diag);

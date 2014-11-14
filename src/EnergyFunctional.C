@@ -27,6 +27,8 @@
 #include "XCOperator.h"
 #include "NonLocalPotential.h"
 #include "ConfinementPotential.h"
+#include "D3vector.h"
+#include "ElectricEnthalpy.h"
 
 #include "Timer.h"
 #include "blas.h"
@@ -158,6 +160,11 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
         wf.sd(0,ikp)->basis());
   }
 
+  // Electric enthalpy
+  el_enth_ = 0;
+  if ( norm(s_.ctrl.e_field) != 0.0 )
+    el_enth_ = new ElectricEnthalpy(s_);
+
   sf.init(tau0,*vbasis_);
 
   cell_moved();
@@ -169,6 +176,7 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
 ////////////////////////////////////////////////////////////////////////////////
 EnergyFunctional::~EnergyFunctional(void)
 {
+  delete el_enth_;
   delete xco;
   for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
   {
@@ -301,6 +309,9 @@ void EnergyFunctional::update_vhxc(void)
       v_r[1][i] += vloc;
     }
   }
+
+  if ( el_enth_ )
+    el_enth_->update();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -612,7 +623,32 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
     ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
   }
-  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_ + exhf_;
+
+  // Electric enthalpy
+  eefield_ = 0.0;
+  if ( el_enth_ )
+  {
+    tmap["el_enth_energy"].start();
+    eefield_ = el_enth_->energy(dwf,compute_hpsi);
+    tmap["el_enth_energy"].stop();
+
+    // add energy of ionic dipole in e_field
+    eefield_ += s_.atoms.dipole() * s_.ctrl.e_field;
+
+    if ( compute_forces )
+    {
+      for ( int is = 0; is < nsp_; is++ )
+        for ( int ia = 0; ia < na_[is]; ia++ )
+        {
+          D3vector f = zv_[is] * s_.ctrl.e_field;
+          fion[is][3*ia]   += f.x;
+          fion[is][3*ia+1] += f.y;
+          fion[is][3*ia+2] += f.z;
+        }
+    }
+  }
+  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ +
+            ets_ + eexf_ + exhf_ + eefield_;
 
   if ( compute_hpsi )
   {
@@ -1049,6 +1085,7 @@ void EnergyFunctional::print(ostream& os) const
      << "  <eself>  " << setw(15) << eself()  << " </eself>\n"
      << "  <ets>    " << setw(15) << ets()    << " </ets>\n"
      << "  <eexf>   " << setw(15) << eexf()   << " </eexf>\n"
+     << "  <eefield>" << setw(15) << eefield()<< " </eefield>\n"
      << "  <etotal> " << setw(15) << etotal() << " </etotal>\n"
      << flush;
 }

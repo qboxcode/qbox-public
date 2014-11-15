@@ -59,7 +59,7 @@ class ElectricEnthalpy
   D3vector e_field_;
 
   // phase
-  std::complex<double> gamma_[3];
+  double gamma_[3];
 
   Wavefunction* rwf_[3];
 

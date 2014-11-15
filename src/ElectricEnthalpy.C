@@ -61,9 +61,9 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
   smat_[0] = smat_[1] = smat_[2] = 0;
   rwf_[0] = rwf_[1] = rwf_[2] = 0;
 
-  if ( (pol_type_ == "MLWF") || (pol_type_ == "MLWF_REF") )
+  if ( pol_type_ == "MLWF_REF" )
   {
-    // allocate real space wf arrays
+    // allocate real space wf arrays for MLWF refinement
     for ( int i = 0; i < 3; i++ )
       rwf_[i] = new Wavefunction(wf_);
 
@@ -79,7 +79,7 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
     for ( int i = 0; i < 3; i++ )
       smat_[i] = new ComplexMatrix(ctxt_,n,n,nb,nb);
   }
-  else
+  else if ( pol_type_ != "MLWF" )
   {
     cerr << "ElectricEnthalpy: invalid polarization type" << endl;
     ctxt_.abort(1);
@@ -158,31 +158,75 @@ void ElectricEnthalpy::update(void)
       mlwfs_[i] = mlwft_->spread(i);
     }
 
-    tmap["correction_real"].start();
-    correction_real();
-    tmap["correction_real"].stop();
+    if ( pol_type_ == "MLWF_REF" )
+    {
+      tmap["correction_real"].start();
+      correction_real();
+      tmap["correction_real"].stop();
+    }
 
     compute_polarization();
 
     // calculate gradient
-    tmap["derivative_cor"].start();
 
     dwf_.clear();
     for ( int idir = 0; idir < 3; idir++ )
     {
       if ( e_field_[idir] != 0.0 )
       {
-        // derivative of the electric enthalphy functional
-        dwf_.clear();
-        DoubleMatrix cc(rwf_[idir]->sd(0,0)->c());
-        DoubleMatrix cp(dwf_.sd(0,0)->c());
-        int size = cc.size();
-        int ione = 1;
-        double alpha = e_field_[idir];
-        daxpy (&size, &alpha, cc.valptr(), &ione, cp.valptr(), &ione);
-      }
-    } //for idir
-    tmap["derivative_cor"].stop();
+        // MLWF part
+        if ( pol_type_ == "MLWF" )
+        {
+          const double nst = sd_.nst();
+          std::vector<double> adiag_inv_real(nst,0),adiag_inv_imag(nst,0);
+          for ( int ist = 0; ist < nst; ist ++ )
+          {
+            const std::complex<double>
+              adiag ( mlwft_ -> adiag(idir*2,ist),mlwft_ -> adiag(idir*2+1,ist) );
+
+            adiag_inv_real[ist] = real( std::complex<double>(1,0) / adiag );
+            adiag_inv_imag[ist] = imag( std::complex<double>(1,0) / adiag );
+
+          }
+
+          DoubleMatrix ccos(sdcos[idir]->c());
+          DoubleMatrix csin(sdsin[idir]->c());
+          DoubleMatrix cp(dwf_.sd(0,0)->c());
+
+          int nloc = cp.nloc();
+          int mloc = cp.mloc();
+          int ione = 1;
+
+          const double fac = sd_.basis().cell().amat(idir*3+idir) / ( 2.0 * M_PI )
+                            * e_field_[idir];
+
+          for (int in = 0; in < nloc; in++)
+          {
+            int ist = cp.jglobal(in);
+            double fac1 = adiag_inv_real[ist] * fac;
+            double fac2 = adiag_inv_imag[ist] * fac;
+
+            double *ptr1 = &cp[in*mloc], *ptrcos = &ccos[in*mloc],
+                   *ptrsin = &csin[in*mloc];
+
+            daxpy(&mloc, &fac2, ptrcos, &ione, ptr1, &ione);
+            daxpy(&mloc, &fac1, ptrsin, &ione, ptr1, &ione);
+
+          }
+        }
+        else if ( pol_type_ == "MLWF_REF" )
+        {
+          // MLWF_REF part: real-space correction
+          DoubleMatrix cc(rwf_[idir]->sd(0,0)->c());
+          DoubleMatrix cp(dwf_.sd(0,0)->c());
+
+          int size = cc.size();
+          double alpha = e_field_[idir];
+          int ione = 1;
+          daxpy (&size, &alpha, cc.valptr(), &ione, cp.valptr(), &ione);
+        } // if pol_type_
+      } // if e_field_[idir]
+    } // for idir
   }
   else if ( pol_type_ == "BERRY" )
   {
@@ -200,11 +244,11 @@ void ElectricEnthalpy::update(void)
         for ( int i = 0; i < smat_[idir]->size(); i++ )
           val[i] = complex<double>(re[i],im[i]);
 
-  cout << "S[" << idir << "] = " << endl;
-  cout << *smat_[idir] << endl;
         // invert S
         complex<double> z = smat_[idir]->inverse_det();
         gamma_[idir] = arg(z);
+
+        compute_polarization();
 
         int n = smat_[idir]->n();
         int nb = smat_[idir]->nb();
@@ -242,6 +286,10 @@ void ElectricEnthalpy::update(void)
       }
     }
   }
+  else
+  {
+    assert(0=="ElectricEnthalpy::update: invalid pol_type");
+  }
 }
 ///////////////////////////////////////////////////////////////////////////////
 void ElectricEnthalpy::compute_polarization_elec(void)
@@ -249,11 +297,31 @@ void ElectricEnthalpy::compute_polarization_elec(void)
   polarization_elec_ = D3vector(0,0,0);
   polarization_elec_correction_ = D3vector(0,0,0);
   polarization_elec_correction_real_ = D3vector(0,0,0);
-  for ( int i = 0; i < sd_.nst(); i++ )
+  if ( pol_type_ == "MLWF" || pol_type_ == "MLWF_REF" )
   {
-    polarization_elec_ -= 2.0 * mlwfc_[i];
-    polarization_elec_correction_ -= 2.0 * correction_[i];
-    polarization_elec_correction_real_ -= 2.0 * correction_real_[i];
+    for ( int i = 0; i < sd_.nst(); i++ )
+    {
+      // polarization_elec_ -= 2.0 * mlwfc_[i];
+      polarization_elec_correction_ -= 2.0 * correction_[i];
+      polarization_elec_correction_real_ -= 2.0 * correction_real_[i];
+    }
+    polarization_elec_ = mlwft_->dipole();
+  }
+  else if ( pol_type_ == "BERRY" )
+  {
+    for ( int idir = 0; idir < 3; idir++ )
+    {
+      // constant L / 2pi
+      const double fac = sd_.basis().cell().amat(idir*3+idir) / ( 2.0 * M_PI );
+
+      // electronic polarization
+      // assume 2.0 for occupation number
+      polarization_elec_[idir] = - 2.0 * fac * gamma_[idir];
+    }
+  }
+  else
+  {
+    assert(0=="ElectricEnthalpy::compute_polarization: invalid pol_type");
   }
 }
 ///////////////////////////////////////////////////////////////////////////////
@@ -554,7 +622,7 @@ void ElectricEnthalpy::correction_real(void)
     for ( int in = 0; in < nloc; in++ )
     {
       int n = c.jglobal(in);
-      //wavefunction in the real space
+      // wavefunction in real space
       vector<complex<double> > wftmp (np012loc,0);
       vector<complex<double> > xwftmp(np012loc,0);
       vector<complex<double> > ywftmp(np012loc,0);
@@ -566,7 +634,7 @@ void ElectricEnthalpy::correction_real(void)
       else
         pref = &ref[3*n];
 
-      //real space wavefunction in wftmp
+      // real space wavefunction in wftmp
       tmap["ft"].start();
       ft.backward(c.cvalptr(mloc*in),&wftmp[0]);
       tmap["ft"].stop();

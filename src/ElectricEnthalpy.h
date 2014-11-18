@@ -111,7 +111,10 @@ class ElectricEnthalpy
   // compute cos and sin matrices
   void update(void);
 
+  void print(std::ostream& os) const;
+
   ElectricEnthalpy(Sample& s);
   ~ElectricEnthalpy(void);
 };
+std::ostream& operator << ( std::ostream& os, const ElectricEnthalpy& e );
 #endif

@@ -349,85 +349,6 @@ double ElectricEnthalpy::energy(Wavefunction& dwf, bool compute_hpsi)
     dwf.sd(0,0)->c() += dwf_.sd(0,0)->c();
   }
 
-  if ( onpe0_ )
-  {
-    cout.setf(ios::fixed,ios::floatfield);
-    cout.setf(ios::right,ios::adjustfield);
-    cout.precision(10);
-
-    cout << " <polarization>\n";
-    cout << "  <P_ion>    " << setw(18)
-         << polarization_ion_  << " </P_ion>\n";
-    cout << "  <P_elec>   " << setw(18)
-         << polarization_elec_ << " </P_elec>\n";
-    cout << "  <P_correct>" << setw(18)
-         << polarization_elec_correction_ << " </P_correct>\n";
-    cout << "  <P_cor_re> " << setw(18)
-         << polarization_elec_correction_real_ << " </P_cor_re>\n";
-    cout << "  <P_tot>    " << setw(18)
-         << polarization_      << " </P_tot>\n";
-    cout << "  <P_tot_cor>" << setw(18) << polarization_
-            + polarization_elec_correction_ << " </P_tot_cor>\n";
-    cout << "  <P_tot_re> " << setw(18) << polarization_
-            + polarization_elec_correction_real_ << " </P_tot_re>\n";
-    cout << " </polarization>\n";
-
-    if ( compute_quadrupole_ )
-    {
-      //compute quadrupole associated with the mlwf center
-      D3tensor q_mlwfc;
-      D3tensor q_mlwfs;
-      for ( int ist = 0; ist < sd_.nst(); ist++ )
-      {
-        D3vector& ctr = mlwfc_[ist];
-        for (int j=0; j<3; j++)
-        {
-          for (int k = 0; k < 3; k++)
-            q_mlwfc[j*3+k] -= 2.0 * ctr[j] * ctr[k];
-        }
-
-        q_mlwfs -= quad_[ist] * 2.0;
-      }// for ist
-
-      D3tensor q_ion = s_.atoms.quadrupole();
-      D3tensor q_mlwf = q_mlwfc + q_mlwfs;
-      //total primitive quadrupoles
-      D3tensor q_tot = q_ion + q_mlwf;
-      //traceless quadrupole
-      D3tensor q_traceless = q_tot;
-      q_traceless.traceless();
-
-      cout << " <ionic_quadrupole> " << endl
-           << q_ion
-           << " </ionic_quadrupole>" << endl;
-      cout << " <mlwfc_quadrupole> " << endl
-           << q_mlwfc
-           << " </mlwfc_quadrupole>" << endl;
-      cout << " <mlwfs_quadrupole> " << endl
-           << q_mlwfs
-           << " </mlwfs_quadrupole>" << endl;
-      cout << " <electronic_quadrupole> " << endl
-           << q_mlwf
-           << " </electronic_quadrupole>" << endl;
-      cout << " <total_quadrupole> " << endl
-           << q_tot
-           << " </total_quadrupole>" << endl;
-      cout << " <traceless_quadrupole> " << endl
-           << q_traceless
-           << " </traceless_quadrupole>" << endl;
-      char uplo = 'u';
-      D3vector eigval;
-      D3tensor eigvec;
-      q_traceless.syev(uplo, eigval, eigvec);
-      cout << " <traceless_quadrupole_eigval> " << endl
-           << eigval << endl
-           << " </traceless_quadrupole_eigval>" << endl;
-      cout << " <traceless_quadrupole_eigvec> " << endl
-           << eigvec
-           << " </traceless_quadrupole_eigvec>" << endl;
-
-    } // if compute_quadrupole
-  } // if onpe0
   return energy_;
 }
 
@@ -615,4 +536,118 @@ void ElectricEnthalpy::correction_real(void)
     }
     tmap["real"].stop();
   } // for iter
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ElectricEnthalpy::print(ostream& os) const
+{
+  int nst = sd_.nst();
+  os.setf(ios::fixed,ios::floatfield);
+  os.setf(ios::right,ios::adjustfield);
+  os << " <mlwf_set size=\"" << nst << "\">" << endl;
+  os << setprecision(8);
+  for ( int i = 0; i < nst; i++ )
+  {
+    os.setf(ios::fixed, ios::floatfield);
+    os.setf(ios::right, ios::adjustfield);
+    os << "   <mlwf center=\"" << setprecision(8)
+         << setw(12) << mlwfc_[i].x
+         << setw(12) << mlwfc_[i].y
+         << setw(12) << mlwfc_[i].z
+         << " \" spread=\" " << mlwfs_[i] << " \"/>" << endl
+         << "    <mlwf_ref center=\"" << setprecision(8)
+         << setw(12) << mlwfc_[i].x + correction_real_[i].x
+         << setw(12) << mlwfc_[i].y + correction_real_[i].y
+         << setw(12) << mlwfc_[i].z + correction_real_[i].z;
+    os << " \" spread=\" "
+         << sqrt ( quad_[i].trace() );
+    os << " \"/>" << endl;
+    os << "    <quad>"
+         << setw(12) << quad_[i][0]
+         << setw(12) << quad_[i][4]
+         << setw(12) << quad_[i][8]
+         << setw(12) << quad_[i][1]
+         << setw(12) << quad_[i][2]
+         << setw(12) << quad_[i][5]
+         << " </quad>" << endl;
+  }
+  os << " </mlwf_set>" << endl;
+  os.precision(10);
+  os << " <polarization>\n";
+  os << "  <P_ion>    " << setw(18)
+       << polarization_ion_  << " </P_ion>\n";
+  os << "  <P_elec>   " << setw(18)
+       << polarization_elec_ << " </P_elec>\n";
+  os << "  <P_correct>" << setw(18)
+       << polarization_elec_correction_ << " </P_correct>\n";
+  os << "  <P_cor_re> " << setw(18)
+       << polarization_elec_correction_real_ << " </P_cor_re>\n";
+  os << "  <P_tot>    " << setw(18)
+       << polarization_      << " </P_tot>\n";
+  os << "  <P_tot_cor>" << setw(18) << polarization_
+          + polarization_elec_correction_ << " </P_tot_cor>\n";
+  os << "  <P_tot_re> " << setw(18) << polarization_
+          + polarization_elec_correction_real_ << " </P_tot_re>\n";
+  os << " </polarization>\n";
+
+  if ( compute_quadrupole_ )
+  {
+    //compute quadrupole associated with the mlwf center
+    D3tensor q_mlwfc;
+    D3tensor q_mlwfs;
+    for ( int ist = 0; ist < sd_.nst(); ist++ )
+    {
+      D3vector ctr = mlwfc_[ist];
+      for (int j=0; j<3; j++)
+      {
+        for (int k = 0; k < 3; k++)
+          q_mlwfc[j*3+k] -= 2.0 * ctr[j] * ctr[k];
+      }
+      q_mlwfs -= quad_[ist] * 2.0;
+    } // for ist
+
+    D3tensor q_ion = s_.atoms.quadrupole();
+    D3tensor q_mlwf = q_mlwfc + q_mlwfs;
+    //total primitive quadrupoles
+    D3tensor q_tot = q_ion + q_mlwf;
+    //traceless quadrupole
+    D3tensor q_traceless = q_tot;
+    q_traceless.traceless();
+
+    os << " <ionic_quadrupole> " << endl
+         << q_ion
+         << " </ionic_quadrupole>" << endl;
+    os << " <mlwfc_quadrupole> " << endl
+         << q_mlwfc
+         << " </mlwfc_quadrupole>" << endl;
+    os << " <mlwfs_quadrupole> " << endl
+         << q_mlwfs
+         << " </mlwfs_quadrupole>" << endl;
+    os << " <electronic_quadrupole> " << endl
+         << q_mlwf
+         << " </electronic_quadrupole>" << endl;
+    os << " <total_quadrupole> " << endl
+         << q_tot
+         << " </total_quadrupole>" << endl;
+    os << " <traceless_quadrupole> " << endl
+         << q_traceless
+         << " </traceless_quadrupole>" << endl;
+    char uplo = 'u';
+    D3vector eigval;
+    D3tensor eigvec;
+    q_traceless.syev(uplo, eigval, eigvec);
+    os << " <traceless_quadrupole_eigval> " << endl
+         << eigval << endl
+         << " </traceless_quadrupole_eigval>" << endl;
+    os << " <traceless_quadrupole_eigvec> " << endl
+         << eigvec
+         << " </traceless_quadrupole_eigvec>" << endl;
+  } // if compute_quadrupole
+}
+
+////////////////////////////////////////////////////////////////////////////////
+ostream& operator<< ( ostream& os, const ElectricEnthalpy& e )
+{
+  e.print(os);
+  return os;
 }

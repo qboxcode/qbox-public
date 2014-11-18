@@ -400,6 +400,9 @@ void BOSampleStepper::step(int niter)
           cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
              << flush;
         }
+
+        if ( ef_.el_enth() )
+          cout << *ef_.el_enth();
       }
 
       if ( iter > 0 && ionic_stepper )
@@ -1062,48 +1065,7 @@ void BOSampleStepper::step(int niter)
 
       if ( onpe0 && ef_.el_enth() )
       {
-        vector<D3vector>& mlwfc = ef_.el_enth()->mlwfc();
-        vector<double>& mlwfs = ef_.el_enth()->mlwfs();
-        vector<D3vector>& cor_real = ef_.el_enth()->cor_real();
-        vector<D3tensor>& quad = ef_.el_enth()->quad();
-
-        int nst = wf.sd(0,0)->nst();
-
-        cout << " <mlwf_set size=\"" << nst << "\">" << endl;
-        for ( int i = 0; i < nst; i++ )
-        {
-          cout.setf(ios::fixed, ios::floatfield);
-          cout.setf(ios::right, ios::adjustfield);
-          cout << "   <mlwf center=\"" << setprecision(10)
-               << setw(16) << mlwfc[i].x
-               << setw(16) << mlwfc[i].y
-               << setw(16) << mlwfc[i].z
-               << " \" spread=\" " << mlwfs[i] << " \"/>" << endl
-               //<< "    <correction_real center=\"" << setprecision(10)
-               //<< setw(16) << cor_real[i].x
-               //<< setw(16) << cor_real[i].y
-               //<< setw(16) << cor_real[i].z
-               //<< " \"/>" << endl
-               << "    <mlwf_ref center=\"" << setprecision(10)
-               << setw(16) << mlwfc[i].x + cor_real[i].x
-               << setw(16) << mlwfc[i].y + cor_real[i].y
-               << setw(16) << mlwfc[i].z + cor_real[i].z;
-
-          cout << " \" spread=\" "
-               << sqrt ( quad[i].trace() );
-
-          cout << " \"/>" << endl;
-
-          cout << "    <quad>"
-               << setw(16) << quad[i][0]
-               << setw(16) << quad[i][4]
-               << setw(16) << quad[i][8]
-               << setw(16) << quad[i][1]
-               << setw(16) << quad[i][2]
-               << setw(16) << quad[i][5]
-               << " </quad>" << endl;
-        }
-        cout << " </mlwf_set>" << endl;
+        cout << *ef_.el_enth();
       }
 
       // If GS calculation only, print energy and atomset at end of iterations

@@ -242,19 +242,19 @@ class D3tensor
     return D3tensor()-a;
   }
 
-  double norm2(const D3tensor& a)
+  double norm2(const D3tensor& a) const
   {
     return a_[0]*a_[0] + a_[1]*a_[1] + a_[2]*a_[2] +
            a_[3]*a_[3] + a_[4]*a_[4] + a_[5]*a_[5] +
            a_[6]*a_[6] + a_[7]*a_[7] + a_[8]*a_[8];
   }
 
-  double norm(const D3tensor& a)
+  double norm(const D3tensor& a) const
   {
     return sqrt(norm2(a));
   }
 
-  double trace(void)
+  double trace(void) const
   {
     return a_[0]+a_[4]+a_[8];
   }

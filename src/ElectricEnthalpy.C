@@ -182,7 +182,7 @@ void ElectricEnthalpy::update(void)
           for ( int ist = 0; ist < nst; ist ++ )
           {
             const std::complex<double>
-              adiag ( mlwft_ -> adiag(idir*2,ist),mlwft_ -> adiag(idir*2+1,ist) );
+              adiag( mlwft_->adiag(idir*2,ist),mlwft_->adiag(idir*2+1,ist) );
 
             adiag_inv_real[ist] = real( std::complex<double>(1,0) / adiag );
             adiag_inv_imag[ist] = imag( std::complex<double>(1,0) / adiag );
@@ -197,8 +197,8 @@ void ElectricEnthalpy::update(void)
           int mloc = cp.mloc();
           int ione = 1;
 
-          const double fac = sd_.basis().cell().amat(idir*3+idir) / ( 2.0 * M_PI )
-                            * e_field_[idir];
+          const double fac = sd_.basis().cell().amat(idir*3+idir)
+                             * e_field_[idir] / ( 2.0 * M_PI );
 
           for (int in = 0; in < nloc; in++)
           {
@@ -206,7 +206,8 @@ void ElectricEnthalpy::update(void)
             double fac1 = adiag_inv_real[ist] * fac;
             double fac2 = adiag_inv_imag[ist] * fac;
 
-            double *ptr1 = &cp[in*mloc], *ptrcos = &ccos[in*mloc],
+            double *ptr1 = &cp[in*mloc],
+                   *ptrcos = &ccos[in*mloc],
                    *ptrsin = &csin[in*mloc];
 
             daxpy(&mloc, &fac2, ptrcos, &ione, ptr1, &ione);
@@ -433,121 +434,7 @@ double ElectricEnthalpy::energy(Wavefunction& dwf, bool compute_hpsi)
 ///////////////////////////////////////////////////////////////////////////////
 // Correction scheme by M. Stengel and N. Spaldin,
 // Phys. Rev. B 73, 075121 (2006)
-///////////////////////////////////////////////////////////////////////////////
-void ElectricEnthalpy::correction(void)
-{
-  const Basis& basis = sd_.basis();
-  const Basis& vbasis = *vbasis_;
-  int np0v = vbasis.np(0);
-  int np1v = vbasis.np(1);
-  int np2v = vbasis.np(2);
-  const ComplexMatrix& c = sd_.c();
-  DoubleMatrix cp(c);
-
-  FourierTransform ft(basis,np0v,np1v,np2v);
-  FourierTransform vft(vbasis,np0v,np1v,np2v);
-
-  int np012loc = ft.np012loc();       //local rho grid size
-  int nst = sd_.nst();                //total states
-  int nloc = c.nloc();                //local states
-  int mloc = c.mloc();                //wf(G) local size;
-  int localsize= vbasis.localsize();  //rho(G) local size;
-
-
-  correction_.resize(nst,D3vector(0,0,0));
-  vector<double> ref(nst*3,0);
-
-  for ( int in = 0; in < nloc; in++ )
-  {
-    //global state index
-    int n = c.jglobal(in);
-
-    vector<complex<double> > rhotmp(np012loc);
-    vector<complex<double> > rhog(localsize);
-
-    // wf in real space
-    ft.backward(c.cvalptr(mloc*in),&rhotmp[0]);
-
-    // rho in real space
-    //#pragma omp parallel for
-    for ( int i = 0; i < np012loc; i++ )
-      rhotmp[i] = rhotmp[i] * rhotmp[i];
-
-    // rho in Fourier space
-    vft.forward(&rhotmp[0],&rhog[0]);
-
-    double wb[3];
-    for ( int idir = 0; idir < 3; idir++ )
-    {
-      wb[idir] = sd_.basis().cell().amat(idir*3+idir) / ( 2.0 * M_PI );
-    }
-
-    if (onpe0_) cout << "L"<< in << "  " << mlwfc_[n] << "   "
-                     << wb[0] << "  " << wb[1] << "   "<< wb[2]<< endl;
-
-    for ( int niter = 0; niter < niter_; niter++ )
-    {
-      // corrrection
-      vector<double> dr(3,0);
-
-      // correction for three Cartesian directions
-      for ( int i = 0; i < localsize; i++ )
-      {
-        double gx[3];
-
-        // determine if the G vector is on one and only one of the three axis;
-        int naxis = 0, direc;
-        for ( int idir = 0; idir < 3; idir++ )
-        {
-          gx[idir] = vbasis.gx( idir * localsize + i );
-
-          if ( gx[idir] == 0.0 )
-            naxis++;
-          else
-            direc = idir;
-        }
-        if ( naxis != 2 ) continue;
-
-        int k = round ( gx[direc] * wb[direc] );
-        complex<double> imag_one(0,1);
-
-        //dr[direc] += -2.0 * volume * wb[direc] * real ( imag_one
-        dr[direc] += -2.0 * wb[direc] * real ( imag_one * pow(-1.0,k)
-                         / (double)k * rhog[i] * exp ( imag_one *
-                          ( mlwfc_[n][direc] + ref[n*3+direc] )
-                         * gx[direc] ) );
-        /*
-        if ( onpe0_ && i < 100 )
-          cout << "N" << direc << "    " << k << "     "
-               << gx[0] << "    " << gx[1] << "     " << gx[2] << "     "
-               << dr[direc] << endl;
-        */
-      }// for i
-
-      vctxt_.dsum(3,1,&dr[0],3);
-
-      for ( int idir = 0; idir < 3; idir++ )
-        ref[idir+3*n] += dr[idir];
-
-      if ( onpe0_ ) cout << niter << ": " << ref[3*n] << "   "
-                         << ref[3*n+1] << "   " << ref[3*n+2] << endl;
-
-    }//niter
-
-  }// for in
-
-
-  ctxt_.dsum('r',nst*3,1,&ref[0],nst*3);
-
-  for ( int i = 0; i < 3; i++ )
-    for ( int j = 0; j < nst; j++ )
-      correction_[j][i] = ref[3*j+i];
-
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Calculate correction in real space
-// and derivatives of the correction
+// Calculate correction in real space and derivatives of the correction
 ///////////////////////////////////////////////////////////////////////////////
 void ElectricEnthalpy::correction_real(void)
 {
@@ -566,8 +453,6 @@ void ElectricEnthalpy::correction_real(void)
   int nst = sd_.nst();
   int nloc = c.nloc();
   int mloc = c.mloc();
-  int ione = 1;
-  // const double volume = vbasis.cell().volume();
 
   // store (x-x0)|psi> in rwfs
   rwf_[0]->clear();
@@ -602,16 +487,6 @@ void ElectricEnthalpy::correction_real(void)
   const double dy = ay / np1v;
   const double dz = az / np2v;
 
-  /*
-  for ( int i = 0; i < ctxt_.size(); i++ )
-  {
-    ctxt_.barrier();
-    if ( i == ctxt_.myproc() )
-      cout << i << " " << ctxt_.myrow() << "  " << ctxt_.mycol() << "  "
-           << np012loc << endl;
-  }
-  */
-
   for ( int i = 0; i < nst; i++ )
     correction_real_[i] = D3vector(0,0,0);
 
@@ -640,7 +515,6 @@ void ElectricEnthalpy::correction_real(void)
       tmap["ft"].stop();
 
       tmap["real"].start();
-
       double x0 = mlwfc_[n][0] + correction_real_[n][0];
       double y0 = mlwfc_[n][1] + correction_real_[n][1];
       double z0 = mlwfc_[n][2] + correction_real_[n][2];
@@ -685,21 +559,7 @@ void ElectricEnthalpy::correction_real(void)
           pref[7] += pywf * pzwf;
           pref[8] += pzwf * pxwf;
         }
-        /*
-        if (onpe0_&& i< 100 )
-          cout << i << "  " << pwf << "   " << pxwf << "  "
-               << pref[0] << "  " << pref[1] << "  " << pref[2] << endl;
-        */
-      } //for i
-
-      /*
-      cout.precision(10);
-      if ( onpe0_ ) cout << "JJ" << n << "  " << iter << "  "
-                         << pref[0] << "  " << pref[1] << "  " << pref[2] << "  "
-                         << pref[3] << "  " << pref[4] << "  " << pref[5] << "  "
-                         << endl;
-
-      */
+      } // for i
       tmap["real"].stop();
 
       // ft to get xwf in the reciprocal space at the last iteration
@@ -711,7 +571,6 @@ void ElectricEnthalpy::correction_real(void)
         if ( e_field_[2] != 0.0 ) ft.forward(&zwftmp[0],cz.valptr(mloc*in));
         tmap["ft"].stop();
       } // if
-
     } //for in
 
     ctxt_.barrier();
@@ -722,9 +581,7 @@ void ElectricEnthalpy::correction_real(void)
       ctxt_.dsum(3*nst,1,&ref[0],3*nst);
     tmap["dsum"].stop();
 
-
     tmap["real"].start();
-
     if ( compute_quadrupole_ )
     {
       #pragma omp parallel for
@@ -742,7 +599,6 @@ void ElectricEnthalpy::correction_real(void)
         pquad.setoffdiag ( 0, ref[ist*9+6]/np012v - pcor[0] * pcor[1] );
         pquad.setoffdiag ( 1, ref[ist*9+7]/np012v - pcor[1] * pcor[2] );
         pquad.setoffdiag ( 2, ref[ist*9+8]/np012v - pcor[2] * pcor[0] );
-
       }
     }
     else
@@ -758,6 +614,5 @@ void ElectricEnthalpy::correction_real(void)
       }
     }
     tmap["real"].stop();
-
-  } //for iter
+  } // for iter
 }

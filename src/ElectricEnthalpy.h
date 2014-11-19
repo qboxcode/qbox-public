@@ -52,14 +52,10 @@ class ElectricEnthalpy
   Basis* vbasis_;
 
   std::string pol_type_;
-  int niter_;
   bool compute_quadrupole_;
 
   // electric field
   D3vector e_field_;
-
-  // phase
-  double gamma_[3];
 
   Wavefunction* rwf_[3];
 
@@ -71,8 +67,6 @@ class ElectricEnthalpy
 
   // total, ionic and electronic part of macroscopic polarization
   D3vector polarization_, polarization_ion_, polarization_elec_;
-  // Stengel-Spaldin correction
-  D3vector polarization_elec_corr_;
 
   // polarization energy
   double energy_;
@@ -82,7 +76,6 @@ class ElectricEnthalpy
   std::vector <D3vector> correction_;
   std::vector <D3tensor> quad_;
 
-  void compute_polarization(void);
   void compute_correction(void);
 
   public:

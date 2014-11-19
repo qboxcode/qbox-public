@@ -60,6 +60,7 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
   vbasis_ = 0;
   smat_[0] = smat_[1] = smat_[2] = 0;
   rwf_[0] = rwf_[1] = rwf_[2] = 0;
+  int nst = sd_.nst();
 
   if ( pol_type_ == "MLWF_REF" )
   {
@@ -70,6 +71,7 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
     // Basis for real wavefunction
     vbasis_ = new Basis(vctxt_, D3vector(0,0,0));
     vbasis_->resize(wf_.cell(),wf_.refcell(),wf_.ecut()*4.0);
+    correction_.resize(nst);
   }
   else if ( pol_type_ == "BERRY" )
   {
@@ -85,8 +87,6 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
     ctxt_.abort(1);
   }
 
-  niter_ = 1;
-
   if ( onpe0_ )
   {
     cout.setf(ios::fixed,ios::floatfield);
@@ -95,10 +95,8 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
     cout << "<e_field> " << e_field_ << " </e_field>" << endl;
   }
 
-  int nst = sd_.nst();
   mlwfc_.resize(nst);
   mlwfs_.resize(nst);
-  correction_.resize(nst);
   quad_.resize(nst);
 }
 
@@ -145,6 +143,9 @@ void ElectricEnthalpy::update(void)
   sdsin[1] = mlwft_->sdsiny();
   sdsin[2] = mlwft_->sdsinz();
 
+  polarization_ion_ = s_.atoms.dipole();
+  polarization_elec_ = D3vector(0,0,0);
+
   if ( pol_type_ == "MLWF" || pol_type_ == "MLWF_REF" )
   {
     tmap["mlwf_trans"].start();
@@ -164,10 +165,7 @@ void ElectricEnthalpy::update(void)
       tmap["correction"].stop();
     }
 
-    compute_polarization();
-
     // calculate gradient
-
     dwf_.clear();
     for ( int idir = 0; idir < 3; idir++ )
     {
@@ -227,6 +225,13 @@ void ElectricEnthalpy::update(void)
         } // if pol_type_
       } // if e_field_[idir]
     } // for idir
+
+    for ( int i = 0; i < sd_.nst(); i++ )
+    {
+      polarization_elec_ -= 2.0 * mlwfc_[i];
+      if ( pol_type_ == "MLWF_REF" )
+        polarization_elec_ -= 2.0 * correction_[i];
+    }
   }
   else if ( pol_type_ == "BERRY" )
   {
@@ -244,11 +249,9 @@ void ElectricEnthalpy::update(void)
         for ( int i = 0; i < smat_[idir]->size(); i++ )
           val[i] = complex<double>(re[i],im[i]);
 
-        // invert S
+        // invert S and compute determinant
         complex<double> z = smat_[idir]->inverse_det();
-        gamma_[idir] = arg(z);
-
-        compute_polarization();
+        double gamma = arg(z);
 
         int n = smat_[idir]->n();
         int nb = smat_[idir]->nb();
@@ -283,51 +286,19 @@ void ElectricEnthalpy::update(void)
 
         gradp.gemm('n','n',alpha,cosp,s_img,1.0);
         gradp.gemm('n','n',alpha,sinp,s_real,1.0);
-      }
+
+        // assume occupation number of 2.0
+        polarization_elec_[idir] = - 2.0 * fac * gamma;
+
+      } // if e_field_[idir]
     }
   }
   else
   {
     assert(0=="ElectricEnthalpy::update: invalid pol_type");
   }
-}
 
-///////////////////////////////////////////////////////////////////////////////
-void ElectricEnthalpy::compute_polarization(void)
-{
-  polarization_ion_ = s_.atoms.dipole();
-
-  polarization_elec_ = D3vector(0,0,0);
-  polarization_elec_corr_ = D3vector(0,0,0);
-  if ( pol_type_ == "MLWF" || pol_type_ == "MLWF_REF" )
-  {
-    for ( int i = 0; i < sd_.nst(); i++ )
-    {
-      polarization_elec_ -= 2.0 * mlwfc_[i];
-      if ( pol_type_ == "MLWF_REF" )
-        polarization_elec_corr_ -= 2.0 * correction_[i];
-    }
-  }
-  else if ( pol_type_ == "BERRY" )
-  {
-    for ( int idir = 0; idir < 3; idir++ )
-    {
-      // constant L / 2pi
-      const double fac = sd_.basis().cell().amat(idir*3+idir) / ( 2.0 * M_PI );
-
-      // electronic polarization
-      // assume 2.0 for occupation number
-      polarization_elec_[idir] = - 2.0 * fac * gamma_[idir];
-    }
-  }
-  else
-  {
-    assert(0=="ElectricEnthalpy::compute_polarization: invalid pol_type");
-  }
-
-  // total polarization
-  polarization_ = polarization_ion_ + polarization_elec_ +
-                  polarization_elec_corr_;
+  polarization_ = polarization_ion_ + polarization_elec_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -402,6 +373,7 @@ void ElectricEnthalpy::compute_correction(void)
   for ( int i = 0; i < nst; i++ )
     correction_[i] = D3vector(0,0,0);
 
+  const int niter_ = 1;
   for ( int iter = 0; iter < niter_; iter++ )
   {
     fill(ref.begin(),ref.end(),0.0);
@@ -573,55 +545,58 @@ void ElectricEnthalpy::print(ostream& os) const
     os << " </mlwf_set>" << endl;
 
     //compute quadrupole associated with the mlwf center
-    D3tensor q_mlwfc;
-    D3tensor q_mlwfs;
-    for ( int ist = 0; ist < sd_.nst(); ist++ )
+    if ( compute_quadrupole_ )
     {
-      D3vector ctr = mlwfc_[ist];
-      for (int j=0; j<3; j++)
+      D3tensor q_mlwfc;
+      D3tensor q_mlwfs;
+      for ( int ist = 0; ist < sd_.nst(); ist++ )
       {
-        for (int k = 0; k < 3; k++)
-          q_mlwfc[j*3+k] -= 2.0 * ctr[j] * ctr[k];
-      }
-      q_mlwfs -= quad_[ist] * 2.0;
-    } // for ist
+        D3vector ctr = mlwfc_[ist];
+        for (int j=0; j<3; j++)
+        {
+          for (int k = 0; k < 3; k++)
+            q_mlwfc[j*3+k] -= 2.0 * ctr[j] * ctr[k];
+        }
+        q_mlwfs -= quad_[ist] * 2.0;
+      } // for ist
 
-    D3tensor q_ion = s_.atoms.quadrupole();
-    D3tensor q_mlwf = q_mlwfc + q_mlwfs;
-    //total primitive quadrupoles
-    D3tensor q_tot = q_ion + q_mlwf;
-    //traceless quadrupole
-    D3tensor q_traceless = q_tot;
-    q_traceless.traceless();
+      D3tensor q_ion = s_.atoms.quadrupole();
+      D3tensor q_mlwf = q_mlwfc + q_mlwfs;
+      //total primitive quadrupoles
+      D3tensor q_tot = q_ion + q_mlwf;
+      //traceless quadrupole
+      D3tensor q_traceless = q_tot;
+      q_traceless.traceless();
 
-    os << " <ionic_quadrupole> " << endl
-         << q_ion
-         << " </ionic_quadrupole>" << endl;
-    os << " <mlwfc_quadrupole> " << endl
-         << q_mlwfc
-         << " </mlwfc_quadrupole>" << endl;
-    os << " <mlwfs_quadrupole> " << endl
-         << q_mlwfs
-         << " </mlwfs_quadrupole>" << endl;
-    os << " <electronic_quadrupole> " << endl
-         << q_mlwf
-         << " </electronic_quadrupole>" << endl;
-    os << " <total_quadrupole> " << endl
-         << q_tot
-         << " </total_quadrupole>" << endl;
-    os << " <traceless_quadrupole> " << endl
-         << q_traceless
-         << " </traceless_quadrupole>" << endl;
-    char uplo = 'u';
-    D3vector eigval;
-    D3tensor eigvec;
-    q_traceless.syev(uplo, eigval, eigvec);
-    os << " <traceless_quadrupole_eigval> " << endl
-         << eigval << endl
-         << " </traceless_quadrupole_eigval>" << endl;
-    os << " <traceless_quadrupole_eigvec> " << endl
-         << eigvec
-         << " </traceless_quadrupole_eigvec>" << endl;
+      os << " <ionic_quadrupole> " << endl
+           << q_ion
+           << " </ionic_quadrupole>" << endl;
+      os << " <mlwfc_quadrupole> " << endl
+           << q_mlwfc
+           << " </mlwfc_quadrupole>" << endl;
+      os << " <mlwfs_quadrupole> " << endl
+           << q_mlwfs
+           << " </mlwfs_quadrupole>" << endl;
+      os << " <electronic_quadrupole> " << endl
+           << q_mlwf
+           << " </electronic_quadrupole>" << endl;
+      os << " <total_quadrupole> " << endl
+           << q_tot
+           << " </total_quadrupole>" << endl;
+      os << " <traceless_quadrupole> " << endl
+           << q_traceless
+           << " </traceless_quadrupole>" << endl;
+      char uplo = 'u';
+      D3vector eigval;
+      D3tensor eigvec;
+      q_traceless.syev(uplo, eigval, eigvec);
+      os << " <traceless_quadrupole_eigval> " << endl
+           << eigval << endl
+           << " </traceless_quadrupole_eigval>" << endl;
+      os << " <traceless_quadrupole_eigvec> " << endl
+           << eigvec
+           << " </traceless_quadrupole_eigvec>" << endl;
+    }
   }
 
   // print polarization

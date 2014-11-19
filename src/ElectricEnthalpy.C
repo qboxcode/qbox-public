@@ -171,7 +171,14 @@ void ElectricEnthalpy::update(void)
       tmap["correction"].stop();
     }
 
-    // calculate gradient
+    for ( int i = 0; i < sd_.nst(); i++ )
+    {
+      polarization_elec_ -= 2.0 * mlwfc_[i];
+      if ( pol_type_ == mlwf_ref )
+        polarization_elec_ -= 2.0 * correction_[i];
+    }
+
+    // compute gradient
     dwf_.clear();
     for ( int idir = 0; idir < 3; idir++ )
     {
@@ -200,7 +207,7 @@ void ElectricEnthalpy::update(void)
           int mloc = cp.mloc();
           int ione = 1;
 
-          const double fac = sd_.basis().cell().amat(idir*3+idir)
+          const double fac = sd_.basis().cell().a_norm(idir)
                              * e_field_[idir] / ( 2.0 * M_PI );
 
           for (int in = 0; in < nloc; in++)
@@ -231,13 +238,6 @@ void ElectricEnthalpy::update(void)
         } // if pol_type_
       } // if e_field_[idir]
     } // for idir
-
-    for ( int i = 0; i < sd_.nst(); i++ )
-    {
-      polarization_elec_ -= 2.0 * mlwfc_[i];
-      if ( pol_type_ == mlwf_ref )
-        polarization_elec_ -= 2.0 * correction_[i];
-    }
   }
   else if ( pol_type_ == berry )
   {
@@ -246,19 +246,22 @@ void ElectricEnthalpy::update(void)
 
     for ( int idir = 0; idir < 3; idir++ )
     {
+      const double fac = sd_.basis().cell().a_norm(idir)/( 2.0*M_PI );
+      complex<double>* val = smat_[idir]->valptr();
+
+      const double* re = mlwft_->a(idir*2)->cvalptr();
+      const double* im = mlwft_->a(idir*2+1)->cvalptr();
+      for ( int i = 0; i < smat_[idir]->size(); i++ )
+        val[i] = complex<double>(re[i],im[i]);
+
+      // invert S and compute determinant
+      complex<double> z = smat_[idir]->inverse_det();
+      // assume occupation number of 2.0
+      polarization_elec_[idir] = - 2.0 * fac * arg(z);
+
+      // compute gradient
       if ( e_field_[idir] != 0.0 )
       {
-        complex<double>* val = smat_[idir]->valptr();
-
-        const double* re = mlwft_->a(idir*2)->cvalptr();
-        const double* im = mlwft_->a(idir*2+1)->cvalptr();
-        for ( int i = 0; i < smat_[idir]->size(); i++ )
-          val[i] = complex<double>(re[i],im[i]);
-
-        // invert S and compute determinant
-        complex<double> z = smat_[idir]->inverse_det();
-        double gamma = arg(z);
-
         int n = smat_[idir]->n();
         int nb = smat_[idir]->nb();
 
@@ -286,17 +289,11 @@ void ElectricEnthalpy::update(void)
         DoubleMatrix sinp(sdsin[idir]->c());
 
         // alpha = E_i * L_i / 2pi
-        //!! replace with reciprocal lattice vector
-        const double fac = sd_.basis().cell().amat(idir*3+idir)/( 2.0*M_PI );
         double alpha = fac * e_field_[idir];
 
         gradp.gemm('n','n',alpha,cosp,s_img,1.0);
         gradp.gemm('n','n',alpha,sinp,s_real,1.0);
-
-        // assume occupation number of 2.0
-        polarization_elec_[idir] = - 2.0 * fac * gamma;
-
-      } // if e_field_[idir]
+      } // if e_field
     }
   }
 
@@ -404,7 +401,7 @@ void ElectricEnthalpy::compute_correction(void)
       double x0 = mlwfc_[n][0] + correction_[n][0];
       double y0 = mlwfc_[n][1] + correction_[n][1];
       double z0 = mlwfc_[n][2] + correction_[n][2];
-      //#pragma omp parallel for
+
       for ( int i = 0; i < np012loc; i++ )
       {
         double& pwf = *((double*)&wftmp[i]);
@@ -448,13 +445,16 @@ void ElectricEnthalpy::compute_correction(void)
       } // for i
       tmap["real"].stop();
 
-      // ft to get xwf in the reciprocal space at the last iteration
+      // ft to get xwf in reciprocal space at the last iteration
       if ( iter == niter_ - 1 )
       {
         tmap["ft"].start();
-        if ( e_field_[0] != 0.0 ) ft.forward(&xwftmp[0],cx.valptr(mloc*in));
-        if ( e_field_[1] != 0.0 ) ft.forward(&ywftmp[0],cy.valptr(mloc*in));
-        if ( e_field_[2] != 0.0 ) ft.forward(&zwftmp[0],cz.valptr(mloc*in));
+        if ( e_field_[0] != 0.0 )
+          ft.forward(&xwftmp[0],cx.valptr(mloc*in));
+        if ( e_field_[1] != 0.0 )
+          ft.forward(&ywftmp[0],cy.valptr(mloc*in));
+        if ( e_field_[2] != 0.0 )
+          ft.forward(&zwftmp[0],cz.valptr(mloc*in));
         tmap["ft"].stop();
       } // if
     } //for in
@@ -492,7 +492,6 @@ void ElectricEnthalpy::compute_correction(void)
       for ( int ist = 0; ist < nst; ist++ )
       {
         D3vector& pcor = correction_[ist];
-
         pcor[0] += ref[ist*3]/np012v;
         pcor[1] += ref[ist*3+1]/np012v;
         pcor[2] += ref[ist*3+2]/np012v;

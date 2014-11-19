@@ -71,46 +71,32 @@ class ElectricEnthalpy
 
   // total, ionic and electronic part of macroscopic polarization
   D3vector polarization_, polarization_ion_, polarization_elec_;
-  D3vector polarization_elec_correction_;
-  D3vector polarization_elec_correction_real_;
+  // Stengel-Spaldin correction
+  D3vector polarization_elec_corr_;
 
-  // total enthalpy
+  // polarization energy
   double energy_;
 
   std::vector <D3vector> mlwfc_;
   std::vector <double> mlwfs_;
   std::vector <D3vector> correction_;
-  std::vector <D3vector> correction_real_;
   std::vector <D3tensor> quad_;
 
-  void correction(void);
-  void correction_real(void);
-
-  void compute_polarization_ion(void);
-  void compute_polarization_elec(void);
   void compute_polarization(void);
+  void compute_correction(void);
 
   public:
 
   mutable TimerMap tmap;
 
-  bool compute_quadrupole(void) {return compute_quadrupole_;}
+  D3vector e_field(void) const { return e_field_; }
+  D3vector polarization(void) const { return polarization_; }
+  D3vector polarization_ion(void) const { return polarization_ion_; }
+  D3vector polarization_elec(void) const { return polarization_elec_; }
 
-  D3vector e_field(){return e_field_;};
-  D3vector& polarization(){return polarization_;};
-  D3vector& polarization_ion(){return polarization_ion_;};
-  D3vector& polarization_elec(){return polarization_elec_;};
   double energy(Wavefunction& dwf, bool compute_hpsi);
 
-  std::vector<D3vector>& mlwfc(void){return mlwfc_;}
-  std::vector<double>& mlwfs(void){return mlwfs_;}
-  std::vector<D3vector>& cor_reci(void){return correction_;}
-  std::vector<D3vector>& cor_real(void){return correction_real_;}
-  std::vector<D3tensor>& quad(void){return quad_;}
-
-  // compute cos and sin matrices
   void update(void);
-
   void print(std::ostream& os) const;
 
   ElectricEnthalpy(Sample& s);

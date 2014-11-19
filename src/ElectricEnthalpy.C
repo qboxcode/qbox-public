@@ -37,8 +37,6 @@
 #include "ChargeDensity.h"
 #include "FourierTransform.h"
 #include "UnitCell.h"
-#include "jade.h"
-#include "blas.h"
 using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -377,15 +375,15 @@ void ElectricEnthalpy::compute_correction(void)
   {
     fill(ref.begin(),ref.end(),0.0);
 
+    // wavefunctions in real space
+    vector<complex<double> > wftmp(np012loc);
+    vector<complex<double> > xwftmp(np012loc);
+    vector<complex<double> > ywftmp(np012loc);
+    vector<complex<double> > zwftmp(np012loc);
+
     for ( int in = 0; in < nloc; in++ )
     {
       int n = c.jglobal(in);
-      // wavefunction in real space
-      vector<complex<double> > wftmp (np012loc,0);
-      vector<complex<double> > xwftmp(np012loc,0);
-      vector<complex<double> > ywftmp(np012loc,0);
-      vector<complex<double> > zwftmp(np012loc,0);
-
       double* pref;
       if ( compute_quadrupole_ )
         pref = &ref[9*n];
@@ -402,45 +400,58 @@ void ElectricEnthalpy::compute_correction(void)
       double y0 = mlwfc_[n][1] + correction_[n][1];
       double z0 = mlwfc_[n][2] + correction_[n][2];
 
+      // compute shifted sawtooth potentials vx, vy, vz
+      vector<double> vx(ft.np0()), vy(ft.np1()), vz(ft.np2());
+      for ( int i = 0; i < vx.size(); i++ )
+      {
+        double x = i * dx - x0;
+        if ( x >  ax2 ) x -= ax;
+        if ( x < -ax2 ) x += ax;
+        vx[i] = x;
+      }
+      for ( int j = 0; j < vy.size(); j++ )
+      {
+        double y = j * dy - y0;
+        if ( y >  ay2 ) y -= ay;
+        if ( y < -ay2 ) y += ay;
+        vy[j] = y;
+      }
+      for ( int k = 0; k < vz.size(); k++ )
+      {
+        double z = k * dz - z0;
+        if ( z >  az2 ) z -= az;
+        if ( z < -az2 ) z += az;
+        vz[k] = z;
+      }
+
+      #pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
       {
-        double& pwf = *((double*)&wftmp[i]);
-        double& pxwf = *((double*)&xwftmp[i]);
-        double& pywf = *((double*)&ywftmp[i]);
-        double& pzwf = *((double*)&zwftmp[i]);
+        int ix = ft.i(i); 
+        int iy = ft.j(i); 
+        int iz = ft.k(i); 
 
-        // do x;
-        double x = dx * ( ft.i(i) ) - x0;
-        if ( x > ax2 ) x -= ax;
-        if ( x < -ax2 ) x += ax;
+        const double wft = real(wftmp[i]);
+        const double xwft = wft * vx[ix];
+        const double ywft = wft * vy[iy];
+        const double zwft = wft * vz[iz];
 
-        pxwf = pwf * x;
-        pref[0] += pwf * pxwf;
+        pref[0] += wft * xwft;
+        pref[1] += wft * ywft;
+        pref[2] += wft * zwft;
 
-        // do y;
-        double y = dy * ( ft.j(i) ) - y0;
-        if ( y > ay2 ) y -= ay;
-        if ( y < -ay2 ) y += ay;
-
-        pywf = pwf * y;
-        pref[1] += pwf * pywf;
-
-        // do z;
-        double z = dz * ( ft.k(i) ) - z0;
-        if ( z > az2 ) z -= az;
-        if ( z < -az2 ) z += az;
-
-        pzwf = pwf * z;
-        pref[2] += pwf * pzwf;
+        xwftmp[i] = xwft; 
+        ywftmp[i] = ywft;
+        zwftmp[i] = zwft;
 
         if ( compute_quadrupole_ )
         {
-          pref[3] += pxwf * pxwf;
-          pref[4] += pywf * pywf;
-          pref[5] += pzwf * pzwf;
-          pref[6] += pxwf * pywf;
-          pref[7] += pywf * pzwf;
-          pref[8] += pzwf * pxwf;
+          pref[3] += xwft * xwft;
+          pref[4] += ywft * ywft;
+          pref[5] += zwft * zwft;
+          pref[6] += xwft * ywft;
+          pref[7] += ywft * zwft;
+          pref[8] += zwft * xwft;
         }
       } // for i
       tmap["real"].stop();

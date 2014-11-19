@@ -99,7 +99,6 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
   mlwfc_.resize(nst);
   mlwfs_.resize(nst);
   correction_.resize(nst);
-  correction_real_.resize(nst);
   quad_.resize(nst);
 }
 
@@ -160,9 +159,9 @@ void ElectricEnthalpy::update(void)
 
     if ( pol_type_ == "MLWF_REF" )
     {
-      tmap["correction_real"].start();
-      correction_real();
-      tmap["correction_real"].stop();
+      tmap["correction"].start();
+      compute_correction();
+      tmap["correction"].stop();
     }
 
     compute_polarization();
@@ -292,21 +291,22 @@ void ElectricEnthalpy::update(void)
     assert(0=="ElectricEnthalpy::update: invalid pol_type");
   }
 }
+
 ///////////////////////////////////////////////////////////////////////////////
-void ElectricEnthalpy::compute_polarization_elec(void)
+void ElectricEnthalpy::compute_polarization(void)
 {
+  polarization_ion_ = s_.atoms.dipole();
+
   polarization_elec_ = D3vector(0,0,0);
-  polarization_elec_correction_ = D3vector(0,0,0);
-  polarization_elec_correction_real_ = D3vector(0,0,0);
+  polarization_elec_corr_ = D3vector(0,0,0);
   if ( pol_type_ == "MLWF" || pol_type_ == "MLWF_REF" )
   {
     for ( int i = 0; i < sd_.nst(); i++ )
     {
-      // polarization_elec_ -= 2.0 * mlwfc_[i];
-      polarization_elec_correction_ -= 2.0 * correction_[i];
-      polarization_elec_correction_real_ -= 2.0 * correction_real_[i];
+      polarization_elec_ -= 2.0 * mlwfc_[i];
+      if ( pol_type_ == "MLWF_REF" )
+        polarization_elec_corr_ -= 2.0 * correction_[i];
     }
-    polarization_elec_ = mlwft_->dipole();
   }
   else if ( pol_type_ == "BERRY" )
   {
@@ -324,31 +324,22 @@ void ElectricEnthalpy::compute_polarization_elec(void)
   {
     assert(0=="ElectricEnthalpy::compute_polarization: invalid pol_type");
   }
-}
-///////////////////////////////////////////////////////////////////////////////
-void ElectricEnthalpy::compute_polarization_ion(void)
-{
-  polarization_ion_ = s_.atoms.dipole();
-}
-///////////////////////////////////////////////////////////////////////////////
-void ElectricEnthalpy::compute_polarization(void)
-{
-  compute_polarization_ion();
-  compute_polarization_elec();
+
   // total polarization
-  polarization_ = polarization_ion_ + polarization_elec_;
+  polarization_ = polarization_ion_ + polarization_elec_ +
+                  polarization_elec_corr_;
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 double ElectricEnthalpy::energy(Wavefunction& dwf, bool compute_hpsi)
 {
-  energy_ = - e_field_ * ( polarization_ + polarization_elec_correction_real_);
+  energy_ = - e_field_ * polarization_;
   if ( compute_hpsi )
   {
     // assert gamma-only and no spin
     assert(dwf.nkp()==1 && dwf.nspin()==1);
     dwf.sd(0,0)->c() += dwf_.sd(0,0)->c();
   }
-
   return energy_;
 }
 
@@ -357,7 +348,7 @@ double ElectricEnthalpy::energy(Wavefunction& dwf, bool compute_hpsi)
 // Phys. Rev. B 73, 075121 (2006)
 // Calculate correction in real space and derivatives of the correction
 ///////////////////////////////////////////////////////////////////////////////
-void ElectricEnthalpy::correction_real(void)
+void ElectricEnthalpy::compute_correction(void)
 {
   const Basis& basis = sd_.basis();
   const Basis& vbasis = *vbasis_;
@@ -409,7 +400,7 @@ void ElectricEnthalpy::correction_real(void)
   const double dz = az / np2v;
 
   for ( int i = 0; i < nst; i++ )
-    correction_real_[i] = D3vector(0,0,0);
+    correction_[i] = D3vector(0,0,0);
 
   for ( int iter = 0; iter < niter_; iter++ )
   {
@@ -436,9 +427,9 @@ void ElectricEnthalpy::correction_real(void)
       tmap["ft"].stop();
 
       tmap["real"].start();
-      double x0 = mlwfc_[n][0] + correction_real_[n][0];
-      double y0 = mlwfc_[n][1] + correction_real_[n][1];
-      double z0 = mlwfc_[n][2] + correction_real_[n][2];
+      double x0 = mlwfc_[n][0] + correction_[n][0];
+      double y0 = mlwfc_[n][1] + correction_[n][1];
+      double z0 = mlwfc_[n][2] + correction_[n][2];
       //#pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
       {
@@ -508,7 +499,7 @@ void ElectricEnthalpy::correction_real(void)
       #pragma omp parallel for
       for ( int ist = 0; ist < nst; ist++ )
       {
-        D3vector& pcor = correction_real_[ist];
+        D3vector& pcor = correction_[ist];
         D3tensor& pquad = quad_[ist];
 
         pcor[0] += ref[ist*9]/np012v;
@@ -524,10 +515,9 @@ void ElectricEnthalpy::correction_real(void)
     }
     else
     {
-      #pragma omp parallel for
       for ( int ist = 0; ist < nst; ist++ )
       {
-        D3vector& pcor = correction_real_[ist];
+        D3vector& pcor = correction_[ist];
 
         pcor[0] += ref[ist*3]/np012v;
         pcor[1] += ref[ist*3+1]/np012v;
@@ -541,57 +531,47 @@ void ElectricEnthalpy::correction_real(void)
 ////////////////////////////////////////////////////////////////////////////////
 void ElectricEnthalpy::print(ostream& os) const
 {
-  int nst = sd_.nst();
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
-  os << " <mlwf_set size=\"" << nst << "\">" << endl;
-  os << setprecision(8);
-  for ( int i = 0; i < nst; i++ )
+  // print MLWF centers if pol_type_ == MLWF or MLWF_REF
+  if ( pol_type_ == "MLWF" || pol_type_ == "MLWF_REF" )
   {
-    os.setf(ios::fixed, ios::floatfield);
-    os.setf(ios::right, ios::adjustfield);
-    os << "   <mlwf center=\"" << setprecision(8)
+    int nst = sd_.nst();
+    os << " <mlwf_set size=\"" << nst << "\">" << endl;
+    os << setprecision(8);
+    for ( int i = 0; i < nst; i++ )
+    {
+      os << " <mlwf center=\"" << setprecision(8)
          << setw(12) << mlwfc_[i].x
          << setw(12) << mlwfc_[i].y
          << setw(12) << mlwfc_[i].z
-         << " \" spread=\" " << mlwfs_[i] << " \"/>" << endl
-         << "    <mlwf_ref center=\"" << setprecision(8)
-         << setw(12) << mlwfc_[i].x + correction_real_[i].x
-         << setw(12) << mlwfc_[i].y + correction_real_[i].y
-         << setw(12) << mlwfc_[i].z + correction_real_[i].z;
-    os << " \" spread=\" "
-         << sqrt ( quad_[i].trace() );
-    os << " \"/>" << endl;
-    os << "    <quad>"
-         << setw(12) << quad_[i][0]
-         << setw(12) << quad_[i][4]
-         << setw(12) << quad_[i][8]
-         << setw(12) << quad_[i][1]
-         << setw(12) << quad_[i][2]
-         << setw(12) << quad_[i][5]
-         << " </quad>" << endl;
-  }
-  os << " </mlwf_set>" << endl;
-  os.precision(10);
-  os << " <polarization>\n";
-  os << "  <P_ion>    " << setw(18)
-       << polarization_ion_  << " </P_ion>\n";
-  os << "  <P_elec>   " << setw(18)
-       << polarization_elec_ << " </P_elec>\n";
-  os << "  <P_correct>" << setw(18)
-       << polarization_elec_correction_ << " </P_correct>\n";
-  os << "  <P_cor_re> " << setw(18)
-       << polarization_elec_correction_real_ << " </P_cor_re>\n";
-  os << "  <P_tot>    " << setw(18)
-       << polarization_      << " </P_tot>\n";
-  os << "  <P_tot_cor>" << setw(18) << polarization_
-          + polarization_elec_correction_ << " </P_tot_cor>\n";
-  os << "  <P_tot_re> " << setw(18) << polarization_
-          + polarization_elec_correction_real_ << " </P_tot_re>\n";
-  os << " </polarization>\n";
+         << " \" spread=\" " << mlwfs_[i] << " \"/>" << endl;
+      if ( pol_type_ == "MLWF_REF" )
+      {
+        os << " <mlwf_ref center=\"" << setprecision(8)
+           << setw(12) << mlwfc_[i].x + correction_[i].x
+           << setw(12) << mlwfc_[i].y + correction_[i].y
+           << setw(12) << mlwfc_[i].z + correction_[i].z;
+        if ( compute_quadrupole_ )
+        {
+          // add spread attribute
+          os << " \n\" spread=\" " << sqrt(quad_[i].trace()) << " \"";
+        }
+        os << "/>" << endl;
 
-  if ( compute_quadrupole_ )
-  {
+        if ( compute_quadrupole_ )
+          os << "    <quad>"
+             << setw(12) << quad_[i][0]
+             << setw(12) << quad_[i][4]
+             << setw(12) << quad_[i][8]
+             << setw(12) << quad_[i][1]
+             << setw(12) << quad_[i][2]
+             << setw(12) << quad_[i][5]
+             << " </quad>" << endl;
+      }
+    }
+    os << " </mlwf_set>" << endl;
+
     //compute quadrupole associated with the mlwf center
     D3tensor q_mlwfc;
     D3tensor q_mlwfs;
@@ -642,7 +622,21 @@ void ElectricEnthalpy::print(ostream& os) const
     os << " <traceless_quadrupole_eigvec> " << endl
          << eigvec
          << " </traceless_quadrupole_eigvec>" << endl;
-  } // if compute_quadrupole
+  }
+
+  // print polarization
+  os.precision(10);
+  os << "  <polarization>\n";
+  os << "    <P_ion>  " << setw(16) << polarization_ion_.x
+                        << setw(16) << polarization_ion_.y
+                        << setw(16) << polarization_ion_.z << " </P_ion>\n";
+  os << "    <P_elec> " << setw(16) << polarization_elec_.x
+                        << setw(16) << polarization_elec_.y
+                        << setw(16) << polarization_elec_.z << " </P_elec>\n";
+  os << "    <P_tot>  " << setw(16) << polarization_.x
+                        << setw(16) << polarization_.y
+                        << setw(16) << polarization_.z << " </P_tot>\n";
+  os << "  </polarization>\n";
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -68,7 +68,7 @@ class PolarizationType : public Var
 
   PolarizationType(Sample *sample) : s(sample)
   {
-    s->ctrl.polarization_type = "MLWF";
+    s->ctrl.polarization_type = "BERRY";
   }
 };
 #endif

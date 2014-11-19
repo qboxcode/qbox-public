@@ -51,7 +51,7 @@ class ElectricEnthalpy
   bool onpe0_;
   Basis* vbasis_;
 
-  std::string pol_type_;
+  enum { berry, mlwf, mlwf_ref } pol_type_;
   bool compute_quadrupole_;
 
   // electric field

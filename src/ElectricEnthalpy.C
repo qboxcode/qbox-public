@@ -52,7 +52,18 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
   onpe0_ = ctxt_.onpe0();
   e_field_ = s.ctrl.e_field;
   compute_quadrupole_ = false;
-  pol_type_ = s.ctrl.polarization_type;
+
+  if ( s.ctrl.polarization_type == "BERRY" )
+    pol_type_ = berry;
+  else if ( s.ctrl.polarization_type == "MLWF" )
+    pol_type_ = mlwf;
+  else if ( s.ctrl.polarization_type == "MLWF_REF" )
+    pol_type_ = mlwf_ref;
+  else
+  {
+    cerr << "ElectricEnthalpy: invalid polarization type" << endl;
+    ctxt_.abort(1);
+  }
 
   mlwft_ = new MLWFTransform(sd_);
   mlwft_->set_tol(1.e-10);
@@ -62,7 +73,7 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
   rwf_[0] = rwf_[1] = rwf_[2] = 0;
   int nst = sd_.nst();
 
-  if ( pol_type_ == "MLWF_REF" )
+  if ( pol_type_ == mlwf_ref )
   {
     // allocate real space wf arrays for MLWF refinement
     for ( int i = 0; i < 3; i++ )
@@ -73,18 +84,13 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
     vbasis_->resize(wf_.cell(),wf_.refcell(),wf_.ecut()*4.0);
     correction_.resize(nst);
   }
-  else if ( pol_type_ == "BERRY" )
+  else if ( pol_type_ == berry )
   {
     // allocate complex Berry phase matrix
     int n = sd_.c().n();
     int nb = sd_.c().nb();
     for ( int i = 0; i < 3; i++ )
       smat_[i] = new ComplexMatrix(ctxt_,n,n,nb,nb);
-  }
-  else if ( pol_type_ != "MLWF" )
-  {
-    cerr << "ElectricEnthalpy: invalid polarization type" << endl;
-    ctxt_.abort(1);
   }
 
   if ( onpe0_ )
@@ -146,7 +152,7 @@ void ElectricEnthalpy::update(void)
   polarization_ion_ = s_.atoms.dipole();
   polarization_elec_ = D3vector(0,0,0);
 
-  if ( pol_type_ == "MLWF" || pol_type_ == "MLWF_REF" )
+  if ( pol_type_ == mlwf || pol_type_ == mlwf_ref )
   {
     tmap["mlwf_trans"].start();
     mlwft_->compute_transform();
@@ -158,7 +164,7 @@ void ElectricEnthalpy::update(void)
       mlwfs_[i] = mlwft_->spread(i);
     }
 
-    if ( pol_type_ == "MLWF_REF" )
+    if ( pol_type_ == mlwf_ref )
     {
       tmap["correction"].start();
       compute_correction();
@@ -172,7 +178,7 @@ void ElectricEnthalpy::update(void)
       if ( e_field_[idir] != 0.0 )
       {
         // MLWF part
-        if ( pol_type_ == "MLWF" )
+        if ( pol_type_ == mlwf )
         {
           const double nst = sd_.nst();
           std::vector<double> adiag_inv_real(nst,0),adiag_inv_imag(nst,0);
@@ -212,7 +218,7 @@ void ElectricEnthalpy::update(void)
 
           }
         }
-        else if ( pol_type_ == "MLWF_REF" )
+        else if ( pol_type_ == mlwf_ref )
         {
           // MLWF_REF part: real-space correction
           DoubleMatrix cc(rwf_[idir]->sd(0,0)->c());
@@ -229,11 +235,11 @@ void ElectricEnthalpy::update(void)
     for ( int i = 0; i < sd_.nst(); i++ )
     {
       polarization_elec_ -= 2.0 * mlwfc_[i];
-      if ( pol_type_ == "MLWF_REF" )
+      if ( pol_type_ == mlwf_ref )
         polarization_elec_ -= 2.0 * correction_[i];
     }
   }
-  else if ( pol_type_ == "BERRY" )
+  else if ( pol_type_ == berry )
   {
     dwf_.clear();
     DoubleMatrix gradp(dwf_.sd(0,0)->c());
@@ -292,10 +298,6 @@ void ElectricEnthalpy::update(void)
 
       } // if e_field_[idir]
     }
-  }
-  else
-  {
-    assert(0=="ElectricEnthalpy::update: invalid pol_type");
   }
 
   polarization_ = polarization_ion_ + polarization_elec_;
@@ -506,7 +508,7 @@ void ElectricEnthalpy::print(ostream& os) const
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
   // print MLWF centers if pol_type_ == MLWF or MLWF_REF
-  if ( pol_type_ == "MLWF" || pol_type_ == "MLWF_REF" )
+  if ( pol_type_ == mlwf || pol_type_ == mlwf_ref )
   {
     int nst = sd_.nst();
     os << " <mlwf_set size=\"" << nst << "\">" << endl;
@@ -518,7 +520,7 @@ void ElectricEnthalpy::print(ostream& os) const
          << setw(12) << mlwfc_[i].y
          << setw(12) << mlwfc_[i].z
          << " \" spread=\" " << mlwfs_[i] << " \"/>" << endl;
-      if ( pol_type_ == "MLWF_REF" )
+      if ( pol_type_ == mlwf_ref )
       {
         os << " <mlwf_ref center=\"" << setprecision(8)
            << setw(12) << mlwfc_[i].x + correction_[i].x

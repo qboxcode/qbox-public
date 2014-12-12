@@ -1,6 +1,12 @@
 --------------------------------------------------------------------------------
 rel1_60_5
 --------------------------------------------------------------------------------
+r1605: added -vlocal option to the plot command. Plot Vloc+VHart+Vxc.
+r1570: cleanup testXMLGFPreprocessor.C
+r1569: cleanup tab ExchangeOperator.C
+--------------------------------------------------------------------------------
+rel1_60_5
+--------------------------------------------------------------------------------
 r1564: modify FFTW3 use of threads
 Added -pbc option to distance, angle and torsion functions
 PlotCmd.C: fixed -wfs option.

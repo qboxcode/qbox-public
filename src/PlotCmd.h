@@ -42,12 +42,13 @@ class PlotCmd : public Cmd
     "\n plot\n\n"
     " syntax: plot filename\n"
     "         plot -density [-spin {1|2}] filename\n"
+    "         plot -vlocal  [-spin {1|2}] filename\n"
     "         plot -wf <n> [-spin {1|2}] filename\n"
     "         plot -wfs <nmin> <nmax> [-spin {1|2}] filename\n\n"
     "   The plot command creates a plot file in xyz or cube format.\n\n"
     "   The default format is xyz, used for plotting atoms only.\n"
-    "   When using the -density option, the charge density is written\n"
-    "   after the atomic positions.\n\n";
+    "   When using the -density option, the charge density is written.\n"
+    "   When using the -vlocal option, the local potential is written.\n\n";
   }
 
   int action(int argc, char **argv);

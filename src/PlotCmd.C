@@ -29,6 +29,7 @@
 #include "Sample.h"
 #include "SampleReader.h"
 #include "Basis.h"
+#include "EnergyFunctional.h"
 #include "FourierTransform.h"
 #include "SlaterDet.h"
 #include "Matrix.h"
@@ -42,13 +43,15 @@ using namespace std;
 int PlotCmd::action(int argc, char **argv)
 {
   string usage("  Use: plot filename\n"
-               "       plot -density [-spin {1|2}] filename\n"
+               "       plot -density  [-spin {1|2}] filename\n"
+               "       plot -vlocal   [-spin {1|2}] filename\n"
                "       plot -wf n [-spin {1|2}] filename\n"
                "       plot -wfs nmin nmax [-spin {1|2}] filename");
 
   // parse arguments
   // plot filename               : plot atoms in xyz format
   // plot -density filename      : plot atoms and density in cube format
+  // plot -vlocal  filename      : plot atoms and vlocal in cube format
   // plot -wf <n> filename       : plot atoms and wf <n> in cube format
   // plot -wf <n1> <n2> filename : plot atoms and wfs <n1> to <n2> in cube fmt
   // spin: 1 = first spin (up), 2 = second spin (down)
@@ -62,6 +65,7 @@ int PlotCmd::action(int argc, char **argv)
   bool plot_atoms = true;
   bool xyz = true;
   bool plot_density = false;
+  bool plot_vlocal = false;
   bool plot_wf = false;
   bool plot_wfs = false;
   int nmin,nmax,nwf;
@@ -79,6 +83,11 @@ int PlotCmd::action(int argc, char **argv)
     if ( !strcmp(argv[iarg],"-density") )
     {
       plot_density = true;
+      xyz = false;
+    }
+    else if ( !strcmp(argv[iarg],"-vlocal") )
+    {
+      plot_vlocal = true;
       xyz = false;
     }
     else if ( !strcmp(argv[iarg],"-wf") )
@@ -176,7 +185,7 @@ int PlotCmd::action(int argc, char **argv)
   } // while iarg
 
   // Must specify spin if plotting wave functions when nspin==2
-  if ( s->wf.nspin()==2 && (plot_wf||plot_wfs) && ispin==0 )
+  if ( s->wf.nspin()==2 && (plot_vlocal||plot_wf||plot_wfs) && ispin==0 )
   {
     if ( ui->onpe0() )
       cout << " must use -spin if nspin==2" <<  endl;
@@ -184,20 +193,20 @@ int PlotCmd::action(int argc, char **argv)
   }
 
   ofstream os;
-  int np0=1, np1=1, np2=1;
   vector<double> tmpr;
+  int np0 = 0;
+  int np1 = 0;
+  int np2 = 0;
 
   const Context& ctxt = *s->wf.spincontext();
   if ( plot_density )
   {
     ChargeDensity cd(s->wf);
     cd.update_density();
-    cd.update_rhor();
+    tmpr.resize(cd.vft()->np012());
     np0 = cd.vft()->np0();
     np1 = cd.vft()->np1();
     np2 = cd.vft()->np2();
-    const int np012 = cd.vft()->np012();
-    tmpr.resize(np012);
     if ( s->wf.nspin() == 1 )
     {
       for ( int i = 0; i < cd.vft()->np012loc(); i++ )
@@ -269,6 +278,95 @@ int PlotCmd::action(int argc, char **argv)
       }
     }
   } // plot_density
+  else if ( plot_vlocal )
+  {
+    ChargeDensity cd(s->wf);
+    EnergyFunctional ef(*s,cd);
+    cd.update_density();
+    cd.update_rhor();
+    bool compute_stress = false;
+    ef.update_vhxc(compute_stress);
+
+    FourierTransform *vft = cd.vft();
+    Basis *vbasis = cd.vbasis();
+
+    tmpr.resize(cd.vft()->np012());
+    np0 = cd.vft()->np0();
+    np1 = cd.vft()->np1();
+    np2 = cd.vft()->np2();
+    if ( s->wf.nspin() == 1 )
+    {
+      for ( int i = 0; i < cd.vft()->np012loc(); i++ )
+        tmpr[i] = ef.v_r[0][i];
+    }
+    else
+    {
+      if ( ispin == 0 )
+      {
+        // should not get here
+        // ispin must be set if nspin==2
+        if ( ui->onpe0() )
+          cout << usage << endl;
+        return 1;
+      }
+      else
+      {
+        // plot one spin only
+        // ispin==1 or ispin==2
+        for ( int i = 0; i < cd.vft()->np012loc(); i++ )
+          tmpr[i] = ef.v_r[ispin-1][i];
+      }
+    }
+
+    // send blocks of tmpr to pe0
+    // send from first context column only
+    for ( int i = 0; i < ctxt.nprow(); i++ )
+    {
+      bool iamsending = ctxt.mycol() == 0 && i == ctxt.myrow();
+
+      // send size of tmpr block
+      int size=-1;
+      if ( ctxt.onpe0() )
+      {
+        if ( iamsending )
+        {
+          // sending to self, size not needed
+        }
+        else
+          ctxt.irecv(1,1,&size,1,i,0);
+      }
+      else
+      {
+        if ( iamsending )
+        {
+          size = cd.vft()->np012loc();
+          ctxt.isend(1,1,&size,1,0,0);
+        }
+      }
+
+      // send tmpr block
+      if ( ctxt.onpe0() )
+      {
+        if ( iamsending )
+        {
+          // do nothing, data is already in place
+        }
+        else
+        {
+          int istart = cd.vft()->np0() * cd.vft()->np1() *
+                       cd.vft()->np2_first(i);
+          ctxt.drecv(size,1,&tmpr[istart],1,i,0);
+        }
+      }
+      else
+      {
+        if ( iamsending )
+        {
+          ctxt.dsend(size,1,&tmpr[0],1,0,0);
+        }
+      }
+    }
+  } // plot_vlocal
   else if ( plot_wf || plot_wfs )
   {
     // compute wf or wf squared and store in tmpr
@@ -496,7 +594,7 @@ int PlotCmd::action(int argc, char **argv)
     }
   } // if plot_atoms
 
-  if ( plot_density || plot_wf || plot_wfs )
+  if ( plot_density || plot_vlocal || plot_wf || plot_wfs )
   {
     // process the function in tmpr
     if ( ctxt.onpe0() )
@@ -521,7 +619,7 @@ int PlotCmd::action(int argc, char **argv)
         }
       }
     }
-  } // if plot_density || plot_wf
+  } // if plot_density || ...
 
   os.close();
 

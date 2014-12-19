@@ -149,7 +149,7 @@ class D3vector
     return sqrt( a.x * a.x + a.y * a.y + a.z * a.z );
   }
 
-  friend double norm( const D3vector& a )
+  friend double norm2( const D3vector& a )
   {
     return a.x * a.x + a.y * a.y + a.z * a.z;
   }

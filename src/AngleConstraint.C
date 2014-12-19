@@ -323,8 +323,8 @@ void AngleConstraint::grad_sigma(const D3vector &r1, const D3vector &r2,
 {
   D3vector r12(r1-r2);
   D3vector r32(r3-r2);
-  assert(norm(r12) > 0.0);
-  assert(norm(r32) > 0.0);
+  assert(norm2(r12) > 0.0);
+  assert(norm2(r32) > 0.0);
   D3vector e12(normalized(r12));
   D3vector e32(normalized(r32));
   const double ss = length(e12^e32);
@@ -344,7 +344,7 @@ void AngleConstraint::grad_sigma(const D3vector &r1, const D3vector &r2,
     {
       // choose direction e as e12+e32
       D3vector e(e12+e32);
-      assert(norm(e)>0.0);
+      assert(norm2(e)>0.0);
       e = normalized(e);
       const double r12_inv = 1.0/length(r12);
       const double r32_inv = 1.0/length(r32);

@@ -15,7 +15,6 @@
 // AngleCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleCmd.h,v 1.5 2008-09-08 15:56:17 fgygi Exp $
 
 #ifndef ANGLECMD_H
 #define ANGLECMD_H
@@ -85,7 +84,7 @@ class AngleCmd : public Cmd
 
     D3vector r12(a1->position()-a2->position());
     D3vector r32(a3->position()-a2->position());
-    if ( norm(r12) == 0.0 || norm(r32) == 0.0 )
+    if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 )
     {
       if ( ui->onpe0() )
       {

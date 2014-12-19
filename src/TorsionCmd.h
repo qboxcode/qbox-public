@@ -15,7 +15,6 @@
 // TorsionCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionCmd.h,v 1.6 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef TORSIONCMD_H
 #define TORSIONCMD_H
@@ -92,7 +91,7 @@ class TorsionCmd : public Cmd
     D3vector r12(a1->position()-a2->position());
     D3vector r32(a3->position()-a2->position());
     D3vector r43(a4->position()-a3->position());
-    if ( norm(r12) == 0.0 || norm(r32) == 0.0 || norm(r43) == 0.0 )
+    if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 || norm2(r43) == 0.0 )
     {
       if ( ui->onpe0() )
       {

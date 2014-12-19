@@ -12,12 +12,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// PolarizationType.h
+// Polarization.h
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef POLARIZATION_TYPE_H
-#define POLARIZATION_TYPE_H
+#ifndef POLARIZATION_H
+#define POLARIZATION_H
 
 #include<iostream>
 #include<iomanip>
@@ -25,34 +25,35 @@
 
 #include "Sample.h"
 
-class PolarizationType : public Var
+class Polarization: public Var
 {
   Sample *s;
 
   public:
 
-  char *name ( void ) const { return "polarization_type"; };
+  char *name ( void ) const { return "polarization"; };
 
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
     {
       if ( ui->onpe0() )
-      cout << " polarization_type takes only one value" << endl;
+      cout << " polarization takes only one value" << endl;
       return 1;
     }
 
     string v = argv[1];
 
-    if ( v == "MLWF" || v == "MLWF_REF" || v == "BERRY" )
-      s->ctrl.polarization_type = v;
+    if ( v == "OFF" || v == "MLWF" || v == "MLWF_REF" || v == "MLWF_REF_Q" ||
+         v == "BERRY" )
+      s->ctrl.polarization = v;
     else
     {
       if ( ui->onpe0() )
-      cout << " polarization_type must be MLWF, MLWF_REF or BERRY" << endl;
+      cout <<
+      " polarization must be OFF, MLWF, MLWF_REF, MLWF_REF_Q or BERRY" << endl;
       return 1;
     }
-
     return 0;
   }
 
@@ -62,13 +63,13 @@ class PolarizationType : public Var
      st.setf(ios::left,ios::adjustfield);
      st << setw(10) << name() << " = ";
      st.setf(ios::right,ios::adjustfield);
-     st << s->ctrl.polarization_type;
+     st << s->ctrl.polarization;
      return st.str();
   }
 
-  PolarizationType(Sample *sample) : s(sample)
+  Polarization(Sample *sample) : s(sample)
   {
-    s->ctrl.polarization_type = "BERRY";
+    s->ctrl.polarization = "OFF";
   }
 };
 #endif

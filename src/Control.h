@@ -68,6 +68,6 @@ struct Control
   double btHF;
 
   D3vector e_field;
-  std::string polarization_type;
+  std::string polarization;
 };
 #endif

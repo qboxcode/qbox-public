@@ -162,7 +162,7 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
 
   // Electric enthalpy
   el_enth_ = 0;
-  if ( norm2(s_.ctrl.e_field) != 0.0 )
+  if ( s_.ctrl.polarization != "OFF" )
     el_enth_ = new ElectricEnthalpy(s_);
 
   sf.init(tau0,*vbasis_);

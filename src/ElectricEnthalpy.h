@@ -43,15 +43,16 @@ class ElectricEnthalpy
 
   Sample& s_;
   Wavefunction& wf_;
-  Wavefunction dwf_;
+  Wavefunction* dwf_;
   SlaterDet& sd_;
   const Context& ctxt_;
   const Context& vctxt_;
 
   bool onpe0_;
+  bool finite_field_;
   Basis* vbasis_;
 
-  enum { berry, mlwf, mlwf_ref } pol_type_;
+  enum { off, berry, mlwf, mlwf_ref, mlwf_ref_q } pol_type_;
   bool compute_quadrupole_;
 
   // electric field
@@ -66,7 +67,7 @@ class ElectricEnthalpy
   ComplexMatrix* smat_[3];
 
   // total, ionic and electronic part of macroscopic polarization
-  D3vector polarization_, polarization_ion_, polarization_elec_;
+  D3vector polarization_total_, polarization_ion_, polarization_elec_;
 
   // polarization energy
   double energy_;
@@ -83,7 +84,7 @@ class ElectricEnthalpy
   mutable TimerMap tmap;
 
   D3vector e_field(void) const { return e_field_; }
-  D3vector polarization(void) const { return polarization_; }
+  D3vector polarization(void) const { return polarization_total_; }
   D3vector polarization_ion(void) const { return polarization_ion_; }
   D3vector polarization_elec(void) const { return polarization_elec_; }
 

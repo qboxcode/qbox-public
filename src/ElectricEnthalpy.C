@@ -40,29 +40,41 @@
 using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////////
-ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
+ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
   sd_(*(s.wf.sd(0,0))), ctxt_(s.wf.sd(0,0)->context()),
   vctxt_(s.wf.sd(0,0)->basis().context())
 {
-  assert(wf_.nkp()==1);
-  assert(wf_.nspin()==1);
-
   onpe0_ = ctxt_.onpe0();
   e_field_ = s.ctrl.e_field;
+  finite_field_ = norm2(e_field_) != 0.0;
   compute_quadrupole_ = false;
 
-  if ( s.ctrl.polarization_type == "BERRY" )
+  if ( s.ctrl.polarization == "OFF" )
+    pol_type_ = off;
+  else if ( s.ctrl.polarization == "BERRY" )
     pol_type_ = berry;
-  else if ( s.ctrl.polarization_type == "MLWF" )
+  else if ( s.ctrl.polarization == "MLWF" )
     pol_type_ = mlwf;
-  else if ( s.ctrl.polarization_type == "MLWF_REF" )
+  else if ( s.ctrl.polarization == "MLWF_REF" )
     pol_type_ = mlwf_ref;
+  else if ( s.ctrl.polarization == "MLWF_REF_Q" )
+  {
+    pol_type_ = mlwf_ref;
+    compute_quadrupole_ = true;
+  }
   else
   {
-    cerr << "ElectricEnthalpy: invalid polarization type" << endl;
+    cerr << "ElectricEnthalpy: invalid polarization option" << endl;
     ctxt_.abort(1);
   }
 
+  // do not allocate further objects if polarization is off
+  if ( pol_type_ == off ) return;
+
+  assert(wf_.nkp()==1);
+  assert(wf_.nspin()==1);
+
+  dwf_ = new Wavefunction(s.wf);
   mlwft_ = new MLWFTransform(sd_);
   mlwft_->set_tol(1.e-10);
 
@@ -71,11 +83,11 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
   rwf_[0] = rwf_[1] = rwf_[2] = 0;
   int nst = sd_.nst();
 
-  if ( pol_type_ == mlwf_ref )
+  if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
   {
     // allocate real space wf arrays for MLWF refinement
-    for ( int i = 0; i < 3; i++ )
-      rwf_[i] = new Wavefunction(wf_);
+    for ( int idir = 0; idir < 3; idir++ )
+      rwf_[idir] = new Wavefunction(wf_);
 
     // Basis for real wavefunction
     vbasis_ = new Basis(vctxt_, D3vector(0,0,0));
@@ -87,11 +99,11 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
     // allocate complex Berry phase matrix
     int n = sd_.c().n();
     int nb = sd_.c().nb();
-    for ( int i = 0; i < 3; i++ )
-      smat_[i] = new ComplexMatrix(ctxt_,n,n,nb,nb);
+    for ( int idir = 0; idir < 3; idir++ )
+      smat_[idir] = new ComplexMatrix(ctxt_,n,n,nb,nb);
   }
 
-  if ( onpe0_ )
+  if ( (pol_type_ != off) && onpe0_ )
   {
     cout.setf(ios::fixed,ios::floatfield);
     cout.setf(ios::right,ios::adjustfield);
@@ -107,12 +119,15 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf), dwf_(s.wf),
 ///////////////////////////////////////////////////////////////////////////////
 ElectricEnthalpy::~ElectricEnthalpy(void)
 {
+  if ( pol_type_ == off ) return;
+
+  delete dwf_;
   delete mlwft_;
   delete vbasis_;
-  for ( int i = 0; i < 3; i++ )
+  for ( int idir = 0; idir < 3; idir++ )
   {
-    delete rwf_[i];
-    delete smat_[i];
+    delete rwf_[idir];
+    delete smat_[idir];
   }
 
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
@@ -122,7 +137,7 @@ ElectricEnthalpy::~ElectricEnthalpy(void)
     double tmax = time;
     s_.ctxt_.dmin(1,1,&tmin,1);
     s_.ctxt_.dmax(1,1,&tmax,1);
-    if ( s_.ctxt_.myproc()==0 )
+    if ( pol_type_ != off && s_.ctxt_.myproc()==0 )
     {
       cout << "<timing name=\""
            << setw(15) << (*i).first << "\""
@@ -132,9 +147,12 @@ ElectricEnthalpy::~ElectricEnthalpy(void)
     }
   }
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 void ElectricEnthalpy::update(void)
 {
+  if ( pol_type_ == off ) return;
+
   // compute cos and sin matrices
   tmap["mlwf_update"].start();
   mlwft_->update();
@@ -150,7 +168,7 @@ void ElectricEnthalpy::update(void)
   polarization_ion_ = s_.atoms.dipole();
   polarization_elec_ = D3vector(0,0,0);
 
-  if ( pol_type_ == mlwf || pol_type_ == mlwf_ref )
+  if ( pol_type_ == mlwf || pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
   {
     tmap["mlwf_trans"].start();
     mlwft_->compute_transform();
@@ -162,7 +180,7 @@ void ElectricEnthalpy::update(void)
       mlwfs_[i] = mlwft_->spread(i);
     }
 
-    if ( pol_type_ == mlwf_ref )
+    if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
     {
       tmap["correction"].start();
       compute_correction();
@@ -172,75 +190,80 @@ void ElectricEnthalpy::update(void)
     for ( int i = 0; i < sd_.nst(); i++ )
     {
       polarization_elec_ -= 2.0 * mlwfc_[i];
-      if ( pol_type_ == mlwf_ref )
+      if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
         polarization_elec_ -= 2.0 * correction_[i];
     }
 
     // compute gradient
-    dwf_.clear();
-    for ( int idir = 0; idir < 3; idir++ )
+    if ( finite_field_ )
     {
-      if ( e_field_[idir] != 0.0 )
+      dwf_->clear();
+      for ( int idir = 0; idir < 3; idir++ )
       {
-        // MLWF part
-        if ( pol_type_ == mlwf )
+        if ( e_field_[idir] != 0.0 )
         {
-          const double nst = sd_.nst();
-          std::vector<double> adiag_inv_real(nst,0),adiag_inv_imag(nst,0);
-          for ( int ist = 0; ist < nst; ist ++ )
+          // MLWF part
+          if ( pol_type_ == mlwf )
           {
-            const std::complex<double>
-              adiag( mlwft_->adiag(idir*2,ist),mlwft_->adiag(idir*2+1,ist) );
+            const double nst = sd_.nst();
+            std::vector<double> adiag_inv_real(nst,0),adiag_inv_imag(nst,0);
+            for ( int ist = 0; ist < nst; ist ++ )
+            {
+              const std::complex<double>
+                adiag( mlwft_->adiag(idir*2,ist),mlwft_->adiag(idir*2+1,ist) );
 
-            adiag_inv_real[ist] = real( std::complex<double>(1,0) / adiag );
-            adiag_inv_imag[ist] = imag( std::complex<double>(1,0) / adiag );
+              adiag_inv_real[ist] = real( std::complex<double>(1,0) / adiag );
+              adiag_inv_imag[ist] = imag( std::complex<double>(1,0) / adiag );
 
+            }
+
+            DoubleMatrix ccos(sdcos[idir]->c());
+            DoubleMatrix csin(sdsin[idir]->c());
+            DoubleMatrix cp(dwf_->sd(0,0)->c());
+
+            int nloc = cp.nloc();
+            int mloc = cp.mloc();
+            int ione = 1;
+
+            const double fac = sd_.basis().cell().a_norm(idir)
+                               * e_field_[idir] / ( 2.0 * M_PI );
+
+            for (int in = 0; in < nloc; in++)
+            {
+              int ist = cp.jglobal(in);
+              double fac1 = adiag_inv_real[ist] * fac;
+              double fac2 = adiag_inv_imag[ist] * fac;
+
+              double *ptr1 = &cp[in*mloc],
+                     *ptrcos = &ccos[in*mloc],
+                     *ptrsin = &csin[in*mloc];
+
+              daxpy(&mloc, &fac2, ptrcos, &ione, ptr1, &ione);
+              daxpy(&mloc, &fac1, ptrsin, &ione, ptr1, &ione);
+
+            }
           }
-
-          DoubleMatrix ccos(sdcos[idir]->c());
-          DoubleMatrix csin(sdsin[idir]->c());
-          DoubleMatrix cp(dwf_.sd(0,0)->c());
-
-          int nloc = cp.nloc();
-          int mloc = cp.mloc();
-          int ione = 1;
-
-          const double fac = sd_.basis().cell().a_norm(idir)
-                             * e_field_[idir] / ( 2.0 * M_PI );
-
-          for (int in = 0; in < nloc; in++)
+          else if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
           {
-            int ist = cp.jglobal(in);
-            double fac1 = adiag_inv_real[ist] * fac;
-            double fac2 = adiag_inv_imag[ist] * fac;
+            // MLWF_REF part: real-space correction
+            DoubleMatrix cc(rwf_[idir]->sd(0,0)->c());
+            DoubleMatrix cp(dwf_->sd(0,0)->c());
 
-            double *ptr1 = &cp[in*mloc],
-                   *ptrcos = &ccos[in*mloc],
-                   *ptrsin = &csin[in*mloc];
-
-            daxpy(&mloc, &fac2, ptrcos, &ione, ptr1, &ione);
-            daxpy(&mloc, &fac1, ptrsin, &ione, ptr1, &ione);
-
-          }
-        }
-        else if ( pol_type_ == mlwf_ref )
-        {
-          // MLWF_REF part: real-space correction
-          DoubleMatrix cc(rwf_[idir]->sd(0,0)->c());
-          DoubleMatrix cp(dwf_.sd(0,0)->c());
-
-          int size = cc.size();
-          double alpha = e_field_[idir];
-          int ione = 1;
-          daxpy (&size, &alpha, cc.valptr(), &ione, cp.valptr(), &ione);
-        } // if pol_type_
-      } // if e_field_[idir]
-    } // for idir
+            int size = cc.size();
+            double alpha = e_field_[idir];
+            int ione = 1;
+            daxpy (&size, &alpha, cc.valptr(), &ione, cp.valptr(), &ione);
+          } // if pol_type_
+        } // if e_field_[idir]
+      } // for idir
+    } // if finite_field_
   }
   else if ( pol_type_ == berry )
   {
-    dwf_.clear();
-    DoubleMatrix gradp(dwf_.sd(0,0)->c());
+    // proxy matrix
+    DoubleMatrix gradp(dwf_->sd(0,0)->c());
+    if ( finite_field_ )
+      dwf_->clear();
 
     for ( int idir = 0; idir < 3; idir++ )
     {
@@ -252,21 +275,57 @@ void ElectricEnthalpy::update(void)
       for ( int i = 0; i < smat_[idir]->size(); i++ )
         val[i] = complex<double>(re[i],im[i]);
 
-      // invert S and compute determinant
-      complex<double> z = smat_[idir]->inverse_det();
-      // assume occupation number of 2.0
-      polarization_elec_[idir] = - 2.0 * fac * arg(z);
+      // compute determinant of S
+      ComplexMatrix& sm = *smat_[idir];
+      const Context& ctxt = sm.context();
 
-      // compute gradient
-      if ( e_field_[idir] != 0.0 )
+      // perform LU decomposition of S
+      valarray<int> ipiv;
+      sm.lu(ipiv);
+
+      int n = sm.n();
+      int nb = sm.nb();
+      // note: m == n, mb == nb
+
+      // compute determinant from diagonal values of U  (stored in diag of S)
+      // get full diagonal of the matrix in array diag
+      valarray<complex<double> > diag(n);
+      for ( int ii = 0; ii < n; ii++ )
       {
-        int n = smat_[idir]->n();
-        int nb = smat_[idir]->nb();
+        int iii = sm.l(ii) * nb + sm.x(ii);
+        int jjj = sm.m(ii) * nb + sm.y(ii);
+        if ( sm.pr(ii) == ctxt.myrow() &&
+             sm.pc(ii) == ctxt.mycol() )
+          diag[ii] = val[iii+sm.mloc()*jjj];
+      }
+      ctxt.dsum(2*n,1,(double*)&diag[0],2*n);
+
+      // sum the argument of diagonal elements
+      double sumarg = 0.0;
+      for ( int ii = 0; ii < n; ii++ )
+        sumarg += arg(diag[ii]);
+
+      // compute determinant
+      complex<double> det = 1.0;
+      for ( int ii = 0; ii < n; ii++ )
+        det *= diag[ii];
+
+      const int sign = sm.signature(ipiv);
+      if ( sign == -1 )
+        sumarg += M_PI;
+
+      // assume occupation number of 2.0
+      polarization_elec_[idir] = - 2.0 * fac * sumarg;
+
+      if ( finite_field_ )
+      {
+        // compute inverse of smat
+        sm.inverse_from_lu(ipiv);
 
         // real and img part of S^{-1}
         DoubleMatrix s_real(ctxt_,n,n,nb,nb);
         DoubleMatrix s_img(ctxt_,n,n,nb,nb);
-        DoubleMatrix sp(*smat_[idir]);
+        DoubleMatrix sp(sm);
 
         int size = s_real.size();
         int ione = 1, itwo = 2;
@@ -274,13 +333,6 @@ void ElectricEnthalpy::update(void)
         // copy real and imaginary parts of s to s_real and s_img
         dcopy(&size,sp.valptr(),&itwo,s_real.valptr(),&ione);
         dcopy(&size,sp.valptr()+1,&itwo,s_img.valptr(),&ione);
-
-        // if ( ctxt_.onpe0() )cout << " S:\n";
-        // cout << *smat_[idir];
-        // if ( ctxt_.onpe0() )cout << " S_real:\n";
-        // cout << s_real;
-        // if ( ctxt_.onpe0() )cout << " S_img:\n";
-        // cout << s_img;
 
         // proxy Matrix for cosx|psi> and sinx|psi>
         DoubleMatrix cosp(sdcos[idir]->c());
@@ -291,22 +343,26 @@ void ElectricEnthalpy::update(void)
 
         gradp.gemm('n','n',alpha,cosp,s_img,1.0);
         gradp.gemm('n','n',alpha,sinp,s_real,1.0);
-      } // if e_field
-    }
+      }
+    } // for idir
   }
 
-  polarization_ = polarization_ion_ + polarization_elec_;
+  polarization_total_ = polarization_ion_ + polarization_elec_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 double ElectricEnthalpy::energy(Wavefunction& dwf, bool compute_hpsi)
 {
-  energy_ = - e_field_ * polarization_;
+  // return zero if polarization is off, or field is zero
+  if ( pol_type_ == off || !finite_field_ )
+    return 0.0;
+
+  energy_ = - e_field_ * polarization_total_;
   if ( compute_hpsi )
   {
     // assert gamma-only and no spin
     assert(dwf.nkp()==1 && dwf.nspin()==1);
-    dwf.sd(0,0)->c() += dwf_.sd(0,0)->c();
+    dwf.sd(0,0)->c() += dwf_->sd(0,0)->c();
   }
   return energy_;
 }
@@ -427,9 +483,9 @@ void ElectricEnthalpy::compute_correction(void)
       #pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
       {
-        int ix = ft.i(i); 
-        int iy = ft.j(i); 
-        int iz = ft.k(i); 
+        int ix = ft.i(i);
+        int iy = ft.j(i);
+        int iz = ft.k(i);
 
         const double wft = real(wftmp[i]);
         const double xwft = wft * vx[ix];
@@ -440,7 +496,7 @@ void ElectricEnthalpy::compute_correction(void)
         pref[1] += wft * ywft;
         pref[2] += wft * zwft;
 
-        xwftmp[i] = xwft; 
+        xwftmp[i] = xwft;
         ywftmp[i] = ywft;
         zwftmp[i] = zwft;
 
@@ -515,10 +571,12 @@ void ElectricEnthalpy::compute_correction(void)
 ////////////////////////////////////////////////////////////////////////////////
 void ElectricEnthalpy::print(ostream& os) const
 {
+  if ( pol_type_ == off ) return;
+
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
-  // print MLWF centers if pol_type_ == MLWF or MLWF_REF
-  if ( pol_type_ == mlwf || pol_type_ == mlwf_ref )
+  // print MLWF centers if pol_type_ == MLWF or MLWF_REF or MLWF_REF_Q
+  if ( pol_type_ == mlwf || pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
   {
     int nst = sd_.nst();
     os << " <mlwf_set size=\"" << nst << "\">" << endl;
@@ -620,9 +678,9 @@ void ElectricEnthalpy::print(ostream& os) const
   os << "    <P_elec> " << setw(16) << polarization_elec_.x
                         << setw(16) << polarization_elec_.y
                         << setw(16) << polarization_elec_.z << " </P_elec>\n";
-  os << "    <P_tot>  " << setw(16) << polarization_.x
-                        << setw(16) << polarization_.y
-                        << setw(16) << polarization_.z << " </P_tot>\n";
+  os << "    <P_tot>  " << setw(16) << polarization_total_.x
+                        << setw(16) << polarization_total_.y
+                        << setw(16) << polarization_total_.z << " </P_tot>\n";
   os << "  </polarization>\n";
 }
 

@@ -1981,6 +1981,7 @@ double DoubleMatrix::inverse_det(void)
     double det = 1.0;
     for ( int ii = 0; ii < n_; ii++ )
       det *= diag[ii];
+    det *= signature(ipiv);
 
     inverse_from_lu(ipiv);
     return det;
@@ -2073,6 +2074,7 @@ complex<double> ComplexMatrix::inverse_det(void)
     complex<double> det = 1.0;
     for ( int ii = 0; ii < n_; ii++ )
       det *= diag[ii];
+    det *= signature(ipiv);
 
     inverse_from_lu(ipiv);
     return det;
@@ -3426,4 +3428,46 @@ ostream& operator<<(ostream& os, const ComplexMatrix& a)
 {
   a.print(os);
   return os;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// signature: compute the signature of a row permutation
+// defined by a distributed pivot vector ipiv
+//
+// the vector ipiv is computed by the lu decomposition
+//
+int DoubleMatrix::signature(valarray<int> ipiv)
+{
+  // count the number of non-trivial transpositions in the local ipiv vector
+  int ntrans = 0;
+  for ( int i = 0; i < mloc_; i++ )
+  {
+    if ( ipiv[i] != iglobal(i) )
+      ntrans++;
+  }
+  // accumulate total number of transpositions
+  ctxt_.isum('c',1,1,&ntrans,1);
+  return 1 - 2 * ((m_ - ntrans)%2);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// signature: compute the signature of a row permutation
+// defined by a distributed pivot vector ipiv
+//
+// the vector ipiv is computed by the lu decomposition
+//
+int ComplexMatrix::signature(valarray<int> ipiv)
+{
+  // count the number of non-trivial transpositions in the local ipiv vector
+  int ntrans = 0;
+  for ( int i = 0; i < mloc_; i++ )
+  {
+    if ( ipiv[i] != iglobal(i) )
+      ntrans++;
+  }
+  // accumulate total number of transpositions
+  ctxt_.isum('c',1,1,&ntrans,1);
+  return 1 - 2 * ((m_ - ntrans)%2);
 }

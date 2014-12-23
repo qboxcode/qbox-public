@@ -239,10 +239,16 @@ AngleConstraint.o: AngleConstraint.h Constraint.h D3vector.h AtomSet.h
 AngleConstraint.o: Context.h Atom.h UnitCell.h D3tensor.h blas.h Species.h
 AngleConstraint.o: Constraint.h D3vector.h
 Atom.o: Atom.h D3vector.h
-Atom.o: D3vector.h
 AtomCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 AtomCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 AtomCmd.o: Wavefunction.h Control.h
+Atom.o: D3vector.h
+AtomicExtForce.o: AtomicExtForce.h ExtForce.h D3vector.h AtomSet.h Context.h
+AtomicExtForce.o: Atom.h UnitCell.h D3tensor.h blas.h Species.h
+AtomicExtForce.o: ExtForce.h D3vector.h
+AtomsDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+AtomsDyn.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+AtomsDyn.o: Control.h
 AtomSet.o: AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
 AtomSet.o: Species.h NameOf.h sampling.h
 AtomSet.o: Context.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
@@ -250,14 +256,22 @@ AtomSetHandler.o: AtomSetHandler.h StructureHandler.h D3vector.h AtomSet.h
 AtomSetHandler.o: Context.h Atom.h UnitCell.h D3tensor.h blas.h Species.h
 AtomSetHandler.o: SpeciesHandler.h SpeciesReader.h StrX.h SampleReader.h
 AtomSetHandler.o: StructureHandler.h D3vector.h
-AtomicExtForce.o: AtomicExtForce.h ExtForce.h D3vector.h AtomSet.h Context.h
-AtomicExtForce.o: Atom.h UnitCell.h D3tensor.h blas.h Species.h
-AtomicExtForce.o: ExtForce.h D3vector.h
-AtomsDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
-AtomsDyn.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
-AtomsDyn.o: Control.h
 B3LYPFunctional.o: B3LYPFunctional.h XCFunctional.h
 B3LYPFunctional.o: XCFunctional.h
+Base64Transcoder.o: Base64Transcoder.h
+Basis.o: Basis.h D3vector.h UnitCell.h Context.h
+Basis.o: D3vector.h UnitCell.h Context.h
+BasisMapping.o: Basis.h D3vector.h UnitCell.h Context.h BasisMapping.h
+Bisection.o: Bisection.h Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h
+Bisection.o: Matrix.h Timer.h jade.h FourierTransform.h
+BisectionCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
+BisectionCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
+BisectionCmd.o: ExtForceSet.h Wavefunction.h Control.h Bisection.h
+BisectionCmd.o: SlaterDet.h Basis.h Matrix.h Timer.h
+Bisection.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
+Bisection.o: Timer.h
+BlHF.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
+BlHF.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 BLYPFunctional.o: BLYPFunctional.h XCFunctional.h
 BLYPFunctional.o: XCFunctional.h
 BMDIonicStepper.o: BMDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
@@ -285,22 +299,25 @@ BOSampleStepper.o: Context.h StructureFactor.h ElectricEnthalpy.h Matrix.h
 BOSampleStepper.o: D3vector.h Wavefunction.h UnitCell.h SlaterDet.h Basis.h
 BOSampleStepper.o: Sample.h AtomSet.h Atom.h D3tensor.h blas.h
 BOSampleStepper.o: ConstraintSet.h ExtForceSet.h Control.h
-Base64Transcoder.o: Base64Transcoder.h
-Basis.o: Basis.h D3vector.h UnitCell.h Context.h
-Basis.o: D3vector.h UnitCell.h Context.h
-BasisMapping.o: Basis.h D3vector.h UnitCell.h Context.h BasisMapping.h
-Bisection.o: Bisection.h Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h
-Bisection.o: Matrix.h Timer.h jade.h FourierTransform.h
-Bisection.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
-Bisection.o: Timer.h
-BisectionCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h
-BisectionCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
-BisectionCmd.o: ExtForceSet.h Wavefunction.h Control.h Bisection.h
-BisectionCmd.o: SlaterDet.h Basis.h Matrix.h Timer.h
-BlHF.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
-BlHF.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 BtHF.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
 BtHF.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+CellDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+CellDyn.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+CellDyn.o: Control.h SlaterDet.h Basis.h Matrix.h Timer.h
+Cell.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
+Cell.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+CellLock.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+CellLock.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+CellLock.o: Control.h
+CellMass.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+CellMass.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+CellMass.o: Control.h
+CellStepper.o: CellStepper.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+CellStepper.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+CellStepper.o: Wavefunction.h Control.h
+CellStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+CellStepper.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+CellStepper.o: Control.h
 CGCellStepper.o: CGCellStepper.h CellStepper.h Sample.h AtomSet.h Context.h
 CGCellStepper.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
 CGCellStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
@@ -318,37 +335,6 @@ CGIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h
 CGIonicStepper.o: CGOptimizer.h LineMinimizer.h
 CGOptimizer.o: CGOptimizer.h LineMinimizer.h blas.h
 CGOptimizer.o: LineMinimizer.h
-CPSampleStepper.o: CPSampleStepper.h SampleStepper.h Timer.h
-CPSampleStepper.o: EnergyFunctional.h ChargeDensity.h Context.h
-CPSampleStepper.o: StructureFactor.h ElectricEnthalpy.h Matrix.h D3vector.h
-CPSampleStepper.o: Wavefunction.h UnitCell.h SlaterDet.h Basis.h Sample.h
-CPSampleStepper.o: AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
-CPSampleStepper.o: ExtForceSet.h Control.h MDWavefunctionStepper.h
-CPSampleStepper.o: WavefunctionStepper.h MDIonicStepper.h IonicStepper.h
-CPSampleStepper.o: Species.h SDCellStepper.h CellStepper.h CGCellStepper.h
-CPSampleStepper.o: CGOptimizer.h LineMinimizer.h
-CPSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
-CPSampleStepper.o: Context.h StructureFactor.h ElectricEnthalpy.h Matrix.h
-CPSampleStepper.o: D3vector.h Wavefunction.h UnitCell.h SlaterDet.h Basis.h
-CPSampleStepper.o: Sample.h AtomSet.h Atom.h D3tensor.h blas.h
-CPSampleStepper.o: ConstraintSet.h ExtForceSet.h Control.h
-Cell.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
-Cell.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-CellDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
-CellDyn.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
-CellDyn.o: Control.h SlaterDet.h Basis.h Matrix.h Timer.h
-CellLock.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
-CellLock.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
-CellLock.o: Control.h
-CellMass.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
-CellMass.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
-CellMass.o: Control.h
-CellStepper.o: CellStepper.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
-CellStepper.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-CellStepper.o: Wavefunction.h Control.h
-CellStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
-CellStepper.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
-CellStepper.o: Control.h
 ChargeDensity.o: ChargeDensity.h Timer.h Context.h Basis.h D3vector.h
 ChargeDensity.o: UnitCell.h Wavefunction.h FourierTransform.h SlaterDet.h
 ChargeDensity.o: Matrix.h
@@ -383,6 +369,20 @@ ConstraintSet.o: TorsionConstraint.h Atom.h AtomSet.h Context.h UnitCell.h
 ConstraintSet.o: D3tensor.h blas.h
 Context.o: Context.h blacs.h
 Control.o: D3vector.h
+CPSampleStepper.o: CPSampleStepper.h SampleStepper.h Timer.h
+CPSampleStepper.o: EnergyFunctional.h ChargeDensity.h Context.h
+CPSampleStepper.o: StructureFactor.h ElectricEnthalpy.h Matrix.h D3vector.h
+CPSampleStepper.o: Wavefunction.h UnitCell.h SlaterDet.h Basis.h Sample.h
+CPSampleStepper.o: AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
+CPSampleStepper.o: ExtForceSet.h Control.h MDWavefunctionStepper.h
+CPSampleStepper.o: WavefunctionStepper.h MDIonicStepper.h IonicStepper.h
+CPSampleStepper.o: Species.h SDCellStepper.h CellStepper.h CGCellStepper.h
+CPSampleStepper.o: CGOptimizer.h LineMinimizer.h
+CPSampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h ChargeDensity.h
+CPSampleStepper.o: Context.h StructureFactor.h ElectricEnthalpy.h Matrix.h
+CPSampleStepper.o: D3vector.h Wavefunction.h UnitCell.h SlaterDet.h Basis.h
+CPSampleStepper.o: Sample.h AtomSet.h Atom.h D3tensor.h blas.h
+CPSampleStepper.o: ConstraintSet.h ExtForceSet.h Control.h
 D3tensor.o: blas.h D3vector.h
 Debug.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
 Debug.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
@@ -411,7 +411,7 @@ ElectricEnthalpy.o: Timer.h Context.h Matrix.h Sample.h AtomSet.h Atom.h
 ElectricEnthalpy.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 ElectricEnthalpy.o: ExtForceSet.h Wavefunction.h Control.h ElectricEnthalpy.h
 ElectricEnthalpy.o: SlaterDet.h Basis.h MLWFTransform.h BasisMapping.h
-ElectricEnthalpy.o: ChargeDensity.h FourierTransform.h jade.h
+ElectricEnthalpy.o: ChargeDensity.h FourierTransform.h
 ElectricEnthalpy.o: Matrix.h D3vector.h Wavefunction.h UnitCell.h SlaterDet.h
 ElectricEnthalpy.o: Context.h Basis.h Timer.h Sample.h AtomSet.h Atom.h
 ElectricEnthalpy.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Control.h
@@ -437,10 +437,10 @@ ExchangeOperator.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 ExchangeOperator.o: Wavefunction.h Control.h SlaterDet.h Basis.h Matrix.h
 ExchangeOperator.o: Timer.h FourierTransform.h KPGridConnectivity.h
 ExtForce.o: ExtForce.h D3vector.h
-ExtForce.o: D3vector.h
 ExtForceCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 ExtForceCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 ExtForceCmd.o: Wavefunction.h Control.h
+ExtForce.o: D3vector.h
 ExtForceSet.o: ExtForceSet.h AtomicExtForce.h ExtForce.h D3vector.h
 ExtForceSet.o: PairExtForce.h GlobalExtForce.h Atom.h AtomSet.h Context.h
 ExtForceSet.o: UnitCell.h D3tensor.h blas.h
@@ -465,6 +465,9 @@ HelpCmd.o: Wavefunction.h Control.h
 IonicStepper.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 IonicStepper.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 IonicStepper.o: Wavefunction.h Control.h Species.h
+isodate.o: isodate.h
+jacobi.o: blacs.h Context.h Matrix.h blas.h
+jade.o: blacs.h Context.h Matrix.h blas.h Timer.h
 JDWavefunctionStepper.o: JDWavefunctionStepper.h WavefunctionStepper.h
 JDWavefunctionStepper.o: Timer.h Wavefunction.h D3vector.h UnitCell.h
 JDWavefunctionStepper.o: SlaterDet.h Context.h Basis.h Matrix.h
@@ -474,6 +477,7 @@ JDWavefunctionStepper.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 JDWavefunctionStepper.o: Control.h Preconditioner.h
 JDWavefunctionStepper.o: WavefunctionStepper.h Timer.h Wavefunction.h
 JDWavefunctionStepper.o: D3vector.h UnitCell.h
+kpgen.o: D3vector.h
 KPGridConnectivity.o: KPGridConnectivity.h Sample.h AtomSet.h Context.h
 KPGridConnectivity.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
 KPGridConnectivity.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
@@ -503,6 +507,7 @@ LoadCmd.o: ExtForceSet.h Wavefunction.h Control.h SampleReader.h
 LoadCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 LoadCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 LoadCmd.o: Wavefunction.h Control.h
+Matrix.o: Context.h blacs.h Matrix.h
 MDIonicStepper.o: MDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 MDIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
 MDIonicStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
@@ -519,7 +524,6 @@ MDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
 MLWFTransform.o: MLWFTransform.h D3vector.h BasisMapping.h Basis.h UnitCell.h
 MLWFTransform.o: Context.h SlaterDet.h Matrix.h Timer.h jade.h blas.h
 MLWFTransform.o: D3vector.h BasisMapping.h
-Matrix.o: Context.h blacs.h Matrix.h
 MoveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 MoveCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 MoveCmd.o: Wavefunction.h Control.h
@@ -539,8 +543,31 @@ Nrowmax.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 Nrowmax.o: Control.h
 Nspin.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
 Nspin.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+PairExtForce.o: PairExtForce.h ExtForce.h D3vector.h AtomSet.h Context.h
+PairExtForce.o: Atom.h UnitCell.h D3tensor.h blas.h Species.h
+PairExtForce.o: ExtForce.h D3vector.h
 PBEFunctional.o: PBEFunctional.h XCFunctional.h
 PBEFunctional.o: XCFunctional.h
+PlotCmd.o: PlotCmd.h UserInterface.h Sample.h AtomSet.h Context.h Atom.h
+PlotCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
+PlotCmd.o: ExtForceSet.h Wavefunction.h Control.h isodate.h release.h
+PlotCmd.o: SampleReader.h Basis.h FourierTransform.h Timer.h SlaterDet.h
+PlotCmd.o: Matrix.h Species.h ChargeDensity.h
+PlotCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+PlotCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+PlotCmd.o: Wavefunction.h Control.h
+Polarization.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+Polarization.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+Polarization.o: Wavefunction.h Control.h
+PositionConstraint.o: PositionConstraint.h Constraint.h AtomSet.h Context.h
+PositionConstraint.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
+PositionConstraint.o: Species.h
+PositionConstraint.o: Constraint.h
+Preconditioner.o: Preconditioner.h Basis.h D3vector.h UnitCell.h Context.h
+Preconditioner.o: Wavefunction.h SlaterDet.h Matrix.h Timer.h
+PrintCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+PrintCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+PrintCmd.o: Wavefunction.h Control.h
 PSDAWavefunctionStepper.o: PSDAWavefunctionStepper.h WavefunctionStepper.h
 PSDAWavefunctionStepper.o: Timer.h Wavefunction.h D3vector.h UnitCell.h
 PSDAWavefunctionStepper.o: SlaterDet.h Context.h Basis.h Matrix.h
@@ -552,29 +579,22 @@ PSDWavefunctionStepper.o: Timer.h Wavefunction.h D3vector.h UnitCell.h
 PSDWavefunctionStepper.o: SlaterDet.h Context.h Basis.h Matrix.h
 PSDWavefunctionStepper.o: Preconditioner.h
 PSDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
-PairExtForce.o: PairExtForce.h ExtForce.h D3vector.h AtomSet.h Context.h
-PairExtForce.o: Atom.h UnitCell.h D3tensor.h blas.h Species.h
-PairExtForce.o: ExtForce.h D3vector.h
-PlotCmd.o: PlotCmd.h UserInterface.h Sample.h AtomSet.h Context.h Atom.h
-PlotCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
-PlotCmd.o: ExtForceSet.h Wavefunction.h Control.h isodate.h release.h
-PlotCmd.o: SampleReader.h Basis.h FourierTransform.h Timer.h SlaterDet.h
-PlotCmd.o: Matrix.h Species.h ChargeDensity.h
-PlotCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
-PlotCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-PlotCmd.o: Wavefunction.h Control.h
-PolarizationType.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
-PolarizationType.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-PolarizationType.o: Wavefunction.h Control.h
-PositionConstraint.o: PositionConstraint.h Constraint.h AtomSet.h Context.h
-PositionConstraint.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-PositionConstraint.o: Species.h
-PositionConstraint.o: Constraint.h
-Preconditioner.o: Preconditioner.h Basis.h D3vector.h UnitCell.h Context.h
-Preconditioner.o: Wavefunction.h SlaterDet.h Matrix.h Timer.h
-PrintCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
-PrintCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-PrintCmd.o: Wavefunction.h Control.h
+qb.o: isodate.h release.h qbox_xmlns.h Context.h UserInterface.h Sample.h
+qb.o: AtomSet.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
+qb.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h Timer.h
+qb.o: AngleCmd.h AtomCmd.h ComputeMLWFCmd.h MLWFTransform.h BasisMapping.h
+qb.o: ConstraintCmd.h DistanceCmd.h ExtForceCmd.h FoldInWsCmd.h HelpCmd.h
+qb.o: KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h LoadCmd.h MoveCmd.h
+qb.o: PlotCmd.h PrintCmd.h QuitCmd.h RandomizeRCmd.h RandomizeVCmd.h
+qb.o: RandomizeWfCmd.h ResetVcmCmd.h RescaleVCmd.h RseedCmd.h RunCmd.h
+qb.o: SaveCmd.h SetCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h TorsionCmd.h
+qb.o: BisectionCmd.h Bisection.h SlaterDet.h Basis.h Matrix.h AtomsDyn.h
+qb.o: BlHF.h BtHF.h Cell.h CellDyn.h CellLock.h CellMass.h ChargeMixCoeff.h
+qb.o: ChargeMixNdim.h ChargeMixRcut.h Debug.h Dspin.h Ecut.h Ecutprec.h
+qb.o: Ecuts.h Efield.h Polarization.h Emass.h ExtStress.h FermiTemp.h Dt.h
+qb.o: Nempty.h NetCharge.h Nrowmax.h Nspin.h RefCell.h Stress.h Thermostat.h
+qb.o: ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
+qbox_xmlns.o: qbox_xmlns.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 QuitCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 QuitCmd.o: Wavefunction.h Control.h
@@ -590,6 +610,7 @@ RandomizeWfCmd.o: ExtForceSet.h Wavefunction.h Control.h
 RefCell.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 RefCell.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 RefCell.o: Control.h
+release.o: release.h
 RescaleVCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 RescaleVCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 RescaleVCmd.o: Wavefunction.h Control.h
@@ -605,33 +626,6 @@ RunCmd.o: ElectricEnthalpy.h Matrix.h D3vector.h Wavefunction.h UnitCell.h
 RunCmd.o: SlaterDet.h Basis.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h
 RunCmd.o: ConstraintSet.h ExtForceSet.h Control.h CPSampleStepper.h
 RunCmd.o: UserInterface.h
-SDAIonicStepper.o: SDAIonicStepper.h IonicStepper.h Sample.h AtomSet.h
-SDAIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-SDAIonicStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-SDAIonicStepper.o: Species.h LineMinimizer.h
-SDAIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
-SDAIonicStepper.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
-SDAIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h
-SDAIonicStepper.o: LineMinimizer.h
-SDCellStepper.o: SDCellStepper.h CellStepper.h Sample.h AtomSet.h Context.h
-SDCellStepper.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-SDCellStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-SDCellStepper.o: CellStepper.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
-SDCellStepper.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-SDCellStepper.o: Wavefunction.h Control.h
-SDIonicStepper.o: SDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
-SDIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-SDIonicStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-SDIonicStepper.o: Species.h
-SDIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
-SDIonicStepper.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
-SDIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h
-SDWavefunctionStepper.o: SDWavefunctionStepper.h WavefunctionStepper.h
-SDWavefunctionStepper.o: Timer.h Wavefunction.h D3vector.h UnitCell.h
-SDWavefunctionStepper.o: SlaterDet.h Context.h Basis.h Matrix.h Sample.h
-SDWavefunctionStepper.o: AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
-SDWavefunctionStepper.o: ExtForceSet.h Control.h
-SDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
 Sample.o: AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
 Sample.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 SampleHandler.o: SampleHandler.h StructureHandler.h Sample.h AtomSet.h
@@ -661,15 +655,42 @@ SaveCmd.o: release.h
 SaveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SaveCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 SaveCmd.o: Wavefunction.h Control.h
+SDAIonicStepper.o: SDAIonicStepper.h IonicStepper.h Sample.h AtomSet.h
+SDAIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
+SDAIonicStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+SDAIonicStepper.o: Species.h LineMinimizer.h
+SDAIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
+SDAIonicStepper.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
+SDAIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h
+SDAIonicStepper.o: LineMinimizer.h
+SDCellStepper.o: SDCellStepper.h CellStepper.h Sample.h AtomSet.h Context.h
+SDCellStepper.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
+SDCellStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+SDCellStepper.o: CellStepper.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
+SDCellStepper.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+SDCellStepper.o: Wavefunction.h Control.h
+SDIonicStepper.o: SDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
+SDIonicStepper.o: Context.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
+SDIonicStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+SDIonicStepper.o: Species.h
+SDIonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h Atom.h
+SDIonicStepper.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
+SDIonicStepper.o: ExtForceSet.h Wavefunction.h Control.h Species.h
+SDWavefunctionStepper.o: SDWavefunctionStepper.h WavefunctionStepper.h
+SDWavefunctionStepper.o: Timer.h Wavefunction.h D3vector.h UnitCell.h
+SDWavefunctionStepper.o: SlaterDet.h Context.h Basis.h Matrix.h Sample.h
+SDWavefunctionStepper.o: AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
+SDWavefunctionStepper.o: ExtForceSet.h Control.h
+SDWavefunctionStepper.o: WavefunctionStepper.h Timer.h
 SetCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SetCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 SetCmd.o: Wavefunction.h Control.h
+sinft.o: sinft.h
 SlaterDet.o: SlaterDet.h Context.h Basis.h D3vector.h UnitCell.h Matrix.h
 SlaterDet.o: Timer.h FourierTransform.h blas.h Base64Transcoder.h
 SlaterDet.o: SharedFilePtr.h
 SlaterDet.o: Context.h Basis.h D3vector.h UnitCell.h Matrix.h Timer.h
 Species.o: Species.h Context.h spline.h sinft.h
-Species.o: Context.h
 SpeciesCmd.o: SpeciesCmd.h UserInterface.h Sample.h AtomSet.h Context.h
 SpeciesCmd.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 SpeciesCmd.o: ExtForceSet.h Wavefunction.h Control.h SpeciesReader.h
@@ -677,6 +698,7 @@ SpeciesCmd.o: Species.h
 SpeciesCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 SpeciesCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 SpeciesCmd.o: Wavefunction.h Control.h
+Species.o: Context.h
 SpeciesHandler.o: SpeciesHandler.h StructureHandler.h Species.h Context.h
 SpeciesHandler.o: StrX.h
 SpeciesHandler.o: StructureHandler.h
@@ -684,6 +706,7 @@ SpeciesReader.o: Species.h Context.h SpeciesReader.h
 SpeciesReader.o: StructuredDocumentHandler.h StrX.h StructureHandler.h
 SpeciesReader.o: SpeciesHandler.h
 SpeciesReader.o: Context.h
+spline.o: spline.h
 StatusCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 StatusCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 StatusCmd.o: Wavefunction.h Control.h
@@ -693,10 +716,48 @@ StrainCmd.o: Wavefunction.h Control.h
 Stress.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 Stress.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 Stress.o: Control.h
-StructureFactor.o: StructureFactor.h Basis.h D3vector.h UnitCell.h Context.h
 StructuredDocumentHandler.o: StructuredDocumentHandler.h StrX.h
 StructuredDocumentHandler.o: StructureHandler.h
 StructuredDocumentHandler.o: StrX.h StructureHandler.h
+StructureFactor.o: StructureFactor.h Basis.h D3vector.h UnitCell.h Context.h
+testAndersonMixer.o: Context.h AndersonMixer.h
+testBase64Transcoder.o: Base64Transcoder.h
+testBasis.o: Basis.h D3vector.h UnitCell.h Context.h
+testBasisMapping.o: Context.h Basis.h D3vector.h UnitCell.h BasisMapping.h
+testBasisMapping.o: Timer.h
+testCGOptimizer.o: CGOptimizer.h LineMinimizer.h
+testChargeDensity.o: Context.h Wavefunction.h D3vector.h UnitCell.h
+testChargeDensity.o: ChargeDensity.h Timer.h SlaterDet.h Basis.h Matrix.h
+testChargeDensity.o: FourierTransform.h
+testContext.o: Context.h
+testEnergyFunctional.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h
+testEnergyFunctional.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
+testEnergyFunctional.o: ExtForceSet.h Wavefunction.h Control.h
+testEnergyFunctional.o: EnergyFunctional.h ChargeDensity.h Timer.h
+testEnergyFunctional.o: StructureFactor.h ElectricEnthalpy.h Matrix.h
+testEnergyFunctional.o: SlaterDet.h Basis.h
+test_fftw.o: Timer.h readTSC.h
+testFourierTransform.o: Context.h Basis.h D3vector.h UnitCell.h
+testFourierTransform.o: FourierTransform.h Timer.h
+testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
+testjade.o: Timer.h Context.h Matrix.h jade.h
+testLDAFunctional.o: LDAFunctional.h XCFunctional.h
+testLineMinimizer.o: LineMinimizer.h
+testMatrix.o: Timer.h Context.h Matrix.h
+testSample.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
+testSample.o: Timer.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h
+testSample.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+testSlaterDet.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
+testSlaterDet.o: Timer.h FourierTransform.h
+testSpecies.o: Species.h Context.h SpeciesReader.h
+testUnitCell.o: UnitCell.h D3vector.h
+testWavefunction.o: Context.h Wavefunction.h D3vector.h UnitCell.h
+testWavefunction.o: SlaterDet.h Basis.h Matrix.h Timer.h
+testXCFunctional.o: LDAFunctional.h XCFunctional.h PBEFunctional.h Timer.h
+testXMLGFPreprocessor.o: Context.h Matrix.h XMLGFPreprocessor.h
+Thermostat.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
+Thermostat.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+Thermostat.o: Control.h
 ThTemp.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 ThTemp.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 ThTemp.o: Control.h
@@ -706,9 +767,6 @@ ThTime.o: Control.h
 ThWidth.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 ThWidth.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 ThWidth.o: Control.h
-Thermostat.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
-Thermostat.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
-Thermostat.o: Control.h
 TorsionCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 TorsionCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 TorsionCmd.o: Wavefunction.h Control.h
@@ -735,6 +793,8 @@ WfDiag.o: Control.h
 WfDyn.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
 WfDyn.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 WfDyn.o: SlaterDet.h Basis.h Matrix.h Timer.h
+Xc.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
+Xc.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 XCOperator.o: XCOperator.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 XCOperator.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 XCOperator.o: Wavefunction.h Control.h ChargeDensity.h Timer.h XCPotential.h
@@ -751,69 +811,3 @@ XCPotential.o: ChargeDensity.h Timer.h Context.h
 XMLGFPreprocessor.o: Timer.h Context.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h
 XMLGFPreprocessor.o: Matrix.h
-Xc.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h D3tensor.h
-Xc.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-isodate.o: isodate.h
-jacobi.o: blacs.h Context.h Matrix.h blas.h
-jade.o: blacs.h Context.h Matrix.h blas.h Timer.h
-kpgen.o: D3vector.h
-qb.o: isodate.h release.h qbox_xmlns.h Context.h UserInterface.h Sample.h
-qb.o: AtomSet.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-qb.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h Timer.h
-qb.o: AngleCmd.h AtomCmd.h ComputeMLWFCmd.h MLWFTransform.h BasisMapping.h
-qb.o: ConstraintCmd.h DistanceCmd.h ExtForceCmd.h FoldInWsCmd.h HelpCmd.h
-qb.o: KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h LoadCmd.h MoveCmd.h
-qb.o: PlotCmd.h PrintCmd.h QuitCmd.h RandomizeRCmd.h RandomizeVCmd.h
-qb.o: RandomizeWfCmd.h ResetVcmCmd.h RescaleVCmd.h RseedCmd.h RunCmd.h
-qb.o: SaveCmd.h SetCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h TorsionCmd.h
-qb.o: BisectionCmd.h Bisection.h SlaterDet.h Basis.h Matrix.h AtomsDyn.h
-qb.o: BlHF.h BtHF.h Cell.h CellDyn.h CellLock.h CellMass.h ChargeMixCoeff.h
-qb.o: ChargeMixNdim.h ChargeMixRcut.h Debug.h Dspin.h Ecut.h Ecutprec.h
-qb.o: Ecuts.h Efield.h PolarizationType.h Emass.h ExtStress.h FermiTemp.h
-qb.o: Dt.h Nempty.h NetCharge.h Nrowmax.h Nspin.h RefCell.h Stress.h
-qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
-qbox_xmlns.o: qbox_xmlns.h
-release.o: release.h
-sinft.o: sinft.h
-spline.o: spline.h
-testAndersonMixer.o: Context.h AndersonMixer.h
-testBase64Transcoder.o: Base64Transcoder.h
-testBasis.o: Basis.h D3vector.h UnitCell.h Context.h
-testBasisMapping.o: Context.h Basis.h D3vector.h UnitCell.h BasisMapping.h
-testBasisMapping.o: Timer.h
-testCGOptimizer.o: CGOptimizer.h LineMinimizer.h
-testChargeDensity.o: Context.h Wavefunction.h D3vector.h UnitCell.h
-testChargeDensity.o: ChargeDensity.h Timer.h SlaterDet.h Basis.h Matrix.h
-testChargeDensity.o: FourierTransform.h
-testContext.o: Context.h
-testElectricEnthalpy.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h
-testElectricEnthalpy.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
-testElectricEnthalpy.o: ExtForceSet.h Wavefunction.h Control.h SampleReader.h
-testElectricEnthalpy.o: EnergyFunctional.h ChargeDensity.h Timer.h
-testElectricEnthalpy.o: StructureFactor.h ElectricEnthalpy.h Matrix.h
-testElectricEnthalpy.o: SlaterDet.h Basis.h
-testEnergyFunctional.o: Context.h Sample.h AtomSet.h Atom.h D3vector.h
-testEnergyFunctional.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
-testEnergyFunctional.o: ExtForceSet.h Wavefunction.h Control.h
-testEnergyFunctional.o: EnergyFunctional.h ChargeDensity.h Timer.h
-testEnergyFunctional.o: StructureFactor.h ElectricEnthalpy.h Matrix.h
-testEnergyFunctional.o: SlaterDet.h Basis.h
-testFourierTransform.o: Context.h Basis.h D3vector.h UnitCell.h
-testFourierTransform.o: FourierTransform.h Timer.h
-testLDAFunctional.o: LDAFunctional.h XCFunctional.h
-testLineMinimizer.o: LineMinimizer.h
-testMatrix.o: Timer.h Context.h Matrix.h
-testSample.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
-testSample.o: Timer.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h
-testSample.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-testSlaterDet.o: Context.h SlaterDet.h Basis.h D3vector.h UnitCell.h Matrix.h
-testSlaterDet.o: Timer.h FourierTransform.h
-testSpecies.o: Species.h Context.h SpeciesReader.h
-testUnitCell.o: UnitCell.h D3vector.h
-testWavefunction.o: Context.h Wavefunction.h D3vector.h UnitCell.h
-testWavefunction.o: SlaterDet.h Basis.h Matrix.h Timer.h
-testXCFunctional.o: LDAFunctional.h XCFunctional.h PBEFunctional.h Timer.h
-testXMLGFPreprocessor.o: Context.h Matrix.h XMLGFPreprocessor.h
-test_fftw.o: Timer.h readTSC.h
-testjacobi.o: Timer.h Context.h Matrix.h jacobi.h
-testjade.o: Timer.h Context.h Matrix.h jade.h

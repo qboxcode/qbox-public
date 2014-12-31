@@ -261,6 +261,9 @@ class DoubleMatrix
     void inverse(void);
     // compute inverse and determinant of a square matrix
     double inverse_det(void);
+    // compute determinant of a square matrix in LU form
+    double det_from_lu(std::valarray<int> ipiv);
+    // compute inverse of a square matrix in LU form
     void inverse_from_lu(std::valarray<int>& ipiv);
 
     // Inverse of triangular matrix
@@ -541,6 +544,9 @@ class ComplexMatrix
     void inverse(void);
     // compute inverse and determinant of a square matrix
     std::complex<double> inverse_det(void);
+    // compute determinant of a square matrix in LU form
+    std::complex<double> det_from_lu(std::valarray<int> ipiv);
+    // compute inverse of a square matrix in LU form
     void inverse_from_lu(std::valarray<int>& ipiv);
 
     // Inverse of triangular matrix

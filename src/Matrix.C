@@ -1882,7 +1882,7 @@ void DoubleMatrix::trtrs(char uplo, char trans, char diag,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// LU decomposition of a general matrix
+// LU decomposition of a double matrix
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::lu(valarray<int>& ipiv)
 {
@@ -1940,11 +1940,10 @@ void ComplexMatrix::lu(valarray<int>& ipiv)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// inverse of a general square matrix
+// inverse of a square double matrix
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::inverse(void)
 {
-  int info;
   if ( active() )
   {
     assert(m_==n_);
@@ -1956,15 +1955,13 @@ void DoubleMatrix::inverse(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// compute inverse and determinant of a square matrix
+// determinant of a square double matrix in LU form
 ////////////////////////////////////////////////////////////////////////////////
-double DoubleMatrix::inverse_det(void)
+double DoubleMatrix::det_from_lu(valarray<int> ipiv)
 {
   if ( active() )
   {
     assert(m_==n_);
-    valarray<int> ipiv(mloc_+mb_);
-    lu(ipiv);
 
     // compute determinant
     valarray<double> diag(n_);
@@ -1976,13 +1973,28 @@ double DoubleMatrix::inverse_det(void)
           && pc(ii) == ctxt_.mycol() )
         diag[ii] = val[iii+mloc_*jjj];
     }
-    ctxt_.dsum(n_,1,&diag[0],n_);
+    ctxt_.dsum(n_,1,(double*)&diag[0],n_);
 
     double det = 1.0;
     for ( int ii = 0; ii < n_; ii++ )
       det *= diag[ii];
     det *= signature(ipiv);
 
+    return det;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// inverse and determinant of a square double matrix
+////////////////////////////////////////////////////////////////////////////////
+double DoubleMatrix::inverse_det(void)
+{
+  if ( active() )
+  {
+    assert(m_==n_);
+    valarray<int> ipiv(mloc_+mb_);
+    lu(ipiv);
+    double det = det_from_lu(ipiv);
     inverse_from_lu(ipiv);
     return det;
   }
@@ -2039,7 +2051,7 @@ void DoubleMatrix::inverse_from_lu(valarray<int>& ipiv)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// compute inverse of a general square matrix
+// inverse of a complex square matrix
 ////////////////////////////////////////////////////////////////////////////////
 void ComplexMatrix::inverse(void)
 {
@@ -2049,15 +2061,13 @@ void ComplexMatrix::inverse(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// compute inverse and determinant of a complex square matrix
+// determinant of a complex square matrix in LU form
 ////////////////////////////////////////////////////////////////////////////////
-complex<double> ComplexMatrix::inverse_det(void)
+complex<double> ComplexMatrix::det_from_lu(valarray<int> ipiv)
 {
   if ( active() )
   {
     assert(m_==n_);
-    valarray<int> ipiv(mloc_+mb_);
-    lu(ipiv);
 
     // compute determinant
     valarray<complex<double> > diag(n_);
@@ -2076,6 +2086,21 @@ complex<double> ComplexMatrix::inverse_det(void)
       det *= diag[ii];
     det *= signature(ipiv);
 
+    return det;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// inverse and determinant of a complex square matrix
+////////////////////////////////////////////////////////////////////////////////
+complex<double> ComplexMatrix::inverse_det(void)
+{
+  if ( active() )
+  {
+    assert(m_==n_);
+    valarray<int> ipiv(mloc_+mb_);
+    lu(ipiv);
+    complex<double> det = det_from_lu(ipiv);
     inverse_from_lu(ipiv);
     return det;
   }

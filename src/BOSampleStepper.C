@@ -171,8 +171,6 @@ void BOSampleStepper::step(int niter)
   Wavefunction& wf = s_.wf;
   const int nspin = wf.nspin();
 
-  const UnitCell& cell = wf.cell();
-
   const double dt = s_.ctrl.dt;
 
   const string wf_dyn = s_.ctrl.wf_dyn;
@@ -197,7 +195,6 @@ void BOSampleStepper::step(int niter)
                             cell_dyn != "LOCKED" );
   // GS-only calculation:
   const bool gs_only = !atoms_move && !cell_moves;
-  const bool use_confinement = ( s_.ctrl.ecuts > 0.0 );
 
   Timer tm_iter;
 
@@ -371,36 +368,11 @@ void BOSampleStepper::step(int niter)
       const bool compute_forces = true;
       double energy =
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
-      double enthalpy = energy;
+      double enthalpy = ef_.enthalpy();
 
       if ( onpe0 )
       {
-        cout.setf(ios::fixed,ios::floatfield);
-        cout.setf(ios::right,ios::adjustfield);
-        cout << "  <ekin>   " << setprecision(8)
-             << setw(15) << ef_.ekin() << " </ekin>\n";
-        if ( use_confinement )
-          cout << "  <econf>  " << setw(15) << ef_.econf() << " </econf>\n";
-        cout << "  <eps>    " << setw(15) << ef_.eps() << " </eps>\n"
-             << "  <enl>    " << setw(15) << ef_.enl() << " </enl>\n"
-             << "  <ecoul>  " << setw(15) << ef_.ecoul() << " </ecoul>\n"
-             << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
-             << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
-             << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
-             << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n";
-        if ( s_.extforces.size() > 0 )
-          cout << "  <eexf>     " << setw(15) << ef_.eexf() << " </eexf>\n";
-        cout << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
-        if ( compute_stress )
-        {
-          const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-          enthalpy = ef_.etotal() + pext * cell.volume();
-          cout << "  <pv>     " << setw(15) << pext * cell.volume()
-               << " </pv>" << endl;
-          cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
-             << flush;
-        }
-
+        cout << ef_;
         if ( ef_.el_enth() )
           cout << *ef_.el_enth();
       }
@@ -466,7 +438,8 @@ void BOSampleStepper::step(int niter)
         if ( ionic_stepper != 0 )
           ekin_stepper = ionic_stepper->ekin_stepper();
         cout << setprecision(8);
-        cout << "  <econst> " << energy+ekin_ion+ekin_stepper << " </econst>\n";
+        cout << "  <econst> " << enthalpy+ekin_ion+ekin_stepper
+             << " </econst>\n";
         cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
         cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";
       }
@@ -866,7 +839,7 @@ void BOSampleStepper::step(int niter)
         while ( !nscf_converged && ite < nite_ )
         {
           double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
-          double enthalpy = energy;
+          double enthalpy = ef_.enthalpy();
 
           if ( ite > 0 )
             etotal_int_m = etotal_int;
@@ -885,7 +858,7 @@ void BOSampleStepper::step(int niter)
 
           eigenvalue_sum = real(s_.wf.dot(dwf));
           if ( onpe0 )
-            cout << "  <eigenvalue_sum> "
+            cout << "  <eigenvalue_sum>  "
                  << eigenvalue_sum << " </eigenvalue_sum>" << endl;
 
           wf_stepper->update(dwf);
@@ -894,13 +867,11 @@ void BOSampleStepper::step(int niter)
           {
             cout.setf(ios::fixed,ios::floatfield);
             cout.setf(ios::right,ios::adjustfield);
-            cout << "  <etotal_int> " << setprecision(8) << setw(15)
+            cout << "  <etotal_int>  " << setprecision(8) << setw(15)
                  << energy << " </etotal_int>\n";
-            if ( compute_stress )
+            if ( compute_stress || ef_.el_enth() )
             {
-              const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-              enthalpy = energy + pext * cell.volume();
-              cout << "  <enthalpy_int> " << setw(15)
+              cout << "  <enthalpy_int>" << setw(15)
                    << enthalpy << " </enthalpy_int>\n"
                    << flush;
             }
@@ -1022,7 +993,6 @@ void BOSampleStepper::step(int niter)
             for ( int i = 0; i < sd.nst(); i++ )
             {
               D3vector ctr = mlwft[ispin]->center(i);
-              double sp = mlwft[ispin]->spread(i);
               double spi[6];
               for (int j=0; j<3; j++)
               {

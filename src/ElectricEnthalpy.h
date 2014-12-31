@@ -69,8 +69,8 @@ class ElectricEnthalpy
   // total, ionic and electronic part of macroscopic polarization
   D3vector polarization_total_, polarization_ion_, polarization_elec_;
 
-  // polarization energy
-  double energy_;
+  // electric enthalpy
+  double enthalpy_;
 
   std::vector <D3vector> mlwfc_;
   std::vector <double> mlwfs_;
@@ -78,6 +78,7 @@ class ElectricEnthalpy
   std::vector <D3tensor> quad_;
 
   void compute_correction(void);
+  double vsst(double x) const;
 
   public:
 
@@ -88,7 +89,7 @@ class ElectricEnthalpy
   D3vector polarization_ion(void) const { return polarization_ion_; }
   D3vector polarization_elec(void) const { return polarization_elec_; }
 
-  double energy(Wavefunction& dwf, bool compute_hpsi);
+  double enthalpy(Wavefunction& dwf, bool compute_hpsi);
 
   void update(void);
   void print(std::ostream& os) const;

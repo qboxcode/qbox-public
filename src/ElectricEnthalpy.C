@@ -39,6 +39,34 @@
 #include "UnitCell.h"
 using namespace std;
 
+double ElectricEnthalpy::vsst(double x) const
+{
+  // smooth sawtooth periodic potential function
+  // x in [-1/2, 1/2]
+  // The slope of vsst is 1 at x=0
+  //
+  // The function vsst approximates the identity function x->x
+  // in the interval [-1/2+xcut, 1/2-xcut]
+  const double xcut = 0.05;
+  const double xcut2 = xcut*xcut;
+  // The function vsst is well represented by a
+  // discrete Fourier transform of length np = 2*ng
+  // Some aliasing error will arise if np < 2*ng
+  // The error is determined by the product xcut*ng
+  const int ng = 32;
+  double v = 0.0;
+  for ( int ig = 1; ig < ng; ig++ )
+  {
+    const double g = 2 * M_PI * ig;
+    const double arg = -0.25 * g * g * xcut2;
+    // next line: factor sgn to shift origin by 0.5
+    const int sgn = 1 - 2*(ig%2);
+    const double c = -2.0 * sgn * exp ( arg ) / g;
+    v += c * sin(x*g);
+  }
+  return v;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
   sd_(*(s.wf.sd(0,0))), ctxt_(s.wf.sd(0,0)->context()),
@@ -351,20 +379,20 @@ void ElectricEnthalpy::update(void)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-double ElectricEnthalpy::energy(Wavefunction& dwf, bool compute_hpsi)
+double ElectricEnthalpy::enthalpy(Wavefunction& dwf, bool compute_hpsi)
 {
   // return zero if polarization is off, or field is zero
   if ( pol_type_ == off || !finite_field_ )
     return 0.0;
 
-  energy_ = - e_field_ * polarization_total_;
+  enthalpy_ = - e_field_ * polarization_total_;
   if ( compute_hpsi )
   {
     // assert gamma-only and no spin
     assert(dwf.nkp()==1 && dwf.nspin()==1);
     dwf.sd(0,0)->c() += dwf_->sd(0,0)->c();
   }
-  return energy_;
+  return enthalpy_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -463,21 +491,33 @@ void ElectricEnthalpy::compute_correction(void)
         double x = i * dx - x0;
         if ( x >  ax2 ) x -= ax;
         if ( x < -ax2 ) x += ax;
+#ifdef NO_VSST
         vx[i] = x;
+#else
+        vx[i] = ax * vsst(x/ax);
+#endif
       }
       for ( int j = 0; j < vy.size(); j++ )
       {
         double y = j * dy - y0;
         if ( y >  ay2 ) y -= ay;
         if ( y < -ay2 ) y += ay;
+#ifdef NO_VSST
         vy[j] = y;
+#else
+        vy[j] = ay * vsst(y/ay);
+#endif
       }
       for ( int k = 0; k < vz.size(); k++ )
       {
         double z = k * dz - z0;
         if ( z >  az2 ) z -= az;
         if ( z < -az2 ) z += az;
+#ifdef NO_VSST
         vz[k] = z;
+#else
+        vz[k] = az * vsst(z/az);
+#endif
       }
 
       #pragma omp parallel for
@@ -593,7 +633,7 @@ void ElectricEnthalpy::print(ostream& os) const
         os << " <mlwf_ref center=\"" << setprecision(8)
            << setw(12) << mlwfc_[i].x + correction_[i].x
            << setw(12) << mlwfc_[i].y + correction_[i].y
-           << setw(12) << mlwfc_[i].z + correction_[i].z;
+           << setw(12) << mlwfc_[i].z + correction_[i].z << " \"";
         if ( compute_quadrupole_ )
         {
           // add spread attribute

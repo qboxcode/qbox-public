@@ -33,7 +33,7 @@ class Efield : public Var
 
   public:
 
-  char *name ( void ) const { return "e_field"; };
+  const char *name ( void ) const { return "e_field"; };
 
   int set ( int argc, char **argv )
   {

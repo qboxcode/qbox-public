@@ -16,8 +16,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#if USE_XERCES
-
 #include "WavefunctionHandler.h"
 #include "Wavefunction.h"
 #include "FourierTransform.h"
@@ -37,16 +35,8 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 WavefunctionHandler::WavefunctionHandler(Wavefunction& wf,
-  DoubleMatrix& gfdata, int& nx, int& ny, int& nz,
-  vector<vector<vector<double> > > &dmat) :
-  wf_(wf), gfdata_(gfdata), dmat_(dmat), ecut(0.0), nx_(nx), ny_(ny), nz_(nz)
-{
-  // if the data is read from a file, gfdata has a finite size
-  // since the grid functions were processed by XMLGFPreprocessor
-  // if the gfdata matrix has finite dimensions, set read_from_gfdata flag
-  read_from_gfdata = ( gfdata.n() > 0 );
-  current_igf = 0;
-}
+  DoubleMatrix& gfdata, int& current_gfdata_pos ) : wf_(wf), gfdata_(gfdata),
+  current_gfdata_pos_(current_gfdata_pos) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 WavefunctionHandler::~WavefunctionHandler() {}
@@ -73,16 +63,16 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname,
   const Attributes& attributes)
 {
+  bool onpe0 = wf_.context().onpe0();
   // cout << " WavefunctionHandler::startElement " << StrX(qname) << endl;
   string locname(XMLString::transcode(localname));
 
   int nspin=1, nel=0, nempty=0;
-  event_type event = invalid;
+
   // consider only elements that are dealt with directly by WavefunctionHandler
 
   if ( locname == "wavefunction" || locname == "wavefunction_velocity" )
   {
-
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
@@ -105,29 +95,20 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       }
     }
 
-    cout << " WavefunctionHandler::startElement: " << locname
-         << " nspin=" << nspin << " nel=" << nel << " nempty=" << nempty
-         << endl;
+    if ( onpe0 )
+      cout << " WavefunctionHandler::startElement: " << locname
+           << " nspin=" << nspin << " nel=" << nel << " nempty=" << nempty
+           << endl;
 
     current_ispin = 0;
     current_ikp = 0;
-    current_n = 0;
-
-    // notify listening nodes
-    if ( locname == "wavefunction" )
-      event = wavefunction;
-    else
-      event = wavefunction_velocity;
-
-    wf_.context().ibcast_send(1,1,(int*)&event,1);
-    wf_.context().ibcast_send(1,1,&nel,1);
-    wf_.context().ibcast_send(1,1,&nspin,1);
-    wf_.context().ibcast_send(1,1,&nempty,1);
 
     wf_.set_nel(nel);
     wf_.set_nspin(nspin);
     wf_.set_nempty(nempty);
-    dmat_.resize(nspin);
+
+    // remove default kpoint k=0
+    wf_.del_kpoint(D3vector(0.0,0.0,0.0));
   }
   else if ( locname == "domain")
   {
@@ -155,13 +136,6 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     //cout << " WavefunctionHandler::startElement: domain" << endl;
     uc.set(a,b,c);
     //cout << uc;
-
-    // notify listening nodes
-    double buf[9];
-    buf[0] = uc.a(0).x; buf[1] = uc.a(0).y; buf[2] = uc.a(0).z;
-    buf[3] = uc.a(1).x; buf[4] = uc.a(1).y; buf[5] = uc.a(1).z;
-    buf[6] = uc.a(2).x; buf[7] = uc.a(2).y; buf[8] = uc.a(2).z;
-    wf_.context().dbcast_send(9,1,buf,9);
   }
   else if ( locname == "reference_domain")
   {
@@ -214,7 +188,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       cout << "WavefunctionHandler: density_matrix must be diagonal" << endl;
       wf_.context().abort(1);
     }
-    dmat_tmp.resize(dmat_size);
+    dmat_.resize(dmat_size);
   }
   else if ( locname == "grid")
   {
@@ -238,13 +212,6 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       }
     }
 
-    // notify listening nodes
-    int ibuf[3];
-    ibuf[0] = nx_;
-    ibuf[1] = ny_;
-    ibuf[2] = nz_;
-    wf_.context().ibcast_send(3,1,ibuf,3);
-
     if ( ecut == 0.0 )
     {
       // ecut attribute was not specified. Infer from grid size
@@ -263,22 +230,13 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       ecut = max(max(ecut0,ecut1),ecut2);
       cout << " ecut=" << 2*ecut << " Ry" << endl;
     }
-    // notify listening nodes of ecut
-    wf_.context().dbcast_send(1,1,&ecut,1);
-
-    // notify listening nodes of the reference_domain
-    // note: the reference_domain is optional in the sample file
-    // notify listening nodes
-    double buf[9];
-    buf[0] = ruc.a(0).x; buf[1] = ruc.a(0).y; buf[2] = ruc.a(0).z;
-    buf[3] = ruc.a(1).x; buf[4] = ruc.a(1).y; buf[5] = ruc.a(1).z;
-    buf[6] = ruc.a(2).x; buf[7] = ruc.a(2).y; buf[8] = ruc.a(2).z;
-    wf_.context().dbcast_send(9,1,buf,9);
 
     wf_.resize(uc,ruc,ecut);
   }
   else if ( locname == "slater_determinant")
   {
+    if ( onpe0 )
+      cout << " WavefunctionHandler::startElement: slater_determinant" << endl;
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
@@ -288,18 +246,21 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       if ( attrname == "kpoint")
       {
         stst >> current_kx >> current_ky >> current_kz;
-        cout << " kpoint=" << current_kx
-             << " " << current_ky << " " << current_kz;
+        if ( onpe0 )
+          cout << " kpoint=" << current_kx
+               << " " << current_ky << " " << current_kz;
       }
       else if ( attrname == "weight" )
       {
         stst >> current_weight;
-        cout << " weight=" << current_weight;
+        if ( onpe0 )
+          cout << " weight=" << current_weight;
       }
       else if ( attrname == "size" )
       {
         stst >> current_size;
-        cout << " size=" << current_size;
+        if ( onpe0 )
+          cout << " size=" << current_size;
       }
       else if ( attrname == "spin" )
       {
@@ -316,22 +277,13 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
             current_ikp=0;
           }
         }
-        cout << " read slater_determinant: spin=" << spin;
+        if ( onpe0 )
+          cout << " read slater_determinant: spin=" << spin;
       }
     }
-    cout << endl;
-    // notify listening nodes: slater_determinant
-    event = slater_determinant;
-    wf_.context().ibcast_send(1,1,(int*)&event,1);
+    if ( onpe0 )
+      cout << endl;
 
-    // send kpoint and weight to listening nodes
-    double buf[7];
-    buf[0] = current_kx; buf[1] = current_ky; buf[2] = current_kz;
-    buf[3] = current_weight;
-    buf[4] = current_ispin;
-    buf[5] = current_ikp;
-    buf[6] = current_size;
-    wf_.context().dbcast_send(7,1,buf,7);
     // add kpoint only if spin is up (if spin is down,
     // the kpoint should be defined already)
     if ( current_ispin == 0 )
@@ -384,17 +336,15 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
 void WavefunctionHandler::endElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname, string& content)
 {
+  const Context& ctxt = wf_.context();
+  bool onpe0 = ctxt.onpe0();
   string locname(XMLString::transcode(localname));
   //cout << " WavefunctionHandler::endElement " << locname << endl;
   if ( locname == "density_matrix")
   {
     istringstream stst(content);
-    for ( int i = 0; i < dmat_tmp.size(); i++ )
-      stst >> dmat_tmp[i];
-
-    // send dmat to listening nodes
-    dmat_[current_ispin].push_back(dmat_tmp);
-    wf_.context().dbcast_send(dmat_tmp.size(),1,&dmat_tmp[0],dmat_tmp.size());
+    for ( int i = 0; i < dmat_.size(); i++ )
+      stst >> dmat_[i];
   }
   else if ( locname == "grid_function")
   {
@@ -403,105 +353,129 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
     assert(current_gf_nx==nx_ &&
            current_gf_ny==ny_ &&
            current_gf_nz==nz_ );
-
-    if ( read_from_gfdata )
-    {
-      // do nothing
-      //cout << "WavefunctionHandler::endElement: current_igf=" << current_igf
-      //     << endl;
-      current_igf++;
-    }
-    else
-    {
-      const Basis& basis = wf_.sd(current_ispin,current_ikp)->basis();
-      int wftmpr_size = current_gf_nx*current_gf_ny*current_gf_nz;
-      // if basis is complex, double the size of wftmpr
-      if ( !basis.real() )
-        wftmpr_size *= 2;
-
-      valarray<double> wftmpr(wftmpr_size);
-
-      if ( current_gf_encoding == "text" )
-      {
-        istringstream stst(content);
-        for ( int i = 0; i < wftmpr_size; i++ )
-          stst >> wftmpr[i];
-      }
-      else if ( current_gf_encoding == "base64" )
-      {
-        // base64 encoding
-        unsigned int length;
-#ifdef XERCESC_3
-        XMLByte* b = Base64::decode((XMLByte*)content.c_str(),
-                                    (XMLSize_t*) &length);
-#else
-        XMLByte* b = Base64::decode((XMLByte*)content.c_str(), &length);
-#endif
-        assert(b!=0);
-        // use data in b
-        assert(length/sizeof(double)==wftmpr_size);
-#if PLT_BIG_ENDIAN
-        byteswap_double(wftmpr_size,(double*)b);
-#endif
-        memcpy(&wftmpr[0],b,wftmpr_size*sizeof(double));
-        XMLString::release((char**)&b);
-      }
-      else
-      {
-        cout << "WavefunctionHandler: unknown grid_function encoding" << endl;
-        return;
-      }
-
-      // wftmpr now contains the grid function
-
-      // send subgrids to listening nodes
-
-      SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
-      assert(sd != 0);
-      // pcol = process column destination
-      int pcol = sd->c().pc(current_n);
-      for ( int prow = 0; prow < sd->context().nprow(); prow++ )
-      {
-        int size = ft->np2_loc(prow) * ft->np0() * ft->np1();
-        int istart = ft->np2_first(prow) * ft->np0() * ft->np1();
-        if ( !basis.real() )
-        {
-          size *= 2;
-          istart *= 2;
-        }
-        // send subgrid to node (prow,pcol)
-        if ( !(prow==0 && pcol==0) )
-        {
-          sd->context().isend(1,1,&size,1,prow,pcol);
-          sd->context().dsend(size,1,&wftmpr[istart],size,prow,pcol);
-        }
-      }
-
-      // if destination column is pcol=0, copy to complex array on node 0
-      // and process
-      if ( pcol == 0 )
-      {
-        if ( basis.real() )
-        {
-          for ( int i = 0; i < ft->np012loc(); i++ )
-            wftmp[i] = wftmpr[i];
-        }
-        else
-        {
-          for ( int i = 0; i < ft->np012loc(); i++ )
-            wftmp[i] = complex<double>(wftmpr[2*i],wftmpr[2*i+1]);
-        }
-        ComplexMatrix& c = wf_.sd(current_ispin,current_ikp)->c();
-        ft->forward(&wftmp[0],c.valptr(c.mloc()*current_n));
-      }
-    }
-    //cout << " grid_function read n=" << current_n << endl;
-    current_n++;
   }
   else if ( locname == "slater_determinant")
   {
+    // data was read into the gfdata matrix
+    // transfer data from the gfdata matrix to the SlaterDet object
+    if ( onpe0 )
+      cout << " WavefunctionHandler::endElement: slater_determinant" << endl;
+    SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
+
+#if DEBUG
+    cout << ctxt.mype() << ": mapping gfdata matrix..."
+         << endl;
+    cout << ctxt.mype() << ": gfdata: (" << gfdata_.m() << "x" << gfdata_.n()
+         << ") (" << gfdata_.mb() << "x" << gfdata_.nb() << ") blocks" << endl;
+    cout << ctxt.mype() << ": gfdata.mloc()=" << gfdata_.mloc()
+         << " gfdata.nloc()=" << gfdata_.nloc() << endl;
+#endif
+
+    sd->set_occ(dmat_);
+    const Basis& basis = sd->basis();
+#if DEBUG
+    cout << ctxt.mype() << ": ft->np012loc()=" << ft->np012loc() << endl;
+    cout << ctxt.mype() << ": ft->context(): " << ft->context();
+#endif
+
+    ComplexMatrix& c = sd->c();
+    // copy wf values
+    // Determine the size of the temporary real matrix wftmpr
+    int wftmpr_size, wftmpr_block_size;
+    if ( basis.real() )
+    {
+      wftmpr_size = ft->np012();
+      wftmpr_block_size = ft->np012loc(0);
+    }
+    else
+    {
+      wftmpr_size = 2*ft->np012();
+      wftmpr_block_size = 2*ft->np012loc(0);
+    }
+#if DEBUG
+    cout << ctxt.mype() << ": wftmpr_size: " << wftmpr_size << endl;
+    cout << ctxt.mype() << ": wftmpr_block_size: "
+         << wftmpr_block_size << endl;
+#endif
+    DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
+                        wftmpr_block_size,c.nb());
+
+#if DEBUG
+    // parameters of the getsub operation
+    cout << "WavefunctionHandler: current_ikp=  " << current_ikp << endl;
+    cout << "WavefunctionHandler: current_ispin=" << current_ispin << endl;
+    cout << "WavefunctionHandler: sd->nst()=    " << sd->nst() << endl;
+    cout << "WavefunctionHandler: wf_.nkp()=    " << wf_.nkp() << endl;
+    cout << "WavefunctionHandler: current_gfdata_pos= "
+     << current_gfdata_pos_ << endl;
+#endif
+
+    assert(current_gfdata_pos_ < gfdata_.n());
+    wftmpr.getsub(gfdata_,wftmpr_size,sd->nst(),0,current_gfdata_pos_);
+    current_gfdata_pos_ += sd->nst();
+
+#if DEBUG
+    // Check orthogonality by computing overlap matrix
+    DoubleMatrix smat(sd->context(),sd->nst(),sd->nst(),c.nb(),c.nb());
+    smat.syrk('l','t',1.0,wftmpr,0.0);
+    cout << smat;
+#endif
+
+    wftmp.resize(ft->np012loc());
+    for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
+    {
+      // copy column of wftmpr to complex array wftmp
+      if ( wftmpr_size == ft->np012() )
+      {
+        // function is real and must be expanded
+        double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
+        for ( int i = 0; i < ft->np012loc(); i++ )
+          wftmp[i] = p[i];
+      }
+      else
+      {
+        // function is complex
+        double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
+        for ( int i = 0; i < ft->np012loc(); i++ )
+          wftmp[i] = complex<double>(p[2*i],p[2*i+1]);
+      }
+      ft->forward(&wftmp[0],c.valptr(c.mloc()*nloc));
+    }
+
     current_ikp++;
     delete ft;
+  }
+  else if ( locname == "wavefunction" || locname == "wavefunction_velocity" )
+  {
+    // check that all SlaterDets of a given spin and have same nst
+    for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+    {
+      for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+      {
+        if ( wf_.sd_[ispin][ikp]->nst() != wf_.sd_[ispin][0]->nst() )
+        {
+          cout << "nst differs for different kpoints in sample file" << endl;
+          wf_.ctxt_.abort(1);
+        }
+      }
+    }
+
+    // set nst_[ispin] to match the values read
+    for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+      wf_.nst_[ispin] = wf_.sd_[ispin][0]->nst();
+
+#if 1
+    // if nspin==2, adjust deltaspin_ to reflect the number of states
+    // of each spin that were read
+    if ( wf_.nspin() == 2 )
+    {
+      // assume that up spin is the majority spin
+      assert(wf_.nst(0) >= wf_.nst(1));
+      // The following line is correct for both
+      // even and odd number of electrons
+      wf_.deltaspin_ = (wf_.nst(0)-wf_.nst(1))/2;
+    }
+#endif
   }
 }
 
@@ -525,5 +499,3 @@ void WavefunctionHandler::endSubHandler(const XMLCh* const uri,
   //cout << " WavefunctionHandler::endSubHandler " << locname << endl;
   delete last;
 }
-
-#endif

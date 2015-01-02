@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2014 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -12,13 +12,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Thermostat.h
+// AlphaPBE0.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Thermostat.h,v 1.7 2010-04-16 21:43:36 fgygi Exp $
 
-#ifndef THERMOSTAT_H
-#define THERMOSTAT_H
+#ifndef ALPHAPBE0_H
+#define ALPHAPBE0_H
 
 #include<iostream>
 #include<iomanip>
@@ -27,34 +26,32 @@
 
 #include "Sample.h"
 
-class Thermostat : public Var
+class AlphaPBE0 : public Var
 {
   Sample *s;
 
   public:
 
-  const char *name ( void ) const { return "thermostat"; };
+  const char *name ( void ) const { return "alpha_PBE0"; };
 
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
     {
       if ( ui->onpe0() )
-      cout << " thermostat takes only one value" << endl;
+      cout << " alpha_PBE0 takes only one value" << endl;
       return 1;
     }
 
-    string v = argv[1];
-    if ( !( v == "SCALING" || v == "ANDERSEN" || v == "LOWE" ||
-         v == "BDP" || v == "OFF" ) )
+    double v = atof(argv[1]);
+    if ( v < 0.0 )
     {
       if ( ui->onpe0() )
-        cout << " thermostat must be SCALING or ANDERSEN or LOWE or BDP or OFF"
-             << endl;
+        cout << " alpha_PBE0 must be non-negative" << endl;
       return 1;
     }
 
-    s->ctrl.thermostat = v;
+    s->ctrl.alpha_PBE0 = v;
 
     return 0;
   }
@@ -65,10 +62,13 @@ class Thermostat : public Var
      st.setf(ios::left,ios::adjustfield);
      st << setw(10) << name() << " = ";
      st.setf(ios::right,ios::adjustfield);
-     st << setw(10) << s->ctrl.thermostat;
+     st << s->ctrl.alpha_PBE0;
      return st.str();
   }
 
-  Thermostat(Sample *sample) : s(sample) { s->ctrl.thermostat = "OFF"; };
+  AlphaPBE0(Sample *sample) : s(sample)
+  {
+    s->ctrl.alpha_PBE0 = 0.25;
+  }
 };
 #endif

@@ -62,7 +62,7 @@ void Cigebr2d(int,char*,char*,int,int,int*,int,int,int);
 
 void Cblacs_pinfo(int*, int*);
 void Cblacs_get(int, int, int*);
-void Cblacs_barrier(int, char*);
+void Cblacs_barrier(int, const char*);
 void Cblacs_gridinfo(int, int*, int*, int*, int*);
 void Cblacs_gridinit(int*, char [], int, int);
 void Cblacs_gridmap(int*, int*, int, int, int);

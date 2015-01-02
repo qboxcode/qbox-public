@@ -77,6 +77,7 @@ using namespace std;
 #include "TorsionCmd.h"
 #include "BisectionCmd.h"
 
+#include "AlphaPBE0.h"
 #include "AtomsDyn.h"
 #include "BlHF.h"
 #include "BtHF.h"
@@ -103,6 +104,7 @@ using namespace std;
 #include "Nrowmax.h"
 #include "Nspin.h"
 #include "RefCell.h"
+#include "ScfTol.h"
 #include "Stress.h"
 #include "Thermostat.h"
 #include "ThTemp.h"
@@ -259,6 +261,7 @@ int main(int argc, char **argv, char **envp)
 
   ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
+  ui.addCmd(new BisectionCmd(s));
   ui.addCmd(new ComputeMLWFCmd(s));
   ui.addCmd(new ConstraintCmd(s));
   ui.addCmd(new DistanceCmd(s));
@@ -276,8 +279,8 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new RandomizeRCmd(s));
   ui.addCmd(new RandomizeVCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
-  ui.addCmd(new ResetVcmCmd(s));
   ui.addCmd(new RescaleVCmd(s));
+  ui.addCmd(new ResetVcmCmd(s));
   ui.addCmd(new RseedCmd(s));
   ui.addCmd(new RunCmd(s));
   ui.addCmd(new SaveCmd(s));
@@ -286,19 +289,20 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new StatusCmd(s));
   ui.addCmd(new StrainCmd(s));
   ui.addCmd(new TorsionCmd(s));
-  ui.addCmd(new BisectionCmd(s));
 
+  ui.addVar(new AlphaPBE0(s));
   ui.addVar(new AtomsDyn(s));
   ui.addVar(new BlHF(s));
   ui.addVar(new BtHF(s));
   ui.addVar(new Cell(s));
   ui.addVar(new CellDyn(s));
   ui.addVar(new CellLock(s));
+  ui.addVar(new CellMass(s));
   ui.addVar(new ChargeMixCoeff(s));
   ui.addVar(new ChargeMixNdim(s));
   ui.addVar(new ChargeMixRcut(s));
-  ui.addVar(new CellMass(s));
   ui.addVar(new Debug(s));
+  ui.addVar(new Dt(s));
   ui.addVar(new Ecut(s));
   ui.addVar(new Ecutprec(s));
   ui.addVar(new Ecuts(s));
@@ -307,13 +311,13 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Emass(s));
   ui.addVar(new ExtStress(s));
   ui.addVar(new FermiTemp(s));
-  ui.addVar(new Dt(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new NetCharge(s));
   ui.addVar(new Nrowmax(s));
   ui.addVar(new Nspin(s));
   ui.addVar(new Dspin(s));
   ui.addVar(new RefCell(s));
+  ui.addVar(new ScfTol(s));
   ui.addVar(new Stress(s));
   ui.addVar(new Thermostat(s));
   ui.addVar(new ThTemp(s));

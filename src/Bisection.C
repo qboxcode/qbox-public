@@ -110,6 +110,9 @@ Bisection::Bisection(const SlaterDet& sd, int nlevels[3])
       if ( np_[idim] % base != 0 ) np_[idim] += base/2;
     }
   }
+  while (!sd.basis().factorizable(np_[0])) np_[0] += (1<<nlevels[0]);
+  while (!sd.basis().factorizable(np_[1])) np_[1] += (1<<nlevels[1]);
+  while (!sd.basis().factorizable(np_[2])) np_[2] += (1<<nlevels[2]);
 
   // number of grid points of augmented grid for normalization
   ft_ = new FourierTransform(sd.basis(),np_[0],np_[1],np_[2]);
@@ -428,9 +431,9 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
     double time = (*i).second.real();
     double tmin = time;
     double tmax = time;
-    wf.context().dmin(1,1,&tmin,1);
-    wf.context().dmax(1,1,&tmax,1);
-    if ( wf.context().myproc()==0 )
+    gcontext_.dmin(1,1,&tmin,1);
+    gcontext_.dmax(1,1,&tmax,1);
+    if ( gcontext_.myproc()==0 )
     {
       cout << "<timing name=\""
            << setw(15) << (*i).first << "\""
@@ -672,6 +675,7 @@ void Bisection::trim_amat(const vector<double>& occ)
   // set to zero the matrix elements of the matrices amat_[k] if they couple
   // states with differing occupation numbers
 
+  const double trim_tol = 1.e-6;
   // check if all occupation numbers are the same
   double occ_max = 0.0, occ_min = 2.0;
   for ( int i = 0; i < occ.size(); i++ )
@@ -680,7 +684,7 @@ void Bisection::trim_amat(const vector<double>& occ)
     occ_min = min(occ_min, occ[i]);
   }
   // return if all occupation numbers are equal
-  if ( fabs(occ_max-occ_min) < 1.e-12 )
+  if ( fabs(occ_max-occ_min) < trim_tol )
     return;
 
   const int mloc = amat_[0]->mloc();
@@ -694,7 +698,7 @@ void Bisection::trim_amat(const vector<double>& occ)
       const int jglobal = amat_[0]->jglobal(j);
 
       const int ival = i + mloc * j;
-      if ( fabs(occ[iglobal] - occ[jglobal]) > 1.e-12 )
+      if ( fabs(occ[iglobal] - occ[jglobal]) > trim_tol )
         for ( int k = 0; k < amat_.size(); k++ )
           (*amat_[k])[ival] = 0.0;
     }

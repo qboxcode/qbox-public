@@ -33,7 +33,7 @@ class WfDiag : public Var
 
   public:
 
-  char *name ( void ) const { return "wf_diag"; };
+  const char *name ( void ) const { return "wf_diag"; };
 
   int set ( int argc, char **argv )
   {

@@ -32,10 +32,10 @@
 #include "Timer.h"
 #include "D3tensor.h"
 #include "Basis.h"
+#include "Matrix.h"
 
 class Sample;
 class MLWFTransform;
-class ComplexMatrix;
 
 class ElectricEnthalpy
 {
@@ -46,11 +46,10 @@ class ElectricEnthalpy
   Wavefunction* dwf_;
   SlaterDet& sd_;
   const Context& ctxt_;
-  const Context& vctxt_;
+  const Basis& basis_;
 
   bool onpe0_;
   bool finite_field_;
-  Basis* vbasis_;
 
   enum { off, berry, mlwf, mlwf_ref, mlwf_ref_q } pol_type_;
   bool compute_quadrupole_;

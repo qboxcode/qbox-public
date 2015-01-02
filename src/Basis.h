@@ -21,22 +21,27 @@
 
 #include "D3vector.h"
 #include "UnitCell.h"
-#include "Context.h"
 #include <vector>
+
+#ifdef USE_MPI
+#include <mpi.h>
+#else
+  typedef int MPI_Comm;
+#endif
 
 class Basis
 {
   private:
 
-  Context ctxt_;
-  int nprow_, myrow_;
+  MPI_Comm comm_;
+  int npes_, mype_;
 
   UnitCell cell_;         // cell dimensions
   UnitCell refcell_;      // reference cell dimensions
   D3vector kpoint_;       // k-point in units of b0,b1,b2
   double ecut_;           // energy cutoff of wavefunctions in Rydberg
-  int idxmin_[3];          // minimum index in each direction
-  int idxmax_[3];          // maximum index in each direction
+  int idxmin_[3];         // minimum index in each direction
+  int idxmax_[3];         // maximum index in each direction
   int size_;              // basis size
   int nrods_;             // total number of rods
   std::vector<int> localsize_; // localsize_[ipe]
@@ -57,7 +62,7 @@ class Basis
   std::vector<double> kpg2_;  // 2-norm of g vectors g2[localsize]
   std::vector<double> g2i_;   // inverse square norm of g vec g2i[localsize]
   std::vector<double> kpg2i_; // inverse square norm of k+g vec kpg2i[localsize]
-  int np_[3];            // cache for the function np
+  int np_[3];                 // cache for the function np
   std::vector<double> gx_;    // g vec components gx[j*localsize+i], j=0,1,2
   std::vector<double> kpgx_;  // k+g vec components kpgx[j*localsize+i], j=0,1,2
   std::vector<int> isort_loc; // index array to access locally sorted vectors
@@ -67,9 +72,11 @@ class Basis
 
   public:
 
-  const Context& context(void) const; // context on which Basis is defined
+  MPI_Comm comm(void) const;     // MPI_Comm on which Basis is defined
+  int mype(void) const { return mype_; }
+  int npes(void) const { return npes_; }
 
-  const UnitCell& cell() const;   // cell dimensions
+  const UnitCell& cell() const;  // cell dimensions
   const UnitCell& refcell() const;// reference cell dimensions
   const D3vector kpoint() const; // k-point in units of b0,b1,b2
   int np(int i) const;           // good size of FFT grid in direction i
@@ -135,7 +142,7 @@ class Basis
   double memsize(void) const;
   double localmemsize(void) const;
 
-  Basis(const Context &ctxt, D3vector kpoint);
+  Basis(MPI_Comm comm, D3vector kpoint);
   //Basis(const Basis &b);
   ~Basis(void);
 

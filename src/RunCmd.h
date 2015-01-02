@@ -34,8 +34,8 @@ class RunCmd : public Cmd
 
   RunCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "run"; }
-  char *help_msg(void) const
+  const char *name(void) const { return "run"; }
+  const char *help_msg(void) const
   {
     return
     "\n run\n\n"

@@ -15,7 +15,6 @@
 // testSlaterDet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testSlaterDet.C,v 1.11 2008-09-08 15:56:20 fgygi Exp $
 
 #include "Context.h"
 #include "SlaterDet.h"
@@ -140,7 +139,6 @@ int main(int argc, char **argv)
       sum += rho[i];
 #if USE_MPI
     double tsum;
-    int mycol = sd.context().mycol();
     MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,sd.context().comm());
     sum = tsum;
 #endif

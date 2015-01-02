@@ -31,7 +31,7 @@ class Polarization: public Var
 
   public:
 
-  char *name ( void ) const { return "polarization"; };
+  const char *name ( void ) const { return "polarization"; };
 
   int set ( int argc, char **argv )
   {

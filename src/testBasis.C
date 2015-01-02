@@ -15,10 +15,8 @@
 // testBasis.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testBasis.C,v 1.7 2008-09-08 15:56:20 fgygi Exp $
 
 #include "Basis.h"
-#include "Context.h"
 #include <iostream>
 #include <new>
 #include <cstdlib>
@@ -52,10 +50,22 @@ int main(int argc, char **argv)
     int npr = atoi(argv[14]);
     int npc = atoi(argv[15]);
 
-    Context ctxt(npr,npc);
     UnitCell cell(a0,a1,a2);
 
-    Basis basis(ctxt,kpoint);
+    // create cartesian communicator
+    int ndims=2;
+    int dims[2] = {npr, npc};
+    int periods[2] = { 0, 0};
+    int reorder = 0;
+    MPI_Comm cartcomm;
+    MPI_Cart_create(MPI_COMM_WORLD,ndims,dims,periods,reorder,&cartcomm);
+
+    // partition the cartesian communicator in columns
+    MPI_Comm colcomm;
+    int remain_dims[2] = { 1, 0 };
+    MPI_Cart_sub(cartcomm,remain_dims,&colcomm);
+
+    Basis basis(colcomm,kpoint);
     try
     {
       basis.resize(cell,cell,ecut);
@@ -66,10 +76,13 @@ int main(int argc, char **argv)
       throw;
     }
 
-    for (int ipe = 0; ipe < ctxt.size(); ipe++ )
+    int npes, mype;
+    MPI_Comm_size(colcomm,&npes);
+    MPI_Comm_rank(colcomm,&mype);
+    for (int ipe = 0; ipe < npes; ipe++ )
     {
-      ctxt.barrier();
-      if ( ipe == ctxt.mype() )
+      MPI_Barrier(colcomm);
+      if ( ipe == mype )
       {
         cout << basis;
         cout << endl;

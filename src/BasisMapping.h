@@ -15,7 +15,6 @@
 //  BasisMapping.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BasisMapping.h,v 1.4 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef BASISMAPPING_H
 #define BASISMAPPING_H
@@ -24,13 +23,11 @@
 #include <vector>
 
 class Basis;
-class Context;
 
 class BasisMapping
 {
   private:
 
-  const Context& ctxt_;
   const Basis& basis_;
   int nprocs_, myproc_;
 
@@ -57,8 +54,6 @@ class BasisMapping
   int np012loc(void) const { return np012loc_; }
   int nvec(void) const { return nvec_; }
   int zvec_size(void) const { return nvec_ * np2_; }
-
-  const Context& context(void) const { return ctxt_; }
 
   // map a function c(G) to zvec_
   void vector_to_zvec(const std::complex<double> *c,

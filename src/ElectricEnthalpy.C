@@ -39,6 +39,7 @@
 #include "UnitCell.h"
 using namespace std;
 
+///////////////////////////////////////////////////////////////////////////////
 double ElectricEnthalpy::vsst(double x) const
 {
   // smooth sawtooth periodic potential function
@@ -70,7 +71,7 @@ double ElectricEnthalpy::vsst(double x) const
 ///////////////////////////////////////////////////////////////////////////////
 ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
   sd_(*(s.wf.sd(0,0))), ctxt_(s.wf.sd(0,0)->context()),
-  vctxt_(s.wf.sd(0,0)->basis().context())
+  basis_(s.wf.sd(0,0)->basis())
 {
   onpe0_ = ctxt_.onpe0();
   e_field_ = s.ctrl.e_field;
@@ -106,7 +107,6 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
   mlwft_ = new MLWFTransform(sd_);
   mlwft_->set_tol(1.e-10);
 
-  vbasis_ = 0;
   smat_[0] = smat_[1] = smat_[2] = 0;
   rwf_[0] = rwf_[1] = rwf_[2] = 0;
   int nst = sd_.nst();
@@ -116,10 +116,6 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
     // allocate real space wf arrays for MLWF refinement
     for ( int idir = 0; idir < 3; idir++ )
       rwf_[idir] = new Wavefunction(wf_);
-
-    // Basis for real wavefunction
-    vbasis_ = new Basis(vctxt_, D3vector(0,0,0));
-    vbasis_->resize(wf_.cell(),wf_.refcell(),wf_.ecut()*4.0);
     correction_.resize(nst);
   }
   else if ( pol_type_ == berry )
@@ -151,7 +147,6 @@ ElectricEnthalpy::~ElectricEnthalpy(void)
 
   delete dwf_;
   delete mlwft_;
-  delete vbasis_;
   for ( int idir = 0; idir < 3; idir++ )
   {
     delete rwf_[idir];
@@ -403,14 +398,13 @@ double ElectricEnthalpy::enthalpy(Wavefunction& dwf, bool compute_hpsi)
 void ElectricEnthalpy::compute_correction(void)
 {
   const Basis& basis = sd_.basis();
-  const Basis& vbasis = *vbasis_;
-  int np0v = vbasis.np(0);
-  int np1v = vbasis.np(1);
-  int np2v = vbasis.np(2);
+  int np0v = basis_.np(0);
+  int np1v = basis_.np(1);
+  int np2v = basis_.np(2);
   const ComplexMatrix& c = sd_.c();
   DoubleMatrix cp(c);
 
-  FourierTransform ft(basis,np0v,np1v,np2v);
+  FourierTransform ft(basis_,np0v,np1v,np2v);
 
   int np012v = ft.np012();
   int np012loc = ft.np012loc();

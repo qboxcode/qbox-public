@@ -53,6 +53,7 @@ struct Control
   double ext_stress[6]; // external stress tensor: xx,yy,zz,xy,yz,xz
 
   std::string xc;
+  double alpha_PBE0;
   std::string spin;
   int delta_spin;
 
@@ -66,6 +67,8 @@ struct Control
 
   int blHF[3];
   double btHF;
+
+  double scf_tol;
 
   D3vector e_field;
   std::string polarization;

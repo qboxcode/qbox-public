@@ -35,9 +35,8 @@ class RseedCmd : public Cmd
 
   RseedCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "rseed"; }
-
-  char *help_msg(void) const
+  const char *name(void) const { return "rseed"; }
+  const char *help_msg(void) const
   {
     return
     "\n rseed\n\n"
@@ -49,10 +48,22 @@ class RseedCmd : public Cmd
 
   int action(int argc, char **argv)
   {
-    long int seed = (long int) time(0);
+    int seed = (int) time(0);
     if ( argc == 2 )
-      seed = atol(argv[1]);
-    srand48(seed);
+      seed = atoi(argv[1]);
+    else
+    {
+      if ( ui->onpe0() )
+      {
+        s->ctxt_.ibcast_send(1,1,&seed,1);
+        cout << "<seed> " << seed << " </seed>" << endl;
+      }
+      else
+      {
+        s->ctxt_.ibcast_recv(1,1,&seed,1,0,0);
+      }
+    }
+    srand48((long int)seed);
     return 0;
   }
 };

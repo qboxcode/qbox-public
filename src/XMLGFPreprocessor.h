@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2008-2012 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -15,8 +15,6 @@
 // XMLGFPreprocessor.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: XMLGFPreprocessor.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
-
 #include <string>
 #include "Matrix.h"
 
@@ -38,6 +36,6 @@ class XMLGFPreprocessor
 {
   public:
 
-  void process(const char* const filename,
-    DoubleMatrix& gfdata, std::string& xmlcontent);
+  int process(const char* const filename,
+    DoubleMatrix& gfdata, std::string& xmlcontent, bool serial);
 };

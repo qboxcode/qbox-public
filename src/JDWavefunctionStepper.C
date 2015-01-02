@@ -26,17 +26,13 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 JDWavefunctionStepper::JDWavefunctionStepper(Wavefunction& wf,
-  double ecutprec, EnergyFunctional& ef, TimerMap& tmap) :
-  WavefunctionStepper(wf,tmap), prec_(0), wft_(wf), dwft_(wf), ef_(ef)
-{
-  prec_ = new Preconditioner(wf,ecutprec);
-}
+  Preconditioner& prec, EnergyFunctional& ef, TimerMap& tmap) :
+  WavefunctionStepper(wf,tmap), prec_(prec), wft_(wf), dwft_(wf), ef_(ef)
+{}
 
 ////////////////////////////////////////////////////////////////////////////////
 JDWavefunctionStepper::~JDWavefunctionStepper(void)
-{
-  delete prec_;
-}
+{}
 
 ////////////////////////////////////////////////////////////////////////////////
 void JDWavefunctionStepper::update(Wavefunction& dwf)
@@ -85,7 +81,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
   tmap_["jd_residual"].stop();
 
   // dwf.sd->c() now contains the descent direction (HV-VA)
-  prec_->update(wf_);
+  prec_.update(wf_);
 
   tmap_["jd_compute_z"].start();
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
@@ -114,7 +110,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
 
           for ( int i = 0; i < ngwl; i++ )
           {
-            const double fac = prec_->diag(ispin,ikp,n,i);
+            const double fac = prec_.diag(ispin,ikp,n,i);
             const double f0 = -fac * dcn[2*i];
             const double f1 = -fac * dcn[2*i+1];
             cn[2*i] = f0;
@@ -160,7 +156,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
 
           for ( int i = 0; i < ngwl; i++ )
           {
-            const double fac = prec_->diag(ispin,ikp,n,i);
+            const double fac = prec_.diag(ispin,ikp,n,i);
             cn[i] = -fac * cpn[i];
           }
         }

@@ -28,7 +28,7 @@ class JDWavefunctionStepper : public WavefunctionStepper
 {
   private:
 
-  Preconditioner *prec_;
+  Preconditioner& prec_;
   EnergyFunctional& ef_;
   Wavefunction wft_, dwft_;
 
@@ -37,7 +37,7 @@ class JDWavefunctionStepper : public WavefunctionStepper
   void update(Wavefunction& dwf);
   virtual void preprocess(void) {}
 
-  JDWavefunctionStepper(Wavefunction& wf, double ecutprec,
+  JDWavefunctionStepper(Wavefunction& wf, Preconditioner& prec,
                         EnergyFunctional& ef, TimerMap& tmap);
   ~JDWavefunctionStepper();
 };

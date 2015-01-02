@@ -31,8 +31,8 @@ class ConstraintCmd : public Cmd
 
   ConstraintCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "constraint"; }
-  char *help_msg(void) const
+  const char *name(void) const { return "constraint"; }
+  const char *help_msg(void) const
   {
     return
     "\n constraint\n\n"

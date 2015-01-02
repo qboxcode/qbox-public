@@ -32,29 +32,53 @@ class AngleCmd : public Cmd
 
   AngleCmd(Sample *sample) : s(sample) {};
 
-  char *name(void) const { return "angle"; }
-  char *help_msg(void) const
+  const char *name(void) const { return "angle"; }
+  const char *help_msg(void) const
   {
     return
     "\n angle\n\n"
-    " syntax: angle name1 name2 name3\n\n"
-    "   The angle command prints the angle defined by three atoms.\n\n";
+    " syntax: angle [-pbc] name1 name2 name3\n\n"
+    "   The angle command prints the angle defined by three atoms.\n"
+    "   If the -pbc option is used, the angle is computed using the\n"
+    "   nearest atoms taking into account periodic boundary conditions.\n\n";
   }
 
   int action(int argc, char **argv)
   {
-    if ( argc != 4 )
+    if ( ! ( argc == 4 || argc == 5 ) )
     {
       if ( ui->onpe0() )
       {
-        cout << " use: angle name1 name2 name3" << endl;
+        cout << " use: angle [-pbc] name1 name2 name3" << endl;
       }
       return 1;
     }
 
-    string name1(argv[1]);
-    string name2(argv[2]);
-    string name3(argv[3]);
+    string name1, name2, name3;
+    bool use_pbc = false;
+
+    if ( argc == 4 )
+    {
+      name1 = argv[1];
+      name2 = argv[2];
+      name3 = argv[3];
+    }
+    if ( argc == 5 )
+    {
+      if ( strcmp(argv[1],"-pbc") )
+      {
+        if ( ui->onpe0() )
+        {
+          cout << " use: angle [-pbc] name1 name2 name3" << endl;
+        }
+        return 1;
+      }
+      use_pbc = true;
+      name1 = argv[2];
+      name2 = argv[3];
+      name3 = argv[4];
+    }
+
     Atom* a1 = s->atoms.findAtom(name1);
     Atom* a2 = s->atoms.findAtom(name2);
     Atom* a3 = s->atoms.findAtom(name3);
@@ -82,22 +106,25 @@ class AngleCmd : public Cmd
       return 1;
     }
 
-    D3vector r12(a1->position()-a2->position());
-    D3vector r32(a3->position()-a2->position());
-    if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " AngleCmd: atoms are too close" << endl;
-      }
-      return 1;
-    }
-
-    const double sp = normalized(r12) * normalized(r32);
-    const double c = max(-1.0,min(1.0,sp));
-    const double a = (180.0/M_PI)*acos(c);
     if ( ui->onpe0() )
     {
+      D3vector r12(a1->position()-a2->position());
+      D3vector r32(a3->position()-a2->position());
+      if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 )
+      {
+        cout << " AngleCmd: atoms are too close" << endl;
+        return 1;
+      }
+
+      if ( use_pbc )
+      {
+        const UnitCell& cell = s->wf.cell();
+        cell.fold_in_ws(r12);
+        cell.fold_in_ws(r32);
+      }
+      const double sp = normalized(r12) * normalized(r32);
+      const double c = max(-1.0,min(1.0,sp));
+      const double a = (180.0/M_PI)*acos(c);
       cout.setf(ios::fixed,ios::floatfield);
       cout << " angle " << name1 << "-" << name2  << "-" << name3
            << ": "

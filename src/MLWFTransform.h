@@ -27,6 +27,8 @@ class DoubleMatrix;
 #include "D3vector.h"
 #include "BasisMapping.h"
 
+class Context;
+
 class MLWFTransform
 {
   private:

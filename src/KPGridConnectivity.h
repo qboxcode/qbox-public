@@ -30,12 +30,14 @@ class KPConnectivity
 {
   private:
 
+  const Sample &s_;
   int DimX_;
   int DimY_;
   int DimZ_;
   int nkpoints_;
   int nStateMax_;
   int ConnectivityComplete_;
+  double kdist_tol_;
 
   std::vector<int> first_neighbour_kx_;
   std::vector<int> first_neighbour_ky_;
@@ -128,6 +130,7 @@ class KPConnectivity
   void AddOverlap(int iKpi, int iKpj, int iLocStatei,
     complex<double> *valueDirect, complex<double> *valueSymmetric,
     double occupation);
+  void cell_moved(void);
   void StartPermutation(int iKp, int iSendTo, int iRecvFr);
   void EndPermutation();
 

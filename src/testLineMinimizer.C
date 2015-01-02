@@ -5,7 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
-#include <cassert>>
+#include <cassert>
+#include <cstdlib>
 #include "LineMinimizer.h"
 using namespace std;
 
@@ -76,6 +77,7 @@ int main(int argc, char **argv)
   linmin.set_sigma1(sigma1);
   linmin.set_sigma2(sigma2);
   linmin.set_alpha_start(alpha_start);
+  linmin.set_debug_print();
 
   // descent direction p
   ff(ifun,x0,&f,&g);

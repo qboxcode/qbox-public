@@ -290,6 +290,17 @@ void Wavefunction::set_deltaspin(int deltaspin)
 {
   if ( deltaspin == deltaspin_ ) return;
 
+  // check if value of deltaspin would result in nst[1] < 0
+  // nst_[1] = nel_ / 2 - deltaspin_ + nempty_;
+  if ( nel_ / 2 - deltaspin + nempty_ < 0 )
+  {
+    if ( ctxt_.onpe0() )
+    {
+      cout << " Wavefunction::set_deltaspin: nel+nempty too small" << endl;
+      cout << " Wavefunction::set_deltaspin: cannot set deltaspin" << endl;
+      return;
+    }
+  }
   deallocate();
   deltaspin_ = deltaspin;
   compute_nst();
@@ -361,7 +372,23 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
     sd_[ispin].push_back(new SlaterDet(*sdcontext_,kpoint_[nkp-1]));
     sd_[ispin][nkp-1]->resize(cell_,refcell_,ecut_,nst_[ispin]);
   }
-  update_occ(0.0);
+
+  if ( nspin_ == 1 )
+  {
+    sd_[0][nkp-1]->update_occ(nel_,nspin_);
+  }
+  else if ( nspin_ == 2 )
+  {
+    const int nocc_up = (nel_+1)/2+deltaspin_;
+    const int nocc_dn = nel_/2 - deltaspin_;
+    sd_[0][nkp-1]->update_occ(nocc_up,nspin_);
+    sd_[1][nkp-1]->update_occ(nocc_dn,nspin_);
+  }
+  else
+  {
+    // incorrect value of nspin_
+    assert(false);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -844,10 +871,10 @@ Wavefunction& Wavefunction::operator=(const Wavefunction& wf)
   assert(nspin_ == wf.nspin_);
   assert(nrowmax_ == wf.nrowmax_);
   assert(deltaspin_ == wf.deltaspin_);
-  assert(cell_ == wf.cell_);
   assert(refcell_ == wf.refcell_);
   assert(ecut_ == wf.ecut_);
 
+  cell_ = wf.cell_;
   weight_ = wf.weight_;
   kpoint_ = wf.kpoint_;
 

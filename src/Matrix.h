@@ -21,7 +21,7 @@
 
 #define MATRIX_DEF_BLOCK_SIZE 64
 
-class Context;
+#include "Context.h"
 
 #include <valarray>
 #include <complex>

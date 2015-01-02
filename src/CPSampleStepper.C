@@ -109,7 +109,6 @@ void CPSampleStepper::step(int niter)
   const bool compute_hpsi = true;
   const bool compute_forces = ( atoms_dyn != "LOCKED" );
   const bool compute_stress = ( s_.ctrl.stress == "ON" );
-  const bool use_confinement = ( s_.ctrl.ecuts > 0.0 );
 
   CellStepper* cell_stepper = 0;
   if ( cell_dyn == "SD" )

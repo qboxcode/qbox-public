@@ -397,7 +397,6 @@ double ElectricEnthalpy::enthalpy(Wavefunction& dwf, bool compute_hpsi)
 ///////////////////////////////////////////////////////////////////////////////
 void ElectricEnthalpy::compute_correction(void)
 {
-  const Basis& basis = sd_.basis();
   int np0v = basis_.np(0);
   int np1v = basis_.np(1);
   int np2v = basis_.np(2);
@@ -706,14 +705,14 @@ void ElectricEnthalpy::print(ostream& os) const
   // print polarization
   os.precision(10);
   os << "  <polarization>\n";
-  os << "    <P_ion>  " << setw(16) << polarization_ion_.x
-                        << setw(16) << polarization_ion_.y
+  os << "    <P_ion>  " << setw(16) << polarization_ion_.x << " "
+                        << setw(16) << polarization_ion_.y << " "
                         << setw(16) << polarization_ion_.z << " </P_ion>\n";
-  os << "    <P_elec> " << setw(16) << polarization_elec_.x
-                        << setw(16) << polarization_elec_.y
+  os << "    <P_elec> " << setw(16) << polarization_elec_.x << " "
+                        << setw(16) << polarization_elec_.y << " "
                         << setw(16) << polarization_elec_.z << " </P_elec>\n";
-  os << "    <P_tot>  " << setw(16) << polarization_total_.x
-                        << setw(16) << polarization_total_.y
+  os << "    <P_tot>  " << setw(16) << polarization_total_.x << " "
+                        << setw(16) << polarization_total_.y << " "
                         << setw(16) << polarization_total_.z << " </P_tot>\n";
   os << "  </polarization>\n";
 }

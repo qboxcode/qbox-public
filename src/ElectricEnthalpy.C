@@ -176,6 +176,7 @@ void ElectricEnthalpy::update(void)
 {
   if ( pol_type_ == off ) return;
 
+  const UnitCell& cell = sd_.basis().cell();
   // compute cos and sin matrices
   tmap["mlwf_update"].start();
   mlwft_->update();
@@ -248,7 +249,7 @@ void ElectricEnthalpy::update(void)
             int mloc = cp.mloc();
             int ione = 1;
 
-            const double fac = sd_.basis().cell().a_norm(idir)
+            const double fac = cell.a_norm(idir)
                                * e_field_[idir] / ( 2.0 * M_PI );
 
             for (int in = 0; in < nloc; in++)
@@ -290,7 +291,7 @@ void ElectricEnthalpy::update(void)
 
     for ( int idir = 0; idir < 3; idir++ )
     {
-      const double fac = sd_.basis().cell().a_norm(idir)/( 2.0*M_PI );
+      const double fac = cell.a_norm(idir)/( 2.0*M_PI );
       complex<double>* val = smat_[idir]->valptr();
 
       const double* re = mlwft_->a(idir*2)->cvalptr();
@@ -371,6 +372,9 @@ void ElectricEnthalpy::update(void)
   }
 
   polarization_total_ = polarization_ion_ + polarization_elec_;
+  cell.fold_in_ws(polarization_ion_);
+  cell.fold_in_ws(polarization_elec_);
+  cell.fold_in_ws(polarization_total_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -430,9 +434,10 @@ void ElectricEnthalpy::compute_correction(void)
   if ( compute_quadrupole_ ) ref.resize(nst*9);
 
   // cell size;
-  const double ax = sd_.basis().cell().amat(0);
-  const double ay = sd_.basis().cell().amat(4);
-  const double az = sd_.basis().cell().amat(8);
+  const UnitCell& cell = sd_.basis().cell();
+  const double ax = cell.amat(0);
+  const double ay = cell.amat(4);
+  const double az = cell.amat(8);
 
   // half cell size;
   const double ax2 = ax / 2.0;

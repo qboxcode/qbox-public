@@ -1050,9 +1050,6 @@ void BOSampleStepper::step(int niter)
         }
       }
 
-      if ( onpe0 && ef_.el_enth() )
-        cout << *ef_.el_enth();
-
       // If GS calculation only, print energy and atomset at end of iterations
       if ( gs_only )
       {
@@ -1067,6 +1064,8 @@ void BOSampleStepper::step(int niter)
         if ( onpe0 )
         {
           cout << ef_;
+          if ( ef_.el_enth() )
+            cout << *ef_.el_enth();
           cout << "<atomset>" << endl;
           cout << atoms.cell();
           for ( int is = 0; is < atoms.atom_list.size(); is++ )
@@ -1126,6 +1125,9 @@ void BOSampleStepper::step(int niter)
       if ( onpe0 )
       {
         cout << ef_;
+        if ( ef_.el_enth() )
+          cout << *ef_.el_enth();
+
       }
     }
 

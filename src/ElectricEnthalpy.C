@@ -452,8 +452,21 @@ void ElectricEnthalpy::compute_correction(void)
   for ( int i = 0; i < nst; i++ )
     correction_[i] = D3vector(0,0,0);
 
-  const int niter_ = 1;
-  for ( int iter = 0; iter < niter_; iter++ )
+  int niter = 1;
+  // check if override from the debug variable
+  // use: set debug MLWF_REF_NITER <value>
+  if ( s_.ctrl.debug.find("MLWF_REF_NITER") != string::npos )
+  {
+    istringstream is(s_.ctrl.debug);
+    string s;
+    assert(s=="MLWF_REF_NITER");
+    is >> s >> niter;
+    if ( onpe0_ )
+      cout << " ElectricEnthalpy: override niter value: niter= " 
+           << niter << endl;
+    assert(niter > 0);
+  }
+  for ( int iter = 0; iter < niter; iter++ )
   {
     fill(ref.begin(),ref.end(),0.0);
 
@@ -551,7 +564,7 @@ void ElectricEnthalpy::compute_correction(void)
       tmap["real"].stop();
 
       // ft to get xwf in reciprocal space at the last iteration
-      if ( iter == niter_ - 1 )
+      if ( iter == niter - 1 )
       {
         tmap["ft"].start();
         if ( e_field_[0] != 0.0 )

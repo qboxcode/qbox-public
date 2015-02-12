@@ -742,18 +742,21 @@ bool Bisection::overlap(const vector<long int>& loc_, int i, int j) const
 double Bisection::pair_fraction(void) const
 {
   // pair_fraction: return fraction of pairs having non-zero overlap
+  // count pairs (i,j) having non-zero overlap for i != j only
   int sum = 0;
-  for ( int i = 0; i < nst_; i++ )
+  for ( int i = 1; i < nst_; i++ )
   {
     int count = 0;
-    for ( int j = 0; j < nst_; j++ )
+    for ( int j = i+1; j < nst_; j++ )
     {
       if ( overlap(i,j) )
         count++;
     }
     sum += count;
   }
-  return ((double) sum)/(nst_*nst_);
+  // add overlap with self: (i,i)
+  sum += nst_;
+  return ((double) sum)/((nst_*(nst_+1))/2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

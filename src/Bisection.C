@@ -706,13 +706,13 @@ void Bisection::trim_amat(const vector<double>& occ)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool Bisection::overlap(int i, int j)
+bool Bisection::overlap(int i, int j) const
 {
   return overlap(localization_,i,j);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool Bisection::overlap(vector<long int> loc_, int i, int j)
+bool Bisection::overlap(const vector<long int>& loc_, int i, int j) const
 {
   // overlap: return true if the functions i and j overlap according
   // to the localization vector loc_
@@ -739,7 +739,7 @@ bool Bisection::overlap(vector<long int> loc_, int i, int j)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double Bisection::pair_fraction(void)
+double Bisection::pair_fraction(void) const
 {
   // pair_fraction: return fraction of pairs having non-zero overlap
   int sum = 0;
@@ -757,7 +757,7 @@ double Bisection::pair_fraction(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double Bisection::size(int i)
+double Bisection::size(int i) const
 {
   // size: return fraction of the domain on which state i is non-zero
   long int loc = localization_[i];
@@ -780,7 +780,7 @@ double Bisection::size(int i)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double Bisection::total_size(void)
+double Bisection::total_size(void) const
 {
   // total_size: return normalized sum of sizes
   double sum = 0.0;

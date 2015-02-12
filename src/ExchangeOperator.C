@@ -998,18 +998,44 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           cout << " override bisection tol value: tol = " << tol << endl;
         assert(tol > 0.0);
       }
+#if TIMING
+      Timer tmbtransf;
+      tmbtransf.start();
+#endif
       bisection_[ispin]->compute_transform(*wfc_.sd(ispin,0),maxsweep,tol);
+#if TIMING
+      tmbtransf.stop();
+      Timer tmbcomploc;
+      tmbcomploc.start();
+#endif
       bisection_[ispin]->compute_localization(s_.ctrl.btHF);
+#if TIMING
+      tmbcomploc.stop();
+#endif
       // copy of localization vector from Bisection object
       localization_ = bisection_[ispin]->localization();
 
+#if TIMING
+      Timer tmbsize, tmbpair;
+      tmbsize.start();
+#endif
       if ( gcontext_.onpe0() )
       {
           cout << " ExchangeOperator: bisection size: ispin=" << ispin
                << ": " << bisection_[ispin]->total_size() << endl;
+      }
+#if TIMING
+      tmbsize.stop();
+      tmbpair.start();
+#endif
+      if ( gcontext_.onpe0() )
+      {
           cout << " ExchangeOperator: pair fraction:  ispin=" << ispin
                << ": " << bisection_[ispin]->pair_fraction() << endl;
       }
+#if TIMING
+      tmbpair.stop();
+#endif
 
       // copy the orthogonal transformation u to uc_[ispin]
       *uc_[ispin] = bisection_[ispin]->u();
@@ -1023,6 +1049,10 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
         // compute the degree of the vertices of the exchange graph
         // using the localization vector
+#if TIMING
+        Timer tmb_ov;
+        tmb_ov.start();
+#endif
         vector<int> degree(nst);
         for ( int i = 0; i < nst; i++ )
         {
@@ -1034,6 +1064,15 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           }
           degree[i] = count;
         }
+#if TIMING
+        tmb_ov.stop();
+        if ( gcontext_.onpe0() )
+        {
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection overlap time: "
+             << tmb_ov.real() << " s" << endl;
+        }
+#endif
 
         // permutation index
         vector<int> index(nst);
@@ -1190,8 +1229,27 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         }
 #endif
 
+#if TIMING
+        Timer tmblapiv;
+        tmblapiv.start();
+#endif
         // apply the permutation to the columns of uc
         uc_[ispin]->lapiv('B','C',&locpivot[0]);
+#if TIMING
+        tmblapiv.stop();
+        if ( gcontext_.onpe0() )
+        {
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection size time: "
+             << tmbsize.real() << " s" << endl;
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection pair time: "
+             << tmbpair.real() << " s" << endl;
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection lapiv time: "
+             << tmblapiv.real() << " s" << endl;
+        }
+#endif
 
 #if DEBUG
         // recompute the degree of the vertices of the exchange graph
@@ -1244,11 +1302,29 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           cout << " ExchangeOperator: bisection distribution disabled" << endl;
       } // if distribute
 
+#if TIMING
+      Timer tmbfwd;
+      tmbfwd.start();
+#endif
       bisection_[ispin]->forward(*uc_[ispin], *wfc_.sd(ispin,0));
+#if TIMING
+      tmbfwd.stop();
+#endif
 
       tmb.stop();
       if ( gcontext_.onpe0() )
       {
+#if TIMING
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection compute transform time: "
+           << tmbtransf.real() << " s" << endl;
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection compute localization time: "
+           << tmbcomploc.real() << " s" << endl;
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection forward time: "
+           << tmbfwd.real() << " s" << endl;
+#endif
         cout << setprecision(3);
         cout << " ExchangeOperator: bisection time: "
            << tmb.real() << " s" << endl;
@@ -2206,13 +2282,15 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
   tm.stop();
 
+  if ( gcontext_.onpe0() )
+  {
+    cout << setprecision(3);
+    cout << " total exchange computation time: " << tm.real()
+         << " s" << endl;
+  }
 #ifdef DEBUG
   if ( gcontext_.onpe0() )
   {
-    cout << setprecision(10);
-    cout << " total exchange = " << extot << " (a.u.)\n";
-    cout << " total exchange computation time: " << tm.real()
-         << " s" << endl;
     if ( compute_stress )
     {
       cout << " exchange stress (a.u.) " << endl;

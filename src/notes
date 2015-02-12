@@ -1,5 +1,22 @@
 --------------------------------------------------------------------------------
-rel1_60_5
+Planned merging of oncv branch into trunk. Modifications.
+Species.h: Must check use of namespace to define proj_data object.
+Species.h: ztot_ zcore_ are double. Related to the definition given
+in the species that may not be an integer charge?
+Species.C: use of "or" keyword in test is a C++-11 feature. Revert to || for
+consistency with the rest of the code.
+EnergyFunctional.h: ChargeDensity cd_ not const. Due to core charge update? 
+ChargeDensity.C::update_rhor: use of transform algorithm. Add and subtract
+core charge can be replaced by use of temporary array, simpler loop.
+sample.xsd: remove definition of doubleListType which appears in species.xsd
+--------------------------------------------------------------------------------
+rel1_60_7
+--------------------------------------------------------------------------------
+r1645: Bisection.C: modified pair_fraction to reduce calls to overlap.
+r1644: optimization of Bisection::overlap speeds up exchange on large problems
+r1644: added detailed timers to ExchangeOperator.C
+--------------------------------------------------------------------------------
+rel1_60_6
 --------------------------------------------------------------------------------
 r1605: added -vlocal option to the plot command. Plot Vloc+VHart+Vxc.
 r1570: cleanup testXMLGFPreprocessor.C

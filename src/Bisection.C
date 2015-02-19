@@ -403,7 +403,7 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
 
   // diagonalize projectors
   int nsweep = jade(maxsweep,tol,amat_,*u_,adiag_);
-  if ( nsweep >= maxsweep )
+  //if ( nsweep >= maxsweep )
     if ( gcontext_.onpe0() )
       cout << "Bisection::compute_transform: nsweep=" << nsweep
            << " maxsweep=" << maxsweep << " tol=" << tol << endl;

@@ -986,7 +986,18 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     if ( use_bisection_ )
     {
       tmb.start();
-      const int maxsweep = 50;
+      int maxsweep = 50;
+      if ( s_.ctrl.debug.find("BISECTION_MAXSWEEP") != string::npos )
+      {
+        // override tolerance for bisection
+        istringstream is(s_.ctrl.debug);
+        string s;
+        is >> s >> maxsweep;
+        if ( gcontext_.onpe0() )
+          cout << " override bisection maxsweep value: maxsweep = "
+               << maxsweep << endl;
+        assert(maxsweep >= 0);
+      }
       double tol = 1.e-6;
       if ( s_.ctrl.debug.find("BISECTION_TOL") != string::npos )
       {

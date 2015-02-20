@@ -1356,10 +1356,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       wft_->backward(c.cvalptr(i*c.mloc()), c.cvalptr((i+1)*c.mloc()),
                      &tmp_[0]);
       double *p = (double *)&tmp_[0];
-      for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+#pragma omp parallel for
+      for ( int ir = 0; ir < np012loc_; ir++ )
       {
-        statej_[i][ir]=p[irp];
-        statej_[i+1][ir]=p[irp+1];
+        statej_[i][ir]=p[2*ir];
+        statej_[i+1][ir]=p[2*ir+1];
       }
     }
 
@@ -1559,10 +1560,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
               // copy the result in state[i] and state[j]
               double *p = (double *)&tmp_[0];
-              for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+#pragma omp parallel for
+              for ( int ir = 0; ir < np012loc_; ir++ )
               {
-                statei_[i][ir]=p[irp];
-                statei_[j][ir]=p[irp+1];
+                statei_[i][ir]=p[2*ir];
+                statei_[j][ir]=p[2*ir+1];
               }
             }
 
@@ -1625,7 +1627,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             double *pj1 = (double *)&statej_[j1][0];
             double *pj2 = (double *)&statej_[j2][0];
 
-            for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip+=2 )
+#pragma omp parallel for
+            for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
             {
               p[ip]   = pi1[ip] * pj1[ip];
               p[ip+1] = pi2[ip] * pj2[ip];
@@ -1747,7 +1750,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *dp = (double *) &dstatei_[i1][0];
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                 dp[ip] += pj[ip] * pr[ip] * weight;
             }
           }
@@ -1772,7 +1776,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
               {
                 dpi[ip] += pj[ip] * pr[ip] * weightj;
                 dpj[ip] += pi[ip] * pr[ip] * weighti;
@@ -1801,7 +1806,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pr = (double *) &rhor1_[0];
               pr = pr + 1;
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                 dp[ip] += pj[ip] * pr[ip] * weight;
             }
           }
@@ -1827,7 +1833,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pr = (double *) &rhor1_[0];
               pr = pr + 1;
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
               {
                 dpi[ip] += pj[ip] * pr[ip] * weightj;
                 dpj[ip] += pi[ip] * pr[ip] * weighti;
@@ -1846,7 +1853,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           double *p   = (double *)&rhor1_[0];
           double *pi1 = (double *)&statei_[i1][0];
           double *pj1 = (double *)&statej_[j1][0];
-          for ( int ir = 0, ip=0; ir < np012loc_; ir++, ip+=2 )
+#pragma omp parallel for
+          for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
           {
             p[ip]   = pi1[ip] * pj1[ip];
             p[ip+1] = 0.0;
@@ -1931,7 +1939,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *dp = (double *) &dstatei_[i1][0];
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                 dp[ip] += pj[ip] * pr[ip] * weight;
             }
           }
@@ -1956,7 +1965,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
               {
                 dpi[ip] += pj[ip] * pr[ip] * weightj;
                 dpj[ip] += pi[ip] * pr[ip] * weighti;
@@ -2011,10 +2021,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
                   double *p = (double *)&tmp_[0];
                   double *dpr = (double *)&dstatei_[i][0];
                   double *dpi = (double *)&dstatei_[j][0];
-                  for (int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2)
+#pragma omp parallel for
+                  for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                   {
-                    p[irp]=dpr[irp];
-                    p[irp+1]=dpi[irp];
+                    p[ip]=dpr[ip];
+                    p[ip+1]=dpi[ip];
                   }
 
                   // transform the pair of states
@@ -2132,10 +2143,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       double *p = (double *)&tmp_[0];
       double *dpr = (double *)&dstatej_[i][0];
       double *dpi = (double *)&dstatej_[i+1][0];
-      for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+#pragma omp parallel for
+      for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
       {
-        p[irp]=dpr[irp];
-        p[irp+1]=dpi[irp];
+        p[ip]=dpr[ip];
+        p[ip+1]=dpi[ip];
       }
       // transform the pair of forces
       wft_->forward(&(tmp_)[0], &buffer_forces_1_[0], &buffer_forces_2_[0]);

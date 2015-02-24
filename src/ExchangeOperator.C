@@ -936,13 +936,14 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   extot *= HFCoeff_;
 
   tm.stop();
+#ifdef DEBUG
   if ( gcontext_.onpe0() )
   {
     cout << setprecision(10);
-    cout << " total exchange = " << extot << " (a.u.)\n";
     cout << " total exchange computation time: " << tm.real()
          << " s" << endl;
   }
+#endif
 
   return extot;
 }
@@ -2305,15 +2306,12 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
   tm.stop();
 
+#ifdef DEBUG
   if ( gcontext_.onpe0() )
   {
     cout << setprecision(3);
     cout << " total exchange computation time: " << tm.real()
          << " s" << endl;
-  }
-#ifdef DEBUG
-  if ( gcontext_.onpe0() )
-  {
     if ( compute_stress )
     {
       cout << " exchange stress (a.u.) " << endl;

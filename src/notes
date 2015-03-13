@@ -10,6 +10,15 @@ ChargeDensity.C::update_rhor: use of transform algorithm. Add and subtract
 core charge can be replaced by use of temporary array, simpler loop.
 sample.xsd: remove definition of doubleListType which appears in species.xsd
 --------------------------------------------------------------------------------
+rel1_60_9
+r1656 ExchangeOperator.C: changed default bisection tolerance to 1.0
+--------------------------------------------------------------------------------
+rel1_60_8
+r1655 ExchangeOperator print exch time only if DEBUG defined
+r1652 Bisection.C print nsweep only if TIMING defined
+r1651 ExchangeOperator.C added omp directives in jade.C
+r1649 ExchangeOperator.C, Bisection.C added BISECTION_NSWEEP debug option
+--------------------------------------------------------------------------------
 rel1_60_7
 --------------------------------------------------------------------------------
 r1645: Bisection.C: modified pair_fraction to reduce calls to overlap.

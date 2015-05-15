@@ -19,5 +19,5 @@
 #include "release.h"
 std::string release(void)
 {
-  return std::string("oncv");
+  return std::string("wrk");
 }

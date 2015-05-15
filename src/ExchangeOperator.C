@@ -936,13 +936,14 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   extot *= HFCoeff_;
 
   tm.stop();
+#ifdef DEBUG
   if ( gcontext_.onpe0() )
   {
     cout << setprecision(10);
-    cout << " total exchange = " << extot << " (a.u.)\n";
     cout << " total exchange computation time: " << tm.real()
          << " s" << endl;
   }
+#endif
 
   return extot;
 }
@@ -986,8 +987,19 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     if ( use_bisection_ )
     {
       tmb.start();
-      const int maxsweep = 50;
-      double tol = 1.e-6;
+      int maxsweep = 50;
+      if ( s_.ctrl.debug.find("BISECTION_MAXSWEEP") != string::npos )
+      {
+        // override tolerance for bisection
+        istringstream is(s_.ctrl.debug);
+        string s;
+        is >> s >> maxsweep;
+        if ( gcontext_.onpe0() )
+          cout << " override bisection maxsweep value: maxsweep = "
+               << maxsweep << endl;
+        assert(maxsweep >= 0);
+      }
+      double tol = 1.0;
       if ( s_.ctrl.debug.find("BISECTION_TOL") != string::npos )
       {
         // override tolerance for bisection
@@ -998,18 +1010,44 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           cout << " override bisection tol value: tol = " << tol << endl;
         assert(tol > 0.0);
       }
+#if TIMING
+      Timer tmbtransf;
+      tmbtransf.start();
+#endif
       bisection_[ispin]->compute_transform(*wfc_.sd(ispin,0),maxsweep,tol);
+#if TIMING
+      tmbtransf.stop();
+      Timer tmbcomploc;
+      tmbcomploc.start();
+#endif
       bisection_[ispin]->compute_localization(s_.ctrl.btHF);
+#if TIMING
+      tmbcomploc.stop();
+#endif
       // copy of localization vector from Bisection object
       localization_ = bisection_[ispin]->localization();
 
+#if TIMING
+      Timer tmbsize, tmbpair;
+      tmbsize.start();
+#endif
       if ( gcontext_.onpe0() )
       {
           cout << " ExchangeOperator: bisection size: ispin=" << ispin
                << ": " << bisection_[ispin]->total_size() << endl;
+      }
+#if TIMING
+      tmbsize.stop();
+      tmbpair.start();
+#endif
+      if ( gcontext_.onpe0() )
+      {
           cout << " ExchangeOperator: pair fraction:  ispin=" << ispin
                << ": " << bisection_[ispin]->pair_fraction() << endl;
       }
+#if TIMING
+      tmbpair.stop();
+#endif
 
       // copy the orthogonal transformation u to uc_[ispin]
       *uc_[ispin] = bisection_[ispin]->u();
@@ -1023,6 +1061,10 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
         // compute the degree of the vertices of the exchange graph
         // using the localization vector
+#if TIMING
+        Timer tmb_ov;
+        tmb_ov.start();
+#endif
         vector<int> degree(nst);
         for ( int i = 0; i < nst; i++ )
         {
@@ -1034,6 +1076,15 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           }
           degree[i] = count;
         }
+#if TIMING
+        tmb_ov.stop();
+        if ( gcontext_.onpe0() )
+        {
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection overlap time: "
+             << tmb_ov.real() << " s" << endl;
+        }
+#endif
 
         // permutation index
         vector<int> index(nst);
@@ -1190,8 +1241,27 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         }
 #endif
 
+#if TIMING
+        Timer tmblapiv;
+        tmblapiv.start();
+#endif
         // apply the permutation to the columns of uc
         uc_[ispin]->lapiv('B','C',&locpivot[0]);
+#if TIMING
+        tmblapiv.stop();
+        if ( gcontext_.onpe0() )
+        {
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection size time: "
+             << tmbsize.real() << " s" << endl;
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection pair time: "
+             << tmbpair.real() << " s" << endl;
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection lapiv time: "
+             << tmblapiv.real() << " s" << endl;
+        }
+#endif
 
 #if DEBUG
         // recompute the degree of the vertices of the exchange graph
@@ -1244,11 +1314,29 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           cout << " ExchangeOperator: bisection distribution disabled" << endl;
       } // if distribute
 
+#if TIMING
+      Timer tmbfwd;
+      tmbfwd.start();
+#endif
       bisection_[ispin]->forward(*uc_[ispin], *wfc_.sd(ispin,0));
+#if TIMING
+      tmbfwd.stop();
+#endif
 
       tmb.stop();
       if ( gcontext_.onpe0() )
       {
+#if TIMING
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection compute transform time: "
+           << tmbtransf.real() << " s" << endl;
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection compute localization time: "
+           << tmbcomploc.real() << " s" << endl;
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection forward time: "
+           << tmbfwd.real() << " s" << endl;
+#endif
         cout << setprecision(3);
         cout << " ExchangeOperator: bisection time: "
            << tmb.real() << " s" << endl;
@@ -1269,10 +1357,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       wft_->backward(c.cvalptr(i*c.mloc()), c.cvalptr((i+1)*c.mloc()),
                      &tmp_[0]);
       double *p = (double *)&tmp_[0];
-      for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+#pragma omp parallel for
+      for ( int ir = 0; ir < np012loc_; ir++ )
       {
-        statej_[i][ir]=p[irp];
-        statej_[i+1][ir]=p[irp+1];
+        statej_[i][ir]=p[2*ir];
+        statej_[i+1][ir]=p[2*ir+1];
       }
     }
 
@@ -1472,10 +1561,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
               // copy the result in state[i] and state[j]
               double *p = (double *)&tmp_[0];
-              for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+#pragma omp parallel for
+              for ( int ir = 0; ir < np012loc_; ir++ )
               {
-                statei_[i][ir]=p[irp];
-                statei_[j][ir]=p[irp+1];
+                statei_[i][ir]=p[2*ir];
+                statei_[j][ir]=p[2*ir+1];
               }
             }
 
@@ -1538,7 +1628,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             double *pj1 = (double *)&statej_[j1][0];
             double *pj2 = (double *)&statej_[j2][0];
 
-            for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip+=2 )
+#pragma omp parallel for
+            for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
             {
               p[ip]   = pi1[ip] * pj1[ip];
               p[ip+1] = pi2[ip] * pj2[ip];
@@ -1660,7 +1751,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *dp = (double *) &dstatei_[i1][0];
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                 dp[ip] += pj[ip] * pr[ip] * weight;
             }
           }
@@ -1685,7 +1777,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
               {
                 dpi[ip] += pj[ip] * pr[ip] * weightj;
                 dpj[ip] += pi[ip] * pr[ip] * weighti;
@@ -1714,7 +1807,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pr = (double *) &rhor1_[0];
               pr = pr + 1;
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                 dp[ip] += pj[ip] * pr[ip] * weight;
             }
           }
@@ -1740,7 +1834,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pr = (double *) &rhor1_[0];
               pr = pr + 1;
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
               {
                 dpi[ip] += pj[ip] * pr[ip] * weightj;
                 dpj[ip] += pi[ip] * pr[ip] * weighti;
@@ -1759,7 +1854,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           double *p   = (double *)&rhor1_[0];
           double *pi1 = (double *)&statei_[i1][0];
           double *pj1 = (double *)&statej_[j1][0];
-          for ( int ir = 0, ip=0; ir < np012loc_; ir++, ip+=2 )
+#pragma omp parallel for
+          for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
           {
             p[ip]   = pi1[ip] * pj1[ip];
             p[ip+1] = 0.0;
@@ -1844,7 +1940,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *dp = (double *) &dstatei_[i1][0];
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                 dp[ip] += pj[ip] * pr[ip] * weight;
             }
           }
@@ -1869,7 +1966,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
               {
                 dpi[ip] += pj[ip] * pr[ip] * weightj;
                 dpj[ip] += pi[ip] * pr[ip] * weighti;
@@ -1924,10 +2022,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
                   double *p = (double *)&tmp_[0];
                   double *dpr = (double *)&dstatei_[i][0];
                   double *dpi = (double *)&dstatei_[j][0];
-                  for (int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2)
+#pragma omp parallel for
+                  for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                   {
-                    p[irp]=dpr[irp];
-                    p[irp+1]=dpi[irp];
+                    p[ip]=dpr[ip];
+                    p[ip+1]=dpi[ip];
                   }
 
                   // transform the pair of states
@@ -2045,10 +2144,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       double *p = (double *)&tmp_[0];
       double *dpr = (double *)&dstatej_[i][0];
       double *dpi = (double *)&dstatej_[i+1][0];
-      for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+#pragma omp parallel for
+      for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
       {
-        p[irp]=dpr[irp];
-        p[irp+1]=dpi[irp];
+        p[ip]=dpr[ip];
+        p[ip+1]=dpi[ip];
       }
       // transform the pair of forces
       wft_->forward(&(tmp_)[0], &buffer_forces_1_[0], &buffer_forces_2_[0]);
@@ -2209,8 +2309,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 #ifdef DEBUG
   if ( gcontext_.onpe0() )
   {
-    cout << setprecision(10);
-    cout << " total exchange = " << extot << " (a.u.)\n";
+    cout << setprecision(3);
     cout << " total exchange computation time: " << tm.real()
          << " s" << endl;
     if ( compute_stress )

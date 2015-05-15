@@ -148,10 +148,6 @@
     </simpleContent>
   </complexType>
 
-  <simpleType name="doubleListType">
-    <list itemType="double"/>
-  </simpleType>
-
   <complexType name="density_matrixType">
     <simpleContent>
       <extension base="fpmd:doubleListType">

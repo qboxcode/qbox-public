@@ -38,7 +38,7 @@ class NonLocalPotential
   int nsp;   // number of species
   int nspnl; // number of non-local species
 
-  std::vector<int>                  lmax;     // lmax[is]
+  std::vector<int>                  nop;      // nop[is]
   std::vector<int>                  lloc;     // lloc[is]
   std::vector<int>                  na;       // na[is]
   std::vector<int>                  npr;      // npr[is]

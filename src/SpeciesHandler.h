@@ -28,9 +28,16 @@ class SpeciesHandler : public StructureHandler
   private:
 
   Species& sp_;
-  int current_l, current_size;
+  int current_l, current_size, current_i, current_j;
   std::string current_name, current_href;
   double current_interval;
+  bool d_ij_alloc;
+
+  // read attributes
+  void read(const Attributes& attributes);
+
+  // allocate array for d_ij matrix
+  void alloc_d_ij();
 
   public:
 

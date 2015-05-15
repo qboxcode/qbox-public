@@ -51,7 +51,8 @@ class ChargeDensity
 
   std::vector<std::vector<double> > rhor; // rhor[ispin][i]
   std::vector<std::vector<std::complex<double> > > rhog; // rhog[ispin][ig]
-
+  // core density ptr. If non-zero, contains the real-space core density
+  double* rhocore_r;
   void update_density(void);
   void update_rhor(void);
 

@@ -1,14 +1,5 @@
 --------------------------------------------------------------------------------
-Planned merging of oncv branch into trunk. Modifications.
-Species.h: Must check use of namespace to define proj_data object.
-Species.h: ztot_ zcore_ are double. Related to the definition given
-in the species that may not be an integer charge?
-Species.C: use of "or" keyword in test is a C++-11 feature. Revert to || for
-consistency with the rest of the code.
-EnergyFunctional.h: ChargeDensity cd_ not const. Due to core charge update? 
-ChargeDensity.C::update_rhor: use of transform algorithm. Add and subtract
-core charge can be replaced by use of temporary array, simpler loop.
-sample.xsd: remove definition of doubleListType which appears in species.xsd
+merging trunk into oncv branch before reintegrate.
 --------------------------------------------------------------------------------
 rel1_60_9
 r1656 ExchangeOperator.C: changed default bisection tolerance to 1.0

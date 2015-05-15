@@ -36,11 +36,12 @@
 
 #include <iostream>
 #include <iomanip>
-#include <algorithm> // fill()
+#include <algorithm> // fill(), copy()
+#include <functional>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
+EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
  : s_(s), cd_(cd)
 {
   const AtomSet& atoms = s_.atoms;
@@ -123,6 +124,8 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
 
   eself_ = 0.0;
 
+  // core_charge_: true if any species has a core charge density
+  core_charge_ = false;
   for ( int is = 0; is < nsp_; is++ )
   {
     Species *s = atoms.species_list[is];
@@ -135,8 +138,22 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
     eself_ += na * s->eself();
     na_[is] = na;
 
-    zv_[is] = s->zval();
+    zv_[is] = s->ztot();
     rcps_[is] = s->rcps();
+
+    core_charge_ |= s->has_nlcc();
+  }
+
+  if ( core_charge_ )
+  {
+    vxc_g.resize(ngloc);
+    rhocore_sp_g.resize(nsp_);
+    for ( int is = 0; is < nsp_; is++ )
+      rhocore_sp_g[is].resize(ngloc);
+    rhocore_g.resize(ngloc);
+    rhocore_r.resize(vft->np012loc());
+    // set rhocore_r ptr in ChargeDensity
+    cd_.rhocore_r = &rhocore_r[0];
   }
 
   // FT for interpolation of wavefunctions on the fine grid
@@ -237,11 +254,32 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   // compute xc energy, update self-energy operator and potential
   tmap["exc"].start();
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-    fill(v_r[ispin].begin(),v_r[ispin].end(),0.0);
+    memset((void*)&v_r[ispin][0], 0, vft->np012loc()*sizeof(double));
+
   xco->update(v_r, compute_stress);
   exc_ = xco->exc();
   if ( compute_stress )
     xco->compute_stress(sigma_exc);
+
+  if ( core_charge_ )
+  {
+    // compute Fourier coefficients of Vxc
+    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+    {
+      copy(v_r[ispin].begin(),v_r[ispin].end(),tmp_r.begin());
+      if ( ispin == 0 )
+      {
+        vft->forward(&tmp_r[0],&vxc_g[0]);
+      }
+      else
+      {
+        vft->forward(&tmp_r[0],&vtemp[0]);
+        for ( int ig = 0; ig < ngloc; ig++ )
+          vxc_g[ig] = 0.5 * ( vxc_g[ig] + vtemp[ig] );
+      }
+    }
+  }
+
   tmap["exc"].stop();
 
   // compute local potential energy:
@@ -546,11 +584,22 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       {
         const complex<double> sg = s[ig];
         const complex<double> rg = rhogt[ig];
+        Species *s = s_.atoms.species_list[is];
+        const double g = vbasis_->g_ptr()[ig];
+        const double gi = vbasis_->gi_ptr()[ig];
         // next line: keep only real part
-        const double temp = fac2 *
-        ( rg.real() * sg.real() +
-          rg.imag() * sg.imag() )
-        * rhops[is][ig] * g2i[ig];
+        // contribution of pseudocharge of ion
+        double temp = fac2 * (rg.real() * sg.real() + rg.imag() * sg.imag())
+          * rhops[is][ig] * g2i[ig];
+        if ( core_charge_ )
+        {
+          double rhoc_g, drhoc_g;
+          s->drhocoreg(g,rhoc_g,drhoc_g);
+          // next line: keep only real part
+          // contribution of core correction
+          temp -= (vxc_g[ig].real() * sg.real() + vxc_g[ig].imag() * sg.imag())
+               * drhoc_g * gi * omega_inv / fpi;
+        }
 
         const double tgx = g_x[ig];
         const double tgy = g_y[ig];
@@ -717,6 +766,8 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       {
         double tmp = fpi * rhops[is][ig] * g2i[ig];
         vtemp[ig] =  tmp * conj(rhogt[ig]) + vps[is][ig] * conj(rhoelg[ig]);
+        if ( core_charge_ )
+          vtemp[ig] += conj(vxc_g[ig]) * rhocore_sp_g[is][ig];
       }
       fion_nl.resize(3*na_[is]);
       fion_nl = 0.0;
@@ -912,6 +963,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
 void EnergyFunctional::atoms_moved(void)
 {
   const AtomSet& atoms = s_.atoms;
+  const Wavefunction& wf = s_.wf;
   int ngloc = vbasis_->localsize();
 
   // fill tau0 with values in atom_list
@@ -923,6 +975,29 @@ void EnergyFunctional::atoms_moved(void)
   memset( (void*)&vion_local_g[0], 0, 2*ngloc*sizeof(double) );
   memset( (void*)&dvion_local_g[0], 0, 2*ngloc*sizeof(double) );
   memset( (void*)&rhopst[0], 0, 2*ngloc*sizeof(double) );
+
+  if ( core_charge_ )
+  {
+    // recalculate Fourier coefficients of the core charge
+    assert(rhocore_g.size()==ngloc);
+    memset( (void*)&rhocore_g[0], 0, 2*ngloc*sizeof(double) );
+    const double spin_fac = wf.cell().volume() / wf.nspin();
+    for ( int is = 0; is < atoms.nsp(); is++ )
+    {
+      complex<double> *s = &sf.sfac[is][0];
+      for ( int ig = 0; ig < ngloc; ig++ )
+      {
+        const complex<double> sg = s[ig];
+        // divide core charge by two if two spins
+        rhocore_g[ig] += spin_fac * sg * rhocore_sp_g[is][ig];
+      }
+    }
+    // recalculate real-space core charge
+    vft->backward(&rhocore_g[0],&tmp_r[0]);
+    for ( int i = 0; i < tmp_r.size(); i++ )
+      rhocore_r[i] = tmp_r[i].real();
+  }
+
   for ( int is = 0; is < atoms.nsp(); is++ )
   {
     complex<double> *s = &sf.sfac[is][0];
@@ -1056,13 +1131,18 @@ void EnergyFunctional::cell_moved(void)
   {
     Species *s = atoms.species_list[is];
     const double * const g = vbasis_->g_ptr();
-    double v,dv;
+    double v,dv,rhoc;
     for ( int ig = 0; ig < ngloc; ig++ )
     {
       rhops[is][ig] = s->rhopsg(g[ig]) * omega_inv;
       s->dvlocg(g[ig],v,dv);
       vps[is][ig] =  v * omega_inv;
       dvps[is][ig] =  dv * omega_inv;
+      if ( core_charge_ )
+      {
+        s->rhocoreg(g[ig],rhoc);
+        rhocore_sp_g[is][ig] = rhoc * omega_inv;
+      }
     }
   }
 

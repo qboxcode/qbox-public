@@ -47,7 +47,7 @@ class EnergyFunctional
   private:
 
   Sample& s_;
-  const ChargeDensity& cd_;
+  ChargeDensity& cd_;
   Basis* vbasis_;
   FourierTransform *vft;
   std::vector<FourierTransform*> ft;
@@ -57,9 +57,10 @@ class EnergyFunctional
   std::vector<std::vector<NonLocalPotential*> > nlp;    // nlp[ispin][ikp]
   std::vector<ConfinementPotential*> cfp; // cfp[ikp]
 
-  std::vector<std::vector<double> > vps, dvps, rhops;
+  std::vector<std::vector<double> > vps, dvps, rhops, rhocore_sp_g;
+  std::vector<double> rhocore_r;
   std::vector<std::complex<double> > tmp_r, vion_local_g,
-    dvion_local_g, vlocal_g, rhopst, rhogt, rhoelg, vtemp;
+    dvion_local_g, vxc_g, vlocal_g, rhopst, rhogt, rhoelg, vtemp, rhocore_g;
 
   std::vector<std::vector<double> > tau0, fion_esr;
   std::vector<std::vector<double> > fext;
@@ -71,6 +72,8 @@ class EnergyFunctional
   double epv_, eefield_, enthalpy_;
   std::valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
     sigma_enl, sigma_esr, sigma;
+
+  bool core_charge_;
 
   public:
 
@@ -108,7 +111,7 @@ class EnergyFunctional
 
   void print(std::ostream& os) const;
 
-  EnergyFunctional(Sample& s, const ChargeDensity& cd);
+  EnergyFunctional(Sample& s, ChargeDensity& cd);
   ~EnergyFunctional();
 };
 std::ostream& operator << ( std::ostream& os, const EnergyFunctional& e );

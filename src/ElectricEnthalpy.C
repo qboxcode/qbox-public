@@ -462,7 +462,7 @@ void ElectricEnthalpy::compute_correction(void)
     is >> s >> niter;
     assert(s=="MLWF_REF_NITER");
     if ( onpe0_ )
-      cout << " ElectricEnthalpy: override niter value: niter= " 
+      cout << " ElectricEnthalpy: override niter value: niter= "
            << niter << endl;
     assert(niter > 0);
   }

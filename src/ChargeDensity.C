@@ -24,12 +24,12 @@
 
 #include <iomanip>
 #include <algorithm> // fill
+#include <functional>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 ChargeDensity::ChargeDensity(const Wavefunction& wf) : ctxt_(wf.context()),
 wf_(wf), vcomm_(wf.sd(0,0)->basis().comm())
-
 {
   vbasis_ = new Basis(vcomm_, D3vector(0,0,0));
   vbasis_->resize(wf.cell(),wf.refcell(),4.0*wf.ecut());
@@ -89,6 +89,8 @@ wf_(wf), vcomm_(wf.sd(0,0)->basis().comm())
       ft_[ikp] = new FourierTransform(wb,np0v,np1v,np2v);
     }
   }
+  // initialize core density ptr to null ptr
+  rhocore_r = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -171,8 +173,15 @@ void ChargeDensity::update_density(void)
     tmap["charge_vft"].start();
     vft_->forward(&rhotmp[0],&rhog[ispin][0]);
     tmap["charge_vft"].stop();
+
+    // add core correction charge
+    if ( rhocore_r )
+      for ( int i = 0; i < rhor_size; i++ )
+        rhor[ispin][i] += rhocore_r[i];
+
   }
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 void ChargeDensity::update_rhor(void)
 {
@@ -191,10 +200,17 @@ void ChargeDensity::update_rhor(void)
 
     const int rhor_size = rhor[ispin].size();
     double *const prhor = &rhor[ispin][0];
-    #pragma omp parallel for
-    for ( int i = 0; i < rhor_size; i++ )
+    if ( rhocore_r )
     {
-      prhor[i] = rhotmp[i].real() * omega_inv;
+      #pragma omp parallel for
+      for ( int i = 0; i < rhor_size; i++ )
+        prhor[i] = ( rhotmp[i].real() + rhocore_r[i] ) * omega_inv;
+    }
+    else
+    {
+      #pragma omp parallel for
+      for ( int i = 0; i < rhor_size; i++ )
+        prhor[i] = rhotmp[i].real() * omega_inv;
     }
   }
 }

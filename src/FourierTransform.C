@@ -1804,7 +1804,7 @@ void cfftm ( complex<double> *ain, complex<double> *aout, double scale,
  *  Transcription from 'FFT as Nested Multiplication, with a twist'
  *  C. de Boor, SIAM Sci. Stat. Comput., Vol 1, No 1, March 1980
  *
- *  Adapted to C by F.Gygi, 17 Feb 1993, 9 Dec 1993
+ *  Adapted to C  17 Feb 1993, 9 Dec 1993
  *
  ******************************************************************************/
 

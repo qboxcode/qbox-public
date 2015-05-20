@@ -145,7 +145,7 @@ void PBEFunctional::setxc(void)
 //  excpbe: PBE exchange-correlation
 //  K.Burke's modification of PW91 codes, May 14, 1996.
 //  Modified again by K.Burke, June 29, 1996, with simpler Fx(s)
-//  Translated into C and modified by F.Gygi, Dec 9, 1996.
+//  Translated into C and modified Dec 9, 1996.
 //
 //  input:
 //    rho:  density
@@ -480,7 +480,7 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
 //
 //  gcor2.c: Interpolate LSD correlation energy
 //  as given by (10) of Perdew & Wang, Phys Rev B45 13244 (1992)
-//  Translated into C by F.Gygi, Dec 9, 1996
+//  Translated into C Dec 9, 1996
 //
 ////////////////////////////////////////////////////////////////////////////////
 

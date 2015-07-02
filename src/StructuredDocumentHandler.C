@@ -15,7 +15,6 @@
 // StructuredDocumentHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.C,v 1.10 2009-11-30 02:35:35 fgygi Exp $
 
 #if USE_XERCES
 

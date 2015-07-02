@@ -15,7 +15,6 @@
 // StructuredDocumentHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef STRUCTUREDDOCUMENTHANDLER_H
 #define STRUCTUREDDOCUMENTHANDLER_H

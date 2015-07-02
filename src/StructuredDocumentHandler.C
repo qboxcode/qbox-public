@@ -60,7 +60,10 @@ void StructuredDocumentHandler::startElement(const XMLCh* const uri,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-#if XERCESC_3
+#ifndef XERCES_VERSION_MAJOR
+#error "XERCES_VERSION_MAJOR not defined"
+#endif
+#if XERCES_VERSION_MAJOR > 2
 void StructuredDocumentHandler::characters(const XMLCh* const chars,
   const XMLSize_t length)
 #else

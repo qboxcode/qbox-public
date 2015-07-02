@@ -61,7 +61,10 @@ class StructuredDocumentHandler : public DefaultHandler
 
   void startElement(const XMLCh* const uri,const XMLCh* const localname,
     const XMLCh* const qname, const Attributes& attributes);
-#if XERCESC_3
+#ifndef XERCES_VERSION_MAJOR
+#error "XERCES_VERSION_MAJOR not defined"
+#endif
+#if XERCES_VERSION_MAJOR > 2
   void characters(const XMLCh* const chars, const XMLSize_t length);
 #else
   void characters(const XMLCh* const chars, const unsigned int length);

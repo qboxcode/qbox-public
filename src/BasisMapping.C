@@ -33,7 +33,6 @@ BasisMapping::BasisMapping (const Basis &basis) : basis_(basis)
   np0_ = basis.np(0);
   np1_ = basis.np(1);
   np2_ = basis.np(2);
-  np012_ = np0_ * np1_ * np2_;
 
   np2_loc_.resize(nprocs_);
   np2_first_.resize(nprocs_);

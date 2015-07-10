@@ -18,6 +18,7 @@
 
 #include "XCPotential.h"
 #include "LDAFunctional.h"
+#include "VWNFunctional.h"
 #include "PBEFunctional.h"
 #include "BLYPFunctional.h"
 #include "B3LYPFunctional.h"
@@ -34,6 +35,10 @@ XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
   if ( functional_name == "LDA" )
   {
     xcf_ = new LDAFunctional(cd_.rhor);
+  }
+  else if ( functional_name == "VWN" )
+  {
+    xcf_ = new VWNFunctional(cd_.rhor);
   }
   else if ( functional_name == "PBE" )
   {

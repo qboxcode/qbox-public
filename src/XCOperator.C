@@ -35,6 +35,7 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
 
   // check the name of the functional
   if ( ( functional_name ==  "LDA" ) ||
+       ( functional_name ==  "VWN" ) ||
        ( functional_name ==  "PBE" ) ||
        ( functional_name == "BLYP" ) )
   {

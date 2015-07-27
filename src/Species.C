@@ -112,8 +112,7 @@ bool Species::initialize_ncpp()
   // ndft_ is a power of 2 larger than ( rdftmin / deltar_ )
   // minimum outer bound in (a.u.)
   const double rdftmin = 40.0;
-  // next line: limit small mesh sizes
-  assert(deltar_ > 0.0001);
+  assert(deltar_ > 0.0);
   ndft_ = 1;
   while ( ndft_ * deltar_ < rdftmin )
     ndft_ *= 2;

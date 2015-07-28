@@ -1145,6 +1145,8 @@ void Species::print(ostream &os, bool expanded_form)
   }
   else
   {
+    os.setf(ios::scientific,ios::floatfield);
+    os << setprecision(12);
     os <<"<species name=\"" << name() << "\">" << endl;
     os << "<description>" << description() << "</description>" << endl;
     os << "<symbol>" << symbol() << "</symbol>" << endl;
@@ -1159,8 +1161,6 @@ void Species::print(ostream &os, bool expanded_form)
       os << "<nquad>" << nquad() << "</nquad>" << endl;
       os << "<rquad>" << rquad() << "</rquad>" << endl;
       os << "<mesh_spacing>" << deltar() << "</mesh_spacing>" << endl;
-      os.setf(ios::fixed,ios::floatfield);
-      os << setprecision(6);
       if ( nlcc_.size() > 0 ) print_nlcc(os);
       for ( int l = 0; l <= lmax(); l++ )
       {
@@ -1270,8 +1270,8 @@ void Species::info(ostream &os)
   // describe type of potential
   if ( type_ == NCPP )
   {
-    os.setf(ios::fixed,ios::floatfield);
-    os << setprecision(6);
+    os.setf(ios::scientific,ios::floatfield);
+    os << setprecision(12);
     if ( nquad() == 0 )
     {
       if ( lmax() == 0 )

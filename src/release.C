@@ -19,5 +19,5 @@
 #include "release.h"
 std::string release(void)
 {
-  return std::string("efield1");
+  return std::string("efield2");
 }

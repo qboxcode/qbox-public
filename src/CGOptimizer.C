@@ -156,6 +156,12 @@ void CGOptimizer::compute_xp(const valarray<double>& x, const double f,
         fp0_ = fp;
       }
 
+      // set the starting alpha of the minimizer to be the current alpha_
+      if ( alpha_ < linmin_.alpha_max() )
+        linmin_.set_alpha_start(alpha_);
+      else
+        linmin_.set_alpha_start(0.5*linmin_.alpha_max());
+
       // reset the line minimizer
       linmin_.reset();
       alpha_ = linmin_.next_alpha(alpha_,f,fp);

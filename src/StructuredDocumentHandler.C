@@ -15,7 +15,6 @@
 // StructuredDocumentHandler.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructuredDocumentHandler.C,v 1.10 2009-11-30 02:35:35 fgygi Exp $
 
 #if USE_XERCES
 
@@ -60,7 +59,10 @@ void StructuredDocumentHandler::startElement(const XMLCh* const uri,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-#if XERCESC_3
+#ifndef XERCES_VERSION_MAJOR
+#error "XERCES_VERSION_MAJOR not defined"
+#endif
+#if XERCES_VERSION_MAJOR > 2
 void StructuredDocumentHandler::characters(const XMLCh* const chars,
   const XMLSize_t length)
 #else

@@ -287,9 +287,12 @@ class D3tensor
     os.setf(ios::fixed,ios::floatfield);
     os.setf(ios::right,ios::adjustfield);
     os.precision(8);
-    os << setw(12) << v[0] << setw(12) << v[3] << setw(12) << v[6] << "\n"
-       << setw(12) << v[1] << setw(12) << v[4] << setw(12) << v[7] << "\n"
-       << setw(12) << v[2] << setw(12) << v[5] << setw(12) << v[8] << "\n";
+    os << setw(14) << v[0] << " " << setw(14) << v[3] << " " << setw(14) << v[6]
+       << "\n"
+       << setw(14) << v[1] << " " << setw(14) << v[4] << " " << setw(14) << v[7]
+       << "\n"
+       << setw(14) << v[2] << " " << setw(14) << v[5] << " " << setw(14) << v[8]
+       << "\n";
     return os;
   }
 

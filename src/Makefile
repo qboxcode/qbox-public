@@ -28,7 +28,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         LoadCmd.o SaveCmd.o \
         SpeciesCmd.o SpeciesReader.o SpeciesHandler.o \
         XCOperator.o ExchangeOperator.o Bisection.o KPGridConnectivity.o \
-	XCPotential.o LDAFunctional.o \
+	XCPotential.o LDAFunctional.o VWNFunctional.o \
         PBEFunctional.o BLYPFunctional.o B3LYPFunctional.o  \
 	NonLocalPotential.o SampleReader.o StructuredDocumentHandler.o \
 	SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \

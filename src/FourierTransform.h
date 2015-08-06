@@ -142,7 +142,7 @@ class FourierTransform
   int np2_loc(int iproc) const { return np2_loc_[iproc]; }
   int np2_first() const { return np2_first_[myproc_]; }
   int np2_first(int iproc) const { return np2_first_[iproc]; }
-  int np012() const { return np0_ * np1_ * np2_; }
+  long int np012() const { return ((long int)np0_) * np1_ * np2_; }
   int np012loc(int iproc) const { return np0_ * np1_ * np2_loc_[iproc]; }
   int np012loc() const { return np0_ * np1_ * np2_loc_[myproc_]; }
   int index(int i, int j, int k) const

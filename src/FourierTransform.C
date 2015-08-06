@@ -1273,14 +1273,14 @@ void FourierTransform::fwd(complex<double>* val)
 
 #if USE_ESSL_FFT
   int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = 1, initflag = 0;
-  double scale = 1.0 / (np0_ * np1_ * np2_);
+  double scale = 1.0 / np012();
 
   dcft_(&initflag,&zvec_[0],&inc1,&inc2,&zvec_[0],&inc1,&inc2,&np2_,&ntrans,
         &isign,&scale,&aux1zf[0],&naux1z,&aux2[0],&naux2);
 
 #elif USE_FFTW2
 #if _OPENMP
-  const double fac = 1.0 / ( np0_ * np1_ * np2_ );
+  const double fac = 1.0 / np012();
   #pragma omp parallel for
   for ( int i = 0; i < nvec_; i++ )
   {
@@ -1306,7 +1306,7 @@ void FourierTransform::fwd(complex<double>* val)
   fftw(fwplan2,ntrans,(FFTW_COMPLEX*)&zvec_[0],inc1,inc2,
                       (FFTW_COMPLEX*)0,0,0);
   int len = zvec_.size();
-  double fac = 1.0 / ( np0_ * np1_ * np2_ );
+  double fac = 1.0 / np012();
   zdscal(&len,&fac,&zvec_[0],&inc1);
 #endif
 #elif USE_FFTW3
@@ -1324,7 +1324,7 @@ void FourierTransform::fwd(complex<double>* val)
   }
 #endif
   // scale
-  double fac = 1.0 / ( np0_ * np1_ * np2_ );
+  double fac = 1.0 / np012();
   int len = zvec_.size();
   int inc1 = 1;
   zdscal(&len,&fac,&zvec_[0],&inc1);
@@ -1335,7 +1335,7 @@ void FourierTransform::fwd(complex<double>* val)
   int length = np2_;
   int ainc   = 1;
   int ajmp   = np2_;
-  double scale = 1.0 / ( np0_ * np1_ * np2_ );
+  double scale = 1.0 / np012();
   int idir = 1;
   cfftm ( &zvec_[0], &zvec_[0], scale, ntrans, length, ainc, ajmp, idir );
 #else
@@ -1390,7 +1390,7 @@ void FourierTransform::init_lib(void)
   isign = -1;
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np2_,&ntrans,
        &isign,&scale,&aux1zb[0],&naux1z,&aux2[0],&naux2);
-  isign = 1; scale = 1.0 / ( np0_ * np1_ * np2_ );
+  isign = 1; scale = 1.0 / np012();
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np2_,&ntrans,
        &isign,&scale,&aux1zf[0],&naux1z,&aux2[0],&naux2);
 #else // USE_ESSL_2DFFT
@@ -1441,7 +1441,7 @@ void FourierTransform::init_lib(void)
   isign = -1;
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np2_,&ntrans,
         &isign,&scale,&aux1zb[0],&naux1z,&aux2[0],&naux2);
-  isign = 1; scale = 1.0 / ( np0_ * np1_ * np2_ );
+  isign = 1; scale = 1.0 / np012();
   dcft_(&initflag,p,&inc1,&inc2,p,&inc1,&inc2,&np2_,&ntrans,
         &isign,&scale,&aux1zf[0],&naux1z,&aux2[0],&naux2);
 
@@ -1804,7 +1804,7 @@ void cfftm ( complex<double> *ain, complex<double> *aout, double scale,
  *  Transcription from 'FFT as Nested Multiplication, with a twist'
  *  C. de Boor, SIAM Sci. Stat. Comput., Vol 1, No 1, March 1980
  *
- *  Adapted to C by F.Gygi, 17 Feb 1993, 9 Dec 1993
+ *  Adapted to C  17 Feb 1993, 9 Dec 1993
  *
  ******************************************************************************/
 

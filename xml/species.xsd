@@ -5,6 +5,7 @@
 
   <annotation>
     <documentation>
+      version 2015-05-20
       http://www.quantum-simulation.org
       FPMD atomic species XML Schema specification.
       Copyright (c) 2006-2014 The Regents of the University of California.

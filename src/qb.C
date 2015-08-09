@@ -93,6 +93,8 @@ using namespace std;
 #include "Ecut.h"
 #include "Ecutprec.h"
 #include "Ecuts.h"
+#include "Efield.h"
+#include "Polarization.h"
 #include "Emass.h"
 #include "ExtStress.h"
 #include "FermiTemp.h"
@@ -304,6 +306,8 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Ecut(s));
   ui.addVar(new Ecutprec(s));
   ui.addVar(new Ecuts(s));
+  ui.addVar(new Efield(s));
+  ui.addVar(new Polarization(s));
   ui.addVar(new Emass(s));
   ui.addVar(new ExtStress(s));
   ui.addVar(new FermiTemp(s));

@@ -25,8 +25,10 @@
 #include <map>
 #include <string>
 #include "StructureFactor.h"
+#include "ElectricEnthalpy.h"
 #include "Timer.h"
 
+class D3vector;
 class Sample;
 class Basis;
 class AtomSet;
@@ -51,6 +53,7 @@ class EnergyFunctional
   std::vector<FourierTransform*> ft;
   StructureFactor sf;
   XCOperator* xco;
+  ElectricEnthalpy* el_enth_;
   std::vector<std::vector<NonLocalPotential*> > nlp;    // nlp[ispin][ikp]
   std::vector<ConfinementPotential*> cfp; // cfp[ikp]
 
@@ -66,6 +69,7 @@ class EnergyFunctional
   int nsp_;
   double ekin_, econf_, eps_, enl_, ehart_,
          ecoul_, exc_, esr_, eself_, ets_, eexf_, etotal_;
+  double epv_, eefield_, enthalpy_;
   std::valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
     sigma_enl, sigma_esr, sigma;
 
@@ -92,6 +96,11 @@ class EnergyFunctional
   double eself(void) const { return eself_; }
   double ets(void) const { return ets_; }
   double eexf(void) const { return eexf_; }
+  double eefield(void) const { return eefield_; }
+  double epv(void) const { return epv_; }
+  double enthalpy(void) const { return enthalpy_; }
+
+  ElectricEnthalpy* el_enth() { return el_enth_; }
 
   const ConfinementPotential *confpot(int ikp) const { return cfp[ikp]; }
 

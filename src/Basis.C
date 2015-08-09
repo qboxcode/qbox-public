@@ -307,7 +307,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   // defcell: cell used to define which vectors are contained in the Basis
   // if refcell is defined, defcell = refcell
   // otherwise, defcell = cell
-  if ( norm(refcell.b(0)) + norm(refcell.b(1)) + norm(refcell.b(2)) == 0.0 )
+  if ( norm2(refcell.b(0)) + norm2(refcell.b(1)) + norm2(refcell.b(2)) == 0.0 )
   {
     defcell = cell;
   }
@@ -320,7 +320,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   const D3vector b1 = defcell.b(1);
   const D3vector b2 = defcell.b(2);
 
-  const double normb2 = norm(b2);
+  const double normb2 = norm2(b2);
   const double b2inv2 = 1.0 / normb2;
 
   const D3vector kp = kpx*b0 + kpy*b1 + kpz*b2;
@@ -380,7 +380,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
       bool found = false;
       for ( int l = lmin; l <= lmax; l++ )
       {
-        const double two_e = norm(k*b1+l*b2);
+        const double two_e = norm2(k*b1+l*b2);
         if ( two_e < two_ecut )
         {
           lstart = min(l,lstart);
@@ -410,7 +410,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
         bool found = false;
         for ( int l = lmin; l <= lmax; l++ )
         {
-          const double two_e = norm(h*b0+k*b1+l*b2);
+          const double two_e = norm2(h*b0+k*b1+l*b2);
           if ( two_e < two_ecut )
           {
             lstart = min(l,lstart);
@@ -450,7 +450,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
         bool found = false;
         for ( int l = lmin; l <= lmax; l++ )
         {
-          const double two_e = norm((kpx+h)*b0 + (kpy+k)*b1 + (kpz+l)*b2);
+          const double two_e = norm2((kpx+h)*b0 + (kpy+k)*b1 + (kpz+l)*b2);
           if ( two_e < two_ecut )
           {
             lstart = min(l,lstart);
@@ -658,10 +658,10 @@ void Basis::update_g(void)
     kpgx_[locsize+i] = kpgt.y;
     kpgx_[locsize+locsize+i] = kpgt.z;
 
-    g2_[i] = norm(gt);
+    g2_[i] = norm2(gt);
     g_[i] = sqrt( g2_[i] );
 
-    kpg2_[i] = norm(kpgt);
+    kpg2_[i] = norm2(kpgt);
     kpg_[i] = sqrt( kpg2_[i] );
 
     gi_[i] = g_[i] > 0.0 ? 1.0 / g_[i] : 0.0;

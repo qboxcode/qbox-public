@@ -110,7 +110,7 @@ class AngleCmd : public Cmd
     {
       D3vector r12(a1->position()-a2->position());
       D3vector r32(a3->position()-a2->position());
-      if ( norm(r12) == 0.0 || norm(r32) == 0.0 )
+      if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 )
       {
         cout << " AngleCmd: atoms are too close" << endl;
         return 1;

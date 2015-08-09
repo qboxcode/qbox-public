@@ -1,5 +1,18 @@
 --------------------------------------------------------------------------------
-merging trunk into oncv branch before reintegrate.
+rel1_61_0
+Implementation of ONCV potentials
+/xml/species.xsd
+/xml/sample.xsd
+/src/NonLocalPotential.C
+/src/SpeciesHandler.C
+/src/NonLocalPotential.h
+/src/EnergyFunctional.C
+/src/SpeciesHandler.h
+/src/EnergyFunctional.h
+/src/Species.C
+/src/Species.h
+/src/ChargeDensity.C
+/src/ChargeDensity.h
 --------------------------------------------------------------------------------
 rel1_60_9
 r1656 ExchangeOperator.C: changed default bisection tolerance to 1.0

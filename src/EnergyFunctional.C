@@ -28,6 +28,8 @@
 #include "XCOperator.h"
 #include "NonLocalPotential.h"
 #include "ConfinementPotential.h"
+#include "D3vector.h"
+#include "ElectricEnthalpy.h"
 
 #include "Timer.h"
 #include "blas.h"
@@ -173,6 +175,11 @@ EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
         wf.sd(0,ikp)->basis());
   }
 
+  // Electric enthalpy
+  el_enth_ = 0;
+  if ( s_.ctrl.polarization != "OFF" )
+    el_enth_ = new ElectricEnthalpy(s_);
+
   sf.init(tau0,*vbasis_);
 
   cell_moved();
@@ -184,6 +191,7 @@ EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
 ////////////////////////////////////////////////////////////////////////////////
 EnergyFunctional::~EnergyFunctional(void)
 {
+  delete el_enth_;
   delete xco;
   for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
   {
@@ -334,6 +342,9 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
       v_r[1][i] += vloc;
     }
   }
+
+  if ( el_enth_ )
+    el_enth_->update();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -654,6 +665,42 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   }
   etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_;
 
+  // Electric enthalpy
+  eefield_ = 0.0;
+  if ( el_enth_ )
+  {
+    tmap["el_enth_energy"].start();
+    eefield_ = el_enth_->enthalpy(dwf,compute_hpsi);
+    tmap["el_enth_energy"].stop();
+    enthalpy_ += eefield_;
+
+    if ( compute_forces )
+    {
+      for ( int is = 0; is < nsp_; is++ )
+        for ( int ia = 0; ia < na_[is]; ia++ )
+        {
+          D3vector f = zv_[is] * s_.ctrl.e_field;
+          fion[is][3*ia]   += f.x;
+          fion[is][3*ia+1] += f.y;
+          fion[is][3*ia+2] += f.z;
+        }
+    }
+  }
+  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ +
+            ets_ + eexf_;
+  enthalpy_ = etotal_;
+
+  if ( el_enth_ )
+    enthalpy_ += eefield_;
+
+  if ( compute_stress )
+  {
+    valarray<double> sigma_ext(s_.ctrl.ext_stress,6);
+    const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
+    epv_ = pext * omega;
+    enthalpy_ += epv_;
+  }
+
   if ( compute_hpsi )
   {
     tmap["hpsi"].start();
@@ -798,8 +845,10 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   }
 
   if ( compute_stress )
+  {
     sigma = sigma_ekin + sigma_econf + sigma_eps + sigma_enl +
             sigma_ehart + sigma_exc + sigma_esr;
+  }
 
   if ( debug_stress && s_.ctxt_.onpe0() )
   {
@@ -1115,18 +1164,20 @@ void EnergyFunctional::print(ostream& os) const
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
   os << setprecision(8);
-  os << "  <ekin>   " << setw(15) << ekin()   << " </ekin>\n"
-     << "  <econf>  " << setw(15) << econf()  << " </econf>\n"
-     << "  <eps>    " << setw(15) << eps()    << " </eps>\n"
-     << "  <enl>    " << setw(15) << enl()    << " </enl>\n"
-     << "  <ecoul>  " << setw(15) << ecoul()  << " </ecoul>\n"
-     << "  <exc>    " << setw(15) << exc()    << " </exc>\n"
-     << "  <esr>    " << setw(15) << esr()    << " </esr>\n"
-     << "  <eself>  " << setw(15) << eself()  << " </eself>\n"
-     << "  <ets>    " << setw(15) << ets()    << " </ets>\n"
-     << "  <eexf>   " << setw(15) << eexf()   << " </eexf>\n"
-     << "  <etotal> " << setw(15) << etotal() << " </etotal>\n"
-     << flush;
+  os << "  <ekin>    " << setw(15) << ekin()   << " </ekin>\n"
+     << "  <econf>   " << setw(15) << econf()  << " </econf>\n"
+     << "  <eps>     " << setw(15) << eps()    << " </eps>\n"
+     << "  <enl>     " << setw(15) << enl()    << " </enl>\n"
+     << "  <ecoul>   " << setw(15) << ecoul()  << " </ecoul>\n"
+     << "  <exc>     " << setw(15) << exc()    << " </exc>\n"
+     << "  <esr>     " << setw(15) << esr()    << " </esr>\n"
+     << "  <eself>   " << setw(15) << eself()  << " </eself>\n"
+     << "  <ets>     " << setw(15) << ets()    << " </ets>\n"
+     << "  <eexf>    " << setw(15) << eexf()   << " </eexf>\n"
+     << "  <etotal>  " << setw(15) << etotal() << " </etotal>\n"
+     << "  <epv>     " << setw(15) << epv() << " </epv>\n"
+     << "  <eefield> " << setw(15) << eefield() << " </eefield>\n"
+     << "  <enthalpy>" << setw(15) << enthalpy() << " </enthalpy>" << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

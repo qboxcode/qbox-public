@@ -109,7 +109,6 @@ void CPSampleStepper::step(int niter)
   const bool compute_hpsi = true;
   const bool compute_forces = ( atoms_dyn != "LOCKED" );
   const bool compute_stress = ( s_.ctrl.stress == "ON" );
-  const bool use_confinement = ( s_.ctrl.ecuts > 0.0 );
 
   CellStepper* cell_stepper = 0;
   if ( cell_dyn == "SD" )
@@ -135,6 +134,7 @@ void CPSampleStepper::step(int niter)
   ef_.update_vhxc(compute_stress);
   double energy =
     ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
+  double enthalpy = ef_.enthalpy();
 
   mdwf_stepper->compute_wfm(dwf);
 
@@ -151,34 +151,9 @@ void CPSampleStepper::step(int niter)
 
     if ( onpe0 )
     {
-      cout.setf(ios::fixed,ios::floatfield);
-      cout.setf(ios::right,ios::adjustfield);
-      cout << "  <ekin>     " << setprecision(8)
-           << setw(15) << ef_.ekin() << " </ekin>\n";
-      if ( use_confinement )
-      {
-        cout << "  <econf>    " << setw(15) << ef_.econf()
-             << " </econf>\n";
-      }
-      cout << "  <eps>      " << setw(15) << ef_.eps() << " </eps>\n"
-           << "  <enl>      " << setw(15) << ef_.enl() << " </enl>\n"
-           << "  <ecoul>    " << setw(15) << ef_.ecoul() << " </ecoul>\n"
-           << "  <exc>      " << setw(15) << ef_.exc() << " </exc>\n"
-           << "  <esr>      " << setw(15) << ef_.esr() << " </esr>\n"
-           << "  <eself>    " << setw(15) << ef_.eself() << " </eself>\n";
-      if ( s_.extforces.size() > 0 )
-        cout << "  <eexf>     " << setw(15) << ef_.eexf() << " </eexf>\n";
-      cout << "  <etotal>   " << setw(15) << ef_.etotal() << " </etotal>\n"
-           << flush;
-      if ( compute_stress )
-      {
-        const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-        const double enthalpy = ef_.etotal() + pext * s_.wf.cell().volume();
-        cout << "  <pv>     " << setw(15) << pext * s_.wf.cell().volume()
-             << " </pv>" << endl;
-        cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
-           << flush;
-      }
+      cout << ef_;
+      if ( ef_.el_enth() )
+        cout << *ef_.el_enth();
     }
 
     if ( compute_forces )
@@ -279,6 +254,7 @@ void CPSampleStepper::step(int niter)
     ef_.update_vhxc(compute_stress);
     energy =
       ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
+    enthalpy = ef_.enthalpy();
 
     if ( s_.ctxt_.mype() == 0 )
       cout << "</iteration>" << endl;

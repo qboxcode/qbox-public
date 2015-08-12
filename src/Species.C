@@ -1270,8 +1270,6 @@ void Species::info(ostream &os)
   // describe type of potential
   if ( type_ == NCPP )
   {
-    os.setf(ios::scientific,ios::floatfield);
-    os << setprecision(12);
     if ( nquad() == 0 )
     {
       if ( lmax() == 0 )

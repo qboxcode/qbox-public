@@ -128,6 +128,8 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
 {
   // read and process commands from cmdstream until done
   char cmdline[256];
+  for ( int i = 0; i < 256; i++ )
+    cmdline[i] = '\0';
   list<Cmd*>::iterator cmd;
   const char *separators = " ;\t";
   int i,done=0,cmd_read,status;

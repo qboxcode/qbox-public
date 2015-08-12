@@ -209,6 +209,8 @@ int main(int argc, char **argv, char **envp)
 #if USE_MPI
   // Print list of node names
   char processor_name[MPI_MAX_PROCESSOR_NAME];
+  for ( int i = 0; i < MPI_MAX_PROCESSOR_NAME; i++ )
+    processor_name[i] = '\0';
   char buf[MPI_MAX_PROCESSOR_NAME];
   int namelen;
   PMPI_Get_processor_name(processor_name,&namelen);

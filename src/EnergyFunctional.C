@@ -693,6 +693,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   if ( el_enth_ )
     enthalpy_ += eefield_;
 
+  epv_ = 0.0;
   if ( compute_stress )
   {
     valarray<double> sigma_ext(s_.ctrl.ext_stress,6);

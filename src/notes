@@ -1,4 +1,11 @@
 --------------------------------------------------------------------------------
+rel1_62_1 r1722
+Species.C use 12 digit precision
+Fix uninitialized variables
+--------------------------------------------------------------------------------
+rel1_62_0
+Implementation of electric field
+--------------------------------------------------------------------------------
 rel1_61_0
 Implementation of ONCV potentials
 /xml/species.xsd

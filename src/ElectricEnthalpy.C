@@ -189,8 +189,8 @@ void ElectricEnthalpy::update(void)
   sdsin[1] = mlwft_->sdsiny();
   sdsin[2] = mlwft_->sdsinz();
 
-  polarization_ion_ = s_.atoms.dipole();
-  polarization_elec_ = D3vector(0,0,0);
+  dipole_ion_ = s_.atoms.dipole();
+  dipole_el_ = D3vector(0,0,0);
 
   if ( pol_type_ == mlwf || pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
   {
@@ -213,9 +213,9 @@ void ElectricEnthalpy::update(void)
 
     for ( int i = 0; i < sd_.nst(); i++ )
     {
-      polarization_elec_ -= 2.0 * mlwfc_[i];
+      dipole_el_ -= 2.0 * mlwfc_[i];
       if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
-        polarization_elec_ -= 2.0 * correction_[i];
+        dipole_el_ -= 2.0 * correction_[i];
     }
 
     // compute gradient
@@ -339,7 +339,7 @@ void ElectricEnthalpy::update(void)
         sumarg += M_PI;
 
       // assume occupation number of 2.0
-      polarization_elec_[idir] = - 2.0 * fac * sumarg;
+      dipole_el_[idir] = - 2.0 * fac * sumarg;
 
       if ( finite_field_ )
       {
@@ -371,10 +371,10 @@ void ElectricEnthalpy::update(void)
     } // for idir
   }
 
-  polarization_total_ = polarization_ion_ + polarization_elec_;
-  cell.fold_in_ws(polarization_ion_);
-  cell.fold_in_ws(polarization_elec_);
-  cell.fold_in_ws(polarization_total_);
+  dipole_total_ = dipole_ion_ + dipole_el_;
+  cell.fold_in_ws(dipole_ion_);
+  cell.fold_in_ws(dipole_el_);
+  cell.fold_in_ws(dipole_total_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -384,7 +384,7 @@ double ElectricEnthalpy::enthalpy(Wavefunction& dwf, bool compute_hpsi)
   if ( pol_type_ == off || !finite_field_ )
     return 0.0;
 
-  enthalpy_ = - e_field_ * polarization_total_;
+  enthalpy_ = - e_field_ * dipole_total_;
   if ( compute_hpsi )
   {
     // assert gamma-only and no spin
@@ -624,14 +624,12 @@ void ElectricEnthalpy::print(ostream& os) const
 {
   if ( pol_type_ == off ) return;
 
-  os.setf(ios::fixed,ios::floatfield);
-  os.setf(ios::right,ios::adjustfield);
+  os << fixed << right << setprecision(8);
   // print MLWF centers if pol_type_ == MLWF or MLWF_REF or MLWF_REF_Q
   if ( pol_type_ == mlwf || pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
   {
     int nst = sd_.nst();
     os << " <mlwf_set size=\"" << nst << "\">" << endl;
-    os << setprecision(8);
     for ( int i = 0; i < nst; i++ )
     {
       os << " <mlwf center=\"" << setprecision(8)
@@ -664,75 +662,74 @@ void ElectricEnthalpy::print(ostream& os) const
       }
     }
     os << " </mlwf_set>" << endl;
-
-    //compute quadrupole associated with the mlwf center
-    if ( compute_quadrupole_ )
-    {
-      D3tensor q_mlwfc;
-      D3tensor q_mlwfs;
-      for ( int ist = 0; ist < sd_.nst(); ist++ )
-      {
-        D3vector ctr = mlwfc_[ist];
-        for (int j=0; j<3; j++)
-        {
-          for (int k = 0; k < 3; k++)
-            q_mlwfc[j*3+k] -= 2.0 * ctr[j] * ctr[k];
-        }
-        q_mlwfs -= quad_[ist] * 2.0;
-      } // for ist
-
-      D3tensor q_ion = s_.atoms.quadrupole();
-      D3tensor q_mlwf = q_mlwfc + q_mlwfs;
-      //total primitive quadrupoles
-      D3tensor q_tot = q_ion + q_mlwf;
-      //traceless quadrupole
-      D3tensor q_traceless = q_tot;
-      q_traceless.traceless();
-
-      os << " <ionic_quadrupole> " << endl
-           << q_ion
-           << " </ionic_quadrupole>" << endl;
-      os << " <mlwfc_quadrupole> " << endl
-           << q_mlwfc
-           << " </mlwfc_quadrupole>" << endl;
-      os << " <mlwfs_quadrupole> " << endl
-           << q_mlwfs
-           << " </mlwfs_quadrupole>" << endl;
-      os << " <electronic_quadrupole> " << endl
-           << q_mlwf
-           << " </electronic_quadrupole>" << endl;
-      os << " <total_quadrupole> " << endl
-           << q_tot
-           << " </total_quadrupole>" << endl;
-      os << " <traceless_quadrupole> " << endl
-           << q_traceless
-           << " </traceless_quadrupole>" << endl;
-      char uplo = 'u';
-      D3vector eigval;
-      D3tensor eigvec;
-      q_traceless.syev(uplo, eigval, eigvec);
-      os << " <traceless_quadrupole_eigval> " << endl
-           << eigval << endl
-           << " </traceless_quadrupole_eigval>" << endl;
-      os << " <traceless_quadrupole_eigvec> " << endl
-           << eigvec
-           << " </traceless_quadrupole_eigvec>" << endl;
-    }
   }
 
-  // print polarization
-  os.precision(10);
-  os << "  <polarization>\n";
-  os << "    <P_ion>  " << setw(16) << polarization_ion_.x << " "
-                        << setw(16) << polarization_ion_.y << " "
-                        << setw(16) << polarization_ion_.z << " </P_ion>\n";
-  os << "    <P_elec> " << setw(16) << polarization_elec_.x << " "
-                        << setw(16) << polarization_elec_.y << " "
-                        << setw(16) << polarization_elec_.z << " </P_elec>\n";
-  os << "    <P_tot>  " << setw(16) << polarization_total_.x << " "
-                        << setw(16) << polarization_total_.y << " "
-                        << setw(16) << polarization_total_.z << " </P_tot>\n";
-  os << "  </polarization>\n";
+  // print dipole
+  os << setprecision(10) << fixed << right;
+  os << " <dipole>\n";
+  os << "   <dipole_ion>   "
+     << setw(14) << dipole_ion_.x << " "
+     << setw(14) << dipole_ion_.y << " "
+     << setw(14) << dipole_ion_.z << " </dipole_ion>\n";
+  os << "   <dipole_el>    "
+     << setw(14) << dipole_el_.x << " "
+     << setw(14) << dipole_el_.y << " "
+     << setw(14) << dipole_el_.z << " </dipole_el>\n";
+  os << "   <dipole_total> "
+     << setw(14) << dipole_total_.x << " "
+     << setw(14) << dipole_total_.y << " "
+     << setw(14) << dipole_total_.z << " </dipole_total>\n";
+  os << " </dipole>\n";
+
+  if ( compute_quadrupole_ )
+  {
+    D3tensor q_mlwfc;
+    D3tensor q_mlwfs;
+    for ( int ist = 0; ist < sd_.nst(); ist++ )
+    {
+      D3vector ctr = mlwfc_[ist];
+      for (int j=0; j<3; j++)
+      {
+        for (int k = 0; k < 3; k++)
+          q_mlwfc[j*3+k] -= 2.0 * ctr[j] * ctr[k];
+      }
+      q_mlwfs -= quad_[ist] * 2.0;
+    } // for ist
+
+    D3tensor q_ion = s_.atoms.quadrupole();
+    D3tensor q_mlwf = q_mlwfc + q_mlwfs;
+    //total primitive quadrupoles
+    D3tensor q_total = q_ion + q_mlwf;
+    //traceless quadrupole
+    D3tensor q_traceless = q_total;
+    q_traceless.traceless();
+
+    os << " <quadrupole> " << endl;
+    os << "   <quadrupole_ion> " << endl
+       << q_ion
+       << "   </quadrupole_ion>" << endl;
+    os << "   <quadrupole_el> " << endl
+       << q_mlwf
+       << "   </quadrupole_el>" << endl;
+    os << "   <quadrupole_total> " << endl
+       << q_total
+       << "   </quadrupole_total>" << endl;
+    os << "   <traceless_quadrupole> " << endl
+       << q_traceless
+       << "   </traceless_quadrupole>" << endl;
+    char uplo = 'u';
+    D3vector eigval;
+    D3tensor eigvec;
+    q_traceless.syev(uplo, eigval, eigvec);
+    os << "   <traceless_quadrupole_eigval> " << endl
+       << "    " << eigval << endl
+       << "   </traceless_quadrupole_eigval>" << endl;
+    os << "   <traceless_quadrupole_eigvec> " << endl
+       << eigvec
+       << "   </traceless_quadrupole_eigvec>" << endl;
+    os << " </quadrupole> " << endl;
+  }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////

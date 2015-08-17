@@ -66,7 +66,7 @@ class ElectricEnthalpy
   ComplexMatrix* smat_[3];
 
   // total, ionic and electronic part of macroscopic polarization
-  D3vector polarization_total_, polarization_ion_, polarization_elec_;
+  D3vector dipole_total_, dipole_ion_, dipole_el_;
 
   // electric enthalpy
   double enthalpy_;
@@ -84,9 +84,9 @@ class ElectricEnthalpy
   mutable TimerMap tmap;
 
   D3vector e_field(void) const { return e_field_; }
-  D3vector polarization(void) const { return polarization_total_; }
-  D3vector polarization_ion(void) const { return polarization_ion_; }
-  D3vector polarization_elec(void) const { return polarization_elec_; }
+  D3vector dipole_total(void) const { return dipole_total_; }
+  D3vector dipole_ion(void) const { return dipole_ion_; }
+  D3vector dipole_el(void) const { return dipole_el_; }
 
   double enthalpy(Wavefunction& dwf, bool compute_hpsi);
 

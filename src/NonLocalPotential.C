@@ -1169,71 +1169,71 @@ void NonLocalPotential::update_twnl(void)
             dt09_xx[ig] = -( v * dx_y09 * tgx - y09 * dv * tg * tgxx );
             dt09_yy[ig] = -( v * dy_y09 * tgy - y09 * dv * tg * tgyy );
             dt09_zz[ig] = -( v * dz_y09 * tgz - y09 * dv * tg * tgzz );
-            dt09_xy[ig] = -( 0.5 * v * ( dx_y09 * tgy + dy_y09 * tgx ) //
+            dt09_xy[ig] = -( 0.5 * v * ( dx_y09 * tgy + dy_y09 * tgx )
               - y09 * dv * tg * tgxy );
-            dt09_yz[ig] = -( 0.5 * v * ( dy_y09 * tgz + dz_y09 * tgy ) //
+            dt09_yz[ig] = -( 0.5 * v * ( dy_y09 * tgz + dz_y09 * tgy )
               - y09 * dv * tg * tgyz );
-            dt09_xz[ig] = -( 0.5 * v * ( dx_y09 * tgz + dz_y09 * tgx ) //
+            dt09_xz[ig] = -( 0.5 * v * ( dx_y09 * tgz + dz_y09 * tgx )
               - y09 * dv * tg * tgxz );
 
             dt10_xx[ig] = -( v * dx_y10 * tgx - y10 * dv * tg * tgxx );
             dt10_yy[ig] = -( v * dy_y10 * tgy - y10 * dv * tg * tgyy );
             dt10_zz[ig] = -( v * dz_y10 * tgz - y10 * dv * tg * tgzz );
-            dt10_xy[ig] = -( 0.5 * v * ( dx_y10 * tgy + dy_y10 * tgx ) //
+            dt10_xy[ig] = -( 0.5 * v * ( dx_y10 * tgy + dy_y10 * tgx )
               - y10 * dv * tg * tgxy );
-            dt10_yz[ig] = -( 0.5 * v * ( dy_y10 * tgz + dz_y10 * tgy ) //
+            dt10_yz[ig] = -( 0.5 * v * ( dy_y10 * tgz + dz_y10 * tgy )
               - y10 * dv * tg * tgyz );
-            dt10_xz[ig] = -( 0.5 * v * ( dx_y10 * tgz + dz_y10 * tgx ) //
+            dt10_xz[ig] = -( 0.5 * v * ( dx_y10 * tgz + dz_y10 * tgx )
               - y10 * dv * tg * tgxz );
 
             dt11_xx[ig] = -( v * dx_y11 * tgx - y11 * dv * tg * tgxx );
             dt11_yy[ig] = -( v * dy_y11 * tgy - y11 * dv * tg * tgyy );
             dt11_zz[ig] = -( v * dz_y11 * tgz - y11 * dv * tg * tgzz );
-            dt11_xy[ig] = -( 0.5 * v * ( dx_y11 * tgy + dy_y11 * tgx ) //
+            dt11_xy[ig] = -( 0.5 * v * ( dx_y11 * tgy + dy_y11 * tgx )
               - y11 * dv * tg * tgxy );
-            dt11_yz[ig] = -( 0.5 * v * ( dy_y11 * tgz + dz_y11 * tgy ) //
+            dt11_yz[ig] = -( 0.5 * v * ( dy_y11 * tgz + dz_y11 * tgy )
               - y11 * dv * tg * tgyz );
-            dt11_xz[ig] = -( 0.5 * v * ( dx_y11 * tgz + dz_y11 * tgx ) //
+            dt11_xz[ig] = -( 0.5 * v * ( dx_y11 * tgz + dz_y11 * tgx )
               - y11 * dv * tg * tgxz );
 
             dt12_xx[ig] = -( v * dx_y12 * tgx - y12 * dv * tg * tgxx );
             dt12_yy[ig] = -( v * dy_y12 * tgy - y12 * dv * tg * tgyy );
             dt12_zz[ig] = -( v * dz_y12 * tgz - y12 * dv * tg * tgzz );
-            dt12_xy[ig] = -( 0.5 * v * ( dx_y12 * tgy + dy_y12 * tgx ) //
+            dt12_xy[ig] = -( 0.5 * v * ( dx_y12 * tgy + dy_y12 * tgx )
               - y12 * dv * tg * tgxy );
-            dt12_yz[ig] = -( 0.5 * v * ( dy_y12 * tgz + dz_y12 * tgy ) //
+            dt12_yz[ig] = -( 0.5 * v * ( dy_y12 * tgz + dz_y12 * tgy )
               - y12 * dv * tg * tgyz );
-            dt12_xz[ig] = -( 0.5 * v * ( dx_y12 * tgz + dz_y12 * tgx ) //
+            dt12_xz[ig] = -( 0.5 * v * ( dx_y12 * tgz + dz_y12 * tgx )
               - y12 * dv * tg * tgxz );
 
             dt13_xx[ig] = -( v * dx_y13 * tgx - y13 * dv * tg * tgxx );
             dt13_yy[ig] = -( v * dy_y13 * tgy - y13 * dv * tg * tgyy );
             dt13_zz[ig] = -( v * dz_y13 * tgz - y13 * dv * tg * tgzz );
-            dt13_xy[ig] = -( 0.5 * v * ( dx_y13 * tgy + dy_y13 * tgx ) //
+            dt13_xy[ig] = -( 0.5 * v * ( dx_y13 * tgy + dy_y13 * tgx )
               - y13 * dv * tg * tgxy );
-            dt13_yz[ig] = -( 0.5 * v * ( dy_y13 * tgz + dz_y13 * tgy ) //
+            dt13_yz[ig] = -( 0.5 * v * ( dy_y13 * tgz + dz_y13 * tgy )
               - y13 * dv * tg * tgyz );
-            dt13_xz[ig] = -( 0.5 * v * ( dx_y13 * tgz + dz_y13 * tgx ) //
+            dt13_xz[ig] = -( 0.5 * v * ( dx_y13 * tgz + dz_y13 * tgx )
               - y13 * dv * tg * tgxz );
 
             dt14_xx[ig] = -( v * dx_y14 * tgx - y14 * dv * tg * tgxx );
             dt14_yy[ig] = -( v * dy_y14 * tgy - y14 * dv * tg * tgyy );
             dt14_zz[ig] = -( v * dz_y14 * tgz - y14 * dv * tg * tgzz );
-            dt14_xy[ig] = -( 0.5 * v * ( dx_y14 * tgy + dy_y14 * tgx ) //
+            dt14_xy[ig] = -( 0.5 * v * ( dx_y14 * tgy + dy_y14 * tgx )
               - y14 * dv * tg * tgxy );
-            dt14_yz[ig] = -( 0.5 * v * ( dy_y14 * tgz + dz_y14 * tgy ) //
+            dt14_yz[ig] = -( 0.5 * v * ( dy_y14 * tgz + dz_y14 * tgy )
               - y14 * dv * tg * tgyz );
-            dt14_xz[ig] = -( 0.5 * v * ( dx_y14 * tgz + dz_y14 * tgx ) //
+            dt14_xz[ig] = -( 0.5 * v * ( dx_y14 * tgz + dz_y14 * tgx )
               - y14 * dv * tg * tgxz );
 
             dt15_xx[ig] = -( v * dx_y15 * tgx - y15 * dv * tg * tgxx );
             dt15_yy[ig] = -( v * dy_y15 * tgy - y15 * dv * tg * tgyy );
             dt15_zz[ig] = -( v * dz_y15 * tgz - y15 * dv * tg * tgzz );
-            dt15_xy[ig] = -( 0.5 * v * ( dx_y15 * tgy + dy_y15 * tgx ) //
+            dt15_xy[ig] = -( 0.5 * v * ( dx_y15 * tgy + dy_y15 * tgx )
               - y15 * dv * tg * tgxy );
-            dt15_yz[ig] = -( 0.5 * v * ( dy_y15 * tgz + dz_y15 * tgy ) //
+            dt15_yz[ig] = -( 0.5 * v * ( dy_y15 * tgz + dz_y15 * tgy )
               - y15 * dv * tg * tgyz );
-            dt15_xz[ig] = -( 0.5 * v * ( dx_y15 * tgz + dz_y15 * tgx ) //
+            dt15_xz[ig] = -( 0.5 * v * ( dx_y15 * tgz + dz_y15 * tgx )
               - y15 * dv * tg * tgxz );
 
           }

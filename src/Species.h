@@ -55,9 +55,6 @@ class Species
                              // 1/<phi|delta_V|phi>
   std::vector<double>               nlcc_spl_, nlcc_spl2_;
   std::vector<double>               nlccg_spl_, nlccg_spl2_;
-  // compensation charge
-  std::vector<std::vector<std::vector<double> > > q_spl_, q_spl2_;
-  std::vector<std::vector<std::vector<double> > > qg_spl_, qg_spl2_;
 
   std::vector<double> rps_spl_;  // radial linear mesh (same for all l)
 
@@ -82,27 +79,14 @@ class Species
   double rcps_;        // cutoff radius of gaussian pseudocharge
   std::vector<double> nlcc_; // non linear core correction
 
-  // for USPP
-  // indices: l   - angular moment of projector
-  //          n,m - differentiate projector with same l
-  //          i,j - differentiate projector of all l
-  // max_i = sum_l max_n(l)
-
-  // map index of projector -> angular moment
+  // map index of projector -> angular momentum
   std::vector<int> lmap_;
   // local potential in radial representation
   std::vector<double> vlocal_;
-  // projector in radial representation, indices proj_[l,n,r]
+  // projector in radial representation, indices proj_[l][n][r]
   std::vector<std::vector<std::vector<double> > > proj_;
-  // compensation charge, indices q_[i,j,r]
-  std::vector<std::vector<std::vector<double> > > q_;
   // matrix D in block diagonal storage, indices d_[l,n,m]
   std::vector<std::vector<std::vector<double> > > d_;
-
-  // for norm conserving semilocal PP
-  // potential associated with a projector in radial representation,
-  // indices pot_[l,n,r]
-  std::vector<std::vector<std::vector<double> > > pot_;
 
   // initialize a norm conserving PP
   bool initialize_ncpp();
@@ -140,7 +124,7 @@ class Species
   int nlm(void) { return nlm_; }
   // number of non-local projectors w/o m degeneracy
   int nop(void) { return nop_; }
-  // angular moment of projector with index iop
+  // angular momentum of projector with index iop
   int l(int iop) { return lmap_[iop]; }
   // extract D matrix
   double dmatrix(int ipr, int jpr);

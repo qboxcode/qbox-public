@@ -772,7 +772,12 @@ bool Species::initialize_slpp()
   //    w_2(G) = Ylm(G) i^-2 (  3/G^3 \sum_r sin(Gr)/r  vnlr -
   //                            1/G   \sum_r sin(Gr)*r  vnlr -
   //                            3/G^2 \sum_r cos(Gr)    vnlr )
-  // vnlr[l][i] contains 4 pi dr phi_l(r) v_l(r)
+  // f: j_3(Gr) = sin(Gr)*(15/(Gr)^4-6/(Gr)^2)) +
+  //              cos(Gr)*(1/(Gr)-15/(Gr)^3)
+  //    w_3(G) = Ylm(G) i^-3 (  15/G^4 \sum_r sin(Gr)/r^2  vnlr
+  //                          - 6/G^2  \sum_r sin(Gr)      vnlr
+  //                          + 1/G    \sum_r cos(Gr)*r    vnlr
+  //                          - 15/G^3 \sum_r cos(Gr)/r    vnlr )
 
   for ( int iop = 0; iop < nop_; iop++ )
   {
@@ -787,7 +792,8 @@ bool Species::initialize_slpp()
 
       for ( int i = 0; i < ndft_; i++ )
       {
-        fint[i] = vnlr[iop][i] * rps_spl_[i] * rps_spl_[i];
+        const double r = rps_spl_[i];
+        fint[i] = vnlr[iop][i] * r * r;
       }
       const double v0 = simpsn(ndft_,&fint[0]);
 
@@ -817,7 +823,6 @@ bool Species::initialize_slpp()
       //  p projectors
       //  w_1(G) = Ylm(G) i 1/G^2 \sum_r sin(Gr) vnlr -
       //           Ylm(G) i 1/G   \sum_r cos(Gr) r vnlr
-      //  vnlr(i,is,l) contains 4 pi dr phi_l(r) v_l(r)
 
       //  Next line: v(G=0) is zero (j_1(Gr) -> 0 as G->0 )
       const double v0 = 0.0;
@@ -834,7 +839,8 @@ bool Species::initialize_slpp()
       fint[0] = v0;
       for ( int i = 1; i < ndft_; i++ )
       {
-        fint[i] = vnlg_spl_[iop][i] / ( gspl_[i] * gspl_[i] );
+        const double g = gspl_[i];
+        fint[i] = vnlg_spl_[iop][i] / ( g * g );
       }
 
       //  Second part: cosine transform: 1/G   \sum_r cos(Gr) r vnlr
@@ -871,7 +877,6 @@ bool Species::initialize_slpp()
       //    w_2(G) = Ylm(G) i^-2 (  3/G^3 \sum_r sin(Gr)/r  vnlr -
       //                            1/G   \sum_r sin(Gr)*r  vnlr -
       //                            3/G^2 \sum_r cos(Gr)    vnlr )
-      // vnlr[l][i] contains 4 pi dr phi_l(r) v_l(r)
 
       //  Next line: v(G=0) is zero (j_2(Gr) -> 0 as G->0 )
       const double v0 = 0.0;
@@ -890,7 +895,8 @@ bool Species::initialize_slpp()
       fint[0] = v0;
       for ( int i = 1; i < ndft_; i++ )
       {
-        fint[i] = 3.0 * vnlg_spl_[iop][i] / ( gspl_[i] * gspl_[i] * gspl_[i] );
+        const double g = gspl_[i];
+        fint[i] = 3.0 * vnlg_spl_[iop][i] / ( g * g * g );
       }
 
       // Second part: sine transform -1/G \sum_r sin(Gr)*r vnlr
@@ -902,14 +908,12 @@ bool Species::initialize_slpp()
       sinft(ndft_,&vnlg_spl_[iop][0]);
 
       // multiply by -1/G and accumulate in fint */
-      fint[0] += v0;
       for ( int i = 1; i < ndft_; i++ )
       {
         fint[i] += -vnlg_spl_[iop][i] / gspl_[i];
       }
 
       // Third part: cosine transform: -3/G^2 \sum_r cos(Gr) vnlr
-
       for ( int i = 0; i < ndft_; i++ )
       {
         vnlg_spl_[iop][i] = vnlr[iop][i];
@@ -923,10 +927,10 @@ bool Species::initialize_slpp()
       cosft1(ndft_,&vnlg_spl_[iop][0]);
 
       // Multiply by -3/G^2 and add to fint
-      fint[0] += v0;
       for ( int i = 1; i < ndft_; i++ )
       {
-        fint[i] += -3.0 * vnlg_spl_[iop][i] / ( gspl_[i] * gspl_[i] );
+        const double g = gspl_[i];
+        fint[i] += -3.0 * vnlg_spl_[iop][i] / ( g * g );
       }
 
       vnlg_spl_[iop][0] = v0;
@@ -938,7 +942,111 @@ bool Species::initialize_slpp()
       // Initialize spline interpolation
       // Use zero first derivative at G=0 and natural (y"=0) at Gmax
 
-      spline(ndft_,&gspl_[0],&vnlg_spl_[iop][0],0.0,0.0,0,1,&vnlg_spl2_[iop][0]);
+      spline(ndft_,&gspl_[0],&vnlg_spl_[iop][0],
+             0.0,0.0,0,1,&vnlg_spl2_[iop][0]);
+    }
+    else if ( lmap_[iop] == 3 )
+    {
+      // f projectors
+      // f: j_3(Gr) = sin(Gr)*(15/(Gr)^4-6/(Gr)^2)) +
+      //              cos(Gr)*(1/(Gr)-15/(Gr)^3)
+      //    w_3(G) = Ylm(G) i^-3 (  15/G^4 \sum_r sin(Gr)/r^2  vnlr
+      //                          - 6/G^2  \sum_r sin(Gr)      vnlr
+      //                          + 1/G    \sum_r cos(Gr)*r    vnlr
+      //                          - 15/G^3 \sum_r cos(Gr)/r    vnlr )
+
+      //  Next line: v(G=0) is zero (j_3(Gr) -> 0 as G->0 )
+      const double v0 = 0.0;
+
+      // First part: sine transform 15/G^4 \sum_r sin(Gr)/r^2 vnlr
+      // Note: the integrand is linear near r=0 since vnlr(r) ~ r^3
+      vnlg_spl_[iop][0] = 0.0;
+      for ( int i = 1; i < ndft_; i++ )
+      {
+        const double r = rps_spl_[i];
+        vnlg_spl_[iop][i] = vnlr[iop][i] / (r*r);
+      }
+
+      sinft(ndft_,&vnlg_spl_[iop][0]);
+
+      // multiply by 15/G^4 and store in fint */
+      fint[0] = v0;
+      for ( int i = 1; i < ndft_; i++ )
+      {
+        const double g = gspl_[i];
+        fint[i] = 15.0 * vnlg_spl_[iop][i] / (g*g*g*g);
+      }
+
+      // Second part: sine transform -6/G^2 \sum_r sin(Gr) vnlr
+      for ( int i = 0; i < ndft_; i++ )
+      {
+        vnlg_spl_[iop][i] = vnlr[iop][i];
+      }
+
+      sinft(ndft_,&vnlg_spl_[iop][0]);
+
+      // multiply by -6/G^2 and accumulate in fint */
+      for ( int i = 1; i < ndft_; i++ )
+      {
+        const double g = gspl_[i];
+        fint[i] += -6.0 * vnlg_spl_[iop][i] / (g*g);
+      }
+
+      // Third part: cosine transform:  1/G \sum_r cos(Gr)*r vnlr
+      for ( int i = 0; i < ndft_; i++ )
+      {
+        vnlg_spl_[iop][i] = vnlr[iop][i] * rps_spl_[i];
+      }
+
+      //  N.B. Next line: Initialize also vnlg_[l][ndft_] to zero
+      //  since it is used and modified by cosft1
+      //  vnlg_ was dimensioned ndft_[is]+1
+
+      vnlg_spl_[iop][ndft_] = 0.0;
+      cosft1(ndft_,&vnlg_spl_[iop][0]);
+
+      // Multiply by 1/G and add to fint
+      for ( int i = 1; i < ndft_; i++ )
+      {
+        fint[i] += vnlg_spl_[iop][i] / gspl_[i];
+      }
+
+      // Fourth part: cosine transform:  -15/G^3 \sum_r cos(Gr)/r vnlr
+      vnlg_spl_[iop][0] = 0.0;
+      for ( int i = 1; i < ndft_; i++ )
+      {
+        vnlg_spl_[iop][i] = vnlr[iop][i] / rps_spl_[i];
+      }
+
+      //  N.B. Next line: Initialize also vnlg_[l][ndft_] to zero
+      //  since it is used and modified by cosft1
+      //  vnlg_ was dimensioned ndft_[is]+1
+
+      vnlg_spl_[iop][ndft_] = 0.0;
+      cosft1(ndft_,&vnlg_spl_[iop][0]);
+
+      // Multiply by -15/G^3 and add to fint
+      for ( int i = 1; i < ndft_; i++ )
+      {
+        const double g = gspl_[i];
+        fint[i] += -15.0 * vnlg_spl_[iop][i] / (g*g*g);
+      }
+
+      vnlg_spl_[iop][0] = v0;
+      for ( int i = 1; i < ndft_; i++ )
+      {
+        vnlg_spl_[iop][i] = fint[i];
+      }
+
+      // Initialize spline interpolation
+      // Use zero first derivative at G=0 and natural (y"=0) at Gmax
+
+      spline(ndft_,&gspl_[0],&vnlg_spl_[iop][0],
+             0.0,0.0,0,1,&vnlg_spl2_[iop][0]);
+    }
+    else
+    {
+      throw SpeciesInitException("Species::initialize_slpp: l < 0 or l > 3");
     }
   } // loop over projector
   return true;

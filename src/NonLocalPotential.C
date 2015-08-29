@@ -253,7 +253,7 @@ void NonLocalPotential::update_twnl(void)
   const double s3 = sqrt(3.0);
   const double s32 = sqrt(1.5);
   const double s52 = sqrt(2.5);
-  const double s15 = 0.5 * s32 * s52;
+  const double s15 = sqrt(15.0);
 
   const double *kpg   = basis_.kpg_ptr();
   const double *kpgi  = basis_.kpgi_ptr();

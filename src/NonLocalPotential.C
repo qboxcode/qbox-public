@@ -1151,7 +1151,7 @@ void NonLocalPotential::update_twnl(void)
             const double dy_y14 = factor * s15 * ( dy_zxx - dy_zyy );
             const double dz_y14 = factor * s15 * ( dz_zxx - dz_zyy );
             // y15 = factor * s52 * ( tgxxx - 3.0 * tgxyy );
-            const double dx_y15 = factor * s52 * ( dx_xxx - 3.0 * dz_xyy );
+            const double dx_y15 = factor * s52 * ( dx_xxx - 3.0 * dx_xyy );
             const double dy_y15 = factor * s52 * ( dy_xxx - 3.0 * dy_xyy );
             const double dz_y15 = factor * s52 * ( dz_xxx - 3.0 * dz_xyy );
 

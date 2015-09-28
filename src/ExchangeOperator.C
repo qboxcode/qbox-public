@@ -794,7 +794,8 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
       {
         double div_corr = 0.0;
 
-        const double div_corr_1 = exfac * numerical_correction[iKpi] * occ_ki_[i];
+        const double div_corr_1 = exfac * numerical_correction[iKpi] * 
+                                  occ_ki_[i];
         div_corr += div_corr_1;
         const double e_div_corr_1 = -div_corr_1;
         exchange_sum += e_div_corr_1 * wf.weight(iKpi);

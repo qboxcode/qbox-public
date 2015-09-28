@@ -27,7 +27,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         ChargeDensity.o UserInterface.o RunCmd.o \
         LoadCmd.o SaveCmd.o \
         SpeciesCmd.o SpeciesReader.o SpeciesHandler.o \
-        XCOperator.o ExchangeOperator.o Bisection.o KPGridConnectivity.o \
+        XCOperator.o ExchangeOperator.o Bisection.o \
 	XCPotential.o LDAFunctional.o VWNFunctional.o \
         PBEFunctional.o BLYPFunctional.o B3LYPFunctional.o  \
 	NonLocalPotential.o SampleReader.o StructuredDocumentHandler.o \
@@ -346,11 +346,11 @@ ExchangeOperator.o: VectorLess.h ExchangeOperator.h Sample.h AtomSet.h
 ExchangeOperator.o: Context.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
 ExchangeOperator.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 ExchangeOperator.o: SlaterDet.h Basis.h Matrix.h Timer.h FourierTransform.h
-ExchangeOperator.o: KPGridConnectivity.h Bisection.h
+ExchangeOperator.o: Bisection.h
 ExchangeOperator.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 ExchangeOperator.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 ExchangeOperator.o: Wavefunction.h Control.h SlaterDet.h Basis.h Matrix.h
-ExchangeOperator.o: Timer.h FourierTransform.h KPGridConnectivity.h
+ExchangeOperator.o: Timer.h FourierTransform.h 
 ExtForce.o: ExtForce.h D3vector.h
 ExtForceCmd.o: UserInterface.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 ExtForceCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
@@ -393,14 +393,6 @@ JDWavefunctionStepper.o: Control.h Preconditioner.h
 JDWavefunctionStepper.o: WavefunctionStepper.h Timer.h Wavefunction.h
 JDWavefunctionStepper.o: D3vector.h UnitCell.h
 kpgen.o: D3vector.h
-KPGridConnectivity.o: KPGridConnectivity.h Sample.h AtomSet.h Context.h
-KPGridConnectivity.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-KPGridConnectivity.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-KPGridConnectivity.o: SlaterDet.h Basis.h Matrix.h Timer.h
-KPGridConnectivity.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h
-KPGridConnectivity.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
-KPGridConnectivity.o: ExtForceSet.h Wavefunction.h Control.h SlaterDet.h
-KPGridConnectivity.o: Basis.h Matrix.h Timer.h
 KpointCmd.o: UserInterface.h D3vector.h Sample.h AtomSet.h Context.h Atom.h
 KpointCmd.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 KpointCmd.o: Wavefunction.h Control.h
@@ -719,7 +711,7 @@ XCOperator.o: XCOperator.h Sample.h AtomSet.h Context.h Atom.h D3vector.h
 XCOperator.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 XCOperator.o: Wavefunction.h Control.h ChargeDensity.h Timer.h XCPotential.h
 XCOperator.o: ExchangeOperator.h SlaterDet.h Basis.h Matrix.h
-XCOperator.o: FourierTransform.h KPGridConnectivity.h
+XCOperator.o: FourierTransform.h 
 XCOperator.o: Sample.h AtomSet.h Context.h Atom.h D3vector.h UnitCell.h
 XCOperator.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 XCOperator.o: Control.h

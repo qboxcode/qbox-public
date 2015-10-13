@@ -170,7 +170,7 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I                          I\n";
   cout << "                   I                          I\n";
   cout << "                   I                          I\n";
-  cout << "                   I http://eslab.ucdavis.edu I\n";
+  cout << "                   I http://qboxcode.org      I\n";
   cout << "                   ============================\n\n";
   cout << "\n";
   cout << "<release> " << release() << " " << TARGET << " </release>" << endl;

@@ -531,7 +531,6 @@ void ElectricEnthalpy::compute_correction(void)
 #endif
       }
 
-      #pragma omp parallel for
       for ( int i = 0; i < np012loc; i++ )
       {
         int ix = ft.i(i);

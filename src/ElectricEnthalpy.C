@@ -587,7 +587,6 @@ void ElectricEnthalpy::compute_correction(void)
     tmap["real"].start();
     if ( compute_quadrupole_ )
     {
-      #pragma omp parallel for
       for ( int ist = 0; ist < nst; ist++ )
       {
         D3vector& pcor = correction_[ist];

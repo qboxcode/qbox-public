@@ -1,4 +1,13 @@
 --------------------------------------------------------------------------------
+r1758 GGIonicStepper.C
+Reduced alpha_max to 5.0
+Rescale alpha when displacement exceeds limit
+r1757 testFourierTransform.C
+Added MPI barriers for more accurate timing.
+Added print of grid sizes.
+r1756 AtomSet.C fix reset_vcm in randomize_velocities
+r1754 r1755 ElectricEnthalpy.C remove omp pragmas to avoid race condition
+--------------------------------------------------------------------------------
 rel1_62_4 r1748
 r1748 qb.C: Change URL in header to qboxcode.org
 r1742-r1744 ExchangeOperator.C Removed implementation of quadratic correction

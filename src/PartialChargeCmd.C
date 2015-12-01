@@ -62,8 +62,8 @@ int PartialChargeCmd::action(int argc, char **argv)
         cout << "nspin = 1, cannot select spin" << endl;
       return 1;
     }
-    // process argument: ispin
     iarg++;
+    // process argument: ispin
     if ( iarg==argc )
     {
       if ( ui->onpe0() )
@@ -77,20 +77,25 @@ int PartialChargeCmd::action(int argc, char **argv)
         cout << " spin must be 1 or 2" <<  endl;
       return 1;
     }
-  }
-  else
-  {
-    // argument must be the atom name followed by the radius
-    atom_name = argv[iarg];
     iarg++;
-    if ( iarg==argc )
-    {
-      if ( ui->onpe0() )
-        cout << usage << endl;
-      return 1;
-    }
-    radius = atof(argv[iarg]);
   }
+
+  // argument must be the atom name followed by the radius
+  if ( iarg==argc )
+  {
+    if ( ui->onpe0() )
+      cout << usage << endl;
+    return 1;
+  }
+  atom_name = argv[iarg];
+  iarg++;
+  if ( iarg==argc )
+  {
+    if ( ui->onpe0() )
+      cout << usage << endl;
+    return 1;
+  }
+  radius = atof(argv[iarg]);
 
   // find atom and check validity of radius argument
   Atom* a = s->atoms.findAtom(atom_name);
@@ -121,11 +126,23 @@ int PartialChargeCmd::action(int argc, char **argv)
   const double omega = vbasis->cell().volume();
 
   double sum = 0.0;
-
-  // non-spin-polarized calculation
   const double fac = 4.0 * M_PI * radius * radius * radius / omega;
+
   // G=0 term
-  sum = fac * cd.rhog[0][0].real() / 3.0;
+  if ( nspin == 1 )
+  {
+    sum = fac * cd.rhog[0][0].real() / 3.0;
+  }
+  else
+  {
+    // nspin == 2
+    if ( ispin == 0 )
+      sum = fac * ( cd.rhog[0][0].real() + cd.rhog[1][0].real() ) / 3.0;
+    else if ( ispin == 1 )
+      sum = fac * cd.rhog[0][0].real() / 3.0;
+    else
+      sum = fac * cd.rhog[1][0].real() / 3.0;
+  }
 
   // Start sum after G=0 coeff if in first process row
   int igstart = 0;

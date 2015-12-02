@@ -72,5 +72,8 @@ struct Control
 
   D3vector e_field;
   std::string polarization;
+
+  std::string iter_cmd;
+  int iter_cmd_period;
 };
 #endif

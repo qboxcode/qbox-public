@@ -25,6 +25,7 @@
 #include "PSDWavefunctionStepper.h"
 #include "PSDAWavefunctionStepper.h"
 #include "JDWavefunctionStepper.h"
+#include "UserInterface.h"
 #include "Preconditioner.h"
 #include "SDIonicStepper.h"
 #include "SDAIonicStepper.h"
@@ -36,10 +37,6 @@
 #include "AndersonMixer.h"
 #include "MLWFTransform.h"
 #include "D3tensor.h"
-
-#ifdef USE_APC
-#include "apc.h"
-#endif
 
 #include <iostream>
 #include <iomanip>
@@ -355,9 +352,6 @@ void BOSampleStepper::step(int niter)
     // ionic iteration
 
     tm_iter.start();
-#ifdef USE_APC
-    ApcStart(1);
-#endif
 
     if ( onpe0 )
       cout << "<iteration count=\"" << iter+1 << "\">\n";
@@ -1131,9 +1125,20 @@ void BOSampleStepper::step(int niter)
       }
     }
 
-#ifdef USE_APC
-    ApcStop(1);
-#endif
+    if ( atoms_move )
+      s_.constraints.update_constraints(dt);
+
+    // execute commands in iter_cmd if defined
+    if ( !s_.ctrl.iter_cmd.empty() )
+    {
+      if ( iter % s_.ctrl.iter_cmd_period == 0 )
+      {
+        // command must be terminated with \n
+        istringstream cmdstream(s_.ctrl.iter_cmd + "\n");
+        s_.ui->processCmds(cmdstream,"[iter_cmd]",true);
+      }
+    }
+
     // print iteration time
     double time = tm_iter.real();
     double tmin = time;
@@ -1148,8 +1153,6 @@ void BOSampleStepper::step(int niter)
            << endl;
       cout << "</iteration>" << endl;
     }
-    if ( atoms_move )
-      s_.constraints.update_constraints(dt);
   } // for iter
 
   if ( atoms_move )

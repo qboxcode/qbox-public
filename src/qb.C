@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008-2012 The Regents of the University of California
+// Copyright (c) 2008-2015 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -26,9 +26,6 @@ using namespace std;
 #include <fstream>
 #if AIX
 #include<filehdr.h>
-#endif
-#ifdef USE_APC
-#include "apc.h"
 #endif
 
 #include "isodate.h"
@@ -99,6 +96,8 @@ using namespace std;
 #include "Emass.h"
 #include "ExtStress.h"
 #include "FermiTemp.h"
+#include "IterCmd.h"
+#include "IterCmdPeriod.h"
 #include "Dt.h"
 #include "Nempty.h"
 #include "NetCharge.h"
@@ -126,9 +125,6 @@ int main(int argc, char **argv, char **envp)
 
 #if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
-#if USE_APC
-  ApcInit();
 #endif
 
 #if BGLDEBUG
@@ -258,9 +254,8 @@ int main(int argc, char **argv, char **envp)
          << " </omp_max_threads>" << endl;
 #endif
 
-  Sample* s = new Sample(ctxt);
-
   UserInterface ui;
+  Sample* s = new Sample(ctxt, &ui);
 
   ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
@@ -315,6 +310,8 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Emass(s));
   ui.addVar(new ExtStress(s));
   ui.addVar(new FermiTemp(s));
+  ui.addVar(new IterCmd(s));
+  ui.addVar(new IterCmdPeriod(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new NetCharge(s));
   ui.addVar(new Nrowmax(s));
@@ -391,9 +388,6 @@ int main(int argc, char **argv, char **envp)
   delete s;
 
   } // end of Context scope
-#if USE_APC
-  ApcFinalize();
-#endif
 #if USE_MPI
   MPI_Finalize();
 #endif

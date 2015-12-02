@@ -15,7 +15,6 @@
 // UserInterface.C: definition of readCmd and processCmds
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UserInterface.C,v 1.14 2009-11-30 02:28:54 fgygi Exp $
 
 #include "UserInterface.h"
 #include "qbox_xmlns.h"
@@ -73,8 +72,17 @@ UserInterface::~UserInterface(void)
 int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
 {
   int ch, i = 0;
-  while ( (ch = fp.get()) != EOF && !( ch == '\n' || ch ==';' || ch == '#') )
+  if ( fp.eof() )
   {
+    //!!
+    cout << "early return" << endl;
+    return 0;
+  }
+  while ( !fp.eof()  &&  !( ch == '\n' || ch ==';' || ch == '#') )
+  {
+    ch = fp.get();
+//!!
+//!!cout << (char)ch;
     if ( ch == '\\' ) // line continuation character
     {
       // check if backslash is followed by a newline
@@ -92,15 +100,16 @@ int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
           s[i++] = ch;
       }
     }
-    else
+    else if ( !fp.eof() && !( ch == '\n' || ch == ';' || ch == '#' ) )
     {
       if (i < max - 1)
         s[i++] = ch;
     }
   }
+
   if (max > 0) s[i] = '\0';  /* add terminating NULL */
 
-  if ( !(ch == '\n' || ch == ';' || ch == '#') )
+  if ( fp.eof() )
     return 0;             /* return 0 for end of file */
 
   // output command line if reading from a script
@@ -126,6 +135,10 @@ int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
 void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
   bool echo)
 {
+#if DEBUG
+  cout << "UserInterface::processCmds: prompt="
+       << prompt << " echo=" << echo << endl;
+#endif
   // read and process commands from cmdstream until done
   char cmdline[256];
   for ( int i = 0; i < 256; i++ )
@@ -149,6 +162,9 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
     MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
     MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
 #endif
+
+//!!
+//!!cout << "cmd_read=" << cmd_read << endl;
 
     if ( cmd_read )
     {
@@ -228,7 +244,7 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
             MPI_Barrier(MPI_COMM_WORLD);
 #endif
 #if DEBUG
-            cout << " command completed" << cmdptr->name() << endl;
+            cout << " command completed " << cmdptr->name() << endl;
 #endif
           }
           else

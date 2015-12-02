@@ -15,7 +15,6 @@
 // Sample.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Sample.h,v 1.13 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef SAMPLE_H
 #define SAMPLE_H
@@ -27,6 +26,7 @@
 #include "Control.h"
 
 class Context;
+class UserInterface;
 
 class Sample
 {
@@ -42,8 +42,10 @@ class Sample
   Wavefunction wf;
   Wavefunction* wfv; // wavefunction velocity
   Control ctrl;
+  UserInterface *ui;
 
-  Sample(const Context& ctxt) : ctxt_(ctxt), atoms(ctxt), constraints(ctxt),
+  Sample(const Context& ctxt, UserInterface *ui_) : ctxt_(ctxt), ui(ui_),
+    atoms(ctxt), constraints(ctxt),
     extforces(ctxt), wf(ctxt), wfv(0) {}
   ~Sample(void) { delete wfv; }
   void reset(void)

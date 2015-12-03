@@ -73,16 +73,11 @@ int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
 {
   int ch, i = 0;
   if ( fp.eof() )
-  {
-    //!!
-    cout << "early return" << endl;
     return 0;
-  }
+
   while ( !fp.eof()  &&  !( ch == '\n' || ch ==';' || ch == '#') )
   {
     ch = fp.get();
-//!!
-//!!cout << (char)ch;
     if ( ch == '\\' ) // line continuation character
     {
       // check if backslash is followed by a newline
@@ -162,9 +157,6 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
     MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
     MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
 #endif
-
-//!!
-//!!cout << "cmd_read=" << cmd_read << endl;
 
     if ( cmd_read )
     {

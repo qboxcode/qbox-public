@@ -20,15 +20,11 @@
 #include "qbox_xmlns.h"
 #include <string>
 #include <list>
-#include <unistd.h> // isatty
 #include <fstream>
-#include <cassert>
+#include <unistd.h> // sync()
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#if USE_MPI
 #include <mpi.h>
-#endif
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -51,9 +47,7 @@ void wait_for_no_file(const string& lockfilename)
 UserInterface::UserInterface(void) : terminate_(false)
 {
   int mype = 0;
-#if USE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&mype);
-#endif
   onpe0_ = ( mype == 0 );
 }
 
@@ -72,12 +66,8 @@ UserInterface::~UserInterface(void)
 int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
 {
   int ch, i = 0;
-  if ( fp.eof() )
-    return 0;
-
-  while ( !fp.eof()  &&  !( ch == '\n' || ch ==';' || ch == '#') )
+  while ( (ch = fp.get()) != EOF &&  !( ch == '\n' || ch ==';' || ch == '#') )
   {
-    ch = fp.get();
     if ( ch == '\\' ) // line continuation character
     {
       // check if backslash is followed by a newline
@@ -95,11 +85,8 @@ int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
           s[i++] = ch;
       }
     }
-    else if ( !fp.eof() && !( ch == '\n' || ch == ';' || ch == '#' ) )
-    {
-      if (i < max - 1)
-        s[i++] = ch;
-    }
+    if (i < max - 1)
+      s[i++] = ch;
   }
 
   if (max > 0) s[i] = '\0';  /* add terminating NULL */
@@ -108,7 +95,7 @@ int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
     return 0;             /* return 0 for end of file */
 
   // output command line if reading from a script
-  if ( echo && i > 0 ) cout << "<cmd>" << s << "</cmd>";
+  if ( echo && i > 0 ) cout << "<cmd>" << s << "</cmd>" << endl;
 
   if ( ch == '#' )
   {
@@ -117,11 +104,10 @@ int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
     {
       if ( echo ) cout << (char) ch;
     }
-    if ( echo && ch=='\n' ) cout << "</cmd>";
+    if ( echo && ch=='\n' ) cout << "</cmd>" << endl;
     if ( !(ch == '\n') )
       return 0;             /* return 0 for end of file */
   }
-  if ( echo ) cout << endl;
 
   return 1; // a command was read
 }
@@ -135,12 +121,11 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
        << prompt << " echo=" << echo << endl;
 #endif
   // read and process commands from cmdstream until done
-  char cmdline[256];
-  for ( int i = 0; i < 256; i++ )
-    cmdline[i] = '\0';
+  const int cmdlinemax = 1024;
+  char cmdline[cmdlinemax];
   list<Cmd*>::iterator cmd;
   const char *separators = " ;\t";
-  int i,done=0,cmd_read,status;
+  int done=0,cmd_read,status;
 
   if ( onpe0_ )
     cout << prompt << " ";
@@ -149,14 +134,14 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
   {
     if ( onpe0_ )
     {
+      for ( int i = 0; i < cmdlinemax; i++ )
+        cmdline[i] = '\0';
       // readCmd returns 1 if a command is read, 0 if at EOF
-      cmd_read = readCmd(cmdline, 256, cmdstream, echo );
+      cmd_read = readCmd(cmdline, cmdlinemax, cmdstream, echo );
       done = !cmd_read;
     }
-#if USE_MPI
-    MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
+    MPI_Bcast(&cmdline[0],cmdlinemax,MPI_CHAR,0,MPI_COMM_WORLD);
     MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
-#endif
 
     if ( cmd_read )
     {
@@ -164,6 +149,7 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
       // cout << " command line is: " << cmdline << endl;
 
       // comment lines: start with '#'
+      int i;
       if ( cmdline[i=strspn(cmdline," ")] == '#' )
       {
         // cout << " comment line" << endl;
@@ -225,16 +211,12 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
 
           if ( cmdptr )
           {
-#if USE_MPI
             MPI_Barrier(MPI_COMM_WORLD);
-#endif
 #if DEBUG
             cout << " execute command " << cmdptr->name() << endl;
 #endif
             cmdptr->action(ac,av);
-#if USE_MPI
             MPI_Barrier(MPI_COMM_WORLD);
-#endif
 #if DEBUG
             cout << " command completed " << cmdptr->name() << endl;
 #endif
@@ -248,9 +230,7 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
               cmdstr.open(av[0],ios::in);
               status = !cmdstr;
             }
-#if USE_MPI
             MPI_Bcast(&status,1,MPI_INT,0,MPI_COMM_WORLD);
-#endif
             if ( !status )
             {
               // create new prompt in the form: prompt<filename>
@@ -290,9 +270,7 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
 
     if ( onpe0_ )
       done |= terminate_;
-#if USE_MPI
     MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
-#endif
   }
 
   if ( onpe0_ )
@@ -359,10 +337,8 @@ void UserInterface::processCmdsServer ( string inputfilename,
         cmd_read = readCmd(cmdline, 256, qbin, echo );
         cout << prompt << " " << cmdline << endl;
       }
-#if USE_MPI
       MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
       MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
-#endif
 
       if ( cmd_read )
       {
@@ -437,16 +413,12 @@ void UserInterface::processCmdsServer ( string inputfilename,
 
             if ( cmdptr )
             {
-#if USE_MPI
               MPI_Barrier(MPI_COMM_WORLD);
-#endif
 #if DEBUG
               cerr << " execute command " << cmdptr->name() << endl;
 #endif
               cmdptr->action(ac,av);
-#if USE_MPI
               MPI_Barrier(MPI_COMM_WORLD);
-#endif
 #if DEBUG
               cerr << " command completed " << cmdptr->name() << endl;
 #endif
@@ -460,9 +432,7 @@ void UserInterface::processCmdsServer ( string inputfilename,
                 cmdstr.open(av[0],ios::in);
                 status = !cmdstr;
               }
-#if USE_MPI
               MPI_Bcast(&status,1,MPI_INT,0,MPI_COMM_WORLD);
-#endif
               if ( !status )
               {
                 // create new prompt in the form: prompt<filename>
@@ -498,9 +468,7 @@ void UserInterface::processCmdsServer ( string inputfilename,
         // check if terminate_ flag was set during command execution
         if ( onpe0_ )
           done = terminate_;
-#if USE_MPI
         MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
-#endif
 
       } // if cmd_read
 

@@ -1,4 +1,9 @@
 --------------------------------------------------------------------------------
+r1789 rel1_62_6
+Implementation of partial_charge command
+Implementation of iter_cmd and iter_cmd_period variables
+JDWavefunctionStepper.C Fix: use dwf for preconditioning.
+--------------------------------------------------------------------------------
 r1758 GGIonicStepper.C
 Reduced alpha_max to 5.0
 Rescale alpha when displacement exceeds limit

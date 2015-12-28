@@ -196,8 +196,10 @@ int PartialChargeCmd::action(int argc, char **argv)
 
   if ( ui->onpe0() )
     cout << " <partial_charge atom=\"" << atom_name
-         << "\" radius=\"" << radius
-         << "\"> " << setprecision(6) << sum << " </partial_charge>" << endl;
+         << "\" radius=\"" << radius;
+    if ( ispin > 0 )
+      cout << "\" spin=\"" << ispin;
+    cout << "\"> " << setprecision(6) << sum << " </partial_charge>" << endl;
 
   return 0;
 }

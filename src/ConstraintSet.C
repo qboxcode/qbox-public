@@ -31,7 +31,7 @@
 #include <cstdlib> // atof
 using namespace std;
 
-const int constraints_maxiter = 10;
+const int constraints_maxiter = 50;
 
 ////////////////////////////////////////////////////////////////////////////////
 ConstraintSet::~ConstraintSet(void)

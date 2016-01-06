@@ -195,11 +195,13 @@ int PartialChargeCmd::action(int argc, char **argv)
   ctxt.dsum('c',1,1,&sum,1);
 
   if ( ui->onpe0() )
+  {
     cout << " <partial_charge atom=\"" << atom_name
          << "\" radius=\"" << radius;
     if ( ispin > 0 )
       cout << "\" spin=\"" << ispin;
     cout << "\"> " << setprecision(6) << sum << " </partial_charge>" << endl;
+  }
 
   return 0;
 }

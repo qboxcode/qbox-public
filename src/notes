@@ -1,4 +1,7 @@
 --------------------------------------------------------------------------------
+r1774: Fixed output of partial_charge command. 
+Increased max iter in ConstraintSet (note: two changes in r1774. accidental)
+--------------------------------------------------------------------------------
 r1789 rel1_62_6
 Implementation of partial_charge command
 Implementation of iter_cmd and iter_cmd_period variables

@@ -664,6 +664,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
   }
   etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_;
+  enthalpy_ = etotal_;
 
   // Electric enthalpy
   eefield_ = 0.0;
@@ -686,12 +687,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
         }
     }
   }
-  etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ +
-            ets_ + eexf_;
-  enthalpy_ = etotal_;
-
-  if ( el_enth_ )
-    enthalpy_ += eefield_;
 
   epv_ = 0.0;
   if ( compute_stress )

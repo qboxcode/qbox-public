@@ -825,7 +825,7 @@ void BOSampleStepper::step(int niter)
         // if ( onpe0 && nite_ > 0 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
-        double energy, etotal_int, etotal_int_m = 0.0;
+        double energy, etotal_int;
         double etotal, etotal_m = 0.0;
 
         double eigenvalue_sum, eigenvalue_sum_m = 0.0;

@@ -28,6 +28,7 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
   xcp_ = 0;
   xop_ = 0;
   exc_ = 0.0 ;
+  dxc_ = 0.0 ;
 
   sigma_exc_.resize(6);
 
@@ -105,6 +106,7 @@ void XCOperator::update(std::vector<std::vector<double> >& vr, bool compute_stre
 
     // LDA/GGA exchange energy
     exc_ = xcp_->exc();
+    dxc_ = xcp_->dxc();
 
     if ( compute_stress )
       xcp_->compute_stress(sigma_exc_);
@@ -112,12 +114,15 @@ void XCOperator::update(std::vector<std::vector<double> >& vr, bool compute_stre
   else
   {
     exc_ = 0.0;
+    dxc_ = 0.0;
     sigma_exc_ = 0.0;
   }
 
   if ( hasHF() )
   {
-    exc_ += xop_->update_operator(compute_stress);
+    double ex_hf = xop_->update_operator(compute_stress);
+    exc_ += ex_hf;
+    dxc_ -= ex_hf;
     if ( compute_stress )
       xop_->add_stress(sigma_exc_);
   }

@@ -67,8 +67,9 @@ class EnergyFunctional
   std::vector<double> zv_, rcps_;
   std::vector<int> na_;
   int nsp_;
-  double ekin_, econf_, eps_, enl_, ehart_,
+  double ekin_, econf_, eps_, enl_, ehart_, ehart_e_, ehart_ep_, ehart_p_,
          ecoul_, exc_, esr_, eself_, ets_, eexf_, etotal_;
+  double dxc_;
   double epv_, eefield_, enthalpy_;
   std::valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
     sigma_enl, sigma_esr, sigma;
@@ -90,8 +91,12 @@ class EnergyFunctional
   double eps(void) const { return eps_; }
   double enl(void) const { return enl_; }
   double ehart(void) const { return ehart_; }
+  double ehart_e(void) const { return ehart_e_; }
+  double ehart_ep(void) const { return ehart_ep_; }
+  double ehart_p(void) const { return ehart_p_; }
   double ecoul(void) const { return ecoul_; }
   double exc(void) const { return exc_; }
+  double dxc(void) const { return dxc_; }
   double esr(void) const { return esr_; }
   double eself(void) const { return eself_; }
   double ets(void) const { return ets_; }

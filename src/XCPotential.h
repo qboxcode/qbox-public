@@ -40,7 +40,7 @@ class XCPotential
   std::vector<std::complex<double> > tmpr;           // tmpr[ir]
   std::vector<std::complex<double> > tmp1, tmp2;     // tmp1[ig], tmp2[ig]
 
-  double exc_, dxc_, dxc0_, dxc1_, dxc2_;
+  double exc_, dxc_;
   int nspin_;
   int ngloc_;
   int np012loc_;
@@ -58,6 +58,7 @@ class XCPotential
   void update(std::vector<std::vector<double> >& vr);
   void compute_stress(std::valarray<double>& sigma_exc);
   double exc(void) { return exc_; }
+  double dxc(void) { return dxc_; }
 };
 
 class XCPotentialException

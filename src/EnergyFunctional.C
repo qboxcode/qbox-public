@@ -232,7 +232,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   const double *const g2i = vbasis_->g2i_ptr();
   const double fpi = 4.0 * M_PI;
   const int ngloc = vbasis_->localsize();
-  double sum[2], tsum[2];
+  double sum[5], tsum[5];
 
   // compute total electronic density: rhoelg = rho_up + rho_dn
   if ( wf.nspin() == 1 )
@@ -258,6 +258,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
 
   xco->update(v_r, compute_stress);
   exc_ = xco->exc();
+  dxc_ = xco->dxc();
   if ( compute_stress )
     xco->compute_stress(sigma_exc);
 
@@ -294,24 +295,36 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   }
   sum[0] *= omega; // sum[0] contains eps
 
-  // Hartree energy
-  ehart_ = 0.0;
+  // Hartree energy and electron-electron energy (without pseudocharges)
   double ehsum = 0.0;
+  double ehesum = 0.0;
+  double ehepsum = 0.0;
+  double ehpsum = 0.0;
   for ( int ig = 0; ig < ngloc; ig++ )
   {
-    const complex<double> tmp = rhoelg[ig] + rhopst[ig];
-    ehsum += norm(tmp) * g2i[ig];
-    rhogt[ig] = tmp;
+    const complex<double> r = rhoelg[ig];
+    const complex<double> rp = rhopst[ig];
+    ehsum  += norm(r+rp) * g2i[ig];
+    ehesum += norm(r) * g2i[ig];
+    ehepsum += 2.0*real(conj(r)*rp * g2i[ig]);
+    ehpsum += norm(rp) * g2i[ig];
+    rhogt[ig] = r+rp;
   }
   // factor 1/2 from definition of Ehart cancels with half sum over G
   // Note: rhogt[ig] includes a factor 1/Omega
-  // Factor omega in next line yields prefactor 4 pi / omega in
+  // Factor omega in next line yields prefactor 4 pi / omega in Ehart
   sum[1] = omega * fpi * ehsum;
-  // tsum[1] contains ehart
+  sum[2] = omega * fpi * ehesum;
+  sum[3] = omega * fpi * ehepsum;
+  sum[4] = omega * fpi * ehpsum;
 
-  MPI_Allreduce(sum,tsum,2,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
-  eps_   = tsum[0];
-  ehart_ = tsum[1];
+  MPI_Allreduce(sum,tsum,5,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
+
+  eps_      = tsum[0];
+  ehart_    = tsum[1];
+  ehart_e_  = tsum[2];
+  ehart_ep_ = tsum[3];
+  ehart_p_  = tsum[4];
 
   // compute vlocal_g = vion_local_g + vhart_g
   // where vhart_g = 4 * pi * (rhoelg + rhopst) * g2i

@@ -161,6 +161,7 @@ void BOSampleStepper::initialize_density(void)
 ////////////////////////////////////////////////////////////////////////////////
 void BOSampleStepper::step(int niter)
 {
+  const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
   const Context& ctxt = s_.ctxt_;
   const bool onpe0 = ctxt.onpe0();
 
@@ -812,9 +813,8 @@ void BOSampleStepper::step(int niter)
         if ( nite_ > 0 ) wf_stepper->preprocess();
 
         // non-self-consistent loop
-        // repeat until the change in etotal_int or in the
-        // eigenvalue sum is smaller than a fraction of the change in
-        // Hartree energy in the last scf iteration
+        // repeat until the change in eigenvalue_sum is smaller than a
+        // fraction of the change in Hartree energy in the last scf iteration
         bool nonscf_converged = false;
         if ( itscf > 0 )
           ehart_m = ehart;
@@ -825,23 +825,16 @@ void BOSampleStepper::step(int niter)
         // if ( onpe0 && nite_ > 0 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
-        double etotal_int, etotal_int_m = 0.0;
+        double energy, etotal_int, etotal_int_m = 0.0;
         double etotal, etotal_m = 0.0;
 
         double eigenvalue_sum, eigenvalue_sum_m = 0.0;
         // if nite == 0: do 1 iteration, no screening in charge mixing
         // if nite > 0: do nite iterations, use screening in charge mixing
         //
-        double energy;
         while ( !nonscf_converged && ite < max(nite_,1) )
         {
           energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
-          double enthalpy = ef_.enthalpy();
-
-          if ( ite > 0 )
-            etotal_int_m = etotal_int;
-
-          etotal_int = energy;
 
           // compute the sum of eigenvalues (with fixed weight)
           // to measure convergence of the subspace update
@@ -860,33 +853,9 @@ void BOSampleStepper::step(int niter)
 
           wf_stepper->update(dwf);
 
-          if ( onpe0 )
-          {
-            cout.setf(ios::fixed,ios::floatfield);
-            cout.setf(ios::right,ios::adjustfield);
-            cout << "  <etotal_int>  " << setprecision(8) << setw(15)
-                 << energy << " </etotal_int>\n";
-            if ( compute_stress || ef_.el_enth() )
-            {
-              cout << "  <enthalpy_int>" << setw(15)
-                   << enthalpy << " </enthalpy_int>\n" << flush;
-            }
-          }
-
-          // compare delta_etotal_int only after first iteration
+          // compare delta_eig_sum only after first iteration
           if ( ite > 0 )
           {
-#if 0
-            double delta_etotal_int = fabs(etotal_int - etotal_int_m);
-            nonscf_converged |= (delta_etotal_int < 0.01 * delta_ehart);
-            if ( onpe0 )
-            {
-              cout << " BOSampleStepper::step: delta_e_int: "
-                   << delta_etotal_int << endl;
-              cout << " BOSampleStepper::step: delta_ehart: "
-                   << delta_ehart << endl;
-            }
-#else
             double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
             nonscf_converged |= (delta_eig_sum < 0.01 * delta_ehart);
 #ifdef DEBUG
@@ -898,19 +867,9 @@ void BOSampleStepper::step(int niter)
                    << delta_ehart << endl;
             }
 #endif
-#endif
-
           }
           ite++;
         }
-
-        if ( itscf > 0 )
-          etotal_m = etotal;
-        etotal = energy;
-
-        // if ( onpe0 && nite_ > 0 && ite >= nite_ )
-        //   cout << " BOSampleStepper::step: nscf loop not converged after "
-        //        << nite_ << " iterations" << endl;
 
         // subspace diagonalization
         if ( compute_eigvec || s_.ctrl.wf_diag == "EIGVAL" )
@@ -950,18 +909,71 @@ void BOSampleStepper::step(int niter)
         }
 
         // update occupation numbers if fractionally occupied states
+        // compute weighted sum of eigenvalues and entropy term
+
+        // default value if no fractional occupation
+        double w_eigenvalue_sum = 2.0 * eigenvalue_sum;
+
+        const double wf_entropy = wf.entropy();
         if ( fractional_occ )
         {
           wf.update_occ(s_.ctrl.fermi_temp);
-          const double wf_entropy = wf.entropy();
           if ( onpe0 )
           {
             cout << "  Wavefunction entropy: " << wf_entropy << endl;
-            const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
             cout << "  Entropy contribution to free energy: "
                  << - wf_entropy * s_.ctrl.fermi_temp * boltz << endl;
           }
+          w_eigenvalue_sum = 0.0;
+          for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+          {
+            for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+            {
+              const int nst = wf.sd(ispin,ikp)->nst();
+              const double wkp = wf.weight(ikp);
+              for ( int n = 0; n < nst; n++ )
+              {
+                const double occ = wf.sd(ispin,ikp)->occ(n);
+                w_eigenvalue_sum += wkp * occ * wf.sd(ispin,ikp)->eig(n);
+              }
+            }
+          }
         }
+
+        // Harris-Foulkes estimate of the total energy
+        etotal_int = w_eigenvalue_sum - ef_.ehart_e() + ef_.ehart_p() +
+                     ef_.esr() - ef_.eself() + ef_.dxc();
+        double enthalpy = ef_.enthalpy() -
+                          wf_entropy * s_.ctrl.fermi_temp * boltz;
+#ifdef DEBUG
+        if ( onpe0 )
+        {
+          cout << setprecision(8);
+          cout << "w_eigenvalue_sum = " << setw(15) << w_eigenvalue_sum << endl;
+          cout << "ef.dxc()         = " << setw(15) << ef_.dxc() << endl;
+          cout << "ef.ehart()       = " << setw(15) << ef_.ehart() << endl;
+          cout << "ef.ehart_e()     = " << setw(15) << ef_.ehart_e() << endl;
+          cout << "ef.ehart_ep()    = " << setw(15) << ef_.ehart_ep() << endl;
+          cout << "ef.esr()         = " << setw(15) << ef_.esr() << endl;
+        }
+#endif
+
+        if ( onpe0 )
+        {
+          cout.setf(ios::fixed,ios::floatfield);
+          cout.setf(ios::right,ios::adjustfield);
+          cout << "  <etotal_int>  " << setprecision(8) << setw(15)
+               << etotal_int << " </etotal_int>\n";
+          if ( compute_stress || ef_.el_enth() )
+          {
+            cout << "  <enthalpy_int>" << setw(15)
+                 << enthalpy << " </enthalpy_int>\n" << flush;
+          }
+        }
+
+        if ( itscf > 0 )
+          etotal_m = etotal;
+        etotal = etotal_int;
 
         if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: end scf iteration" << endl;

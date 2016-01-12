@@ -35,6 +35,7 @@ class XCOperator
   const ChargeDensity& cd_;
   double HFmixCoeff_ ;
   double exc_; // XC energy: includes local and HF terms
+  double dxc_;
 
   std::valarray<double> sigma_exc_;
 
@@ -64,6 +65,7 @@ class XCOperator
   void compute_stress(std::valarray<double>& sigma);
   void cell_moved(void);
   double exc(void) { return exc_ ; };
+  double dxc(void) { return dxc_ ; };
 };
 
 class XCOperatorException

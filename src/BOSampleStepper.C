@@ -161,7 +161,6 @@ void BOSampleStepper::initialize_density(void)
 ////////////////////////////////////////////////////////////////////////////////
 void BOSampleStepper::step(int niter)
 {
-  const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
   const Context& ctxt = s_.ctxt_;
   const bool onpe0 = ctxt.onpe0();
 
@@ -909,21 +908,21 @@ void BOSampleStepper::step(int niter)
         }
 
         // update occupation numbers if fractionally occupied states
-        // compute weighted sum of eigenvalues and entropy term
-
+        // compute weighted sum of eigenvalues
         // default value if no fractional occupation
         double w_eigenvalue_sum = 2.0 * eigenvalue_sum;
 
-        const double wf_entropy = wf.entropy();
         if ( fractional_occ )
         {
           wf.update_occ(s_.ctrl.fermi_temp);
+#if 0
           if ( onpe0 )
           {
             cout << "  Wavefunction entropy: " << wf_entropy << endl;
             cout << "  Entropy contribution to free energy: "
                  << - wf_entropy * s_.ctrl.fermi_temp * boltz << endl;
           }
+#endif
           w_eigenvalue_sum = 0.0;
           for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
           {
@@ -942,9 +941,7 @@ void BOSampleStepper::step(int niter)
 
         // Harris-Foulkes estimate of the total energy
         etotal_int = w_eigenvalue_sum - ef_.ehart_e() + ef_.ehart_p() +
-                     ef_.esr() - ef_.eself() + ef_.dxc();
-        double enthalpy = ef_.enthalpy() -
-                          wf_entropy * s_.ctrl.fermi_temp * boltz;
+                     ef_.esr() - ef_.eself() + ef_.dxc() + ef_.ets();
 #ifdef DEBUG
         if ( onpe0 )
         {
@@ -964,11 +961,6 @@ void BOSampleStepper::step(int niter)
           cout.setf(ios::right,ios::adjustfield);
           cout << "  <etotal_int>  " << setprecision(8) << setw(15)
                << etotal_int << " </etotal_int>\n";
-          if ( compute_stress || ef_.el_enth() )
-          {
-            cout << "  <enthalpy_int>" << setw(15)
-                 << enthalpy << " </enthalpy_int>\n" << flush;
-          }
         }
 
         if ( itscf > 0 )

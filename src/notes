@@ -1,12 +1,19 @@
 --------------------------------------------------------------------------------
+rel1_63_0 r1785
+--------------------------------------------------------------------------------
+r1779-r1782 Implementation of Harris-Foulkes functional for calc of etotal_int
+--------------------------------------------------------------------------------
+rel1_62_7 r1776
+--------------------------------------------------------------------------------
 r1774: Fixed output of partial_charge command. 
 Increased max iter in ConstraintSet (note: two changes in r1774. accidental)
 --------------------------------------------------------------------------------
-r1789 rel1_62_6
+r1771 rel1_62_6
 Implementation of partial_charge command
 Implementation of iter_cmd and iter_cmd_period variables
 JDWavefunctionStepper.C Fix: use dwf for preconditioning.
 --------------------------------------------------------------------------------
+rel1_62_5 r1760
 r1758 GGIonicStepper.C
 Reduced alpha_max to 5.0
 Rescale alpha when displacement exceeds limit

@@ -39,7 +39,7 @@ class PartialChargeCmd : public Cmd
   const char *help_msg(void) const
   {
     return
-    "\n partial_charge\\n\n"
+    "\n partial_charge\n\n"
     " syntax: partial_charge [-spin {1|2}] name radius\n"
     "   The partial_charge command computes the amount of charge\n"
     "   density contained in a sphere centered on an atom.\n"

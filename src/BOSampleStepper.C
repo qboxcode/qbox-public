@@ -719,6 +719,7 @@ void BOSampleStepper::step(int niter)
       double ehart, ehart_m;
       bool scf_converged = false;
       int itscf = 0;
+      double etotal = 0.0, etotal_m = 0.0, etotal_mm = 0.0;
 
       while ( !scf_converged && itscf < nitscf_ )
       {
@@ -833,7 +834,6 @@ void BOSampleStepper::step(int niter)
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
         double energy, etotal_int;
-        double etotal, etotal_m = 0.0;
 
         double eigenvalue_sum, eigenvalue_sum_m = 0.0;
         // if nite == 0: do 1 iteration, no screening in charge mixing
@@ -979,14 +979,17 @@ void BOSampleStepper::step(int niter)
                << etotal_int << " </etotal_int>\n";
         }
 
-        if ( itscf > 0 )
-          etotal_m = etotal;
+        etotal_mm = etotal_m;
+        etotal_m = etotal;
         etotal = etotal_int;
 
         if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: end scf iteration" << endl;
 
+        // delta_etotal = interval containing etotal, etotal_m and etotal_mm
         double delta_etotal = fabs(etotal - etotal_m);
+        delta_etotal = max(delta_etotal,fabs(etotal - etotal_mm));
+        delta_etotal = max(delta_etotal,fabs(etotal_m - etotal_mm));
         scf_converged |= (delta_etotal < s_.ctrl.scf_tol);
         itscf++;
       } // while scf

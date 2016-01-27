@@ -350,7 +350,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
         tmap_["jd_getsub"].stop();
         tmap_["jd_gemm"].start();
         c.gemm('n','n',1.0,ct,a,0.0);
-        tmap_["jd_getsub"].stop();
+        tmap_["jd_gemm"].stop();
 
         // add two contributions
         c += cp;

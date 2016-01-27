@@ -465,9 +465,7 @@ void BOSampleStepper::step(int niter)
 
       if ( compute_stress )
       {
-        tmap["compute_sigma"].start();
         compute_sigma();
-        tmap["compute_sigma"].stop();
         print_stress();
 
         if ( cell_moves )
@@ -1129,9 +1127,7 @@ void BOSampleStepper::step(int niter)
                << atoms.cell().volume() << " </unit_cell_volume>" << endl;
           if ( compute_stress )
           {
-            tmap["compute_sigma"].start();
             compute_sigma();
-            tmap["compute_sigma"].stop();
             print_stress();
           }
         }

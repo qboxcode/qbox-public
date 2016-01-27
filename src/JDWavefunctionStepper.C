@@ -215,45 +215,67 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
 
         // (Y,HY)
         // factor 2.0 in next line: G and -G
+        tmap_["jd_gemm"].start();
         a.gemm('t','n',2.0,c_proxy_t,cp_proxy_t,0.0);
+        tmap_["jd_gemm"].stop();
         // rank-1 update correction
         a.ger(-1.0,c_proxy_t,0,cp_proxy_t,0);
         // a contains (Y,HY), copy to h11 block
+        tmap_["jd_getsub"].start();
         h.getsub(a,a.m(),a.n(),0,0,0,0);
+        tmap_["jd_getsub"].stop();
 
         // (Z,HY)
         // factor 2.0 in next line: G and -G
+        tmap_["jd_gemm"].start();
         a.gemm('t','n',2.0,c_proxy,cp_proxy_t,0.0);
+        tmap_["jd_gemm"].stop();
         // rank-1 update correction
         a.ger(-1.0,c_proxy,0,cp_proxy_t,0);
         // a contains (Z,HY), copy to h21 block
+        tmap_["jd_getsub"].start();
         h.getsub(a,a.m(),a.n(),0,0,a.m(),0);
+        tmap_["jd_getsub"].stop();
 
         // (Z,HZ)
         // factor 2.0 in next line: G and -G
+        tmap_["jd_gemm"].start();
         a.gemm('t','n',2.0,c_proxy,cp_proxy,0.0);
+        tmap_["jd_gemm"].stop();
         // rank-1 update correction
         a.ger(-1.0,c_proxy,0,cp_proxy,0);
         // a contains (Z,HZ), copy to h22 block
+        tmap_["jd_getsub"].start();
         h.getsub(a,a.m(),a.n(),0,0,a.m(),a.n());
+        tmap_["jd_getsub"].stop();
 
         // diagonalize h
         // Note: we only need the first n eigenvectors of the (2n x 2n) matrix
         valarray<double> w(h.m());
         // q is (2n,2n)
         DoubleMatrix q(h.context(),h.n(),h.n(),h.nb(),h.nb());
+        tmap_["jd_syev"].start();
         h.syev('l',w,q);
+        tmap_["jd_syev"].stop();
 
         // compute the first n eigenvectors and store in wf
         // Y = Z Q21 (store result in dwf)
         // get Q21 in a
+        tmap_["jd_getsub"].start();
         a.getsub(q,a.n(),a.n(),a.n(),0);
+        tmap_["jd_getsub"].stop();
+        tmap_["jd_gemm"].start();
         cp_proxy.gemm('n','n',1.0,c_proxy,a,0.0);
+        tmap_["jd_gemm"].stop();
 
         // Y = Y Q11 (store result in wf)
         // get Q11 in a
+        tmap_["jd_getsub"].start();
         a.getsub(q,a.n(),a.n(),0,0);
+        tmap_["jd_getsub"].stop();
+        tmap_["jd_gemm"].start();
         c_proxy.gemm('n','n',1.0,c_proxy_t,a,0.0);
+        tmap_["jd_gemm"].stop();
 
         // add two contributions
         c_proxy += cp_proxy;
@@ -276,37 +298,59 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
 
         // (Y,HY)
         // factor 2.0 in next line: G and -G
+        tmap_["jd_gemm"].start();
         a.gemm('c','n',1.0,ct,cpt,0.0);
+        tmap_["jd_gemm"].stop();
         // a contains (Y,HY), copy to h11 block
+        tmap_["jd_getsub"].start();
         h.getsub(a,a.m(),a.n(),0,0,0,0);
+        tmap_["jd_getsub"].stop();
 
         // (Z,HY)
+        tmap_["jd_gemm"].start();
         a.gemm('c','n',1.0,c,cpt,0.0);
+        tmap_["jd_gemm"].stop();
         // a contains (Z,HY), copy to h21 block
+        tmap_["jd_getsub"].start();
         h.getsub(a,a.m(),a.n(),0,0,a.m(),0);
+        tmap_["jd_getsub"].stop();
 
         // (Z,HZ)
+        tmap_["jd_gemm"].start();
         a.gemm('c','n',1.0,c,cp,0.0);
+        tmap_["jd_gemm"].stop();
         // a contains (Z,HZ), copy to h22 block
+        tmap_["jd_getsub"].start();
         h.getsub(a,a.m(),a.n(),0,0,a.m(),a.n());
+        tmap_["jd_getsub"].stop();
 
         // diagonalize h
         // Note: we only need the first n eigenvectors of the (2n x 2n) matrix
         valarray<double> w(h.m());
         // q is (2n,2n)
         ComplexMatrix q(h.context(),h.n(),h.n(),h.nb(),h.nb());
+        tmap_["jd_heev"].start();
         h.heev('l',w,q);
+        tmap_["jd_heev"].stop();
 
         // compute the first n eigenvectors and store in wf
         // Y = Z Q21 (store result in dwf)
         // get Q21 in a
+        tmap_["jd_getsub"].start();
         a.getsub(q,a.n(),a.n(),a.n(),0);
+        tmap_["jd_getsub"].stop();
+        tmap_["jd_gemm"].start();
         cp.gemm('n','n',1.0,c,a,0.0);
+        tmap_["jd_gemm"].stop();
 
         // Y = Y Q11 (store result in wf)
         // get Q11 in a
+        tmap_["jd_getsub"].start();
         a.getsub(q,a.n(),a.n(),0,0);
+        tmap_["jd_getsub"].stop();
+        tmap_["jd_gemm"].start();
         c.gemm('n','n',1.0,ct,a,0.0);
+        tmap_["jd_getsub"].stop();
 
         // add two contributions
         c += cp;

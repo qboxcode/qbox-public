@@ -1,4 +1,7 @@
 --------------------------------------------------------------------------------
+r1801 moved sync_positions and sync_velocities to AtomSet set_positions and
+set_velocities functions
+--------------------------------------------------------------------------------
 rel1_63_2
 --------------------------------------------------------------------------------
 r1797 BOSampleStepper.C removed timer used in onpe0 section

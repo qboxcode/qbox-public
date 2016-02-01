@@ -92,7 +92,6 @@ void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   r0_ = rp_;
-  atoms_.sync_positions(r0_);
   atoms_.set_positions(r0_);
   atoms_.reset_velocities();
 }

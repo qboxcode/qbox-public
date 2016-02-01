@@ -15,14 +15,12 @@
 // ConstraintSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintSet.C,v 1.11 2010-02-20 23:13:02 fgygi Exp $
 
 #include "ConstraintSet.h"
 #include "PositionConstraint.h"
 #include "DistanceConstraint.h"
 #include "AngleConstraint.h"
 #include "TorsionConstraint.h"
-//#include "MultiDistanceConstraint.h"
 #include "Atom.h"
 #include "AtomSet.h"
 #include "Context.h"
@@ -560,10 +558,8 @@ void ConstraintSet::enforce(AtomSet& atoms)
   rp=r0;
   atoms.get_velocities(v0);
   enforce_r(r0,rp);
-  atoms.sync_positions(rp);
   atoms.set_positions(rp);
   enforce_v(r0,v0);
-  atoms.sync_velocities(v0);
   atoms.set_velocities(v0);
 }
 ////////////////////////////////////////////////////////////////////////////////

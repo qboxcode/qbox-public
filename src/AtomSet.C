@@ -357,8 +357,9 @@ void AtomSet::sync_positions(vector<vector<double> >& tau)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void AtomSet::set_positions(const vector<vector<double> >& tau)
+void AtomSet::set_positions(vector<vector<double> >& tau)
 {
+  sync_positions(tau);
   assert(tau.size() == atom_list.size());
   for ( int is = 0; is < atom_list.size(); is++ )
   {
@@ -411,8 +412,9 @@ void AtomSet::sync_velocities(vector<vector<double> >& vel)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void AtomSet::set_velocities(const vector<vector<double> >& vel)
+void AtomSet::set_velocities(vector<vector<double> >& vel)
 {
+  sync_velocities(vel);
   assert(vel.size() == atom_list.size());
   for ( int is = 0; is < atom_list.size(); is++ )
   {
@@ -596,6 +598,7 @@ D3tensor AtomSet::quadrupole(void) const
 void AtomSet::set_cell(const D3vector& a, const D3vector& b, const D3vector& c)
 {
   cell_.set(a,b,c);
+  sync_cell();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

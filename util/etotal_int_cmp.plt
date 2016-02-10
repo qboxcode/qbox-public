@@ -1,6 +1,9 @@
 #!/bin/bash
-# etotal_int_cmp.plt: compare <etotal_int> in two simulations
-# use: etotal_int_cmp.plt run1.r run2.r
+if [ $1 == "-range" ]
+then
+  range=$2
+  shift 2
+fi
 gnuplot -persist <<EOF
-plot "<grep '<etotal_int>' $1" u 2 w l, "<grep '<etotal_int>' $2" u 2 w l
+plot $range "<grep etotal $1" u 2 w l, "<grep etotal $2" u 2 w l
 EOF

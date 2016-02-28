@@ -1,17 +1,37 @@
 #!/usr/bin/python
-# qbox_xyz_cell.py: extract atomic positions with cell info
-# from Qbox output
-# use: qbox_xyz_cell.py file.r
-
+# Copyright 2016 The Regents of the University of California
+# This file is part of Qbox
+#
+# qbox_xyz.py: extract first (or all) set(s) of atomic positions in xyz format
+# from a Qbox output file or from a Qbox sample file using SAX 
+# incremental parsing
+#
+# use: qbox_xyz.py [-all] {file|URL}
+import os.path
 import xml.sax
 import sys
-import math
+import urllib2
 
-if len(sys.argv) != 2:
-  print "use: ",sys.argv[0]," file.r"
+def usage():
+  print "use: ",sys.argv[0]," [-all] {file|URL}"
   sys.exit()
 
-infile = sys.argv[1]
+argc=len(sys.argv)
+if ( argc < 2 or argc > 3 ):
+  usage()
+
+# check if option "-all" is used
+# "-all" option: extract all atomsets
+# default: extract first atomset only
+first_only = True
+input_source = sys.argv[1]
+if ( sys.argv[1] == "-all" ):
+  if ( argc != 3 ):
+    usage()
+  first_only = False
+  input_source = sys.argv[2]
+
+# conversion from Bohr to Angstrom
 a0=0.529177
 
 # Qbox output handler to extract and process data
@@ -21,6 +41,7 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     self.inAtomset = 0
     self.inAtom = 0
     self.inPosition = 0
+    self.done_first = False
 
   def startElement(self, name, attributes):
     if name == "atomset":
@@ -73,8 +94,31 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
                                '%.6f'%self.tau[i][1],\
                                '%.6f'%self.tau[i][2]
       self.inAtomset = 0
+      self.done_first = True
 
 parser = xml.sax.make_parser()
 handler = QboxOutputHandler()
 parser.setContentHandler(handler)
-parser.parse(infile)
+# test if input_source is a local file
+# if not, process as a URL
+if ( os.path.isfile(input_source) ):
+  file = open(input_source)
+  s = file.read(8192)
+  while ( s !="" and not (first_only and handler.done_first) ):
+    parser.feed(s)
+    s = file.read(8192)
+  file.close()
+else:
+  # attempt to open as a URL
+  try:
+    f = urllib2.urlopen(input_source)
+    s = f.read(8192)
+    while ( s !="" and not (first_only and handler.done_first) ):
+      parser.feed(s)
+      s = f.read(8192)
+    f.close()
+  except (ValueError,urllib2.HTTPError) as e:
+    print e
+    sys.exit()
+
+parser.reset()

@@ -69,7 +69,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         Base64Transcoder.o Constraint.o ConstraintSet.o DistanceConstraint.o \
         AngleConstraint.o TorsionConstraint.o PositionConstraint.o \
         ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
-        GlobalExtForce.o
+        GlobalExtForce.o sampling.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testChargeDensity: testChargeDensity.o ChargeDensity.o \
         Wavefunction.o SlaterDet.o \

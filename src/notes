@@ -1,4 +1,7 @@
 --------------------------------------------------------------------------------
+r1809-r1813: modified Context to accept MPI communicators as ctor argument.
+Removed pimpl idiom from implementation of Context.
+--------------------------------------------------------------------------------
 r1801 moved sync_positions and sync_velocities to AtomSet set_positions and
 set_velocities functions
 --------------------------------------------------------------------------------

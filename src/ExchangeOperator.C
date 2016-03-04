@@ -36,7 +36,8 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff)
-: s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf), HFCoeff_(HFCoeff)
+: s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf), HFCoeff_(HFCoeff),
+gcontext_(s.wf.sd(0,0)->context())
 {
   eex_ = 0.0; // exchange energy
   rcut_ = 1.0;  // constant of support function for exchange integration
@@ -45,9 +46,6 @@ ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff)
 
   // column communicator
   vcomm_ = s_.wf.sd(0,0)->basis().comm();
-
-  // global context
-  gcontext_ = s_.wf.sd(0,0)->context();
 
   // check if the only kpoint is the gamma point:
   gamma_only_ = ( s_.wf.nkp()==1 ) && ( s_.wf.sd(0,0)->basis().real() );

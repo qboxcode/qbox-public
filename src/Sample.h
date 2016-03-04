@@ -44,7 +44,7 @@ class Sample
   Control ctrl;
   UserInterface *ui;
 
-  Sample(const Context& ctxt, UserInterface *ui_) : ctxt_(ctxt), ui(ui_),
+  Sample(const Context& ctxt, UserInterface *ui_ = 0) : ctxt_(ctxt), ui(ui_),
     atoms(ctxt), constraints(ctxt),
     extforces(ctxt), wf(ctxt), wfv(0) {}
   ~Sample(void) { delete wfv; }

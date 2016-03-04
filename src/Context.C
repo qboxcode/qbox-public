@@ -15,369 +15,31 @@
 // Context.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Context.C,v 1.18 2009-11-30 02:33:49 fgygi Exp $
 
 #include "Context.h"
 #include <iostream>
 #include <iomanip>
 #include <cmath>
 #include <cassert>
+#include <string>
 #include <vector>
-
-#ifdef SCALAPACK
 #include "blacs.h"
-#endif
-
+#include <mpi.h>
 using namespace std;
 
-#ifndef SCALAPACK
-void Cblacs_pinfo(int *mypnum, int *nprocs)
-{
-    *mypnum = 0;
-    *nprocs = 1;
-    return;
-}
-
-void Cblacs_get(int icontxt, int what, int *val)
-{
-    *val=0;
-    return;
-}
-
-void Cblacs_gridinit(int *icontxt, char order[], int nprow, int npcol)
-{
-    *icontxt=0;
-    return;
-}
-
-void Cblacs_gridmap(int *icontxt, int *pmap, int ldpmap, int nprow, int npcol)
-{
-    pmap[0]=0;
-    return;
-}
-
-void Cblacs_barrier(int icontxt, const char* scope)
-{
-    return;
-}
-
-void Cblacs_abort(int icontxt, int errornum)
-{
-    return;
-}
-
-void Cblacs_gridexit(int icontxt)
-{
-    return;
-}
-
-void Cblacs_gridinfo(int icontxt, int *nprow, int *npcol,
-                                  int *myprow, int *mypcol)
-{
-    *nprow=1; *npcol=1; *myprow=0; *mypcol=0; return;
-}
-
-int Cblacs_pnum(int icontxt, int prow, int pcol)
-{ return 0;}
-
-void Cdgesd2d(int icontxt,int m,int n,double *A,int lda,int rdest,int cdest)
-{ return; }
-
-void Cdgerv2d(int icontxt,int m,int n,double *A,int lda,int rdest,int cdest)
-{ return; }
-
-void Cdgsum2d(int icontxt, char* scope, char* top,
-              int m, int n, double *a, int lda, int rdest, int cdest)
-{ return; }
-
-void Cdgamx2d(int icontxt, char scope[], char top[],int m,int n,double *A,
-              int lda, int *ra, int *ca, int rcflag, int rdest, int cdest)
-{ if ( rcflag > 0 ) { *ca = 0; *ra = 0; } return; }
-
-void Cdgamn2d(int icontxt, char scope[], char top[],int m,int n,double *A,
-              int lda, int *ra, int *ca, int rcflag, int rdest, int cdest)
-{ if ( rcflag > 0 ) { *ca = 0; *ra = 0; } return; }
-
-void Cdgebs2d(int icontxt, char scope[], char top[],int m,int n,double *A,
-              int lda)
-{ return; }
-
-void Cdgebr2d(int icontxt, char scope[], char top[],int m,int n,double *A,
-              int lda, int rsrc, int csrc)
-{ return; }
-
-void Cigesd2d(int icontxt,int m,int n,int *A,int lda,int rdest,int cdest)
-{ return; }
-
-void Cigerv2d(int icontxt,int m,int n,int *A,int lda,int rdest,int cdest)
-{ return; }
-
-void Cigsum2d(int icontxt, char* scope, char* top,
-              int m, int n, int *a, int lda, int rdest, int cdest)
-{ return; }
-
-void Cigamx2d(int icontxt, char scope[], char top[],int m,int n,int *A,int lda,
-              int *ra, int *ca, int rcflag, int rdest, int cdest)
-{ if ( rcflag > 0 ) { *ca = 0; *ra = 0; } return; }
-
-void Cigamn2d(int icontxt, char scope[], char top[],int m,int n,int *A,int lda,
-              int *ra, int *ca, int rcflag, int rdest, int cdest)
-{ if ( rcflag > 0 ) { *ca = 0; *ra = 0; } return; }
-
-void Cigebs2d(int icontxt, char scope[], char top[],int m,int n,int *A,
-              int lda)
-{ return; }
-
-void Cigebr2d(int icontxt, char scope[], char top[],int m,int n,int *A,
-              int lda, int rsrc, int csrc)
-{ return; }
-
-#endif
-
-#if USE_MPI
-#include <mpi.h>
-#else
-typedef int MPI_Comm;
-const int MPI_COMM_NULL = 0;
-#endif
-
-struct ContextRep
-{
-  private:
-
-  int ictxt_;
-  int myrow_;
-  int mycol_;
-  int nprow_;
-  int npcol_;
-  int size_;
-  int myproc_;
-  int mype_;
-  bool onpe0_;
-  bool active_;
-
-  vector<int> pmap_;
-  MPI_Comm comm_;
-
-  // keep assignment and copy constructors private
-  ContextRep& operator=(const Context& c);
-  ContextRep(const Context& c);
-
-  public:
-
-  int ictxt() const { return ictxt_; }
-  int myrow() const { return myrow_; }
-  int mycol() const { return mycol_; }
-  int nprow() const { return nprow_; }
-  int npcol() const { return npcol_; }
-
-  // number of processes in the context
-  // returns -1 if current process is not part of this context
-  int size() const { return size_; }
-  // position of current process in row-major order
-  // returns -1 if current process is not part of this context
-  int myproc() const { return myproc_; }
-  int mype() const { return mype_; }
-  int pmap(int irow, int icol) const { return pmap_[irow+nprow_*icol]; }
-
-  bool onpe0(void) const { return onpe0_; }
-  bool active(void) const { return active_; }
-  void abort(int ierr) const { Cblacs_abort(ictxt_,ierr); }
-  void barrier(void) const { Cblacs_barrier(ictxt_,"A"); }
-  void barrier(char scope) const { Cblacs_barrier(ictxt_,&scope); }
-
-  void dsend(int m, int n, double* a, int lda, int rdest, int cdest) const
-  {
-    Cdgesd2d(ictxt_,m,n,a,lda,rdest,cdest);
-  }
-
-  void drecv(int m, int n, double* a, int lda, int rsrc, int csrc) const
-  {
-    Cdgerv2d(ictxt_,m,n,a,lda,rsrc,csrc);
-  }
-
-  void dsum(char scope, char topology, int m, int n, double* a, int lda,
-            int rdest, int cdest) const
-  {
-    Cdgsum2d(ictxt_,&scope,&topology,m,n,a,lda,rdest,cdest);
-  }
-
-  void dmax(char scope, char topology, int m, int n, double* a, int lda,
-            int rdest, int cdest) const
-  {
-    Cdgamx2d(ictxt_,&scope,&topology,m,n,a,lda,(int*)0,(int*)0,-1,rdest,cdest);
-  }
-
-  void dmax(char scope, char topology, int m, int n, double* a, int lda,
-            int* ra, int* ca, int rcflag, int rdest, int cdest) const
-  {
-    Cdgamx2d(ictxt_,&scope,&topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest);
-  }
-
-  void dmin(char scope, char topology, int m, int n, double* a, int lda,
-            int* ra, int* ca, int rcflag, int rdest, int cdest) const
-  {
-    Cdgamn2d(ictxt_,&scope,&topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest);
-  }
-
-  void dmin(char scope, char topology, int m, int n, double* a, int lda,
-            int rdest, int cdest) const
-  {
-    Cdgamn2d(ictxt_,&scope,&topology,m,n,a,lda,(int*)0,(int*)0,-1,rdest,cdest);
-  }
-
-  void dbcast_send(char scope, char topology,
-                   int m, int n, double* a,int lda) const
-  {
-    Cdgebs2d(ictxt_,&scope,&topology,m,n,a,lda);
-  }
-
-  void dbcast_recv(char scope, char topology, int m, int n, double* a, int lda,
-               int rsrc, int csrc) const
-  {
-    Cdgebr2d(ictxt_,&scope,&topology,m,n,a,lda,rsrc,csrc);
-  }
-
-  void isend(int m, int n, int* a, int lda, int rdest, int cdest) const
-  {
-    Cigesd2d(ictxt_,m,n,a,lda,rdest,cdest);
-  }
-
-  void irecv(int m, int n, int* a, int lda, int rsrc, int csrc) const
-  {
-    Cigerv2d(ictxt_,m,n,a,lda,rsrc,csrc);
-  }
-
-  void isum(char scope, char topology, int m, int n, int* a, int lda,
-            int rdest, int cdest) const
-  {
-    Cigsum2d(ictxt_,&scope,&topology,m,n,a,lda,rdest,cdest);
-  }
-
-  void imax(char scope, char topology, int m, int n, int* a, int lda,
-            int* ra, int* ca, int rcflag, int rdest, int cdest) const
-  {
-    Cigamx2d(ictxt_,&scope,&topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest);
-  }
-
-  void imax(char scope, char topology, int m, int n, int* a, int lda,
-            int rdest, int cdest) const
-  {
-    Cigamx2d(ictxt_,&scope,&topology,m,n,a,lda,(int*)0,(int*)0,-1,rdest,cdest);
-  }
-
-  void imin(char scope, char topology, int m, int n, int* a, int lda,
-            int* ra, int* ca, int rcflag, int rdest, int cdest) const
-  {
-    Cigamn2d(ictxt_,&scope,&topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest);
-  }
-
-  void imin(char scope, char topology, int m, int n, int* a, int lda,
-            int rdest, int cdest) const
-  {
-    Cigamn2d(ictxt_,&scope,&topology,m,n,a,lda,(int*)0,(int*)0,-1,rdest,cdest);
-  }
-
-  void ibcast_send(char scope, char topology,
-                   int m, int n, int* a,int lda) const
-  {
-    Cigebs2d(ictxt_,&scope,&topology,m,n,a,lda);
-  }
-
-  void ibcast_recv(char scope, char topology, int m, int n, int* a, int lda,
-               int rsrc, int csrc) const
-  {
-    Cigebr2d(ictxt_,&scope,&topology,m,n,a,lda,rsrc,csrc);
-  }
-
-  void string_send(string& s, int rdest, int cdest) const
-  {
-#if USE_MPI
-    int len = s.size();
-    isend(1,1,&len,1,rdest,cdest);
-    int ilen = len/(sizeof(int)/sizeof(char));
-    if ( len%(sizeof(int)/sizeof(char)) != 0 ) ilen++;
-    int* ibuf = new int[ilen];
-    s.copy((char*)ibuf,string::npos);
-    isend(ilen,1,ibuf,ilen,rdest,cdest);
-    delete [] ibuf;
-#endif
-  }
-
-  void string_recv(string& s, int rsrc, int csrc) const
-  {
-#if USE_MPI
-    int len = -1;
-    irecv(1,1,&len,1,rsrc,csrc);
-    int ilen = len/(sizeof(int)/sizeof(char));
-    if ( len%(sizeof(int)/sizeof(char)) != 0 ) ilen++;
-    int* ibuf = new int[ilen];
-    irecv(ilen,1,ibuf,ilen,rsrc,csrc);
-    s.resize(len);
-    s.assign((char*)ibuf,len);
-    delete [] ibuf;
-#endif
-  }
-
-  void string_bcast(string& s, int isrc) const
-  {
-#if USE_MPI
-    int len;
-    if ( mype() == isrc )
-    {
-      len = s.length();
-    }
-    MPI_Bcast(&len,1,MPI_INT,isrc,comm());
-    char* buf = new char[len+1];
-    // s is initialized only on task isrc
-    if ( mype() == isrc )
-    {
-      s.copy(buf,string::npos);
-      buf[len]=0;
-      assert(buf[len]=='\0');
-    }
-    MPI_Bcast(buf,len+1,MPI_CHAR,isrc,comm());
-    s = buf;
-    delete [] buf;
-#endif
-  }
-
-  bool operator==(const ContextRep& c) const
-  { return (ictxt_==c.ictxt());}
-
-  // MPI communicator for this context. Returns MPI_COMM_NULL if
-  // this process is not part of the context
-  MPI_Comm comm(void) const { return comm_; }
-
-  // Constructors
-
-  // default global context: construct a single-row global ContextRep
-  explicit ContextRep();
-
-  // global ContextRep of size nprow * npcol with column major order
-  explicit ContextRep(int nprow, int npcol);
-
-  // construct a ContextRep of size nprow*npcol using the processes
-  // in context c starting at process (irstart,icstart)
-  explicit ContextRep(const ContextRep &c, int nprow, int npcol,
-    int irstart, int icstart);
-
-  ~ContextRep();
-
-  void print(ostream& os) const;
-};
-
 ////////////////////////////////////////////////////////////////////////////////
-ContextRep::ContextRep() : ictxt_(-1), myrow_(-1), mycol_(-1)
+ContextRep::ContextRep(MPI_Comm comm) : ictxt_(-1), myrow_(-1), mycol_(-1)
 {
   // construct a single row global context
   int nprocs;
   char order='R';
-  Cblacs_pinfo( &mype_, &nprocs );
+  MPI_Comm_dup(comm,&comm_);
+  MPI_Comm_size(comm_,&nprocs);
+  MPI_Comm_rank(comm_,&mype_);
+  ictxt_ = Csys2blacs_handle(comm_);
   nprow_ = 1;
   npcol_ = nprocs;
 
-  Cblacs_get(0, 0, &ictxt_ );
   Cblacs_gridinit( &ictxt_, &order, nprow_, npcol_ );
 
   // get values of nprow_, npcol_, myrow_ and mycol_ in the new context
@@ -393,32 +55,30 @@ ContextRep::ContextRep() : ictxt_(-1), myrow_(-1), mycol_(-1)
   for ( int i = 0; i < size_; i++ )
     pmap_[i] = i;
 
-#if USE_MPI
   MPI_Group group_world, subgroup;
   MPI_Comm_group(MPI_COMM_WORLD,&group_world);
   MPI_Group_incl(group_world,size_,&pmap_[0],&subgroup);
   MPI_Comm_create(MPI_COMM_WORLD,subgroup,&comm_);
   MPI_Group_free(&group_world);
   MPI_Group_free(&subgroup);
-#else
-  comm_ = 0;
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-ContextRep::ContextRep(int nprow, int npcol) :
+ContextRep::ContextRep(MPI_Comm comm, int nprow, int npcol) :
   ictxt_(-1), myrow_(-1), mycol_(-1), nprow_(nprow), npcol_(npcol)
 {
   int nprocs;
   char order = 'C';
-  Cblacs_pinfo( &mype_, &nprocs );
+  MPI_Comm_dup(comm,&comm_);
+  MPI_Comm_size(comm_,&nprocs);
+  MPI_Comm_rank(comm_,&mype_);
+  ictxt_ = Csys2blacs_handle(comm_);
   if ( nprocs < nprow * npcol )
   {
     cout << " nprocs=" << nprocs << endl;
     cout << " Context nprow*npcol > nprocs" << endl;
     Cblacs_abort(ictxt_, 1);
   }
-  Cblacs_get(0, 0, &ictxt_ );
   Cblacs_gridinit( &ictxt_, &order, nprow, npcol );
 
   // get values of nprow_, npcol_, myrow_ and mycol_ in the new context
@@ -440,71 +100,12 @@ ContextRep::ContextRep(int nprow, int npcol) :
       i++;
     }
 
-#if USE_MPI
   MPI_Group group_world, subgroup;
   MPI_Comm_group(MPI_COMM_WORLD,&group_world);
   MPI_Group_incl(group_world,size_,&pmap_[0],&subgroup);
   MPI_Comm_create(MPI_COMM_WORLD,subgroup,&comm_);
   MPI_Group_free(&group_world);
   MPI_Group_free(&subgroup);
-#else
-  comm_ = 0;
-#endif
-}
-
-////////////////////////////////////////////////////////////////////////////////
-ContextRep::ContextRep(const ContextRep& c, int nprow, int npcol,
-  int irstart, int icstart) :
-ictxt_(-1), myrow_(-1), mycol_(-1), nprow_(nprow), npcol_(npcol)
-{
-  assert(c.active());
-  vector<int> gmap_;
-
-  int nprocs;
-  Cblacs_pinfo( &mype_, &nprocs );
-  // construct a (nprow*npcol) context using the processes in c
-  // located at (irstart,icstart)
-  if ( irstart < 0 || icstart < 0 ||
-       irstart+nprow > c.nprow() || icstart+npcol > c.npcol() )
-  {
-    cout << " Context::Context: cut rectangle: invalid parameters" << endl;
-    cout << irstart << " " << icstart << " " << nprow << " " << npcol << endl;
-    Cblacs_abort(ictxt_, 1);
-  }
-  pmap_.resize(nprow*npcol);
-  gmap_.resize(nprow*npcol);
-  // build pmap
-  int i = 0;
-  for ( int ic = icstart; ic < icstart+npcol; ic++ )
-    for ( int ir = irstart; ir < irstart+nprow; ir++ )
-    {
-      pmap_[i] = c.pmap(ir,ic);
-      gmap_[i] = ic + c.npcol()*ir;
-      i++;
-    }
-
-  Cblacs_get(c.ictxt(), 10, &ictxt_ );
-  Cblacs_gridmap(&ictxt_,&gmap_[0],nprow,nprow,npcol);
-
-  // get values of nprow_, npcol_, myrow_ and mycol_ in the new context
-  if ( ictxt_ >= 0 )
-    Cblacs_gridinfo(ictxt_, &nprow_, &npcol_, &myrow_, &mycol_);
-
-  size_ = nprow_ * npcol_;
-  myproc_ = myrow_ < 0 ? -1 : mycol_ + npcol_ * myrow_;
-  onpe0_ = ( mype_ == 0 );
-  active_ = ( ictxt_ >= 0 );
-
-#if USE_MPI
-  MPI_Group c_group, subgroup;
-  MPI_Comm_group(c.comm(),&c_group);
-  MPI_Group_incl(c_group,size_,&pmap_[0],&subgroup);
-  MPI_Comm_create(c.comm(),subgroup,&comm_);
-  MPI_Group_free(&c_group);
-  MPI_Group_free(&subgroup);
-#else
-  comm_ = 0;
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -514,10 +115,142 @@ ContextRep::~ContextRep()
   {
     // cout << " ContextRep destructor called on ictxt = " << ictxt_ << endl;
     Cblacs_gridexit( ictxt_ );
-#if USE_MPI
     MPI_Comm_free(&comm_);
-#endif
   }
+}
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::dsend(int m, int n, double* a, int lda, int rdest, int cdest)
+  const { Cdgesd2d(ictxt_,m,n,a,lda,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::drecv(int m, int n, double* a, int lda, int rsrc, int csrc)
+  const { Cdgerv2d(ictxt_,m,n,a,lda,rsrc,csrc); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::dsum(char scope, char topology, int m, int n, double* a,
+  int lda, int rdest, int cdest) const
+{ Cdgsum2d(ictxt_,&scope,&topology,m,n,a,lda,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::dmax(char scope, char topology, int m, int n, double* a,
+  int lda, int rdest, int cdest) const
+{ Cdgamx2d(ictxt_,&scope,&topology,m,n,a,lda,(int*)0,(int*)0,-1,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::dmax(char scope, char topology, int m, int n, double* a,
+  int lda, int* ra, int* ca, int rcflag, int rdest, int cdest) const
+{ Cdgamx2d(ictxt_,&scope,&topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::dmin(char scope, char topology, int m, int n, double* a,
+   int lda, int* ra, int* ca, int rcflag, int rdest, int cdest) const
+{ Cdgamn2d(ictxt_,&scope,&topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::dmin(char scope, char topology, int m, int n, double* a,
+  int lda, int rdest, int cdest) const
+{ Cdgamn2d(ictxt_,&scope,&topology,m,n,a,lda,(int*)0,(int*)0,-1,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::dbcast_send(char scope, char topology, int m, int n,
+  double* a,int lda) const
+{ Cdgebs2d(ictxt_,&scope,&topology,m,n,a,lda); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::dbcast_recv(char scope, char topology, int m, int n,
+  double* a, int lda, int rsrc, int csrc) const
+{ Cdgebr2d(ictxt_,&scope,&topology,m,n,a,lda,rsrc,csrc); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::isend(int m, int n, int* a, int lda, int rdest, int cdest)
+  const { Cigesd2d(ictxt_,m,n,a,lda,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::irecv(int m, int n, int* a, int lda, int rsrc, int csrc) const
+{ Cigerv2d(ictxt_,m,n,a,lda,rsrc,csrc); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::isum(char scope, char topology, int m, int n, int* a, int lda,
+  int rdest, int cdest) const
+{ Cigsum2d(ictxt_,&scope,&topology,m,n,a,lda,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::imax(char scope, char topology, int m, int n, int* a, int lda,
+  int* ra, int* ca, int rcflag, int rdest, int cdest) const
+{ Cigamx2d(ictxt_,&scope,&topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::imax(char scope, char topology, int m, int n, int* a, int lda,
+  int rdest, int cdest) const
+{ Cigamx2d(ictxt_,&scope,&topology,m,n,a,lda,(int*)0,(int*)0,-1,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::imin(char scope, char topology, int m, int n, int* a, int lda,
+  int* ra, int* ca, int rcflag, int rdest, int cdest) const
+{ Cigamn2d(ictxt_,&scope,&topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::imin(char scope, char topology, int m, int n, int* a, int lda,
+  int rdest, int cdest) const
+{ Cigamn2d(ictxt_,&scope,&topology,m,n,a,lda,(int*)0,(int*)0,-1,rdest,cdest); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::ibcast_send(char scope, char topology,
+  int m, int n, int* a,int lda) const
+{ Cigebs2d(ictxt_,&scope,&topology,m,n,a,lda); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::ibcast_recv(char scope, char topology, int m, int n, int* a,
+  int lda, int rsrc, int csrc) const
+{ Cigebr2d(ictxt_,&scope,&topology,m,n,a,lda,rsrc,csrc); }
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::string_send(std::string& s, int rdest, int cdest) const
+{
+  int len = s.size();
+  isend(1,1,&len,1,rdest,cdest);
+  int ilen = len/(sizeof(int)/sizeof(char));
+  if ( len%(sizeof(int)/sizeof(char)) != 0 ) ilen++;
+  int* ibuf = new int[ilen];
+  s.copy((char*)ibuf,std::string::npos);
+  isend(ilen,1,ibuf,ilen,rdest,cdest);
+  delete [] ibuf;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::string_recv(std::string& s, int rsrc, int csrc) const
+{
+  int len = -1;
+  irecv(1,1,&len,1,rsrc,csrc);
+  int ilen = len/(sizeof(int)/sizeof(char));
+  if ( len%(sizeof(int)/sizeof(char)) != 0 ) ilen++;
+  int* ibuf = new int[ilen];
+  irecv(ilen,1,ibuf,ilen,rsrc,csrc);
+  s.resize(len);
+  s.assign((char*)ibuf,len);
+  delete [] ibuf;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ContextRep::string_bcast(std::string& s, int isrc) const
+{
+  int len;
+  if ( mype() == isrc )
+  {
+    len = s.length();
+  }
+  MPI_Bcast(&len,1,MPI_INT,isrc,comm());
+  char* buf = new char[len+1];
+  // s is initialized only on task isrc
+  if ( mype() == isrc )
+  {
+    s.copy(buf,std::string::npos);
+    buf[len]=0;
+    assert(buf[len]=='\0');
+  }
+  MPI_Bcast(buf,len+1,MPI_CHAR,isrc,comm());
+  s = buf;
+  delete [] buf;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -550,275 +283,247 @@ void ContextRep::print(ostream& os) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-class ContextImpl
-{
-  private:
-
-  ContextRep* rep;
-  int* pcount;
-
-  public:
-
-  ContextRep* operator->() { return rep; }
-  ContextRep* get_rep(void) { return rep; }
-  ContextImpl(ContextRep* pp) : rep(pp), pcount(new int(1)) {}
-  ContextImpl(const ContextImpl& r) : rep(r.rep), pcount(r.pcount)
-  { (*pcount)++; }
-
-  ContextImpl& operator=(const ContextImpl& r)
-  {
-    if ( rep == r.rep ) return *this;
-    if ( --(*pcount) == 0 )
-    {
-      delete rep;
-      delete pcount;
-    }
-    rep = r.rep;
-    pcount = r.pcount;
-    (*pcount)++;
-    return *this;
-  }
-
-  ~ContextImpl(void)
-  {
-    if ( --(*pcount) == 0 )
-    {
-      delete rep;
-      delete pcount;
-    }
-  }
-};
+int Context::ictxt() const { return rep->ictxt(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-Context::Context(void) : pimpl_(new ContextImpl(new ContextRep())) {}
+int Context::myrow() const { return rep->myrow(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-Context::Context(int nprow, int npcol):
-pimpl_(new ContextImpl(new ContextRep(nprow,npcol))) {}
+int Context::mycol() const { return rep->mycol(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-Context::Context(const Context &c, int nprow, int npcol,
-        int irstart, int icstart) :
-pimpl_(new ContextImpl(new ContextRep(*(c.pimpl_)->get_rep(),nprow,npcol,
-irstart,icstart))) {}
+int Context::nprow() const { return rep->nprow(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-Context::~Context() { delete pimpl_; }
+int Context::npcol() const { return rep->npcol(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-Context::Context(const Context& c) : pimpl_(new ContextImpl(*(c.pimpl_))) {}
+int Context::size() const { return rep->size(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-Context& Context::operator=(const Context& rhs)
-{
-  if ( &rhs == this ) return *this;
-  *pimpl_ = *(rhs.pimpl_);
-  return *this;
-}
+int Context::myproc() const { return rep->myproc(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-int Context::ictxt() const { return (*pimpl_)->ictxt(); }
-
-////////////////////////////////////////////////////////////////////////////////
-int Context::myrow() const { return (*pimpl_)->myrow(); }
-
-////////////////////////////////////////////////////////////////////////////////
-int Context::mycol() const { return (*pimpl_)->mycol(); }
-
-////////////////////////////////////////////////////////////////////////////////
-int Context::nprow() const { return (*pimpl_)->nprow(); }
-
-////////////////////////////////////////////////////////////////////////////////
-int Context::npcol() const { return (*pimpl_)->npcol(); }
-
-////////////////////////////////////////////////////////////////////////////////
-int Context::size() const { return (*pimpl_)->size(); }
-
-////////////////////////////////////////////////////////////////////////////////
-int Context::myproc() const { return (*pimpl_)->myproc(); }
-
-////////////////////////////////////////////////////////////////////////////////
-int Context::mype() const { return (*pimpl_)->mype(); }
+int Context::mype() const { return rep->mype(); }
 
 ////////////////////////////////////////////////////////////////////////////////
 int Context::pmap(int irow, int icol) const
-{ return (*pimpl_)->pmap(irow,icol); }
+{ return rep->pmap(irow,icol); }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool Context::onpe0(void) const { return (*pimpl_)->onpe0(); }
+bool Context::onpe0(void) const { return rep->onpe0(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool Context::active(void) const { return (*pimpl_)->active(); }
+bool Context::active(void) const { return rep->active(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Context::abort(int ierr) const { (*pimpl_)->abort(ierr); }
+void Context::abort(int ierr) const { rep->abort(ierr); }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Context::barrier(void) const { (*pimpl_)->barrier(); }
+void Context::barrier(void) const { rep->barrier(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Context::barrier(char scope) const { (*pimpl_)->barrier(scope); }
+void Context::barrier(char scope) const { rep->barrier(scope); }
 
 ////////////////////////////////////////////////////////////////////////////////
 void Context::dsend(int m, int n, double* a,
   int lda, int rdest, int cdest) const
-{ (*pimpl_)->dsend(m,n,a,lda,rdest,cdest); }
+{ rep->dsend(m,n,a,lda,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::drecv(int m, int n, double* a,
   int lda, int rsrc, int csrc) const
-{ (*pimpl_)->drecv(m,n,a,lda,rsrc,csrc); }
+{ rep->drecv(m,n,a,lda,rsrc,csrc); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dsum(char scope, char topology,
   int m, int n, double* a, int lda, int rdest, int cdest) const
-{ (*pimpl_)->dsum(scope,topology,m,n,a,lda,rdest,cdest); }
+{ rep->dsum(scope,topology,m,n,a,lda,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dsum(char scope, int m, int n, double* a, int lda) const
-{ (*pimpl_)->dsum(scope,' ',m,n,a,lda,-1,-1); }
+{ rep->dsum(scope,' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dsum(int m, int n, double* a, int lda) const
-{ (*pimpl_)->dsum('A',' ',m,n,a,lda,-1,-1); }
+{ rep->dsum('A',' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dmax(char scope, char topology,
   int m, int n, double* a, int lda, int* ra, int* ca, int rcflag,
   int rdest, int cdest) const
-{ (*pimpl_)->dmax(scope,topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
+{ rep->dmax(scope,topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dmax(char scope, char topology,
   int m, int n, double* a, int lda, int rdest, int cdest) const
-{ (*pimpl_)->dmax(scope,topology,m,n,a,lda,rdest,cdest); }
+{ rep->dmax(scope,topology,m,n,a,lda,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dmax(char scope, int m, int n, double* a, int lda) const
-{ (*pimpl_)->dmax(scope,' ',m,n,a,lda,-1,-1); }
+{ rep->dmax(scope,' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dmax(int m, int n, double* a, int lda) const
-{ (*pimpl_)->dmax('A',' ',m,n,a,lda,-1,-1); }
+{ rep->dmax('A',' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dmin(char scope, char topology,
   int m, int n, double* a, int lda, int* ra, int* ca, int rcflag,
   int rdest, int cdest) const
-{ (*pimpl_)->dmin(scope,topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
+{ rep->dmin(scope,topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dmin(char scope, char topology,
   int m, int n, double* a, int lda, int rdest, int cdest) const
-{ (*pimpl_)->dmin(scope,topology,m,n,a,lda,rdest,cdest); }
+{ rep->dmin(scope,topology,m,n,a,lda,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dmin(char scope, int m, int n, double* a, int lda) const
-{ (*pimpl_)->dmin(scope,' ',m,n,a,lda,-1,-1); }
+{ rep->dmin(scope,' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dmin(int m, int n, double* a, int lda) const
-{ (*pimpl_)->dmin('A',' ',m,n,a,lda,-1,-1); }
+{ rep->dmin('A',' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dbcast_send(char scope, char topology,
   int m, int n, double* a, int lda) const
-{ (*pimpl_)->dbcast_send(scope,topology,m,n,a,lda); }
+{ rep->dbcast_send(scope,topology,m,n,a,lda); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dbcast_send(char scope, int m, int n, double* a, int lda) const
-{ (*pimpl_)->dbcast_send(scope,' ',m,n,a,lda); }
+{ rep->dbcast_send(scope,' ',m,n,a,lda); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dbcast_send(int m, int n, double* a, int lda) const
-{ (*pimpl_)->dbcast_send('A',' ',m,n,a,lda); }
+{ rep->dbcast_send('A',' ',m,n,a,lda); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dbcast_recv(char scope, char topology,
   int m, int n, double* a, int lda, int rsrc,int csrc) const
-{ (*pimpl_)->dbcast_recv(scope,topology,m,n,a,lda,rsrc,csrc); }
+{ rep->dbcast_recv(scope,topology,m,n,a,lda,rsrc,csrc); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dbcast_recv(char scope,
   int m, int n, double* a, int lda, int rsrc, int csrc) const
-{ (*pimpl_)->dbcast_recv(scope,' ',m,n,a,lda,rsrc,csrc); }
+{ rep->dbcast_recv(scope,' ',m,n,a,lda,rsrc,csrc); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::dbcast_recv(int m, int n, double* a, int lda,
   int rsrc,int csrc) const
-{ (*pimpl_)->dbcast_recv('A',' ',m,n,a,lda,rsrc,csrc); }
+{ rep->dbcast_recv('A',' ',m,n,a,lda,rsrc,csrc); }
 
 ////////////////////////////////////////////////////////////////////////////////
 void Context::isend(int m, int n, int* a,
   int lda, int rdest, int cdest) const
-{ (*pimpl_)->isend(m,n,a,lda,rdest,cdest); }
+{ rep->isend(m,n,a,lda,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::irecv(int m, int n, int* a,
   int lda, int rsrc, int csrc) const
-{ (*pimpl_)->irecv(m,n,a,lda,rsrc,csrc); }
+{ rep->irecv(m,n,a,lda,rsrc,csrc); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::isum(char scope, char topology,
   int m, int n, int* a, int lda, int rdest, int cdest) const
-{ (*pimpl_)->isum(scope,topology,m,n,a,lda,rdest,cdest); }
+{ rep->isum(scope,topology,m,n,a,lda,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::isum(char scope, int m, int n, int* a, int lda) const
-{ (*pimpl_)->isum(scope,' ',m,n,a,lda,-1,-1); }
+{ rep->isum(scope,' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::isum(int m, int n, int* a, int lda) const
-{ (*pimpl_)->isum('A',' ',m,n,a,lda,-1,-1); }
+{ rep->isum('A',' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::imax(char scope, char topology,
   int m, int n, int* a, int lda, int* ra, int* ca, int rcflag,
   int rdest, int cdest) const
-{ (*pimpl_)->imax(scope,topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
+{ rep->imax(scope,topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::imax(char scope, char topology,
   int m, int n, int* a, int lda, int rdest, int cdest) const
-{ (*pimpl_)->imax(scope,topology,m,n,a,lda,rdest,cdest); }
+{ rep->imax(scope,topology,m,n,a,lda,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::imax(char scope, int m, int n, int* a, int lda) const
-{ (*pimpl_)->imax(scope,' ',m,n,a,lda,-1,-1); }
+{ rep->imax(scope,' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::imax(int m, int n, int* a, int lda) const
-{ (*pimpl_)->imax('A',' ',m,n,a,lda,-1,-1); }
+{ rep->imax('A',' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::imin(char scope, char topology,
   int m, int n, int* a, int lda, int* ra, int* ca, int rcflag,
   int rdest, int cdest) const
-{ (*pimpl_)->imin(scope,topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
+{ rep->imin(scope,topology,m,n,a,lda,ra,ca,rcflag,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::imin(char scope, char topology,
   int m, int n, int* a, int lda, int rdest, int cdest) const
-{ (*pimpl_)->imin(scope,topology,m,n,a,lda,rdest,cdest); }
+{ rep->imin(scope,topology,m,n,a,lda,rdest,cdest); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::imin(char scope, int m, int n, int* a, int lda) const
-{ (*pimpl_)->imin(scope,' ',m,n,a,lda,-1,-1); }
+{ rep->imin(scope,' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::imin(int m, int n, int* a, int lda) const
-{ (*pimpl_)->imin('A',' ',m,n,a,lda,-1,-1); }
+{ rep->imin('A',' ',m,n,a,lda,-1,-1); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::ibcast_send(char scope, char topology,
   int m, int n, int* a, int lda) const
-{ (*pimpl_)->ibcast_send(scope,topology,m,n,a,lda); }
+{ rep->ibcast_send(scope,topology,m,n,a,lda); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::ibcast_send(char scope, int m, int n, int* a, int lda) const
-{ (*pimpl_)->ibcast_send(scope,' ',m,n,a,lda); }
+{ rep->ibcast_send(scope,' ',m,n,a,lda); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::ibcast_send(int m, int n, int* a, int lda) const
-{ (*pimpl_)->ibcast_send('A',' ',m,n,a,lda); }
+{ rep->ibcast_send('A',' ',m,n,a,lda); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::ibcast_recv(char scope, char topology,
   int m, int n, int* a, int lda, int rsrc,int csrc) const
-{ (*pimpl_)->ibcast_recv(scope,topology,m,n,a,lda,rsrc,csrc); }
+{ rep->ibcast_recv(scope,topology,m,n,a,lda,rsrc,csrc); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::ibcast_recv(char scope,
   int m, int n, int* a, int lda, int rsrc, int csrc) const
-{ (*pimpl_)->ibcast_recv(scope,' ',m,n,a,lda,rsrc,csrc); }
+{ rep->ibcast_recv(scope,' ',m,n,a,lda,rsrc,csrc); }
 
+////////////////////////////////////////////////////////////////////////////////
 void Context::ibcast_recv(int m, int n, int* a, int lda,
   int rsrc,int csrc) const
-{ (*pimpl_)->ibcast_recv('A',' ',m,n,a,lda,rsrc,csrc); }
+{ rep->ibcast_recv('A',' ',m,n,a,lda,rsrc,csrc); }
 
-void Context::string_send(string& s, int rdest, int cdest) const
-{ (*pimpl_)->string_send(s,rdest,cdest); }
+////////////////////////////////////////////////////////////////////////////////
+void Context::string_send(std::string& s, int rdest, int cdest) const
+{ rep->string_send(s,rdest,cdest); }
 
-void Context::string_recv(string& s, int rsrc, int csrc) const
-{ (*pimpl_)->string_recv(s,rsrc,csrc); }
+////////////////////////////////////////////////////////////////////////////////
+void Context::string_recv(std::string& s, int rsrc, int csrc) const
+{ rep->string_recv(s,rsrc,csrc); }
 
-void Context::string_bcast(string& s, int isrc) const
-{ (*pimpl_)->string_bcast(s,isrc); }
+////////////////////////////////////////////////////////////////////////////////
+void Context::string_bcast(std::string& s, int isrc) const
+{ rep->string_bcast(s,isrc); }
 
 ////////////////////////////////////////////////////////////////////////////////
 bool Context::operator==(const Context& ctxt) const
-{ return ( (*pimpl_)->ictxt() == ctxt.ictxt() ); }
+{ return ( rep->ictxt() == ctxt.ictxt() ); }
 
 ////////////////////////////////////////////////////////////////////////////////
-MPI_Comm Context::comm(void) const { return (*pimpl_)->comm(); }
+MPI_Comm Context::comm(void) const { return rep->comm(); }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Context::print(ostream& os) const { (*pimpl_)->print(os);}
+void Context::print(ostream& os) const { rep->print(os);}
 
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator<<(ostream& os, const Context& c)
@@ -826,4 +531,3 @@ ostream& operator<<(ostream& os, const Context& c)
   c.print(os);
   return os;
 }
-

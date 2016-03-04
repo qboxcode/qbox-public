@@ -143,7 +143,7 @@ int main(int argc, char **argv, char **envp)
 #endif
 
   {
-  Context ctxt;
+  Context ctxt(MPI_COMM_WORLD);
 
   if ( ctxt.onpe0() )
   {

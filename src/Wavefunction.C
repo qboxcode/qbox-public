@@ -321,7 +321,7 @@ void Wavefunction::create_contexts(void)
   // npr now divides size
   int npc = size/npr;
 
-  spincontext_ = new Context(npr,npc);
+  spincontext_ = new Context(ctxt_.comm(),npr,npc);
   kpcontext_ = new Context(*spincontext_);
   sdcontext_ = new Context(*kpcontext_);
 }

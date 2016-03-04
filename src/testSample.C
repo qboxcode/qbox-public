@@ -15,8 +15,6 @@
 // testSample.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testSample.C,v 1.6 2009-11-30 02:23:26 fgygi Exp $
-
 #include <iostream>
 using namespace std;
 
@@ -28,20 +26,16 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-#if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
   // extra scope to ensure that BlacsContext objects get destructed before
   // the MPI_Finalize call
   {
-    Context ctxt;
+    Context ctxt(MPI_COMM_WORLD);
 
-#if USE_MPI
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     int namelen;
     PMPI_Get_processor_name(processor_name,&namelen);
     cout << " Process " << ctxt.mype() << " on " << processor_name << endl;
-#endif
 
     Sample s(ctxt);
 
@@ -57,8 +51,6 @@ int main(int argc, char** argv)
     s.wf.gram();
     cout << " ortho_error: " << s.wf.sd(0,0)->ortho_error() << endl;
   }
-#if USE_MPI
   MPI_Finalize();
-#endif
   return 0;
 }

@@ -30,7 +30,7 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 ContextRep::ContextRep(MPI_Comm comm) : ictxt_(-1), myrow_(-1), mycol_(-1)
 {
-  // construct a single row global context
+  // construct a single-row Context
   int nprocs;
   char order='R';
   MPI_Comm_dup(comm,&comm_);
@@ -56,9 +56,9 @@ ContextRep::ContextRep(MPI_Comm comm) : ictxt_(-1), myrow_(-1), mycol_(-1)
     pmap_[i] = i;
 
   MPI_Group group_world, subgroup;
-  MPI_Comm_group(MPI_COMM_WORLD,&group_world);
+  MPI_Comm_group(comm,&group_world);
   MPI_Group_incl(group_world,size_,&pmap_[0],&subgroup);
-  MPI_Comm_create(MPI_COMM_WORLD,subgroup,&comm_);
+  MPI_Comm_create(comm,subgroup,&comm_);
   MPI_Group_free(&group_world);
   MPI_Group_free(&subgroup);
 }
@@ -101,9 +101,9 @@ ContextRep::ContextRep(MPI_Comm comm, int nprow, int npcol) :
     }
 
   MPI_Group group_world, subgroup;
-  MPI_Comm_group(MPI_COMM_WORLD,&group_world);
+  MPI_Comm_group(comm,&group_world);
   MPI_Group_incl(group_world,size_,&pmap_[0],&subgroup);
-  MPI_Comm_create(MPI_COMM_WORLD,subgroup,&comm_);
+  MPI_Comm_create(comm,subgroup,&comm_);
   MPI_Group_free(&group_world);
   MPI_Group_free(&subgroup);
 }

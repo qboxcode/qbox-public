@@ -238,6 +238,8 @@ class Context
   // this process is not part of the context
   MPI_Comm comm(void) const;
 
+  void print(std::ostream& os) const;
+
   // Constructors
 
   // single-row Context
@@ -248,11 +250,7 @@ class Context
   explicit Context(MPI_Comm comm, int nprow, int npcol):
     rep(new ContextRep(comm,nprow,npcol)), pcount(new int(1)) {}
 
-//  Context(ContextRep* pp) : rep(pp), pcount(new int(1)) {}
-
   Context(const Context& c) : rep(c.rep), pcount(c.pcount) { (*pcount)++; }
-
-  void print(std::ostream& os) const;
 
   Context& operator=(const Context& c)
   {
@@ -270,10 +268,6 @@ class Context
 
   ~Context(void)
   {
-    if ( pcount == 0 )
-    {
-      std::cerr << "~Context: pcount = 0\n";
-    }
     if ( --(*pcount) == 0 )
     {
       delete rep;

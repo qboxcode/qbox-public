@@ -69,6 +69,7 @@ using namespace std;
 #include "RunCmd.h"
 #include "SaveCmd.h"
 #include "SetCmd.h"
+#include "SetVelocityCmd.h"
 #include "SpeciesCmd.h"
 #include "StatusCmd.h"
 #include "StrainCmd.h"
@@ -284,6 +285,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new RunCmd(s));
   ui.addCmd(new SaveCmd(s));
   ui.addCmd(new SetCmd(s));
+  ui.addCmd(new SetVelocityCmd(s));
   ui.addCmd(new SpeciesCmd(s));
   ui.addCmd(new StatusCmd(s));
   ui.addCmd(new StrainCmd(s));

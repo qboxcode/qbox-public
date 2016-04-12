@@ -7,14 +7,15 @@
 // use: qb_driver qb_input_file qb_output_file
 //
 // qb_driver sends commands to the server, via the file qb_input_file
-// It checks for the presence of a link named "qb_input_file.lock" 
+// It checks for the presence of a link named "qb_input_file.lock"
 // before writing additional commands
 // compile with: g++ -o qb_driver qb_driver.C
 
-#include <fstream>                                            
-#include <iostream> 
-#include <sstream> 
-#include <string>                                          
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <cstdlib>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -58,7 +59,7 @@ int main(int argc, char** argv)
 
   ofstream qb_infile;
   ifstream qb_outfile;
-  
+
   // send command to execute init.i script
   wait_for_file(lockfilename);
   qb_infile.open(qb_infilename,ios_base::trunc);
@@ -99,9 +100,9 @@ int main(int argc, char** argv)
     cout << "done" << endl;
     qb_outfile.close();
 
-    // parse output 
-    string start_tag = "<" + element_name + ">"; 
-    string end_tag = "</" + element_name + ">"; 
+    // parse output
+    string start_tag = "<" + element_name + ">";
+    string end_tag = "</" + element_name + ">";
     size_t pstart = qb_output.find(start_tag);
     size_t pend = qb_output.find(end_tag);
     size_t len;
@@ -124,13 +125,13 @@ int main(int argc, char** argv)
 
     //   analyze data
     //
-    // generate a random move in a cube of side 0.04                            
+    // generate a random move in a cube of side 0.04
 
     const double amplitude = 0.02;
-    double dx = amplitude * (2.0*drand48()-1.0);                       
-    double dy = amplitude * (2.0*drand48()-1.0);                       
-    double dz = amplitude * (2.0*drand48()-1.0);                       
-   
+    double dx = amplitude * (2.0*drand48()-1.0);
+    double dy = amplitude * (2.0*drand48()-1.0);
+    double dz = amplitude * (2.0*drand48()-1.0);
+
     // prepare next commands
     // send next command to server
 

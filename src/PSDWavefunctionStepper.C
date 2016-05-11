@@ -73,8 +73,8 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
 
   // dwf.sd->c() now contains the descent direction (HV-VA)
 
-  // update preconditioner using the residual
-  prec_.update(dwf);
+  // update preconditioner
+  prec_.update(wf_);
 
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {

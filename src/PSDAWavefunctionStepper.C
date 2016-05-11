@@ -71,8 +71,8 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
   tmap_["psda_residual"].stop();
 
   // dwf.sd->c() now contains the descent direction (HV-VA) (residual)
-  // update the preconditioner using the residual
-  prec_.update(dwf);
+  // update the preconditioner
+  prec_.update(wf_);
 
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {

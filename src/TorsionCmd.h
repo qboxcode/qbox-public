@@ -145,7 +145,7 @@ class TorsionCmd : public Cmd
         D3vector e123 = normalized(e12^e32);
         D3vector e234 = normalized(e23^e43);
         double cc = max(min(e123*e234,1.0),-1.0);
-        double ss = -max(min((e123^e234)*e32,1.0),-1.0);
+        double ss = max(min((e123^e234)*e32,1.0),-1.0);
         a = (180.0/M_PI) * atan2(ss,cc);
       }
 

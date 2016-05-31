@@ -113,7 +113,7 @@ class ExchangeOperator
   vector<complex<double> > buffer_forces_2_;
 
   // contexts and communicators
-  Context gcontext_;
+  const Context &gcontext_;
   MPI_Comm vcomm_;
 
   // Communications

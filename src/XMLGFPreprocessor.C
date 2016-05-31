@@ -70,7 +70,7 @@ int XMLGFPreprocessor::process(const char* const uri,
 
   const Context& ctxt = gfdata.context();
   // define a global single row context for segment manipulations
-  Context rctxt;
+  Context rctxt(MPI_COMM_WORLD);
 #if DEBUG
   if ( rctxt.onpe0() )
   {

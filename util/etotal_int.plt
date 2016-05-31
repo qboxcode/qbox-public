@@ -1,6 +1,10 @@
 #!/bin/bash
-# etotal_int.plt: plot <etotal_int> in one or more simulations
-# use: etotal_int.plt run1.r  [run2.r ...]
+if [ $1 == "-range" ]
+then
+  range=$2
+  shift 2
+fi
 gnuplot -persist <<EOF
-plot "<grep -h etotal $*" u 2 w l
+set grid
+plot $range "<grep -h etotal_int $*" u 2 w l
 EOF

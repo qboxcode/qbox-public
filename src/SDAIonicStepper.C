@@ -15,7 +15,6 @@
 // SDAIonicStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.C,v 1.9 2008-09-08 15:56:19 fgygi Exp $
 
 #include "SDAIonicStepper.h"
 using namespace std;
@@ -54,7 +53,6 @@ void SDAIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
     constraints_.enforce_r(r0_,rp_);
     rm_ = r0_;
     r0_ = rp_;
-    atoms_.sync_positions(r0_);
     atoms_.set_positions(r0_);
     // reset the SDA algorithm
     first_step_ = true;
@@ -127,7 +125,6 @@ void SDAIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   r0_ = rp_;
-  atoms_.sync_positions(r0_);
   atoms_.set_positions(r0_);
 
   first_step_ = false;

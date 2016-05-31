@@ -27,10 +27,6 @@ using namespace std;
 #include "FourierTransform.h"
 #include "Timer.h"
 
-#if USE_APC
-#include "apc.h"
-#endif
-
 double fft_flops(int n)
 {
   return 5.0 * n * log((double) n) / log(2.0);
@@ -41,9 +37,6 @@ int main(int argc, char **argv)
   Timer tm;
 #if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
-#if USE_APC
-  ApcInit();
 #endif
   {
 
@@ -154,13 +147,7 @@ int main(int argc, char **argv)
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(1);
-#endif
   ft2.forward(&f2[0],&x[0]);
-#if USE_APC
-  ApcStop(1);
-#endif
   tm.stop();
   cout << " fwd1: size: " << ft2.np0() << " "
        << ft2.np1() << " " << ft2.np2() << endl;
@@ -184,13 +171,7 @@ int main(int argc, char **argv)
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(2);
-#endif
   ft2.backward(&x[0],&f2[0]);
-#if USE_APC
-  ApcStop(2);
-#endif
   tm.stop();
   cout << " bwd1: size: " << ft2.np0() << " "
        << ft2.np1() << " " << ft2.np2() << endl;
@@ -214,13 +195,7 @@ int main(int argc, char **argv)
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(3);
-#endif
   ft2.forward(&f2[0],&x[0]);
-#if USE_APC
-  ApcStop(3);
-#endif
   tm.stop();
   cout << " fwd2: size: " << ft2.np0() << " "
        << ft2.np1() << " " << ft2.np2() << endl;
@@ -247,13 +222,7 @@ int main(int argc, char **argv)
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(4);
-#endif
   ft2.backward(&x[0],&f2[0]);
-#if USE_APC
-  ApcStop(4);
-#endif
   tm.stop();
   cout << " bwd2: size: " << ft2.np0() << " "
        << ft2.np1() << " " << ft2.np2() << endl;
@@ -281,13 +250,7 @@ int main(int argc, char **argv)
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(5);
-#endif
   ft2.forward(&f2[0],&x1[0],&x2[0]);
-#if USE_APC
-  ApcStop(5);
-#endif
   tm.stop();
   cout << " fwd3: size: " << ft2.np0() << " "
        << ft2.np1() << " " << ft2.np2() << endl;
@@ -311,13 +274,7 @@ int main(int argc, char **argv)
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(6);
-#endif
   ft2.backward(&x1[0],&x2[0],&f2[0]);
-#if USE_APC
-  ApcStop(6);
-#endif
   tm.stop();
   cout << " bwd3: size: " << ft2.np0() << " "
        << ft2.np1() << " " << ft2.np2() << endl;
@@ -358,13 +315,7 @@ int main(int argc, char **argv)
   tm.reset();
   vft.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(7);
-#endif
   vft.forward(&vf[0],&vg[0]);
-#if USE_APC
-  ApcStop(7);
-#endif
   tm.stop();
   cout << " fwd4: size: " << vft.np0() << " "
        << vft.np1() << " " << vft.np2() << endl;
@@ -388,13 +339,7 @@ int main(int argc, char **argv)
   tm.reset();
   vft.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(8);
-#endif
   vft.backward(&vg[0],&vf[0]);
-#if USE_APC
-  ApcStop(8);
-#endif
   tm.stop();
   cout << " bwd4: size: " << vft.np0() << " "
        << vft.np1() << " " << vft.np2() << endl;
@@ -492,9 +437,6 @@ int main(int argc, char **argv)
 #endif
 
   } // Context scope
-#if USE_APC
-  ApcFinalize();
-#endif
 #if USE_MPI
   MPI_Finalize();
 #endif

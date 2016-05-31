@@ -3382,7 +3382,7 @@ void DoubleMatrix::print(ostream& os) const
 {
   // Copy blocks of <blocksize> columns and print them on process (0,0)
   if ( m_ == 0 || n_ == 0 ) return;
-  Context ctxtl(1,1);
+  Context ctxtl(MPI_COMM_WORLD,1,1);
   const int blockmemsize = 32768; // maximum memory size of a block in bytes
   // compute maximum block size: must be at least 1
   int maxbs = max(1, (int) ((blockmemsize/sizeof(double))/m_));
@@ -3414,7 +3414,7 @@ void ComplexMatrix::print(ostream& os) const
 {
   // Copy blocks of <blocksize> columns and print them on process (0,0)
   if ( m_ == 0 || n_ == 0 ) return;
-  Context ctxtl(1,1);
+  Context ctxtl(MPI_COMM_WORLD,1,1);
   const int blockmemsize = 32768; // maximum memory size of a block in bytes
   // compute maximum block size: must be at least 1
   int maxbs = max(1, (int) ((blockmemsize/sizeof(complex<double>))/m_));

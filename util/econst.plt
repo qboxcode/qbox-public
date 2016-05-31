@@ -1,9 +1,12 @@
 #!/bin/bash
-# econst.plt: plot <econst> in one or more MD simulations
-# use: econst.plt mdrun1.r [mdrun2.r ...]
+if [ $1 == "-range" ]
+then
+  range=$2
+  shift 2
+fi
 gnuplot -persist <<EOF
-fit a*x+b "<grep -h econst $*" u 0:2 via a,b
-fit c "<grep -h econst $*" u 0:2 via c
-p "<grep -h econst $*" u 2 w l, a*x+b, c
+fit $range a*x+b "<grep -h econst $*" u 0:2 via a,b
+fit $range c "<grep -h econst $*" u 0:2 via c
+p $range "<grep -h econst $*" u 2 w l, a*x+b, c
 print "Econst_avg=",c,"   dE/dt=",a
 EOF

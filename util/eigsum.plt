@@ -5,5 +5,5 @@ then
   shift 2
 fi
 gnuplot -persist <<EOF
-p $range "<grep -h econst $*" u 2 w l, "<grep -h '<etotal>' $*" u 2 w l
+plot $range "<grep -h eigenvalue_sum $*" u 2 w l
 EOF

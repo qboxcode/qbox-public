@@ -1,7 +1,9 @@
 #!/bin/bash
-# etotal_cmp.plt: compare <etotal> in two MD simulations
-# use: etotal_cmp.plt mdrun1.r mdrun2.r
+if [ $1 == "-range" ]
+then
+  range=$2
+  shift 2
+fi
 gnuplot -persist <<EOF
-set grid
-plot "<grep '<etotal>' $1" u 2 w l, "<grep '<etotal>' $2" u 2 w l
+plot $range "<grep '<etotal>' $1" u 2 w l, "<grep '<etotal>' $2" u 2 w l
 EOF

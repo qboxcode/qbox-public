@@ -81,7 +81,9 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
   tmap_["jd_residual"].stop();
 
   // dwf.sd->c() now contains the descent direction (HV-VA)
-  prec_.update(dwf);
+
+  // update preconditioner
+  prec_.update(wf_);
 
   tmap_["jd_compute_z"].start();
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )

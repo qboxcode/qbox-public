@@ -33,7 +33,7 @@ class Bisection
 {
   private:
 
-    Context gcontext_;
+    Context ctxt_;
 
     // bisection levels in each directions
     int nlevels_[3]; // bisection level

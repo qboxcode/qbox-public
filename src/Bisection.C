@@ -74,12 +74,11 @@ int walsh(int l, int n, int i)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-Bisection::Bisection(const SlaterDet& sd, int nlevels[3])
+Bisection::Bisection(const SlaterDet& sd, int nlevels[3]) : ctxt_(sd.context())
 {
   // localization vectors are long int
   assert(sizeof(long int) >= 4);
 
-  gcontext_ = sd.context();
   nst_ = sd.nst();
   nstloc_ = sd.nstloc();
 
@@ -160,7 +159,7 @@ Bisection::Bisection(const SlaterDet& sd, int nlevels[3])
     // max_xyproj_rsize: maximum real-space size of xy projectors
     vector<int> max_xyproj_rsize( ndiv_[0]*ndiv_[1] , 0 );
     MPI_Allreduce((void*)&xyproj_rsize[0] , (void*)&max_xyproj_rsize[0],
-      (int)xyproj_rsize.size(), MPI_INT ,MPI_MAX , gcontext_.comm());
+      (int)xyproj_rsize.size(), MPI_INT ,MPI_MAX , ctxt_.comm());
 
     // allocate matrices rmat_[i]
     for ( int i = 0; i < rmat_.size(); i++ )
@@ -404,7 +403,7 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
   // diagonalize projectors
   int nsweep = jade(maxsweep,tol,amat_,*u_,adiag_);
 #ifdef TIMING
-  if ( gcontext_.onpe0() )
+  if ( ctxt_.onpe0() )
     cout << "Bisection::compute_transform: nsweep=" << nsweep
          << " maxsweep=" << maxsweep << " tol=" << tol << endl;
 #endif
@@ -422,7 +421,7 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
   {
     // broadcast diagonal of all matrices a to all tasks
     MPI_Bcast( (void *) &adiag_[imat][0], adiag_[imat].size(),
-               MPI_DOUBLE, 0, gcontext_.comm() );
+               MPI_DOUBLE, 0, ctxt_.comm() );
   }
   // print timers
 #ifdef TIMING
@@ -431,9 +430,9 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
     double time = (*i).second.real();
     double tmin = time;
     double tmax = time;
-    gcontext_.dmin(1,1,&tmin,1);
-    gcontext_.dmax(1,1,&tmax,1);
-    if ( gcontext_.myproc()==0 )
+    ctxt_.dmin(1,1,&tmin,1);
+    ctxt_.dmax(1,1,&tmax,1);
+    if ( ctxt_.myproc()==0 )
     {
       cout << "<timing name=\""
            << setw(15) << (*i).first << "\""
@@ -466,7 +465,7 @@ void Bisection::compute_localization(double epsilon)
 #ifdef DEBUG
   // print localization vector and number of overlaps (including self)
   // for each state
-  if ( gcontext_.onpe0() )
+  if ( ctxt_.onpe0() )
   {
     int sum = 0;
     for ( int i = 0; i < nst_; i++ )
@@ -490,7 +489,7 @@ void Bisection::compute_localization(double epsilon)
 
   // broadcast localization to all tasks to ensure consistency
   MPI_Bcast( (void *) &localization_[0], localization_.size(),
-             MPI_LONG, 0, gcontext_.comm() );
+             MPI_LONG, 0, ctxt_.comm() );
 
 }
 

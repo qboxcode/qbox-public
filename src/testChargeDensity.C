@@ -15,7 +15,6 @@
 // testChargeDensity.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testChargeDensity.C,v 1.5 2009-11-30 02:26:07 fgygi Exp $
 
 #include "Context.h"
 #include "Wavefunction.h"
@@ -40,8 +39,8 @@ int main(int argc, char **argv)
 #endif
   {
     // use:
-    // testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nempty nspin nkp
-    assert(argc==15);
+    // testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nspin nkp
+    assert(argc==14);
     D3vector a(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     D3vector b(atof(argv[4]),atof(argv[5]),atof(argv[6]));
     D3vector c(atof(argv[7]),atof(argv[8]),atof(argv[9]));
@@ -49,13 +48,12 @@ int main(int argc, char **argv)
     cout << " volume: " << cell.volume() << endl;
     double ecut = atof(argv[10]);
     int nel = atoi(argv[11]);
-    int nempty = atoi(argv[12]);
-    int nspin = atoi(argv[13]);
-    int nkp = atoi(argv[14]);
+    int nspin = atoi(argv[12]);
+    int nkp = atoi(argv[13]);
 
     Timer tm;
 
-    Context ctxt;
+    Context ctxt(MPI_COMM_WORLD);
     Wavefunction wf(ctxt);
 
     tm.reset(); tm.start();

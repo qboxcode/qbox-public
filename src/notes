@@ -1,4 +1,13 @@
 --------------------------------------------------------------------------------
+rel1_63_3
+--------------------------------------------------------------------------------
+r1825: TorsionCmd.h: revert to previous sign convention for compatibility 
+with VMD and consistency with torsion constraint.
+--------------------------------------------------------------------------------
+r1823: Revert to use of wf (rather than dwf) in preconditioner update
+--------------------------------------------------------------------------------
+r1818: Added set_velocity command.
+--------------------------------------------------------------------------------
 r1809-r1813: modified Context to accept MPI communicators as ctor argument.
 Removed pimpl idiom from implementation of Context.
 --------------------------------------------------------------------------------

@@ -14,6 +14,9 @@ name1 = ""
 name2 = ""
 name3 = ""
 
+def norm(x):
+  return math.sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2])
+
 # Qbox output handler to extract and process <atomset>
 class QboxOutputHandler(xml.sax.handler.ContentHandler):
   def __init__(self):
@@ -53,38 +56,24 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
 
   def endElement(self, name):
     if name == "atomset":
-      self.pos1 = self.buffer1.split()
-      self.pos2 = self.buffer2.split()
-      self.pos3 = self.buffer3.split()
-      self.r1x = float(self.pos1[0])
-      self.r1y = float(self.pos1[1])
-      self.r1z = float(self.pos1[2])
-      self.r2x = float(self.pos2[0])
-      self.r2y = float(self.pos2[1])
-      self.r2z = float(self.pos2[2])
-      self.r3x = float(self.pos3[0])
-      self.r3y = float(self.pos3[1])
-      self.r3z = float(self.pos3[2])
-      #print "r1: ",self.r1x,self.r1y,self.r1z
-      #print "r2: ",self.r2x,self.r2y,self.r2z
-      #print "r3: ",self.r3x,self.r3y,self.r3z
-      # normalized r12
-      r12x = self.r1x - self.r2x
-      r12y = self.r1y - self.r2y
-      r12z = self.r1z - self.r2z
-      fac12 = 1.0/math.sqrt(r12x*r12x+r12y*r12y+r12z*r12z)
-      r12x = fac12 * r12x
-      r12y = fac12 * r12y
-      r12z = fac12 * r12z
-      # normalized r32
-      r32x = self.r3x - self.r2x
-      r32y = self.r3y - self.r2y
-      r32z = self.r3z - self.r2z
-      fac32 = 1.0/math.sqrt(r32x*r32x+r32y*r32y+r32z*r32z)
-      r32x = fac32 * r32x
-      r32y = fac32 * r32y
-      r32z = fac32 * r32z
-      sp = r12x*r32x + r12y*r32y + r12z*r32z
+      pos1 = self.buffer1.split()
+      r1 = (float(pos1[0]),float(pos1[1]),float(pos1[2]))
+      pos2 = self.buffer2.split()
+      r2 = (float(pos2[0]),float(pos2[1]),float(pos2[2]))
+      pos3 = self.buffer3.split()
+      r3 = (float(pos3[0]),float(pos3[1]),float(pos3[2]))
+      #print "r1: ",r1
+      #print "r2: ",r2
+      #print "r3: ",r3
+      # e12 = normalized r12
+      r12 = (r1[0]-r2[0],r1[1]-r2[1],r1[2]-r2[2])
+      fac12 = 1.0/norm(r12)
+      e12 = (fac12*r12[0],fac12*r12[1],fac12*r12[2])
+      # e32 = normalized r32
+      r32 = (r3[0]-r2[0],r3[1]-r2[1],r3[2]-r2[2])
+      fac32 = 1.0/norm(r32)
+      e32 = (fac32*r32[0],fac32*r32[1],fac32*r32[2])
+      sp = e12[0]*e32[0] + e12[1]*e32[1] + e12[2]*e32[2]
       c = sp
       c = max(-1.0,min(1.0,sp))
       a = (180.0/math.pi)*math.acos(c)

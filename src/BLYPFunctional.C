@@ -91,12 +91,20 @@ void BLYPFunctional::setxc(void)
     assert( exc != 0 );
     assert( vxc1 != 0 );
     assert( vxc2 != 0 );
+
+    double ex,vx1,vx2,ec,vc1,vc2;
     for ( int i = 0; i < _np; i++ )
     {
       double grad = sqrt(grad_rho[0][i]*grad_rho[0][i] +
                          grad_rho[1][i]*grad_rho[1][i] +
                          grad_rho[2][i]*grad_rho[2][i] );
-      excblyp(rho[i],grad,&exc[i],&vxc1[i],&vxc2[i]);
+
+      exb88(rho[i],grad,&ex,&vx1,&vx2);
+      eclyp(rho[i],grad,&ec,&vc1,&vc2);
+
+      exc[i] = ex + ec;
+      vxc1[i] = vx1 + vc1;
+      vxc2[i] = vc1 + vc2;
     }
   }
   else
@@ -114,6 +122,8 @@ void BLYPFunctional::setxc(void)
     assert( vxc2_dnup != 0 );
     assert( vxc2_dndn != 0 );
 
+    double ex_up,ex_dn,vx1_up,vx1_dn,vx2_upup,vx2_dndn,vx2_updn,vx2_dnup;
+    double ec_up,ec_dn,vc1_up,vc1_dn,vc2_upup,vc2_dndn,vc2_updn,vc2_dnup;
     for ( int i = 0; i < _np; i++ )
     {
       double grx_up = grad_rho_up[0][i];
@@ -122,45 +132,41 @@ void BLYPFunctional::setxc(void)
       double grx_dn = grad_rho_dn[0][i];
       double gry_dn = grad_rho_dn[1][i];
       double grz_dn = grad_rho_dn[2][i];
-      double grx = grx_up + grx_dn;
-      double gry = gry_up + gry_dn;
-      double grz = grz_up + grz_dn;
       double grad_up2 = grx_up*grx_up + gry_up*gry_up + grz_up*grz_up;
       double grad_dn2 = grx_dn*grx_dn + gry_dn*gry_dn + grz_dn*grz_dn;
       double grad_up_grad_dn = grx_up*grx_dn + gry_up*gry_dn + grz_up*grz_dn;
-      excblyp_sp(rho_up[i],rho_dn[i],grad_up2,grad_dn2,grad_up_grad_dn,
-                 &exc_up[i],&exc_dn[i],&vxc1_up[i],&vxc1_dn[i],
-                 &vxc2_upup[i],&vxc2_dndn[i],&vxc2_updn[i], &vxc2_dnup[i]);
+
+      exb88_sp(rho_up[i],rho_dn[i],grad_up2,grad_dn2,grad_up_grad_dn,
+               &ex_up,&ex_dn,&vx1_up,&vx1_dn,
+               &vx2_upup,&vx2_dndn,&vx2_updn,&vx2_dnup);
+      eclyp_sp(rho_up[i],rho_dn[i],grad_up2,grad_dn2,grad_up_grad_dn,
+               &ec_up,&ec_dn,&vc1_up,&vc1_dn,
+               &vc2_upup,&vc2_dndn,&vc2_updn,&vc2_dnup);
+
+      exc_up[i] = ex_up + ec_up;
+      exc_dn[i] = ex_dn + ec_dn;
+      vxc1_up[i] = vx1_up + vc1_up;
+      vxc1_dn[i] = vx1_dn + vc1_dn;
+      vxc2_upup[i] = vx2_upup + vc2_upup;
+      vxc2_dndn[i] = vx2_dndn + vc2_dndn;
+      vxc2_updn[i] = vx2_updn + vc2_updn;
+      vxc2_dnup[i] = vx2_dnup + vc2_dnup;
     }
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void BLYPFunctional::excblyp(double rho, double grad,
-  double *exc, double *vxc1, double *vxc2)
+void BLYPFunctional::exb88(double rho, double grad,
+  double *ex, double *vx1, double *vx2)
 {
   // Becke exchange constants
-  const double third  = 1.0 / 3.0;
   const double fourthirds = 4.0 / 3.0;
-  const double fivethirds = 5.0 / 3.0;
   const double beta=0.0042;
-  const double ax = -0.7385587663820224058; // -0.75*pow(3.0/pi,third)
   const double axa = -0.9305257363490999;   // -1.5*pow(3.0/(4*pi),third)
 
-  // LYP constants
-  const double a = 0.04918;
-  const double b = 0.132;
-  const double ab36 = a * b / 36.0;
-  const double c = 0.2533;
-  const double c_third = c / 3.0;
-  const double d = 0.349;
-  const double d_third = d / 3.0;
-  const double cf = 2.87123400018819; // (3/10)*pow(3*pi*pi,2/3)
-  const double cfb = cf * b;
-
-  *exc = 0.0;
-  *vxc1 = 0.0;
-  *vxc2 = 0.0;
+  *ex = 0.0;
+  *vx1 = 0.0;
+  *vx2 = 0.0;
 
   if ( rho < 1.e-18  ) return;
 
@@ -178,13 +184,35 @@ void BLYPFunctional::excblyp(double rho, double grad,
   const double frac = 1.0 / ( 1.0 + 6.0 * beta * xa * asinhxa );
   const double ga = axa - beta * xa2 * frac;
   // in next line, ex is the energy density, hence rh13
-  const double ex = rha13 * ga;
+  *ex = rha13 * ga;
 
   // potential
   const double gpa = ( 6.0*beta*beta*xa2 * ( xa/sqrt(xa2+1.0) - asinhxa )
                      - 2.0*beta*xa ) * frac*frac;
-  const double vx1 = rha13 * fourthirds * ( ga - xa * gpa );
-  const double vx2 = - 0.5 * gpa / grada;
+  *vx1 = rha13 * fourthirds * ( ga - xa * gpa );
+  *vx2 = - 0.5 * gpa / grada;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void BLYPFunctional::eclyp(double rho, double grad,
+  double *ec, double *vc1, double *vc2)
+{
+  // LYP constants
+  const double a = 0.04918;
+  const double b = 0.132;
+  const double ab36 = a * b / 36.0;
+  const double c = 0.2533;
+  const double c_third = c / 3.0;
+  const double d = 0.349;
+  const double d_third = d / 3.0;
+  const double cf = 2.87123400018819; // (3/10)*pow(3*pi*pi,2/3)
+  const double cfb = cf * b;
+
+  *ec = 0.0;
+  *vc1 = 0.0;
+  *vc2 = 0.0;
+
+  if ( rho < 1.e-18  ) return;
 
   // LYP correlation
   // Phys. Rev. B 37, 785 (1988).
@@ -199,7 +227,7 @@ void BLYPFunctional::excblyp(double rho, double grad,
   const double cfrac = num * deninv;
 
   const double delta = rhm13 * ( c + d * deninv );
-  const double ddelta = - third * ( c * rhm43
+  const double ddelta = - (1.0/3.0) * ( c * rhm43
                       + d * rhm13 * rhm13 / ((d+rh13)*(d+rh13)) );
   const double rhm53 = rhm43 * rhm13;
   const double t1 = e * deninv;
@@ -209,7 +237,7 @@ void BLYPFunctional::excblyp(double rho, double grad,
   const double g = ab36 * t1 * t2 * t3;
 
   // ec is the energy density, hence divide the energy by rho
-  const double ec = - a * cfrac + 0.25 * g * grad * grad / rho;
+  *ec = - a * cfrac + 0.25 * g * grad * grad / rho;
 
   // potential
   const double de = c_third * rhm43 * e;
@@ -218,52 +246,36 @@ void BLYPFunctional::excblyp(double rho, double grad,
   const double dfrac = ( dnum * den - dden * num ) * deninv * deninv;
 
   const double dt1 = de * deninv - e * dden * deninv * deninv;
-  const double dt2 = - fivethirds * rhm53/rho;
+  const double dt2 = - (5.0/3.0) * rhm53/rho;
   const double dt3 = 14.0 * ddelta;
 
   const double dg = ab36 * ( dt1 * t2 * t3 + t1 * dt2 * t3 + t1 * t2 * dt3 );
 
-  const double vc1 = - a * ( cfrac + rho * dfrac ) + 0.25 * dg * grad * grad;
-  const double vc2 = -0.5 * g;
-
-  *exc = ex + ec;
-  *vxc1 = vx1 + vc1;
-  *vxc2 = vx2 + vc2;
+  *vc1 = - a * ( cfrac + rho * dfrac ) + 0.25 * dg * grad * grad;
+  *vc2 = -0.5 * g;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void BLYPFunctional::excblyp_sp(double rho_up, double rho_dn,
+void BLYPFunctional::exb88_sp(double rho_up, double rho_dn,
   double grad_up2, double grad_dn2, double grad_up_grad_dn,
-  double *exc_up, double *exc_dn, double *vxc1_up, double *vxc1_dn,
-  double *vxc2_upup, double *vxc2_dndn, double *vxc2_updn, double *vxc2_dnup)
+  double *ex_up, double *ex_dn, double *vx1_up, double *vx1_dn,
+  double *vx2_upup, double *vx2_dndn, double *vx2_updn, double *vx2_dnup)
 {
-  *exc_up = 0.0;
-  *exc_dn = 0.0;
-  *vxc1_up = 0.0;
-  *vxc1_dn = 0.0;
-  *vxc2_upup = 0.0;
-  *vxc2_updn = 0.0;
-  *vxc2_dnup = 0.0;
-  *vxc2_dndn = 0.0;
+  *ex_up = 0.0;
+  *ex_dn = 0.0;
+  *vx1_up = 0.0;
+  *vx1_dn = 0.0;
+  *vx2_upup = 0.0;
+  *vx2_updn = 0.0;
+  *vx2_dnup = 0.0;
+  *vx2_dndn = 0.0;
 
   if ( rho_up < 1.e-18 && rho_dn < 1.e-18  ) return;
 
   // Becke exchange constants
-  const double third  = 1.0 / 3.0;
   const double fourthirds = 4.0 / 3.0;
-  const double fivethirds = 5.0 / 3.0;
   const double beta = 0.0042;
-  const double ax = -0.7385587663820224058; // -0.75*pow(3.0/pi,third)
   const double cx = -0.9305257363490999;    // -1.5*pow(3.0/(4*pi),third)
-
-  // LYP constants
-  const double a = 0.04918;
-  const double b = 0.132;
-  const double c = 0.2533;
-  const double d = 0.349;
-  const double cf = 2.87123400018819; // (3/10)*pow(3*pi*pi,2/3)
-  const double ninth = 1.0 / 9.0;
-  const double two113 = pow(2.0,11.0/3.0);
 
   // Becke's exchange
   // A.D.Becke, Phys.Rev. B38, 3098 (1988)
@@ -277,10 +289,6 @@ void BLYPFunctional::excblyp_sp(double rho_up, double rho_dn,
   const double rhb13 = cbrt(rhb);
   const double rha43 = rha * rha13;
   const double rhb43 = rhb * rhb13;
-  const double rha83 = rha43 * rha43;
-  const double rhb83 = rhb43 * rhb43;
-  const double rha113 = rha83 * rha;
-  const double rhb113 = rhb83 * rhb;
 
   double ex1a = 0.0;
   double ex1b = 0.0;
@@ -319,6 +327,55 @@ void BLYPFunctional::excblyp_sp(double rho_up, double rho_dn,
     vx2b = - gpb / gradb;
   }
 
+  *ex_up = ex1a;
+  *ex_dn = ex1b;
+  *vx1_up = vx1a;
+  *vx1_dn = vx1b;
+  *vx2_upup = vx2a;
+  *vx2_updn = 0.0;
+  *vx2_dnup = 0.0;
+  *vx2_dndn = vx2b;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void BLYPFunctional::eclyp_sp(double rho_up, double rho_dn,
+  double grad_up2, double grad_dn2, double grad_up_grad_dn,
+  double *ec_up, double *ec_dn, double *vc1_up, double *vc1_dn,
+  double *vc2_upup, double *vc2_dndn, double *vc2_updn, double *vc2_dnup)
+{
+  *ec_up = 0.0;
+  *ec_dn = 0.0;
+  *vc1_up = 0.0;
+  *vc1_dn = 0.0;
+  *vc2_upup = 0.0;
+  *vc2_updn = 0.0;
+  *vc2_dnup = 0.0;
+  *vc2_dndn = 0.0;
+
+  if ( rho_up < 1.e-18 && rho_dn < 1.e-18  ) return;
+
+  // LYP constants
+  const double a = 0.04918;
+  const double b = 0.132;
+  const double c = 0.2533;
+  const double d = 0.349;
+  const double cf = 2.87123400018819; // (3/10)*pow(3*pi*pi,2/3)
+  const double ninth = 1.0 / 9.0;
+  const double two113 = pow(2.0,11.0/3.0);
+  const double fourthirds = 4.0 / 3.0;
+
+  const double& rha = rho_up;
+  const double& rhb = rho_dn;
+
+  const double rha13 = cbrt(rha);
+  const double rhb13 = cbrt(rhb);
+  const double rha43 = rha * rha13;
+  const double rhb43 = rhb * rhb13;
+  const double rha83 = rha43 * rha43;
+  const double rhb83 = rhb43 * rhb43;
+  const double rha113 = rha83 * rha;
+  const double rhb113 = rhb83 * rhb;
+
   // LYP correlation
   // Phys. Rev. B 37, 785 (1988).
 
@@ -336,15 +393,14 @@ void BLYPFunctional::excblyp_sp(double rho_up, double rho_dn,
   const double deninv = 1.0 / den;
 
   const double w = e * deninv * rhm113;
-  const double dw = third*(c*d+(c-10.0*d)*rh13-11.0*rh13*rh13)*e*rhm143/
+  const double dw = (1.0/3.0)*(c*d+(c-10.0*d)*rh13-11.0*rh13*rh13)*e*rhm143/
                     ((d+rh13)*(d+rh13));
   const double abw = a * b * w;
   const double f1 = -4.0 * a * deninv * rhabrhm;
   const double f2 = - two113 * cf * abw * rha * rhb  * ( rha83 + rhb83 );
-  const double f = f1 + f2;
 
   const double delta = rhm13 * ( c + d * deninv );
-  const double ddelta = - third * ( c * rhm43
+  const double ddelta = - (1.0/3.0) * ( c * rhm43
                       + d * rhm13 * rhm13 / ((d+rh13)*(d+rh13)) );
   const double taa = 1.0 - 3.0 * delta + ( 11.0 - delta ) * rha * rhoinv;
   const double tbb = 1.0 - 3.0 * delta + ( 11.0 - delta ) * rhb * rhoinv;
@@ -409,12 +465,12 @@ void BLYPFunctional::excblyp_sp(double rho_up, double rho_dn,
                     + dgab_drhb * grad_up_grad_dn
                     + dgbb_drhb * grad_dn2;
 
-  *exc_up = ex1a + ec1a;
-  *exc_dn = ex1b + ec1b;
-  *vxc1_up = vx1a + vc1a;
-  *vxc1_dn = vx1b + vc1b;
-  *vxc2_upup = vx2a - 2.0 * gaa;
-  *vxc2_updn = - gab;
-  *vxc2_dnup = - gab;
-  *vxc2_dndn = vx2b - 2.0 * gbb;
+  *ec_up = ec1a;
+  *ec_dn = ec1b;
+  *vc1_up = vc1a;
+  *vc1_dn = vc1b;
+  *vc2_upup = - 2.0 * gaa;
+  *vc2_updn = - gab;
+  *vc2_dnup = - gab;
+  *vc2_dndn = - 2.0 * gbb;
 }

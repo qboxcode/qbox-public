@@ -25,11 +25,12 @@
 
 class VWNFunctional : public XCFunctional
 {
-  void xc_unpolarized(const double rh, double &ex, double &vx,
-    double &ec, double &vc);
-  void xc_polarized(const double rh, double &ex, double &vx,
-    double &ec, double &vc);
-  void alpha_c(const double rh, double &a, double &da);
+  static void alpha_c(const double rh, double &a, double &da);
+  static void x_unpolarized(const double rh, double &ex, double &vx);
+  static void c_unpolarized(const double rh, double &ec, double &vc);
+  static void x_polarized(const double rh, double &ex, double &vx);
+  static void c_polarized(const double rh, double &ec, double &vc);
+
   std::vector<double> _exc;
   std::vector<std::vector<double> > _vxc;
 
@@ -64,6 +65,14 @@ class VWNFunctional : public XCFunctional
       vxc1_dn = &_vxc[1][0];
     }
   };
+
+  static void exvwn(const double rh, double &ex, double &vx);
+  static void ecvwn(const double rh, double &ec, double &vc);
+
+  static void exvwn_sp(const double roe_up, const double roe_dn,
+    double &ex, double &vx_up, double &vx_dn);
+  static void ecvwn_sp(const double roe_up, const double roe_dn,
+    double &ec, double &vc_up, double &vc_dn);
 
   bool isGGA() const { return false; };
   std::string name() const { return "VWN"; };

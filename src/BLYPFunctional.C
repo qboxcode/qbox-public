@@ -170,7 +170,7 @@ void BLYPFunctional::excblyp(double rho, double grad,
   const double rha = 0.5 * rho;
   const double grada = 0.5 * grad;
 
-  const double rha13 = pow ( rha, third );
+  const double rha13 = cbrt(rha);
   const double rha43 = rha * rha13;
   const double xa = grada / rha43;
   const double xa2 = xa*xa;
@@ -189,7 +189,7 @@ void BLYPFunctional::excblyp(double rho, double grad,
   // LYP correlation
   // Phys. Rev. B 37, 785 (1988).
   // next lines specialized to the unpolarized case
-  const double rh13 = pow ( rho, third );
+  const double rh13 = cbrt(rho);
   const double rhm13 = 1.0 / rh13;
   const double rhm43 = rhm13 / rho;
   const double e = exp ( - c * rhm13 );
@@ -273,8 +273,8 @@ void BLYPFunctional::excblyp_sp(double rho_up, double rho_dn,
   const double grada = sqrt(grad_up2);
   const double gradb = sqrt(grad_dn2);
 
-  const double rha13 = pow ( rha, third );
-  const double rhb13 = pow ( rhb, third );
+  const double rha13 = cbrt(rha);
+  const double rhb13 = cbrt(rhb);
   const double rha43 = rha * rha13;
   const double rhb43 = rhb * rhb13;
   const double rha83 = rha43 * rha43;
@@ -326,7 +326,7 @@ void BLYPFunctional::excblyp_sp(double rho_up, double rho_dn,
   const double rhoinv = 1.0/rho;
   const double rhab = rha * rhb;
   const double rhabrhm = rhab * rhoinv;
-  const double rh13 = pow ( rho, third );
+  const double rh13 = cbrt(rho);
   const double rhm13 = 1.0 / rh13;
   const double rhm43 = rhm13 / rho;
   const double rhm113 = rhm43 * rhm43 * rhm43 * rh13;

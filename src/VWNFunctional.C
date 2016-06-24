@@ -23,8 +23,6 @@
 #include <cassert>
 #include <vector>
 #include "VWNFunctional.h"
-
-#include<iostream>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -81,7 +79,7 @@ void VWNFunctional::ecvwn(const double rh, double &ec, double &vc)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void VWNFunctional::exvwn_sp(const double roe_up, const double roe_dn,
+void VWNFunctional::exvwn_sp(double roe_up, double roe_dn,
   double &ex, double &vx_up, double &vx_dn)
 {
   const double fz_prefac = 1.0 / ( cbrt(2.0)*2.0 - 2.0 );
@@ -90,6 +88,8 @@ void VWNFunctional::exvwn_sp(const double roe_up, const double roe_dn,
   vx_up = 0.0;
   vx_dn = 0.0;
 
+  if ( roe_up < 0.0 ) roe_up = 0.0;
+  if ( roe_dn < 0.0 ) roe_dn = 0.0;
   const double roe = roe_up + roe_dn;
 
   if ( roe > 0.0 )
@@ -118,7 +118,7 @@ void VWNFunctional::exvwn_sp(const double roe_up, const double roe_dn,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void VWNFunctional::ecvwn_sp(const double roe_up, const double roe_dn,
+void VWNFunctional::ecvwn_sp(double roe_up, double roe_dn,
   double &ec, double &vc_up, double &vc_dn)
 {
   const double fz_prefac = 1.0 / ( cbrt(2.0)*2.0 - 2.0 );
@@ -127,6 +127,8 @@ void VWNFunctional::ecvwn_sp(const double roe_up, const double roe_dn,
   vc_up = 0.0;
   vc_dn = 0.0;
 
+  if ( roe_up < 0.0 ) roe_up = 0.0;
+  if ( roe_dn < 0.0 ) roe_dn = 0.0;
   const double roe = roe_up + roe_dn;
 
   if ( roe > 0.0 )

@@ -69,9 +69,9 @@ class VWNFunctional : public XCFunctional
   static void exvwn(const double rh, double &ex, double &vx);
   static void ecvwn(const double rh, double &ec, double &vc);
 
-  static void exvwn_sp(const double roe_up, const double roe_dn,
+  static void exvwn_sp(double roe_up, double roe_dn,
     double &ex, double &vx_up, double &vx_dn);
-  static void ecvwn_sp(const double roe_up, const double roe_dn,
+  static void ecvwn_sp(double roe_up, double roe_dn,
     double &ec, double &vc_up, double &vc_dn);
 
   bool isGGA() const { return false; };

@@ -168,7 +168,7 @@ void BLYPFunctional::exb88(double rho, double grad,
   *vx1 = 0.0;
   *vx2 = 0.0;
 
-  if ( rho < 1.e-18  ) return;
+  if ( rho < 1.e-10 ) return;
 
   // Becke's exchange
   // A.D.Becke, Phys.Rev. B38, 3098 (1988)
@@ -212,7 +212,7 @@ void BLYPFunctional::eclyp(double rho, double grad,
   *vc1 = 0.0;
   *vc2 = 0.0;
 
-  if ( rho < 1.e-18  ) return;
+  if ( rho < 1.e-10 ) return;
 
   // LYP correlation
   // Phys. Rev. B 37, 785 (1988).
@@ -270,7 +270,7 @@ void BLYPFunctional::exb88_sp(double rho_up, double rho_dn,
   *vx2_dnup = 0.0;
   *vx2_dndn = 0.0;
 
-  if ( rho_up < 1.e-18 && rho_dn < 1.e-18  ) return;
+  if ( rho_up < 1.e-10 && rho_dn < 1.e-10 ) return;
 
   // Becke exchange constants
   const double fourthirds = 4.0 / 3.0;
@@ -280,16 +280,6 @@ void BLYPFunctional::exb88_sp(double rho_up, double rho_dn,
   // Becke's exchange
   // A.D.Becke, Phys.Rev. B38, 3098 (1988)
 
-  const double& rha = rho_up;
-  const double& rhb = rho_dn;
-  const double grada = sqrt(grad_up2);
-  const double gradb = sqrt(grad_dn2);
-
-  const double rha13 = cbrt(rha);
-  const double rhb13 = cbrt(rhb);
-  const double rha43 = rha * rha13;
-  const double rhb43 = rhb * rhb13;
-
   double ex1a = 0.0;
   double ex1b = 0.0;
   double vx1a = 0.0;
@@ -297,8 +287,12 @@ void BLYPFunctional::exb88_sp(double rho_up, double rho_dn,
   double vx2a = 0.0;
   double vx2b = 0.0;
 
-  if ( rho_up > 1.e-18 )
+  if ( rho_up > 1.e-10 )
   {
+    const double& rha = rho_up;
+    const double rha13 = cbrt(rha);
+    const double rha43 = rha * rha13;
+    const double grada = sqrt(grad_up2);
     const double xa = grada / rha43;
     const double xa2 = xa*xa;
     const double asinhxa = asinh(xa);
@@ -312,8 +306,12 @@ void BLYPFunctional::exb88_sp(double rho_up, double rho_dn,
     vx2a = - gpa / grada;
   }
 
-  if ( rho_dn > 1.e-18 )
+  if ( rho_dn > 1.e-10 )
   {
+    const double& rhb = rho_dn;
+    const double rhb13 = cbrt(rhb);
+    const double rhb43 = rhb * rhb13;
+    const double gradb = sqrt(grad_dn2);
     const double xb = gradb / rhb43;
     const double xb2 = xb*xb;
     const double asinhxb = asinh(xb);
@@ -352,7 +350,10 @@ void BLYPFunctional::eclyp_sp(double rho_up, double rho_dn,
   *vc2_dnup = 0.0;
   *vc2_dndn = 0.0;
 
-  if ( rho_up < 1.e-18 && rho_dn < 1.e-18  ) return;
+  if ( rho_up < 1.e-10 && rho_dn < 1.e-10 ) return;
+  if ( rho_up + rho_dn < 1.e-10 ) return;
+  if ( rho_up < 0.0 ) rho_up = 0.0;
+  if ( rho_dn < 0.0 ) rho_dn = 0.0;
 
   // LYP constants
   const double a = 0.04918;

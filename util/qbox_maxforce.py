@@ -73,9 +73,9 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
         if ( fz*fz > fzmax*fzmax ):
           fzmax = fz
           z_name = self.atomname[i]
-      print '%10.6f'%fxmax,'%-8s'%x_name,\
-            '%10.6f'%fymax,'%-8s'%y_name,\
-            '%10.6f'%fzmax,'%-8s'%z_name
+      print '%10.3e'%fxmax,'%-8s'%x_name,\
+            '%10.3e'%fymax,'%-8s'%y_name,\
+            '%10.3e'%fzmax,'%-8s'%z_name
       self.inAtomset = 0
 
 parser = xml.sax.make_parser()

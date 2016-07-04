@@ -1,4 +1,10 @@
 --------------------------------------------------------------------------------
+rel1_63_4
+--------------------------------------------------------------------------------
+r1844,r1845,r1846: add qbox_maxforce.py script
+r1835-r1843: B3LYP and BLYP spin-polarized implementation, SVWN updated
+r1829-r1832: qbox_angle.py and qbox_torsion.py scripts
+--------------------------------------------------------------------------------
 rel1_63_3
 --------------------------------------------------------------------------------
 r1825: TorsionCmd.h: revert to previous sign convention for compatibility 

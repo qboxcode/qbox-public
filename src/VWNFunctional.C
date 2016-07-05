@@ -23,10 +23,9 @@
 #include <cassert>
 #include <vector>
 #include "VWNFunctional.h"
-
-#include<iostream>
 using namespace std;
 
+////////////////////////////////////////////////////////////////////////////////
 void VWNFunctional::setxc(void)
 {
   if ( _np == 0 ) return;
@@ -40,7 +39,8 @@ void VWNFunctional::setxc(void)
     for ( int ir = 0; ir < _np; ir++ )
     {
       double ex,vx,ec,vc;
-      xc_unpolarized(rho[ir],ex,vx,ec,vc);
+      exvwn(rho[ir],ex,vx);
+      ecvwn(rho[ir],ec,vc);
       exc[ir] = ex + ec;
       vxc1[ir] = vx + vc;
     }
@@ -53,61 +53,12 @@ void VWNFunctional::setxc(void)
     assert(exc != 0);
     assert(vxc1_up != 0);
     assert(vxc1_dn != 0);
-    const double fz_prefac = 1.0 / ( cbrt(2.0)*2.0 - 2.0 );
-    const double dfz_prefac = (4.0/3.0) * fz_prefac;
     #pragma omp parallel for
     for ( int ir = 0; ir < _np; ir++ )
     {
-      double ex = 0.0;
-      double ec = 0.0;
-      double vx_up = 0.0;
-      double vx_dn = 0.0;
-      double vc_up = 0.0;
-      double vc_dn = 0.0;
-
-      double roe_up = rho_up[ir];
-      double roe_dn = rho_dn[ir];
-      double roe = roe_up + roe_dn;
-
-      if ( roe > 0.0 )
-      {
-        const double zeta = ( roe_up - roe_dn ) / roe;
-
-        const double zp1 = 1.0 + zeta;
-        const double zm1 = 1.0 - zeta;
-        const double zp1_13 = cbrt(zp1);
-        const double zm1_13 = cbrt(zm1);
-        const double fz = fz_prefac * ( zp1_13 * zp1 + zm1_13 * zm1 - 2.0 );
-        const double dfz = dfz_prefac * ( zp1_13 - zm1_13 );
-
-        double ex_u,ec_u,vx_u,vc_u;
-        double ex_p,ec_p,vx_p,vc_p;
-        double a,da;
-        xc_unpolarized(roe,ex_u,vx_u,ec_u,vc_u);
-        xc_polarized(roe,ex_p,vx_p,ec_p,vc_p);
-        alpha_c(roe,a,da);
-
-        const double ex_pu = ex_p - ex_u;
-        ex = ex_u + fz * ex_pu;
-        double vx = vx_u + fz * ( vx_p - vx_u );
-        vx_up = vx + ex_pu * ( 1.0 - zeta ) * dfz;
-        vx_dn = vx - ex_pu * ( 1.0 + zeta ) * dfz;
-
-        const double zeta3 = zeta*zeta*zeta;
-        const double zeta4 = zeta3*zeta;
-        a *= (9.0/8.0)*fz_prefac;
-        da *= (9.0/8.0)*fz_prefac;
-        double ec_pu = ec_p - ec_u - a;
-
-        ec = ec_u + a * fz + ec_pu * fz * zeta4;
-
-        const double vc1 = vc_u + da * fz + ( vc_p - vc_u - da ) * fz * zeta4;
-        const double vc2 = a * dfz + ec_pu * zeta3 * ( 4.0*fz + zeta*dfz );
-
-        vc_up = vc1 + ( 1.0 - zeta ) * vc2;
-        vc_dn = vc1 - ( 1.0 + zeta ) * vc2;
-      }
-
+      double ex,vx_up,vx_dn,ec,vc_up,vc_dn;
+      exvwn_sp(rho_up[ir],rho_dn[ir],ex,vx_up,vx_dn);
+      ecvwn_sp(rho_up[ir],rho_dn[ir],ec,vc_up,vc_dn);
       vxc1_up[ir] = vx_up + vc_up;
       vxc1_dn[ir] = vx_dn + vc_dn;
       exc[ir] = ex + ec;
@@ -115,10 +66,109 @@ void VWNFunctional::setxc(void)
   }
 }
 
-void VWNFunctional::xc_unpolarized(const double rh, double &ex, double &vx,
-  double &ec, double &vc)
+////////////////////////////////////////////////////////////////////////////////
+void VWNFunctional::exvwn(const double rh, double &ex, double &vx)
 {
-  // unpolarized xc energy and potential
+  x_unpolarized(rh,ex,vx);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void VWNFunctional::ecvwn(const double rh, double &ec, double &vc)
+{
+  c_unpolarized(rh,ec,vc);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void VWNFunctional::exvwn_sp(double roe_up, double roe_dn,
+  double &ex, double &vx_up, double &vx_dn)
+{
+  const double fz_prefac = 1.0 / ( cbrt(2.0)*2.0 - 2.0 );
+  const double dfz_prefac = (4.0/3.0) * fz_prefac;
+  ex = 0.0;
+  vx_up = 0.0;
+  vx_dn = 0.0;
+
+  if ( roe_up < 0.0 ) roe_up = 0.0;
+  if ( roe_dn < 0.0 ) roe_dn = 0.0;
+  const double roe = roe_up + roe_dn;
+
+  if ( roe > 0.0 )
+  {
+    const double zeta = ( roe_up - roe_dn ) / roe;
+    const double zp1 = 1.0 + zeta;
+    const double zm1 = 1.0 - zeta;
+    const double zp1_13 = cbrt(zp1);
+    const double zm1_13 = cbrt(zm1);
+    const double fz = fz_prefac * ( zp1_13 * zp1 + zm1_13 * zm1 - 2.0 );
+    const double dfz = dfz_prefac * ( zp1_13 - zm1_13 );
+
+    double ex_u,vx_u;
+    double ex_p,vx_p;
+    double a,da;
+    x_unpolarized(roe,ex_u,vx_u);
+    x_polarized(roe,ex_p,vx_p);
+    alpha_c(roe,a,da);
+
+    const double ex_pu = ex_p - ex_u;
+    ex = ex_u + fz * ex_pu;
+    double vx = vx_u + fz * ( vx_p - vx_u );
+    vx_up = vx + ex_pu * ( 1.0 - zeta ) * dfz;
+    vx_dn = vx - ex_pu * ( 1.0 + zeta ) * dfz;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void VWNFunctional::ecvwn_sp(double roe_up, double roe_dn,
+  double &ec, double &vc_up, double &vc_dn)
+{
+  const double fz_prefac = 1.0 / ( cbrt(2.0)*2.0 - 2.0 );
+  const double dfz_prefac = (4.0/3.0) * fz_prefac;
+  ec = 0.0;
+  vc_up = 0.0;
+  vc_dn = 0.0;
+
+  if ( roe_up < 0.0 ) roe_up = 0.0;
+  if ( roe_dn < 0.0 ) roe_dn = 0.0;
+  const double roe = roe_up + roe_dn;
+
+  if ( roe > 0.0 )
+  {
+    const double zeta = ( roe_up - roe_dn ) / roe;
+    const double zp1 = 1.0 + zeta;
+    const double zm1 = 1.0 - zeta;
+    const double zp1_13 = cbrt(zp1);
+    const double zm1_13 = cbrt(zm1);
+    const double fz = fz_prefac * ( zp1_13 * zp1 + zm1_13 * zm1 - 2.0 );
+    const double dfz = dfz_prefac * ( zp1_13 - zm1_13 );
+
+    double ec_u,vc_u;
+    double ec_p,vc_p;
+    double a,da;
+
+    ecvwn(roe,ec_u,vc_u);
+    c_polarized(roe,ec_p,vc_p);
+    alpha_c(roe,a,da);
+
+    const double zeta3 = zeta*zeta*zeta;
+    const double zeta4 = zeta3*zeta;
+    a *= (9.0/8.0)*fz_prefac;
+    da *= (9.0/8.0)*fz_prefac;
+    double ec_pu = ec_p - ec_u - a;
+
+    ec = ec_u + a * fz + ec_pu * fz * zeta4;
+
+    const double vc1 = vc_u + da * fz + ( vc_p - vc_u - da ) * fz * zeta4;
+    const double vc2 = a * dfz + ec_pu * zeta3 * ( 4.0*fz + zeta*dfz );
+
+    vc_up = vc1 + ( 1.0 - zeta ) * vc2;
+    vc_dn = vc1 - ( 1.0 + zeta ) * vc2;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void VWNFunctional::x_unpolarized(const double rh, double &ex, double &vx)
+{
+  // unpolarized exchange  energy and potential
   // const double third=1.0/3.0;
   // c1 is (3.D0/(4.D0*pi))**third
   const double c1 = 0.6203504908994001;
@@ -131,6 +181,26 @@ void VWNFunctional::xc_unpolarized(const double rh, double &ex, double &vx,
 
   ex = 0.0;
   vx = 0.0;
+
+  if ( rh > 0.0 )
+  {
+    double ro13 = cbrt(rh);
+    double rs = c1 / ro13;
+
+    // exchange in Hartree units
+    vx = c3 / rs;
+    ex = 0.75 * vx;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void VWNFunctional::c_unpolarized(const double rh, double &ec, double &vc)
+{
+  // unpolarized xc energy and potential
+  // const double third=1.0/3.0;
+  // c1 is (3.D0/(4.D0*pi))**third
+  const double c1 = 0.6203504908994001;
+
   ec = 0.0;
   vc = 0.0;
 
@@ -148,10 +218,6 @@ void VWNFunctional::xc_unpolarized(const double rh, double &ex, double &vx,
     double ro13 = cbrt(rh);
     double rs = c1 / ro13;
 
-    // Next line : exchange part in Hartree units
-    vx = c3 / rs;
-    ex = 0.75 * vx;
-
     double sqrtrs = sqrt(rs);
     double X = rs + b * sqrtrs + c;
     double fatan = atan( Q / ( 2.0 * sqrtrs + b ) );
@@ -165,10 +231,10 @@ void VWNFunctional::xc_unpolarized(const double rh, double &ex, double &vx,
   }
 }
 
-void VWNFunctional::xc_polarized(const double rh, double &ex, double &vx,
-  double &ec, double &vc)
+////////////////////////////////////////////////////////////////////////////////
+void VWNFunctional::x_polarized(const double rh, double &ex, double &vx)
 {
-  // polarized xc energy and potential
+  // polarized exchange energy and potential
   // const double third=1.0/3.0;
   // c1 is (3.D0/(4.D0*pi))**third
   const double c1 = 0.6203504908994001;
@@ -182,6 +248,26 @@ void VWNFunctional::xc_polarized(const double rh, double &ex, double &vx,
 
   ex = 0.0;
   vx = 0.0;
+
+  if ( rh > 0.0 )
+  {
+    double ro13 = cbrt(rh);
+    double rs = c1 / ro13;
+
+    // Next line : exchange part in Hartree units
+    vx = c4 / rs;
+    ex = 0.75 * vx;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void VWNFunctional::c_polarized(const double rh, double &ec, double &vc)
+{
+  // polarized correlation energy and potential
+  // const double third=1.0/3.0;
+  // c1 is (3.D0/(4.D0*pi))**third
+  const double c1 = 0.6203504908994001;
+
   ec = 0.0;
   vc = 0.0;
 
@@ -199,10 +285,6 @@ void VWNFunctional::xc_polarized(const double rh, double &ex, double &vx,
     double ro13 = cbrt(rh);
     double rs = c1 / ro13;
 
-    // Next line : exchange part in Hartree units
-    vx = c4 / rs;
-    ex = 0.75 * vx;
-
     double sqrtrs = sqrt(rs);
     double X = rs + b * sqrtrs + c;
     double fatan = atan( Q / ( 2.0 * sqrtrs + b ) );
@@ -216,6 +298,7 @@ void VWNFunctional::xc_polarized(const double rh, double &ex, double &vx,
   }
 }
 
+////////////////////////////////////////////////////////////////////////////////
 void VWNFunctional::alpha_c(const double rh, double &a, double &da)
 {
   // VWN spin stiffness alpha_c(rh)

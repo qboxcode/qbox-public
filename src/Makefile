@@ -174,7 +174,8 @@ AtomicExtForce.o: ExtForce.h D3vector.h
 AtomsDyn.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
 AtomsDyn.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 AtomsDyn.o: Control.h
-B3LYPFunctional.o: B3LYPFunctional.h XCFunctional.h
+B3LYPFunctional.o: B3LYPFunctional.h XCFunctional.h BLYPFunctional.h
+B3LYPFunctional.o: VWNFunctional.h
 B3LYPFunctional.o: XCFunctional.h
 BLYPFunctional.o: BLYPFunctional.h XCFunctional.h
 BLYPFunctional.o: XCFunctional.h
@@ -762,4 +763,3 @@ test_fftw.o: Timer.h readTSC.h
 testjacobi.o: Timer.h Context.h blacs.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h blacs.h Matrix.h jade.h
 uuid_str.o: uuid_str.h
-xmlget.o: StrX.h

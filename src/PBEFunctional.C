@@ -419,7 +419,8 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
 
   /* LSD potential from [c] (A1) */
   /* ecrs = d ec / d rs [c] (A2) */
-  double ecrs = eurs * ( 1.0 - f * z4 ) + eprs * f * z4 - alfrsm * f * (1.0-z4)/fzz;
+  double ecrs = eurs * ( 1.0 - f * z4 ) + eprs * f * z4
+                - alfrsm * f * (1.0-z4)/fzz;
   double fz = third4 * ( pow(1.0+zet,third) - pow(1.0-zet,third))/gam;
   double eczet = 4.0 * (zet*zet*zet) * f * ( ep - eu + alfm/fzz ) +
           fz * ( z4 * ep - z4 * eu - (1.0-z4) * alfm/fzz );
@@ -466,14 +467,14 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   vc1_dn += ccomm - pref;
   vc2 = - ht / ( rhotot * twoksg * twoksg );
 
-*exc_up = x_coeff_ * ex_up + c_coeff_ * ( ec + h );
-*exc_dn = x_coeff_ * ex_dn + c_coeff_ * ( ec + h );
-*vxc1_up = x_coeff_ * vx1_up + c_coeff_ * vc1_up;
-*vxc1_dn = x_coeff_ * vx1_dn + c_coeff_ * vc1_dn;
-*vxc2_upup = x_coeff_ * 2 * vx2_up + c_coeff_ * vc2;
-*vxc2_dndn = x_coeff_ * 2 * vx2_dn + c_coeff_ * vc2;
-*vxc2_updn = c_coeff_ * vc2;
-*vxc2_dnup = c_coeff_ * vc2;
+  *exc_up = x_coeff_ * ex_up + c_coeff_ * ( ec + h );
+  *exc_dn = x_coeff_ * ex_dn + c_coeff_ * ( ec + h );
+  *vxc1_up = x_coeff_ * vx1_up + c_coeff_ * vc1_up;
+  *vxc1_dn = x_coeff_ * vx1_dn + c_coeff_ * vc1_dn;
+  *vxc2_upup = x_coeff_ * 2 * vx2_up + c_coeff_ * vc2;
+  *vxc2_dndn = x_coeff_ * 2 * vx2_dn + c_coeff_ * vc2;
+  *vxc2_updn = c_coeff_ * vc2;
+  *vxc2_dnup = c_coeff_ * vc2;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

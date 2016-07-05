@@ -15,8 +15,6 @@
 // BLYPFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: BLYPFunctional.h,v 1.7 2009-06-29 09:57:57 fgygi Exp $
-
 #ifndef BLYPFUNCTIONAL_H
 #define BLYPFUNCTIONAL_H
 
@@ -32,18 +30,23 @@ class BLYPFunctional : public XCFunctional
                  _vxc2, _vxc2_upup, _vxc2_updn, _vxc2_dnup, _vxc2_dndn;
   std::vector<double> _grad_rho[3], _grad_rho_up[3], _grad_rho_dn[3];
 
-  void excblyp(double rho, double grad,
-    double *exc, double *vxc1, double *vxc2);
-
-  void excblyp_sp(double rho_up, double rho_dn,
-    double grad_up, double grad_dn, double grad,
-    double *exc_up, double *exc_dn,
-    double *vxc1_up, double *vxc1_dn, double *vxc2_upup, double *vxc2_dndn,
-    double *vxc2_updn, double *vxc2_dnup);
-
   public:
 
   BLYPFunctional(const std::vector<std::vector<double> > &rhoe);
+
+  static void exb88(double rho, double grad,
+    double *ex, double *vx1, double *vx2);
+  static void eclyp(double rho, double grad,
+    double *ec, double *vc1, double *vc2);
+
+  static void exb88_sp(double rho_up, double rho_dn,
+    double grad_up2, double grad_dn2, double grad_up_grad_dn,
+    double *ex_up, double *ex_dn, double *vx1_up, double *vx1_dn,
+    double *vx2_upup, double *vx2_dndn, double *vx2_updn, double *vx2_dnup);
+  static void eclyp_sp(double rho_up, double rho_dn,
+    double grad_up2, double grad_dn2, double grad_up_grad_dn,
+    double *ec_up, double *ec_dn, double *vc1_up, double *vc1_dn,
+    double *vc2_upup, double *vc2_dndn, double *vc2_updn, double *vc2_dnup);
 
   bool isGGA() const { return true; };
   std::string name() const { return "BLYP"; };

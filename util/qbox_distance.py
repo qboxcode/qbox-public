@@ -44,19 +44,19 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
 
   def endElement(self, name):
     if name == "atomset":
-      self.pos1 = self.buffer1.split()
-      self.pos2 = self.buffer2.split()
-      self.r1x = float(self.pos1[0])
-      self.r1y = float(self.pos1[1])
-      self.r1z = float(self.pos1[2])
-      self.r2x = float(self.pos2[0])
-      self.r2y = float(self.pos2[1])
-      self.r2z = float(self.pos2[2])
+      pos1 = self.buffer1.split()
+      pos2 = self.buffer2.split()
+      r1x = float(pos1[0])
+      r1y = float(pos1[1])
+      r1z = float(pos1[2])
+      r2x = float(pos2[0])
+      r2y = float(pos2[1])
+      r2z = float(pos2[2])
       #print "r1: ",self.r1x,self.r1y,self.r1z
       #print "r2: ",self.r2x,self.r2y,self.r2z
-      print '%.4f' % math.sqrt((self.r1x-self.r2x)**2+
-                               (self.r1y-self.r2y)**2+
-                               (self.r1z-self.r2z)**2)
+      print '%.4f' % math.sqrt((r1x-r2x)**2+
+                               (r1y-r2y)**2+
+                               (r1z-r2z)**2)
     elif name == "position":
       self.readPos1 = 0
       self.readPos2 = 0

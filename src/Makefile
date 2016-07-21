@@ -50,6 +50,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         GlobalExtForce.o \
         uuid_str.o sampling.o CGOptimizer.o LineMinimizer.o \
         ElectricEnthalpy.o PartialChargeCmd.o \
+        ExternalPotential.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
  $(EXEC):    $(OBJECTS)
@@ -355,6 +356,7 @@ EnergyFunctional.o: UnitCell.h SlaterDet.h Basis.h Timer.h Sample.h AtomSet.h
 EnergyFunctional.o: Atom.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 EnergyFunctional.o: Control.h Species.h ChargeDensity.h FourierTransform.h
 EnergyFunctional.o: XCOperator.h NonLocalPotential.h ConfinementPotential.h
+EnergyFunctional.o: ExternalPotential.h
 EnergyFunctional.o: StructureFactor.h ElectricEnthalpy.h Matrix.h Context.h
 EnergyFunctional.o: blacs.h D3vector.h Wavefunction.h UnitCell.h SlaterDet.h
 EnergyFunctional.o: Basis.h Timer.h Sample.h AtomSet.h Atom.h D3tensor.h
@@ -379,6 +381,12 @@ ExtForceSet.o: blacs.h UnitCell.h D3tensor.h blas.h
 ExtStress.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 ExtStress.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 ExtStress.o: Wavefunction.h Control.h
+ExternalPotential.o: ExternalPotential.h Sample.h AtomSet.h Context.h blacs.h
+ExternalPotential.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
+ExternalPotential.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+ExternalPotential.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
+ExternalPotential.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
+ExternalPotential.o: ExtForceSet.h Wavefunction.h Control.h
 FermiTemp.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 FermiTemp.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 FermiTemp.o: Wavefunction.h Control.h
@@ -537,6 +545,13 @@ RescaleVCmd.o: ExtForceSet.h Wavefunction.h Control.h
 ResetVcmCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 ResetVcmCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 ResetVcmCmd.o: ExtForceSet.h Wavefunction.h Control.h
+ResponseCmd.o: ResponseCmd.h UserInterface.h BOSampleStepper.h
+ResponseCmd.o: SampleStepper.h Timer.h EnergyFunctional.h StructureFactor.h
+ResponseCmd.o: ElectricEnthalpy.h Matrix.h Context.h blacs.h D3vector.h
+ResponseCmd.o: Wavefunction.h UnitCell.h SlaterDet.h Basis.h Sample.h
+ResponseCmd.o: AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
+ResponseCmd.o: ExtForceSet.h Control.h ChargeDensity.h
+ResponseCmd.o: UserInterface.h
 RseedCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 RseedCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 RseedCmd.o: ExtForceSet.h Wavefunction.h Control.h
@@ -665,6 +680,9 @@ UnitCell.o: D3vector.h
 UserInterface.o: UserInterface.h qbox_xmlns.h
 VWNFunctional.o: VWNFunctional.h XCFunctional.h
 VWNFunctional.o: XCFunctional.h
+Vext.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
+Vext.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+Vext.o: Control.h ExternalPotential.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SlaterDet.h Context.h
 Wavefunction.o: blacs.h Basis.h Matrix.h Timer.h jacobi.h SharedFilePtr.h
 Wavefunction.o: D3vector.h UnitCell.h
@@ -721,7 +739,7 @@ qb.o: ChargeMixNdim.h ChargeMixRcut.h Debug.h Dspin.h Ecut.h Ecutprec.h
 qb.o: Ecuts.h Efield.h Polarization.h Emass.h ExtStress.h FermiTemp.h
 qb.o: IterCmd.h IterCmdPeriod.h Dt.h Nempty.h NetCharge.h Nrowmax.h Nspin.h
 qb.o: RefCell.h ScfTol.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h
-qb.o: WfDiag.h WfDyn.h Xc.h
+qb.o: Vext.h ExternalPotential.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h

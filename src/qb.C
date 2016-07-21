@@ -111,6 +111,7 @@ using namespace std;
 #include "ThTemp.h"
 #include "ThTime.h"
 #include "ThWidth.h"
+#include "Vext.h"
 #include "WfDiag.h"
 #include "WfDyn.h"
 #include "Xc.h"
@@ -326,6 +327,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new ThTemp(s));
   ui.addVar(new ThTime(s));
   ui.addVar(new ThWidth(s));
+  ui.addVar(new Vext(s));
   ui.addVar(new WfDiag(s));
   ui.addVar(new WfDyn(s));
   ui.addVar(new Xc(s));

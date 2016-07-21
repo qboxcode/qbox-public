@@ -30,6 +30,7 @@
 #include "ConfinementPotential.h"
 #include "D3vector.h"
 #include "ElectricEnthalpy.h"
+#include "ExternalPotential.h"
 
 #include "Timer.h"
 #include "blas.h"
@@ -78,6 +79,10 @@ EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
     cout << "  EnergyFunctional: vft->np012(): "
          << vft->np012() << endl;
   }
+
+  // external potential
+  if ( s_.vext )
+    s_.vext->update(cd_);
 
   const int ngloc = vbasis_->localsize();
 
@@ -335,6 +340,13 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
 
   // FT to tmpr_r
   vft->backward(&vlocal_g[0],&tmp_r[0]);
+
+  // add external potential vext to tmp_r
+  if ( s_.vext )
+  {
+    for ( int i = 0; i < tmp_r.size(); i++ )
+      tmp_r[i] += s_.vext->v(i);
+  }
 
   // add local potential in tmp_r to v_r[ispin][i]
   // v_r contains the xc potential

@@ -75,5 +75,7 @@ struct Control
 
   std::string iter_cmd;
   int iter_cmd_period;
+
+  std::string vext;
 };
 #endif

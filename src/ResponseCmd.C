@@ -93,13 +93,14 @@ int ResponseCmd::action(int argc, char **argv)
   D3vector dipole_p[3], dipole_m[3];
 
   // compute change in dipole in 3 directions by finite difference
+  D3vector e_field_base = el_enth->e_field();
   for ( int idir = 0; idir < 3; idir++ )
   {
-    el_enth->set_e_field(e_field[idir]);
+    el_enth->set_e_field(e_field_base+e_field[idir]);
     stepper->step(0);
     dipole_p[idir] = el_enth->dipole_total();
 
-    el_enth->set_e_field(-e_field[idir]);
+    el_enth->set_e_field(e_field_base-e_field[idir]);
     stepper->step(0);
     dipole_m[idir] = el_enth->dipole_total();
   }

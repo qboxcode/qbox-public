@@ -90,6 +90,7 @@ class ElectricEnthalpy
 
   double enthalpy(Wavefunction& dwf, bool compute_hpsi);
 
+  void set_e_field(D3vector e_field_val);
   void update(void);
   void print(std::ostream& os) const;
 

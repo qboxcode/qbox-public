@@ -15,12 +15,13 @@
 // SampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.h,v 1.14 2009-09-08 05:38:31 fgygi Exp $
 
 #ifndef SAMPLESTEPPER_H
 #define SAMPLESTEPPER_H
 
 #include "Timer.h"
+#include "EnergyFunctional.h"
+#include "ChargeDensity.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -49,6 +50,8 @@ class SampleStepper
   void print_stress(void);
   void compute_sigma(void); // compute kinetic contribution to stress
   virtual void initialize_density() {}
+  virtual EnergyFunctional& ef(void) {}
+  virtual ChargeDensity& cd(void) {}
 
   SampleStepper(Sample& s);
   virtual ~SampleStepper(void);

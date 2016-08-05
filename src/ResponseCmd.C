@@ -18,6 +18,7 @@
 
 #include "ResponseCmd.h"
 #include<iostream>
+#include<sstream>
 using namespace std;
 #include "BOSampleStepper.h"
 
@@ -26,10 +27,13 @@ using namespace std;
 
 int ResponseCmd::action(int argc, char **argv)
 {
-  if ( argc < 3 || argc > 4)
+  // " syntax: response amplitude nitscf [nite]\n\n"
+  // " syntax: response -vext vext_file nitscf [nite]\n\n"
+  if ( argc < 2 || argc > 5)
   {
     if ( ui->onpe0() )
-      cout << " use: response vext_file nitscf [nite]" << endl;
+      cout << " use: response amplitude nitscf [nite]" << endl
+           << "      response [-vext vext_file] nitscf [nite]" << endl;
     return 1;
   }
 
@@ -46,39 +50,86 @@ int ResponseCmd::action(int argc, char **argv)
     return 1;
   }
 
-  string vext_filename(argv[1]);
-
-  int niter = atoi(argv[2]);
+  double amplitude = 0.0;
+  bool vext = false;
+  string vext_filename;
+  int nitscf = 0;
   int nite = 0;
-  if ( argc == 4 )
+  if ( !strcmp(argv[1],"-vext") )
   {
-    // nitscf nite
-    nite = atoi(argv[3]);
+    assert(argc==4 || argc==5);
+    vext = true;
+    vext_filename = atoi(argv[2]);
+    nitscf = atoi(argv[3]);
+    if ( argc == 5 )
+      nite = atoi(argv[4]);
+    if ( ui->onpe0() )
+      cout << " ResponseCmd: -vext option not implemented" << endl;
+    return 1;
   }
+  else
+  {
+    assert(argc==3 || argc==4);
+    amplitude = atof(argv[1]);
+    if ( amplitude == 0.0 )
+    {
+      if ( ui->onpe0() )
+        cout << " ResponseCmd: amplitude is 0.0" << endl;
+      return 1;
+    }
+    nitscf = atoi(argv[2]);
+    if ( argc == 4 )
+      nite = atoi(argv[3]);
+  }
+
+  // compute dipole change
+  string cmd;
+  istringstream cmdstream(cmd);
+
+  cmdstream.clear();
+  cmdstream.str("print polarization\n");
+  ui->processCmds(cmdstream,"[response_cmd]",true);
 
   SampleStepper* stepper = new BOSampleStepper(*s,nitscf,nite);
   assert(stepper!=0);
+  ElectricEnthalpy* el_enth = stepper->ef().el_enth();
 
-  // update external potential from file
-  if ( !s.vext )
+  D3vector e_field[3] = { D3vector(amplitude,0.0,0.0),
+                          D3vector(0.0,amplitude,0.0),
+                          D3vector(0.0,0.0,amplitude) };
+  D3vector dipole_p[3], dipole_m[3];
+
+  // compute change in dipole in 3 directions by finite difference
+  for ( int idir = 0; idir < 3; idir++ )
   {
-    if ( ui->onpe0() )
-      cout << " ResponseCmd: vext file not defined" << endl;
-    return 1;
+    el_enth->set_e_field(e_field[idir]);
+    stepper->step(0);
+    dipole_p[idir] = el_enth->dipole_total();
+
+    el_enth->set_e_field(-e_field[idir]);
+    stepper->step(0);
+    dipole_m[idir] = el_enth->dipole_total();
   }
 
-  ifstream vextfile(s.vext.c_str());
+  D3vector ddx = 0.5 * (dipole_p[0]-dipole_m[0])/amplitude;
+  D3vector ddy = 0.5 * (dipole_p[1]-dipole_m[1])/amplitude;
+  D3vector ddz = 0.5 * (dipole_p[2]-dipole_m[2])/amplitude;
 
-  stepper->step(0);
-  // compute density
-
-  // change sign of potential
-
-  stepper->step(0);
-  // compute density
-
-  // compute density difference
-  // output density difference
+  if ( ui->onpe0() )
+  {
+    cout << "<polarizability>" << endl;
+    cout << setprecision(6);
+    cout << " <a_xx> " << setw(10) << ddx.x << " </a_xx>"
+            " <a_yx> " << setw(10) << ddx.y << " </a_yx>"
+            " <a_zx> " << setw(10) << ddx.z << " </a_zx>" << endl;
+    cout << " <a_xy> " << setw(10) << ddy.x << " </a_xy>"
+            " <a_yy> " << setw(10) << ddy.y << " </a_yy>"
+            " <a_zy> " << setw(10) << ddy.z << " </a_zy>" << endl;
+    cout << " <a_xz> " << setw(10) << ddz.x << " </a_xz>"
+            " <a_yz> " << setw(10) << ddz.y << " </a_yz>"
+            " <a_zz> " << setw(10) << ddz.z << " </a_zz>" << endl;
+    cout << "</polarizability>" << endl;
+  }
 
   delete stepper;
 

@@ -65,6 +65,7 @@ using namespace std;
 #include "RandomizeWfCmd.h"
 #include "ResetVcmCmd.h"
 #include "RescaleVCmd.h"
+#include "ResponseCmd.h"
 #include "RseedCmd.h"
 #include "RunCmd.h"
 #include "SaveCmd.h"
@@ -281,6 +282,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new RandomizeVCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
   ui.addCmd(new RescaleVCmd(s));
+  ui.addCmd(new ResponseCmd(s));
   ui.addCmd(new ResetVcmCmd(s));
   ui.addCmd(new RseedCmd(s));
   ui.addCmd(new RunCmd(s));

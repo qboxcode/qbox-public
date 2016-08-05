@@ -50,7 +50,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         GlobalExtForce.o \
         uuid_str.o sampling.o CGOptimizer.o LineMinimizer.o \
         ElectricEnthalpy.o PartialChargeCmd.o \
-        ExternalPotential.o \
+        ExternalPotential.o ResponseCmd.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
  $(EXEC):    $(OBJECTS)
@@ -384,9 +384,11 @@ ExtStress.o: Wavefunction.h Control.h
 ExternalPotential.o: ExternalPotential.h Sample.h AtomSet.h Context.h blacs.h
 ExternalPotential.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
 ExternalPotential.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+ExternalPotential.o: ChargeDensity.h Timer.h FourierTransform.h Basis.h
 ExternalPotential.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 ExternalPotential.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
-ExternalPotential.o: ExtForceSet.h Wavefunction.h Control.h
+ExternalPotential.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h
+ExternalPotential.o: Timer.h
 FermiTemp.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 FermiTemp.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 FermiTemp.o: Wavefunction.h Control.h
@@ -601,11 +603,16 @@ SampleReader.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 SampleReader.o: Wavefunction.h Control.h SampleReader.h XMLGFPreprocessor.h
 SampleReader.o: Matrix.h Timer.h SampleHandler.h StructureHandler.h
 SampleReader.o: StructuredDocumentHandler.h StrX.h
-SampleStepper.o: SampleStepper.h Timer.h Sample.h AtomSet.h Context.h blacs.h
-SampleStepper.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-SampleStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-SampleStepper.o: Species.h
-SampleStepper.o: Timer.h
+SampleStepper.o: SampleStepper.h Timer.h EnergyFunctional.h StructureFactor.h
+SampleStepper.o: ElectricEnthalpy.h Matrix.h Context.h blacs.h D3vector.h
+SampleStepper.o: Wavefunction.h UnitCell.h SlaterDet.h Basis.h Sample.h
+SampleStepper.o: AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
+SampleStepper.o: ExtForceSet.h Control.h ChargeDensity.h Species.h
+SampleStepper.o: Timer.h EnergyFunctional.h StructureFactor.h
+SampleStepper.o: ElectricEnthalpy.h Matrix.h Context.h blacs.h D3vector.h
+SampleStepper.o: Wavefunction.h UnitCell.h SlaterDet.h Basis.h Sample.h
+SampleStepper.o: AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
+SampleStepper.o: ExtForceSet.h Control.h ChargeDensity.h
 SampleWriter.o: SampleWriter.h Context.h blacs.h Sample.h AtomSet.h Atom.h
 SampleWriter.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 SampleWriter.o: ExtForceSet.h Wavefunction.h Control.h qbox_xmlns.h Timer.h
@@ -682,7 +689,7 @@ VWNFunctional.o: VWNFunctional.h XCFunctional.h
 VWNFunctional.o: XCFunctional.h
 Vext.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
 Vext.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
-Vext.o: Control.h ExternalPotential.h
+Vext.o: Control.h ExternalPotential.h ChargeDensity.h Timer.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SlaterDet.h Context.h
 Wavefunction.o: blacs.h Basis.h Matrix.h Timer.h jacobi.h SharedFilePtr.h
 Wavefunction.o: D3vector.h UnitCell.h
@@ -731,15 +738,16 @@ qb.o: BasisMapping.h ConstraintCmd.h DistanceCmd.h ExtForceCmd.h
 qb.o: FoldInWsCmd.h HelpCmd.h KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h
 qb.o: LoadCmd.h MoveCmd.h PartialChargeCmd.h PlotCmd.h PrintCmd.h QuitCmd.h
 qb.o: RandomizeRCmd.h RandomizeVCmd.h RandomizeWfCmd.h ResetVcmCmd.h
-qb.o: RescaleVCmd.h RseedCmd.h RunCmd.h SaveCmd.h SetCmd.h SetVelocityCmd.h
-qb.o: SpeciesCmd.h StatusCmd.h StrainCmd.h TorsionCmd.h BisectionCmd.h
-qb.o: Bisection.h SlaterDet.h Basis.h Matrix.h AlphaPBE0.h AtomsDyn.h BlHF.h
-qb.o: BtHF.h Cell.h CellDyn.h CellLock.h CellMass.h ChargeMixCoeff.h
-qb.o: ChargeMixNdim.h ChargeMixRcut.h Debug.h Dspin.h Ecut.h Ecutprec.h
-qb.o: Ecuts.h Efield.h Polarization.h Emass.h ExtStress.h FermiTemp.h
-qb.o: IterCmd.h IterCmdPeriod.h Dt.h Nempty.h NetCharge.h Nrowmax.h Nspin.h
-qb.o: RefCell.h ScfTol.h Stress.h Thermostat.h ThTemp.h ThTime.h ThWidth.h
-qb.o: Vext.h ExternalPotential.h WfDiag.h WfDyn.h Xc.h
+qb.o: RescaleVCmd.h ResponseCmd.h RseedCmd.h RunCmd.h SaveCmd.h SetCmd.h
+qb.o: SetVelocityCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h TorsionCmd.h
+qb.o: BisectionCmd.h Bisection.h SlaterDet.h Basis.h Matrix.h AlphaPBE0.h
+qb.o: AtomsDyn.h BlHF.h BtHF.h Cell.h CellDyn.h CellLock.h CellMass.h
+qb.o: ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h Debug.h Dspin.h Ecut.h
+qb.o: Ecutprec.h Ecuts.h Efield.h Polarization.h Emass.h ExtStress.h
+qb.o: FermiTemp.h IterCmd.h IterCmdPeriod.h Dt.h Nempty.h NetCharge.h
+qb.o: Nrowmax.h Nspin.h RefCell.h ScfTol.h Stress.h Thermostat.h ThTemp.h
+qb.o: ThTime.h ThWidth.h Vext.h ExternalPotential.h ChargeDensity.h WfDiag.h
+qb.o: WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h

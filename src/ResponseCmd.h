@@ -38,9 +38,12 @@ class ResponseCmd : public Cmd
   {
     return
     "\n response\n\n"
-    " syntax: response vext_file nitscf [nite]\n\n"
-    "   The response command computes the response to the external potential\n"
-    "   defined in the file vext_file.\n\n";
+    " syntax: response amplitude nitscf [nite]\n\n"
+    " syntax: response -vext vext_file nitscf [nite]\n\n"
+    "   The response command computes the first order change in dipole caused\n"
+    "   by an external electric field defined by the amplitude argument.\n"
+    "   If the -vext option is used, the response command computes the\n"
+    "   response to the external potential defined in the file vext_file.\n\n";
   }
 
   int action(int argc, char **argv);

@@ -83,13 +83,6 @@ int ResponseCmd::action(int argc, char **argv)
   }
 
   // compute dipole change
-  string cmd;
-  istringstream cmdstream(cmd);
-
-  cmdstream.clear();
-  cmdstream.str("print polarization\n");
-  ui->processCmds(cmdstream,"[response_cmd]",true);
-
   SampleStepper* stepper = new BOSampleStepper(*s,nitscf,nite);
   assert(stepper!=0);
   ElectricEnthalpy* el_enth = stepper->ef().el_enth();

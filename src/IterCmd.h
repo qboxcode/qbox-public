@@ -39,7 +39,11 @@ class IterCmd : public Var
     // include all arguments until \n
     string v;
     for ( int i = 1; i < argc; i++ )
+    {
+      if ( i > 1 )
+        v += " ";
       v += argv[i];
+    }
 
     s->ctrl.iter_cmd = v;
 

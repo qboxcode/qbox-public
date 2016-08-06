@@ -15,7 +15,6 @@
 // IonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: IonicStepper.h,v 1.15 2010-04-16 21:43:11 fgygi Exp $
 
 #ifndef IONICSTEPPER_H
 #define IONICSTEPPER_H
@@ -68,8 +67,9 @@ class IonicStepper
       pmass_[is] = atoms_.species_list[is]->mass() * 1822.89;
     }
     natoms_ = atoms_.size();
-    atoms_.get_positions(r0_);
-    atoms_.get_velocities(v0_);
+    // get positions and velocities from atoms_
+    get_positions();
+    get_velocities();
   }
 
   double r0(int is, int i) const { return r0_[is][i]; }
@@ -77,6 +77,10 @@ class IonicStepper
   const std::vector<std::vector<double> >& r0(void) const { return r0_; }
   const std::vector<std::vector<double> >& v0(void) const { return v0_; }
   const std::vector<double>& pmass(void) const { return pmass_; }
+  void get_positions(void) { atoms_.get_positions(r0_); }
+  void get_velocities(void) { atoms_.get_velocities(v0_); }
+  void set_positions(void) { atoms_.set_positions(r0_); }
+  void set_velocities(void) { atoms_.set_velocities(v0_); }
 
   void setup_constraints(void)
   {

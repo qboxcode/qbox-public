@@ -15,7 +15,6 @@
 // RunCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.C,v 1.11 2010-02-20 23:13:02 fgygi Exp $
 
 #include "RunCmd.h"
 #include<iostream>
@@ -84,12 +83,22 @@ int RunCmd::action(int argc, char **argv)
     stepper = new BOSampleStepper(*s,nitscf,nite);
 
   assert(stepper!=0);
+  stepper->set_iter_cmd(s->ctrl.iter_cmd);
+  stepper->set_iter_cmd_period(s->ctrl.iter_cmd_period);
 
   if ( atomic_density )
     stepper->initialize_density();
 
   s->wf.info(cout,"wavefunction");
   stepper->step(niter);
+
+  // Delete wave function velocity if not using atoms_dyn = MD
+  if ( s->ctrl.atoms_dyn != "MD" )
+  {
+    if ( s->wfv != 0 )
+      delete s->wfv;
+    s->wfv = 0;
+  }
 
   delete stepper;
 

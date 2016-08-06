@@ -36,6 +36,13 @@ class IterCmd : public Var
 
   int set ( int argc, char **argv )
   {
+    if ( !strcmp(argv[1],"NULL") )
+    {
+      // reset iter_cmd to empty string
+      s->ctrl.iter_cmd.clear();
+      return 0;
+    }
+
     // include all arguments until \n
     string v;
     for ( int i = 1; i < argc; i++ )

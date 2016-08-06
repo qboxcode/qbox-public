@@ -39,6 +39,9 @@ class SampleStepper
   std::vector<std::vector<double> > fion;
   std::valarray<double> sigma_eks, sigma_kin, sigma_ext, sigma;
 
+  std::string iter_cmd_;
+  int iter_cmd_period_;
+
   // Do not allow construction of SampleStepper unrelated to a Sample
   SampleStepper(void);
 
@@ -50,8 +53,12 @@ class SampleStepper
   void print_stress(void);
   void compute_sigma(void); // compute kinetic contribution to stress
   virtual void initialize_density() {}
+
   virtual EnergyFunctional& ef(void) {}
   virtual ChargeDensity& cd(void) {}
+
+  void set_iter_cmd(std::string s) { iter_cmd_ = s; }
+  void set_iter_cmd_period(int i) { iter_cmd_period_ = i; }
 
   SampleStepper(Sample& s);
   virtual ~SampleStepper(void);

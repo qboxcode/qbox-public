@@ -387,6 +387,30 @@ void BOSampleStepper::step(int niter)
       }
       // at this point, positions r0, velocities v0 and forces fion are
       // consistent
+
+      // execute commands in iter_cmd if defined
+      if ( !iter_cmd_.empty() )
+      {
+        if ( iter % iter_cmd_period_ == 0 )
+        {
+          // copy positions and velocities from IonicStepper to AtomSet
+          if ( ionic_stepper )
+          {
+            ionic_stepper->set_positions();
+            ionic_stepper->set_velocities();
+          }
+          // command must be terminated with \n
+          istringstream cmdstream(iter_cmd_ + "\n");
+          s_.ui->processCmds(cmdstream,"[iter_cmd]",true);
+          // copy positions and velocities back from AtomSet
+          if ( ionic_stepper )
+          {
+            ionic_stepper->get_positions();
+            ionic_stepper->get_velocities();
+          }
+        }
+      }
+
       double ekin_ion = 0.0, temp_ion = 0.0;
       if ( ionic_stepper )
       {
@@ -1159,17 +1183,6 @@ void BOSampleStepper::step(int niter)
     if ( atoms_move )
       s_.constraints.update_constraints(dt);
 
-    // execute commands in iter_cmd if defined
-    if ( !s_.ctrl.iter_cmd.empty() )
-    {
-      if ( iter % s_.ctrl.iter_cmd_period == 0 )
-      {
-        // command must be terminated with \n
-        istringstream cmdstream(s_.ctrl.iter_cmd + "\n");
-        s_.ui->processCmds(cmdstream,"[iter_cmd]",true);
-      }
-    }
-
     // print iteration time
     double time = tm_iter.real();
     double tmin = time;
@@ -1282,7 +1295,7 @@ void BOSampleStepper::step(int niter)
 
   for ( int ispin = 0; ispin < nspin; ispin++ )
   {
-   delete mlwft[ispin];
+    delete mlwft[ispin];
   }
 
   // delete steppers

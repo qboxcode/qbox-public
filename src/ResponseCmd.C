@@ -109,6 +109,11 @@ int ResponseCmd::action(int argc, char **argv)
   D3vector ddy = 0.5 * (dipole_p[1]-dipole_m[1])/amplitude;
   D3vector ddz = 0.5 * (dipole_p[2]-dipole_m[2])/amplitude;
 
+  const UnitCell& cell = s->wf.cell();
+  cell.fold_in_ws(ddx);
+  cell.fold_in_ws(ddy);
+  cell.fold_in_ws(ddz);
+
   if ( ui->onpe0() )
   {
     cout << "<polarizability>" << endl;
@@ -131,7 +136,7 @@ int ResponseCmd::action(int argc, char **argv)
     for ( int i = 0; i < 9; i++ )
       a_aniso += beta[i] * beta[i];
     a_aniso *= 2.0/15.0;
-    cout << " <a_aniso> " << setw(10) << a_aniso << " </a_aniiso>" << endl;
+    cout << " <a_aniso> " << setw(10) << a_aniso << " </a_aniso>" << endl;
     cout << "</polarizability>" << endl;
   }
 

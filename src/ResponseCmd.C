@@ -122,6 +122,16 @@ int ResponseCmd::action(int argc, char **argv)
     cout << " <a_xz> " << setw(10) << ddz.x << " </a_xz>"
             " <a_yz> " << setw(10) << ddz.y << " </a_yz>"
             " <a_zz> " << setw(10) << ddz.z << " </a_zz>" << endl;
+    double a_iso = (ddx.x+ddy.y+ddz.z)/3.0;
+    cout << " <a_iso> " << setw(10) << a_iso << " </a_iso>" << endl;
+    double beta[9] = { ddx.x-a_iso, ddx.y, ddx.z,
+                       ddy.x, ddy.y-a_iso, ddy.z,
+                       ddz.x, ddz.y, ddz.z-a_iso };
+    double a_aniso = 0.0;
+    for ( int i = 0; i < 9; i++ )
+      a_aniso += beta[i] * beta[i];
+    a_aniso *= 2.0/15.0;
+    cout << " <a_aniso> " << setw(10) << a_aniso << " </a_aniiso>" << endl;
     cout << "</polarizability>" << endl;
   }
 

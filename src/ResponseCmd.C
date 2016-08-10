@@ -105,14 +105,18 @@ int ResponseCmd::action(int argc, char **argv)
     dipole_m[idir] = el_enth->dipole_total();
   }
 
-  D3vector ddx = 0.5 * (dipole_p[0]-dipole_m[0])/amplitude;
-  D3vector ddy = 0.5 * (dipole_p[1]-dipole_m[1])/amplitude;
-  D3vector ddz = 0.5 * (dipole_p[2]-dipole_m[2])/amplitude;
+  D3vector ddx = dipole_p[0] - dipole_m[0];
+  D3vector ddy = dipole_p[1] - dipole_m[1];
+  D3vector ddz = dipole_p[2] - dipole_m[2];
 
   const UnitCell& cell = s->wf.cell();
   cell.fold_in_ws(ddx);
   cell.fold_in_ws(ddy);
   cell.fold_in_ws(ddz);
+
+  ddx *= 0.5 / amplitude;
+  ddy *= 0.5 / amplitude;
+  ddz *= 0.5 / amplitude;
 
   if ( ui->onpe0() )
   {

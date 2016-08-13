@@ -163,9 +163,9 @@ ElectricEnthalpy::~ElectricEnthalpy(void)
     if ( pol_type_ != off && s_.ctxt_.myproc()==0 )
     {
       cout << "<timing name=\""
-           << setw(15) << (*i).first << "\""
-           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
-           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << (*i).first << "\""
+           << " min=\"" << setprecision(3) << tmin << "\""
+           << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
   }

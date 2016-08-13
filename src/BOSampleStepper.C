@@ -61,9 +61,9 @@ BOSampleStepper::~BOSampleStepper()
     if ( s_.ctxt_.myproc()==0 )
     {
       cout << "<timing name=\""
-           << setw(15) << (*i).first << "\""
-           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
-           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << (*i).first << "\""
+           << " min=\"" << setprecision(3) << tmin << "\""
+           << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
   }
@@ -1192,8 +1192,8 @@ void BOSampleStepper::step(int niter)
     if ( onpe0 )
     {
       cout << "  <timing name=\"iteration\""
-           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
-           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+           << " min=\"" << setprecision(3) << tmin << "\""
+           << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
       cout << "</iteration>" << endl;
     }

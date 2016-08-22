@@ -30,9 +30,11 @@ int RunCmd::action(int argc, char **argv)
   if ( argc < 2 || argc > 5)
   {
     if ( ui->onpe0() )
+    {
       cout << " use: run [-atomic_density] niter" << endl;
       cout << "      run [-atomic_density] niter nitscf" << endl;
       cout << "      run [-atomic_density] niter nitscf nite" << endl;
+    }
     return 1;
   }
 

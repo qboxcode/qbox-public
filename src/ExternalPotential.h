@@ -18,25 +18,36 @@
 #ifndef EXTERNALPOTENTIAL_H
 #define EXTERNALPOTENTIAL_H
 
-#include "Sample.h"
-#include "ChargeDensity.h"
 #include <vector>
 #include <string>
+using namespace std;
+
+#include "Sample.h"
+#include "ChargeDensity.h"
+
+class Sample;
 
 class ExternalPotential
 {
   private:
 
   Sample& s_;
-  int n_[3];
-  std::vector<double> vext_r_;
-  std::vector<complex<double> > vext_g_;
+  int n_[3];           // real space grid size in 3 dimensions
+  double ecut_;
+  vector<double> vext_r_;            // vext in real space
+  vector<complex<double> > vext_g_;  // vext in g space
 
   public:
 
-  ExternalPotential(Sample& s): s_(s) {}
+  ExternalPotential(Sample& s): s_(s), ecut_(0.0) {}
   ~ExternalPotential() {}
+
+  string filename;    // filename for external potential
+  int n(int i) const { return n_[i]; }
+  double ecut(void) const { return ecut_; }
   double v(size_t i) const { return vext_r_[i]; }
   void update(const ChargeDensity& cd);
+  void reverse();
+
 };
 #endif

@@ -81,7 +81,7 @@ EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
   }
 
   // external potential
-  if ( s_.vext )
+  if ( ! s_.vext->filename.empty() )
     s_.vext->update(cd_);
 
   const int ngloc = vbasis_->localsize();
@@ -342,7 +342,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   vft->backward(&vlocal_g[0],&tmp_r[0]);
 
   // add external potential vext to tmp_r
-  if ( s_.vext )
+  if ( ! s_.vext->filename.empty() )
   {
     for ( int i = 0; i < tmp_r.size(); i++ )
       tmp_r[i] += s_.vext->v(i);

@@ -16,27 +16,30 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "ResponseCmd.h"
-#include<iostream>
-#include<sstream>
-using namespace std;
-#include "BOSampleStepper.h"
-
-#include<ctime>
 #include<cassert>
+#include<vector>
+#include<string>
+#include<fstream>
+using namespace std;
+
+#include "BOSampleStepper.h"
+#include "ExternalPotential.h"
+#include "FourierTransform.h"
+#include "ResponseCmd.h"
+#include "mpi.h"
 
 int ResponseCmd::action(int argc, char **argv)
 {
   // " syntax: response amplitude nitscf [nite]\n\n"
   // " syntax: response -vext vext_file nitscf [nite]\n\n"
-  if ( argc < 2 || argc > 5)
+  if ( argc < 3 || argc > 5)
   {
     if ( ui->onpe0() )
-      cout << " use: response amplitude nitscf [nite]" << endl
-           << "      response [-vext vext_file] nitscf [nite]" << endl;
+      cout << " use: response amplitude nitscf [nite]\n"
+           << "      response -vext vext_file nitscf [nite]\n"
+           << endl;
     return 1;
   }
-
   if ( s->wf.nst() == 0 )
   {
     if ( ui->onpe0() )
@@ -50,38 +53,41 @@ int ResponseCmd::action(int argc, char **argv)
     return 1;
   }
 
-  double amplitude = 0.0;
-  bool vext = false;
-  string vext_filename;
-  int nitscf = 0;
+  int nitscf;
   int nite = 0;
   if ( !strcmp(argv[1],"-vext") )
   {
-    assert(argc==4 || argc==5);
-    vext = true;
-    vext_filename = atoi(argv[2]);
-    nitscf = atoi(argv[3]);
-    if ( argc == 5 )
-      nite = atoi(argv[4]);
+    // response to vext
     if ( ui->onpe0() )
-      cout << " ResponseCmd: -vext option not implemented" << endl;
-    return 1;
+      cout << " ResponseCmd: start computing charge density response under "
+           << " external potential from " << argv[2] << endl;
+    s->vext->filename = string(argv[2]);
+    nitscf = atoi(argv[3]);
+    if ( argc == 4 )
+      nite = atoi(argv[4]);
+
+    responseVext(nitscf,nite);
+    //s->vext->filename.clear();
   }
   else
   {
-    assert(argc==3 || argc==4);
-    amplitude = atof(argv[1]);
-    if ( amplitude == 0.0 )
-    {
-      if ( ui->onpe0() )
-        cout << " ResponseCmd: amplitude is 0.0" << endl;
-      return 1;
-    }
+    // polarizability calculation
+    if ( ui->onpe0() )
+      cout << " ResponseCmd: start polarizability calculation with "
+           << " amplitude " << argv[1] << endl;
+    double amplitude = atof(argv[1]);
     nitscf = atoi(argv[2]);
-    if ( argc == 4 )
+    if ( argc == 3 )
       nite = atoi(argv[3]);
+    cout << amplitude << nitscf << nite;
+    responseEfield(amplitude,nitscf,nite);
   }
 
+  return 0;
+}
+
+void ResponseCmd::responseEfield(double amplitude, int nitscf, int nite)
+{
   // compute dipole change
   SampleStepper* stepper = new BOSampleStepper(*s,nitscf,nite);
   assert(stepper!=0);
@@ -145,6 +151,175 @@ int ResponseCmd::action(int argc, char **argv)
   }
 
   delete stepper;
-
-  return 0;
 }
+
+void ResponseCmd::responseVext(int nitscf, int nite)
+{
+
+  SampleStepper* stepper = new BOSampleStepper(*s,nitscf,nite);
+
+  stepper->step(0);
+  ChargeDensity rho1(s->wf);
+  rho1.update_density();
+  const vector<vector<double> > &rhor1 = rho1.rhor;
+
+  s->vext->reverse();
+  if ( ui->onpe0() )
+    cout << " ResponseCmd: external potential is reversed, "
+       << " starting another scf iteration" << endl;
+
+  stepper->step(0);
+  ChargeDensity rho2(s->wf);
+  rho2.update_density();
+  const vector<vector<double> > &rhor2 = rho2.rhor;
+
+  // compute drho_r as rhor1 - rhor2
+  const int nspin = s->wf.nspin();
+  const int np012loc = rho1.vft()->np012loc();
+  const double omega = rho1.vbasis()->cell().volume();
+  const double omega_inv = 1.0 / omega;
+  vector<vector<double> > drho_r;
+  vector<vector<complex<double> > > drho_r_tmp;  // to be used for FT
+  drho_r.resize(nspin);
+  drho_r_tmp.resize(nspin);
+  for ( int ispin = 0; ispin < nspin; ispin++ )
+  {
+    assert(rhor1[ispin].size() == np012loc);
+    assert(rhor2[ispin].size() == np012loc);
+    drho_r[ispin].resize(np012loc);
+    drho_r_tmp[ispin].resize(np012loc);
+    for ( int ir = 0; ir < np012loc; ir++ )
+    {
+      drho_r[ispin][ir] = rhor1[ispin][ir] - rhor2[ispin][ir];
+      drho_r_tmp[ispin][ir] = complex<double>( drho_r[ispin][ir] * omega, 0.0);
+    }
+  }
+
+  // Fourier (forward) transform drho_r to the basis that is compatible
+  // with the grid size of the external potential.
+  const UnitCell& cell = rho1.vbasis()->cell();
+  const double ecut = s->vext->ecut();
+  const int np0 = rho1.vft()->np0();
+  const int np1 = rho1.vft()->np1();
+  const int np2 = rho1.vft()->np2();
+  Basis basis(rho1.vcomm(),D3vector(0,0,0));
+  basis.resize(cell,cell,ecut);
+  FourierTransform ft1 (basis,np0,np1,np2);
+
+  vector<vector<complex<double> > > drho_g;
+  drho_g.resize(nspin);
+  for ( int ispin = 0; ispin < nspin; ispin++ )
+  {
+  drho_g[ispin].resize(basis.localsize());
+  ft1.forward(&drho_r_tmp[ispin][0],&drho_g[ispin][0]);
+
+  }
+
+  // Fourier (backward) transform drho_g to drho_r the grid
+  // (n0,n1,n2), which is the grid of vext
+  const int n0 = s->vext->n(0);
+  const int n1 = s->vext->n(1);
+  const int n2 = s->vext->n(2);
+  const int n012 = n0 * n1 * n2;
+  FourierTransform ft2 (basis, n0, n1, n2);
+  const int n012loc = ft2.np012loc();
+
+  for ( int ispin = 0; ispin < nspin; ispin++ )
+    {
+      drho_r[ispin].resize(n012loc);
+      drho_r_tmp[ispin].resize(n012loc);
+      ft2.backward(&drho_g[ispin][0],&drho_r_tmp[ispin][0]);
+      for ( int ir = 0; ir < drho_r[ispin].size(); ir++ )
+      {
+        drho_r[ispin][ir] = real( drho_r_tmp[ispin][ir] * omega_inv );
+      }
+    }
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  if ( ui->onpe0() )
+    cout << " ResponseCmd: density response has been"
+       << " interpolated from grid size \n"
+         << " (" << np0 << ", " << np1 << ", " << np2 << ")"
+     << " to (" << n0 << ", " << n1 << ", " << n2 << ") \n";
+
+  // process 0 collects the drho_r from all processors on column 0
+  const Context& ctxt = *(s->wf.spincontext());
+  if ( ctxt.onpe0() )
+  {
+    for ( int ispin = 0; ispin < nspin; ispin++ )
+    drho_r[ispin].resize(ft2.np012(), 0.0);
+  }
+
+  if ( ctxt.mycol() == 0 )
+  {
+  for ( int ispin = 0; ispin < nspin; ispin++ )
+  {
+    for ( int irow = 0; irow < ctxt.nprow(); irow++ )
+    {
+    bool iamsending = irow == ctxt.myrow();
+    // send drho_r block size
+    int size = -1;
+    if ( ctxt.onpe0() )
+    {
+      if ( iamsending )
+      {
+      }
+      else
+      {
+        ctxt.irecv(1,1,&size,1,irow,0);
+        //cout << "I am receiving size from pe " << irow << " size: " << size << endl;
+      }
+    }// if onpe0
+    else
+    {
+      if ( iamsending )
+      {
+      size = ft2.np012loc();
+      ctxt.isend(1,1,&size,1,0,0);
+      //cout << "I am sending size from pe " << ctxt.mype() << " size: " << size << endl;
+      }
+    }
+
+        // send drho_r block
+    if ( ctxt.onpe0() )
+    {
+      if ( iamsending )
+      {
+      }
+      else
+      {
+      int istart = ft2.np0() * ft2.np1() * ft2.np2_first(irow);
+            ctxt.drecv(size,1,&drho_r[ispin][istart],1,irow,0);
+      }
+    }
+    else
+    {
+        if ( iamsending )
+      {
+      ctxt.dsend(size,1,&drho_r[ispin][0],1,0,0);
+      }
+    }
+    } // for irow
+    } // for ispin
+  } // if mycol = 0
+
+  // process 0 output density difference
+  if ( ctxt.onpe0() )
+  {
+  ofstream os;
+    string filename = s->vext->filename + ".response";
+  os.open(filename.c_str());
+    os << n0 << " " << n1 << " " << n2 << " " << endl;
+    for ( int i = 0; i < drho_r[0].size(); i++ )
+      if ( nspin == 2 )
+        os <<  drho_r[0][i] + drho_r[1][i] << endl;
+      else
+        os <<  drho_r[0][i] * omega / ft2.np012() << endl;
+    cout << " ResponseCmd: charge density response has been written in: "
+       << filename << endl;
+  }
+
+  delete stepper;
+}
+
+

@@ -19,13 +19,16 @@
 #ifndef RESPONSECMD_H
 #define RESPONSECMD_H
 
-#include <iostream>
+#include<iostream>
 #include "UserInterface.h"
 
 class Sample;
 class ResponseCmd : public Cmd
 {
   private:
+
+  void responseVext(int nitscf, int nite);
+  void responseEfield(double amplitude, int nitscf, int nite);
 
   public:
 

@@ -48,14 +48,11 @@ class Vext : public Var
     {
       // set vext NULL
       // reset file name to empty string
-      delete s->vext;
-      s->vext = 0;
-      s->ctrl.vext.clear();
+      s->vext->filename.clear();
     }
     else
     {
-      s->ctrl.vext = argv[1];
-      s->vext = new ExternalPotential(*s);
+      s->vext->filename = argv[1];
     }
 
     return 0;
@@ -67,10 +64,11 @@ class Vext : public Var
      st.setf(ios::left,ios::adjustfield);
      st << setw(10) << name() << " = ";
      st.setf(ios::right,ios::adjustfield);
-     st << setw(10) << s->ctrl.vext;
+     st << setw(10) << s->vext->filename;
      return st.str();
   }
 
-  Vext(Sample *sample) : s(sample) { s->ctrl.vext = ""; };
+  Vext(Sample *sample) : s(sample) { s->vext = new ExternalPotential(*s); }
+  ~Vext(void) { delete s->vext; }
 };
 #endif

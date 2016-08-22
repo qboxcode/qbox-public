@@ -16,27 +16,39 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "ExternalPotential.h"
-#include "FourierTransform.h"
-#include "Basis.h"
 #include <iostream>
 #include <fstream>
 #include <cassert>
 using namespace std;
+
+#include "Basis.h"
+#include "ExternalPotential.h"
+#include "FourierTransform.h"
 
 void ExternalPotential::update(const ChargeDensity& cd)
 {
   // read vext on nrow=0 tasks
   vector<double> vext_read;
   FourierTransform *vft = cd.vft();
+  const Context& ctxt = cd.context();
 
-  const int myrow = cd.context().myrow();
+  const int myrow = ctxt.myrow();
   if ( myrow == 0 )
   {
     // read the external potential from file s_.ctrl.vext
+    ifstream vfile(filename.c_str());
     if ( cd.context().onpe0() )
-      cout << "ExternalPotential::update: vext file: " << s_.ctrl.vext << endl;
-    ifstream vfile(s_.ctrl.vext.c_str());
+    {
+      if ( vfile )
+        cout << "ExternalPotential::update: read external "
+	         << "potential from file: " << filename << endl;
+      else
+      {
+        cout << "ExternalPotential::update: file not found: "
+	         << filename << endl;
+        ctxt.abort(1);
+      }
+    }
     vfile >> n_[0] >> n_[1] >> n_[2];
     if ( cd.context().onpe0() )
       cout << "ExternalPotential::update: grid size "
@@ -70,18 +82,18 @@ void ExternalPotential::update(const ChargeDensity& cd)
   double ecut1 = 0.5 * norm2(b1) * n1max*n1max;
   double ecut2 = 0.5 * norm2(b2) * n2max*n2max;
 
-  double ecut = min(min(ecut0,ecut1),ecut2);
+  ecut_ = min(min(ecut0,ecut1),ecut2);
 
   if ( cd.context().onpe0() )
   {
     cout << "ExternalPotential::update: ecut0: " << ecut0 << endl;
     cout << "ExternalPotential::update: ecut1: " << ecut1 << endl;
     cout << "ExternalPotential::update: ecut2: " << ecut2 << endl;
-    cout << "ExternalPotential::update: ecut:  " << ecut << endl;
+    cout << "ExternalPotential::update: ecut:  " << ecut_ << endl;
   }
 
   Basis basis(cd.vcomm(),D3vector(0,0,0));
-  basis.resize(cell,cell,ecut);
+  basis.resize(cell,cell,ecut_);
   if ( cd.context().onpe0() )
   {
     cout << "ExternalPotential::update: np0: " << basis.np(0) << endl;
@@ -91,7 +103,8 @@ void ExternalPotential::update(const ChargeDensity& cd)
 
   // interpolate on grid compatible with the charge density cd
   FourierTransform ft(basis,n_[0],n_[1],n_[2]);
-  vector<complex<double> > vext_read_g(basis.localsize());
+
+  vext_g_.resize(basis.localsize());
   vector<complex<double> > tmp_r(ft.np012loc());
   // index of local vext slice in global vext array
   int istart = ft.np2_first() * n_[0] * n_[1];
@@ -99,13 +112,27 @@ void ExternalPotential::update(const ChargeDensity& cd)
     tmp_r[i] = vext_read[istart+i];
 
   // compute Fourier coefficients
-  ft.forward(&tmp_r[0],&vext_read_g[0]);
-  // vext_read_g now contains the Fourier coefficients of vext
+  ft.forward(&tmp_r[0],&vext_g_[0]);
+  // vext_g_ now contains the Fourier coefficients of vext
+
   // interpolate to vft grid
   FourierTransform ft2(basis,vft->np0(),vft->np1(),vft->np2());
   tmp_r.resize(vft->np012loc());
   vext_r_.resize(tmp_r.size());
-  ft2.backward(&vext_read_g[0],&tmp_r[0]);
+  ft2.backward(&vext_g_[0],&tmp_r[0]);
   for ( int i = 0; i < vext_r_.size(); i++ )
     vext_r_[i] = real(tmp_r[i]);
 }
+
+void ExternalPotential::reverse()
+{
+  for ( int ir = 0; ir < vext_r_.size(); ir++ )
+    vext_r_[ir] *= -1;
+  for ( int ig = 0; ig < vext_g_.size(); ig++ )
+    vext_g_[ig] *= -1;
+  //transform(vext_r_.begin(), vext_r_.end(), vext_r_.begin(),
+  //  bind1st(multiplies<double>(), -1));
+  //transform(vext_g_.begin(), vext_g_.end(), vext_g_.begin(),
+  //  bind1st(multiplies<complex<double> >(), -1));
+}
+

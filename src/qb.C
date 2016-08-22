@@ -282,8 +282,8 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new RandomizeVCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
   ui.addCmd(new RescaleVCmd(s));
-  ui.addCmd(new ResponseCmd(s));
   ui.addCmd(new ResetVcmCmd(s));
+  ui.addCmd(new ResponseCmd(s));
   ui.addCmd(new RseedCmd(s));
   ui.addCmd(new RunCmd(s));
   ui.addCmd(new SaveCmd(s));

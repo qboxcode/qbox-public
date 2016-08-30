@@ -71,6 +71,8 @@ int ResponseCmd::action(int argc, char **argv)
       nite = atoi(argv[4]);
 
     responseVext(nitscf,nite);
+    delete s->vext;
+    s->vext = 0;
   }
   else
   {

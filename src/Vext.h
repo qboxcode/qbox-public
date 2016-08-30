@@ -47,12 +47,14 @@ class Vext : public Var
     if ( !strcmp(argv[1],"NULL") )
     {
       // set vext NULL
-      // reset file name to empty string
-      s->vext->filename.clear();
+      delete s->vext;
+      s->vext = 0;
     }
     else
     {
-      s->vext->filename = argv[1];
+      if ( s->vext )
+        delete s->vext;
+      s->vext = new ExternalPotential(*s,argv[1]);
     }
 
     return 0;
@@ -63,12 +65,14 @@ class Vext : public Var
      ostringstream st;
      st.setf(ios::left,ios::adjustfield);
      st << setw(10) << name() << " = ";
-     st.setf(ios::right,ios::adjustfield);
-     st << setw(10) << s->vext->filename;
+     if ( s->vext )
+     {
+       st.setf(ios::right,ios::adjustfield);
+       st << setw(10) << s->vext->filename();
+     }
      return st.str();
   }
 
-  Vext(Sample *sample) : s(sample) { s->vext = new ExternalPotential(*s); }
-  ~Vext(void) { delete s->vext; }
+  Vext(Sample *sample) : s(sample) {}
 };
 #endif

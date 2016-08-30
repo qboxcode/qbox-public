@@ -36,16 +36,16 @@ void ExternalPotential::update(const ChargeDensity& cd)
   if ( myrow == 0 )
   {
     // read the external potential from file s_.ctrl.vext
-    ifstream vfile(filename.c_str());
-    if ( cd.context().onpe0() )
+    ifstream vfile(filename_.c_str());
+    if ( ctxt.onpe0() )
     {
       if ( vfile )
         cout << "ExternalPotential::update: read external "
-	         << "potential from file: " << filename << endl;
+	         << "potential from file: " << filename_ << endl;
       else
       {
         cout << "ExternalPotential::update: file not found: "
-	         << filename << endl;
+	         << filename_ << endl;
         ctxt.abort(1);
       }
     }
@@ -104,7 +104,6 @@ void ExternalPotential::update(const ChargeDensity& cd)
   // interpolate on grid compatible with the charge density cd
   FourierTransform ft(basis,n_[0],n_[1],n_[2]);
 
-  vext_g_.resize(basis.localsize());
   vector<complex<double> > tmp_r(ft.np012loc());
   // index of local vext slice in global vext array
   int istart = ft.np2_first() * n_[0] * n_[1];
@@ -112,6 +111,7 @@ void ExternalPotential::update(const ChargeDensity& cd)
     tmp_r[i] = vext_read[istart+i];
 
   // compute Fourier coefficients
+  vector<complex<double> > vext_g_(basis.localsize());
   ft.forward(&tmp_r[0],&vext_g_[0]);
   // vext_g_ now contains the Fourier coefficients of vext
 
@@ -123,16 +123,3 @@ void ExternalPotential::update(const ChargeDensity& cd)
   for ( int i = 0; i < vext_r_.size(); i++ )
     vext_r_[i] = real(tmp_r[i]);
 }
-
-void ExternalPotential::reverse()
-{
-  for ( int ir = 0; ir < vext_r_.size(); ir++ )
-    vext_r_[ir] *= -1;
-  for ( int ig = 0; ig < vext_g_.size(); ig++ )
-    vext_g_[ig] *= -1;
-  //transform(vext_r_.begin(), vext_r_.end(), vext_r_.begin(),
-  //  bind1st(multiplies<double>(), -1));
-  //transform(vext_g_.begin(), vext_g_.end(), vext_g_.begin(),
-  //  bind1st(multiplies<complex<double> >(), -1));
-}
-

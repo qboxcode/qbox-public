@@ -381,10 +381,10 @@ ExtForceSet.o: blacs.h UnitCell.h D3tensor.h blas.h
 ExtStress.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 ExtStress.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 ExtStress.o: Wavefunction.h Control.h
-ExternalPotential.o: ExternalPotential.h Sample.h AtomSet.h Context.h blacs.h
-ExternalPotential.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-ExternalPotential.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-ExternalPotential.o: ChargeDensity.h Timer.h FourierTransform.h Basis.h
+ExternalPotential.o: Basis.h D3vector.h UnitCell.h ExternalPotential.h
+ExternalPotential.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3tensor.h
+ExternalPotential.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+ExternalPotential.o: Control.h ChargeDensity.h Timer.h FourierTransform.h
 ExternalPotential.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 ExternalPotential.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
 ExternalPotential.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h
@@ -547,12 +547,13 @@ RescaleVCmd.o: ExtForceSet.h Wavefunction.h Control.h
 ResetVcmCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 ResetVcmCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 ResetVcmCmd.o: ExtForceSet.h Wavefunction.h Control.h
-ResponseCmd.o: ResponseCmd.h UserInterface.h BOSampleStepper.h
-ResponseCmd.o: SampleStepper.h Timer.h EnergyFunctional.h StructureFactor.h
-ResponseCmd.o: ElectricEnthalpy.h Matrix.h Context.h blacs.h D3vector.h
-ResponseCmd.o: Wavefunction.h UnitCell.h SlaterDet.h Basis.h Sample.h
-ResponseCmd.o: AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
-ResponseCmd.o: ExtForceSet.h Control.h ChargeDensity.h
+ResponseCmd.o: BOSampleStepper.h SampleStepper.h Timer.h EnergyFunctional.h
+ResponseCmd.o: StructureFactor.h ElectricEnthalpy.h Matrix.h Context.h
+ResponseCmd.o: blacs.h D3vector.h Wavefunction.h UnitCell.h SlaterDet.h
+ResponseCmd.o: Basis.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h
+ResponseCmd.o: ConstraintSet.h ExtForceSet.h Control.h ChargeDensity.h
+ResponseCmd.o: ExternalPotential.h FourierTransform.h ResponseCmd.h
+ResponseCmd.o: UserInterface.h
 ResponseCmd.o: UserInterface.h
 RseedCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 RseedCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h

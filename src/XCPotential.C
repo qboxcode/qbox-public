@@ -91,7 +91,7 @@ bool XCPotential::isGGA(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void XCPotential::update(vector<vector<double> >& vr)
+void XCPotential::update(vector<vector<double> >& vr, bool freeze_vxc)
 {
   // compute exchange-correlation energy and add vxc potential to vr[ispin][ir]
 
@@ -122,7 +122,17 @@ void XCPotential::update(vector<vector<double> >& vr)
   {
     // LDA functional
 
-    xcf_->setxc();
+    if ( ! freeze_vxc )
+    {
+      xcf_->setxc();
+      //if ( cd_.context().onpe0() )
+      //  cout << "  XCPotential::update(LDA): vxc is updated" << endl;
+    }
+    else
+    {
+      if ( cd_.context().onpe0() )
+        cout << "  XCPotential::update(LDA): vxc is freezed" << endl;
+    }
 
     exc_ = 0.0;
     dxc_ = 0.0;
@@ -170,6 +180,8 @@ void XCPotential::update(vector<vector<double> >& vr)
   else
   {
     // GGA functional
+   if ( ! freeze_vxc )
+   {
     exc_ = 0.0;
 
     // compute grad_rho
@@ -217,6 +229,14 @@ void XCPotential::update(vector<vector<double> >& vr)
     }
 
     xcf_->setxc();
+    //if ( cd_.context().onpe0() )
+    //  cout << "  XCPotential::update(GGA): vxc is updated" << endl;
+    }
+    else
+    {
+      if ( cd_.context().onpe0() )
+         cout << "  XCPotential::update(GGA): vxc is freezed" << endl;
+    }
 
     // compute xc potential
     // take divergence of grad(rho)*vxc2

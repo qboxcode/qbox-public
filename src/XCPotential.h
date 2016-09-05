@@ -55,7 +55,7 @@ class XCPotential
   XCPotential(const ChargeDensity& cd, const std::string functional_name,
     const Control& ctrl);
   ~XCPotential();
-  void update(std::vector<std::vector<double> >& vr);
+  void update(std::vector<std::vector<double> >& vr, bool freeze_vxc);
   void compute_stress(std::valarray<double>& sigma_exc);
   double exc(void) { return exc_; }
   double dxc(void) { return dxc_; }

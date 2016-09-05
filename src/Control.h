@@ -75,5 +75,8 @@ struct Control
 
   std::string iter_cmd;
   int iter_cmd_period;
+
+  bool freeze_vh;  // only valid at GS-only calculation
+  bool freeze_vxc;  // only valid at GS-only calculation
 };
 #endif

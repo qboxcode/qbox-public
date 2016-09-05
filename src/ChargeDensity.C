@@ -214,3 +214,34 @@ void ChargeDensity::update_rhor(void)
     }
   }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+void ChargeDensity::update_rhog(void)
+{
+  // recalculate rhog from rhor
+  assert(rhor.size() == wf_.nspin());
+  const double omega = vbasis_->cell().volume();
+  assert(omega!=0.0);
+
+  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  {
+    const int rhor_size = rhor[ispin].size();
+    double *const prhor = &rhor[ispin][0];
+    if ( rhocore_r )
+    {
+      #pragma omp parallel for
+      for ( int i = 0; i < rhor_size; i++ )
+        rhotmp[i] = complex<double> ( omega * (prhor[i] - rhocore_r[i]), 0);
+    }
+    else
+    {
+      #pragma omp parallel for
+      for ( int i = 0; i < rhor_size; i++ )
+        rhotmp[i] = complex<double> ( omega * prhor[i], 0);
+    }
+
+    assert(rhotmp.size() == vft_->np012loc() );
+
+    vft_->forward(&rhotmp[0],&rhog[ispin][0]);
+  }
+}

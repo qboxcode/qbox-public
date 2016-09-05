@@ -46,7 +46,7 @@ using namespace std;
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) :
   SampleStepper(s), cd_(s.wf), ef_(s,cd_),
   dwf(s.wf), wfv(s.wfv), nitscf_(nitscf), nite_(nite),
-  initial_atomic_density(false) {}
+  initial_atomic_density(false), initial_density(false) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::~BOSampleStepper()
@@ -156,6 +156,20 @@ void BOSampleStepper::initialize_density(void)
     }
   }
   initial_atomic_density = true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void BOSampleStepper:: initialize_density(const vector<vector<double> >& rhor)
+{
+  // initialize cd_ with a given density rhor
+  assert( rhor.size() == cd_.rhor.size() );
+  for ( int ispin = 0; ispin < rhor.size(); ispin++ )
+  {
+    assert( rhor[ispin].size() == cd_.rhor[ispin].size() );
+    for ( int ir = 0; ir < rhor[ispin].size(); ir++ )
+      cd_.rhor[ispin][ir] = rhor[ispin][ir];
+  }
+  initial_density = true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -752,6 +766,8 @@ void BOSampleStepper::step(int niter)
         tmap["charge"].start();
         if ( itscf==0 && initial_atomic_density )
           cd_.update_rhor();
+        else if ( itscf==0 && initial_density )
+          cd_.update_rhog();
         else
           cd_.update_density();
         tmap["charge"].stop();
@@ -836,7 +852,20 @@ void BOSampleStepper::step(int niter)
         } // if nite_ > 0
 
         tmap["update_vhxc"].start();
-        ef_.update_vhxc(compute_stress);
+        bool freeze_vh;
+        bool freeze_vxc;
+        if ( itscf == 0 )
+        {
+          // at first SCF iteration, vhxc must be updated
+          freeze_vh = false;
+          freeze_vxc = false;
+        }
+        else
+        {
+          freeze_vh = s_.ctrl.freeze_vh;
+          freeze_vxc = s_.ctrl.freeze_vxc;
+        }
+        ef_.update_vhxc(compute_stress, freeze_vh, freeze_vxc);
         tmap["update_vhxc"].stop();
 
         // reset stepper only if multiple non-selfconsistent steps
@@ -1299,4 +1328,5 @@ void BOSampleStepper::step(int niter)
   if ( ntc_extrapolation || asp_extrapolation ) delete wfmm;
 
   initial_atomic_density = false;
+  initial_density = false;
 }

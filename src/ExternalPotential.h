@@ -49,5 +49,6 @@ class ExternalPotential
   double v(size_t i) const { return amplitude_ * vext_r_[i]; }
   void update(const ChargeDensity& cd);
   void set_amplitude(double a) { amplitude_ = a; }
+  void reverse(void) {amplitude_ *= -1; }
 };
 #endif

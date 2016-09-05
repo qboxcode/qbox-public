@@ -109,7 +109,8 @@ class EnergyFunctional
 
   const ConfinementPotential *confpot(int ikp) const { return cfp[ikp]; }
 
-  void update_vhxc(bool compute_stress);
+  void update_vhxc(bool compute_stress,
+                   bool freeze_vh=false, bool freeze_vxc=false);
 
   void atoms_moved(void);
   void cell_moved(void);

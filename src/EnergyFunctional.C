@@ -224,7 +224,8 @@ EnergyFunctional::~EnergyFunctional(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void EnergyFunctional::update_vhxc(bool compute_stress)
+void EnergyFunctional::update_vhxc(bool compute_stress,
+                                   bool freeze_vh, bool freeze_vxc)
 {
   // called when the charge density has changed
   // update Hartree and xc potentials using the charge density cd_
@@ -261,7 +262,8 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     memset((void*)&v_r[ispin][0], 0, vft->np012loc()*sizeof(double));
 
-  xco->update(v_r, compute_stress);
+  xco->update(v_r, compute_stress, freeze_vxc);
+
   exc_ = xco->exc();
   dxc_ = xco->dxc();
   if ( compute_stress )
@@ -344,6 +346,8 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   // add external potential vext to tmp_r
   if ( s_.vext )
   {
+    //if( s_.ctxt_.onpe0() )
+    //  cout << "  EnergyFunctional::update_vhxc: vext is applied " << s_.vext->filename() << endl;
     for ( int i = 0; i < tmp_r.size(); i++ )
       tmp_r[i] += s_.vext->v(i);
   }

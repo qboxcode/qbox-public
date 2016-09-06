@@ -600,7 +600,7 @@ complex<double> Wavefunction::dot(const Wavefunction& wf) const
   {
     for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
     {
-      sum += sd_[ispin][ikp]->dot(*wf.sd_[ispin][ikp]);
+      sum += weight_[ikp] * sd_[ispin][ikp]->dot(*wf.sd_[ispin][ikp]);
     }
   }
   return sum;

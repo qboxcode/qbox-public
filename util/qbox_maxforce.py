@@ -60,6 +60,9 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       fxmax = 0.0
       fymax = 0.0
       fzmax = 0.0
+      x_name = ' '
+      y_name = ' '
+      z_name = ' '
       for i in range(len(self.f)):
         fx = self.f[i][0]
         if ( fx*fx > fxmax*fxmax ):

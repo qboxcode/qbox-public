@@ -48,7 +48,7 @@ bool in_BZ(D3vector k, D3vector b0, D3vector b1, D3vector b2)
 
 int main(int argc, char** argv)
 {
-  cout << "# kpgen-1.1" << endl;
+  cout << "# kpgen " << endl;
   if ( argc != 16 )
   {
     cerr << " use: " << argv[0] << " nx ny nz shiftx shifty shiftz {cell}"
@@ -109,11 +109,11 @@ int main(int argc, char** argv)
         kpint[2] = kk*2*nz + 2*k-nz+1;
         kpint[3] = 1;
 
-        D3vector k = ( (kpint[0] + sx)/(2.0*nx) ) * b0 +
-                     ( (kpint[1] + sy)/(2.0*ny) ) * b1 +
-                     ( (kpint[2] + sz)/(2.0*nz) ) * b2;
+        D3vector kv = ( (kpint[0] + sx)/(2.0*nx) ) * b0 +
+                      ( (kpint[1] + sy)/(2.0*ny) ) * b1 +
+                      ( (kpint[2] + sz)/(2.0*nz) ) * b2;
 
-        if ( in_BZ(k,b0,b1,b2) )
+        if ( in_BZ(kv,b0,b1,b2) )
           kplist.push_back(kpint);
       }
     }

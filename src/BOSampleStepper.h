@@ -44,6 +44,7 @@ class BOSampleStepper : public SampleStepper
 
   bool initial_atomic_density;
   bool initial_density;
+  bool first_step;  // true if step() function has never been called before
 
   // Do not allow construction of BOSampleStepper unrelated to a Sample
   BOSampleStepper(void);

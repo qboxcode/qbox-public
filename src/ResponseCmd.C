@@ -274,6 +274,7 @@ void ResponseCmd::responseVext(int nitscf, int nite, bool parallel_write)
   stepper->initialize_density(rhor2_guess);
 
   stepper->step(0);
+  s->vext->reverse();
   const vector<vector<double> > rhor2 = cd.rhor;  // density under -Vext
 
   // compute drho_r as rhor1 - rhor2
@@ -332,11 +333,11 @@ void ResponseCmd::responseVext(int nitscf, int nite, bool parallel_write)
     ft2.backward(&drho_g[ispin][0],&drho_r_tmp[ispin][0]);
     for ( int ir = 0; ir < drho_r[ispin].size(); ir++ )
     {
-      drho_r[ispin][ir] = real( drho_r_tmp[ispin][ir] * omega_inv );
+      // return drhor scaled by 1/(2*amplitude)
+      drho_r[ispin][ir] = 0.5 * real( drho_r_tmp[ispin][ir] * omega_inv ) / abs(s->vext->amplitude());
     }
   }
 
-  //const Context& ctxt = cd.context();
   const Context& ctxt = *(s->wf.spincontext());
   ctxt.barrier();
   if ( ui->onpe0() )

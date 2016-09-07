@@ -46,7 +46,7 @@ using namespace std;
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) :
   SampleStepper(s), cd_(s.wf), ef_(s,cd_),
   dwf(s.wf), wfv(s.wfv), nitscf_(nitscf), nite_(nite),
-  initial_atomic_density(false), initial_density(false) {}
+  initial_atomic_density(false), initial_density(false), first_step(true) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::~BOSampleStepper()
@@ -854,7 +854,7 @@ void BOSampleStepper::step(int niter)
         tmap["update_vhxc"].start();
         bool freeze_vh;
         bool freeze_vxc;
-        if ( itscf == 0 )
+        if ( itscf == 0 && first_step )
         {
           // at first SCF iteration, vhxc must be updated
           freeze_vh = false;
@@ -1128,7 +1128,7 @@ void BOSampleStepper::step(int niter)
         tmap["charge"].stop();
 
         tmap["update_vhxc"].start();
-        ef_.update_vhxc(compute_stress);
+        ef_.update_vhxc(compute_stress,s_.ctrl.freeze_vh,s_.ctrl.freeze_vxc);
         tmap["update_vhxc"].stop();
         const bool compute_forces = true;
         tmap["energy"].start();
@@ -1329,4 +1329,5 @@ void BOSampleStepper::step(int niter)
 
   initial_atomic_density = false;
   initial_density = false;
+  first_step = false;
 }

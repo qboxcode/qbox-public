@@ -32,7 +32,7 @@ void readRealSpaceFunction(const Context& ctxt, vector<double>& fr,
 
 void ExternalPotential::update(const ChargeDensity& cd)
 {
-  const Context& ctxt = cd.context();
+  const Context& ctxt = *(s_.wf.spincontext());
 
   // process 0 reads the grid size and bcast to all processes
   if ( ctxt.onpe0() )
@@ -135,6 +135,7 @@ void readRealSpaceFunction(const Context& ctxt, vector<double>& fr,
 
   if ( ctxt.onpe0())
   {
+    assert( ctxt.mycol() == 0 );
     fr.resize(ft.np012());
   }
   else
@@ -186,8 +187,8 @@ void readRealSpaceFunction(const Context& ctxt, vector<double>& fr,
     vector<int> displs(ctxt.nprow(),0);
     for ( int iproc = 0; iproc < ctxt.nprow(); iproc++ )
     {
-      displ += ft.np012loc(iproc);
       displs[iproc] = displ;
+      displ += ft.np012loc(iproc);
       scounts[iproc] = ft.np012loc(iproc);
     }
 
@@ -195,12 +196,9 @@ void readRealSpaceFunction(const Context& ctxt, vector<double>& fr,
     MPI_Barrier(comm);
     if ( ctxt.mycol() == 0 )
     {
-      //MPI_Barrier(comm_col);
       MPI_Scatterv(sbuf,&scounts[0],&displs[0],MPI_DOUBLE,
                    rbuf,ft.np012loc(),MPI_DOUBLE,0,comm_col);
-      //MPI_Barrier(comm_col);
     }
-
     if ( ctxt.onpe0() )
     {
       fr.resize(ft.np012loc());

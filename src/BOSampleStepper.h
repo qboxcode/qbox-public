@@ -42,9 +42,8 @@ class BOSampleStepper : public SampleStepper
   WavefunctionStepper* wf_stepper;
   IonicStepper* ionic_stepper;
 
-  bool initial_atomic_density;
-  bool initial_density;
-  bool first_step;  // true if step() function has never been called before
+  bool update_density_first_;
+  bool update_vxc_;
 
   // Do not allow construction of BOSampleStepper unrelated to a Sample
   BOSampleStepper(void);
@@ -54,15 +53,16 @@ class BOSampleStepper : public SampleStepper
   mutable TimerMap tmap;
 
   void step(int niter);
-  void initialize_density(void);         // initialize density by atomic density
-  void initialize_density(const vector<vector<double> >& rhor); // initialize density by given density
+  // initialize density with sum of atomic densities
+  void initialize_density(void);
+  void set_update_vxc(bool update_vxc) { update_vxc_ = update_vxc; }
+  void set_update_density_first(bool update_density_first)
+    { update_density_first_ = update_density_first; }
 
   EnergyFunctional& ef(void) { return ef_; }
   ChargeDensity& cd(void) { return cd_; }
 
   BOSampleStepper(Sample& s, int nitscf, int nite);
-  BOSampleStepper(Sample& s, const vector<vector<double> > * rhor_initial,
-                  int nitscf, int nite);
   ~BOSampleStepper();
 };
 #endif

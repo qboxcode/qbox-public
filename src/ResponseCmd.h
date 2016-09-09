@@ -27,18 +27,14 @@ class ResponseCmd : public Cmd
 {
   private:
 
-  void responseVext(int nitscf, int nite, bool parallel_output);
+  void responseVext(bool rpa, int nitscf, int nite);
   void responseEfield(double amplitude, int nitscf, int nite);
-
 
   public:
 
   Sample *s;
 
-  ResponseCmd(Sample *sample) : s(sample) {
-    s->ctrl.freeze_vh = false;
-    s->ctrl.freeze_vxc = false;
-  };
+  ResponseCmd(Sample *sample) : s(sample) {};
 
   const char *name(void) const { return "response"; }
   const char *help_msg(void) const
@@ -46,7 +42,7 @@ class ResponseCmd : public Cmd
     return
     "\n response\n\n"
     " syntax: response amplitude nitscf [nite]\n"
-    "         response -vext vext_file [-RPA or -IPA] [-amplitude amplitude] [-parallel_write] nitscf [nite]\n\n"
+    "         response -vext vext_file [-RPA] [-amplitude a] nitscf [nite]\n\n"
     "   The response command computes the polarizability tensor by\n"
     "   finite differences using external electric fields in the x,y,z\n"
     "   directions with magnitude defined by the amplitude argument.\n"

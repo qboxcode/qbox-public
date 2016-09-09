@@ -79,6 +79,7 @@ class EnergyFunctional
   public:
 
   std::vector<std::vector<double> > v_r;
+  std::vector<std::vector<double> > vxc_r;
   mutable TimerMap tmap;
 
   double energy(bool compute_hpsi, Wavefunction& dwf,
@@ -109,8 +110,11 @@ class EnergyFunctional
 
   const ConfinementPotential *confpot(int ikp) const { return cfp[ikp]; }
 
-  void update_vhxc(bool compute_stress,
-                   bool freeze_vh=false, bool freeze_vxc=false);
+  void update_vhxc(bool compute_stress, bool update_vxc);
+  // update both vh and vxc
+  void update_vhxc(bool compute_stress) { update_vhxc(compute_stress, true); }
+  // update only vh
+  void update_vh(bool compute_stress) { update_vhxc(compute_stress, false); }
 
   void atoms_moved(void);
   void cell_moved(void);

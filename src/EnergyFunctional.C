@@ -42,7 +42,7 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
+EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
  : s_(s), cd_(cd)
 {
   const AtomSet& atoms = s_.atoms;
@@ -66,9 +66,11 @@ EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
   int np2v = vft->np2();
 
   v_r.resize(wf.nspin());
+  vxc_r.resize(wf.nspin());
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
   {
     v_r[ispin].resize(vft->np012loc());
+    vxc_r[ispin].resize(vft->np012loc());
   }
   tmp_r.resize(vft->np012loc());
 
@@ -224,8 +226,7 @@ EnergyFunctional::~EnergyFunctional(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void EnergyFunctional::update_vhxc(bool compute_stress,
-                                   bool freeze_vh, bool freeze_vxc)
+void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vxc)
 {
   // called when the charge density has changed
   // update Hartree and xc potentials using the charge density cd_
@@ -259,10 +260,9 @@ void EnergyFunctional::update_vhxc(bool compute_stress,
   // update XC operator
   // compute xc energy, update self-energy operator and potential
   tmap["exc"].start();
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-    memset((void*)&v_r[ispin][0], 0, vft->np012loc()*sizeof(double));
 
-  xco->update(v_r, compute_stress, freeze_vxc);
+  if ( update_vxc )
+    xco->update(vxc_r, compute_stress);
 
   exc_ = xco->exc();
   dxc_ = xco->dxc();
@@ -274,7 +274,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress,
     // compute Fourier coefficients of Vxc
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
-      copy(v_r[ispin].begin(),v_r[ispin].end(),tmp_r.begin());
+      copy(vxc_r[ispin].begin(),vxc_r[ispin].end(),tmp_r.begin());
       if ( ispin == 0 )
       {
         vft->forward(&tmp_r[0],&vxc_g[0]);
@@ -346,20 +346,18 @@ void EnergyFunctional::update_vhxc(bool compute_stress,
   // add external potential vext to tmp_r
   if ( s_.vext )
   {
-    //if( s_.ctxt_.onpe0() )
-    //  cout << "  EnergyFunctional::update_vhxc: vext is applied " << s_.vext->filename() << endl;
     for ( int i = 0; i < tmp_r.size(); i++ )
       tmp_r[i] += s_.vext->v(i);
   }
 
-  // add local potential in tmp_r to v_r[ispin][i]
-  // v_r contains the xc potential
+  // compute local potential v_r[ispin][i]
+  // vxc_r contains the xc potential
   const int size = tmp_r.size();
   if ( wf.nspin() == 1 )
   {
     for ( int i = 0; i < size; i++ )
     {
-      v_r[0][i] += real(tmp_r[i]);
+      v_r[0][i] = vxc_r[0][i] + real(tmp_r[i]);
     }
   }
   else
@@ -367,8 +365,8 @@ void EnergyFunctional::update_vhxc(bool compute_stress,
     for ( int i = 0; i < size; i++ )
     {
       const double vloc = real(tmp_r[i]);
-      v_r[0][i] += vloc;
-      v_r[1][i] += vloc;
+      v_r[0][i] = vxc_r[0][i] + vloc;
+      v_r[1][i] = vxc_r[1][i] + vloc;
     }
   }
 

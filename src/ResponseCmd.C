@@ -28,19 +28,17 @@ using namespace std;
 #include "ResponseCmd.h"
 #include "mpi.h"
 
-void writeRealSpaceFunction(const MPI_Comm&, vector<double>&, const FourierTransform&,
-                            const string, const string, const bool);
-
 ////////////////////////////////////////////////////////////////////////////////
 int ResponseCmd::action(int argc, char **argv)
 {
   // " syntax: response amplitude nitscf [nite]\n\n"
-  // " syntax: response -vext vext_file nitscf [nite]\n\n"
-  if ( argc < 3 || argc > 9)
+  // " syntax: response -vext vext_file [-RPA] [-amplitude a] nitscf [nite]\n\n"
+  if ( argc < 3 || argc > 8)
   {
     if ( ui->onpe0() )
       cout << "  use: response amplitude nitscf [nite]\n"
-           << "       response -vext vext_file [-RPA or -IPA] [-amplitude amplitude] [-parallel_write] nitscf [nite]\n"
+           << "       response -vext vext_file [-RPA]"
+           << " [-amplitude a] nitscf [nite]\n"
            << endl;
     return 1;
   }
@@ -59,116 +57,50 @@ int ResponseCmd::action(int argc, char **argv)
 
   int nitscf;
   int nite = 0;
+  bool rpa = false;
   int iarg = 1;
   if ( !strcmp(argv[iarg],"-vext") )
   {
+    iarg++;
     // response to vext
-    Cmd *setcmd = s->ui->findCmd("set");
-    iarg++; //=2
-    char** setcmd_argv = new char*[2];
-    setcmd_argv[0] = "set";
-    setcmd_argv[1] = "vext";
-    setcmd_argv[2] =  argv[iarg];
-    MPI_Barrier(MPI_COMM_WORLD);
-    setcmd->action(3, setcmd_argv);
-    MPI_Barrier(MPI_COMM_WORLD);
-    if ( ui->onpe0() )
-      cout << "  ResponseCmd: compute charge density response under"
-           << "  the external potential defined in " << argv[2] << endl;
+    if ( s->vext )
+      delete s->vext;
+    s->vext = new ExternalPotential(*s,argv[iarg]);
+    iarg++;
 
-    iarg++; //=3
     if ( !strcmp(argv[iarg],"-RPA") )
     {
-      s->ctrl.freeze_vh = false;
-      s->ctrl.freeze_vxc = true;
-      if ( ui->onpe0() )
-        cout << "  RPA: XC potential will be freezed"
-             << "  to the value on initial density" << endl;
-    }
-    else if ( !strcmp(argv[iarg],"-IPA") )
-    {
-      s->ctrl.freeze_vh = true;
-      s->ctrl.freeze_vxc = true;
-      if ( ui->onpe0() )
-        cout << "  IPA: Hartree and XC potential will be freezed"
-             << "  to the value on initial density" << endl;
-    }
-    else
-    {
-      s->ctrl.freeze_vh = false;
-      s->ctrl.freeze_vxc = false;
-      if ( ui->onpe0() )
-        cout << "  Hartree and XC potential will be updated" << endl;
-      iarg--;
+      rpa = true;
+      iarg++;
     }
 
-    iarg++; //=3 or 4
     if ( !strcmp(argv[iarg],"-amplitude") )
     {
-      iarg++; //=4 or 5
+      iarg++;
       double amplitude = atof(argv[iarg]);
       s->vext->set_amplitude(amplitude);
-      if ( ui->onpe0() )
-        cout << "  External potential amplitude: "
-             << s->vext->amplitude() << endl;
+      iarg++;
     }
-    else iarg--;
 
+    nitscf = atoi(argv[iarg]);
     iarg++;
-    bool parallel_write = false;
-    if ( !strcmp(argv[iarg],"-parallel_write") )
-    {
-      parallel_write = true;
-      if ( ui->onpe0() )
-        cout << "  Density response will be written with base64 encoding " << endl;
-    }
-    else iarg--;
 
-    iarg++;
-    nitscf = atoi(argv[iarg]); //iarg = 3 or 4 or 5 or 6 or 7
-    //if ( ui->onpe0() )
-    //  cout << " nitscf " << nitscf << endl;
-
-    iarg++;
     if ( iarg < argc )
-      nite = atoi(argv[iarg]); //iarg = 4 or 5 or 6 or 7 or 7
-    //if ( ui->onpe0() )
-    //  cout << " nite " << nite << endl;
+      nite = atoi(argv[iarg]);
 
-    responseVext(nitscf,nite,parallel_write);
-
-    // after response calculation, reset vext and activate hxc
-    if ( ui->onpe0() )
-      cout << "  End response calculation. vext is set to zero." << endl;
-    setcmd_argv[2] = "NULL";
-    MPI_Barrier(MPI_COMM_WORLD);
-    setcmd->action(3, setcmd_argv);
-    MPI_Barrier(MPI_COMM_WORLD);
-    if ( s->ctrl.freeze_vh )
-    {
-      s->ctrl.freeze_vh = false;
-      if ( ui->onpe0() )
-        cout << "  Vhartree is activated again." << endl;
-    }
-    if ( s->ctrl.freeze_vxc )
-    {
-      s->ctrl.freeze_vxc = false;
-      if ( ui->onpe0() )
-        cout << "  Vxc is activated again." << endl;
-    }
-    //delete[] setcmd;
+    responseVext(rpa,nitscf,nite);
   }
   else
   {
     // polarizability calculation
+    assert(argc > 2);
     if ( ui->onpe0() )
-      cout << "  ResponseCmd: start polarizability calculation with "
+      cout << " ResponseCmd: polarizability with "
            << " amplitude " << argv[1] << endl;
     double amplitude = atof(argv[1]);
     nitscf = atoi(argv[2]);
-    if ( argc == 3 )
+    if ( argc == 4 )
       nite = atoi(argv[3]);
-    cout << amplitude << nitscf << nite;
     responseEfield(amplitude,nitscf,nite);
   }
 
@@ -182,11 +114,22 @@ void ResponseCmd::responseEfield(double amplitude, int nitscf, int nite)
   SampleStepper* stepper = new BOSampleStepper(*s,nitscf,nite);
   assert(stepper!=0);
   ElectricEnthalpy* el_enth = stepper->ef().el_enth();
+  if ( el_enth == 0 )
+  {
+    if ( ui->onpe0() )
+      cout << "ResponseCmd:responseEfield: ElectricEnthalpy not defined\n"
+           << "The polarization variable may be set to OFF" << endl;
+    return;
+  }
 
   D3vector e_field[3] = { D3vector(amplitude,0.0,0.0),
                           D3vector(0.0,amplitude,0.0),
                           D3vector(0.0,0.0,amplitude) };
   D3vector dipole_p[3], dipole_m[3];
+
+  // save wave functions
+  Wavefunction wf0(s->wf);
+  wf0 = s->wf;
 
   // compute change in dipole in 3 directions by finite difference
   D3vector e_field_base = el_enth->e_field();
@@ -199,6 +142,7 @@ void ResponseCmd::responseEfield(double amplitude, int nitscf, int nite)
     el_enth->set_e_field(e_field_base-e_field[idir]);
     stepper->step(0);
     dipole_m[idir] = el_enth->dipole_total();
+    s->wf = wf0;
   }
 
   D3vector ddx = dipole_p[0] - dipole_m[0];
@@ -244,40 +188,37 @@ void ResponseCmd::responseEfield(double amplitude, int nitscf, int nite)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void ResponseCmd::responseVext(int nitscf, int nite, bool parallel_write)
+void ResponseCmd::responseVext(bool rpa, int nitscf, int nite)
 {
-  BOSampleStepper* stepper = new BOSampleStepper(*s,nitscf,nite);
-  ChargeDensity &cd = stepper->cd();
-  cd.update_density();
-  const vector<vector<double> > rhor0 = cd.rhor;  // GS density
-
-  stepper->step(0);
-  const vector<vector<double> > rhor1 = cd.rhor;  // density under Vext
-
-  s->vext->reverse();
-  if ( ui->onpe0() )
-    cout << "  ResponseCmd: external potential is reversed,"
-         << " starting another scf iteration" << endl
-         << "  using 2*rho0 - rho(vext) as initial guess for charge density" << endl;
-
   const int nspin = s->wf.nspin();
-  vector<vector<double> > rhor2_guess;
-  rhor2_guess.resize(nspin);
-  for ( int ispin = 0; ispin < nspin; ispin++ )
-  {
-    rhor2_guess[ispin].resize( rhor0[ispin].size() );
-    for ( int ir = 0; ir < rhor0[ispin].size(); ir++ )
-    {
-      rhor2_guess[ispin][ir] = 2 * rhor0[ispin][ir] - rhor1[ispin][ir];
-    }
-  }
-  stepper->initialize_density(rhor2_guess);
+  BOSampleStepper* stepper = new BOSampleStepper(*s,nitscf,nite);
+
+  if ( rpa )
+    stepper->set_update_vxc(false);
+
+  // save a copy of initial wave functions
+  Wavefunction wf0(s->wf);
+  wf0 = s->wf;
+
+  ChargeDensity &cd = stepper->cd();
+  MPI_Comm vcomm = cd.vcomm();
+  int mype, vcomm_size;
+  MPI_Comm_rank(vcomm,&mype);
+  MPI_Comm_size(vcomm,&vcomm_size);
 
   stepper->step(0);
-  s->vext->reverse();
-  const vector<vector<double> > rhor2 = cd.rhor;  // density under -Vext
+  const vector<vector<double> > rhor1 = cd.rhor;  // density with +Vext
 
-  // compute drho_r as rhor1 - rhor2
+  s->vext->reverse();
+
+  stepper->step(0);
+  const vector<vector<double> > rhor2 = cd.rhor;  // density with -Vext
+  s->vext->reverse();
+
+  // restore initial wave functions
+  s->wf = wf0;
+
+  // compute drho_r = rhor1 - rhor2
   const int np012loc = cd.vft()->np012loc();
   const double omega = cd.vbasis()->cell().volume();
   const double omega_inv = 1.0 / omega;
@@ -287,8 +228,6 @@ void ResponseCmd::responseVext(int nitscf, int nite, bool parallel_write)
   drho_r_tmp.resize(nspin);
   for ( int ispin = 0; ispin < nspin; ispin++ )
   {
-    assert(rhor1[ispin].size() == np012loc);
-    assert(rhor2[ispin].size() == np012loc);
     drho_r[ispin].resize(np012loc);
     drho_r_tmp[ispin].resize(np012loc);
     for ( int ir = 0; ir < np012loc; ir++ )
@@ -298,14 +237,14 @@ void ResponseCmd::responseVext(int nitscf, int nite, bool parallel_write)
     }
   }
 
-  // Fourier (forward) transform drho_r to the basis that is compatible
-  // with the grid size of the external potential.
+  // Fourier (forward) transform drho_r to the basis compatible
+  // with the vext grid size
   const UnitCell& cell = cd.vbasis()->cell();
   const double ecut = s->vext->ecut();
   const int np0 = cd.vft()->np0();
   const int np1 = cd.vft()->np1();
   const int np2 = cd.vft()->np2();
-  Basis basis(cd.vcomm(),D3vector(0,0,0));
+  Basis basis(vcomm,D3vector(0,0,0));
   basis.resize(cell,cell,ecut);
   FourierTransform ft1 (basis,np0,np1,np2);
 
@@ -317,13 +256,13 @@ void ResponseCmd::responseVext(int nitscf, int nite, bool parallel_write)
     ft1.forward(&drho_r_tmp[ispin][0],&drho_g[ispin][0]);
   }
 
-  // Fourier (backward) transform drho_g to drho_r the grid
-  // (n0,n1,n2), which is the grid of vext
+  // Fourier (backward) transform drho_g to drho_r on the
+  // vext grid (n0,n1,n2)
   const int n0 = s->vext->n(0);
   const int n1 = s->vext->n(1);
   const int n2 = s->vext->n(2);
   const int n012 = n0 * n1 * n2;
-  FourierTransform ft2 (basis, n0, n1, n2);
+  FourierTransform ft2(basis, n0, n1, n2);
   const int n012loc = ft2.np012loc();
 
   for ( int ispin = 0; ispin < nspin; ispin++ )
@@ -333,119 +272,48 @@ void ResponseCmd::responseVext(int nitscf, int nite, bool parallel_write)
     ft2.backward(&drho_g[ispin][0],&drho_r_tmp[ispin][0]);
     for ( int ir = 0; ir < drho_r[ispin].size(); ir++ )
     {
-      // return drhor scaled by 1/(2*amplitude)
-      drho_r[ispin][ir] = 0.5 * real( drho_r_tmp[ispin][ir] * omega_inv ) / abs(s->vext->amplitude());
+      drho_r[ispin][ir] = 0.5 * real( drho_r_tmp[ispin][ir] * omega_inv ) /
+                          s->vext->amplitude();
     }
   }
 
-  const Context& ctxt = *(s->wf.spincontext());
-  ctxt.barrier();
+  // collect parts of drho_r to first task on column context and write
+  vector<double> rbuf;
+  if ( mype == 0 )
+    rbuf.resize(ft2.np012());
+
+  vector<int> rcounts(vcomm_size,0);
+  vector<int> displs(vcomm_size,0);
+  int displ = 0;
+  for ( int iproc = 0; iproc < vcomm_size; iproc++ )
+  {
+    displs[iproc] = displ;
+    displ += ft2.np012loc(iproc);
+    rcounts[iproc] = ft2.np012loc(iproc);
+  }
+
+  ofstream os;
   if ( ui->onpe0() )
-    cout << "  ResponseCmd: density response has been"
-         << " interpolated from grid size \n"
-         << " (" << np0 << ", " << np1 << ", " << np2 << ")"
-         << " to (" << n0 << ", " << n1 << ", " << n2 << ") \n";
-
-  // trace out spin degree of freedom. later we may consider spin polarized situation
-  if ( nspin == 2 )
   {
-    for ( int ir = 0; ir < drho_r[0].size(); ir++)
-      drho_r[0][ir] += drho_r[1][ir];
-    drho_r.resize(1);
-  }
-
-  if ( ctxt.mycol() == 0 )
-  {
-    MPI_Comm col_comm = basis.comm();
-    string label = "density_response";
     string filename = s->vext->filename() + ".response";
-    writeRealSpaceFunction(col_comm,drho_r[0],ft2,label,filename,parallel_write);
+    os.open(filename.c_str());
   }
+
+  for ( int ispin = 0; ispin < nspin; ispin++ )
+  {
+    MPI_Gatherv(&drho_r[ispin][0],ft2.np012loc(),MPI_DOUBLE,&rbuf[0],
+                &rcounts[0],&displs[0],MPI_DOUBLE,0,vcomm);
+
+    if  ( ui->onpe0() )
+    {
+      os << n0 << " " << n1 << " " << n2 << " " << endl;
+      for ( int ir = 0; ir < rbuf.size(); ir++ )
+        os << setprecision(12) << std::scientific << rbuf[ir] << endl;
+    }
+  }
+
+  if ( ui->onpe0() )
+    os.close();
 
   delete stepper;
-}
-
-void writeRealSpaceFunction(const MPI_Comm& comm, vector<double>& fr,
-                            const FourierTransform& ft,
-                            const string label,
-                            const string filename, const bool parallel)
-{
-  // This function write a real space function fr that is
-  // distributed among first column of processes to an xml file
-  // comm is the communicator for the FIRST COLUMN of the process grid
-  // ft is used to determine how fr is stored at each process
-  // If parallel is true, file will be written in parallel with base64 encoding,
-  // otherwise file will be written by process 0 in text format.
-
-  assert ( fr.size() == ft.np012loc() );
-  int rank, size;
-  MPI_Comm_rank(comm, &rank);
-  MPI_Comm_size(comm, &size);
-  bool onpe0 = rank == 0;
-
-  if ( parallel )
-  {
-    // todo: implement MPI write, similar to SlaterDet::write()
-  }
-  else
-  {
-    // process 0 collects fr from all processes on column 0 and then write to file
-    void* sbuf;
-    void* rbuf;
-    vector<int> rcounts(size,0);
-    vector<int> displs(size,0);
-    int displ = 0;
-    for ( int iproc = 0; iproc < size; iproc++ )
-    {
-      displs[iproc] = displ;
-      displ += ft.np012loc(iproc);
-      rcounts[iproc] = ft.np012loc(iproc);
-    }
-    if ( onpe0 )
-    {
-      fr.resize(ft.np012(), 0.0);
-      sbuf = MPI_IN_PLACE;
-      rbuf = &fr[0];
-    }
-    else
-      sbuf = &fr[0];
-
-    MPI_Gatherv(sbuf,ft.np012loc(),MPI_DOUBLE,rbuf,
-                &rcounts[0],&displs[0],MPI_DOUBLE,0,comm);
-  } // if parallel
-
-
-  // write output file
-  stringstream header, trailer;
-  header << "<" << label << " type=\"double\" nx=\"" << ft.np0()
-         << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\"";
-  trailer << "</" << label << ">";
-
-
-  if ( parallel )
-  {
-    header << " encoding=\"base64\">\n";
-
-  }
-  else
-  {
-    if  (onpe0 )
-    {
-      ofstream os;
-      os.open(filename.c_str());
-      header << " encoding=\"text\">\n";
-      os << header.str();
-
-      for ( int ir = 0; ir < fr.size(); ir++ )
-        os << setprecision(12) << std::scientific << fr[ir] << endl;
-
-      os << trailer.str();
-      os.close();
-    }
-  } // if parallel
-  if ( onpe0 )
-  {
-    cout << " ResponseCmd: charge density response has been written in: "
-         << filename << endl;
-  }
 }

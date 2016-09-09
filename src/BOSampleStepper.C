@@ -46,7 +46,7 @@ using namespace std;
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) :
   SampleStepper(s), cd_(s.wf), ef_(s,cd_),
   dwf(s.wf), wfv(s.wfv), nitscf_(nitscf), nite_(nite),
-  initial_atomic_density(false), initial_density(false), first_step(true) {}
+  update_density_first_(true), update_vxc_(true) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::~BOSampleStepper()
@@ -155,21 +155,8 @@ void BOSampleStepper::initialize_density(void)
       cd_.rhog[1][i] = 0.5 * rhopst[i];
     }
   }
-  initial_atomic_density = true;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void BOSampleStepper:: initialize_density(const vector<vector<double> >& rhor)
-{
-  // initialize cd_ with a given density rhor
-  assert( rhor.size() == cd_.rhor.size() );
-  for ( int ispin = 0; ispin < rhor.size(); ispin++ )
-  {
-    assert( rhor[ispin].size() == cd_.rhor[ispin].size() );
-    for ( int ir = 0; ir < rhor[ispin].size(); ir++ )
-      cd_.rhor[ispin][ir] = rhor[ispin][ir];
-  }
-  initial_density = true;
+  cd_.update_rhor();
+  update_density_first_ = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -762,13 +749,12 @@ void BOSampleStepper::step(int niter)
         if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: start scf iteration" << endl;
 
-        // compute new density in cd_.rhog
+        // update charge density
         tmap["charge"].start();
-        if ( itscf==0 && initial_atomic_density )
-          cd_.update_rhor();
-        else if ( itscf==0 && initial_density )
-          cd_.update_rhog();
-        else
+        // The density is updated at the first step if update_density_first_
+        // is true.
+        // It is always updated after the first step
+        if ( ( update_density_first_ || itscf>0 ) )
           cd_.update_density();
         tmap["charge"].stop();
 
@@ -851,21 +837,24 @@ void BOSampleStepper::step(int niter)
           }
         } // if nite_ > 0
 
+        // update vhxc:
+        // at first scf step:
+        // - update both vh and vxc
+        // at later steps:
+        // - update vh
+        // - update vxc only if update_vxc_ is true
         tmap["update_vhxc"].start();
-        bool freeze_vh;
-        bool freeze_vxc;
-        if ( itscf == 0 && first_step )
-        {
-          // at first SCF iteration, vhxc must be updated
-          freeze_vh = false;
-          freeze_vxc = false;
-        }
+        if ( itscf == 0 )
+          ef_.update_vhxc(compute_stress);
         else
         {
-          freeze_vh = s_.ctrl.freeze_vh;
-          freeze_vxc = s_.ctrl.freeze_vxc;
+          if ( update_vxc_ )
+            ef_.update_vhxc(compute_stress);
+          else
+            // update vh only
+            ef_.update_vh(compute_stress);
         }
-        ef_.update_vhxc(compute_stress, freeze_vh, freeze_vxc);
+
         tmap["update_vhxc"].stop();
 
         // reset stepper only if multiple non-selfconsistent steps
@@ -1128,7 +1117,7 @@ void BOSampleStepper::step(int niter)
         tmap["charge"].stop();
 
         tmap["update_vhxc"].start();
-        ef_.update_vhxc(compute_stress,s_.ctrl.freeze_vh,s_.ctrl.freeze_vxc);
+        ef_.update_vhxc(compute_stress);
         tmap["update_vhxc"].stop();
         const bool compute_forces = true;
         tmap["energy"].start();
@@ -1327,7 +1316,5 @@ void BOSampleStepper::step(int niter)
 
   if ( ntc_extrapolation || asp_extrapolation ) delete wfmm;
 
-  initial_atomic_density = false;
-  initial_density = false;
-  first_step = false;
+  update_density_first_ = false;
 }

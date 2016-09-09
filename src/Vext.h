@@ -49,20 +49,12 @@ class Vext : public Var
       // set vext NULL
       delete s->vext;
       s->vext = 0;
-#ifdef DEBUG
-      if ( ui->onpe0() )
-        cout << " vext set to zero" << endl;
-#endif
     }
     else
     {
       if ( s->vext )
         delete s->vext;
       s->vext = new ExternalPotential(*s,argv[1]);
-#ifdef DEBUG
-      if ( ui->onpe0() )
-        cout << " vext set to" << argv[1] << endl;
-#endif
     }
 
     return 0;

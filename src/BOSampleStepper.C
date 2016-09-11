@@ -1316,5 +1316,5 @@ void BOSampleStepper::step(int niter)
 
   if ( ntc_extrapolation || asp_extrapolation ) delete wfmm;
 
-  update_density_first_ = false;
+  update_density_first_ = true;
 }

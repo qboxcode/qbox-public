@@ -138,6 +138,7 @@ void ResponseCmd::responseEfield(double amplitude, int nitscf, int nite)
     el_enth->set_e_field(e_field_base+e_field[idir]);
     stepper->step(0);
     dipole_p[idir] = el_enth->dipole_total();
+    s->wf = wf0;
 
     el_enth->set_e_field(e_field_base-e_field[idir]);
     stepper->step(0);
@@ -209,6 +210,7 @@ void ResponseCmd::responseVext(bool rpa, int nitscf, int nite)
   stepper->step(0);
   const vector<vector<double> > rhor1 = cd.rhor;  // density with +Vext
 
+  s->wf = wf0;
   s->vext->reverse();
 
   stepper->step(0);

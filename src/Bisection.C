@@ -434,8 +434,8 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
     ctxt_.dmax(1,1,&tmax,1);
     if ( ctxt_.myproc()==0 )
     {
-      cout << "<timing name=\""
-           << (*i).first << "\""
+      string s = "name=\"" + (*i).first + "\"";
+      cout << "<timing " << left << setw(22) << s
            << " min=\"" << setprecision(3) << tmin << "\""
            << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;

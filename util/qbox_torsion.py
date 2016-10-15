@@ -122,6 +122,7 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.readPos1 = 0
       self.readPos2 = 0
       self.readPos3 = 0
+      self.readPos4 = 0
 
 name1 = sys.argv[1]
 name2 = sys.argv[2]

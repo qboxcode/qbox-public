@@ -15,7 +15,6 @@
 // testBasisMapping.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testBasisMapping.C,v 1.4 2008-09-08 15:56:20 fgygi Exp $
 
 #include "Context.h"
 #include "Basis.h"
@@ -54,9 +53,9 @@ int main(int argc, char **argv)
 
     Timer tm;
 
-    Context ctxt(npr,npc);
+    Context ctxt(MPI_COMM_WORLD,npr,npc);
 
-    Basis basis(ctxt,kpoint);
+    Basis basis(ctxt.comm(),kpoint);
     basis.resize(cell,cell,ecut);
 
     cout << " np0=" << basis.np(0)

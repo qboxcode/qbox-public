@@ -10,11 +10,9 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
-// $Id: testjacobi.C,v 1.5 2008-09-08 15:56:20 fgygi Exp $
+// test the Jacobi implementation of the Matrix class
 //
-// test jacobi
-//
-// use: testjacobi
+// use: testjacobi nprow npcol n nb
 //
 
 #include <cassert>
@@ -84,7 +82,7 @@ int main(int argc, char **argv)
   MPI_Bcast(&nb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
   {
-    Context ctxt(nprow,npcol);
+    Context ctxt(MPI_COMM_WORLD,nprow,npcol);
 
     if ( mype == 0 )
     {

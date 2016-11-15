@@ -26,7 +26,9 @@ using namespace std;
 #include "ExternalPotential.h"
 #include "FourierTransform.h"
 #include "ResponseCmd.h"
-#include "mpi.h"
+#include "release.h"
+#include "isodate.h"
+#include "Species.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 int ResponseCmd::action(int argc, char **argv)
@@ -87,6 +89,13 @@ int ResponseCmd::action(int argc, char **argv)
 
     if ( iarg < argc )
       nite = atoi(argv[iarg]);
+
+    if ( nitscf == 0 )
+    {
+      if ( ui->onpe0() )
+        cout << "  ResponseCmd: nitscf = 0, cannot run" << endl;
+      return 1;
+    }
 
     responseVext(rpa,nitscf,nite);
   }
@@ -225,7 +234,7 @@ void ResponseCmd::responseVext(bool rpa, int nitscf, int nite)
   const double omega = cd.vbasis()->cell().volume();
   const double omega_inv = 1.0 / omega;
   vector<vector<double> > drho_r;
-  vector<vector<complex<double> > > drho_r_tmp;  // to be used for FT
+  vector<vector<complex<double> > > drho_r_tmp;
   drho_r.resize(nspin);
   drho_r_tmp.resize(nspin);
   for ( int ispin = 0; ispin < nspin; ispin++ )
@@ -295,27 +304,61 @@ void ResponseCmd::responseVext(bool rpa, int nitscf, int nite)
   }
 
   ofstream os;
-  if ( ui->onpe0() )
+  for ( int ispin=0; ispin < nspin; ispin++ )
   {
-    string filename = s->vext->filename() + ".response";
-    os.open(filename.c_str());
-  }
+    if ( ui->onpe0() )
+    {
+      string filename;
+      if ( nspin == 1 )
+        filename = s->vext->filename() + ".response";
+      else
+        filename = s->vext->filename() + ".response."
+                   + ( (ispin==0) ? "spin0" : "spin1" );
+      os.open(filename.c_str());
+    }
 
-  for ( int ispin = 0; ispin < nspin; ispin++ )
-  {
     MPI_Gatherv(&drho_r[ispin][0],ft2.np012loc(),MPI_DOUBLE,&rbuf[0],
                 &rcounts[0],&displs[0],MPI_DOUBLE,0,vcomm);
 
     if  ( ui->onpe0() )
     {
-      os << n0 << " " << n1 << " " << n2 << " " << endl;
-      for ( int ir = 0; ir < rbuf.size(); ir++ )
-        os << setprecision(12) << std::scientific << rbuf[ir] << endl;
+      // write cube file
+      os << "Created " << isodate() << " by qbox-" << release() << endl;
+      os << "Charge density response under external potential "
+         << s->vext->filename() << endl;
+      // atoms and unit cell
+      int natoms = s->atoms.size();
+      D3vector a0 = s->atoms.cell().a(0);
+      D3vector a1 = s->atoms.cell().a(1);
+      D3vector a2 = s->atoms.cell().a(2);
+      os << natoms << " " << -0.5*(a0+a1+a2) << endl;
+      os << n0 << " " << a0/n0 << endl;
+      os << n1 << " " << a1/n1 << endl;
+      os << n2 << " " << a2/n2 << endl;
+      const int nsp = s->atoms.nsp();
+      for ( int is = 0; is < nsp; is++ )
+      {
+        Species* sp = s->atoms.species_list[is];
+        const int z = sp->atomic_number();
+        const int na = s->atoms.na(is);
+        for ( int ia = 0; ia < na; ia++ )
+        {
+          Atom *ap = s->atoms.atom_list[is][ia];
+          os << setprecision(5);
+          os << z << " " << ((double) z) << " " << ap->position() << endl;
+        }
+      }
+      // charge density response
+      for ( int nx = 0; nx < n0; nx++ )
+        for ( int ny = 0; ny < n1; ny++ )
+          for ( int nz = 0; nz < n2; nz++ )
+          {
+            const int ir = nx + ny * n0 + nz * n0 * n1;
+            os << setprecision(12) << std::scientific << rbuf[ir] << endl;
+          }
+      os.close();
     }
   }
-
-  if ( ui->onpe0() )
-    os.close();
 
   delete stepper;
 }

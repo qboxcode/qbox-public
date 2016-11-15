@@ -41,11 +41,33 @@ void ExternalPotential::update(const ChargeDensity& cd)
     ifstream vfile(filename_.c_str());
     if ( vfile )
     {
-      vfile >> n_[0] >> n_[1] >> n_[2];
-      int n012 = n_[0] * n_[1] * n_[2];
+      string tmp;
+      for ( int i = 0; i < 2; i++ )
+        getline(vfile,tmp);  // skip comments
+
+      int natom;
+      vfile >> natom;
+      getline(vfile,tmp);
+
+      for ( int i = 0; i < 3; i++ )
+      {
+        vfile >> n_[i];
+        getline(vfile,tmp);
+      }
+
+      for ( int i = 0; i < natom; i++)
+        getline(vfile,tmp);  // skip atom coordinates
+
+      const int n012 = n_[0] * n_[1] * n_[2];
+      const int n12 = n_[1] * n_[2];
       vext_read.resize(n012);
-      for ( int i = 0; i < n012; i++ )
-         vfile >> vext_read[i];
+      for ( int nx = 0; nx < n_[0]; nx++ )
+        for ( int ny = 0; ny < n_[1]; ny++ )
+          for ( int nz = 0; nz < n_[2]; nz++ )
+          {
+            const int ir = nx + ny * n_[0] + nz * n_[0] * n_[1];
+            vfile >> vext_read[ir];
+          }
       vfile.close();
     }
     else
@@ -138,4 +160,27 @@ void ExternalPotential::update(const ChargeDensity& cd)
   ft2.backward(&vext_g_[0],&tmp_r[0]);
   for ( int i = 0; i < vext_r_.size(); i++ )
     vext_r_[i] = real(tmp_r[i]);
+}
+
+double ExternalPotential::compute_eext(const ChargeDensity& cd)
+{
+  // Eext =  integral ( rhor * vext_r )
+  double eext = 0.0;
+  double omega = s_.wf.cell().volume();
+  const int np012loc = cd.vft()->np012loc();
+  const int np012 = cd.vft()->np012();
+  const std::vector<std::vector<double> > &rhor = cd.rhor;
+  for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+  {
+    for ( int ir = 0; ir < np012loc; ir++ )
+    {
+      assert( rhor[ispin].size() == np012loc );
+      assert( vext_r_.size() == np012loc );
+      eext += rhor[ispin][ir] * v(ir);
+    }
+  }
+  double eext_sum = 0.0;
+  MPI_Allreduce(&eext,&eext_sum,1,MPI_DOUBLE,MPI_SUM,cd.vbasis()->comm());
+  eext_sum =  eext_sum * omega / np012;
+  return eext_sum;
 }

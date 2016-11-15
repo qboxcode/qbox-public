@@ -30,11 +30,11 @@ class ExternalPotential
   private:
 
   Sample& s_;
-  int n_[3];                         // real space grid size in 3 dimensions
+  int n_[3];               // real space grid size in 3 dimensions
   double ecut_;
   double amplitude_;
-  vector<double> vext_r_;            // vext in real space
-  std::string filename_;             // filename for external potential
+  vector<double> vext_r_;  // vext in real space
+  std::string filename_;   // file name for external potential
 
   public:
 
@@ -50,5 +50,6 @@ class ExternalPotential
   void update(const ChargeDensity& cd);
   void set_amplitude(double a) { amplitude_ = a; }
   void reverse(void) {amplitude_ *= -1; }
+  double compute_eext(const ChargeDensity& cd);
 };
 #endif

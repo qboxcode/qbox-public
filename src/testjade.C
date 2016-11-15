@@ -17,7 +17,6 @@
 // use: testjade nprow npcol m mb
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testjade.C,v 1.4 2008-09-08 15:56:20 fgygi Exp $
 
 #include <cassert>
 #include <cstdlib>
@@ -143,7 +142,7 @@ int main(int argc, char **argv)
   MPI_Bcast(&nb_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
   {
-    Context ctxt(nprow,npcol);
+    Context ctxt(MPI_COMM_WORLD,nprow,npcol);
 
     if ( mype == 0 )
     {

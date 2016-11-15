@@ -348,6 +348,8 @@ void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vxc)
   {
     for ( int i = 0; i < tmp_r.size(); i++ )
       tmp_r[i] += s_.vext->v(i);
+    // update eext_
+    eext_ = s_.vext->compute_eext(cd_);
   }
 
   // compute local potential v_r[ispin][i]
@@ -691,6 +693,8 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
   }
   etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_;
+  if ( s_.vext )
+    etotal_ += eext_;
   enthalpy_ = etotal_;
 
   // Electric enthalpy
@@ -1201,6 +1205,8 @@ void EnergyFunctional::print(ostream& os) const
      << "  <epv>     " << setw(15) << epv() << " </epv>\n"
      << "  <eefield> " << setw(15) << eefield() << " </eefield>\n"
      << "  <enthalpy>" << setw(15) << enthalpy() << " </enthalpy>" << endl;
+  if ( s_.vext )
+    os << "  <eext>    " << setw(15) << eext() << " </eext>" << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

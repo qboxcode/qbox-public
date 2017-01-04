@@ -19,6 +19,9 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <algorithm>
+#include <numeric>
+#include <functional>
 using namespace std;
 
 #include "Basis.h"
@@ -59,16 +62,39 @@ void ExternalPotential::update(const ChargeDensity& cd)
         getline(vfile,tmp);  // skip atom coordinates
 
       const int n012 = n_[0] * n_[1] * n_[2];
-      const int n12 = n_[1] * n_[2];
       vext_read.resize(n012);
+
+      // build a min heap to store the largest values of vext
+      // to compute its magnitude
+      const int heapsize = n012/1000 + 1;  // +1 to avoid getting 0
+      vector<double> heap(heapsize, 0.0);
+
+      double tmp_value;
+      int counter = 0;
       for ( int nx = 0; nx < n_[0]; nx++ )
         for ( int ny = 0; ny < n_[1]; ny++ )
           for ( int nz = 0; nz < n_[2]; nz++ )
           {
+            vfile >> tmp_value;
+            if ( counter < heapsize )
+              heap[counter] = abs(tmp_value);
+            else
+            {
+              if ( counter == heapsize )
+                make_heap(heap.begin(), heap.end());
+              if ( abs(tmp_value) > heap[0] )
+              {
+                pop_heap(heap.begin(), heap.end(), greater<double>());
+                heap[heapsize-1] = abs(tmp_value);
+                push_heap(heap.begin(), heap.end(), greater<double>());
+              }
+            }
             const int ir = nx + ny * n_[0] + nz * n_[0] * n_[1];
-            vfile >> vext_read[ir];
+            vext_read[ir] = tmp_value;
+            counter ++;
           }
       vfile.close();
+      magnitude_ = accumulate(heap.begin(), heap.end(), 0.0) / heapsize;
     }
     else
     {
@@ -86,8 +112,9 @@ void ExternalPotential::update(const ChargeDensity& cd)
          << n_[0] << " " << n_[1] << " " << n_[2] << endl;
   }
 
-  // broadcast sizes to lower rows
+  // broadcast sizes and magnitude to lower rows
   MPI_Bcast(&n_[0],3,MPI_INT,0,vcomm);
+  MPI_Bcast(&magnitude_,1,MPI_DOUBLE,0,vcomm);
 
   // create a Basis compatible with the vext grid read from file
   const Basis* vbasis = cd.vbasis();
@@ -107,6 +134,7 @@ void ExternalPotential::update(const ChargeDensity& cd)
 
   if ( cd_ctxt.onpe0() )
   {
+    cout << "  ExternalPotential::update: magnitude: " << magnitude_ << endl;
     cout << "  ExternalPotential::update: ecut0: " << ecut0 << endl;
     cout << "  ExternalPotential::update: ecut1: " << ecut1 << endl;
     cout << "  ExternalPotential::update: ecut2: " << ecut2 << endl;
@@ -160,6 +188,18 @@ void ExternalPotential::update(const ChargeDensity& cd)
   ft2.backward(&vext_g_[0],&tmp_r[0]);
   for ( int i = 0; i < vext_r_.size(); i++ )
     vext_r_[i] = real(tmp_r[i]);
+
+  if ( amplitude_ == 0.0 )
+  {
+    // If amplitude_ = 0.0, use following scheme to get an amplitude.
+    // Empirically, an absolute magnitude of 1.0E-3 ~ 1.0E-5 hartree for Vext
+    // would be suitable. Here the amplitude is set to scale the
+    // magnitude of vext to be 1.0E-3 hartree
+    amplitude_ = 1.0E-3 / magnitude_;
+    if ( cd_ctxt.onpe0() )
+      cout << "  ExternalPotential::update: amplitude automatically determined to be "
+           << amplitude_ << endl;
+  }
 }
 
 double ExternalPotential::compute_eext(const ChargeDensity& cd)

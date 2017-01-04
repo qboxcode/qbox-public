@@ -32,7 +32,9 @@ class ExternalPotential
   Sample& s_;
   int n_[3];               // real space grid size in 3 dimensions
   double ecut_;
-  double amplitude_;
+  double magnitude_;       // the magnitude of external potential, defined as
+                           // the average of its largest 0.1% (absolute) values
+  double amplitude_;       // overall scaling factor of external potential
   vector<double> vext_r_;  // vext in real space
   std::string filename_;   // file name for external potential
 
@@ -44,6 +46,7 @@ class ExternalPotential
 
   int n(int i) const { return n_[i]; }
   double ecut(void) const { return ecut_; }
+  double magnitude(void) const { return magnitude_; }
   double amplitude(void) const { return amplitude_; }
   std::string filename(void) const { return filename_; }
   double v(size_t i) const { return amplitude_ * vext_r_[i]; }

@@ -486,6 +486,7 @@ void UserInterface::processCmdsServer ( string inputfilename,
     }
 
     // wait before retrying
+    sync();
     usleep(200000);
 
   } // while !done

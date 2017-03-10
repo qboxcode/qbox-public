@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 
     Timer tm;
 
-    Context ctxt(npr,npc);
+    Context ctxt(MPI_COMM_WORLD,npr,npc);
 
     SlaterDet sd(ctxt,kpoint);
     cout << sd.context();

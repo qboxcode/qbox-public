@@ -15,8 +15,6 @@
 // testXMLGFPreprocessor.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testXMLGFPreprocessor.C,v 1.4 2008-09-08 15:56:20 fgygi Exp $
-
 
 #include <iostream>
 #include <cassert>
@@ -41,7 +39,7 @@ int main(int argc, char** argv)
     const int nc = atoi(argv[2]);
     const char* const filename = argv[3];
 
-    Context ctxt(nr,nc); // context on which gfdata is defined
+    Context ctxt(MPI_COMM_WORLD,nr,nc); // context on which gfdata is defined
     DoubleMatrix gfdata(ctxt);
     string xmlcontent;
 

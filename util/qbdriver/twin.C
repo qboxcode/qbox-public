@@ -67,8 +67,7 @@ int main(int argc, char** argv)
 
   for ( int iter = 0; iter < 5; iter++ )
   {
-    cout << " loop start" << endl;
-
+    // loop over servers
     for ( int i = 0; i < ns; i++ )
     {
       wait_for_file(lockfilename[i]);

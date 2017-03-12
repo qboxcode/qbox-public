@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 using namespace std;
 
+void sendCmd(const char *filename, const char *str);
 void wait_for_file(string& lockfilename);
 void wait_for_nofile(string& lockfilename);
 
@@ -49,24 +50,14 @@ int main(int argc, char** argv)
     cout << " qb lock file:   " << lockfilename[i] << endl;
   }
 
-  vector<FILE *> qb_infile(ns);
   ifstream qb_outfile[2];
 
   // send commands to servers to execute the init.i script
   for ( int i = 0; i < ns; i++ )
   {
     wait_for_file(lockfilename[i]);
-    qb_infile[i] = fopen(qb_infilename[i].c_str(),"w");
-    //qb_infile[i].open(qb_infilename[i].c_str(),ios_base::trunc);
-    fprintf(qb_infile[i],"init.i\n");
-    //qb_infile[i] << "init.i" << endl;
-    cout << " sent init.i cmd to server " << i << endl;
-    fclose(qb_infile[i]);
-    //qb_infile[i].close();
-    fsync(fileno(qb_infile[i]));
-    //sync();
+    sendCmd(qb_infilename[i].c_str(),"init.i\n");
     remove(lockfilename[i].c_str());
-    cout << " lock file of server " << i << " removed" << endl;
   }
   usleep(500000);
 
@@ -141,11 +132,7 @@ int main(int argc, char** argv)
       os << "run 0 30" << endl;
 
       // write ostringstream to file
-      qb_infile[i] = fopen(qb_infilename[i].c_str(),"w");
-      fprintf(qb_infile[i],"%s",os.str().c_str());
-      fclose(qb_infile[i]);
-      fsync(fileno(qb_infile[i]));
-
+      sendCmd(qb_infilename[i].c_str(),os.str().c_str());
       remove(lockfilename[i].c_str());
       cout << " lock file " << i << " removed" << endl;
     }
@@ -156,13 +143,8 @@ int main(int argc, char** argv)
   for ( int i = 0; i < ns; i++ )
   {
     wait_for_file(lockfilename[i]);
-    qb_infile[i] = fopen(qb_infilename[i].c_str(),"w");
-    fprintf(qb_infile[i],"quit\n");
-    cout << " sent quit cmd to server " << i << endl;
-    fclose(qb_infile[i]);
-    fsync(fileno(qb_infile[i]));
+    sendCmd(qb_infilename[i].c_str(),"quit\n");
     remove(lockfilename[i].c_str());
-    cout << " lock file " << i << " removed" << endl;
   }
 
   return 0;
@@ -171,7 +153,7 @@ int main(int argc, char** argv)
 void sendCmd(const char *filename, const char *str)
 {
   FILE *fp = fopen(filename,"w");
-  fprintf(fp,str);
+  fprintf(fp,"%s",str);
   fclose(fp);
   fsync(fileno(fp));
 }

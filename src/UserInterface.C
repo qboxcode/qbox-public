@@ -21,16 +21,18 @@
 #include <string>
 #include <list>
 #include <fstream>
-#include <unistd.h> // sync()
+#include <sstream>
+#include <unistd.h> // fsync()
+#include <stdio.h> // fopen(), fclose(), fprintf()
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <sys/stat.h> // stat()
 #include <mpi.h>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 void wait_for_no_file(const string& lockfilename)
 {
-  cerr << " waiting for no " << lockfilename << endl;
+  //cerr << " waiting for no " << lockfilename << endl;
   struct stat statbuf;
   int status;
   do
@@ -293,23 +295,21 @@ void UserInterface::processCmdsServer ( string inputfilename,
   string lockfilename = inputfilename + ".lock";
 
   // in server mode, redirect output to stream qbout
-  streambuf *qbout_buf;
   streambuf *cout_buf;
-  ofstream qbout;
   ifstream qbin;
 
   ofstream tstfile;
+  ostringstream os;
 
   while ( !done )
   {
     if ( onpe0_ )
     {
       // create file to signal that Qbox is waiting for a command on qbin
-      tstfile.open(lockfilename.c_str());
-      tstfile << "1" << endl;
-      tstfile.close();
-      sync();
-      // wait for tstfile to be removed by the driver
+      FILE *lockfile = fopen(lockfilename.c_str(),"w");
+      fprintf(lockfile,"1");
+      fclose(lockfile);
+      fsync(fileno(lockfile));
       usleep(100000);
       wait_for_no_file(lockfilename.c_str());
 
@@ -317,13 +317,14 @@ void UserInterface::processCmdsServer ( string inputfilename,
       qbin.sync();
       qbin.clear();
 
+      // clear os
+      os.str("");
+
       // save copy of cout streambuf
       cout_buf = cout.rdbuf();
-      qbout.open(outputfilename.c_str(),ios_base::trunc);
-      qbout_buf = qbout.rdbuf();
-      // redirect cout
-      cout.rdbuf(qbout_buf);
-      cerr << " processCmdsServer: cout streambuf redirected" << endl;
+      // redirect cout to os
+      cout.rdbuf(os.rdbuf());
+      // cerr << " processCmdsServer: cout streambuf redirected" << endl;
 
       cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
       cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
@@ -480,13 +481,19 @@ void UserInterface::processCmdsServer ( string inputfilename,
       cout << " End of command stream " << endl;
       cout << "</fpmd:simulation>" << endl;
       cout.flush();
-      qbout.close();
+
+      // write ostringstream contents to output file
+      FILE *qboutfile = fopen(outputfilename.c_str(),"w");
+      fprintf(qboutfile,"%s",os.str().c_str());
+      fclose(qboutfile);
+      fsync(fileno(qboutfile));
+
+      // restore cout streambuf
       cout.rdbuf(cout_buf);
-      cerr << " processCmdsServer: cout streambuf reassigned" << endl;
+      // cerr << " processCmdsServer: cout streambuf reassigned" << endl;
     }
 
     // wait before retrying
-    sync();
     usleep(200000);
 
   } // while !done
@@ -495,6 +502,5 @@ void UserInterface::processCmdsServer ( string inputfilename,
   {
     // remove lock file
     remove(lockfilename.c_str());
-    sync();
   }
 }

@@ -5,7 +5,7 @@
 // - reassign the streambuf of std::cout to an ostringstream
 // - write and sync using C library functions
 //
-// This program tests the functionality needed in UserInterface when 
+// This program tests the functionality needed in UserInterface when
 // operating in server mode. In that case, the std::cout stream is redirected
 // to an ostringstream. The contents of the ostringstream are written at the
 // end using C library functions, which allow for the use of the fsync() call.

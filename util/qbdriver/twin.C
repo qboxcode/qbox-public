@@ -15,7 +15,9 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 #include <cstdlib>
+#include <unistd.h> // stat()
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -47,18 +49,22 @@ int main(int argc, char** argv)
     cout << " qb lock file:   " << lockfilename[i] << endl;
   }
 
-  ofstream qb_infile[2];
+  vector<FILE *> qb_infile(ns);
   ifstream qb_outfile[2];
 
   // send commands to servers to execute the init.i script
   for ( int i = 0; i < ns; i++ )
   {
     wait_for_file(lockfilename[i]);
-    qb_infile[i].open(qb_infilename[i].c_str(),ios_base::trunc);
-    qb_infile[i] << "init.i" << endl;
+    qb_infile[i] = fopen(qb_infilename[i].c_str(),"w");
+    //qb_infile[i].open(qb_infilename[i].c_str(),ios_base::trunc);
+    fprintf(qb_infile[i],"init.i\n");
+    //qb_infile[i] << "init.i" << endl;
     cout << " sent init.i cmd to server " << i << endl;
-    qb_infile[i].close();
-    sync();
+    fclose(qb_infile[i]);
+    //qb_infile[i].close();
+    fsync(fileno(qb_infile[i]));
+    //sync();
     remove(lockfilename[i].c_str());
     cout << " lock file of server " << i << " removed" << endl;
   }
@@ -127,32 +133,47 @@ int main(int argc, char** argv)
       double dz = amplitude * (2.0*drand48()-1.0);
 
       // prepare next commands
-      // send next command to server
+      // send next commands to server
 
-      qb_infile[i].open(qb_infilename[i].c_str(),ios_base::trunc);
-      qb_infile[i] << "move C by " << dx << " " << dy << " " << dz << endl;
-      qb_infile[i] << "run 0 30" << endl;
-      qb_infile[i].close();
-      sync();
+      // write all commands into ostringstream os
+      ostringstream os;
+      os << "move C by " << dx << " " << dy << " " << dz << endl;
+      os << "run 0 30" << endl;
+
+      // write ostringstream to file
+      qb_infile[i] = fopen(qb_infilename[i].c_str(),"w");
+      fprintf(qb_infile[i],"%s",os.str().c_str());
+      fclose(qb_infile[i]);
+      fsync(fileno(qb_infile[i]));
+
       remove(lockfilename[i].c_str());
       cout << " lock file " << i << " removed" << endl;
     }
     usleep(100000);
   }
 
+  // send quit command to all servers
   for ( int i = 0; i < ns; i++ )
   {
     wait_for_file(lockfilename[i]);
-    qb_infile[i].open(qb_infilename[i].c_str(),ios_base::trunc);
-    qb_infile[i] << "quit" << endl;
-    qb_infile[i].close();
-    sync();
+    qb_infile[i] = fopen(qb_infilename[i].c_str(),"w");
+    fprintf(qb_infile[i],"quit\n");
     cout << " sent quit cmd to server " << i << endl;
+    fclose(qb_infile[i]);
+    fsync(fileno(qb_infile[i]));
     remove(lockfilename[i].c_str());
     cout << " lock file " << i << " removed" << endl;
   }
 
   return 0;
+}
+////////////////////////////////////////////////////////////////////////////////
+void sendCmd(const char *filename, const char *str)
+{
+  FILE *fp = fopen(filename,"w");
+  fprintf(fp,str);
+  fclose(fp);
+  fsync(fileno(fp));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,15 +1,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// qb_driver_twin.C
+// twin.C
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// use: qb_driver qb_input qb_output
+// use: twin qbin qbout
 //
-// qb_driver sends commands to the server, via the file qb_input_1, qb_input_2
-// It checks for the presence of a link named "qb_input_<n>.lock"
+// twin sends commands to two Qbox servers, via the files qbin_0, qbin_1
+// It checks for the presence of a link named "qbin_<n>.lock"
 // before writing additional commands
-// compile with: g++ -o qb_driver qb_driver.C
+// compile with: g++ -o twin twin.C
 
 #include <fstream>
 #include <iostream>
@@ -23,9 +23,9 @@
 #include <sys/stat.h>
 using namespace std;
 
-void sendCmd(const char *filename, const char *str);
-void wait_for_file(string& lockfilename);
-void wait_for_nofile(string& lockfilename);
+void sendCmd(const string filename, const string cmd);
+void wait_for_file(const string& lockfilename);
+void wait_for_nofile(const string& lockfilename);
 
 int main(int argc, char** argv)
 {
@@ -56,10 +56,10 @@ int main(int argc, char** argv)
   for ( int i = 0; i < ns; i++ )
   {
     wait_for_file(lockfilename[i]);
-    sendCmd(qb_infilename[i].c_str(),"init.i\n");
+    sendCmd(qb_infilename[i],string("init.i\n"));
     remove(lockfilename[i].c_str());
   }
-  usleep(500000);
+  usleep(100000);
 
   // extract element <etotal> from output
   string element_name("etotal");
@@ -132,9 +132,8 @@ int main(int argc, char** argv)
       os << "run 0 30" << endl;
 
       // write ostringstream to file
-      sendCmd(qb_infilename[i].c_str(),os.str().c_str());
+      sendCmd(qb_infilename[i],os.str());
       remove(lockfilename[i].c_str());
-      cout << " lock file " << i << " removed" << endl;
     }
     usleep(100000);
   }
@@ -143,48 +142,44 @@ int main(int argc, char** argv)
   for ( int i = 0; i < ns; i++ )
   {
     wait_for_file(lockfilename[i]);
-    sendCmd(qb_infilename[i].c_str(),"quit\n");
+    sendCmd(qb_infilename[i],string("quit\n"));
     remove(lockfilename[i].c_str());
   }
 
   return 0;
 }
 ////////////////////////////////////////////////////////////////////////////////
-void sendCmd(const char *filename, const char *str)
+void sendCmd(const string filename, const string str)
 {
-  FILE *fp = fopen(filename,"w");
-  fprintf(fp,"%s",str);
+  FILE *fp = fopen(filename.c_str(),"w");
+  fprintf(fp,"%s",str.c_str());
   fclose(fp);
   fsync(fileno(fp));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void wait_for_file(string& lockfilename)
+void wait_for_file(const string& lockfilename)
 {
-  cerr << " waiting for " << lockfilename << endl;
   struct stat statbuf;
   int status;
   do
   {
     // stat returns 0 if the file exists
     status = stat(lockfilename.c_str(),&statbuf);
-    // cout << " status = " << status << endl;
     usleep(100000);
   }
   while ( status != 0 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void wait_for_nofile(string& lockfilename)
+void wait_for_nofile(const string& lockfilename)
 {
-  cerr << " waiting for no " << lockfilename << endl;
   struct stat statbuf;
   int status;
   do
   {
     // stat returns 0 if the file exists
     status = stat(lockfilename.c_str(),&statbuf);
-    // cout << " status = " << status << endl;
     usleep(100000);
   }
   while ( status == 0 );

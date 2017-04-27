@@ -20,10 +20,6 @@
 // Tseng, Lee, Journal of Hydrology, 205 (1998) 38-51
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Author: Martin Schlipf (2013)
-// Contact: martin.schlipf@gmail.com
-//
 
 #include "ExponentialIntegral.h"
 #include <cmath>
@@ -35,7 +31,7 @@ using namespace std;
 namespace util {
 
 // Calculate the exponential integral E_1(x):
-// 
+//
 //        inf
 //          /     -t
 //         |     e
@@ -68,7 +64,7 @@ double E1(const double x) {
 //                          -----
 //                          n = 1
 //
-// where gamma is the Euler constant. 
+// where gamma is the Euler constant.
 // n_cut is set to 25
 // Input:  x - position at which exponential integral is evaluated (x > 0)
 // Return: approximation by series expansion for E_1(x)
@@ -128,12 +124,12 @@ double gauss_laguerre(const double x0) {
 
   // initialize
   double res = 0.0;
-  
+
   // evaluate a_n / ( x_n + x0 )
   for ( int i = 0; i < size; i++ ) {
     res += a[i] / (x[i] + x0);
   }
-  
+
   return res;
 
 }

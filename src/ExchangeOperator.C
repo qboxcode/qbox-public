@@ -35,10 +35,12 @@ using namespace std;
 #define Tag_States 5
 
 ////////////////////////////////////////////////////////////////////////////////
-ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff, const InteractionPotential& interaction_potential )
-: s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf),
+ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff,
+  const InteractionPotential& interaction_potential ) :
+  s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf),
   KPGridPerm_(s), KPGridStat_(s), HFCoeff_(HFCoeff),
-  interaction_potential_(interaction_potential), coulomb_(interaction_potential.coulomb())
+  interaction_potential_(interaction_potential),
+  coulomb_(interaction_potential.coulomb())
 {
   eex_ = 0.0; // exchange energy
   rcut_ = 1.0;  // constant of support function for exchange integration
@@ -853,7 +855,8 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
       }
 
       // divergence corrections
-      const double factor = (coulomb_) ? 1.0 : interaction_potential_.divergence_scaling(rcut_);
+      const double factor = (coulomb_) ? 1.0 :
+        interaction_potential_.divergence_scaling(rcut_);
       const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ ) * factor;
       const double vbz = pow(2.0*M_PI,3.0) / omega;
 
@@ -861,7 +864,8 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
       {
         double div_corr = 0.0;
 
-        const double div_corr_1 = exfac * numerical_correction[iKpi] * occ_ki_[i];
+        const double div_corr_1 = exfac * numerical_correction[iKpi] *
+          occ_ki_[i];
         div_corr += div_corr_1;
         const double e_div_corr_1 = -div_corr_1;
         exchange_sum += e_div_corr_1 * wf.weight(iKpi);
@@ -1636,7 +1640,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // and |rho2(G)|^2*V(|G+q2|) to the exchange energy.
             // factor 2.0: real basis
             const double tg2i = g2i[ig];
-            const double int_pot = ( coulomb_ ) ? tg2i : interaction_potential_(g2[ig]);
+            const double int_pot = ( coulomb_ ) ? tg2i :
+              interaction_potential_(g2[ig]);
             const double factor2 = 2.0;
             const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
             const double t2 = factor2 * norm(rhog2_[ig]) * int_pot;
@@ -1650,7 +1655,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgz = g_z[ig];
               // factor 2.0: derivative of 1/G^2
               const double fac1 = 2.0 * ( coulomb_ ? (t1 * tg2i) :
-                  -factor2 * norm(rhog1_[ig]) * interaction_potential_.derivative(g2[ig]) );
+                -factor2 * norm(rhog1_[ig]) *
+                interaction_potential_.derivative(g2[ig]) );
               sigma_sum_1[0] += fac1 * tgx * tgx;
               sigma_sum_1[1] += fac1 * tgy * tgy;
               sigma_sum_1[2] += fac1 * tgz * tgz;
@@ -1659,7 +1665,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               sigma_sum_1[5] += fac1 * tgz * tgx;
 
               const double fac2 = 2.0 * ( coulomb_ ? (t2 * tg2i) :
-                  -factor2 * norm(rhog2_[ig]) * interaction_potential_.derivative(g2[ig]) );
+                -factor2 * norm(rhog2_[ig]) *
+                interaction_potential_.derivative(g2[ig]) );
               sigma_sum_2[0] += fac2 * tgx * tgx;
               sigma_sum_2[1] += fac2 * tgy * tgy;
               sigma_sum_2[2] += fac2 * tgz * tgz;
@@ -1833,7 +1840,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           }
           for ( int ig = 0; ig < ngloc; ig++ )
           {
-            // no contribution for G=0 as it is treated separately in the divergence correction
+            // no contribution for G=0 as it is treated separately in
+            // the divergence correction
             if ( g2[ig] == 0 )
             {
               rhog1_[ig] = 0;
@@ -1843,7 +1851,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // and |rho2(G)|^2*V(|G|) to the exchange energy.
             // factor 2.0: real basis
             const double tg2i = g2i[ig];
-            const double int_pot = ( coulomb_ ) ? tg2i : interaction_potential_(g2[ig]);
+            const double int_pot = ( coulomb_ ) ? tg2i :
+              interaction_potential_(g2[ig]);
             const double factor2 = 2.0;
             const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
             ex_sum_1 += t1;
@@ -1855,7 +1864,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgz = g_z[ig];
               // factor 2.0: derivative of 1/G^2
               const double fac = 2.0 * ( coulomb_ ? (t1 * tg2i) :
-                  -factor2 * norm(rhog1_[ig]) * interaction_potential_.derivative(g2[ig]) );
+                -factor2 * norm(rhog1_[ig]) *
+                interaction_potential_.derivative(g2[ig]) );
               sigma_sum_1[0] += fac * tgx * tgx;
               sigma_sum_1[1] += fac * tgy * tgy;
               sigma_sum_1[2] += fac * tgz * tgz;
@@ -2152,7 +2162,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       sigma_exhf_[4] += ( fac1 * sigma_sumexp[4] ) / omega;
       sigma_exhf_[5] += ( fac1 * sigma_sumexp[5] ) / omega;
 
-      // rcut*rcut divergence correction (is O(Omega^(-5/3)) for screened Coulomb potential)
+      // rcut*rcut divergence correction (is O(Omega^(-5/3)) for
+      // screened Coulomb potential)
       if ( vbasis_->mype() == 0 and coulomb_ )
       {
         const double div_corr_2 = - exfac * rcut_ * rcut_ * occ_ki_[i];
@@ -2166,7 +2177,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
       // analytical part
       // scaling factor relative to Coulomb potential
-      const double factor = (coulomb_) ? 1.0 : interaction_potential_.divergence_scaling(rcut_);
+      const double factor = (coulomb_) ? 1.0 :
+        interaction_potential_.divergence_scaling(rcut_);
       const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ ) * factor;
       const double vbz = pow(2.0*M_PI,3.0) / omega;
 

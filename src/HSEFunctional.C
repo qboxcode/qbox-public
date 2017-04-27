@@ -26,10 +26,6 @@
 // Schlipf et al.    Phys. Rev. B 84, 125142 (2011)
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Author: Martin Schlipf (2013)
-// Contact: martin.schlipf@gmail.com
-//
 
 #include "HSEFunctional.h"
 #include "ExponentialIntegral.h"

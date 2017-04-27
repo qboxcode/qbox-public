@@ -33,7 +33,7 @@ namespace util {
 static const double series_cutoff = 4.0;
 
 // Calculate the exponential integral E_1(x):
-// 
+//
 //        inf
 //          /     -t
 //         |     e
@@ -56,7 +56,7 @@ double E1(const double x);
 //                          -----
 //                          n = 1
 //
-// where gamma is the Euler constant. 
+// where gamma is the Euler constant.
 // n_cut is set to 25
 // Input:  x - position at which exponential integral is evaluated (x > 0)
 // Return: approximation by series expansion for E_1(x)

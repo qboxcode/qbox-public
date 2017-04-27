@@ -73,7 +73,8 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
     xcp_ = new XCPotential(cd, functional_name);
 
     // create the exchange operator with mixing coeff=0.25
-    xop_ = new ExchangeOperator(s, 0.25, HSEFunctional::make_interaction_potential() );
+    xop_ = new ExchangeOperator(s, 0.25,
+      HSEFunctional::make_interaction_potential() );
     hasPotential_ = true;
     hasGGA_ = xcp_->isGGA();
     hasHF_ = true;

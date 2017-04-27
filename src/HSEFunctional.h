@@ -22,10 +22,7 @@
 // Krukau et al., J. Chem. Phys. 125, 224106 (2006)
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Author: Martin Schlipf (2013)
-// Contact: martin.schlipf@gmail.com
-//
+
 #ifndef HSEFUNCTIONAL_H
 #define HSEFUNCTIONAL_H
 
@@ -40,7 +37,7 @@ class HSEFunctional : public XCFunctional
   // screening parameter of the HSE functional
   static const double omega = 0.11;
 
-  // vectors common to all GGA exchange functionals 
+  // vectors common to all GGA exchange functionals
   std::vector<double> _exc, _exc_up, _exc_dn;
   std::vector<double> _vxc1, _vxc1_up, _vxc1_dn, _vxc2, _vxc2_upup, _vxc2_updn,
     _vxc2_dnup, _vxc2_dndn;

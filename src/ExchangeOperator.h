@@ -177,7 +177,7 @@ class ExchangeOperator
   vector<DoubleMatrix*> uc_;
   vector<long int> localization_;
 
-  // fourier transform of nonlocal potential
+  // Fourier transform of interaction potential
   const InteractionPotential interaction_potential_;
 
   // coulomb potential
@@ -186,7 +186,8 @@ class ExchangeOperator
   public:
 
   // constructor
-  ExchangeOperator(Sample& s_, double HFCoeff, const InteractionPotential& interaction_potential = InteractionPotential() );
+  ExchangeOperator(Sample& s_, double HFCoeff,
+    const InteractionPotential& interaction_potential = InteractionPotential());
 
   // destructor
   ~ExchangeOperator();

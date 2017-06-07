@@ -15,7 +15,6 @@
 // NonLocalPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: NonLocalPotential.h,v 1.9 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef NONLOCALPOTENTIAL_H
 #define NONLOCALPOTENTIAL_H

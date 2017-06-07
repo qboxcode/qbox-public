@@ -15,7 +15,6 @@
 // PrintCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PrintCmd.h,v 1.4 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef PRINTCMD_H
 #define PRINTCMD_H

@@ -15,7 +15,6 @@
 // StrainCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StrainCmd.h,v 1.2 2008-11-14 04:02:08 fgygi Exp $
 
 #ifndef STRAINCMD_H
 #define STRAINCMD_H

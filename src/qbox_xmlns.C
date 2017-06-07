@@ -15,7 +15,6 @@
 // qbox_xmlns.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qbox_xmlns.C,v 1.4 2008-09-08 15:56:20 fgygi Exp $
 
 #include "qbox_xmlns.h"
 std::string qbox_xmlns(void)

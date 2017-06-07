@@ -15,7 +15,6 @@
 //  AngleConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleConstraint.C,v 1.6 2008-09-08 15:56:17 fgygi Exp $
 
 #include "AngleConstraint.h"
 #include "AtomSet.h"

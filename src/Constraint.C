@@ -15,7 +15,6 @@
 //  Constraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Constraint.C,v 1.4 2008-09-08 15:56:18 fgygi Exp $
 
 #include "Constraint.h"
 #include <iostream>

@@ -15,7 +15,6 @@
 //  GlobalExtForce.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: GlobalExtForce.C,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
 #include "GlobalExtForce.h"
 #include "AtomSet.h"

@@ -15,7 +15,6 @@
 // ChargeMixCoeff.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeMixCoeff.h,v 1.6 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef CHARGEMIXCOEFF_H
 #define CHARGEMIXCOEFF_H

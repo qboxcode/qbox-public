@@ -15,7 +15,6 @@
 // SDWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDWavefunctionStepper.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef SDWAVEFUNCTIONSTEPPER_H
 #define SDWAVEFUNCTIONSTEPPER_H

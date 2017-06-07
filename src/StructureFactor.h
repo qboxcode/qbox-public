@@ -15,7 +15,6 @@
 // StructureFactor.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructureFactor.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef STRUCTUREFACTOR_H
 #define STRUCTUREFACTOR_H

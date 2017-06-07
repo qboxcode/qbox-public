@@ -15,7 +15,6 @@
 //  PairExtForce.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PairExtForce.C,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
 #include "PairExtForce.h"
 #include "AtomSet.h"

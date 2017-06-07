@@ -15,7 +15,6 @@
 //  AtomicExtForce.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomicExtForce.C,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
 #include "AtomicExtForce.h"
 #include "AtomSet.h"

@@ -15,7 +15,6 @@
 // sinft.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: sinft.h,v 1.4 2008-09-08 15:56:20 fgygi Exp $
 void sinft(int n, double *y);
 void cosft1(int n, double *y);
 

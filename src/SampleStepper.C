@@ -15,7 +15,6 @@
 // SampleStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleStepper.C,v 1.25 2008-09-08 15:56:19 fgygi Exp $
 
 #include "SampleStepper.h"
 #include "Sample.h"

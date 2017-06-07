@@ -15,7 +15,6 @@
 //  AngleConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleConstraint.h,v 1.8 2009-05-15 04:38:48 fgygi Exp $
 
 #ifndef ANGLECONSTRAINT_H
 #define ANGLECONSTRAINT_H

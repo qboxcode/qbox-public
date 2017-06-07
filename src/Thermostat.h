@@ -15,7 +15,6 @@
 // Thermostat.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Thermostat.h,v 1.7 2010-04-16 21:43:36 fgygi Exp $
 
 #ifndef THERMOSTAT_H
 #define THERMOSTAT_H

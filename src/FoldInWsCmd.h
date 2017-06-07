@@ -15,7 +15,6 @@
 // FoldInWsCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FoldInWsCmd.h,v 1.3 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef FOLDINWSCMD_H
 #define FOLDINWSCMD_H

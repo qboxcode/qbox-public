@@ -15,7 +15,6 @@
 //  ExtForce.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ExtForce.h,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef EXTFORCE_H
 #define EXTFORCE_H

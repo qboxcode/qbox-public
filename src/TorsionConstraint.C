@@ -15,7 +15,6 @@
 //  TorsionConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: TorsionConstraint.C,v 1.6 2008-09-08 15:56:19 fgygi Exp $
 
 #include "TorsionConstraint.h"
 #include "AtomSet.h"

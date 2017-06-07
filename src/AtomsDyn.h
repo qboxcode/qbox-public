@@ -15,7 +15,6 @@
 // AtomsDyn.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomsDyn.h,v 1.7 2009-04-30 22:22:23 fgygi Exp $
 
 #ifndef ATOMSDYN_H
 #define ATOMSDYN_H

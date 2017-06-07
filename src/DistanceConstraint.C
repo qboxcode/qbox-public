@@ -15,7 +15,6 @@
 //  DistanceConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: DistanceConstraint.C,v 1.6 2008-09-08 15:56:18 fgygi Exp $
 
 #include "DistanceConstraint.h"
 #include "AtomSet.h"

@@ -15,7 +15,6 @@
 //  PositionConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PositionConstraint.C,v 1.1 2009-04-30 23:13:39 fgygi Exp $
 
 #include "PositionConstraint.h"
 #include "AtomSet.h"

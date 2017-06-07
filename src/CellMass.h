@@ -15,7 +15,6 @@
 // CellMass.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CellMass.h,v 1.4 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef CELLMASS_H
 #define CELLMASS_H

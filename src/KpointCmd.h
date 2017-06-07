@@ -15,7 +15,6 @@
 // KpointCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: KpointCmd.h,v 1.3 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef KPOINTCMD_H
 #define KPOINTCMD_H

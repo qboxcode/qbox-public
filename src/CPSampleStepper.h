@@ -15,7 +15,6 @@
 // CPSampleStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: CPSampleStepper.h,v 1.7 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef CPSAMPLESTEPPER_H
 #define CPSAMPLESTEPPER_H

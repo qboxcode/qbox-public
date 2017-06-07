@@ -15,7 +15,6 @@
 //  Constraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Constraint.h,v 1.8 2009-05-15 04:38:48 fgygi Exp $
 
 #ifndef CONSTRAINT_H
 #define CONSTRAINT_H

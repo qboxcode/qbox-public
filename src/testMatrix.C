@@ -10,7 +10,6 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
-// $Id: testMatrix.C,v 1.16 2009-11-30 02:22:53 fgygi Exp $
 //
 // test Matrix
 //

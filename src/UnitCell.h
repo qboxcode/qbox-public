@@ -15,7 +15,6 @@
 // UnitCell.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.h,v 1.10 2008-09-15 14:59:58 fgygi Exp $
 
 #ifndef UNITCELL_H
 #define UNITCELL_H

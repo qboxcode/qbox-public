@@ -15,7 +15,6 @@
 //  PositionConstraint.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PositionConstraint.h,v 1.2 2009-05-15 04:38:48 fgygi Exp $
 
 #ifndef POSITIONCONSTRAINT_H
 #define POSITIONCONSTRAINT_H

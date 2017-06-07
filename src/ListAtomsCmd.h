@@ -15,7 +15,6 @@
 // ListAtomsCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ListAtomsCmd.h,v 1.5 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef LISTATOMSCMD_H
 #define LISTATOMSCMD_H

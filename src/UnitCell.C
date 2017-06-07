@@ -15,7 +15,6 @@
 // UnitCell.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.19 2008-09-15 14:59:58 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>

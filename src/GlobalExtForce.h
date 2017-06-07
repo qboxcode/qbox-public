@@ -15,7 +15,6 @@
 //  GlobalExtForce.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: GlobalExtForce.h,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef GLOBALEXTFORCE_H
 #define GLOBALEXTFORCE_H

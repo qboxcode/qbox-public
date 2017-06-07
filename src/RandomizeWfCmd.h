@@ -15,7 +15,6 @@
 // RandomizeWfCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RandomizeWfCmd.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef RANDOMIZEWFCMD_H
 #define RANDOMIZEWFCMD_H

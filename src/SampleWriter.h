@@ -15,7 +15,6 @@
 // SampleWriter.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleWriter.h,v 1.7 2008-09-08 16:26:36 fgygi Exp $
 
 #ifndef SAMPLEWRITER_H
 #define SAMPLEWRITER_H

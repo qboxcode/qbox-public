@@ -15,7 +15,6 @@
 //  PairExtForce.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PairExtForce.h,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef PAIREXTFORCE_H
 #define PAIREXTFORCE_H

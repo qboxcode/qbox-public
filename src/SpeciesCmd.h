@@ -15,7 +15,6 @@
 // SpeciesCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SpeciesCmd.h,v 1.4 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef SPECIESCMD_H
 #define SPECIESCMD_H

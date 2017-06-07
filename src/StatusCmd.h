@@ -15,7 +15,6 @@
 // StatusCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StatusCmd.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef STATUSCMD_H
 #define STATUSCMD_H

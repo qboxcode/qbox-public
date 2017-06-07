@@ -15,7 +15,6 @@
 // qbox_xmlns.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: qbox_xmlns.h,v 1.3 2008-09-08 15:56:20 fgygi Exp $
 
 #ifndef QBOX_XMLNS_H
 #include <string>

@@ -15,7 +15,6 @@
 // ResetVcmCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ResetVcmCmd.h,v 1.4 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef RESETVCMCMD_H
 #define RESETVCMCMD_H

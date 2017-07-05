@@ -16,6 +16,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#define VEXT_TIMING true
+#include <unistd.h>
+
 #include <iostream>
 #include <fstream>
 #include <cassert>
@@ -27,179 +30,314 @@ using namespace std;
 #include "Basis.h"
 #include "ExternalPotential.h"
 #include "FourierTransform.h"
+#include "Base64Transcoder.h"
+
+bool abs_compare(const double &a, const double &b){
+  return (abs(a) < abs(b));
+}
 
 void ExternalPotential::update(const ChargeDensity& cd)
 {
-  const Context &cd_ctxt = cd.context();
+  const Context* ctxt = s_.wf.spincontext();
+  bool onpe0 = ctxt->onpe0();
+  int nprow = ctxt->nprow();
+  int npcol = ctxt->npcol();
+  int myrow = ctxt->myrow();
+  int mycol = ctxt->mycol();
   MPI_Comm vcomm = cd.vcomm();
-  int mype, vcomm_size;
-  MPI_Comm_size(vcomm,&vcomm_size);
-  MPI_Comm_rank(vcomm,&mype);
-  FourierTransform *vft = cd.vft();
-  vector<double> vext_read;
 
-  // All tasks with myrow==0 read the potential
-  if ( mype == 0 )
+#if VEXT_TIMING
+  Timer tm_read_vext, tm_comm_vext;
+  double time, tmin, tmax;
+#endif
+
+  // vext_read stores the whole vext read from processes on row 1
+  // in cube mode and base64_serial mode
+  // vext_read_loc stores the vext distributed to all processors
+  // in base64_parallel mode, vext_read_loc is directly read from file
+  vector<double> vext_read, vext_read_loc;
+
+  // now get vext_read, if base64_parallel mode then skip this step
+#if VEXT_TIMING
+  tm_read_vext.start();
+#endif
+  if ( io_ == "cube" )
   {
-    ifstream vfile(filename_.c_str());
-    if ( vfile )
+    // read cube file, n_'s are determined by cube file
+    if ( myrow == 0 )
     {
-      string tmp;
-      for ( int i = 0; i < 2; i++ )
-        getline(vfile,tmp);  // skip comments
-
+      ifstream vfile(filename_.c_str(), std::ios::in);
+      if (!vfile)
+      {
+        if (mycol == 0)
+          cout << "  ExternalPotential::update: file not found: "
+               << filename_ << endl;
+        ctxt->abort(1);
+      }
+      string tmpstr;
+      for (int i = 0; i < 2; i++)
+        getline(vfile, tmpstr);  // skip comments
       int natom;
       vfile >> natom;
-      getline(vfile,tmp);
-
-      for ( int i = 0; i < 3; i++ )
+      getline(vfile, tmpstr);
+      for (int i = 0; i < 3; i++)
       {
         vfile >> n_[i];
-        getline(vfile,tmp);
+        getline(vfile, tmpstr);
       }
-
-      for ( int i = 0; i < natom; i++)
-        getline(vfile,tmp);  // skip atom coordinates
-
-      const int n012 = n_[0] * n_[1] * n_[2];
-      vext_read.resize(n012);
-
-      // build a min heap to store the largest values of vext
-      // to compute its magnitude
-      const int heapsize = n012/1000 + 1;  // +1 to avoid getting 0
-      vector<double> heap(heapsize, 0.0);
-
-      double tmp_value;
-      int counter = 0;
-      for ( int nx = 0; nx < n_[0]; nx++ )
-        for ( int ny = 0; ny < n_[1]; ny++ )
-          for ( int nz = 0; nz < n_[2]; nz++ )
+      n012_ = n_[0] * n_[1] * n_[2];
+      for (int i = 0; i < natom; i++)
+        getline(vfile, tmpstr);  // skip atom coordinates
+      vext_read.resize(n012_);
+      for (int nx = 0; nx < n_[0]; nx++)
+        for (int ny = 0; ny < n_[1]; ny++)
+          for (int nz = 0; nz < n_[2]; nz++)
           {
-            vfile >> tmp_value;
-            if ( counter < heapsize )
-              heap[counter] = abs(tmp_value);
-            else
-            {
-              if ( counter == heapsize )
-                make_heap(heap.begin(), heap.end());
-              if ( abs(tmp_value) > heap[0] )
-              {
-                pop_heap(heap.begin(), heap.end(), greater<double>());
-                heap[heapsize-1] = abs(tmp_value);
-                push_heap(heap.begin(), heap.end(), greater<double>());
-              }
-            }
             const int ir = nx + ny * n_[0] + nz * n_[0] * n_[1];
-            vext_read[ir] = tmp_value;
-            counter ++;
+            vfile >> vext_read[ir];
           }
       vfile.close();
-      magnitude_ = accumulate(heap.begin(), heap.end(), 0.0) / heapsize;
     }
-    else
-    {
-      if ( cd_ctxt.onpe0() )
-        cout << "  ExternalPotential::update: file not found: "
-             << filename_ << endl;
-      cd.context().abort(1);
-    }
+    MPI_Bcast(&n_[0],3,MPI_INT,0,vcomm);
+    MPI_Bcast(&n012_,1,MPI_INT,0,vcomm);
   }
-  if ( cd_ctxt.onpe0() )
+  else if (io_ == "base64_serial")
   {
-    cout << "  ExternalPotential::update: read external "
-         << "potential from file: " << filename_ << endl;
-    cout << "  ExternalPotential::update: grid size "
-         << n_[0] << " " << n_[1] << " " << n_[2] << endl;
+    if (myrow == 0)
+    {
+      ifstream vfile(filename_.c_str(), std::ios::in | std::ios::binary);
+      if (!vfile)
+      {
+        if (mycol == 0)
+          cout << "  ExternalPotential::update: file not found: "
+               << filename_ << endl;
+        ctxt->abort(1);
+      }
+      Base64Transcoder xcdr;
+      int nchars = xcdr.nchars(n012_ * sizeof(double));
+      char *rbuf = new char[nchars];
+      vfile.seekg(0, ios::end);
+      assert(vfile.tellg() == nchars);
+      vfile.seekg(0, ios::beg);
+      vfile.read(rbuf, nchars);
+//        vector<char> rbuf(istreambuf_iterator<char>(vfile),
+//                          istreambuf_iterator<char>());
+//        assert(rbuf.size() == nchars);
+      vext_read.resize(n012_);
+      xcdr.decode(nchars, rbuf, (byte *) (&vext_read[0]));
+      vfile.close();
+    }
   }
+#if VEXT_TIMING
+  tm_read_vext.stop();
+#endif
+  // now, regardless of io mode, all processes have correct n_
+  // construct 2 Fourier transforms ft1 and ft2 according to n_.
+  // ft1 is used to transform vext_read_loc to vext_g (g space)
+  // ft2 is used to transform vext_g to vext_r_ (r space)
+  // the whole process is a Fourier interpolation/extrapolation
+  // to the charge density grid
 
-  // broadcast sizes and magnitude to lower rows
-  MPI_Bcast(&n_[0],3,MPI_INT,0,vcomm);
-  MPI_Bcast(&magnitude_,1,MPI_DOUBLE,0,vcomm);
-
-  // create a Basis compatible with the vext grid read from file
-  const Basis* vbasis = cd.vbasis();
-  const UnitCell& cell = vbasis->cell();
-  const D3vector b0 = cell.b(0);
-  const D3vector b1 = cell.b(1);
-  const D3vector b2 = cell.b(2);
-
-  // determine largest ecut compatible with grid and current unit cell
+  // first create a Basis compatible with the vext_read from file, ecut is chosen to
+  // be the largest possible value that is compatible with vext and current unit cell
+  const UnitCell& cell = cd.vbasis()->cell();
   int n0max = (n_[0]-2)/2;
   int n1max = (n_[1]-2)/2;
   int n2max = (n_[2]-2)/2;
-  double ecut0 = 0.5 * norm2(b0) * n0max*n0max;
-  double ecut1 = 0.5 * norm2(b1) * n1max*n1max;
-  double ecut2 = 0.5 * norm2(b2) * n2max*n2max;
+  double ecut0 = 0.5 * norm2(cell.b(0)) * n0max*n0max;
+  double ecut1 = 0.5 * norm2(cell.b(1)) * n1max*n1max;
+  double ecut2 = 0.5 * norm2(cell.b(2)) * n2max*n2max;
   ecut_ = min(min(ecut0,ecut1),ecut2);
-
-  if ( cd_ctxt.onpe0() )
-  {
-    cout << "  ExternalPotential::update: magnitude: " << magnitude_ << endl;
-    cout << "  ExternalPotential::update: ecut0: " << ecut0 << endl;
-    cout << "  ExternalPotential::update: ecut1: " << ecut1 << endl;
-    cout << "  ExternalPotential::update: ecut2: " << ecut2 << endl;
-    cout << "  ExternalPotential::update: ecut:  " << ecut_ << endl;
-  }
 
   Basis basis(vcomm,D3vector(0,0,0));
   basis.resize(cell,cell,ecut_);
-  if ( cd_ctxt.onpe0() )
-  {
-    cout << "  ExternalPotential::update: np0: " << basis.np(0) << endl;
-    cout << "  ExternalPotential::update: np1: " << basis.np(1) << endl;
-    cout << "  ExternalPotential::update: np2: " << basis.np(2) << endl;
-  }
 
+  FourierTransform *vft = cd.vft();
   assert(basis.np(0)<=vft->np0());
   assert(basis.np(1)<=vft->np1());
   assert(basis.np(2)<=vft->np2());
 
-  // FourierTransform for vext grid
-  FourierTransform ft(basis,n_[0],n_[1],n_[2]);
+  FourierTransform ft1(basis,n_[0],n_[1],n_[2]);
+  vext_read_loc.resize(ft1.np012loc());
+  vector<complex<double> > vext_g(basis.localsize());
 
-  // scatter parts of vext_read to lower rows
-  vector<double> vext_read_loc(ft.np012loc());
-  vector<int> scounts(vcomm_size,0);
-  vector<int> sdispls(vcomm_size,0);
-  int displ = 0;
-  for ( int iproc = 0; iproc < vcomm_size; iproc++ )
+  FourierTransform ft2(basis,vft->np0(),vft->np1(),vft->np2());
+  vext_r_.resize(ft2.np012loc());
+
+  if ( io_== "base64_parallel" )
   {
-    sdispls[iproc] = displ;
-    scounts[iproc] = ft.np012loc(iproc);
-    displ += ft.np012loc(iproc);
+    // base64_parallel mode: all processor on column 0 read vext to
+    // vext_read_loc in parallel; then bcast to other columns
+    int np012 = ft1.np012();
+    int np012loc = ft1.np012loc();
+    int lastproc = nprow - 1;
+    while ( lastproc >=0 && ft1.np2_loc(lastproc) == 0 ) lastproc --;
+    if ( mycol == 0 )
+    {
+#if VEXT_TIMING
+      tm_read_vext.start();
+#endif
+      Base64Transcoder xcdr;
+      int np012end;
+      MPI_Scan(&np012loc, &np012end, 1, MPI_INT, MPI_SUM, vcomm);
+      int np012start = np012end - np012loc;
+      np012end -= 1;  // because index start from 0
+
+      // for simplicity, let the size of file (in bytes) read by each processor
+      // to be N*sizeof(double)*4, which correspond to N*3 float numbers
+      // denote each 3 floats as a group
+      int groupstart = np012start / 3;
+      int groupend = np012end / 3;
+      int offset = 4*sizeof(double)*groupstart;
+
+      int nfloats, nbytes, nchars;
+      if ( myrow < lastproc )
+      {
+        nfloats = 3 * (groupend - groupstart + 1);
+      }
+      else if ( myrow == lastproc )
+      {
+        nfloats = 3 * (groupend - groupstart) + (np012 - 1) % 3 + 1;
+      }
+      else
+      {
+        nfloats = 0;
+      }
+      if ( myrow < lastproc ) assert(nfloats >= vext_read_loc.size());
+      nbytes = nfloats * sizeof(double);
+      nchars = xcdr.nchars(nbytes);
+      char* rbuf = new char[nchars];
+
+      MPI_File fh;
+      MPI_Info info;
+      MPI_Info_create(&info);
+      int err;
+      err = MPI_File_open(vcomm, (char*) filename_.c_str(),
+                          MPI_MODE_RDONLY , info, &fh);
+      if (err != 0)
+        cout << myrow << ": error in MPI_File_open: " << err << endl;
+      MPI_Status status;
+      err = MPI_File_read_at_all(fh,offset,(void*) &rbuf[0],nchars,
+                                  MPI_CHAR,&status);
+      if ( err != 0 )
+        cout << myrow << ": error in MPI_File_read_at_all: err=" << err << endl;
+      err = MPI_File_close(&fh);
+      if ( err != 0 )
+        cout << myrow << ": error in MPI_File_close: " << err << endl;
+
+      vector<double> tmpr(nfloats);
+      xcdr.decode(nchars, rbuf, (byte*) &tmpr[0]);
+
+      int istart = np012start % 3;
+      int iend = istart + np012loc - 1;
+
+      int j = 0;
+      for ( int i = istart; i <= iend; i++ )
+        vext_read_loc[j++] = tmpr[i];
+#if VEXT_TIMING
+      tm_read_vext.stop();
+#endif
+    } // if mycol == 0
+#if VEXT_TIMING
+    tm_comm_vext.start();
+#endif
+    // bcast vext_read_loc to other columns
+    if ( mycol == 0 )
+      ctxt->dbcast_send('r',np012loc,1,&vext_read_loc[0],np012loc);
+    else
+      ctxt->dbcast_recv('r',np012loc,1,&vext_read_loc[0],np012loc, myrow, 0);
+#if VEXT_TIMING
+    tm_comm_vext.stop();
+#endif
   }
-
-  MPI_Scatterv(&vext_read[0],&scounts[0],&sdispls[0],MPI_DOUBLE,
-               &vext_read_loc[0],ft.np012loc(),MPI_DOUBLE,0,vcomm);
-
-  vector<complex<double> > tmp_r(ft.np012loc());
+  else
+  {
+#if VEXT_TIMING
+    tm_comm_vext.start();
+#endif
+    // base64_serial mode or cube mode: processors on row 0 scatter
+    // vext_read to vext_read_loc on other rows
+    vector<int> scounts(nprow,0);
+    vector<int> sdispls(nprow,0);
+    int displ = 0;
+    for ( int iproc = 0; iproc < nprow; iproc++ )
+    {
+      sdispls[iproc] = displ;
+      scounts[iproc] = ft1.np012loc(iproc);
+      displ += ft1.np012loc(iproc);
+    }
+    MPI_Scatterv(&vext_read[0],&scounts[0],&sdispls[0],MPI_DOUBLE,
+                 &vext_read_loc[0],ft1.np012loc(),MPI_DOUBLE,0,vcomm);
+#if VEXT_TIMING
+    tm_comm_vext.stop();
+#endif
+  }
+  // now vext_read_loc on all processors contains the correct portion of vext
+  // Fourier forward transform vext_read_loc to vext_g
+  vector<complex<double> > tmp_r(ft1.np012loc());
   for ( int ir = 0; ir < tmp_r.size(); ir++ )
     tmp_r[ir] = complex<double>(vext_read_loc[ir],0);
-
-  // compute Fourier coefficients
-  vector<complex<double> > vext_g_(basis.localsize());
-  ft.forward(&tmp_r[0],&vext_g_[0]);
-  // vext_g_ now contains the Fourier coefficients of vext
-
-  // interpolate to vft grid
-  FourierTransform ft2(basis,vft->np0(),vft->np1(),vft->np2());
-  tmp_r.resize(vft->np012loc());
-  vext_r_.resize(tmp_r.size());
-  ft2.backward(&vext_g_[0],&tmp_r[0]);
+  ft1.forward(&tmp_r[0],&vext_g[0]);
+  // Fourier backward transform vext_g_ to vext_r_
+  tmp_r.resize(ft2.np012loc());
+  ft2.backward(&vext_g[0],&tmp_r[0]);
   for ( int i = 0; i < vext_r_.size(); i++ )
     vext_r_[i] = real(tmp_r[i]);
-
+  if ( onpe0 )
+  {
+//    cout << "  ExternalPotential::update: magnitude: " << magnitude_ << endl;
+//    cout << "  ExternalPotential::update: ecut0: " << ecut0 << endl;
+//    cout << "  ExternalPotential::update: ecut1: " << ecut1 << endl;
+//    cout << "  ExternalPotential::update: ecut2: " << ecut2 << endl;
+    cout << "  ExternalPotential::update: read external potential from file:  "
+         << filename_ << endl;
+    cout << "  ExternalPotential::update: grid size n0 = " << n_[0] << ", n1 = " << n_[1]
+         << ", n2 = " << n_[2] << endl;
+    cout << "  ExternalPotential::update: ecut:  " << ecut_ << endl;
+    if ( amplitude_ != 0 )
+      cout << "  ExternalPotential::update: amplitude:  " << amplitude_ << endl;
+//    cout << "  ExternalPotential::update: np0: " << basis.np(0) << endl;
+//    cout << "  ExternalPotential::update: np1: " << basis.np(1) << endl;
+//    cout << "  ExternalPotential::update: np2: " << basis.np(2) << endl;
+  }
   if ( amplitude_ == 0.0 )
   {
     // If amplitude_ = 0.0, use following scheme to get an amplitude.
     // Empirically, an absolute magnitude of 1.0E-3 ~ 1.0E-5 hartree for Vext
     // would be suitable. Here the amplitude is set to scale the
     // magnitude of vext to be 1.0E-3 hartree
+    if (vext_read_loc.size() > 0)
+      magnitude_ = abs(*max_element( vext_read_loc.begin(), vext_read_loc.end(), abs_compare));
+    ctxt->dmax('C',1,1,&magnitude_,1);
+    MPI_Bcast(&magnitude_,1,MPI_DOUBLE,0,vcomm);
     amplitude_ = 1.0E-3 / magnitude_;
-    if ( cd_ctxt.onpe0() )
+    if ( onpe0 )
       cout << "  ExternalPotential::update: amplitude automatically determined to be "
-           << amplitude_ << endl;
+           << amplitude_ << " (max abs value of vext = " << magnitude_ << ")" << endl;
   }
+
+#if VEXT_TIMING
+  time = tm_read_vext.real();
+  tmin = time;
+  tmax = time;
+  ctxt->dmin(1,1,&tmin,1);
+  ctxt->dmax(1,1,&tmax,1);
+  if ( onpe0 )
+  {
+    cout << "  ExternalPotential::update: Time to read vext file "
+         << "min: " << tmin << " max: " << tmax << endl;
+  }
+  time = tm_comm_vext.real();
+  tmin = time;
+  tmax = time;
+  ctxt->dmin(1,1,&tmin,1);
+  ctxt->dmax(1,1,&tmax,1);
+  if ( onpe0 )
+  {
+    cout << "  ExternalPotential::update: Time to communicate vext file "
+         << "min: " << tmin << " max: " << tmax << endl;
+  }
+#endif
 }
 
 double ExternalPotential::compute_eext(const ChargeDensity& cd)

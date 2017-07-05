@@ -31,17 +31,31 @@ class ExternalPotential
 
   Sample& s_;
   int n_[3];               // real space grid size in 3 dimensions
+                           // read from cube file in cube file mode,
+                           // otherwise must be given in constructer
+  int n012_;
   double ecut_;
   double magnitude_;       // the magnitude of external potential, defined as
                            // the average of its largest 0.1% (absolute) values
   double amplitude_;       // overall scaling factor of external potential
   vector<double> vext_r_;  // vext in real space
   std::string filename_;   // file name for external potential
+  std::string io_;          // "cube", "base64_serial" or "base64_parallel"
 
   public:
 
-  ExternalPotential(Sample& s,std::string name): s_(s),
-    filename_(name), ecut_(0.0), amplitude_(1.0) {}
+  ExternalPotential(Sample& s, std::string name, std::string io="cube",
+                    int nx=0, int ny=0, int nz=0):
+    s_(s), filename_(name), ecut_(0.0), amplitude_(0.0), magnitude_(0.0), io_(io){
+    assert( io_ == "cube" || io == "base64_serial" || io == "base64_parallel" );
+    if (io != "cube")
+    {
+      n_[0] = nx;
+      n_[1] = ny;
+      n_[2] = nz;
+      n012_ = n_[0] * n_[1] * n_[2];
+    }
+  }
   ~ExternalPotential() {}
 
   int n(int i) const { return n_[i]; }

@@ -348,7 +348,11 @@ double TorsionConstraint::sigma(D3vector a, D3vector b,
  D3vector c, D3vector d) const
 {
   // compute the constraint function
-  return torsion_angle(a,b,c,d) - angle_;
+  double delta = torsion_angle(a,b,c,d) - angle_;
+  // account for discontinuity at +/- 180 deg
+  if ( delta >  180.0 ) delta -= 360.0;
+  if ( delta < -180.0 ) delta += 360.0;
+  return delta;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

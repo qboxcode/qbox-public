@@ -151,7 +151,7 @@ void skipln(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-const string release="1.5";
+const string release="1.6";
 
 int main(int argc, char** argv)
 {

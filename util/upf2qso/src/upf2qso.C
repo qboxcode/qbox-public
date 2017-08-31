@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2009 The Regents of the University of California
+// Copyright (c) 2009-2017 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -724,6 +724,7 @@ int main(int argc, char** argv)
     cout << "<rquad>0.0</rquad>" << endl;
     cout << "<mesh_spacing>" << mesh_spacing << "</mesh_spacing>" << endl;
 
+    cout.setf(ios::scientific,ios::floatfield);
     for ( int l = 0; l <= qso_lmax; l++ )
     {
       cout << "<projector l=\"" << l << "\" size=\"" << nplin << "\">"
@@ -733,12 +734,12 @@ int main(int argc, char** argv)
       {
         // l == llocal
         for ( int i = 0; i < nplin; i++ )
-          cout << setprecision(12) << vloc_lin[i] << endl;
+          cout << setprecision(10) << vloc_lin[i] << endl;
       }
       else
       {
         for ( int i = 0; i < nplin; i++ )
-          cout << setprecision(12) << vps_lin[iproj[l]][i] << endl;
+          cout << setprecision(10) << vps_lin[iproj[l]][i] << endl;
       }
       cout << "</radial_potential>" << endl;
       // find index j corresponding to angular momentum l
@@ -751,7 +752,7 @@ int main(int argc, char** argv)
       {
         cout << "<radial_function>" << endl;
         for ( int i = 0; i < nplin; i++ )
-          cout << setprecision(12) << wf_lin[j][i] << endl;
+          cout << setprecision(10) << wf_lin[j][i] << endl;
         cout << "</radial_function>" << endl;
       }
       cout << "</projector>" << endl;
@@ -927,6 +928,16 @@ int main(int argc, char** argv)
         cin >> upf_vnl[j][i];
 
       find_end_element(element_name);
+    }
+
+    // compute number of projectors for each l
+    // nproj_l[l] is the number of projectors having angular momentum l
+    vector<int> nproj_l(upf_lmax+1);
+    for ( int l = 0; l <= upf_lmax; l++ )
+    {
+      nproj_l[l] = 0;
+      for ( int ip = 0; ip < upf_nproj; ip++ )
+        if ( upf_proj_l[ip] == l ) nproj_l[l]++;
     }
 
     tag = find_start_element("PP_DIJ");
@@ -1309,6 +1320,7 @@ int main(int argc, char** argv)
       cout << "<rquad>0.0</rquad>" << endl;
       cout << "<mesh_spacing>" << mesh_spacing << "</mesh_spacing>" << endl;
 
+      cout.setf(ios::scientific,ios::floatfield);
       for ( int l = 0; l <= qso_lmax; l++ )
       {
         cout << "<projector l=\"" << l << "\" size=\"" << nplin << "\">"
@@ -1318,12 +1330,12 @@ int main(int argc, char** argv)
         {
           // l == llocal
           for ( int i = 0; i < nplin; i++ )
-            cout << setprecision(12) << vloc_lin[i] << endl;
+            cout << setprecision(10) << vloc_lin[i] << endl;
         }
         else
         {
           for ( int i = 0; i < nplin; i++ )
-            cout << setprecision(12) << vps_lin[iproj[l]][i] << endl;
+            cout << setprecision(10) << vps_lin[iproj[l]][i] << endl;
         }
         cout << "</radial_potential>" << endl;
         // find index j corresponding to angular momentum l
@@ -1336,7 +1348,7 @@ int main(int argc, char** argv)
         {
           cout << "<radial_function>" << endl;
           for ( int i = 0; i < nplin; i++ )
-            cout << setprecision(12) << wf_lin[j][i] << endl;
+            cout << setprecision(10) << wf_lin[j][i] << endl;
           cout << "</radial_function>" << endl;
         }
         cout << "</projector>" << endl;
@@ -1348,9 +1360,182 @@ int main(int argc, char** argv)
     if ( pseudo_type == "NC" )
     {
       cerr << " NC potential" << endl;
-      cerr << " Not implemented " << endl;
+      // output original data in file upf.dat
+      ofstream upf("upf.dat");
+      upf << "# vloc" << endl;
+      for ( int i = 0; i < upf_vloc.size(); i++ )
+        upf << upf_r[i] << " " << upf_vloc[i] << endl;
+      upf << endl << endl;
+      for ( int j = 0; j < upf_nproj; j++ )
+      {
+        upf << "# proj j=" << j << endl;
+        for ( int i = 0; i < upf_vnl[j].size(); i++ )
+          upf << upf_r[i] << " " << upf_vnl[j][i] << endl;
+        upf << endl << endl;
+      }
+
+      upf << "# dij " << endl;
+      for ( int j = 0; j < upf_d.size(); j++ )
+      {
+        upf << j << " " << upf_d[j] << endl;
+      }
+      upf.close();
+
+      // print summary
+      cerr << "PP_INFO:" << endl << upf_pp_info << endl;
+      cerr << "Element: " << upf_symbol << endl;
+      // cerr << "NC: " << upf_ncflag << endl;
+      // cerr << "NLCC: " << upf_nlcc_flag << endl;
+      // cerr << "XC: " << upf_xcf[0] << " " << upf_xcf[1] << " "
+      //      << upf_xcf[2] << " " << upf_xcf[3] << endl;
+      cerr << "Zv: " << upf_zval << endl;
+      cerr << "lmax: " << qso_lmax << endl;
+      cerr << "nproj: " << upf_nproj << endl;
+      cerr << "mesh_size: " << upf_mesh_size << endl;
+
+      // interpolate functions on linear mesh
+
+      // interpolate vloc
+      vector<double> f(upf_mesh_size), fspl(upf_mesh_size);
+
+      // factor 0.5: convert from Ry in UPF to Hartree in QSO
+      for ( int i = 0; i < upf_vloc.size(); i++ )
+        f[i] = 0.5 * upf_vloc[i];
+
+      int n = upf_vloc.size();
+      int bcnat_left = 0;
+      double yp_left = 0.0;
+      int bcnat_right = 1;
+      double yp_right = 0.0;
+      spline(n,&upf_r[0],&f[0],yp_left,yp_right,
+             bcnat_left,bcnat_right,&fspl[0]);
+
+      const double mesh_spacing = 0.01;
+      int nplin = (int) (rcut / mesh_spacing);
+
+      vector<double> vloc_lin(nplin);
+      for ( int i = 0; i < nplin; i++ )
+      {
+        double r = i * mesh_spacing;
+        if ( r >= upf_r[0] )
+          splint(n,&upf_r[0],&f[0],&fspl[0],r,&vloc_lin[i]);
+        else
+          // use value closest to the origin for r=0
+          vloc_lin[i] = 0.5 * upf_vloc[0];
+      }
+
+      // interpolate vnl[j], j=0, nproj-1
+      vector<vector<double> > vnl_lin;
+      vnl_lin.resize(upf_nproj);
+      for ( int j = 0; j < vnl_lin.size(); j++ )
+      {
+        vnl_lin[j].resize(nplin);
+      }
+
+      for ( int j = 0; j < upf_nproj; j++ )
+      {
+        // factor 0.5: convert from Ry in UPF to Hartree in QSO
+        for ( int i = 0; i < upf_vnl.size(); i++ )
+          f[i] = 0.5 * upf_vnl[j][i];
+
+        int n = upf_vloc.size();
+        int bcnat_left = 0;
+        double yp_left = 0.0;
+        int bcnat_right = 1;
+        double yp_right = 0.0;
+        spline(n,&upf_r[0],&f[0],yp_left,yp_right,
+               bcnat_left,bcnat_right,&fspl[0]);
+
+        for ( int i = 0; i < nplin; i++ )
+        {
+          double r = i * mesh_spacing;
+          if ( r >= upf_r[0] )
+            splint(n,&upf_r[0],&f[0],&fspl[0],r,&vnl_lin[j][i]);
+          else
+            vnl_lin[j][i] = 0.5 * upf_vnl[j][0];
+        }
+      }
+
+      // write local potential and projectors in gnuplot format on file vlin.dat
+      ofstream vlin("vlin.dat");
+      vlin << "# vlocal" << endl;
+      for ( int i = 0; i < nplin; i++ )
+        vlin << vloc_lin[i] << endl;
+      vlin << endl << endl;
+      for ( int iproj = 0; iproj < vnl_lin.size(); iproj++ )
+      {
+        vlin << "# projector, l=" << upf_proj_l[iproj] << endl;
+        for ( int i = 0; i < nplin; i++ )
+          vlin << i*mesh_spacing << " " << vnl_lin[iproj][i] << endl;
+        vlin << endl << endl;
+      }
+
+      // Generate QSO file
+
+      // output potential in QSO format
+      cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+      cout << "<fpmd:species xmlns:fpmd=\"http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0\"" << endl;
+      cout << "  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"" << endl;
+      cout << "  xsi:schemaLocation=\"http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"  << endl;
+      cout << "  species.xsd\">" << endl;
+      cout << "<description>" << endl;
+      cout << "Translated from UPF format by upf2qso" << endl;
+      cout << upf_pp_info;
+      cout << "</description>" << endl;
+      cout << "<symbol>" << upf_symbol << "</symbol>" << endl;
+      cout << "<atomic_number>" << atomic_number << "</atomic_number>" << endl;
+      cout << "<mass>" << mass << "</mass>" << endl;
+      cout << "<norm_conserving_semilocal_pseudopotential>" << endl;
+      cout << "<valence_charge>" << upf_zval << "</valence_charge>" << endl;
+      cout << "<mesh_spacing>" << mesh_spacing << "</mesh_spacing>" << endl;
+
+      cout.setf(ios::scientific,ios::floatfield);
+      // local potential
+      cout << "<local_potential size=\"" << nplin << "\">" << endl;
+      for ( int i = 0; i < nplin; i++ )
+        cout << setprecision(10) << vloc_lin[i] << endl;
+      cout << "</local_potential>" << endl;
+
+      // projectors
+      int ip = 0;
+      for ( int l = 0; l <= upf_lmax; l++ )
+      {
+        for ( int i = 0; i < nproj_l[l]; i++ )
+        {
+          cout << "<projector l=\"" << l << "\" i=\""
+               << i+1 << "\" size=\"" << nplin << "\">"
+               << endl;
+          for ( int j = 0; j < nplin; j++ )
+            cout << setprecision(10) << vnl_lin[ip][j] << endl;
+          ip++;
+          cout << "</projector>" << endl;
+        }
+      }
+
+      // d_ij
+      int ibase = 0;
+      int jbase = 0;
+      for ( int l = 0; l <= upf_lmax; l++ )
+      {
+        for ( int i = 0; i < upf_nproj; i++ )
+          for ( int j = 0; j < upf_nproj; j++ )
+          {
+            if ( (upf_proj_l[i] == l) && (upf_proj_l[j] == l) )
+            {
+              int ij = i + j*upf_nproj;
+              cout << "<d_ij l=\"" << l << "\""
+                   << " i=\"" << i-ibase+1 << "\" j=\"" << j-jbase+1
+                   << "\" " << setprecision(10) << 0.5*upf_d[ij] << " />"
+                   << endl;
+            }
+          }
+        ibase += nproj_l[l];
+        jbase += nproj_l[l];
+      }
+
+      cout << "</norm_conserving_semilocal_pseudopotential>" << endl;
+      cout << "</fpmd:species>" << endl;
     }
   } // version 1 or 2
   return 0;
 }
-

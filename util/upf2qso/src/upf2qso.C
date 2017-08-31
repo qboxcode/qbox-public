@@ -257,10 +257,9 @@ int main(int argc, char** argv)
     is.clear();
     is.str(buf);
     is >> upf_nlcc_flag;
-    if ( upf_nlcc_flag != "F" )
+    if ( upf_nlcc_flag == "T" )
     {
       cerr << " Potential includes a non-linear core correction" << endl;
-      return 1;
     }
 
     // XC functional (add in description)
@@ -338,6 +337,18 @@ int main(int argc, char** argv)
      cin >> upf_rab[i];
     seek_str("</PP_RAB>");
     seek_str("</PP_MESH>");
+
+    vector<double> upf_nlcc;
+    if ( upf_nlcc_flag == "T" )
+    {
+      upf_nlcc.resize(upf_mesh_size);
+      seek_str("<PP_NLCC>");
+      skipln();
+      vector<double> upf_nlcc(upf_mesh_size);
+      for ( int i = 0; i < upf_mesh_size; i++ )
+        cin >> upf_nlcc[i];
+      seek_str("</PP_NLCC>");
+    }
 
     seek_str("<PP_LOCAL>");
     skipln();
@@ -471,8 +482,6 @@ int main(int argc, char** argv)
     cerr << "nwf: " << upf_nwf << endl;
     cerr << "mesh_size: " << upf_mesh_size << endl;
 
-    // interpolate functions on linear mesh
-
     // compute delta_vnl[l][i] on the upf log mesh
 
     // divide the projector function by the wavefunction, except if
@@ -523,9 +532,38 @@ int main(int argc, char** argv)
         vps[j][i] = upf_vloc[i] + delta_vnl[j][i];
     }
 
-    // interpolate vloc
+    // interpolate functions on linear mesh
+    const double mesh_spacing = 0.01;
+    int nplin = (int) (rcut / mesh_spacing);
     vector<double> f(upf_mesh_size), fspl(upf_mesh_size);
 
+    vector<double> nlcc_lin(nplin);
+    // interpolate NLCC
+    if ( upf_nlcc_flag == "T" )
+    {
+      assert(upf_mesh_size==upf_nlcc.size());
+      for ( int i = 0; i < upf_nlcc.size(); i++ )
+      f[i] = upf_nlcc[i];
+      int n = upf_nlcc.size();
+      int bcnat_left = 0;
+      double yp_left = 0.0;
+      int bcnat_right = 1;
+      double yp_right = 0.0;
+      spline(n,&upf_r[0],&f[0],yp_left,yp_right,
+             bcnat_left,bcnat_right,&fspl[0]);
+
+      for ( int i = 0; i < nplin; i++ )
+      {
+        double r = i * mesh_spacing;
+        if ( r >= upf_r[0] )
+          splint(n,&upf_r[0],&f[0],&fspl[0],r,&nlcc_lin[i]);
+        else
+          // use value closest to the origin for r=0
+          nlcc_lin[i] = upf_nlcc[0];
+      }
+    }
+
+    // interpolate vloc
     // factor 0.5: convert from Ry in UPF to Hartree in QSO
     for ( int i = 0; i < upf_vloc.size(); i++ )
       f[i] = 0.5 * upf_vloc[i];
@@ -537,9 +575,6 @@ int main(int argc, char** argv)
     double yp_right = 0.0;
     spline(n,&upf_r[0],&f[0],yp_left,yp_right,
            bcnat_left,bcnat_right,&fspl[0]);
-
-    const double mesh_spacing = 0.01;
-    int nplin = (int) (rcut / mesh_spacing);
 
     vector<double> vloc_lin(nplin);
     for ( int i = 0; i < nplin; i++ )
@@ -725,6 +760,14 @@ int main(int argc, char** argv)
     cout << "<mesh_spacing>" << mesh_spacing << "</mesh_spacing>" << endl;
 
     cout.setf(ios::scientific,ios::floatfield);
+    if ( upf_nlcc_flag == "T" )
+    {
+      cout << "<core_density size=\"" << nplin << "\">" << endl;
+      for ( int i = 0; i < nplin; i++ )
+        cout << setprecision(10) << nlcc_lin[i] << endl;
+      cout << "</core_density>" << endl;
+    }
+
     for ( int l = 0; l <= qso_lmax; l++ )
     {
       cout << "<projector l=\"" << l << "\" size=\"" << nplin << "\">"
@@ -810,10 +853,9 @@ int main(int argc, char** argv)
 
     // NLCC flag
     string upf_nlcc_flag = get_attr(tag,"core_correction");
-    if ( upf_nlcc_flag != "F" )
+    if ( upf_nlcc_flag == "T" )
     {
       cerr << " Potential includes a non-linear core correction" << endl;
-      return 1;
     }
     cerr << " upf_nlcc_flag = " << upf_nlcc_flag << endl;
 
@@ -886,6 +928,17 @@ int main(int argc, char** argv)
       cin >> upf_rab[i];
     find_end_element("PP_RAB");
     find_end_element("PP_MESH");
+
+    // NLCC
+    vector<double> upf_nlcc;
+    if ( upf_nlcc_flag == "T" )
+    {
+      find_start_element("PP_NLCC");
+      upf_nlcc.resize(upf_mesh_size);
+      for ( int i = 0; i < upf_mesh_size; i++ )
+        cin >> upf_nlcc[i];
+      find_end_element("PP_NLCC");
+    }
 
     find_start_element("PP_LOCAL");
     vector<double> upf_vloc(upf_mesh_size);
@@ -1057,8 +1110,7 @@ int main(int argc, char** argv)
       // print summary
       cerr << "PP_INFO:" << endl << upf_pp_info << endl;
       cerr << "Element: " << upf_symbol << endl;
-      // cerr << "NC: " << upf_ncflag << endl;
-      // cerr << "NLCC: " << upf_nlcc_flag << endl;
+       cerr << "NLCC: " << upf_nlcc_flag << endl;
       //cerr << "XC: " << upf_xcf[0] << " " << upf_xcf[1] << " "
       //     << upf_xcf[2] << " " << upf_xcf[3] << endl;
       cerr << "Zv: " << upf_zval << endl;
@@ -1066,8 +1118,6 @@ int main(int argc, char** argv)
       cerr << "llocal: " << upf_llocal << endl;
       cerr << "nwf: " << upf_nwf << endl;
       cerr << "mesh_size: " << upf_mesh_size << endl;
-
-      // interpolate functions on linear mesh
 
       // compute delta_vnl[l][i] on the upf log mesh
 
@@ -1119,9 +1169,38 @@ int main(int argc, char** argv)
           vps[j][i] = upf_vloc[i] + delta_vnl[j][i];
       }
 
-      // interpolate vloc
+      // interpolate functions on linear mesh
+      const double mesh_spacing = 0.01;
+      int nplin = (int) (rcut / mesh_spacing);
       vector<double> f(upf_mesh_size), fspl(upf_mesh_size);
 
+      // interpolate NLCC
+      vector<double> nlcc_lin(nplin);
+      if ( upf_nlcc_flag == "T" )
+      {
+        assert(upf_mesh_size==upf_nlcc.size());
+        for ( int i = 0; i < upf_nlcc.size(); i++ )
+          f[i] = upf_nlcc[i];
+        int n = upf_nlcc.size();
+        int bcnat_left = 0;
+        double yp_left = 0.0;
+        int bcnat_right = 1;
+        double yp_right = 0.0;
+        spline(n,&upf_r[0],&f[0],yp_left,yp_right,
+               bcnat_left,bcnat_right,&fspl[0]);
+
+        for ( int i = 0; i < nplin; i++ )
+        {
+          double r = i * mesh_spacing;
+          if ( r >= upf_r[0] )
+            splint(n,&upf_r[0],&f[0],&fspl[0],r,&nlcc_lin[i]);
+          else
+            // use value closest to the origin for r=0
+            nlcc_lin[i] = upf_nlcc[0];
+        }
+      }
+
+      // interpolate vloc
       // factor 0.5: convert from Ry in UPF to Hartree in QSO
       for ( int i = 0; i < upf_vloc.size(); i++ )
         f[i] = 0.5 * upf_vloc[i];
@@ -1133,9 +1212,6 @@ int main(int argc, char** argv)
       double yp_right = 0.0;
       spline(n,&upf_r[0],&f[0],yp_left,yp_right,
              bcnat_left,bcnat_right,&fspl[0]);
-
-      const double mesh_spacing = 0.01;
-      int nplin = (int) (rcut / mesh_spacing);
 
       vector<double> vloc_lin(nplin);
       for ( int i = 0; i < nplin; i++ )
@@ -1321,6 +1397,14 @@ int main(int argc, char** argv)
       cout << "<mesh_spacing>" << mesh_spacing << "</mesh_spacing>" << endl;
 
       cout.setf(ios::scientific,ios::floatfield);
+      if ( upf_nlcc_flag == "T" )
+      {
+        cout << "<core_density size=\"" << nplin << "\">" << endl;
+        for ( int i = 0; i < nplin; i++ )
+          cout << setprecision(10) << nlcc_lin[i] << endl;
+        cout << "</core_density>" << endl;
+      }
+
       for ( int l = 0; l <= qso_lmax; l++ )
       {
         cout << "<projector l=\"" << l << "\" size=\"" << nplin << "\">"
@@ -1384,8 +1468,7 @@ int main(int argc, char** argv)
       // print summary
       cerr << "PP_INFO:" << endl << upf_pp_info << endl;
       cerr << "Element: " << upf_symbol << endl;
-      // cerr << "NC: " << upf_ncflag << endl;
-      // cerr << "NLCC: " << upf_nlcc_flag << endl;
+      cerr << "NLCC: " << upf_nlcc_flag << endl;
       // cerr << "XC: " << upf_xcf[0] << " " << upf_xcf[1] << " "
       //      << upf_xcf[2] << " " << upf_xcf[3] << endl;
       cerr << "Zv: " << upf_zval << endl;
@@ -1394,10 +1477,37 @@ int main(int argc, char** argv)
       cerr << "mesh_size: " << upf_mesh_size << endl;
 
       // interpolate functions on linear mesh
-
-      // interpolate vloc
+      const double mesh_spacing = 0.01;
+      int nplin = (int) (rcut / mesh_spacing);
       vector<double> f(upf_mesh_size), fspl(upf_mesh_size);
 
+      // interpolate NLCC
+      vector<double> nlcc_lin(nplin);
+      if ( upf_nlcc_flag == "T" )
+      {
+        assert(upf_mesh_size==upf_nlcc.size());
+        for ( int i = 0; i < upf_nlcc.size(); i++ )
+          f[i] = upf_nlcc[i];
+        int n = upf_nlcc.size();
+        int bcnat_left = 0;
+        double yp_left = 0.0;
+        int bcnat_right = 1;
+        double yp_right = 0.0;
+        spline(n,&upf_r[0],&f[0],yp_left,yp_right,
+               bcnat_left,bcnat_right,&fspl[0]);
+
+        for ( int i = 0; i < nplin; i++ )
+        {
+          double r = i * mesh_spacing;
+          if ( r >= upf_r[0] )
+            splint(n,&upf_r[0],&f[0],&fspl[0],r,&nlcc_lin[i]);
+          else
+            // use value closest to the origin for r=0
+            nlcc_lin[i] = upf_nlcc[0];
+        }
+      }
+
+      // interpolate vloc
       // factor 0.5: convert from Ry in UPF to Hartree in QSO
       for ( int i = 0; i < upf_vloc.size(); i++ )
         f[i] = 0.5 * upf_vloc[i];
@@ -1409,9 +1519,6 @@ int main(int argc, char** argv)
       double yp_right = 0.0;
       spline(n,&upf_r[0],&f[0],yp_left,yp_right,
              bcnat_left,bcnat_right,&fspl[0]);
-
-      const double mesh_spacing = 0.01;
-      int nplin = (int) (rcut / mesh_spacing);
 
       vector<double> vloc_lin(nplin);
       for ( int i = 0; i < nplin; i++ )
@@ -1490,6 +1597,14 @@ int main(int argc, char** argv)
       cout << "<mesh_spacing>" << mesh_spacing << "</mesh_spacing>" << endl;
 
       cout.setf(ios::scientific,ios::floatfield);
+      if ( upf_nlcc_flag == "T" )
+      {
+        cout << "<core_density size=\"" << nplin << "\">" << endl;
+        for ( int i = 0; i < nplin; i++ )
+          cout << setprecision(10) << nlcc_lin[i] << endl;
+        cout << "</core_density>" << endl;
+      }
+
       // local potential
       cout << "<local_potential size=\"" << nplin << "\">" << endl;
       for ( int i = 0; i < nplin; i++ )

@@ -101,6 +101,7 @@ class Wavefunction
   void set_nrowmax(int n);
   void add_kpoint(D3vector kpoint, double weight);
   void del_kpoint(D3vector kpoint);
+  void move_kpoint(D3vector kpoint, D3vector new_kpoint);
 
   void randomize(double amplitude);
 

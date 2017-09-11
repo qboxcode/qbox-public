@@ -43,7 +43,7 @@ class ScfTol : public Var
     }
 
     double v = atof(argv[1]);
-    if ( v <= 0.0 )
+    if ( v < 0.0 )
     {
       if ( ui->onpe0() )
         cout << " scf_tol must be non-negative" << endl;

@@ -41,7 +41,7 @@ class RseedCmd : public Cmd
     return
     "\n rseed\n\n"
     " syntax: rseed [seed_value]\n\n"
-    "   The rseed command initializes the random number generator."
+    "   The rseed command initializes the random number generator.\n"
     "   If no argument is given, the time() function is used as a seed value"
     "\n\n";
   }

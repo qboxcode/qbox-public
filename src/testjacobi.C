@@ -10,7 +10,13 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
-// test the Jacobi implementation of the Matrix class
+////////////////////////////////////////////////////////////////////////////////
+//
+// testjacobi.C
+//
+////////////////////////////////////////////////////////////////////////////////
+//
+// Test the Jacobi implementation of the Matrix class
 //
 // use: testjacobi nprow npcol n nb
 //

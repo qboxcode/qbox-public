@@ -10,8 +10,11 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
+////////////////////////////////////////////////////////////////////////////////
 //
-// test Matrix
+// testMatrix.C
+//
+////////////////////////////////////////////////////////////////////////////////
 //
 // multiply a matrix a(m,k) by b(k,n) to get c(m,n)
 // using blocks of size (mb,nb) on a process grid (nprow,npcol)

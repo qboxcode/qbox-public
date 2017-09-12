@@ -1,4 +1,24 @@
 --------------------------------------------------------------------------------
+rel1_63_9
+--------------------------------------------------------------------------------
+ee9efe5 Fix test for negative scf_tol value
+f47d0c1 New implementation of kpgen
+86be185 Added kpoint move functionality
+dd1a11b Merge branch 'upf2' into develop
+45aea94 Added NLCC functionality
+ac8d7e6 Implemented NL potential in UPF 2 format
+ff8a484 Implemented UPF 2 format for SL potentials
+feb88ae Fix end of line in rseed help msg.
+6309a0a Removed enthalpy_int.plt
+e19b136 Add util/enthalpy.plt script
+8d051ce Added -range option to cell.plt and econste_cmp.plt
+f030ffc Fix file headers
+--------------------------------------------------------------------------------
+rel1_63_8
+--------------------------------------------------------------------------------
+4ee30f9 Fix discontinuity in torsion constraint function
+d2a3c52 Removed $Id strings
+--------------------------------------------------------------------------------
 rel1_63_7
 --------------------------------------------------------------------------------
 r1920: Modified UserInterface.C to use C library, fsync() 

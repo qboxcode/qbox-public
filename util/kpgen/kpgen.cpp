@@ -8,10 +8,13 @@
 //       a2x a2y a2z = third basis vector of the unit cell
 //
 //       nx,ny,nz: number of kpoints in each direction
-//       sx,sy,sz: shift in each direction (floating point)
-//       if shift==0: symmetric set: boundary points not included
-// even-numbered sets do not include the gamma point
-// odd-numbered sets include the gamma point
+//       sx,sy,sz: shift in each direction (floating point in [0,1) )
+//
+// note: from version 2.1 on, sx=sy=sz=0 generates a symmetric set
+// A symmetric set includes the Gamma (k=0) point
+//
+// note: using non-zero shifts with non-rectangular cells breaks symmetry
+// non-zero shifts should only be used with rectangular cells.
 //
 ////////////////////////////////////////////////////////////////////////////////
 #include<iostream>
@@ -22,14 +25,19 @@
 #include "D3vector.h"
 using namespace std;
 
+const char *const version = "2.1";
+
+// largest shift when scanning reciprocal space
+const int shmax=2;
+
 ////////////////////////////////////////////////////////////////////////////////
 // comparison function for k-points
 // two k-points are equal if k1 = k2+G for any G in the first shells
 bool equals(D3vector k1, D3vector k2, D3vector b0, D3vector b1, D3vector b2)
 {
-  for ( int i0 = -2; i0 <= 2; i0++ )
-    for ( int i1 = -2; i1 <= 2; i1++ )
-      for ( int i2 = -2; i2 <= 2; i2++ )
+  for ( int i0 = -shmax; i0 <= shmax; i0++ )
+    for ( int i1 = -shmax; i1 <= shmax; i1++ )
+      for ( int i2 = -shmax; i2 <= shmax; i2++ )
       {
         if ( length(k1-k2-i0*b0-i1*b1-i2*b2) < 1.e-5 )
           return true;
@@ -42,28 +50,27 @@ bool equals(D3vector k1, D3vector k2, D3vector b0, D3vector b1, D3vector b2)
 bool in_BZ(D3vector k, D3vector b0, D3vector b1, D3vector b2)
 {
   // check projection of kpoint k along all reciprocal lattice vectors
-  // in the first two shells
+  // in the first shmax shells
   // use a shift in an irrational direction epsilon*(1,M_PI,M_LN2)
   // to avoid including zone boundary equivalent vectors
   const double epsilon = 1.e-6;
   D3vector kshifted = k + epsilon * D3vector(1.0,M_PI,M_LN2);
-  D3vector g;
-  for ( int i0 = -2; i0 <= 2; i0++ )
-    for ( int i1 = -2; i1 <= 2; i1++ )
-      for ( int i2 = -2; i2 <= 2; i2++ )
-      if ( !(i0 == 0 && i1 == 0 && i2 == 0) )
-      {
-        D3vector g = i0 * b0 + i1 * b1 + i2 * b2;
-        if ( kshifted*g >  0.5 * g*g )
-          return false;
-      }
+  for ( int i0 = -shmax; i0 <= shmax; i0++ )
+    for ( int i1 = -shmax; i1 <= shmax; i1++ )
+      for ( int i2 = -shmax; i2 <= shmax; i2++ )
+        if ( !((i0 == 0) && (i1 == 0) && (i2 == 0)) )
+        {
+          D3vector g = i0 * b0 + i1 * b1 + i2 * b2;
+          if ( kshifted*g >  0.5 * g*g )
+            return false;
+        }
   return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv)
 {
-  cout << "# kpgen 2.0" << endl;
+  cout << "# kpgen " << version << endl;
   if ( argc != 16 )
   {
     cerr << " use: " << argv[0] << " nx ny nz shiftx shifty shiftz {cell}"
@@ -106,14 +113,26 @@ int main(int argc, char** argv)
   D3vector b1 = fac * a2 ^ a0;
   D3vector b2 = fac * a0 ^ a1;
 
+  // check if shifts are used with a non-rectangular cell
+  if ( sx > 0 || sy > 0 || sz > 0 )
+  {
+    if ( (fabs(a0*a1) > 1.e-6) ||
+         (fabs(a1*a2) > 1.e-6) ||
+         (fabs(a0*a2) > 1.e-6) )
+    {
+      cout << " warning: non-zero shifts with non-rectangular cell"
+           << " may break symmetry" << endl;
+    }
+  }
+
   vector<D3vector> kp;
   vector<D3vector> kpfrac;
   vector<double> weight;
 
   // scan volume enclosing the BZ
-  for ( int ii = -2; ii <= 2; ii++ )
-  for ( int jj = -2; jj <= 2; jj++ )
-  for ( int kk = -2; kk <= 2; kk++ )
+  for ( int ii = -shmax; ii <= shmax; ii++ )
+  for ( int jj = -shmax; jj <= shmax; jj++ )
+  for ( int kk = -shmax; kk <= shmax; kk++ )
   for ( int i = 0; i < nx; i++ )
   {
     for ( int j = 0; j < ny; j++ )
@@ -124,9 +143,9 @@ int main(int argc, char** argv)
         int kpint1 = jj*2*ny + 2*j-ny+1;
         int kpint2 = kk*2*nz + 2*k-nz+1;
 
-        double kv0 = (kpint0 + sx)/(2.0*nx);
-        double kv1 = (kpint1 + sy)/(2.0*ny);
-        double kv2 = (kpint2 + sz)/(2.0*nz);
+        double kv0 = (kpint0 + sx + (nx%2+1))/(2.0*nx);
+        double kv1 = (kpint1 + sy + (ny%2+1))/(2.0*ny);
+        double kv2 = (kpint2 + sz + (nz%2+1))/(2.0*nz);
 
         D3vector kv = kv0*b0 + kv1*b1 + kv2*b2;
 
@@ -144,6 +163,7 @@ int main(int argc, char** argv)
   // check for equivalent vectors
   // count vectors that are equivalent to k+G
   cout.setf(ios::fixed,ios::floatfield);
+#if 0
   int nequiv = 0;
   for ( int i = 0; i < kp.size(); i++ )
     for ( int j = i+1; j < kp.size(); j++ )
@@ -158,10 +178,12 @@ int main(int argc, char** argv)
   {
     // there should not be any equivalent points as k=k+G
     cerr << nequiv << " error: equivalent points (k=k+G)" << endl;
-    return 1;
+    //return 1;
   }
+#endif
 
   // count vectors that are equivalent to -k+G
+#if 0
   int nequivm = 0;
   for ( int i = 0; i < kp.size(); i++ )
     for ( int j = i+1; j < kp.size(); j++ )
@@ -170,13 +192,26 @@ int main(int argc, char** argv)
         nequivm++;
         //cout << setprecision(3)
         //     << kpfrac[i] << " equiv " << kpfrac[j] << endl;
-
       }
-#if DEBUG
   cout << nequivm << " equivalent points (k=-k+G)" << endl;
 #endif
 
-  // reassign weight from equivalent points
+  // check duplicates
+#if 0
+  int ndup = 0;
+  for ( int i = 0; i < kp.size(); i++ )
+    for ( int j = i+1; j < kp.size(); j++ )
+      if ( length(kp[i]-kp[j]) < 1.e-5 )
+      {
+        ndup++;
+        cout << setprecision(3)
+             << kpfrac[i] << " duplicate of " << kpfrac[j] << endl;
+      }
+  cout << "# " << ndup << " duplicates" << endl;
+#endif
+
+#if 1
+  // reassign weight from (k,-k+G) equivalent points
   for ( int i = 0; i < kp.size(); i++ )
   {
     if ( weight[i] != 0.0 )
@@ -192,6 +227,12 @@ int main(int argc, char** argv)
       }
     }
   }
+#endif
+
+  // count k points with non-zero weight
+  int nkp = 0;
+  for ( int i = 0; i < weight.size(); i++ )
+    if ( weight[i] > 0.0 ) nkp++;
 
   // output list
   // kpoints are output in reciprocal lattice coordinates
@@ -205,7 +246,7 @@ int main(int argc, char** argv)
   cout << "# b1/(2pi): " << b1/(2*M_PI) << endl;
   cout << "# b2/(2pi): " << b2/(2*M_PI) << endl;
 
-  cout << "# " << kp.size()-nequivm << " k-points" << endl;
+  cout << "# " << nkp << " k-points" << endl;
   cout << " kpoint delete 0 0 0" << endl;
 
   // print list backward to have increasing x components
@@ -220,6 +261,7 @@ int main(int argc, char** argv)
       double kz = kpfrac[i].z;
       // print -k to have positive coefficients in output
       // change sign only if component is non-zero to avoid -0.00 in output
+#if 1
       if ( kx == 0.0 )
       {
         if ( ky == 0.0 )
@@ -238,6 +280,7 @@ int main(int argc, char** argv)
         if ( ky != 0 ) ky = -ky;
         if ( kz != 0 ) kz = -kz;
       }
+#endif
       double w = weight[i]/((double) total_weight);
 
       cout << " kpoint add "

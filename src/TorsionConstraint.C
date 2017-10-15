@@ -326,22 +326,6 @@ void TorsionConstraint::compute_force(const vector<vector<double> > &r0,
   weight_ = 1.0 / sqrt(z);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-ostream& TorsionConstraint::print( ostream &os )
-{
-  os.setf(ios::left,ios::adjustfield);
-  os << " <constraint name=\"" << name();
-  os << "\" type=\"" << type();
-  os << "\" atoms=\"" << name1_ << " ";
-  os << name2_ << " " << name3_ << " " << name4_ << "\"\n";
-  os.setf(ios::fixed,ios::floatfield);
-  os.setf(ios::right,ios::adjustfield);
-  os << "  value=\"" << setprecision(6) << angle_;
-  os << "\" velocity=\"" << setprecision(6) << velocity_ << "\"\n";
-  os << "  force=\"" << setprecision(6) << force_;
-  os << "\" weight=\"" << setprecision(6) << weight_ << "\"/>";
-  return os;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 double TorsionConstraint::sigma(D3vector a, D3vector b,
@@ -405,4 +389,22 @@ double TorsionConstraint::torsion_angle(D3vector a, D3vector b,
     an = (180.0/M_PI) * atan2(ss,cc);
   }
   return an;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+ostream& TorsionConstraint::print( ostream &os )
+{
+  os.setf(ios::left,ios::adjustfield);
+  os << " <constraint name=\"" << name();
+  os << "\" type=\"" << type();
+  os << "\" atoms=\"" << name1_ << " ";
+  os << name2_ << " " << name3_ << " " << name4_ << "\"\n";
+  os.setf(ios::fixed,ios::floatfield);
+  os.setf(ios::right,ios::adjustfield);
+  os << "  velocity=\"" << setprecision(6) << velocity_ << "\"";
+  os << " weight=\"" << setprecision(6) << weight_ << "\">\n";
+  os << "  <value> " << setprecision(6) << angle_ << " </value>";
+  os << " <force> " << setprecision(6) << force_ << " </force>\n";
+  os << " </constraint>";
+  return os;
 }

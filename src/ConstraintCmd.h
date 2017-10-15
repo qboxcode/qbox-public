@@ -45,6 +45,7 @@ class ConstraintCmd : public Cmd
     "   constraint list\n"
     "   constraint enforce\n\n"
     "   Constraints are enforced at each MD step if ions are allowed to move.\n"
+    "   If a distance or angle is replaced by '*', the current value is used.\n"
     "   Velocity parameters are optional.\n\n";
   }
 

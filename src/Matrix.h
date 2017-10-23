@@ -537,6 +537,9 @@ class ComplexMatrix
     // Inverse of a symmetric matrix from Cholesky factor
     void potri(char uplo);
 
+    // Polar decomposition, tolerance ||I-X^H*X||<tol or iter<maxiter
+    void polar(double tol, int maxiter);
+
     // LU decomposition
     void lu(std::valarray<int>& ipiv);
 

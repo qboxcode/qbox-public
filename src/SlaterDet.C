@@ -669,11 +669,46 @@ void SlaterDet::lowdin(void)
   }
   else
   {
-    // complex case: not implemented
-    if ( ctxt_.onpe0() )
-      cout << " SlaterDet::lowdin: not implemented, reverting to Gram-Schmidt"
-           << endl;
-    gram();
+    // complex case
+    ComplexMatrix c_tmp(c_);
+    ComplexMatrix l(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    ComplexMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    ComplexMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+
+    l.clear();
+    l.herk('l','c',1.0,c_,0.0);
+
+    //cout << "SlaterDet::lowdin: A=\n" << l << endl;
+
+    // Cholesky decomposition of A=Y^H Y
+    l.potrf('l');
+    // The lower triangle of l now contains the Cholesky factor of Y^T Y
+
+    //cout << "SlaterDet::lowdin: L=\n" << l << endl;
+
+    // Compute the polar decomposition of R = L^T
+
+    x.transpose(1.0,l,0.0);
+    // x now contains R
+
+    const double tol = 1.e-6;
+    const int maxiter = 3;
+    x.polar(tol,maxiter);
+
+    // x now contains the unitary polar factor U of the
+    // polar decomposition R = UH
+
+    //cout << " SlaterDet::lowdin: unitary polar factor=\n" << x << endl;
+
+    // Compute L^-1
+    l.trtri('l','n');
+    // l now contains L^-1
+
+    // Form the product L^-T U
+    t.gemm('c','n',1.0,l,x,0.0);
+
+    // Multiply c by L^-T U
+    c_.gemm('n','n',1.0,c_tmp,t,0.0);
   }
 }
 
@@ -786,15 +821,105 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 #if TIMING
     tmap["gemm2"].stop();
 #endif
-
   }
   else
   {
-    // complex case: not implemented
-    if ( ctxt_.onpe0() )
-      cout << " SlaterDet::lowdin: not implemented, reverting to riccati"
-           << endl;
-    riccati(sd);
+    // complex case
+    ComplexMatrix c_tmp(c_);
+    const ComplexMatrix& sdc = sd.c();
+    ComplexMatrix l(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    ComplexMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+
+#if TIMING
+    tmap["herk"].reset();
+    tmap["herk"].start();
+#endif
+    l.clear();
+    l.herk('l','c',1.0,c_,0.0);
+#if TIMING
+    tmap["herk"].stop();
+#endif
+
+    // Cholesky decomposition of A=Y^H Y
+#if TIMING
+    tmap["potrf"].reset();
+    tmap["potrf"].start();
+#endif
+    l.potrf('l');
+#if TIMING
+    tmap["potrf"].stop();
+#endif
+    // The lower triangle of l now contains the Cholesky factor of Y^T Y
+
+    //cout << "SlaterDet::ortho_align: L=\n" << l << endl;
+
+    // Compute the polar decomposition of L^-1 B
+    // where B = C^H sd.C
+
+    // Compute B: store result in x
+#if TIMING
+    tmap["gemm"].reset();
+    tmap["gemm"].start();
+#endif
+    x.gemm('c','n',1.0,c_,sdc,0.0);
+#if TIMING
+    tmap["gemm"].stop();
+#endif
+
+    // Form the product L^-1 B, store result in x
+    // triangular solve: L X = B
+    // trtrs: solve op(*this) * X = Z, output in Z
+#if TIMING
+    tmap["trtrs"].reset();
+    tmap["trtrs"].start();
+#endif
+    l.trtrs('l','n','n',x);
+#if TIMING
+    tmap["trtrs"].stop();
+#endif
+    // x now contains L^-1 B
+
+    // compute the polar decomposition of X = L^-1 B
+#if TIMING
+    tmap["polar"].reset();
+    tmap["polar"].start();
+#endif
+    const double tol = 1.e-6;
+    const int maxiter = 2;
+    x.polar(tol,maxiter);
+#if TIMING
+    tmap["polar"].stop();
+#endif
+
+    // x now contains the unitary polar factor X of the
+    // polar decomposition L^-1 B = XH
+
+    //cout << " SlaterDet::ortho_align: unitary polar factor=\n"
+    //     << x << endl;
+
+    // Form the product L^-T Q
+    // Solve trans(L) Z = X
+#if TIMING
+    tmap["trtrs2"].reset();
+    tmap["trtrs2"].start();
+#endif
+    l.trtrs('l','c','n',x);
+#if TIMING
+    tmap["trtrs2"].stop();
+#endif
+
+    // x now contains L^-H Q
+
+    // Multiply c by L^-H Q
+#if TIMING
+    tmap["gemm2"].reset();
+    tmap["gemm2"].start();
+#endif
+    c_.gemm('n','n',1.0,c_tmp,x,0.0);
+#if TIMING
+    tmap["gemm2"].stop();
+#endif
+
   }
 #if TIMING
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
@@ -831,7 +956,7 @@ void SlaterDet::align(const SlaterDet& sd)
     DoubleMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
 
     // Compute the polar decomposition of B
-    // where B = C^T sd.C
+    // where B = C^H sd.C
 
 #if TIMING
     tmap["align_gemm1"].start();
@@ -890,10 +1015,66 @@ void SlaterDet::align(const SlaterDet& sd)
   }
   else
   {
-    // complex case: not implemented
-    if ( ctxt_.onpe0() )
-      cout << " SlaterDet::align: not implemented, alignment skipped"
-           << endl;
+    // complex case
+    ComplexMatrix c_tmp(c_);
+    const ComplexMatrix& sdc = sd.c();
+
+    ComplexMatrix x(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+    ComplexMatrix t(ctxt_,c_.n(),c_.n(),c_.nb(),c_.nb());
+
+    // Compute the polar decomposition of B
+    // where B = C^H sd.C
+
+#if TIMING
+    tmap["align_gemm1"].start();
+#endif
+    // Compute B: store result in x
+    x.gemm('c','n',1.0,c_,sdc,0.0);
+#if TIMING
+    tmap["align_gemm1"].stop();
+#endif
+
+    // x now contains B
+
+    //cout << "SlaterDet::align: B=\n" << x << endl;
+
+    // Compute the distance | c - sdc | before alignment
+    //for ( int i = 0; i < c_proxy.size(); i++ )
+    //  c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
+    //cout << " SlaterDet::align: distance before: "
+    //     << c_tmp_proxy.nrm2() << endl;
+
+    // compute the polar decomposition of B
+    double tol = 1.e-6;
+    const int maxiter = 3;
+#if TIMING
+    tmap["align_polar"].start();
+#endif
+    x.polar(tol,maxiter);
+#if TIMING
+    tmap["align_while"].stop();
+#endif
+
+    // x now contains the unitary polar factor X of the
+    // polar decomposition B = XH
+
+    //cout << " SlaterDet::align: unitary polar factor=\n" << x << endl;
+
+#if TIMING
+    tmap["align_gemm2"].start();
+#endif
+    // Multiply c by X
+    c_tmp = c_;
+    c_.gemm('n','n',1.0,c_tmp,x,0.0);
+#if TIMING
+    tmap["align_gemm2"].stop();
+#endif
+
+    // Compute the distance | c - sdc | after alignment
+    //for ( int i = 0; i < c_proxy.size(); i++ )
+    //  c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
+    //cout << " SlaterDet::align: distance after:  "
+    //     << c_tmp_proxy.nrm2() << endl;
   }
 }
 

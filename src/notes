@@ -1,4 +1,15 @@
 --------------------------------------------------------------------------------
+rel1_63_10
+--------------------------------------------------------------------------------
+058730d Implemented PSDA for complex wave functions
+26c3495 Update printing of electronic charge & net charge
+c102a32 Add testSampleReader program
+8f85701 Add option to define constraint with current value
+35f2374 changed output format of constraint value, force
+e85f85d Changed logic of shifts: zero shifts include Gamma
+25f2f96 Generate xyz file from kpoint file
+718452c Changed bisection tolerance from 1.0 to 0.001
+--------------------------------------------------------------------------------
 rel1_63_9
 --------------------------------------------------------------------------------
 ee9efe5 Fix test for negative scf_tol value

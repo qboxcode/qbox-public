@@ -19,9 +19,12 @@
 #ifndef XCOPERATOR_H
 #define XCOPERATOR_H
 
-#include "Sample.h"
 #include <valarray>
+#include <vector>
+#include <string>
 
+class Sample;
+class Wavefunction;
 class ChargeDensity;
 class XCPotential;
 class ExchangeOperator;
@@ -32,6 +35,7 @@ class XCOperator
   XCPotential* xcp_;
   ExchangeOperator* xop_;
 
+  const Sample& s_;
   const ChargeDensity& cd_;
   double HFmixCoeff_ ;
   double exc_; // XC energy: includes local and HF terms
@@ -42,6 +46,7 @@ class XCOperator
   bool hasPotential_;
   bool hasGGA_;
   bool hasHF_;
+  bool hasMeta_;
 
   public:
 
@@ -59,6 +64,7 @@ class XCOperator
 
   bool hasGGA(void) { return hasGGA_; };
   bool hasHF(void) { return hasHF_; };
+  bool hasMeta(void) { return hasMeta_; };
 
   void update(std::vector<std::vector<double> >& vr, bool compute_stress);
   void apply_self_energy(Wavefunction &dwf);

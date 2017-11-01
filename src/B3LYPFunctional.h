@@ -44,6 +44,7 @@ class B3LYPFunctional : public XCFunctional
   B3LYPFunctional(const std::vector<std::vector<double> > &rhoe);
 
   bool isGGA() const { return true; };
+  bool isMeta() const { return false; };
   std::string name() const { return "B3LYP"; };
   void setxc(void);
 };

@@ -65,11 +65,14 @@ class XCFunctional
 
   const double *rho, *rho_up, *rho_dn;
   double *grad_rho[3], *grad_rho_up[3], *grad_rho_dn[3];
+  double *tau;
   double *exc, *exc_up, *exc_dn;
   double *vxc1, *vxc1_up, *vxc1_dn;
   double *vxc2, *vxc2_upup, *vxc2_dndn, *vxc2_updn, *vxc2_dnup;
+  double *vxc3;
 
   virtual bool isGGA(void) const = 0;
+  virtual bool isMeta(void) const = 0;
   virtual std::string name(void) const = 0;
   int np(void) const { return _np; };
   int nspin(void) const { return _nspin; };
@@ -80,9 +83,11 @@ class XCFunctional
     grad_rho[0] = grad_rho[1] = grad_rho[2] = 0;
     grad_rho_up[0] = grad_rho_up[1] = grad_rho_up[2] = 0;
     grad_rho_dn[0] = grad_rho_dn[1] = grad_rho_dn[2] = 0;
+    tau = 0;
     exc = exc_up = exc_dn = 0;
     vxc1 = vxc1_up = vxc1_dn = 0;
     vxc2 = vxc2_upup = vxc2_dndn = vxc2_updn = vxc2_dnup = 0;
+    vxc3 = 0;
   }
 
   // virtual destructor needed to ensure proper deallocation

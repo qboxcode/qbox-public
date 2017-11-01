@@ -22,6 +22,8 @@
 #include "PBEFunctional.h"
 #include "BLYPFunctional.h"
 #include "B3LYPFunctional.h"
+#include "SCANFunctional.h"
+#include "Sample.h"
 #include "Basis.h"
 #include "FourierTransform.h"
 #include "blas.h" // daxpy, dcopy
@@ -30,7 +32,7 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
-  const Control& ctrl): cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
+  const Sample& s): cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis()), s_(s)
 {
   if ( functional_name == "LDA" )
   {
@@ -50,13 +52,17 @@ XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
   }
   else if ( functional_name == "PBE0" )
   {
-    const double x_coeff = 1.0 - ctrl.alpha_PBE0;
+    const double x_coeff = 1.0 - s_.ctrl.alpha_PBE0;
     const double c_coeff = 1.0;
     xcf_ = new PBEFunctional(cd_.rhor,x_coeff,c_coeff);
   }
   else if ( functional_name == "B3LYP" )
   {
     xcf_ = new B3LYPFunctional(cd_.rhor);
+  }
+  else if ( functional_name == "SCAN" )
+  {
+    xcf_ = new SCANFunctional(cd_.rhor);
   }
   else
   {
@@ -88,6 +94,12 @@ XCPotential::~XCPotential(void)
 bool XCPotential::isGGA(void)
 {
   return xcf_->isGGA();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+bool XCPotential::isMeta(void)
+{
+  return xcf_->isMeta();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -214,6 +226,11 @@ void XCPotential::update(vector<vector<double> >& vr)
         dcopy(&np012loc_,p,  &inc2,grj_up,&inc1);
         dcopy(&np012loc_,p+1,&inc2,grj_dn,&inc1);
       } // j
+    }
+
+    if ( xcf_->isMeta() )
+    {
+      // compute tau
     }
 
     xcf_->setxc();
@@ -525,4 +542,10 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
     sigma_exc[4] = tsum[4];
     sigma_exc[5] = tsum[5];
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void XCPotential::apply_meta_operator(Wavefunction& dwf)
+{
+  // apply meta operator to dwf using xcf_->vxc3
 }

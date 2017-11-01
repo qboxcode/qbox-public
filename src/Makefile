@@ -30,6 +30,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         XCOperator.o ExchangeOperator.o Bisection.o \
 	XCPotential.o LDAFunctional.o VWNFunctional.o \
         PBEFunctional.o BLYPFunctional.o B3LYPFunctional.o  \
+        SCANFunctional.o \
 	NonLocalPotential.o SampleReader.o StructuredDocumentHandler.o \
 	SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \
         XMLGFPreprocessor.o Base64Transcoder.o \
@@ -560,6 +561,8 @@ RunCmd.o: Context.h blacs.h D3vector.h Wavefunction.h UnitCell.h SlaterDet.h
 RunCmd.o: Basis.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
 RunCmd.o: ExtForceSet.h Control.h ChargeDensity.h CPSampleStepper.h
 RunCmd.o: UserInterface.h
+SCANFunctional.o: SCANFunctional.h XCFunctional.h
+SCANFunctional.o: XCFunctional.h
 SDAIonicStepper.o: SDAIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 SDAIonicStepper.o: Context.h blacs.h Atom.h D3vector.h UnitCell.h D3tensor.h
 SDAIonicStepper.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
@@ -702,13 +705,12 @@ XCOperator.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 XCOperator.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h Timer.h
 XCOperator.o: XCPotential.h ExchangeOperator.h SlaterDet.h Basis.h Matrix.h
 XCOperator.o: FourierTransform.h
-XCOperator.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
-XCOperator.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-XCOperator.o: Wavefunction.h Control.h
 XCPotential.o: XCPotential.h Control.h D3vector.h ChargeDensity.h Timer.h
 XCPotential.o: Context.h blacs.h LDAFunctional.h XCFunctional.h
 XCPotential.o: VWNFunctional.h PBEFunctional.h BLYPFunctional.h
-XCPotential.o: B3LYPFunctional.h Basis.h UnitCell.h FourierTransform.h blas.h
+XCPotential.o: B3LYPFunctional.h SCANFunctional.h Sample.h AtomSet.h Atom.h
+XCPotential.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+XCPotential.o: Wavefunction.h Basis.h FourierTransform.h
 XCPotential.o: Control.h D3vector.h ChargeDensity.h Timer.h Context.h blacs.h
 XMLGFPreprocessor.o: Timer.h Context.h blacs.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h

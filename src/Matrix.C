@@ -56,6 +56,7 @@ using namespace std;
 #define pdtrsm     pdtrsm_
 #define pztrsm     pztrsm_
 #define pdtrtrs    pdtrtrs_
+#define pztrtrs    pztrtrs_
 #define pdpotrf    pdpotrf_
 #define pzpotrf    pzpotrf_
 #define pdpotri    pdpotri_
@@ -67,6 +68,7 @@ using namespace std;
 #define pzheev     pzheev_
 #define pzheevd    pzheevd_
 #define pdtrtri    pdtrtri_
+#define pztrtri    pztrtri_
 #define pdlatra    pdlatra_
 #define pdlacp2    pdlacp2_
 #define pdlacp3    pdlacp3_
@@ -102,6 +104,7 @@ using namespace std;
 #define dtrmm      dtrmm_
 #define dtrsm      dtrsm_
 #define dtrtri     dtrtri_
+#define ztrtri     ztrtri_
 #define ztrsm      ztrsm_
 #define dtrtrs     dtrtrs_
 #define dpotrf     dpotrf_
@@ -197,6 +200,9 @@ extern "C"
   void pdtrtrs(const char*, const char*, const char*, const int*, const int*,
                const double*, const int*, const int*, const int*,
                double*, const int*, const int*, const int*, int*);
+  void pztrtrs(const char*, const char*, const char*, const int*, const int*,
+               const complex<double>*, const int*, const int*, const int*,
+               complex<double>*, const int*, const int*, const int*, int*);
   void pigemr2d(const int*,const int*,
                 const int*,const int*,const int*, const int*,
                 int*,const int*,const int*,const int*,const int*);
@@ -248,6 +254,8 @@ extern "C"
                double* rwork, const int* lrwork,
                int* iwork, int* liwork, int* info);
   void pdtrtri(const char*, const char*, const int*, double*,
+               const int*, const int*, const int*, int*);
+  void pztrtri(const char*, const char*, const int*, complex<double>*,
                const int*, const int*, const int*, int*);
   void pdgetrf(const int* m, const int* n, double* val,
                int* ia, const int* ja, const int* desca, int* ipiv, int* info);
@@ -1882,6 +1890,41 @@ void DoubleMatrix::trtrs(char uplo, char trans, char diag,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Solves a triangular system of the form A * X = B or
+// A**T * X = B, where A is a triangular matrix of  order  N,
+// and  B  is an N-by-NRHS matrix.
+// Output in B.
+////////////////////////////////////////////////////////////////////////////////
+void ComplexMatrix::trtrs(char uplo, char trans, char diag,
+                         ComplexMatrix& b) const
+{
+  int info;
+  if ( active() )
+  {
+    assert(m_==n_);
+
+#ifdef SCALAPACK
+    int ione=1;
+    pztrtrs(&uplo, &trans, &diag, &m_, &b.n_,
+    val, &ione, &ione, desc_,
+    b.val, &ione, &ione, b.desc_, &info);
+#else
+    ztrtrs(&uplo, &trans, &diag, &m_, &b.n_, val, &m_,
+           b.val, &b.m_, &info);
+#endif
+    if(info!=0)
+    {
+      cout <<" ComplexMatrix::trtrs, info=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // LU decomposition of a double matrix
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::lu(valarray<int>& ipiv)
@@ -2269,6 +2312,31 @@ void DoubleMatrix::trtri(char uplo, char diag)
   }
 }
 
+void ComplexMatrix::trtri(char uplo, char diag)
+{
+  int info;
+  if ( active() )
+  {
+    assert(m_==n_);
+
+#ifdef SCALAPACK
+    int ione=1;
+    pztrtri(&uplo, &diag, &m_, val, &ione, &ione, desc_, &info);
+#else
+    ztrtri(&uplo, &diag, &m_, val, &m_, &info);
+#endif
+    if(info!=0)
+    {
+      cout << " Matrix::trtri, info=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Polar decomposition A = UH
 // Replace *this with its orthogonal polar factor U
@@ -2348,6 +2416,88 @@ void DoubleMatrix::polar(double tol, int maxiter)
   *this = x;
 #else
 #error "DoubleMatrix::polar only implemented with SCALAPACK"
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Polar decomposition A = UH (complex case)
+// Replace *this with its unitary polar factor U
+// return when iter > maxiter or ||I - X^H*X|| < tol
+////////////////////////////////////////////////////////////////////////////////
+void ComplexMatrix::polar(double tol, int maxiter)
+{
+  ComplexMatrix x(ctxt_,m_,n_,mb_,nb_);
+  ComplexMatrix xp(ctxt_,m_,n_,mb_,nb_);
+
+  ComplexMatrix q(ctxt_,n_,n_,nb_,nb_);
+  ComplexMatrix qt(ctxt_,n_,n_,nb_,nb_);
+  ComplexMatrix t(ctxt_,n_,n_,nb_,nb_);
+
+#ifdef SCALAPACK
+  double qnrm2 = numeric_limits<double>::max();
+  int iter = 0;
+  x = *this;
+  while ( iter < maxiter && qnrm2 > tol )
+  {
+    // q = I - x^T * x
+    q.identity();
+    q.herk('l','c',-1.0,x,1.0);
+    q.symmetrize('l');
+
+    double qnrm2 = q.nrm2();
+#ifdef DEBUG
+    if ( ctxt_.onpe0() )
+      cout << " ComplexMatrix::polar: qnrm2 = " << qnrm2 << endl;
+#endif
+
+    // choose Bjork-Bowie or Higham iteration depending on q.nrm2
+
+    // threshold value
+    // see A. Bjork and C. Bowie, SIAM J. Num. Anal. 8, 358 (1971) p.363
+    if ( qnrm2 < 1.0 )
+    {
+      // Bjork-Bowie iteration
+      // compute xp = x * ( I + 0.5*q * ( I + 0.75 * q ) )
+
+      // t = ( I + 0.75 * q )
+      t.identity();
+      t.axpy(0.75,q);
+
+      // compute q*t
+      qt.gemm('n','n',1.0,q,t,0.0);
+
+      // xp = x * ( I + 0.5*q * ( I + 0.75 * q ) )
+      //    = x * ( I + 0.5 * qt )
+      // Use t to store (I + 0.5 * qt)
+      t.identity();
+      t.axpy(0.5,qt);
+
+      // t now contains (I + 0.5 * qt)
+      // xp = x * t
+      xp.gemm('n','n',1.0,x,t,0.0);
+
+      // update x
+      x = xp;
+    }
+    else
+    {
+      // Higham iteration
+      assert(m_==n_);
+      //if ( ctxt_.onpe0() )
+      //  cout << " ComplexMatrix::polar: using Higham algorithm" << endl;
+      // t = X^H
+      t.transpose(1.0,x,0.0);
+      t.inverse();
+      // t now contains X^-H
+      // xp = 0.5 * ( x + x^-H );
+      for ( int i = 0; i < x.size(); i++ )
+        x[i] = 0.5 * ( x[i] + t[i] );
+    }
+    iter++;
+  }
+  *this = x;
+#else
+#error "ComplexMatrix::polar only implemented with SCALAPACK"
 #endif
 }
 

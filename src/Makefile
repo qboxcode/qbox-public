@@ -71,6 +71,19 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
         GlobalExtForce.o sampling.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testSampleReader: testSampleReader.o AtomSet.o Atom.o Species.o \
+        Wavefunction.o SlaterDet.o \
+        Basis.o FourierTransform.o Matrix.o Context.o \
+        sinft.o spline.o UnitCell.o \
+        Base64Transcoder.o Constraint.o ConstraintSet.o DistanceConstraint.o \
+        AngleConstraint.o TorsionConstraint.o PositionConstraint.o \
+        ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
+        GlobalExtForce.o sampling.o \
+        SampleReader.o StructuredDocumentHandler.o \
+        SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \
+        SpeciesReader.o SpeciesHandler.o \
+        XMLGFPreprocessor.o Base64Transcoder.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testChargeDensity: testChargeDensity.o ChargeDensity.o \
         Wavefunction.o SlaterDet.o \
         Basis.o FourierTransform.o Matrix.o UnitCell.o Context.o \
@@ -667,7 +680,8 @@ UserInterface.o: UserInterface.h qbox_xmlns.h
 VWNFunctional.o: VWNFunctional.h XCFunctional.h
 VWNFunctional.o: XCFunctional.h
 Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SlaterDet.h Context.h
-Wavefunction.o: blacs.h Basis.h Matrix.h Timer.h jacobi.h SharedFilePtr.h
+Wavefunction.o: blacs.h Basis.h Matrix.h Timer.h FourierTransform.h jacobi.h
+Wavefunction.o: SharedFilePtr.h
 Wavefunction.o: D3vector.h UnitCell.h
 WavefunctionHandler.o: WavefunctionHandler.h StructureHandler.h UnitCell.h
 WavefunctionHandler.o: D3vector.h Wavefunction.h SlaterDet.h Context.h
@@ -751,6 +765,10 @@ testMatrix.o: Timer.h Context.h blacs.h Matrix.h
 testSample.o: Context.h blacs.h SlaterDet.h Basis.h D3vector.h UnitCell.h
 testSample.o: Matrix.h Timer.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h
 testSample.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+testSampleReader.o: Context.h blacs.h SlaterDet.h Basis.h D3vector.h
+testSampleReader.o: UnitCell.h Matrix.h Timer.h Sample.h AtomSet.h Atom.h
+testSampleReader.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+testSampleReader.o: Wavefunction.h Control.h SampleReader.h
 testSlaterDet.o: Context.h blacs.h SlaterDet.h Basis.h D3vector.h UnitCell.h
 testSlaterDet.o: Matrix.h Timer.h FourierTransform.h
 testSpecies.o: Species.h SpeciesReader.h

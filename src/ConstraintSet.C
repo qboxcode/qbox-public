@@ -192,7 +192,18 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       return false;
     }
 
-    distance = atof(argv[6]);
+    // define distance value
+    if ( !strcmp(argv[6],"*") )
+    {
+      // use current distance
+      distance = length(a1->position()-a2->position());
+      if ( onpe0 )
+        cout << "ConstraintSet::define_constraint: using current distance "
+             << distance << endl;
+    }
+    else
+      distance = atof(argv[6]);
+
     if ( argc == 8 )
     {
       velocity = atof(argv[7]);
@@ -223,8 +234,10 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( found )
     {
       if ( onpe0 )
-        cout << " ConstraintSet: constraint is already defined:\n"
-             << " cannot define constraint" << endl;
+        cout << " ConstraintSet: a distance constraint named " << name << endl
+             << " or involving atoms " << name1 << " " << name2 << endl
+             << " is already defined" << endl
+             << " ConstraintSet: cannot define constraint" << endl;
       return false;
     }
     else
@@ -280,7 +293,33 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       return false;
     }
 
-    const double angle = atof(argv[7]);
+    // define angle value
+    double angle = 0.0;
+    if ( !strcmp(argv[7],"*") )
+    {
+      // use current angle
+      D3vector r12(a1->position()-a2->position());
+      D3vector r32(a3->position()-a2->position());
+      if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 )
+      {
+        if ( onpe0 )
+        {
+          cout << " ConstraintSet: cannot define angle constraint." << endl;
+          cout << " ConstraintSet: atoms are too close" << endl;
+          return false;
+        }
+      }
+      const double sp = normalized(r12) * normalized(r32);
+      const double c = max(-1.0,min(1.0,sp));
+      angle = (180.0/M_PI)*acos(c);
+
+      if ( onpe0 )
+        cout << "ConstraintSet::define_constraint: using current angle "
+             << angle << endl;
+    }
+    else
+      angle = atof(argv[7]);
+
     double velocity = 0.0;
     if ( argc == 9 )
     {
@@ -317,9 +356,10 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( found )
     {
       if ( onpe0 )
-        cout << " ConstraintSet:set_constraint: an angle constraint "
-             << name1 << " " << name2 << " " << name3
-             << " was found" << endl
+        cout << " ConstraintSet: an angle constraint named " << name << endl
+             << " or involving atoms "
+             << name1 << " " << name2 << " " << name3 << endl
+             << " is already defined" << endl
              << " ConstraintSet: cannot define constraint" << endl;
       return false;
     }
@@ -380,7 +420,48 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       return false;
     }
 
-    double angle = atof(argv[8]);
+    // define angle value
+    double angle = 0.0;
+    if ( !strcmp(argv[8],"*") )
+    {
+      // use current angle
+      D3vector r12(a1->position()-a2->position());
+      D3vector r32(a3->position()-a2->position());
+      D3vector r43(a4->position()-a3->position());
+      if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 || norm2(r43) == 0.0 )
+      {
+        if ( onpe0 )
+        {
+          cout << " ConstraintSet: cannot define torsion constraint." << endl;
+          cout << " ConstraintSet: atoms are too close" << endl;
+          return false;
+        }
+      }
+
+      D3vector e12(normalized(r12));
+      D3vector e32(normalized(r32));
+      D3vector e23(-e32);
+      D3vector e43(normalized(r43));
+
+      const double sin123 = length(e12^e32);
+      const double sin234 = length(e23^e43);
+
+      if ( sin123 != 0.0 && sin234 != 0.0 )
+      {
+        D3vector e123 = normalized(e12^e32);
+        D3vector e234 = normalized(e23^e43);
+        double cc = max(min(e123*e234,1.0),-1.0);
+        double ss = max(min((e123^e234)*e32,1.0),-1.0);
+        angle = (180.0/M_PI) * atan2(ss,cc);
+      }
+
+      if ( onpe0 )
+        cout << "ConstraintSet::define_constraint: using current angle "
+             << angle << endl;
+    }
+    else
+      angle = atof(argv[8]);
+
     if ( angle > 180.0 )
       while ( angle > 180.0 ) angle -= 360.0;
     else if ( angle < -180.0 )
@@ -401,7 +482,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       assert(pc != 0);
       // check if an equivalent constraint (name1,name2,name3,name4) or
       // (name4,name3,name2,name1) is defined
-      if ( pc->type() == "angle" )
+      if ( pc->type() == "torsion" )
         found = ( pc->names(0) == name1 &&
                   pc->names(1) == name2 &&
                   pc->names(2) == name3 &&
@@ -416,8 +497,9 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( found )
     {
       if ( onpe0 )
-        cout << " ConstraintSet: a torsion constraint "
-             << name1 << " " << name2 << " " << name3 << " " << name4
+        cout << " ConstraintSet: a torsion constraint named " << name << endl
+             << " or involving atoms "
+             << name1 << " " << name2 << " " << name3 << " " << name4 << endl
              << " is already defined" << endl
              << " ConstraintSet: cannot define constraint" << endl;
       return false;

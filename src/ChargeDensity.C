@@ -55,6 +55,7 @@ wf_(wf), vcomm_(wf.sd(0,0)->basis().comm())
 #endif
   vft_ = new FourierTransform(*vbasis_,np0v,np1v,np2v);
 
+  total_charge_.resize(wf.nspin());
   rhor.resize(wf.nspin());
   rhog.resize(wf.nspin());
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
@@ -162,13 +163,7 @@ void ChargeDensity::update_density(void)
     // sum on all indices except spin: sum along columns of spincontext
     wf_.spincontext()->dsum('c',1,1,&sum,1);
     tmap["charge_integral"].stop();
-    if ( ctxt_.onpe0() )
-    {
-      cout.setf(ios::fixed,ios::floatfield);
-      cout.setf(ios::right,ios::adjustfield);
-      cout << "  total_electronic_charge: " << setprecision(8) << sum
-           << endl;
-    }
+    total_charge_[ispin] = sum;
 
     tmap["charge_vft"].start();
     vft_->forward(&rhotmp[0],&rhog[ispin][0]);
@@ -213,4 +208,32 @@ void ChargeDensity::update_rhor(void)
         prhor[i] = rhotmp[i].real() * omega_inv;
     }
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+double ChargeDensity::total_charge(void) const
+{
+  assert((wf_.nspin()==1)||(wf_.nspin()==2));
+  if ( wf_.nspin() == 1 )
+    return total_charge_[0];
+  else
+    return total_charge_[0] + total_charge_[1];
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ChargeDensity::print(ostream& os) const
+{
+  os.setf(ios::fixed,ios::floatfield);
+  os.setf(ios::right,ios::adjustfield);
+  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+    os << "  <electronic_charge ispin=\"" << ispin << "\"> "
+       << setprecision(8) << total_charge(ispin)
+       << " </electronic_charge>\n";
+}
+
+////////////////////////////////////////////////////////////////////////////////
+ostream& operator<< ( ostream& os, const ChargeDensity& cd )
+{
+  cd.print(os);
+  return os;
 }

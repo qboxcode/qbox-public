@@ -901,7 +901,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
                << maxsweep << endl;
         assert(maxsweep >= 0);
       }
-      double tol = 1.0;
+      double tol = 0.001;
       if ( s_.ctrl.debug.find("BISECTION_TOL") != string::npos )
       {
         // override tolerance for bisection

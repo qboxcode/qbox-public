@@ -62,9 +62,12 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
       }
       else
       {
-        // not implemented in the complex case
-        cout << "PSDA is not implemented for complex wave functions" << endl;
-        assert(false);
+        ComplexMatrix& c = wf_.sd(ispin,ikp)->c();
+        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
+        ComplexMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        a.gemm('c','n',1.0,c,cp,0.0);
+        // cp = cp - c * a
+        cp.gemm('n','n',-1.0,c,a,1.0);
       }
     }
   }
@@ -123,21 +126,25 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
           a += f * delta_f;
           b += delta_f * delta_f;
         }
-        // correct for double counting of asum and bsum on first row
-        // factor 2.0: G and -G
-        a *= 2.0;
-        b *= 2.0;
-        if ( wf_.sdcontext()->myrow() == 0 )
+
+        if ( wf_.sd(ispin,ikp)->basis().real() )
         {
-          for ( int n = 0; n < nloc; n++ )
+          // correct for double counting of asum and bsum on first row
+          // factor 2.0: G and -G
+          a *= 2.0;
+          b *= 2.0;
+          if ( wf_.sdcontext()->myrow() == 0 )
           {
-            const int i = 2*mloc*n;
-            const double f0 = dc[i];
-            const double f1 = dc[i+1];
-            const double delta_f0 = f0 - dc_last[i];
-            const double delta_f1 = f1 - dc_last[i+1];
-            a -= f0 * delta_f0 + f1 * delta_f1;
-            b -= delta_f0 * delta_f0 + delta_f1 * delta_f1;
+            for ( int n = 0; n < nloc; n++ )
+            {
+              const int i = 2*mloc*n;
+              const double f0 = dc[i];
+              const double f1 = dc[i+1];
+              const double delta_f0 = f0 - dc_last[i];
+              const double delta_f1 = f1 - dc_last[i+1];
+              a -= f0 * delta_f0 + f1 * delta_f1;
+              b -= delta_f0 * delta_f0 + delta_f1 * delta_f1;
+            }
           }
         }
 
@@ -151,18 +158,12 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
         if ( b != 0.0 )
           theta = - a / b;
 
-        if ( wf_.sdcontext()->onpe0() )
-          cout << "  Anderson extrapolation: theta=" << theta;
-
         if ( theta < -1.0 )
         {
           theta = 0.0;
         }
 
         theta = min(2.0,theta);
-
-        if ( wf_.sdcontext()->onpe0() )
-          cout <<" (" << theta << ")" << endl;
 
         // extrapolation
         for ( int i = 0; i < 2*mloc*nloc; i++ )

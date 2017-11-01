@@ -35,7 +35,7 @@ using namespace std;
 #define Tag_States 5
 
 ////////////////////////////////////////////////////////////////////////////////
-ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff)
+ExchangeOperator::ExchangeOperator(const Sample& s, double HFCoeff)
 : s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf), HFCoeff_(HFCoeff),
 gcontext_(s.wf.sd(0,0)->context())
 {
@@ -369,7 +369,7 @@ void ExchangeOperator::cell_moved(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
+double ExchangeOperator::compute_exchange_for_general_case_(const Sample* s,
   Wavefunction* dwf, bool compute_stress)
 {
   if ( compute_stress )

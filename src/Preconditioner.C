@@ -56,8 +56,8 @@ double Preconditioner::diag(int ispin, int ikp, int n, int ig) const
     // randomizing wfs) replace ekin_n by fixed value 1.0
     if ( ekin_n == 0.0 )
       ekin_n = 1.0;
-    const double q2 = kpg2_[ispin][ikp][ig] + fstress[ig];
 #if 0
+    const double q2 = kpg2_[ispin][ikp][ig] + fstress[ig];
 #if 0
     // Payne Teter Allan adaptive preconditioner
     const double x = 0.5 * q2 / ekin_n;

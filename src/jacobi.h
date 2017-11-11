@@ -10,6 +10,12 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
+////////////////////////////////////////////////////////////////////////////////
+//
+// jacobi.h
+//
+////////////////////////////////////////////////////////////////////////////////
+
 #include <vector>
 int jacobi(int maxsweep, double tol, DoubleMatrix& a, DoubleMatrix& u,
               std::vector<double>& e);

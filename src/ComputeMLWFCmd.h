@@ -15,7 +15,6 @@
 // ComputeMLWFCmd.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ComputeMLWFCmd.h,v 1.5 2008-11-14 22:11:30 fgygi Exp $
 
 #ifndef COMPUTEMLWFCMD_H
 #define COMPUTEMLWFCMD_H

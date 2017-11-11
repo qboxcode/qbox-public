@@ -15,7 +15,6 @@
 // SDAIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDAIonicStepper.h,v 1.12 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef SDAIONICSTEPPER_H
 #define SDAIONICSTEPPER_H

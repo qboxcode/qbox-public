@@ -15,7 +15,6 @@
 // ConstraintCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConstraintCmd.h,v 1.6 2009-04-30 22:24:08 fgygi Exp $
 
 #ifndef CONSTRAINTCMD_H
 #define CONSTRAINTCMD_H

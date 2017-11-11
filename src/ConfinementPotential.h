@@ -15,7 +15,6 @@
 // ConfinementPotential.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConfinementPotential.h,v 1.7 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef CONFINEMENTPOTENTIAL_H
 #define CONFINEMENTPOTENTIAL_H

@@ -1,4 +1,24 @@
 --------------------------------------------------------------------------------
+rel1_63_7
+--------------------------------------------------------------------------------
+r1920: Modified UserInterface.C to use C library, fsync() 
+to ensure synchronization.
+r1912-1919: improvements in util/qbdriver files, twin.C
+Added test programs in util/qbdriver
+Added runtwin.sh script for interactive test of client-server mode
+--------------------------------------------------------------------------------
+rel1_63_6
+--------------------------------------------------------------------------------
+r1907: add sync in UserInterface.C
+--------------------------------------------------------------------------------
+rel1_63_5
+--------------------------------------------------------------------------------
+r1886: fix coeff of divergence correction for nspin=2 and multiple k-points
+r1881,r1883: qbox_eig.py, xyz2qbox.py scripts
+r1871: fix etotal_int calc with multiple k-points
+r1869: removed blanks from timing name attribute
+Enabled iter_cmd with modifications of positions or velocities
+--------------------------------------------------------------------------------
 rel1_63_4
 --------------------------------------------------------------------------------
 r1844,r1845,r1846: add qbox_maxforce.py script

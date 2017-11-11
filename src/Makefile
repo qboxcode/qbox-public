@@ -78,7 +78,8 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         Base64Transcoder.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testWavefunction: testWavefunction.o Wavefunction.o SlaterDet.o \
-        Basis.o FourierTransform.o Matrix.o UnitCell.o Context.o
+        Basis.o FourierTransform.o Matrix.o UnitCell.o Context.o \
+        Base64Transcoder.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testEnergyFunctional: testEnergyFunctional.o EnergyFunctional.o Basis.o \
 	SlaterDet.o Matrix.o UnitCell.o Context.o FourierTransform.o \

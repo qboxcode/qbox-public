@@ -15,7 +15,6 @@
 // Ecutprec.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Ecutprec.h,v 1.4 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef ECUTPREC_H
 #define ECUTPREC_H

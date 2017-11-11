@@ -162,10 +162,10 @@ ElectricEnthalpy::~ElectricEnthalpy(void)
     s_.ctxt_.dmax(1,1,&tmax,1);
     if ( pol_type_ != off && s_.ctxt_.myproc()==0 )
     {
-      cout << "<timing name=\""
-           << setw(15) << (*i).first << "\""
-           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
-           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+      string s = "name=\"" + (*i).first + "\"";
+      cout << "<timing " << left << setw(22) << s
+           << " min=\"" << setprecision(3) << tmin << "\""
+           << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
   }

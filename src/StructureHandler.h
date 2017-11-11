@@ -15,7 +15,6 @@
 // StructureHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: StructureHandler.h,v 1.5 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef STRUCTUREHANDLER_H
 #define STRUCTUREHANDLER_H

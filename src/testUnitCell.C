@@ -15,7 +15,6 @@
 // testUnitCell.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testUnitCell.C,v 1.5 2008-09-08 15:56:20 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>

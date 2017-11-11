@@ -15,7 +15,6 @@
 // testEnergyFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testEnergyFunctional.C,v 1.7 2008-09-08 15:56:20 fgygi Exp $
 
 #include "Context.h"
 #include "Sample.h"

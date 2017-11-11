@@ -15,7 +15,6 @@
 // MDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDIonicStepper.h,v 1.13 2010-04-16 22:41:55 fgygi Exp $
 
 //
 // IonicStepper is used in the following way

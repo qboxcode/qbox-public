@@ -83,8 +83,8 @@ class BisectionCmd : public Cmd
       {
         cout << " BisectionCmd: lx=" << nLevels[0]
              << " ly=" << nLevels[1]
-	     << " lz=" << nLevels[2]
-	     << " threshold=" << epsilon << endl;
+             << " lz=" << nLevels[2]
+             << " threshold=" << epsilon << endl;
 
         // print localization vectors and overlaps
         int sum = 0;

@@ -15,7 +15,6 @@
 // MDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.C,v 1.12 2008-09-08 15:56:18 fgygi Exp $
 
 #include "MDWavefunctionStepper.h"
 #include "Wavefunction.h"

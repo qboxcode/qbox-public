@@ -15,7 +15,6 @@
 // ConfinementPotential.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ConfinementPotential.C,v 1.4 2008-09-08 15:56:18 fgygi Exp $
 
 #include "ConfinementPotential.h"
 #include "Basis.h"

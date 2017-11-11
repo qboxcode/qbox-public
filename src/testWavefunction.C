@@ -15,7 +15,6 @@
 // testWavefunction.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: testWavefunction.C,v 1.9 2008-09-08 15:56:20 fgygi Exp $
 
 #include "Context.h"
 #include "Wavefunction.h"
@@ -50,7 +49,7 @@ int main(int argc, char **argv)
     int nspin = atoi(argv[13]);
     int nkp = atoi(argv[14]);
 
-    Context ctxt;
+    Context ctxt(MPI_COMM_WORLD);
 
     Wavefunction wf(ctxt);
     Timer tm;
@@ -82,7 +81,7 @@ int main(int argc, char **argv)
     {
       for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
       {
-        if ( wf.sd(ispin,ikp) != 0 && wf.sdcontext(ispin,ikp)->active() )
+        if ( wf.sd(ispin,ikp) != 0 )
         {
           cout << "wf.sd(ispin=" << ispin << ",ikp=" << ikp << "): "
                << wf.sd(ispin,ikp)->c().m() << "x"

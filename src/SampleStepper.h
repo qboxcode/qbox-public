@@ -59,9 +59,6 @@ class SampleStepper
   virtual EnergyFunctional& ef(void) {}
   virtual ChargeDensity& cd(void) {}
 
-  void set_iter_cmd(std::string s) { iter_cmd_ = s; }
-  void set_iter_cmd_period(int i) { iter_cmd_period_ = i; }
-
   SampleStepper(Sample& s);
   virtual ~SampleStepper(void);
 };

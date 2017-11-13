@@ -19,5 +19,5 @@
 #include "release.h"
 std::string release(void)
 {
-  return std::string("1.63.4_vext");
+  return std::string("wrk");
 }

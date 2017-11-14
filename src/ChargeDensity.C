@@ -216,6 +216,34 @@ void ChargeDensity::update_rhor(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+double ChargeDensity::total_charge(void) const
+{
+  assert((wf_.nspin()==1)||(wf_.nspin()==2));
+  if ( wf_.nspin() == 1 )
+    return total_charge_[0];
+  else
+    return total_charge_[0] + total_charge_[1];
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ChargeDensity::print(ostream& os) const
+{
+  os.setf(ios::fixed,ios::floatfield);
+  os.setf(ios::right,ios::adjustfield);
+  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+    os << "  <electronic_charge ispin=\"" << ispin << "\"> "
+       << setprecision(8) << total_charge(ispin)
+       << " </electronic_charge>\n";
+}
+
+////////////////////////////////////////////////////////////////////////////////
+ostream& operator<< ( ostream& os, const ChargeDensity& cd )
+{
+  cd.print(os);
+  return os;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void ChargeDensity::update_rhog(void)
 {
   // recalculate rhog from rhor

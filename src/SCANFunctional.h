@@ -25,12 +25,12 @@
 class SCANFunctional : public XCFunctional
 {
   double x_coeff_, c_coeff_;
-  std::vector<double> _exc, _exc_up, _exc_dn;
-  std::vector<double> _vxc1, _vxc1_up, _vxc1_dn,
-                 _vxc2, _vxc2_upup, _vxc2_updn, _vxc2_dnup, _vxc2_dndn,
-                 _vxc3;
-  std::vector<double> _grad_rho[3], _grad_rho_up[3], _grad_rho_dn[3];
-  std::vector<double> _tau;
+  std::vector<double> exc_, exc_up_, exc_dn_;
+  std::vector<double> vxc1_, vxc1_up_, vxc1_dn_,
+                 vxc2_, vxc2_upup_, vxc2_updn_, vxc2_dnup_, vxc2_dndn_,
+                 vxc3_;
+  std::vector<double> grad_rho_[3], grad_rho_up_[3], grad_rho_dn_[3];
+  std::vector<double> tau_;
 
   void gPW92(double alpha, double beta0, double beta1, double beta2,
     double beta3, double beta4, double rtrs, double *gg, double *dgdrs);

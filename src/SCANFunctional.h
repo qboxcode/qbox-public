@@ -27,17 +27,16 @@ class SCANFunctional : public XCFunctional
   double x_coeff_, c_coeff_;
   std::vector<double> _exc, _exc_up, _exc_dn;
   std::vector<double> _vxc1, _vxc1_up, _vxc1_dn,
-                 _vxc2, _vxc2_upup, _vxc2_updn, _vxc2_dnup, _vxc2_dndn;
+                 _vxc2, _vxc2_upup, _vxc2_updn, _vxc2_dnup, _vxc2_dndn,
+                 _vxc3;
   std::vector<double> _grad_rho[3], _grad_rho_up[3], _grad_rho_dn[3];
+  std::vector<double> _tau;
 
-  void gcor2(double a, double a1,
-    double b1, double b2, double b3,
-    double b4, double rtrs, double *gg, double *ggrs);
+  void gPW92(double alpha, double beta0, double beta1, double beta2, double beta3, double beta4, double rtrs, double *gg, double *dgdrs);
 
-  void excpbe(double rho, double grad,
-    double *exc, double *vxc1, double *vxc2);
+  void excSCAN(double rho, double grad, double tau, double *exc, double *vxc1, double *vxc2, double *vxc3);
 
-  void excpbe_sp(double rho_up, double rho_dn,
+  void excSCAN_sp(double rho_up, double rho_dn,
     double grad_up, double grad_dn, double grad,
     double *exc_up, double *exc_dn,
     double *vxc1_up, double *vxc1_dn, double *vxc2_upup, double *vxc2_dndn,

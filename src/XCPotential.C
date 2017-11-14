@@ -231,6 +231,12 @@ void XCPotential::update(vector<vector<double> >& vr)
     if ( xcf_->isMeta() )
     {
       // compute tau
+      // Loop over number of occupied wave functions (n)
+         // Loop over 3 cartesian directions (j)
+            // Calculate and store in temp variable i*G_j*psi_n(G)
+            // Transform into real space
+            // Calculate |Grad_j(psi_n(r))|^2 add to tau
+      // SP same procedure except loop over n_up and n_down
     }
 
     xcf_->setxc();

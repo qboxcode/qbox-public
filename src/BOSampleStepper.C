@@ -347,6 +347,9 @@ void BOSampleStepper::step(int niter)
       wkerker[i] = 1.0;
   }
 
+  if ( onpe0 )
+    cout << "<net_charge> " << atoms.nel()-wf.nel() << " </net_charge>\n";
+
   // Next line: special case of niter=0: compute GS only
   for ( int iter = 0; iter < max(niter,1); iter++ )
   {
@@ -377,6 +380,7 @@ void BOSampleStepper::step(int niter)
 
       if ( onpe0 )
       {
+        cout << cd_;
         cout << ef_;
         if ( ef_.el_enth() )
           cout << *ef_.el_enth();
@@ -757,6 +761,9 @@ void BOSampleStepper::step(int niter)
         if ( ( update_density_first_ || itscf>0 ) )
           cd_.update_density();
         tmap["charge"].stop();
+
+        if ( onpe0 )
+          cout << cd_;
 
         // charge mixing
         if ( nite_ > 0 )
@@ -1191,10 +1198,10 @@ void BOSampleStepper::step(int niter)
       tmap["energy"].stop();
       if ( onpe0 )
       {
+        cout << cd_;
         cout << ef_;
         if ( ef_.el_enth() )
           cout << *ef_.el_enth();
-
       }
     }
 

@@ -39,6 +39,7 @@ class KpointCmd : public Cmd
     " syntax:\n\n"
     "   kpoint add kx ky kz weight\n"
     "   kpoint delete kx ky kz \n"
+    "   kpoint move kx ky kz new_kx new_ky new_kz\n"
     "   kpoint list\n\n";
   }
 
@@ -79,6 +80,22 @@ class KpointCmd : public Cmd
       double kz = atof(argv[4]);
       s->wf.del_kpoint(D3vector(kx,ky,kz));
     }
+    else if ( subcmd == "move" )
+    {
+      if ( argc != 8 )
+      {
+        if ( onpe0 )
+          cout << help_msg();
+        return 1;
+      }
+      double kx = atof(argv[2]);
+      double ky = atof(argv[3]);
+      double kz = atof(argv[4]);
+      double newkx = atof(argv[5]);
+      double newky = atof(argv[6]);
+      double newkz = atof(argv[7]);
+      s->wf.move_kpoint(D3vector(kx,ky,kz),D3vector(newkx,newky,newkz));
+    }
     else if ( subcmd == "list" )
     {
       if ( argc != 2 )
@@ -89,7 +106,7 @@ class KpointCmd : public Cmd
       }
       if ( onpe0 )
       {
-        cout << " <-- kpoint list: reciprocal lattice coordinates" << endl;
+        cout << " <!-- kpoint list: reciprocal lattice coordinates" << endl;
         for ( int ikp = 0; ikp < s->wf.nkp(); ikp++ )
         {
           cout << " "

@@ -44,6 +44,7 @@ class ChargeDensity
   FourierTransform* vft_;
   std::vector<FourierTransform*> ft_; // ft_[ikp];
   std::valarray<std::complex<double> > rhotmp;
+  std::vector<double> total_charge_;
 
   public:
 
@@ -62,8 +63,13 @@ class ChargeDensity
   Basis* vbasis(void) const { return vbasis_; }
   FourierTransform* vft(void) const { return vft_; }
   FourierTransform* ft(int ikp) const { return ft_[ikp]; }
+  double total_charge(int ispin) const { return total_charge_[ispin]; }
+  double total_charge(void) const;
+
+  void print(std::ostream& os) const;
 
   ChargeDensity(const Wavefunction& wf);
   ~ChargeDensity();
 };
+std::ostream& operator << ( std::ostream& os, const ChargeDensity& cd );
 #endif

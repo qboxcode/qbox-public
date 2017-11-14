@@ -1,4 +1,35 @@
 --------------------------------------------------------------------------------
+rel1_63_10
+--------------------------------------------------------------------------------
+058730d Implemented PSDA for complex wave functions
+26c3495 Update printing of electronic charge & net charge
+c102a32 Add testSampleReader program
+8f85701 Add option to define constraint with current value
+35f2374 changed output format of constraint value, force
+e85f85d Changed logic of shifts: zero shifts include Gamma
+25f2f96 Generate xyz file from kpoint file
+718452c Changed bisection tolerance from 1.0 to 0.001
+--------------------------------------------------------------------------------
+rel1_63_9
+--------------------------------------------------------------------------------
+ee9efe5 Fix test for negative scf_tol value
+f47d0c1 New implementation of kpgen
+86be185 Added kpoint move functionality
+dd1a11b Merge branch 'upf2' into develop
+45aea94 Added NLCC functionality
+ac8d7e6 Implemented NL potential in UPF 2 format
+ff8a484 Implemented UPF 2 format for SL potentials
+feb88ae Fix end of line in rseed help msg.
+6309a0a Removed enthalpy_int.plt
+e19b136 Add util/enthalpy.plt script
+8d051ce Added -range option to cell.plt and econste_cmp.plt
+f030ffc Fix file headers
+--------------------------------------------------------------------------------
+rel1_63_8
+--------------------------------------------------------------------------------
+4ee30f9 Fix discontinuity in torsion constraint function
+d2a3c52 Removed $Id strings
+--------------------------------------------------------------------------------
 rel1_63_7
 --------------------------------------------------------------------------------
 r1920: Modified UserInterface.C to use C library, fsync() 

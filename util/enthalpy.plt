@@ -5,5 +5,5 @@ then
   shift 2
 fi
 gnuplot -persist <<EOF
-plot $range "<grep -h enthalpy $*" u 2 w l
+plot $range "<grep -h '<enthalpy>' $*" u 2 w l
 EOF

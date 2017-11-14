@@ -102,9 +102,10 @@ ostream& PositionConstraint::print( ostream &os )
   os << "\" atoms=\"" << name1_ << "\"\n";
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
-  os << "  value=\"" << setprecision(6) << 0;
-  os << "\" velocity=\"" << setprecision(6) << 0 << "\"\n";
-  os << "  force=\"" << setprecision(6) << force_;
-  os << "\" weight=\"" << setprecision(6) << weight_ << "\"/>";
+  os << "  velocity=\"" << setprecision(6) << 0 << "\"";
+  os << " weight=\"" << setprecision(6) << weight_ << "\">\n";
+  os << "  <value> " << setprecision(6) << 0 << " </value>";
+  os << " <force> " << setprecision(6) << force_ << " </force>\n";
+  os << " </constraint>";
   return os;
 }

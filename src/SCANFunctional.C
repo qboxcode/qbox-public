@@ -37,6 +37,7 @@ SCANFunctional::SCANFunctional(const vector<vector<double> > &rhoe,
     _exc.resize(_np);
     _vxc1.resize(_np);
     _vxc2.resize(_np);
+    _vxc3.resize(_np);
     _grad_rho[0].resize(_np);
     _grad_rho[1].resize(_np);
     _grad_rho[2].resize(_np);
@@ -45,8 +46,7 @@ SCANFunctional::SCANFunctional(const vector<vector<double> > &rhoe,
     grad_rho[0] = &_grad_rho[0][0];
     grad_rho[1] = &_grad_rho[1][0];
     grad_rho[2] = &_grad_rho[2][0];
-    tau = _tau[0];
-    double tau = 1.0; //delete once calculate tau is implemented
+    tau = &_tau[0];
     exc = &_exc[0];
     vxc1 = &_vxc1[0];
     vxc2 = &_vxc2[0];
@@ -106,7 +106,7 @@ void SCANFunctional::setxc(void)
       double grad = sqrt(grad_rho[0][i]*grad_rho[0][i] +
                          grad_rho[1][i]*grad_rho[1][i] +
                          grad_rho[2][i]*grad_rho[2][i] );
-      excSCAN(rho[i], grad, tau, &exc[i], &vxc1[i], &vxc2[i], &vxc3[i]);
+      excSCAN(rho[i], grad, tau[i], &exc[i], &vxc1[i], &vxc2[i], &vxc3[i]);
     }
   }
   else
@@ -146,7 +146,7 @@ void SCANFunctional::setxc(void)
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  excSCAN: SCAN exchange-correlation
 //
@@ -165,14 +165,14 @@ void SCANFunctional::setxc(void)
 //
 //  References:
 //  [a] S. Jianwei, A. Ruzsinsky, and J.P.Perdew,
-//      "Strongly Constrained and Appropriately Normed Semilocal Density Functional",
-//      Phys.Rev.Lett. 115, 036402-1, (2015).
+//      "Strongly Constrained and Appropriately Normed Semilocal Density
+//       Functional", Phys.Rev.Lett. 115, 036402-1, (2015).
 //
-//////////////////////////////////////////////////////////////////////////////////////
-
-void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc, double *vxc1, double *vxc2, double *vxc3)
+////////////////////////////////////////////////////////////////////////////////
+void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
+  double *vxc1, double *vxc2, double *vxc3)
 {
-  const double pi = acos(-1);
+  const double pi = M_PI;
   const double hx0 = 1.174;
   const double a1 = 4.9479;
   const double cx1 = 0.667;
@@ -233,15 +233,17 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc, d
   s2 = s * s;
   tau_W = grad * grad / (8.0 * rho);
   tau_unif = 0.3 * pow(3.0 * pi * pi, 2.0 / 3.0) * pow(rho, 5.0 / 3.0);
-  XCalpha = (tau - tau_W) / tau_unif;
-
+  //!! abs value in next line
+  XCalpha = fabs(tau - tau_W) / tau_unif;
 
   // exchange
 
   exunif = -3.0 / 4.0 * pow(3.0 * rho / pi, 1.0/3.0);
 
   // SCAN exchange enhancement factor
-  x = mu_AK * s2 * (1.0 + (b4 * s2 / mu_AK) * exp(-b4 * s2 / mu_AK)) + pow(b1 * s2 + b2 * (1.0 - XCalpha) * exp(-b3 * pow(1.0 - XCalpha,2.0)),2.0);
+  x = mu_AK * s2 * (1.0 + (b4 * s2 / mu_AK) * exp(-b4 * s2 / mu_AK)) +
+      pow(b1 * s2 + b2 * (1.0 - XCalpha) *
+      exp(-b3 * pow(1.0 - XCalpha,2.0)),2.0);
   gx = 1.0 - exp(-a1 / sqrt(s));
   hx1 = 1.0 + k1 - k1/(1.0 + x / k1);
   if ( XCalpha < 1.0 )
@@ -262,19 +264,26 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc, d
   ex = exunif * fxSCAN;
 
   // energy done, now the potential
-  dxds = 2.0 * mu_AK * s * (1.0 + 2.0 * (b4 * s2/ mu_AK) * exp(-b4 * s2 / mu_AK) - pow(b4 * s2/ mu_AK, 2.0) * exp(-b4 * s2 / mu_AK)) + 4.0 * b1 * s * (b1 * s2 + b2 * (1.0 - XCalpha) * exp(-b3 * pow(1.0 - XCalpha,2.0)));
-  dxdalpha = (2.0 * b3 * pow(1.0 - XCalpha, 2.0) - 1.0) * (2 * b2 * exp(-b3 * pow(1 - XCalpha,2))) * (b1 * s2 + b2 * (1.0 - XCalpha) * exp(-b3 * pow(1.0 - XCalpha,2.0)));
+  dxds = 2.0 * mu_AK * s * (1.0 + 2.0 * (b4 * s2/ mu_AK) *
+         exp(-b4 * s2 / mu_AK) - pow(b4 * s2/ mu_AK, 2.0) *
+         exp(-b4 * s2 / mu_AK)) + 4.0 * b1 * s *
+         (b1 * s2 + b2 * (1.0 - XCalpha) * exp(-b3 * pow(1.0 - XCalpha,2.0)));
+  dxdalpha = (2.0 * b3 * pow(1.0 - XCalpha, 2.0) - 1.0) *
+         (2.0 * b2 * exp(-b3 * pow(1.0 - XCalpha,2.0))) *
+         (b1 * s2 + b2 * (1.0 - XCalpha) * exp(-b3 * pow(1.0 - XCalpha,2.0)));
   dgxds= -a1/(2.0 * pow(s ,1.5)) * exp(-a1 / sqrt(s));
   dhx1ds = k1 * k1 * dxds / pow(k1 + x,2.0);
   dhx1dalpha = k1 * k1 * dxdalpha / pow(k1 + x,2.0);
 
   if (XCalpha < 1.0)
   {
-      dfxdalpha = -cx1 / pow(1.0 - XCalpha,2.0) * exp(-cx1 * XCalpha/(1.0 - XCalpha));
+    dfxdalpha = -cx1 / pow(1.0 - XCalpha,2.0) *
+      exp(-cx1 * XCalpha/(1.0 - XCalpha));
   }
   else if (XCalpha > 1.0)
   {
-      dfxdalpha = -cx2 * dx / pow(XCalpha - 1.0,2.0) * exp(-cx2/(XCalpha - 1.0));
+    dfxdalpha = -cx2 * dx / pow(XCalpha - 1.0,2.0) *
+      exp(-cx2/(XCalpha - 1.0));
   }
   else
   {
@@ -307,15 +316,15 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc, d
   ec1 = ecLSDA + H1;
   if ( XCalpha < 1.0)
   {
-      fc = exp(-cc1 * XCalpha/(1.0 - XCalpha));
+    fc = exp(-cc1 * XCalpha/(1.0 - XCalpha));
   }
   else if (XCalpha > 1.0)
   {
-      fc = dc * exp(-cc2/(XCalpha - 1.0));
+    fc = dc * exp(-cc2/(XCalpha - 1.0));
   }
   else
   {
-      fc = 0.0;
+    fc = 0.0;
   }
 
   ec = ec1 + fc * (ec0 - ec1);
@@ -345,28 +354,30 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc, d
   // alpha derivatives
   if ( XCalpha < 1.0)
   {
-      dfcdalpha = -cc1 / pow(1.0 - XCalpha, 2.0) * exp(-cc1 * XCalpha/(1.0 - XCalpha));
+    dfcdalpha = -cc1 / pow(1.0 - XCalpha, 2.0) * exp(-cc1 * XCalpha/(1.0 - XCalpha));
   }
   else if (XCalpha > 1.0)
   {
-      dfcdalpha = -cc2 * dc / pow(XCalpha - 1.0, 2.0) * exp(-cc2/(XCalpha - 1.0));
+    dfcdalpha = -cc2 * dc / pow(XCalpha - 1.0, 2.0) * exp(-cc2/(XCalpha - 1.0));
   }
   else
   {
-      dfcdalpha = 0.0;
+    dfcdalpha = 0.0;
   }
 
   // V1
   drsdn = -rs / (3.0 * rho);
   dsdn = -4.0 * s / (3.0 * rho);
   dalphadn = (tau_W / tau_unif - 5.0 * XCalpha / 3.0) / rho;
-  decdn = (dec1drs * drsdn + dec1ds * dsdn) + dfcdalpha * dalphadn * (ec0 - ec1) + fc * ((dec0drs * drsdn + dec0ds * dsdn) - (dec1drs * drsdn + dec1ds * dsdn));
+  decdn = (dec1drs * drsdn + dec1ds * dsdn) +
+          dfcdalpha * dalphadn * (ec0 - ec1) + fc * ((dec0drs * drsdn + dec0ds * dsdn) - (dec1drs * drsdn + dec1ds * dsdn));
   vc1 = ec + rho * decdn;
 
   // V2
   dsdgrad = s / grad;
   dalphadgrad = -2.0 * tau_W / (grad * tau_unif);
-  decdgrad = dec1ds * dsdgrad + dfcdalpha * dalphadgrad * (ec0 - ec1) + fc * ( dec0ds * dsdgrad - dec1ds * dsdgrad );
+  decdgrad = dec1ds * dsdgrad + dfcdalpha * dalphadgrad *
+    (ec0 - ec1) + fc * ( dec0ds * dsdgrad - dec1ds * dsdgrad );
   vc2 = -rho * decdgrad / grad;
 
   // V3
@@ -375,9 +386,8 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc, d
   vc3 = - rho * decdtau;
 
   // XC
-
   *exc = x_coeff_ * ex + c_coeff_ * ec;
-  *vxc1 = x_coeff_ * vx1 + c_coeff_ * vc1;
+  // *vxc1 = x_coeff_ * vx1 + c_coeff_ * vc1;
   *vxc2 = x_coeff_ * vx2 + c_coeff_ * vc2;
   *vxc3 = x_coeff_ * vx3 + c_coeff_ * vc3;
 }
@@ -589,13 +599,17 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn,
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-void SCANFunctional::gPW92(double alpha, double beta0, double beta1, double beta2, double beta3, double beta4, double rtrs, double *gg, double *dgdrs)
+void SCANFunctional::gPW92(double alpha, double beta0, double beta1,
+  double beta2, double beta3, double beta4, double rtrs, double *gg,
+  double *dgdrs)
 {
   double q0,q1,q2,q3;
   q0 = -2.0 * beta0 * ( 1.0 + alpha * rtrs * rtrs );
-  q1 = 2.0 * beta0 * rtrs * ( beta1 + rtrs * ( beta2 + rtrs * ( beta3 + rtrs * beta4 ) ) );
+  q1 = 2.0 * beta0 * rtrs * ( beta1 + rtrs * ( beta2 + rtrs *
+       ( beta3 + rtrs * beta4 ) ) );
   q2 = log ( 1.0 + 1.0 / q1 );
-  q3 = beta0 * ( beta1 / rtrs + 2.0 * beta2 + rtrs * ( 3.0 * beta3 + 4.0 * beta4 * rtrs ));
+  q3 = beta0 * ( beta1 / rtrs + 2.0 * beta2 + rtrs *
+       ( 3.0 * beta3 + 4.0 * beta4 * rtrs ));
   *gg = q0 * q2;
   *dgdrs = -2.0 * alpha * beta0 * q2 - q0 * q3 / ( q1 * ( 1.0 + q1 ));
 }

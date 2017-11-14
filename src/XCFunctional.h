@@ -65,7 +65,7 @@ class XCFunctional
 
   const double *rho, *rho_up, *rho_dn;
   double *grad_rho[3], *grad_rho_up[3], *grad_rho_dn[3];
-  double tau;
+  double *tau;
   double *exc, *exc_up, *exc_dn;
   double *vxc1, *vxc1_up, *vxc1_dn;
   double *vxc2, *vxc2_upup, *vxc2_dndn, *vxc2_updn, *vxc2_dnup;

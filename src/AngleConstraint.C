@@ -12,10 +12,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  AngleConstraint.C
+// AngleConstraint.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AngleConstraint.C,v 1.6 2008-09-08 15:56:17 fgygi Exp $
 
 #include "AngleConstraint.h"
 #include "AtomSet.h"
@@ -323,8 +322,8 @@ void AngleConstraint::grad_sigma(const D3vector &r1, const D3vector &r2,
 {
   D3vector r12(r1-r2);
   D3vector r32(r3-r2);
-  assert(norm(r12) > 0.0);
-  assert(norm(r32) > 0.0);
+  assert(norm2(r12) > 0.0);
+  assert(norm2(r32) > 0.0);
   D3vector e12(normalized(r12));
   D3vector e32(normalized(r32));
   const double ss = length(e12^e32);
@@ -344,7 +343,7 @@ void AngleConstraint::grad_sigma(const D3vector &r1, const D3vector &r2,
     {
       // choose direction e as e12+e32
       D3vector e(e12+e32);
-      assert(norm(e)>0.0);
+      assert(norm2(e)>0.0);
       e = normalized(e);
       const double r12_inv = 1.0/length(r12);
       const double r32_inv = 1.0/length(r32);
@@ -408,9 +407,10 @@ ostream& AngleConstraint::print( ostream &os )
   os << name2_ << " " << name3_ << "\"\n";
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
-  os << "  value=\"" << setprecision(6) << angle_;
-  os << "\" velocity=\"" << setprecision(6) << velocity_ << "\"\n";
-  os << "  force=\"" << setprecision(6) << force_;
-  os << "\" weight=\"" << setprecision(6) << weight_ << "\"/>";
+  os << "  velocity=\"" << setprecision(6) << velocity_ << "\"";
+  os << " weight=\"" << setprecision(6) << weight_ << "\">\n";
+  os << "  <value> " << setprecision(6) << angle_ << " </value>";
+  os << " <force> " << setprecision(6) << force_ << " </force>\n";
+  os << " </constraint>";
   return os;
 }

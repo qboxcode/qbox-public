@@ -15,7 +15,6 @@
 // SDWavefunctionStepper.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SDWavefunctionStepper.C,v 1.8 2008-09-08 15:56:19 fgygi Exp $
 
 #include "SDWavefunctionStepper.h"
 #include "Wavefunction.h"

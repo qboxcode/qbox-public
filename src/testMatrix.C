@@ -10,9 +10,11 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
-// $Id: testMatrix.C,v 1.16 2009-11-30 02:22:53 fgygi Exp $
+////////////////////////////////////////////////////////////////////////////////
 //
-// test Matrix
+// testMatrix.C
+//
+////////////////////////////////////////////////////////////////////////////////
 //
 // multiply a matrix a(m,k) by b(k,n) to get c(m,n)
 // using blocks of size (mb,nb) on a process grid (nprow,npcol)
@@ -51,14 +53,9 @@ int main(int argc, char **argv)
 {
   int mype;
   int npes;
-#ifdef USE_MPI
   MPI_Init(&argc,&argv);
   MPI_Comm_size(MPI_COMM_WORLD, &npes);
   MPI_Comm_rank(MPI_COMM_WORLD, &mype);
-#else
-  npes=1;
-  mype=0;
-#endif
 
   char* infilename = argv[1];
   ifstream infile(infilename);
@@ -72,11 +69,7 @@ int main(int argc, char **argv)
     else
     {
       cerr << " invalid argv[2]" << endl;
-#if USE_MPI
       MPI_Abort(MPI_COMM_WORLD,2);
-#else
-      exit(2);
-#endif
     }
   }
   Timer tm;
@@ -96,7 +89,6 @@ int main(int argc, char **argv)
     infile >> m_c >> n_c >> mb_c >> nb_c;
     cout<<"m_c="<<m_c<<", n_c="<<n_c<<endl;
   }
-#ifdef USE_MPI
   MPI_Bcast(&nprow, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&npcol, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&m_a, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -113,12 +105,11 @@ int main(int argc, char **argv)
   MPI_Bcast(&nb_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&ta, 1, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Bcast(&tb, 1, MPI_CHAR, 0, MPI_COMM_WORLD);
-#endif
   {
     if ( ta == 'N' ) ta = 'n';
     if ( tb == 'N' ) tb = 'n';
 
-    Context ctxt(nprow,npcol);
+    Context ctxt(MPI_COMM_WORLD,nprow,npcol);
 
     if ( mype == 0 )
     {
@@ -425,7 +416,5 @@ int main(int argc, char **argv)
 #endif
   }
 
-#ifdef USE_MPI
   MPI_Finalize();
-#endif
 }

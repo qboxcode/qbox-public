@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008-2012 The Regents of the University of California
+// Copyright (c) 2008-2015 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -26,9 +26,6 @@ using namespace std;
 #include <fstream>
 #if AIX
 #include<filehdr.h>
-#endif
-#ifdef USE_APC
-#include "apc.h"
 #endif
 
 #include "isodate.h"
@@ -59,6 +56,7 @@ using namespace std;
 #include "ListSpeciesCmd.h"
 #include "LoadCmd.h"
 #include "MoveCmd.h"
+#include "PartialChargeCmd.h"
 #include "PlotCmd.h"
 #include "PrintCmd.h"
 #include "QuitCmd.h"
@@ -71,12 +69,14 @@ using namespace std;
 #include "RunCmd.h"
 #include "SaveCmd.h"
 #include "SetCmd.h"
+#include "SetVelocityCmd.h"
 #include "SpeciesCmd.h"
 #include "StatusCmd.h"
 #include "StrainCmd.h"
 #include "TorsionCmd.h"
 #include "BisectionCmd.h"
 
+#include "AlphaPBE0.h"
 #include "AtomsDyn.h"
 #include "BlHF.h"
 #include "BtHF.h"
@@ -92,15 +92,20 @@ using namespace std;
 #include "Ecut.h"
 #include "Ecutprec.h"
 #include "Ecuts.h"
+#include "Efield.h"
+#include "Polarization.h"
 #include "Emass.h"
 #include "ExtStress.h"
 #include "FermiTemp.h"
+#include "IterCmd.h"
+#include "IterCmdPeriod.h"
 #include "Dt.h"
 #include "Nempty.h"
 #include "NetCharge.h"
 #include "Nrowmax.h"
 #include "Nspin.h"
 #include "RefCell.h"
+#include "ScfTol.h"
 #include "Stress.h"
 #include "Thermostat.h"
 #include "ThTemp.h"
@@ -122,9 +127,6 @@ int main(int argc, char **argv, char **envp)
 #if USE_MPI
   MPI_Init(&argc,&argv);
 #endif
-#if USE_APC
-  ApcInit();
-#endif
 
 #if BGLDEBUG
   {
@@ -142,7 +144,7 @@ int main(int argc, char **argv, char **envp)
 #endif
 
   {
-  Context ctxt;
+  Context ctxt(MPI_COMM_WORLD);
 
   if ( ctxt.onpe0() )
   {
@@ -166,7 +168,7 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I                          I\n";
   cout << "                   I                          I\n";
   cout << "                   I                          I\n";
-  cout << "                   I http://eslab.ucdavis.edu I\n";
+  cout << "                   I http://qboxcode.org      I\n";
   cout << "                   ============================\n\n";
   cout << "\n";
   cout << "<release> " << release() << " " << TARGET << " </release>" << endl;
@@ -205,6 +207,8 @@ int main(int argc, char **argv, char **envp)
 #if USE_MPI
   // Print list of node names
   char processor_name[MPI_MAX_PROCESSOR_NAME];
+  for ( int i = 0; i < MPI_MAX_PROCESSOR_NAME; i++ )
+    processor_name[i] = '\0';
   char buf[MPI_MAX_PROCESSOR_NAME];
   int namelen;
   PMPI_Get_processor_name(processor_name,&namelen);
@@ -251,9 +255,8 @@ int main(int argc, char **argv, char **envp)
          << " </omp_max_threads>" << endl;
 #endif
 
-  Sample* s = new Sample(ctxt);
-
   UserInterface ui;
+  Sample* s = new Sample(ctxt, &ui);
 
   ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
@@ -269,6 +272,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new ListSpeciesCmd(s));
   ui.addCmd(new LoadCmd(s));
   ui.addCmd(new MoveCmd(s));
+  ui.addCmd(new PartialChargeCmd(s));
   ui.addCmd(new PlotCmd(s));
   ui.addCmd(new PrintCmd(s));
   ui.addCmd(new QuitCmd(s));
@@ -281,11 +285,13 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new RunCmd(s));
   ui.addCmd(new SaveCmd(s));
   ui.addCmd(new SetCmd(s));
+  ui.addCmd(new SetVelocityCmd(s));
   ui.addCmd(new SpeciesCmd(s));
   ui.addCmd(new StatusCmd(s));
   ui.addCmd(new StrainCmd(s));
   ui.addCmd(new TorsionCmd(s));
 
+  ui.addVar(new AlphaPBE0(s));
   ui.addVar(new AtomsDyn(s));
   ui.addVar(new BlHF(s));
   ui.addVar(new BtHF(s));
@@ -301,15 +307,20 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Ecut(s));
   ui.addVar(new Ecutprec(s));
   ui.addVar(new Ecuts(s));
+  ui.addVar(new Efield(s));
+  ui.addVar(new Polarization(s));
   ui.addVar(new Emass(s));
   ui.addVar(new ExtStress(s));
   ui.addVar(new FermiTemp(s));
+  ui.addVar(new IterCmd(s));
+  ui.addVar(new IterCmdPeriod(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new NetCharge(s));
   ui.addVar(new Nrowmax(s));
   ui.addVar(new Nspin(s));
   ui.addVar(new Dspin(s));
   ui.addVar(new RefCell(s));
+  ui.addVar(new ScfTol(s));
   ui.addVar(new Stress(s));
   ui.addVar(new Thermostat(s));
   ui.addVar(new ThTemp(s));
@@ -379,9 +390,6 @@ int main(int argc, char **argv, char **envp)
   delete s;
 
   } // end of Context scope
-#if USE_APC
-  ApcFinalize();
-#endif
 #if USE_MPI
   MPI_Finalize();
 #endif

@@ -1,7 +1,13 @@
 #!/bin/bash
 # cell.plt: plot cell parameters during an MD simulation
+if [ $1 == "-range" ]
+then
+  range=$2
+  shift 2
+fi
+
 gnuplot -persist <<EOF
-plot "<grep -h -A3 '<unit_cell' $* | grep a=" u 2 w l, \
+plot $range "<grep -h -A3 '<unit_cell' $* | grep a=" u 2 w l, \
      "<grep -h -A3 '<unit_cell' $* | grep a=" u 3 w l, \
      "<grep -h -A3 '<unit_cell' $* | grep a=" u 4 w l, \
      "<grep -h -A3 '<unit_cell' $* | grep b=" u 2 w l, \

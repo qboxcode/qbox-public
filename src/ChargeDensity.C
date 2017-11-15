@@ -24,12 +24,12 @@
 
 #include <iomanip>
 #include <algorithm> // fill
+#include <functional>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 ChargeDensity::ChargeDensity(const Wavefunction& wf) : ctxt_(wf.context()),
 wf_(wf), vcomm_(wf.sd(0,0)->basis().comm())
-
 {
   vbasis_ = new Basis(vcomm_, D3vector(0,0,0));
   vbasis_->resize(wf.cell(),wf.refcell(),4.0*wf.ecut());
@@ -55,6 +55,7 @@ wf_(wf), vcomm_(wf.sd(0,0)->basis().comm())
 #endif
   vft_ = new FourierTransform(*vbasis_,np0v,np1v,np2v);
 
+  total_charge_.resize(wf.nspin());
   rhor.resize(wf.nspin());
   rhog.resize(wf.nspin());
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
@@ -89,6 +90,8 @@ wf_(wf), vcomm_(wf.sd(0,0)->basis().comm())
       ft_[ikp] = new FourierTransform(wb,np0v,np1v,np2v);
     }
   }
+  // initialize core density ptr to null ptr
+  rhocore_r = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -107,10 +110,10 @@ ChargeDensity::~ChargeDensity(void)
     ctxt_.dmax(1,1,&tmax,1);
     if ( ctxt_.myproc()==0 )
     {
-      cout << "<timing name=\""
-           << setw(15) << (*i).first << "\""
-           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
-           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+      string s = "name=\"" + (*i).first + "\"";
+      cout << "<timing " << left << setw(22) << s
+           << " min=\"" << setprecision(3) << tmin << "\""
+           << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
   }
@@ -160,19 +163,20 @@ void ChargeDensity::update_density(void)
     // sum on all indices except spin: sum along columns of spincontext
     wf_.spincontext()->dsum('c',1,1,&sum,1);
     tmap["charge_integral"].stop();
-    if ( ctxt_.onpe0() )
-    {
-      cout.setf(ios::fixed,ios::floatfield);
-      cout.setf(ios::right,ios::adjustfield);
-      cout << "  total_electronic_charge: " << setprecision(8) << sum
-           << endl;
-    }
+    total_charge_[ispin] = sum;
 
     tmap["charge_vft"].start();
     vft_->forward(&rhotmp[0],&rhog[ispin][0]);
     tmap["charge_vft"].stop();
+
+    // add core correction charge
+    if ( rhocore_r )
+      for ( int i = 0; i < rhor_size; i++ )
+        rhor[ispin][i] += rhocore_r[i];
+
   }
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 void ChargeDensity::update_rhor(void)
 {
@@ -191,10 +195,45 @@ void ChargeDensity::update_rhor(void)
 
     const int rhor_size = rhor[ispin].size();
     double *const prhor = &rhor[ispin][0];
-    #pragma omp parallel for
-    for ( int i = 0; i < rhor_size; i++ )
+    if ( rhocore_r )
     {
-      prhor[i] = rhotmp[i].real() * omega_inv;
+      #pragma omp parallel for
+      for ( int i = 0; i < rhor_size; i++ )
+        prhor[i] = ( rhotmp[i].real() + rhocore_r[i] ) * omega_inv;
+    }
+    else
+    {
+      #pragma omp parallel for
+      for ( int i = 0; i < rhor_size; i++ )
+        prhor[i] = rhotmp[i].real() * omega_inv;
     }
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+double ChargeDensity::total_charge(void) const
+{
+  assert((wf_.nspin()==1)||(wf_.nspin()==2));
+  if ( wf_.nspin() == 1 )
+    return total_charge_[0];
+  else
+    return total_charge_[0] + total_charge_[1];
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ChargeDensity::print(ostream& os) const
+{
+  os.setf(ios::fixed,ios::floatfield);
+  os.setf(ios::right,ios::adjustfield);
+  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+    os << "  <electronic_charge ispin=\"" << ispin << "\"> "
+       << setprecision(8) << total_charge(ispin)
+       << " </electronic_charge>\n";
+}
+
+////////////////////////////////////////////////////////////////////////////////
+ostream& operator<< ( ostream& os, const ChargeDensity& cd )
+{
+  cd.print(os);
+  return os;
 }

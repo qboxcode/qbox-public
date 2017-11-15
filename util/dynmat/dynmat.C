@@ -18,7 +18,7 @@
 // Forces are read from Qbox output
 // The Qbox output should correspond to a sequence of calculations
 // using symmetric finite displacements for all atoms in the x,y,z directions
-// Displacements have an amplitude of +/- h 
+// Displacements have an amplitude of +/- h
 //
 // use: dynmat force.dat h Nat1 mass1 [Nat2 mass2] ...
 // input_file: force.dat: forces from Qbox XML output file (collected with grep)
@@ -40,8 +40,9 @@
 #include <vector>
 using namespace std;
 
-#include "Context.h"
-#include "Matrix.h"
+extern "C"
+void dsyev_(const char *jobz, const char *uplo, const int *n, double *a,
+  const int *lda, double *w, double *wrk, int *lwrk, int *info);
 
 int main(int argc, char **argv)
 {
@@ -83,21 +84,20 @@ int main(int argc, char **argv)
         {
           infile >> dum >> fx >> fy >> fz;
           while (infile.get() != '\n');
-          f[ishift][ia1][idir1][ia2][0] = fx; 
-          f[ishift][ia1][idir1][ia2][1] = fy; 
-          f[ishift][ia1][idir1][ia2][2] = fz; 
+          f[ishift][ia1][idir1][ia2][0] = fx;
+          f[ishift][ia1][idir1][ia2][1] = fy;
+          f[ishift][ia1][idir1][ia2][2] = fz;
         }
       }
     }
   }
 
   // compute matrix elements: centered finite difference
-  // a[3*ia1+idir1][3*ia2+idir2] = 
+  // a[3*ia1+idir1][3*ia2+idir2] =
   //  ( f[1][ia1][idir1][ia2][idir2] - f[0][ia1][idir1][ia2][idir2] ) / ( 2 h )
 
-  Context ctxt;
   const int n = 3*nat;
-  DoubleMatrix a(ctxt,n,n);
+  valarray<double> a(n*n);
 
   for ( int ia1 = 0; ia1 < nat; ia1++ )
   {
@@ -109,37 +109,88 @@ int main(int argc, char **argv)
         {
           int i = 3*ia1+idir1;
           int j = 3*ia2+idir2;
-          double aij = ( f[1][ia1][idir1][ia2][idir2] - 
+          double aij = ( f[1][ia1][idir1][ia2][idir2] -
                          f[0][ia1][idir1][ia2][idir2] ) / ( 2.0 * h );
           aij = aij / sqrt(mass[ia1]*mass[ia2]);
-          a[j*a.n()+i] = aij;
+          a[j*n+i] = aij;
         }
       }
     }
   }
 
   // cout << a;
-  valarray<double> w(a.m());
-  DoubleMatrix asave(a);
-  a.syevd('u',w);
+  valarray<double> w_upper(n),w_lower(n),w_sym(n);
+  valarray<double> asave(a);
+  char jobz = 'n';
+  char uplo = 'u';
+  int lwrk = 3*n;
+  valarray<double> wrk(lwrk);
 
-  cout << " frequencies:" << endl;
-  for ( int i = 0; i < a.n(); i++ )
-  {
-    if ( w[i] < 0.0 )
-      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w[i])) << " I" << endl;
-    else
-      cout << setw(8) << (int) (Ha2cm1 * sqrt(w[i])) << endl;
-  }
+  // use the upper part of the dynamical matrix
+  int info;
+  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w_upper[0],&wrk[0],&lwrk,&info);
+  assert(info==0);
 
   a = asave;
-  a.syevd('l',w);
-  cout << " frequencies:" << endl;
-  for ( int i = 0; i < a.n(); i++ )
+  // use the lower part of the dynamical matrix
+  uplo = 'l';
+  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w_lower[0],&wrk[0],&lwrk,&info);
+  assert(info==0);
+
+  a = asave;
+  // symmetrize the matrix a
+  for ( int i = 0; i < n; i++ )
   {
-    if ( w[i] < 0.0 )
-      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w[i])) << " I" << endl;
+    for ( int j = i+1; j < n; j++ )
+    {
+      double aij = 0.5 * ( a[j*n+i] + a[i*n+j] );
+      a[j*n+i] = aij;
+      a[i*n+j] = aij;
+    }
+  }
+
+  // compute eigenvectors
+  jobz = 'v';
+  dsyev_(&jobz,&uplo,&n,&a[0],&n,&w_sym[0],&wrk[0],&lwrk,&info);
+  assert(info==0);
+
+  cout << " frequencies (upper/lower/sym):" << endl;
+  for ( int i = 0; i < n; i++ )
+  {
+    if ( w_upper[i] < 0.0 )
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w_upper[i])) << " I";
     else
-      cout << setw(8) << (int) (Ha2cm1 * sqrt(w[i])) << endl;
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(w_upper[i]));
+
+    if ( w_lower[i] < 0.0 )
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w_lower[i])) << " I";
+    else
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(w_lower[i]));
+
+    if ( w_sym[i] < 0.0 )
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(-w_sym[i])) << " I";
+    else
+      cout << setw(8) << (int) (Ha2cm1 * sqrt(w_sym[i]));
+    cout << endl;
+  }
+
+  ofstream vecfile("dynmat_eigvec.dat");
+  for ( int j = 0; j < n; j++ )
+  {
+    vecfile << "# mode " << j+1 << "  frequency = ";
+    if ( w_sym[j] < 0.0 )
+      vecfile << setw(8) << (int) (Ha2cm1 * sqrt(-w_sym[j])) << " I";
+    else
+      vecfile << setw(8) << (int) (Ha2cm1 * sqrt(w_sym[j]));
+    vecfile << " cm-1" << endl;
+    vecfile << setprecision(8);
+    vecfile.setf(ios::fixed, ios::floatfield);
+    vecfile.setf(ios::right, ios::adjustfield);
+    for ( int i = 0; i < n; i+=3 )
+
+      vecfile << i/3+1 << " "
+              << setw(12) << a[j*n+i] << " "
+              << setw(12) << a[j*n+i+1] << " "
+              << setw(12) << a[j*n+i+2] << endl;
   }
 }

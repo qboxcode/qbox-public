@@ -56,6 +56,7 @@ using namespace std;
 #define pdtrsm     pdtrsm_
 #define pztrsm     pztrsm_
 #define pdtrtrs    pdtrtrs_
+#define pztrtrs    pztrtrs_
 #define pdpotrf    pdpotrf_
 #define pzpotrf    pzpotrf_
 #define pdpotri    pdpotri_
@@ -67,11 +68,14 @@ using namespace std;
 #define pzheev     pzheev_
 #define pzheevd    pzheevd_
 #define pdtrtri    pdtrtri_
+#define pztrtri    pztrtri_
 #define pdlatra    pdlatra_
 #define pdlacp2    pdlacp2_
 #define pdlacp3    pdlacp3_
 #define pdgetrf    pdgetrf_
+#define pzgetrf    pzgetrf_
 #define pdgetri    pdgetri_
+#define pzgetri    pzgetri_
 #define pdlapiv    pdlapiv_
 #define pzlapiv    pzlapiv_
 #define pdlapv2    pdlapv2_
@@ -100,6 +104,7 @@ using namespace std;
 #define dtrmm      dtrmm_
 #define dtrsm      dtrsm_
 #define dtrtri     dtrtri_
+#define ztrtri     ztrtri_
 #define ztrsm      ztrsm_
 #define dtrtrs     dtrtrs_
 #define dpotrf     dpotrf_
@@ -111,7 +116,9 @@ using namespace std;
 #define zheev      zheev_
 #define idamax     idamax_
 #define dgetrf     dgetrf_
+#define zgetrf     zgetrf_
 #define dgetri     dgetri_
+#define zgetri     zgetri_
 #endif
 
 extern "C"
@@ -193,6 +200,9 @@ extern "C"
   void pdtrtrs(const char*, const char*, const char*, const int*, const int*,
                const double*, const int*, const int*, const int*,
                double*, const int*, const int*, const int*, int*);
+  void pztrtrs(const char*, const char*, const char*, const int*, const int*,
+               const complex<double>*, const int*, const int*, const int*,
+               complex<double>*, const int*, const int*, const int*, int*);
   void pigemr2d(const int*,const int*,
                 const int*,const int*,const int*, const int*,
                 int*,const int*,const int*,const int*,const int*);
@@ -245,11 +255,18 @@ extern "C"
                int* iwork, int* liwork, int* info);
   void pdtrtri(const char*, const char*, const int*, double*,
                const int*, const int*, const int*, int*);
+  void pztrtri(const char*, const char*, const int*, complex<double>*,
+               const int*, const int*, const int*, int*);
   void pdgetrf(const int* m, const int* n, double* val,
+               int* ia, const int* ja, const int* desca, int* ipiv, int* info);
+  void pzgetrf(const int* m, const int* n, complex<double>* val,
                int* ia, const int* ja, const int* desca, int* ipiv, int* info);
   void pdgetri(const int* n, double* val,
                const int* ia, const int* ja, int* desca, int* ipiv,
                double* work, int* lwork, int* iwork, int* liwork, int* info);
+  void pzgetri(const int* n, complex<double>* val, const int* ia,
+               const int* ja, int* desca, int* ipiv, complex<double>* work,
+               int* lwork, int* iwork, int* liwork, int* info);
 
   void pdlapiv(const char* direc, const char* rowcol, const char* pivroc,
                const int* m, const int* n, double *a, const int* ia,
@@ -355,8 +372,12 @@ extern "C"
   void dtrtri(const char*, const char*, const int*, double*, const int*, int* );
   void dgetrf(const int* m, const int* n, double* a, const int* lda,
               int* ipiv, int*info);
+  void zgetrf(const int* m, const int* n, complex<double>* a, const int* lda,
+              int* ipiv, int*info);
   void dgetri(const int* m, double* val, const int* lda, int* ipiv,
               double* work, int* lwork, int* info);
+  void zgetri(const int* m, complex<double>* val, const int* lda, int* ipiv,
+              complex<double>* work, int* lwork, int* info);
 }
 
 
@@ -1869,7 +1890,42 @@ void DoubleMatrix::trtrs(char uplo, char trans, char diag,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// LU decomposition of a general matrix
+// Solves a triangular system of the form A * X = B or
+// A**T * X = B, where A is a triangular matrix of  order  N,
+// and  B  is an N-by-NRHS matrix.
+// Output in B.
+////////////////////////////////////////////////////////////////////////////////
+void ComplexMatrix::trtrs(char uplo, char trans, char diag,
+                         ComplexMatrix& b) const
+{
+  int info;
+  if ( active() )
+  {
+    assert(m_==n_);
+
+#ifdef SCALAPACK
+    int ione=1;
+    pztrtrs(&uplo, &trans, &diag, &m_, &b.n_,
+    val, &ione, &ione, desc_,
+    b.val, &ione, &ione, b.desc_, &info);
+#else
+    ztrtrs(&uplo, &trans, &diag, &m_, &b.n_, val, &m_,
+           b.val, &b.m_, &info);
+#endif
+    if(info!=0)
+    {
+      cout <<" ComplexMatrix::trtrs, info=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// LU decomposition of a double matrix
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::lu(valarray<int>& ipiv)
 {
@@ -1898,39 +1954,112 @@ void DoubleMatrix::lu(valarray<int>& ipiv)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// inverse of a general square matrix
+// LU decomposition of a complex matrix
 ////////////////////////////////////////////////////////////////////////////////
-void DoubleMatrix::inverse(void)
+void ComplexMatrix::lu(valarray<int>& ipiv)
 {
   int info;
   if ( active() )
   {
     assert(m_==n_);
-    valarray<int> ipiv(mloc_+mb_);
+    ipiv.resize(mloc_+mb_);
 
-    // LU decomposition
 #ifdef SCALAPACK
     int ione=1;
-    pdgetrf(&m_, &n_, val, &ione, &ione, desc_, &ipiv[0], &info);
+    pzgetrf(&m_, &n_, val, &ione, &ione, desc_, &ipiv[0], &info);
 #else
-    dgetrf(&m_, &n_, val, &m_, &ipiv[0], &info);
+    zgetrf(&m_, &n_, val, &m_, &ipiv[0], &info);
 #endif
     if(info!=0)
     {
-      cout << " DoubleMatrix::inverse, info(getrf)=" << info << endl;
+      cout << " ComplexMatrix::lu, info=" << info << endl;
 #ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
 #else
       exit(2);
 #endif
     }
+  }
+}
 
-    // Compute inverse using LU decomposition
+////////////////////////////////////////////////////////////////////////////////
+// inverse of a square double matrix
+////////////////////////////////////////////////////////////////////////////////
+void DoubleMatrix::inverse(void)
+{
+  if ( active() )
+  {
+    assert(m_==n_);
+    valarray<int> ipiv(mloc_+mb_);
+    // LU decomposition
+    lu(ipiv);
+    inverse_from_lu(ipiv);
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// determinant of a square double matrix in LU form
+////////////////////////////////////////////////////////////////////////////////
+double DoubleMatrix::det_from_lu(valarray<int> ipiv)
+{
+  if ( active() )
+  {
+    assert(m_==n_);
+
+    // compute determinant
+    valarray<double> diag(n_);
+    for ( int ii = 0; ii < n_; ii++ )
+    {
+      int iii = l(ii) * mb_ + x(ii);
+      int jjj = m(ii) * nb_ + y(ii);
+      if ( pr(ii) == ctxt_.myrow()
+          && pc(ii) == ctxt_.mycol() )
+        diag[ii] = val[iii+mloc_*jjj];
+    }
+    ctxt_.dsum(n_,1,(double*)&diag[0],n_);
+
+    double det = 1.0;
+    for ( int ii = 0; ii < n_; ii++ )
+      det *= diag[ii];
+    det *= signature(ipiv);
+
+    return det;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// inverse and determinant of a square double matrix
+////////////////////////////////////////////////////////////////////////////////
+double DoubleMatrix::inverse_det(void)
+{
+  if ( active() )
+  {
+    assert(m_==n_);
+    valarray<int> ipiv(mloc_+mb_);
+    lu(ipiv);
+    double det = det_from_lu(ipiv);
+    inverse_from_lu(ipiv);
+    return det;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// inverse from an LU decomposed square matrix
+////////////////////////////////////////////////////////////////////////////////
+void DoubleMatrix::inverse_from_lu(valarray<int>& ipiv)
+{
+  int info;
+  if ( active() )
+  {
+    assert(m_==n_);
+
+    // Compute inverse using LU decomposition and array ipiv
 #ifdef SCALAPACK
     valarray<double> work(1);
     valarray<int> iwork(1);
     int lwork = -1;
     int liwork = -1;
+    int ione = 1;
     // First call to compute dimensions of work arrays lwork and liwork
     // dimensions are returned in work[0] and iwork[0];
     pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
@@ -1954,7 +2083,110 @@ void DoubleMatrix::inverse(void)
 #endif
     if(info!=0)
     {
-      cout << " DoubleMatrix::inverse, info(getri)=" << info << endl;
+      cout << " DoubleMatrix::inverse_from_lu, info(getri)=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// inverse of a complex square matrix
+////////////////////////////////////////////////////////////////////////////////
+void ComplexMatrix::inverse(void)
+{
+  valarray<int> ipiv;
+  lu(ipiv);
+  inverse_from_lu(ipiv);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// determinant of a complex square matrix in LU form
+////////////////////////////////////////////////////////////////////////////////
+complex<double> ComplexMatrix::det_from_lu(valarray<int> ipiv)
+{
+  if ( active() )
+  {
+    assert(m_==n_);
+
+    // compute determinant
+    valarray<complex<double> > diag(n_);
+    for ( int ii = 0; ii < n_; ii++ )
+    {
+      int iii = l(ii) * mb_ + x(ii);
+      int jjj = m(ii) * nb_ + y(ii);
+      if ( pr(ii) == ctxt_.myrow()
+          && pc(ii) == ctxt_.mycol() )
+        diag[ii] = val[iii+mloc_*jjj];
+    }
+    ctxt_.dsum(n_*2,1,(double*)&diag[0],n_*2);
+
+    complex<double> det = 1.0;
+    for ( int ii = 0; ii < n_; ii++ )
+      det *= diag[ii];
+    det *= signature(ipiv);
+
+    return det;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// inverse and determinant of a complex square matrix
+////////////////////////////////////////////////////////////////////////////////
+complex<double> ComplexMatrix::inverse_det(void)
+{
+  if ( active() )
+  {
+    assert(m_==n_);
+    valarray<int> ipiv(mloc_+mb_);
+    lu(ipiv);
+    complex<double> det = det_from_lu(ipiv);
+    inverse_from_lu(ipiv);
+    return det;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// compute inverse of an LU decomposed matrix
+void ComplexMatrix::inverse_from_lu(valarray<int>& ipiv)
+{
+  // it is assumed that the current matrix is LU decomposed
+  int info;
+  if ( active() )
+  {
+    assert(m_==n_);
+    // Compute inverse using LU decomposition and array ipiv computed in lu()
+#ifdef SCALAPACK
+    valarray< complex<double> > work(1);
+    valarray<int> iwork(1);
+    int lwork = -1;
+    int liwork = -1;
+    int ione = 1;
+    pzgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
+            &work[0], &lwork, &iwork[0], &liwork, &info);
+    lwork = (int) work[0].real() + 1;
+    liwork = iwork[0];
+    work.resize(lwork);
+    iwork.resize(liwork);
+
+    // Compute inverse
+    pzgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
+            &work[0], &lwork, &iwork[0], &liwork, &info);
+#else
+    valarray< complex<double> > work(1);
+    int lwork = -1;
+    // First call to compute optimal size of work array, returned in work[0]
+    zgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
+    lwork = (int) work[0] + 1;
+    work.resize(lwork);
+    zgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
+#endif
+    if(info!=0)
+    {
+      cout << " ComplexMatrix::inverse, info(getri)=" << info << endl;
 #ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
 #else
@@ -2080,6 +2312,31 @@ void DoubleMatrix::trtri(char uplo, char diag)
   }
 }
 
+void ComplexMatrix::trtri(char uplo, char diag)
+{
+  int info;
+  if ( active() )
+  {
+    assert(m_==n_);
+
+#ifdef SCALAPACK
+    int ione=1;
+    pztrtri(&uplo, &diag, &m_, val, &ione, &ione, desc_, &info);
+#else
+    ztrtri(&uplo, &diag, &m_, val, &m_, &info);
+#endif
+    if(info!=0)
+    {
+      cout << " Matrix::trtri, info=" << info << endl;
+#ifdef USE_MPI
+      MPI_Abort(MPI_COMM_WORLD, 2);
+#else
+      exit(2);
+#endif
+    }
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Polar decomposition A = UH
 // Replace *this with its orthogonal polar factor U
@@ -2159,6 +2416,88 @@ void DoubleMatrix::polar(double tol, int maxiter)
   *this = x;
 #else
 #error "DoubleMatrix::polar only implemented with SCALAPACK"
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Polar decomposition A = UH (complex case)
+// Replace *this with its unitary polar factor U
+// return when iter > maxiter or ||I - X^H*X|| < tol
+////////////////////////////////////////////////////////////////////////////////
+void ComplexMatrix::polar(double tol, int maxiter)
+{
+  ComplexMatrix x(ctxt_,m_,n_,mb_,nb_);
+  ComplexMatrix xp(ctxt_,m_,n_,mb_,nb_);
+
+  ComplexMatrix q(ctxt_,n_,n_,nb_,nb_);
+  ComplexMatrix qt(ctxt_,n_,n_,nb_,nb_);
+  ComplexMatrix t(ctxt_,n_,n_,nb_,nb_);
+
+#ifdef SCALAPACK
+  double qnrm2 = numeric_limits<double>::max();
+  int iter = 0;
+  x = *this;
+  while ( iter < maxiter && qnrm2 > tol )
+  {
+    // q = I - x^T * x
+    q.identity();
+    q.herk('l','c',-1.0,x,1.0);
+    q.symmetrize('l');
+
+    double qnrm2 = q.nrm2();
+#ifdef DEBUG
+    if ( ctxt_.onpe0() )
+      cout << " ComplexMatrix::polar: qnrm2 = " << qnrm2 << endl;
+#endif
+
+    // choose Bjork-Bowie or Higham iteration depending on q.nrm2
+
+    // threshold value
+    // see A. Bjork and C. Bowie, SIAM J. Num. Anal. 8, 358 (1971) p.363
+    if ( qnrm2 < 1.0 )
+    {
+      // Bjork-Bowie iteration
+      // compute xp = x * ( I + 0.5*q * ( I + 0.75 * q ) )
+
+      // t = ( I + 0.75 * q )
+      t.identity();
+      t.axpy(0.75,q);
+
+      // compute q*t
+      qt.gemm('n','n',1.0,q,t,0.0);
+
+      // xp = x * ( I + 0.5*q * ( I + 0.75 * q ) )
+      //    = x * ( I + 0.5 * qt )
+      // Use t to store (I + 0.5 * qt)
+      t.identity();
+      t.axpy(0.5,qt);
+
+      // t now contains (I + 0.5 * qt)
+      // xp = x * t
+      xp.gemm('n','n',1.0,x,t,0.0);
+
+      // update x
+      x = xp;
+    }
+    else
+    {
+      // Higham iteration
+      assert(m_==n_);
+      //if ( ctxt_.onpe0() )
+      //  cout << " ComplexMatrix::polar: using Higham algorithm" << endl;
+      // t = X^H
+      t.transpose(1.0,x,0.0);
+      t.inverse();
+      // t now contains X^-H
+      // xp = 0.5 * ( x + x^-H );
+      for ( int i = 0; i < x.size(); i++ )
+        x[i] = 0.5 * ( x[i] + t[i] );
+    }
+    iter++;
+  }
+  *this = x;
+#else
+#error "ComplexMatrix::polar only implemented with SCALAPACK"
 #endif
 }
 
@@ -3193,7 +3532,7 @@ void DoubleMatrix::print(ostream& os) const
 {
   // Copy blocks of <blocksize> columns and print them on process (0,0)
   if ( m_ == 0 || n_ == 0 ) return;
-  Context ctxtl(1,1);
+  Context ctxtl(MPI_COMM_WORLD,1,1);
   const int blockmemsize = 32768; // maximum memory size of a block in bytes
   // compute maximum block size: must be at least 1
   int maxbs = max(1, (int) ((blockmemsize/sizeof(double))/m_));
@@ -3225,7 +3564,7 @@ void ComplexMatrix::print(ostream& os) const
 {
   // Copy blocks of <blocksize> columns and print them on process (0,0)
   if ( m_ == 0 || n_ == 0 ) return;
-  Context ctxtl(1,1);
+  Context ctxtl(MPI_COMM_WORLD,1,1);
   const int blockmemsize = 32768; // maximum memory size of a block in bytes
   // compute maximum block size: must be at least 1
   int maxbs = max(1, (int) ((blockmemsize/sizeof(complex<double>))/m_));
@@ -3264,4 +3603,46 @@ ostream& operator<<(ostream& os, const ComplexMatrix& a)
 {
   a.print(os);
   return os;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// signature: compute the signature of a row permutation
+// defined by a distributed pivot vector ipiv
+//
+// the vector ipiv is computed by the lu decomposition
+//
+int DoubleMatrix::signature(valarray<int> ipiv)
+{
+  // count the number of non-trivial transpositions in the local ipiv vector
+  int ntrans = 0;
+  for ( int i = 0; i < mloc_; i++ )
+  {
+    if ( ipiv[i] != iglobal(i) )
+      ntrans++;
+  }
+  // accumulate total number of transpositions
+  ctxt_.isum('c',1,1,&ntrans,1);
+  return 1 - 2 * ((m_ - ntrans)%2);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// signature: compute the signature of a row permutation
+// defined by a distributed pivot vector ipiv
+//
+// the vector ipiv is computed by the lu decomposition
+//
+int ComplexMatrix::signature(valarray<int> ipiv)
+{
+  // count the number of non-trivial transpositions in the local ipiv vector
+  int ntrans = 0;
+  for ( int i = 0; i < mloc_; i++ )
+  {
+    if ( ipiv[i] != iglobal(i) )
+      ntrans++;
+  }
+  // accumulate total number of transpositions
+  ctxt_.isum('c',1,1,&ntrans,1);
+  return 1 - 2 * ((m_ - ntrans)%2);
 }

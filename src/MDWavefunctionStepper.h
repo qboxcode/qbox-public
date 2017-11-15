@@ -15,7 +15,6 @@
 // MDWavefunctionStepper.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MDWavefunctionStepper.h,v 1.6 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef MDWAVEFUNCTIONSTEPPER_H
 #define MDWAVEFUNCTIONSTEPPER_H

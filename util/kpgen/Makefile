@@ -1,2 +1,2 @@
-kpgen: kpgen.C D3vector.h
+kpgen: kpgen.cpp D3vector.h
 	g++ -o $@ $^

@@ -198,6 +198,7 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
       // skip the pair if one or both of the vectors is a dummy vector
       // i.e. a vector having jglobal==-1
 
+#pragma omp parallel for
       for ( int k = 0; k < a.size(); k++ )
       {
         for ( int ipair = 0; ipair < nploc; ipair++ )
@@ -228,6 +229,7 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
       tm_comm.stop();
       // apq now contains the matrix elements
 
+#pragma omp parallel for
       for ( int ipair = 0; ipair < nploc; ipair++ )
       {
         if ( jglobal[top[ipair]] >= 0 &&
@@ -328,6 +330,7 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
           drot(&mloc,up,&one,uq,&one,&c,&s);
 
           // new value of off-diag element apq
+          double diag_change_ipair = 0.0;
           for ( int k = 0; k < a.size(); k++ )
           {
             const int iapq = 3*ipair + k*3*nploc;
@@ -337,8 +340,10 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
 
             // accumulate change in sum of squares of diag elements
             // note negative sign: decrease in offdiag is increase in diag
-            diag_change -= 2.0 * ( apqnew*apqnew - apq[iapq]*apq[iapq] );
+            diag_change_ipair -= 2.0 * ( apqnew*apqnew - apq[iapq]*apq[iapq] );
           }
+#pragma omp critical
+          diag_change -= diag_change_ipair;
         }
       } // for ipair
 

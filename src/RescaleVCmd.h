@@ -15,7 +15,6 @@
 // RescaleVCmd.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RescaleVCmd.h,v 1.1 2010-04-16 21:41:41 fgygi Exp $
 
 #ifndef RESCALEVCMD_H
 #define RESCALEVCMD_H

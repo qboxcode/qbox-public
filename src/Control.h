@@ -15,13 +15,13 @@
 // Control.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Control.h,v 1.15 2009-03-08 01:11:31 fgygi Exp $
 
 #ifndef CONTROL_H
 #define CONTROL_H
 
 #include <string>
 #include <vector>
+#include "D3vector.h"
 
 struct Control
 {
@@ -53,6 +53,7 @@ struct Control
   double ext_stress[6]; // external stress tensor: xx,yy,zz,xy,yz,xz
 
   std::string xc;
+  double alpha_PBE0;
   std::string spin;
   int delta_spin;
 
@@ -66,5 +67,13 @@ struct Control
 
   int blHF[3];
   double btHF;
+
+  double scf_tol;
+
+  D3vector e_field;
+  std::string polarization;
+
+  std::string iter_cmd;
+  int iter_cmd_period;
 };
 #endif

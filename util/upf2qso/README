@@ -1,0 +1,19 @@
+
+ upf2qso.C is a program that converts norm-conserving pseudopotentials 
+ written in the UPF format (see http://www.pwscf.org) to the 
+ www.quantum-simulation.org (QSO) format.
+
+ upf2qso only works for norm-conserving potentials. Ultrasoft potentials
+ are not supported
+
+ Test:
+ $ src/upf2qso 5.0 < data/C.pz-vbc.UPF > C.pz-vbc.xml
+ $ src/upf2qso 8.0 < data/Si.pz-vbc.UPF > Si.pz-vbc.xml
+ $ src/upf2qso 8.0 < data/30-Zn.LDA.fhi.UPF > Zn_FHI_LDA.xml
+
+ Additional files v.dat, vlin.dat, upf.dat contain various functions in 
+ gnuplot compatible format
+
+ This program was written by F. Gygi
+ Debugging of version 1.2 was provided by Stefan Wippermann
+ Version 1.4, 2014-02-24. Fixed bug in 1.3 in calc of lmax

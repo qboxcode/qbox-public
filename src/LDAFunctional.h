@@ -15,7 +15,6 @@
 // LDAFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LDAFunctional.h,v 1.8 2009-06-29 09:57:57 fgygi Exp $
 
 #ifndef LDAFUNCTIONAL_H
 #define LDAFUNCTIONAL_H

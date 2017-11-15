@@ -18,6 +18,7 @@
 
 #include "XCPotential.h"
 #include "LDAFunctional.h"
+#include "VWNFunctional.h"
 #include "PBEFunctional.h"
 #include "BLYPFunctional.h"
 #include "HSEFunctional.h"
@@ -29,12 +30,16 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name):
-cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
+XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
+  const Control& ctrl): cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
 {
   if ( functional_name == "LDA" )
   {
     xcf_ = new LDAFunctional(cd_.rhor);
+  }
+  else if ( functional_name == "VWN" )
+  {
+    xcf_ = new VWNFunctional(cd_.rhor);
   }
   else if ( functional_name == "PBE" )
   {
@@ -46,7 +51,7 @@ cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
   }
   else if ( functional_name == "PBE0" )
   {
-    const double x_coeff = 0.75;
+    const double x_coeff = 1.0 - ctrl.alpha_PBE0;
     const double c_coeff = 1.0;
     xcf_ = new PBEFunctional(cd_.rhor,x_coeff,c_coeff);
   }
@@ -103,15 +108,15 @@ void XCPotential::update(vector<vector<double> >& vr)
 
   // Output: (through member function xcf())
   //
-  // exc_, dxc, dxc0_, dxc1_, dxc2_
+  // exc_, dxc_
   //
   // LDA Functional:
-  //   exc_, dxc
+  //   exc_, dxc_
   //   spin unpolarized: xcf()->exc, xcf()->vxc1
   //   spin polarized:   xcf()->exc, xcf()->vxc1_up, xcf()->vxc1_dn
   //
   // GGA Functional: (through member function xcf())
-  //   exc_, dxc, dxc0_, dxc1_, dxc2_
+  //   exc_, dxc_
   //   spin unpolarized: xcf()->exc, xcf()->vxc1, xcf()->vxc2
   //   spin polarized:   xcf()->exc_up, xcf()->exc_dn,
   //                     xcf()->vxc1_up, xcf()->vxc1_dn
@@ -125,6 +130,7 @@ void XCPotential::update(vector<vector<double> >& vr)
     xcf_->setxc();
 
     exc_ = 0.0;
+    dxc_ = 0.0;
     const double *const e = xcf_->exc;
     const int size = xcf_->np();
 
@@ -135,8 +141,12 @@ void XCPotential::update(vector<vector<double> >& vr)
       const double *const v = xcf_->vxc1;
       for ( int i = 0; i < size; i++ )
       {
-        exc_ += rh[i] * e[i];
-        vr[0][i] += v[i];
+        const double e_i = e[i];
+        const double v_i = v[i];
+        const double rh_i = rh[i];
+        exc_ += rh_i * e_i;
+        dxc_ += rh_i * ( e_i - v_i );
+        vr[0][i] += v_i;
       }
     }
     else
@@ -148,15 +158,19 @@ void XCPotential::update(vector<vector<double> >& vr)
       const double *const v_dn = xcf_->vxc1_dn;
       for ( int i = 0; i < size; i++ )
       {
-        exc_ += (rh_up[i] + rh_dn[i]) * e[i];
+        const double r_i = rh_up[i] + rh_dn[i];
+        exc_ += r_i * e[i];
+        dxc_ += r_i * e[i] - rh_up[i] * v_up[i] - rh_dn[i] * v_dn[i];
         vr[0][i] += v_up[i];
         vr[1][i] += v_dn[i];
       }
     }
-    double sum = exc_ * vbasis_.cell().volume() / vft_.np012();
-    double tsum;
-    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
-    exc_ = tsum;
+    double sum[2],tsum[2];
+    sum[0] = exc_ * vbasis_.cell().volume() / vft_.np012();
+    sum[1] = dxc_ * vbasis_.cell().volume() / vft_.np012();
+    MPI_Allreduce(&sum,&tsum,2,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+    exc_ = tsum[0];
+    dxc_ = tsum[1];
   }
   else
   {
@@ -294,6 +308,7 @@ void XCPotential::update(vector<vector<double> >& vr)
     // div(vxc2*grad_rho) is stored in vxctmp[ispin][ir]
 
     double esum=0.0;
+    double dsum=0.0;
     if ( nspin_ == 1 )
     {
       const double *const e = xcf_->exc;
@@ -302,8 +317,12 @@ void XCPotential::update(vector<vector<double> >& vr)
       {
         for ( int ir = 0; ir < np012loc_; ir++ )
         {
-          esum += rh[ir] * e[ir];
-          vr[0][ir] += v1[ir] + vxctmp[0][ir];
+          const double e_i = e[ir];
+          const double rh_i = rh[ir];
+          const double v_i = v1[ir] + vxctmp[0][ir];
+          esum += rh_i * e_i;
+          dsum += rh_i * ( e_i - v_i );
+          vr[0][ir] += v_i;
         }
       }
     }
@@ -317,17 +336,22 @@ void XCPotential::update(vector<vector<double> >& vr)
       const double *const rh_dn = xcf_->rho_dn;
       for ( int ir = 0; ir < np012loc_; ir++ )
       {
-        const double r_up = rh_up[ir];
-        const double r_dn = rh_dn[ir];
-        esum += r_up * eup[ir] + r_dn * edn[ir];
-        vr[0][ir] += v1_up[ir] + vxctmp[0][ir];
-        vr[1][ir] += v1_dn[ir] + vxctmp[1][ir];
+        const double r_up_i = rh_up[ir];
+        const double r_dn_i = rh_dn[ir];
+        esum += r_up_i * eup[ir] + r_dn_i * edn[ir];
+        const double v_up = v1_up[ir] + vxctmp[0][ir];
+        const double v_dn = v1_dn[ir] + vxctmp[1][ir];
+        dsum += r_up_i * ( eup[ir] - v_up ) + r_dn_i * ( edn[ir] - v_dn );
+        vr[0][ir] += v_up;
+        vr[1][ir] += v_dn;
       }
     }
-    double sum = esum * vbasis_.cell().volume() / vft_.np012();
-    double tsum;
-    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
-    exc_ = tsum;
+    double sum[2], tsum[2];
+    sum[0] = esum * vbasis_.cell().volume() / vft_.np012();
+    sum[1] = dsum * vbasis_.cell().volume() / vft_.np012();
+    MPI_Allreduce(&sum,&tsum,2,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+    exc_ = tsum[0];
+    dxc_ = tsum[1];
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -339,7 +363,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
   {
     // LDA functional
 
-    dxc_ = 0.0;
+    double dsum = 0.0;
     const double *const e = xcf_->exc;
     const int size = xcf_->np();
 
@@ -350,7 +374,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
       const double *const v = xcf_->vxc1;
       for ( int i = 0; i < size; i++ )
       {
-        dxc_ += rh[i] * (e[i] - v[i]);
+        dsum += rh[i] * (e[i] - v[i]);
       }
     }
     else
@@ -363,14 +387,14 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
       for ( int i = 0; i < size; i++ )
       {
         const double rh = rh_up[i] + rh_dn[i];
-        dxc_ += rh * e[i] - rh_up[i] * v_up[i] - rh_dn[i] * v_dn[i];
+        dsum += rh * e[i] - rh_up[i] * v_up[i] - rh_dn[i] * v_dn[i];
       }
     }
     const double fac = 1.0 / vft_.np012();
     double sum, tsum;
     // Next line: factor omega in volume element cancels 1/omega in
     // definition of sigma_exc
-    sum = - fac * dxc_;
+    sum = - fac * dsum;
     MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
 
     // Note: contribution to sigma_exc is a multiple of the identity

@@ -19,9 +19,6 @@
 // Implements InteractionPotential class that evaluates the potential for given
 // norm of G vectors and the derivative w.r.t. this argument
 //
-// Author: Martin Schlipf (2013)
-// Contact: martin.schlipf@gmail.com
-//
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef INTERACTIONPOTENTIAL_H
@@ -34,17 +31,12 @@ class InteractionPotential
   public:
 
   // default constructor = Coulomb potential
-  InteractionPotential() :
-    coulomb_(true)
-  {
-  }
+  InteractionPotential() : coulomb_(true) {}
 
   // constructor - define function and derivative
   InteractionPotential(double(*V)(const double&), double(*dV)(const double&),
     double(*div_scale)(const double&)) :
-    V_(V), dV_(dV), div_scale_(div_scale), coulomb_(false)
-  {
-  }
+    V_(V), dV_(dV), div_scale_(div_scale), coulomb_(false) {}
 
   // is the interaction potential a coulomb potential?
   inline bool coulomb() const
@@ -55,7 +47,8 @@ class InteractionPotential
   // evaluate the interaction potential for given norm of G vector
   inline double operator()(const double G2) const
   {
-    // the current implementation expects that coulomb potential is treated externaly
+    // the current implementation expects that the coulomb potential
+    // is treated externaly
     assert(not coulomb_);
     return V_(G2);
   }
@@ -63,14 +56,16 @@ class InteractionPotential
   // evaluate the derivative of the interaction potential w.r.t. G^2
   inline double derivative(const double G2) const
   {
-    // the current implementation expects that coulomb potential is treated externaly
+    // the current implementation expects that the coulomb potential
+    // is treated externaly
     assert(not coulomb_);
     return dV_(G2);
   }
 
   inline double divergence_scaling(const double rcut) const
   {
-    // the current implementation expects that coulomb potential is treated externaly
+    // the current implementation expects that the coulomb potential
+    // is treated externaly
     assert(not coulomb_);
     return div_scale_(rcut);
   }

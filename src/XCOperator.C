@@ -29,6 +29,7 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
   xcp_ = 0;
   xop_ = 0;
   exc_ = 0.0 ;
+  dxc_ = 0.0 ;
 
   sigma_exc_.resize(6);
 
@@ -36,11 +37,12 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
 
   // check the name of the functional
   if ( ( functional_name ==  "LDA" ) ||
+       ( functional_name ==  "VWN" ) ||
        ( functional_name ==  "PBE" ) ||
        ( functional_name == "BLYP" ) )
   {
     // create only an xc potential
-    xcp_ = new XCPotential(cd, functional_name);
+    xcp_ = new XCPotential(cd, functional_name, s.ctrl);
     hasPotential_ = true;
     hasGGA_ = xcp_->isGGA();
     hasHF_ = false;
@@ -58,19 +60,19 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
   else if ( functional_name == "PBE0" )
   {
     // create an exchange potential
-    xcp_ = new XCPotential(cd, functional_name);
+    xcp_ = new XCPotential(cd, functional_name, s.ctrl);
 
     // create the exchange operator with mixing coeff=0.25
-    xop_ = new ExchangeOperator(s, 0.25);
+    xop_ = new ExchangeOperator(s, s.ctrl.alpha_PBE0);
     hasPotential_ = true;
     hasGGA_ = xcp_->isGGA();
     hasHF_ = true;
-    HFmixCoeff_ = 0.25;
+    HFmixCoeff_ = s.ctrl.alpha_PBE0;;
   }
   else if ( functional_name == "HSE" )
   {
     // create an exchange potential
-    xcp_ = new XCPotential(cd, functional_name);
+    xcp_ = new XCPotential(cd, functional_name, s.ctrl);
 
     // create the exchange operator with mixing coeff=0.25
     xop_ = new ExchangeOperator(s, 0.25,
@@ -83,7 +85,7 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
   else if ( functional_name == "B3LYP" )
   {
     // create an exchange potential
-    xcp_ = new XCPotential(cd, functional_name);
+    xcp_ = new XCPotential(cd, functional_name, s.ctrl);
 
     // create the exchange operator with mixing coeff=0.20
     xop_ = new ExchangeOperator(s, 0.20);
@@ -118,6 +120,7 @@ void XCOperator::update(std::vector<std::vector<double> >& vr, bool compute_stre
 
     // LDA/GGA exchange energy
     exc_ = xcp_->exc();
+    dxc_ = xcp_->dxc();
 
     if ( compute_stress )
       xcp_->compute_stress(sigma_exc_);
@@ -125,12 +128,15 @@ void XCOperator::update(std::vector<std::vector<double> >& vr, bool compute_stre
   else
   {
     exc_ = 0.0;
+    dxc_ = 0.0;
     sigma_exc_ = 0.0;
   }
 
   if ( hasHF() )
   {
-    exc_ += xop_->update_operator(compute_stress);
+    double ex_hf = xop_->update_operator(compute_stress);
+    exc_ += ex_hf;
+    dxc_ -= ex_hf;
     if ( compute_stress )
       xop_->add_stress(sigma_exc_);
   }

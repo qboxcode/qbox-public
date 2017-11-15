@@ -37,10 +37,10 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff,
   const InteractionPotential& interaction_potential ) :
-  s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf),
-  KPGridPerm_(s), KPGridStat_(s), HFCoeff_(HFCoeff),
+  s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf), HFCoeff_(HFCoeff),
   interaction_potential_(interaction_potential),
-  coulomb_(interaction_potential.coulomb())
+  coulomb_(interaction_potential.coulomb()),
+  gcontext_(s.wf.sd(0,0)->context())
 {
   eex_ = 0.0; // exchange energy
   rcut_ = 1.0;  // constant of support function for exchange integration
@@ -49,9 +49,6 @@ ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff,
 
   // column communicator
   vcomm_ = s_.wf.sd(0,0)->basis().comm();
-
-  // global context
-  gcontext_ = s_.wf.sd(0,0)->context();
 
   // check if the only kpoint is the gamma point:
   gamma_only_ = ( s_.wf.nkp()==1 ) && ( s_.wf.sd(0,0)->basis().real() );
@@ -216,10 +213,6 @@ ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff,
     force_kpi_.resize( nMaxLocalStates_ * mlocMax );
     send_buf_forces_.resize( nMaxLocalStates_ * mlocMax );
   }
-
-  // set indices for overlaps
-  KPGridPerm_.SetOverlapIndices(vbasis_);
-  KPGridStat_.SetOverlapIndices(vbasis_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -328,7 +321,7 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
         ComplexMatrix &c(s_.wf.sd(ispin,ikp)->c());
         ComplexMatrix &dc(dwf.sd(ispin,ikp)->c());
         ComplexMatrix &cref(wf_ref.sd(ispin,ikp)->c());
-	ComplexMatrix &dcref(dwf_ref.sd(ispin,ikp)->c());
+        ComplexMatrix &dcref(dwf_ref.sd(ispin,ikp)->c());
 
         // matproj1 = <wf_ref|wf>
         matproj1.gemm('c','n',1.0,cref,c,0.0);
@@ -372,8 +365,6 @@ void ExchangeOperator::add_stress(valarray<double>& sigma_exc)
 void ExchangeOperator::cell_moved(void)
 {
   vbasis_->resize( s_.wf.cell(),s_.wf.refcell(),4.0*s_.wf.ecut());
-  KPGridStat_.cell_moved();
-  KPGridPerm_.cell_moved();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -392,8 +383,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
 
   Timer tm;
   tm.start();
-
-  bool quad_correction = s_.ctrl.debug.find("EXCHANGE_NOQUAD") == string::npos;
 
   const Wavefunction& wf = s->wf;
 
@@ -421,10 +410,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
     vector<double> numerical_correction(nkpoints);
     for ( int iKpi = 0; iKpi < nkpoints; iKpi++ )
       numerical_correction[iKpi]=0.0;
-
-    // initialize overlaps
-    KPGridPerm_.InitOverlaps();
-    KPGridStat_.InitOverlaps();
 
     // loop over the kpoints
     for ( int iKpi = 0; iKpi < nkpoints; iKpi++ )
@@ -479,14 +464,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           for ( int i = 0; i < nStatesKpi_; i++ )
             for ( int j = 0; j < np012loc_; j++ )
               dstatei_[i][j]=0.0;
-        }
-
-        if ( KPGridPerm_.Connection() )
-        {
-          if ( iRotationStep != 0 )
-          {
-            KPGridPerm_.EndPermutation();
-          }
         }
 
         // set number of states of next permutation step
@@ -571,7 +548,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
 
             // if iKpi=0 (first k point)
             // compute the numerical part of the correction
-            if ( (iRotationStep==0) )
+            if ( iRotationStep==0 )
             {
               const double rc2 = rcut_*rcut_;
               if ( qpG21_[ig] > 0.0 )
@@ -586,7 +563,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           // correction. Works only if this is the first iKpoint.
           //
           // divide weight by 2 as we implicitly counted kpoint j and symmetric
-          if ( (iRotationStep==0) ) // && ( iKpi==0 )
+          if ( iRotationStep==0 ) // && ( iKpi==0 )
           {
             if ( iKpi==iKpj )
             {
@@ -625,24 +602,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                 // Fourier transform the codensity to obtain rho(G).
                 vft_->forward(&rhor1_[0], &rhog1_[0]);
                 vft_->forward(&rhor2_[0], &rhog2_[0]);
-
-                // if we use the connexion of the kpoint grid
-                if ( KPGridPerm_.Connection() )
-                {
-                  // keep the overlap and symmetric
-                  if ( iKpi==iKpj )
-                  {
-                    KPGridPerm_.AddOverlap(iKpi, iKpj, i, &rhog1_[0],
-                      &rhog2_[0], occ_kj_[j] * spinFactor);
-                  }
-                  else
-                  {
-                    KPGridPerm_.AddOverlap(iKpi, iKpj, i, &rhog1_[0],
-                      &rhog2_[0], occ_kj_[j] * spinFactor);
-                    KPGridStat_.AddOverlap(iKpj, iKpi, j, &rhog1_[0],
-                      &rhog2_[0], occ_ki_[i] * spinFactor);
-                  }
-                }
 
                 // initialize contrib of the states psi(kj,j) to the exchange
                 // energy associated to state psi(ki,i)
@@ -813,12 +772,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           StartForcesPermutation(dci.mloc());
         }
 
-        // if we use the Kpoint grid connections
-        if ( KPGridPerm_.Connection() )
-        {
-          KPGridPerm_.StartPermutation(iKpi, iSendTo_, iRecvFr_);
-        }
-
         CompleteSendingOccupations(iRotationStep);
 
         // start occupations permutation
@@ -845,11 +798,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           CompleteSendingForces(1);
         }
 
-        // if we use the Kpoint grid connections
-        if ( KPGridPerm_.Connection() )
-        {
-          KPGridPerm_.EndPermutation();
-        }
         // Terminate permutation
         FreePermutation();
       }
@@ -865,9 +813,9 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
         double div_corr = 0.0;
 
         const double div_corr_1 = exfac * numerical_correction[iKpi] *
-          occ_ki_[i];
+                                  occ_ki_[i];
         div_corr += div_corr_1;
-        const double e_div_corr_1 = -div_corr_1;
+        const double e_div_corr_1 = -0.5 * div_corr_1 * occ_ki_[i];
         exchange_sum += e_div_corr_1 * wf.weight(iKpi);
         // add here contributions to stress from div_corr_1;
 
@@ -875,9 +823,10 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
         if ( vbasis_->mype() == 0 )
         {
           // for screened Coulomb potential O(Omega^{-5/3})
-          if ( coulomb_ ) {
+          if ( coulomb_ )
+          {
             const double div_corr_2 = - exfac * rcut_ * rcut_ * occ_ki_[i] *
-                                      KPGridPerm_.weight(iKpi);
+                                      wf.weight(iKpi);
             div_corr += div_corr_2;
             const double e_div_corr_2 = -0.5 * div_corr_2 * occ_ki_[i];
             exchange_sum += e_div_corr_2 * wf.weight(iKpi);
@@ -891,50 +840,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           exchange_sum += e_div_corr_3 * wf.weight(iKpi);
           // no contribution to stress from div_corr_3
         }
-
-        // Quadratic corrections
-        // only implemented for Coulomb potential
-        if ( quad_correction and coulomb_ )
-        {
-          // beta_x, beta_y and beta_z: curvature of rho(G=0)
-          double s0=KPGridPerm_.overlaps_local(iKpi,i);
-
-          double s1_x=KPGridPerm_.overlaps_first_kx(iKpi,i)+
-                 KPGridStat_.overlaps_first_kx(iKpi,i);
-          double s2_x=KPGridPerm_.overlaps_second_kx(iKpi,i)+
-                 KPGridStat_.overlaps_second_kx(iKpi,i);
-          double d1_x=KPGridPerm_.distance_first_kx(iKpi);
-          double d2_x=KPGridPerm_.distance_second_kx(iKpi);
-          double beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
-            KPGridPerm_.integral_kx(iKpi);
-
-          double s1_y=KPGridPerm_.overlaps_first_ky(iKpi,i)+
-                 KPGridStat_.overlaps_first_ky(iKpi,i);
-          double s2_y=KPGridPerm_.overlaps_second_ky(iKpi,i)+
-                 KPGridStat_.overlaps_second_ky(iKpi,i);
-          double d1_y=KPGridPerm_.distance_first_ky(iKpi);
-          double d2_y=KPGridPerm_.distance_second_ky(iKpi);
-          double beta_y=(s1_y+s2_y-2.0*s0)/(d1_y*d1_y+d2_y*d2_y)*
-            KPGridPerm_.integral_ky(iKpi);
-
-          double s1_z=KPGridPerm_.overlaps_first_kz(iKpi,i)+
-                 KPGridStat_.overlaps_first_kz(iKpi,i);
-          double s2_z=KPGridPerm_.overlaps_second_kz(iKpi,i)+
-                 KPGridStat_.overlaps_second_kz(iKpi,i);
-          double d1_z=KPGridPerm_.distance_first_kz(iKpi);
-          double d2_z=KPGridPerm_.distance_second_kz(iKpi);
-          double beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
-            KPGridPerm_.integral_kz(iKpi);
-
-          // note: factor occ_ki_[i] * spinFactor already in beta
-          const double beta_sum = beta_x + beta_y + beta_z ;
-          const double div_corr_4 = (4.0 * M_PI / omega ) * beta_sum *
-                                    KPGridPerm_.weight(iKpi);
-          div_corr += div_corr_4;
-          const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
-          exchange_sum += e_div_corr_4 * wf.weight(iKpi);
-
-        } // if quad_correction
 
         // contribution of divergence corrections to forces on wave functions
         if (dwf)
@@ -961,13 +866,14 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   extot *= HFCoeff_;
 
   tm.stop();
+#ifdef DEBUG
   if ( gcontext_.onpe0() )
   {
     cout << setprecision(10);
-    cout << " total exchange = " << extot << " (a.u.)\n";
     cout << " total exchange computation time: " << tm.real()
          << " s" << endl;
   }
+#endif
 
   return extot;
 }
@@ -978,10 +884,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 {
   Timer tm;
   Timer tmb;
-
-  bool quad_correction = s_.ctrl.debug.find("EXCHANGE_NOQUAD") == string::npos;
-
-  assert(KPGridPerm_.Connection());
 
   wfc_ = wf;
 
@@ -1011,8 +913,19 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     if ( use_bisection_ )
     {
       tmb.start();
-      const int maxsweep = 50;
-      double tol = 1.e-6;
+      int maxsweep = 50;
+      if ( s_.ctrl.debug.find("BISECTION_MAXSWEEP") != string::npos )
+      {
+        // override tolerance for bisection
+        istringstream is(s_.ctrl.debug);
+        string s;
+        is >> s >> maxsweep;
+        if ( gcontext_.onpe0() )
+          cout << " override bisection maxsweep value: maxsweep = "
+               << maxsweep << endl;
+        assert(maxsweep >= 0);
+      }
+      double tol = 0.001;
       if ( s_.ctrl.debug.find("BISECTION_TOL") != string::npos )
       {
         // override tolerance for bisection
@@ -1023,18 +936,44 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           cout << " override bisection tol value: tol = " << tol << endl;
         assert(tol > 0.0);
       }
+#if TIMING
+      Timer tmbtransf;
+      tmbtransf.start();
+#endif
       bisection_[ispin]->compute_transform(*wfc_.sd(ispin,0),maxsweep,tol);
+#if TIMING
+      tmbtransf.stop();
+      Timer tmbcomploc;
+      tmbcomploc.start();
+#endif
       bisection_[ispin]->compute_localization(s_.ctrl.btHF);
+#if TIMING
+      tmbcomploc.stop();
+#endif
       // copy of localization vector from Bisection object
       localization_ = bisection_[ispin]->localization();
 
+#if TIMING
+      Timer tmbsize, tmbpair;
+      tmbsize.start();
+#endif
       if ( gcontext_.onpe0() )
       {
           cout << " ExchangeOperator: bisection size: ispin=" << ispin
                << ": " << bisection_[ispin]->total_size() << endl;
+      }
+#if TIMING
+      tmbsize.stop();
+      tmbpair.start();
+#endif
+      if ( gcontext_.onpe0() )
+      {
           cout << " ExchangeOperator: pair fraction:  ispin=" << ispin
                << ": " << bisection_[ispin]->pair_fraction() << endl;
       }
+#if TIMING
+      tmbpair.stop();
+#endif
 
       // copy the orthogonal transformation u to uc_[ispin]
       *uc_[ispin] = bisection_[ispin]->u();
@@ -1048,6 +987,10 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
         // compute the degree of the vertices of the exchange graph
         // using the localization vector
+#if TIMING
+        Timer tmb_ov;
+        tmb_ov.start();
+#endif
         vector<int> degree(nst);
         for ( int i = 0; i < nst; i++ )
         {
@@ -1059,6 +1002,15 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           }
           degree[i] = count;
         }
+#if TIMING
+        tmb_ov.stop();
+        if ( gcontext_.onpe0() )
+        {
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection overlap time: "
+             << tmb_ov.real() << " s" << endl;
+        }
+#endif
 
         // permutation index
         vector<int> index(nst);
@@ -1215,8 +1167,27 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         }
 #endif
 
+#if TIMING
+        Timer tmblapiv;
+        tmblapiv.start();
+#endif
         // apply the permutation to the columns of uc
         uc_[ispin]->lapiv('B','C',&locpivot[0]);
+#if TIMING
+        tmblapiv.stop();
+        if ( gcontext_.onpe0() )
+        {
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection size time: "
+             << tmbsize.real() << " s" << endl;
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection pair time: "
+             << tmbpair.real() << " s" << endl;
+          cout << setprecision(3);
+          cout << " ExchangeOperator: bisection lapiv time: "
+             << tmblapiv.real() << " s" << endl;
+        }
+#endif
 
 #if DEBUG
         // recompute the degree of the vertices of the exchange graph
@@ -1269,11 +1240,29 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           cout << " ExchangeOperator: bisection distribution disabled" << endl;
       } // if distribute
 
+#if TIMING
+      Timer tmbfwd;
+      tmbfwd.start();
+#endif
       bisection_[ispin]->forward(*uc_[ispin], *wfc_.sd(ispin,0));
+#if TIMING
+      tmbfwd.stop();
+#endif
 
       tmb.stop();
       if ( gcontext_.onpe0() )
       {
+#if TIMING
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection compute transform time: "
+           << tmbtransf.real() << " s" << endl;
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection compute localization time: "
+           << tmbcomploc.real() << " s" << endl;
+        cout << setprecision(3);
+        cout << " ExchangeOperator: bisection forward time: "
+           << tmbfwd.real() << " s" << endl;
+#endif
         cout << setprecision(3);
         cout << " ExchangeOperator: bisection time: "
            << tmb.real() << " s" << endl;
@@ -1283,9 +1272,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     tm.start();
 
     // compute exchange
-    // initialize overlaps
-    KPGridPerm_.InitOverlaps();
-    KPGridStat_.InitOverlaps();
 
     // real-space local states -> statej_[i][ir]
     // loop over states 2 by 2
@@ -1294,10 +1280,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       wft_->backward(c.cvalptr(i*c.mloc()), c.cvalptr((i+1)*c.mloc()),
                      &tmp_[0]);
       double *p = (double *)&tmp_[0];
-      for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+#pragma omp parallel for
+      for ( int ir = 0; ir < np012loc_; ir++ )
       {
-        statej_[i][ir]=p[irp];
-        statej_[i+1][ir]=p[irp+1];
+        statej_[i][ir]=p[2*ir];
+        statej_[i+1][ir]=p[2*ir+1];
       }
     }
 
@@ -1507,10 +1494,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
               // copy the result in state[i] and state[j]
               double *p = (double *)&tmp_[0];
-              for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+#pragma omp parallel for
+              for ( int ir = 0; ir < np012loc_; ir++ )
               {
-                statei_[i][ir]=p[irp];
-                statei_[j][ir]=p[irp+1];
+                statei_[i][ir]=p[2*ir];
+                statei_[j][ir]=p[2*ir+1];
               }
             }
 
@@ -1541,9 +1529,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             dstatei_[i][j] = 0.0;
       }
 
-      if ( iRotationStep != 0 )
-        KPGridPerm_.EndPermutation();
-
       // nNextStatesKpi: number of states of next permutation step
       SetNextPermutationStateNumber();
       // start sending states in send_buf_states_
@@ -1573,7 +1558,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             double *pj1 = (double *)&statej_[j1][0];
             double *pj2 = (double *)&statej_[j2][0];
 
-            for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip+=2 )
+#pragma omp parallel for
+            for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
             {
               p[ip]   = pi1[ip] * pj1[ip];
               p[ip+1] = pi2[ip] * pj2[ip];
@@ -1582,37 +1568,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
           // Fourier transform the pair density
           vft_->forward(&rhor1_[0], &rhog1_[0], &rhog2_[0]);
-
-          // if i1 = j1 and iRotation=0, add the contribution to the
-          // state psi(0,i1)
-          if ( ( i1==j1 ) && ( iRotationStep==0 ) )
-          {
-            KPGridPerm_.AddOverlap(0, 0, i1, &rhog1_[0], &rhog1_[0],
-              occ_kj_[j1] * spinFactor);
-          }
-          // otherwise, add contributions for both states
-          else
-          {
-            KPGridPerm_.AddOverlap(0, 0, i1, &rhog1_[0], &rhog1_[0],
-              occ_kj_[j1] * spinFactor);
-            KPGridStat_.AddOverlap(0, 0, j1, &rhog1_[0], &rhog1_[0],
-              occ_ki_[i1] * spinFactor);
-          }
-          // if i2=j2 and iRotation=0, add the contribution to the
-          // state psi(0,i2)
-          if ( ( i2==j2 ) && ( iRotationStep==0 ) )
-          {
-            KPGridPerm_.AddOverlap(0, 0, i2, &rhog2_[0], &rhog2_[0],
-            occ_kj_[j2] * spinFactor);
-          }
-          // otherwise, add contributions for both states
-          else
-          {
-            KPGridPerm_.AddOverlap(0, 0, i2, &rhog2_[0], &rhog2_[0],
-              occ_kj_[j2] * spinFactor);
-            KPGridStat_.AddOverlap(0, 0, j2, &rhog2_[0], &rhog2_[0],
-              occ_ki_[i2] * spinFactor);
-          }
 
           // compute contributions to the exchange energy and forces on wfs
           ex_sum_1 = 0.0;
@@ -1709,7 +1664,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *dp = (double *) &dstatei_[i1][0];
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                 dp[ip] += pj[ip] * pr[ip] * weight;
             }
           }
@@ -1734,7 +1690,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
               {
                 dpi[ip] += pj[ip] * pr[ip] * weightj;
                 dpj[ip] += pi[ip] * pr[ip] * weighti;
@@ -1763,7 +1720,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pr = (double *) &rhor1_[0];
               pr = pr + 1;
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                 dp[ip] += pj[ip] * pr[ip] * weight;
             }
           }
@@ -1789,7 +1747,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pr = (double *) &rhor1_[0];
               pr = pr + 1;
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
               {
                 dpi[ip] += pj[ip] * pr[ip] * weightj;
                 dpj[ip] += pi[ip] * pr[ip] * weighti;
@@ -1808,29 +1767,14 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           double *p   = (double *)&rhor1_[0];
           double *pi1 = (double *)&statei_[i1][0];
           double *pj1 = (double *)&statej_[j1][0];
-          for ( int ir = 0, ip=0; ir < np012loc_; ir++, ip+=2 )
+#pragma omp parallel for
+          for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
           {
             p[ip]   = pi1[ip] * pj1[ip];
             p[ip+1] = 0.0;
           }
 
           vft_->forward(&rhor1_[0], &rhog1_[0]);
-
-          // if i1=j1 and iRotation=0, add the contribution to the
-          // state psi(0,i1)
-          if ( ( i1==j1 ) && ( iRotationStep==0 ) )
-          {
-            KPGridPerm_.AddOverlap(0, 0, i1, &rhog1_[0], &rhog1_[0],
-              occ_kj_[j1] * spinFactor);
-          }
-          // otherwise, add contributions for both states
-          else
-          {
-            KPGridPerm_.AddOverlap(0, 0, i1, &rhog1_[0], &rhog1_[0],
-              occ_kj_[j1] * spinFactor);
-            KPGridStat_.AddOverlap(0, 0, j1, &rhog1_[0], &rhog1_[0],
-              occ_ki_[i1] * spinFactor);
-          }
 
           ex_sum_1 = 0.0;
           if ( compute_stress )
@@ -1904,7 +1848,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *dp = (double *) &dstatei_[i1][0];
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                 dp[ip] += pj[ip] * pr[ip] * weight;
             }
           }
@@ -1929,7 +1874,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
 
-              for ( int ir = 0, ip = 0; ir < np012loc_; ir++, ip +=2 )
+#pragma omp parallel for
+              for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
               {
                 dpi[ip] += pj[ip] * pr[ip] * weightj;
                 dpj[ip] += pi[ip] * pr[ip] * weighti;
@@ -1984,10 +1930,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
                   double *p = (double *)&tmp_[0];
                   double *dpr = (double *)&dstatei_[i][0];
                   double *dpi = (double *)&dstatei_[j][0];
-                  for (int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2)
+#pragma omp parallel for
+                  for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
                   {
-                    p[irp]=dpr[irp];
-                    p[irp+1]=dpi[irp];
+                    p[ip]=dpr[ip];
+                    p[ip+1]=dpi[ip];
                   }
 
                   // transform the pair of states
@@ -2023,7 +1970,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         StartForcesPermutation(dc.mloc());
       } // if dwf
 
-      KPGridPerm_.StartPermutation(0, iSendTo_, iRecvFr_);
       CompleteSendingOccupations(iRotationStep);
       StartOccupationsPermutation();
 
@@ -2094,8 +2040,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       CompleteSendingForces(1);
     }
 
-    KPGridPerm_.EndPermutation();
-
     FreePermutation();
 
     // transform accumulated real-space forces to G space
@@ -2105,10 +2049,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       double *p = (double *)&tmp_[0];
       double *dpr = (double *)&dstatej_[i][0];
       double *dpi = (double *)&dstatej_[i+1][0];
-      for ( int ir = 0, irp = 0; ir < np012loc_; ir++, irp+=2 )
+#pragma omp parallel for
+      for ( int ip = 0; ip < 2*np012loc_; ip+=2 )
       {
-        p[irp]=dpr[irp];
-        p[irp+1]=dpi[irp];
+        p[ip]=dpr[ip];
+        p[ip+1]=dpi[ip];
       }
       // transform the pair of forces
       wft_->forward(&(tmp_)[0], &buffer_forces_1_[0], &buffer_forces_2_[0]);
@@ -2191,51 +2136,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         // no contribution to stress
       }
 
-      // Quadratic corrections (only implemented for Coulomb potential)
-      if ( quad_correction and coulomb_ )
-      {
-        // compute the curvature terms
-        // quadratic exchange correction
-        double s0=KPGridPerm_.overlaps_local(0,i);
-        double s1_x=KPGridPerm_.overlaps_first_kx(0,i)+
-                    KPGridStat_.overlaps_first_kx(0,i);
-        double s2_x=KPGridPerm_.overlaps_second_kx(0,i)+
-                    KPGridStat_.overlaps_second_kx(0,i);
-        double d1_x=KPGridPerm_.distance_first_kx(0);
-        double d2_x=KPGridPerm_.distance_second_kx(0);
-        double beta_x=(s1_x+s2_x-2.0*s0)/(d1_x*d1_x+d2_x*d2_x)*
-          KPGridPerm_.integral_kx(0);
-
-        double s1_y=KPGridPerm_.overlaps_first_ky(0,i)+
-                    KPGridStat_.overlaps_first_ky(0,i);
-        double s2_y=KPGridPerm_.overlaps_second_ky(0,i)+
-                    KPGridStat_.overlaps_second_ky(0,i);
-        double d1_y=KPGridPerm_.distance_first_ky(0);
-        double d2_y=KPGridPerm_.distance_second_ky(0);
-        double beta_y=(s1_y+s2_y-2.0*s0)/(d1_y*d1_y+d2_y*d2_y)*
-          KPGridPerm_.integral_ky(0);
-
-        double s1_z=KPGridPerm_.overlaps_first_kz(0,i)+
-                    KPGridStat_.overlaps_first_kz(0,i);
-        double s2_z=KPGridPerm_.overlaps_second_kz(0,i)+
-                    KPGridStat_.overlaps_second_kz(0,i);
-        double d1_z=KPGridPerm_.distance_first_kz(0);
-        double d2_z=KPGridPerm_.distance_second_kz(0);
-        double beta_z=(s1_z+s2_z-2.0*s0)/(d1_z*d1_z+d2_z*d2_z)*
-          KPGridPerm_.integral_kz(0);
-
-        // note: factor occ_ki_[i] * spinFactor already in beta
-        const double beta_sum = beta_x + beta_y + beta_z ;
-        const double div_corr_4 = (4.0 * M_PI / omega ) * beta_sum;
-        div_corr += div_corr_4;
-        const double e_div_corr_4 = -0.5 * div_corr_4 * occ_ki_[i];
-        exchange_sum += e_div_corr_4;
-        const double fac4 = ( 4.0 * M_PI / omega ) * occ_ki_[i];
-        sigma_exhf_[0] += ( e_div_corr_4 + fac4 * beta_x ) / omega;
-        sigma_exhf_[1] += ( e_div_corr_4 + fac4 * beta_y ) / omega;
-        sigma_exhf_[2] += ( e_div_corr_4 + fac4 * beta_z ) / omega;
-      }
-
       // contribution of divergence corrections to forces on wave functions
       if (dwf)
       {
@@ -2277,8 +2177,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 #ifdef DEBUG
   if ( gcontext_.onpe0() )
   {
-    cout << setprecision(10);
-    cout << " total exchange = " << extot << " (a.u.)\n";
+    cout << setprecision(3);
     cout << " total exchange computation time: " << tm.real()
          << " s" << endl;
     if ( compute_stress )

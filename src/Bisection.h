@@ -33,7 +33,7 @@ class Bisection
 {
   private:
 
-    Context gcontext_;
+    Context ctxt_;
 
     // bisection levels in each directions
     int nlevels_[3]; // bisection level
@@ -79,13 +79,14 @@ class Bisection
 
     int nmat(void) const { return nmat_; }
     long int localization(int i) const { return localization_[i]; }
-    std::vector<long int> localization(void) const { return localization_; }
-    bool overlap(int i, int j);
-    bool overlap(std::vector<long int> loc, int i, int j);
+    const std::vector<long int>& localization(void) const
+    { return localization_; }
+    bool overlap(int i, int j) const;
+    bool overlap(const std::vector<long int>& loc, int i, int j) const;
     const DoubleMatrix& u(void) const { return *u_; }
-    double pair_fraction(void);
-    double size(int i);
-    double total_size(void);
+    double pair_fraction(void) const;
+    double size(int i) const;
+    double total_size(void) const;
     ~Bisection();
 };
 #endif

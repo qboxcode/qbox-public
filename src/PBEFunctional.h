@@ -15,7 +15,6 @@
 // PBEFunctional.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PBEFunctional.h,v 1.7 2009-06-29 09:57:57 fgygi Exp $
 
 #ifndef PBEFUNCTIONAL_H
 #define PBEFUNCTIONAL_H

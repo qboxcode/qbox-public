@@ -18,7 +18,6 @@
 // Ceperley & Alder, parametrized by Perdew and Zunger
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LDAFunctional.C,v 1.7 2008-09-08 15:56:18 fgygi Exp $
 
 #include <cmath>
 #include <cassert>

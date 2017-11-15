@@ -51,9 +51,12 @@ double Preconditioner::diag(int ispin, int ikp, int n, int ig) const
   const valarray<double>& fstress = ef_.confpot(ikp)->fstress();
   if ( ecutprec_ == 0.0 )
   {
-    const double ekin_n = ekin_[ispin][ikp][n];
+    double ekin_n = ekin_[ispin][ikp][n];
+    // if ekin_n == 0 (occurs for first wf, G=0, when starting without
+    // randomizing wfs) replace ekin_n by fixed value 1.0
     if ( ekin_n == 0.0 )
-      return 0.0;
+      ekin_n = 1.0;
+#if 0
     const double q2 = kpg2_[ispin][ikp][ig] + fstress[ig];
 #if 0
     // Payne Teter Allan adaptive preconditioner
@@ -68,10 +71,14 @@ double Preconditioner::diag(int ispin, int ikp, int n, int ig) const
     const double den = num + 16.0 * x*x*x*x;
     return ( 2.0 / (1.5 *  ekin_n )) * (num/den);
 #endif
+#else
+    // basic adaptive preconditioner: use ekin_n for the value of ecutprec
+    double e = 0.5 * ( kpg2_[ispin][ikp][ig] + fstress[ig] );
+    return ( e < ekin_n ) ? 0.5 / ekin_n : 0.5 / e;
+#endif
   }
   else
   {
-    // next lines: inclusion of fstress if confinement potential is used
     double e = 0.5 * ( kpg2_[ispin][ikp][ig] + fstress[ig] );
     return ( e < ecutprec_ ) ? 0.5 / ecutprec_ : 0.5 / e;
   }
@@ -87,9 +94,8 @@ void Preconditioner::update(const Wavefunction& wf)
     {
       const SlaterDet& sd = *(wf.sd(ispin,ikp));
       const Basis& wfbasis = sd.basis();
-      // factor fac in next lines: 2.0 for G and -G (if basis is real) and
-      // 0.5 from 1/(2m)
-      const double fac = wfbasis.real() ? 1.0 : 0.5;
+      // factor fac in next lines: 2.0 for G and -G (if basis is real)
+      const double fac = wfbasis.real() ? 2.0 : 1.0;
 
       const ComplexMatrix& c = sd.c();
       const Context& sdctxt = sd.context();
@@ -119,8 +125,9 @@ void Preconditioner::update(const Wavefunction& wf)
         buf[n+nloc] = fac * sum_ekin;
       }
       sdctxt.dsum('C',2*nloc,1,&buf[0],2*nloc);
+      // factor 0.5 in next line: 1/(2m)
       for ( int n = 0; n < nloc; n++ )
-        ekin_[ispin][ikp][n] = buf[n] > 0.0 ? buf[n+nloc]/buf[n] : 0;
+        ekin_[ispin][ikp][n] = 0.5*buf[n] > 0.0 ? 0.5*buf[n+nloc]/buf[n] : 0;
 
 #ifdef DEBUG
       if ( sdctxt.onpe0() )

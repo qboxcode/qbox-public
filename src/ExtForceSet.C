@@ -15,7 +15,6 @@
 // ExtForceSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ExtForceSet.C,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
 #include "ExtForceSet.h"
 #include "AtomicExtForce.h"

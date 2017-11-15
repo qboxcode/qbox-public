@@ -28,17 +28,20 @@
 #include "XCOperator.h"
 #include "NonLocalPotential.h"
 #include "ConfinementPotential.h"
+#include "D3vector.h"
+#include "ElectricEnthalpy.h"
 
 #include "Timer.h"
 #include "blas.h"
 
 #include <iostream>
 #include <iomanip>
-#include <algorithm> // fill()
+#include <algorithm> // fill(), copy()
+#include <functional>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
+EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
  : s_(s), cd_(cd)
 {
   const AtomSet& atoms = s_.atoms;
@@ -121,6 +124,8 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
 
   eself_ = 0.0;
 
+  // core_charge_: true if any species has a core charge density
+  core_charge_ = false;
   for ( int is = 0; is < nsp_; is++ )
   {
     Species *s = atoms.species_list[is];
@@ -133,8 +138,22 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
     eself_ += na * s->eself();
     na_[is] = na;
 
-    zv_[is] = s->zval();
+    zv_[is] = s->ztot();
     rcps_[is] = s->rcps();
+
+    core_charge_ |= s->has_nlcc();
+  }
+
+  if ( core_charge_ )
+  {
+    vxc_g.resize(ngloc);
+    rhocore_sp_g.resize(nsp_);
+    for ( int is = 0; is < nsp_; is++ )
+      rhocore_sp_g[is].resize(ngloc);
+    rhocore_g.resize(ngloc);
+    rhocore_r.resize(vft->np012loc());
+    // set rhocore_r ptr in ChargeDensity
+    cd_.rhocore_r = &rhocore_r[0];
   }
 
   // FT for interpolation of wavefunctions on the fine grid
@@ -156,6 +175,11 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
         wf.sd(0,ikp)->basis());
   }
 
+  // Electric enthalpy
+  el_enth_ = 0;
+  if ( s_.ctrl.polarization != "OFF" )
+    el_enth_ = new ElectricEnthalpy(s_);
+
   sf.init(tau0,*vbasis_);
 
   cell_moved();
@@ -167,6 +191,7 @@ EnergyFunctional::EnergyFunctional( Sample& s, const ChargeDensity& cd)
 ////////////////////////////////////////////////////////////////////////////////
 EnergyFunctional::~EnergyFunctional(void)
 {
+  delete el_enth_;
   delete xco;
   for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
   {
@@ -184,10 +209,10 @@ EnergyFunctional::~EnergyFunctional(void)
     s_.ctxt_.dmax(1,1,&tmax,1);
     if ( s_.ctxt_.myproc()==0 )
     {
-      cout << "<timing name=\""
-           << setw(15) << (*i).first << "\""
-           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
-           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+      string s = "name=\"" + (*i).first + "\"";
+      cout << "<timing " << left << setw(22) << s
+           << " min=\"" << setprecision(3) << tmin << "\""
+           << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
   }
@@ -207,7 +232,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   const double *const g2i = vbasis_->g2i_ptr();
   const double fpi = 4.0 * M_PI;
   const int ngloc = vbasis_->localsize();
-  double sum[2], tsum[2];
+  double sum[5], tsum[5];
 
   // compute total electronic density: rhoelg = rho_up + rho_dn
   if ( wf.nspin() == 1 )
@@ -229,11 +254,33 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   // compute xc energy, update self-energy operator and potential
   tmap["exc"].start();
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-    fill(v_r[ispin].begin(),v_r[ispin].end(),0.0);
+    memset((void*)&v_r[ispin][0], 0, vft->np012loc()*sizeof(double));
+
   xco->update(v_r, compute_stress);
   exc_ = xco->exc();
+  dxc_ = xco->dxc();
   if ( compute_stress )
     xco->compute_stress(sigma_exc);
+
+  if ( core_charge_ )
+  {
+    // compute Fourier coefficients of Vxc
+    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+    {
+      copy(v_r[ispin].begin(),v_r[ispin].end(),tmp_r.begin());
+      if ( ispin == 0 )
+      {
+        vft->forward(&tmp_r[0],&vxc_g[0]);
+      }
+      else
+      {
+        vft->forward(&tmp_r[0],&vtemp[0]);
+        for ( int ig = 0; ig < ngloc; ig++ )
+          vxc_g[ig] = 0.5 * ( vxc_g[ig] + vtemp[ig] );
+      }
+    }
+  }
+
   tmap["exc"].stop();
 
   // compute local potential energy:
@@ -248,24 +295,36 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   }
   sum[0] *= omega; // sum[0] contains eps
 
-  // Hartree energy
-  ehart_ = 0.0;
+  // Hartree energy and electron-electron energy (without pseudocharges)
   double ehsum = 0.0;
+  double ehesum = 0.0;
+  double ehepsum = 0.0;
+  double ehpsum = 0.0;
   for ( int ig = 0; ig < ngloc; ig++ )
   {
-    const complex<double> tmp = rhoelg[ig] + rhopst[ig];
-    ehsum += norm(tmp) * g2i[ig];
-    rhogt[ig] = tmp;
+    const complex<double> r = rhoelg[ig];
+    const complex<double> rp = rhopst[ig];
+    ehsum  += norm(r+rp) * g2i[ig];
+    ehesum += norm(r) * g2i[ig];
+    ehepsum += 2.0*real(conj(r)*rp * g2i[ig]);
+    ehpsum += norm(rp) * g2i[ig];
+    rhogt[ig] = r+rp;
   }
   // factor 1/2 from definition of Ehart cancels with half sum over G
   // Note: rhogt[ig] includes a factor 1/Omega
-  // Factor omega in next line yields prefactor 4 pi / omega in
+  // Factor omega in next line yields prefactor 4 pi / omega in Ehart
   sum[1] = omega * fpi * ehsum;
-  // tsum[1] contains ehart
+  sum[2] = omega * fpi * ehesum;
+  sum[3] = omega * fpi * ehepsum;
+  sum[4] = omega * fpi * ehpsum;
 
-  MPI_Allreduce(sum,tsum,2,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
-  eps_   = tsum[0];
-  ehart_ = tsum[1];
+  MPI_Allreduce(sum,tsum,5,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
+
+  eps_      = tsum[0];
+  ehart_    = tsum[1];
+  ehart_e_  = tsum[2];
+  ehart_ep_ = tsum[3];
+  ehart_p_  = tsum[4];
 
   // compute vlocal_g = vion_local_g + vhart_g
   // where vhart_g = 4 * pi * (rhoelg + rhopst) * g2i
@@ -296,6 +355,9 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
       v_r[1][i] += vloc;
     }
   }
+
+  if ( el_enth_ )
+    el_enth_->update();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -535,11 +597,22 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       {
         const complex<double> sg = s[ig];
         const complex<double> rg = rhogt[ig];
+        Species *s = s_.atoms.species_list[is];
+        const double g = vbasis_->g_ptr()[ig];
+        const double gi = vbasis_->gi_ptr()[ig];
         // next line: keep only real part
-        const double temp = fac2 *
-        ( rg.real() * sg.real() +
-          rg.imag() * sg.imag() )
-        * rhops[is][ig] * g2i[ig];
+        // contribution of pseudocharge of ion
+        double temp = fac2 * (rg.real() * sg.real() + rg.imag() * sg.imag())
+          * rhops[is][ig] * g2i[ig];
+        if ( core_charge_ )
+        {
+          double rhoc_g, drhoc_g;
+          s->drhocoreg(g,rhoc_g,drhoc_g);
+          // next line: keep only real part
+          // contribution of core correction
+          temp -= (vxc_g[ig].real() * sg.real() + vxc_g[ig].imag() * sg.imag())
+               * drhoc_g * gi * omega_inv / fpi;
+        }
 
         const double tgx = g_x[ig];
         const double tgy = g_y[ig];
@@ -604,6 +677,38 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
   }
   etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_;
+  enthalpy_ = etotal_;
+
+  // Electric enthalpy
+  eefield_ = 0.0;
+  if ( el_enth_ )
+  {
+    tmap["el_enth_energy"].start();
+    eefield_ = el_enth_->enthalpy(dwf,compute_hpsi);
+    tmap["el_enth_energy"].stop();
+    enthalpy_ += eefield_;
+
+    if ( compute_forces )
+    {
+      for ( int is = 0; is < nsp_; is++ )
+        for ( int ia = 0; ia < na_[is]; ia++ )
+        {
+          D3vector f = zv_[is] * s_.ctrl.e_field;
+          fion[is][3*ia]   += f.x;
+          fion[is][3*ia+1] += f.y;
+          fion[is][3*ia+2] += f.z;
+        }
+    }
+  }
+
+  epv_ = 0.0;
+  if ( compute_stress )
+  {
+    valarray<double> sigma_ext(s_.ctrl.ext_stress,6);
+    const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
+    epv_ = pext * omega;
+    enthalpy_ += epv_;
+  }
 
   if ( compute_hpsi )
   {
@@ -670,6 +775,8 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       {
         double tmp = fpi * rhops[is][ig] * g2i[ig];
         vtemp[ig] =  tmp * conj(rhogt[ig]) + vps[is][ig] * conj(rhoelg[ig]);
+        if ( core_charge_ )
+          vtemp[ig] += conj(vxc_g[ig]) * rhocore_sp_g[is][ig];
       }
       fion_nl.resize(3*na_[is]);
       fion_nl = 0.0;
@@ -747,8 +854,10 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   }
 
   if ( compute_stress )
+  {
     sigma = sigma_ekin + sigma_econf + sigma_eps + sigma_enl +
             sigma_ehart + sigma_exc + sigma_esr;
+  }
 
   if ( debug_stress && s_.ctxt_.onpe0() )
   {
@@ -863,6 +972,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
 void EnergyFunctional::atoms_moved(void)
 {
   const AtomSet& atoms = s_.atoms;
+  const Wavefunction& wf = s_.wf;
   int ngloc = vbasis_->localsize();
 
   // fill tau0 with values in atom_list
@@ -874,6 +984,29 @@ void EnergyFunctional::atoms_moved(void)
   memset( (void*)&vion_local_g[0], 0, 2*ngloc*sizeof(double) );
   memset( (void*)&dvion_local_g[0], 0, 2*ngloc*sizeof(double) );
   memset( (void*)&rhopst[0], 0, 2*ngloc*sizeof(double) );
+
+  if ( core_charge_ )
+  {
+    // recalculate Fourier coefficients of the core charge
+    assert(rhocore_g.size()==ngloc);
+    memset( (void*)&rhocore_g[0], 0, 2*ngloc*sizeof(double) );
+    const double spin_fac = wf.cell().volume() / wf.nspin();
+    for ( int is = 0; is < atoms.nsp(); is++ )
+    {
+      complex<double> *s = &sf.sfac[is][0];
+      for ( int ig = 0; ig < ngloc; ig++ )
+      {
+        const complex<double> sg = s[ig];
+        // divide core charge by two if two spins
+        rhocore_g[ig] += spin_fac * sg * rhocore_sp_g[is][ig];
+      }
+    }
+    // recalculate real-space core charge
+    vft->backward(&rhocore_g[0],&tmp_r[0]);
+    for ( int i = 0; i < tmp_r.size(); i++ )
+      rhocore_r[i] = tmp_r[i].real();
+  }
+
   for ( int is = 0; is < atoms.nsp(); is++ )
   {
     complex<double> *s = &sf.sfac[is][0];
@@ -1007,13 +1140,18 @@ void EnergyFunctional::cell_moved(void)
   {
     Species *s = atoms.species_list[is];
     const double * const g = vbasis_->g_ptr();
-    double v,dv;
+    double v,dv,rhoc;
     for ( int ig = 0; ig < ngloc; ig++ )
     {
       rhops[is][ig] = s->rhopsg(g[ig]) * omega_inv;
       s->dvlocg(g[ig],v,dv);
       vps[is][ig] =  v * omega_inv;
       dvps[is][ig] =  dv * omega_inv;
+      if ( core_charge_ )
+      {
+        s->rhocoreg(g[ig],rhoc);
+        rhocore_sp_g[is][ig] = rhoc * omega_inv;
+      }
     }
   }
 
@@ -1035,18 +1173,20 @@ void EnergyFunctional::print(ostream& os) const
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
   os << setprecision(8);
-  os << "  <ekin>   " << setw(15) << ekin()   << " </ekin>\n"
-     << "  <econf>  " << setw(15) << econf()  << " </econf>\n"
-     << "  <eps>    " << setw(15) << eps()    << " </eps>\n"
-     << "  <enl>    " << setw(15) << enl()    << " </enl>\n"
-     << "  <ecoul>  " << setw(15) << ecoul()  << " </ecoul>\n"
-     << "  <exc>    " << setw(15) << exc()    << " </exc>\n"
-     << "  <esr>    " << setw(15) << esr()    << " </esr>\n"
-     << "  <eself>  " << setw(15) << eself()  << " </eself>\n"
-     << "  <ets>    " << setw(15) << ets()    << " </ets>\n"
-     << "  <eexf>   " << setw(15) << eexf()   << " </eexf>\n"
-     << "  <etotal> " << setw(15) << etotal() << " </etotal>\n"
-     << flush;
+  os << "  <ekin>    " << setw(15) << ekin()   << " </ekin>\n"
+     << "  <econf>   " << setw(15) << econf()  << " </econf>\n"
+     << "  <eps>     " << setw(15) << eps()    << " </eps>\n"
+     << "  <enl>     " << setw(15) << enl()    << " </enl>\n"
+     << "  <ecoul>   " << setw(15) << ecoul()  << " </ecoul>\n"
+     << "  <exc>     " << setw(15) << exc()    << " </exc>\n"
+     << "  <esr>     " << setw(15) << esr()    << " </esr>\n"
+     << "  <eself>   " << setw(15) << eself()  << " </eself>\n"
+     << "  <ets>     " << setw(15) << ets()    << " </ets>\n"
+     << "  <eexf>    " << setw(15) << eexf()   << " </eexf>\n"
+     << "  <etotal>  " << setw(15) << etotal() << " </etotal>\n"
+     << "  <epv>     " << setw(15) << epv() << " </epv>\n"
+     << "  <eefield> " << setw(15) << eefield() << " </eefield>\n"
+     << "  <enthalpy>" << setw(15) << enthalpy() << " </enthalpy>" << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

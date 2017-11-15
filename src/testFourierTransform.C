@@ -13,18 +13,19 @@
 //
 // testFourierTransform.C
 //
+// test and timing of the Qbox FourierTransform class
+//
+// The FourierTransform functionality is tested in the following 8 tests
+// relevant to the use of the class in different parts of Qbox
 
 #include <iostream>
 #include <iomanip>
+#include <cstdlib>
 using namespace std;
 
 #include "Basis.h"
 #include "FourierTransform.h"
 #include "Timer.h"
-
-#if USE_APC
-#include "apc.h"
-#endif
 
 double fft_flops(int n)
 {
@@ -36,9 +37,6 @@ int main(int argc, char **argv)
   Timer tm;
 #if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
-#if USE_APC
-  ApcInit();
 #endif
   {
 
@@ -135,6 +133,7 @@ int main(int argc, char **argv)
 
   // test ft (small grid)
   cout << mype << ": ft.np2_loc(): " << ft.np2_loc() << endl;
+  MPI_Barrier(MPI_COMM_WORLD);
   cout << " test ft: ";
   ft.forward(&f1[0],&x[0]);
   cout << " forward done ";
@@ -142,19 +141,16 @@ int main(int argc, char **argv)
   cout << " backward done " << endl;
   MPI_Barrier(MPI_COMM_WORLD);
 
-#if 0
+#if 1
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(1);
-#endif
   ft2.forward(&f2[0],&x[0]);
-#if USE_APC
-  ApcStop(1);
-#endif
   tm.stop();
+  cout << " fwd1: size: " << ft2.np0() << " "
+       << ft2.np1() << " " << ft2.np2() << endl;
   cout << " fwd1: vgrid->wf" << endl;
   cout << " fwd1: tm_f_fft:    " << ft2.tm_f_fft.real() << endl;
   cout << " fwd1: tm_f_mpi:    " << ft2.tm_f_mpi.real() << endl;
@@ -171,17 +167,14 @@ int main(int argc, char **argv)
   cout << " fwd1 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(2);
-#endif
   ft2.backward(&x[0],&f2[0]);
-#if USE_APC
-  ApcStop(2);
-#endif
   tm.stop();
+  cout << " bwd1: size: " << ft2.np0() << " "
+       << ft2.np1() << " " << ft2.np2() << endl;
   cout << " bwd1: wf->vgrid" << endl;
   cout << " bwd1: tm_b_fft:    " << ft2.tm_b_fft.real() << endl;
   cout << " bwd1: tm_b_mpi:    " << ft2.tm_b_mpi.real() << endl;
@@ -198,17 +191,14 @@ int main(int argc, char **argv)
   cout << " bwd1 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(3);
-#endif
   ft2.forward(&f2[0],&x[0]);
-#if USE_APC
-  ApcStop(3);
-#endif
   tm.stop();
+  cout << " fwd2: size: " << ft2.np0() << " "
+       << ft2.np1() << " " << ft2.np2() << endl;
   cout << " fwd2: vgrid->wf" << endl;
   cout << " fwd2: tm_f_fft:    " << ft2.tm_f_fft.real() << endl;
   cout << " fwd2: tm_f_mpi:    " << ft2.tm_f_mpi.real() << endl;
@@ -228,17 +218,14 @@ int main(int argc, char **argv)
   cout << " fwd2 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(4);
-#endif
   ft2.backward(&x[0],&f2[0]);
-#if USE_APC
-  ApcStop(4);
-#endif
   tm.stop();
+  cout << " bwd2: size: " << ft2.np0() << " "
+       << ft2.np1() << " " << ft2.np2() << endl;
   cout << " bwd2: wf->vgrid" << endl;
   cout << " bwd2: tm_b_fft:    " << ft2.tm_b_fft.real() << endl;
   cout << " bwd2: tm_b_mpi:    " << ft2.tm_b_mpi.real() << endl;
@@ -259,17 +246,14 @@ int main(int argc, char **argv)
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
 
   // double transform
+  MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(5);
-#endif
   ft2.forward(&f2[0],&x1[0],&x2[0]);
-#if USE_APC
-  ApcStop(5);
-#endif
   tm.stop();
+  cout << " fwd3: size: " << ft2.np0() << " "
+       << ft2.np1() << " " << ft2.np2() << endl;
   cout << " fwd3: vgrid->wf double transform" << endl;
   cout << " fwd3: tm_f_fft:    " << ft2.tm_f_fft.real() << endl;
   cout << " fwd3: tm_f_mpi:    " << ft2.tm_f_mpi.real() << endl;
@@ -286,17 +270,14 @@ int main(int argc, char **argv)
   cout << " fwd3 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   ft2.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(6);
-#endif
   ft2.backward(&x1[0],&x2[0],&f2[0]);
-#if USE_APC
-  ApcStop(6);
-#endif
   tm.stop();
+  cout << " bwd3: size: " << ft2.np0() << " "
+       << ft2.np1() << " " << ft2.np2() << endl;
   cout << " bwd3: wf->vgrid double transform" << endl;
   cout << " bwd3: tm_b_fft:    " << ft2.tm_b_fft.real() << endl;
   cout << " bwd3: tm_b_mpi:    " << ft2.tm_b_mpi.real() << endl;
@@ -330,17 +311,14 @@ int main(int argc, char **argv)
   double vflops = 2*vbasis.nrod_loc() *      fft_flops(vft.np2()) +
                    vft.np1()   * vft.np2() * fft_flops(vft.np0()) +
                    vft.np0()   * vft.np2() * fft_flops(vft.np1());
+  MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   vft.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(7);
-#endif
   vft.forward(&vf[0],&vg[0]);
-#if USE_APC
-  ApcStop(7);
-#endif
   tm.stop();
+  cout << " fwd4: size: " << vft.np0() << " "
+       << vft.np1() << " " << vft.np2() << endl;
   cout << " fwd4: vgrid->v(g)" << endl;
   cout << " fwd4: tm_f_fft:    " << vft.tm_f_fft.real() << endl;
   cout << " fwd4: tm_f_mpi:    " << vft.tm_f_mpi.real() << endl;
@@ -357,17 +335,14 @@ int main(int argc, char **argv)
   cout << " fwd4 time: " << tm.cpu() << " / " << tm.real()
   << "    " << 1.e-6*vflops/tm.real() << " MFlops" << endl;
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   vft.reset_timers();
   tm.start();
-#if USE_APC
-  ApcStart(8);
-#endif
   vft.backward(&vg[0],&vf[0]);
-#if USE_APC
-  ApcStop(8);
-#endif
   tm.stop();
+  cout << " bwd4: size: " << vft.np0() << " "
+       << vft.np1() << " " << vft.np2() << endl;
   cout << " bwd4: v(g)->vgrid" << endl;
   cout << " bwd4: tm_b_fft:    " << vft.tm_b_fft.real() << endl;
   cout << " bwd4: tm_b_mpi:    " << vft.tm_b_mpi.real() << endl;
@@ -462,9 +437,6 @@ int main(int argc, char **argv)
 #endif
 
   } // Context scope
-#if USE_APC
-  ApcFinalize();
-#endif
 #if USE_MPI
   MPI_Finalize();
 #endif

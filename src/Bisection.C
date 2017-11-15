@@ -74,12 +74,11 @@ int walsh(int l, int n, int i)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-Bisection::Bisection(const SlaterDet& sd, int nlevels[3])
+Bisection::Bisection(const SlaterDet& sd, int nlevels[3]) : ctxt_(sd.context())
 {
   // localization vectors are long int
   assert(sizeof(long int) >= 4);
 
-  gcontext_ = sd.context();
   nst_ = sd.nst();
   nstloc_ = sd.nstloc();
 
@@ -110,6 +109,9 @@ Bisection::Bisection(const SlaterDet& sd, int nlevels[3])
       if ( np_[idim] % base != 0 ) np_[idim] += base/2;
     }
   }
+  while (!sd.basis().factorizable(np_[0])) np_[0] += (1<<nlevels[0]);
+  while (!sd.basis().factorizable(np_[1])) np_[1] += (1<<nlevels[1]);
+  while (!sd.basis().factorizable(np_[2])) np_[2] += (1<<nlevels[2]);
 
   // number of grid points of augmented grid for normalization
   ft_ = new FourierTransform(sd.basis(),np_[0],np_[1],np_[2]);
@@ -157,7 +159,7 @@ Bisection::Bisection(const SlaterDet& sd, int nlevels[3])
     // max_xyproj_rsize: maximum real-space size of xy projectors
     vector<int> max_xyproj_rsize( ndiv_[0]*ndiv_[1] , 0 );
     MPI_Allreduce((void*)&xyproj_rsize[0] , (void*)&max_xyproj_rsize[0],
-      (int)xyproj_rsize.size(), MPI_INT ,MPI_MAX , gcontext_.comm());
+      (int)xyproj_rsize.size(), MPI_INT ,MPI_MAX , ctxt_.comm());
 
     // allocate matrices rmat_[i]
     for ( int i = 0; i < rmat_.size(); i++ )
@@ -400,11 +402,11 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
 
   // diagonalize projectors
   int nsweep = jade(maxsweep,tol,amat_,*u_,adiag_);
-  if ( nsweep >= maxsweep )
-    if ( gcontext_.onpe0() )
-      cout << "Bisection::compute_transform: nsweep=" << nsweep
-           << " maxsweep=" << maxsweep << " tol=" << tol << endl;
-
+#ifdef TIMING
+  if ( ctxt_.onpe0() )
+    cout << "Bisection::compute_transform: nsweep=" << nsweep
+         << " maxsweep=" << maxsweep << " tol=" << tol << endl;
+#endif
 
 #ifdef TIMING
   tmap["jade"].stop();
@@ -419,7 +421,7 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
   {
     // broadcast diagonal of all matrices a to all tasks
     MPI_Bcast( (void *) &adiag_[imat][0], adiag_[imat].size(),
-               MPI_DOUBLE, 0, gcontext_.comm() );
+               MPI_DOUBLE, 0, ctxt_.comm() );
   }
   // print timers
 #ifdef TIMING
@@ -428,14 +430,14 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
     double time = (*i).second.real();
     double tmin = time;
     double tmax = time;
-    gcontext_.dmin(1,1,&tmin,1);
-    gcontext_.dmax(1,1,&tmax,1);
-    if ( gcontext_.myproc()==0 )
+    ctxt_.dmin(1,1,&tmin,1);
+    ctxt_.dmax(1,1,&tmax,1);
+    if ( ctxt_.myproc()==0 )
     {
-      cout << "<timing name=\""
-           << setw(15) << (*i).first << "\""
-           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
-           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+      string s = "name=\"" + (*i).first + "\"";
+      cout << "<timing " << left << setw(22) << s
+           << " min=\"" << setprecision(3) << tmin << "\""
+           << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
   }
@@ -463,7 +465,7 @@ void Bisection::compute_localization(double epsilon)
 #ifdef DEBUG
   // print localization vector and number of overlaps (including self)
   // for each state
-  if ( gcontext_.onpe0() )
+  if ( ctxt_.onpe0() )
   {
     int sum = 0;
     for ( int i = 0; i < nst_; i++ )
@@ -487,7 +489,7 @@ void Bisection::compute_localization(double epsilon)
 
   // broadcast localization to all tasks to ensure consistency
   MPI_Bcast( (void *) &localization_[0], localization_.size(),
-             MPI_LONG, 0, gcontext_.comm() );
+             MPI_LONG, 0, ctxt_.comm() );
 
 }
 
@@ -672,6 +674,7 @@ void Bisection::trim_amat(const vector<double>& occ)
   // set to zero the matrix elements of the matrices amat_[k] if they couple
   // states with differing occupation numbers
 
+  const double trim_tol = 1.e-6;
   // check if all occupation numbers are the same
   double occ_max = 0.0, occ_min = 2.0;
   for ( int i = 0; i < occ.size(); i++ )
@@ -680,7 +683,7 @@ void Bisection::trim_amat(const vector<double>& occ)
     occ_min = min(occ_min, occ[i]);
   }
   // return if all occupation numbers are equal
-  if ( fabs(occ_max-occ_min) < 1.e-12 )
+  if ( fabs(occ_max-occ_min) < trim_tol )
     return;
 
   const int mloc = amat_[0]->mloc();
@@ -694,7 +697,7 @@ void Bisection::trim_amat(const vector<double>& occ)
       const int jglobal = amat_[0]->jglobal(j);
 
       const int ival = i + mloc * j;
-      if ( fabs(occ[iglobal] - occ[jglobal]) > 1.e-12 )
+      if ( fabs(occ[iglobal] - occ[jglobal]) > trim_tol )
         for ( int k = 0; k < amat_.size(); k++ )
           (*amat_[k])[ival] = 0.0;
     }
@@ -702,13 +705,13 @@ void Bisection::trim_amat(const vector<double>& occ)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool Bisection::overlap(int i, int j)
+bool Bisection::overlap(int i, int j) const
 {
   return overlap(localization_,i,j);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool Bisection::overlap(vector<long int> loc_, int i, int j)
+bool Bisection::overlap(const vector<long int>& loc_, int i, int j) const
 {
   // overlap: return true if the functions i and j overlap according
   // to the localization vector loc_
@@ -735,25 +738,28 @@ bool Bisection::overlap(vector<long int> loc_, int i, int j)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double Bisection::pair_fraction(void)
+double Bisection::pair_fraction(void) const
 {
   // pair_fraction: return fraction of pairs having non-zero overlap
+  // count pairs (i,j) having non-zero overlap for i != j only
   int sum = 0;
-  for ( int i = 0; i < nst_; i++ )
+  for ( int i = 1; i < nst_; i++ )
   {
     int count = 0;
-    for ( int j = 0; j < nst_; j++ )
+    for ( int j = i+1; j < nst_; j++ )
     {
       if ( overlap(i,j) )
         count++;
     }
     sum += count;
   }
-  return ((double) sum)/(nst_*nst_);
+  // add overlap with self: (i,i)
+  sum += nst_;
+  return ((double) sum)/((nst_*(nst_+1))/2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double Bisection::size(int i)
+double Bisection::size(int i) const
 {
   // size: return fraction of the domain on which state i is non-zero
   long int loc = localization_[i];
@@ -776,7 +782,7 @@ double Bisection::size(int i)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double Bisection::total_size(void)
+double Bisection::total_size(void) const
 {
   // total_size: return normalized sum of sizes
   double sum = 0.0;

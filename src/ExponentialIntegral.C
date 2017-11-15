@@ -28,7 +28,8 @@
 
 using namespace std;
 
-namespace util {
+namespace util
+{
 
 // Calculate the exponential integral E_1(x):
 //
@@ -42,16 +43,19 @@ namespace util {
 //
 // Input:  x - position at which exponential integral is evaluated (x > 0)
 // Return: E1(x)
-double E1(const double x) {
+double E1(const double x)
+{
 
-  if (x < series_cutoff) {
+  if (x < series_cutoff)
+  {
     // use series expansion
     return E1_series(x);
-  } else {
+  }
+  else
+  {
     // use gauss_laguerre expression
     return exp(-x) * gauss_laguerre(x);
   }
-
 }
 
 // Series expansion of the exponential integral
@@ -68,8 +72,8 @@ double E1(const double x) {
 // n_cut is set to 25
 // Input:  x - position at which exponential integral is evaluated (x > 0)
 // Return: approximation by series expansion for E_1(x)
-double E1_series(const double x) {
-
+double E1_series(const double x)
+{
   // Euler constant
   const double EULER_GAMMA = 0.57721566490153286060651209008241;
 
@@ -80,7 +84,8 @@ double E1_series(const double x) {
   double res = 0.0;
 
   // perform the summation
-  for (int it = itmax; it > 1; it--) {
+  for (int it = itmax; it > 1; it--)
+  {
     // calculate 1/n
     const double fact = 1.0 / it;
     // add next term of summation
@@ -89,7 +94,6 @@ double E1_series(const double x) {
 
   // add everything up
   return -EULER_GAMMA - log(x) + x * (1.0 - res);
-
 }
 
 // The Gauss Laguerre expansion of the exponential integral can be written as
@@ -105,8 +109,8 @@ double E1_series(const double x) {
 // where the a_n and x_n are determined by least quadrature (see reference)
 // Input: x0 - point at which Gaussian Laguerre quadrature is calculated
 // Return: E_1(x0) / exp(-x0) in this approximation
-double gauss_laguerre(const double x0) {
-
+double gauss_laguerre(const double x0)
+{
   // initialize constants a_n and x_n
   const double size = 15;
   const double a[] = { 0.2182348859400869e+00, 0.3422101779228833e+00,
@@ -126,12 +130,12 @@ double gauss_laguerre(const double x0) {
   double res = 0.0;
 
   // evaluate a_n / ( x_n + x0 )
-  for ( int i = 0; i < size; i++ ) {
+  for ( int i = 0; i < size; i++ )
+  {
     res += a[i] / (x[i] + x0);
   }
 
   return res;
-
 }
 
 }

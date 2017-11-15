@@ -31,16 +31,8 @@ using namespace std;
 long long clk, clk_bwd, clk_fwd;
 #endif
 
-#if USE_APC
-#include "apc.h"
-#endif
-
 int main(int argc, char**argv)
 {
-#if USE_APC
-  ApcInit();
-#endif
-
   const int niter = 10;
   const int np = atoi(argv[1]);
   const int nvec = atoi(argv[2]);
@@ -86,14 +78,8 @@ int main(int argc, char**argv)
 #ifdef IA32
   clk = readTSC();
 #endif
-#if USE_APC
-  ApcStart(1);
-#endif
   fftw(bwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                       (FFTW_COMPLEX*)0,0,0);
-#if USE_APC
-  ApcStop(1);
-#endif
 #ifdef IA32
   clk_bwd += readTSC() - clk;
 #endif
@@ -102,14 +88,8 @@ int main(int argc, char**argv)
 #ifdef IA32
   clk = readTSC();
 #endif
-#if USE_APC
-  ApcStart(2);
-#endif
   fftw(fwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                       (FFTW_COMPLEX*)0,0,0);
-#if USE_APC
-  ApcStop(2);
-#endif
 #ifdef IA32
   clk_fwd += readTSC() - clk;
 #endif
@@ -167,14 +147,8 @@ int main(int argc, char**argv)
 #ifdef IA32
   clk = readTSC();
 #endif
-#if USE_APC
-  ApcStart(3);
-#endif
     fftw(bwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                        (FFTW_COMPLEX*)&zvec_out[0],inc1,inc2);
-#if USE_APC
-  ApcStop(3);
-#endif
 #ifdef IA32
   clk_bwd += readTSC() - clk;
 #endif
@@ -184,14 +158,8 @@ int main(int argc, char**argv)
 #ifdef IA32
   clk = readTSC();
 #endif
-#if USE_APC
-  ApcStart(4);
-#endif
     fftw(fwplan,ntrans,(FFTW_COMPLEX*)&zvec[0],inc1,inc2,
                        (FFTW_COMPLEX*)&zvec_out[0],inc1,inc2);
-#if USE_APC
-  ApcStop(4);
-#endif
 #ifdef IA32
   clk_fwd += readTSC() - clk;
 #endif
@@ -221,9 +189,6 @@ int main(int argc, char**argv)
        << "  " << clk_bwd/(niter*nvec) << " cycles"
 #endif
        << endl;
-#endif
-#if USE_APC
-  ApcFinalize();
 #endif
   return 0;
 }

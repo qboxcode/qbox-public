@@ -20,10 +20,6 @@
 // Tseng, Lee, Journal of Hydrology, 205 (1998) 38-51
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Author: Martin Schlipf (2013)
-// Contact: martin.schlipf@gmail.com
-//
 #ifndef EXPONENTIAL_INTEGRAL_H
 #define EXPONENTIAL_INTEGRAL_H
 

@@ -15,7 +15,6 @@
 // MoveCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: MoveCmd.h,v 1.5 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef MOVECMD_H
 #define MOVECMD_H
@@ -44,7 +43,9 @@ class MoveCmd : public Cmd
     " syntax: move atom_name {to|by} x y z \n\n"
     "   The move command displaces an atom to a new position.\n"
     "   The new position is defined by absolute coordinates (to) or\n"
-    "   by a relative displacement (by).\n\n";
+    "   by a relative displacement (by).\n"
+    "   When using 'to', if one or more of the arguments is '*',\n"
+    "   the corresponding component of the velocity is unchanged.\n\n";
   }
 
   int action(int argc, char **argv)

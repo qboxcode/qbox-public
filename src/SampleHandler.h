@@ -15,7 +15,6 @@
 // SampleHandler.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SampleHandler.h,v 1.10 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef SAMPLEHANDLER_H
 #define SAMPLEHANDLER_H

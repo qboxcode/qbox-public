@@ -15,10 +15,10 @@
 // blacs.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: blacs.h,v 1.6 2008-09-08 15:56:19 fgygi Exp $
 
 #ifndef BLACS_H
 #define BLACS_H
+#include<mpi.h>
 
 extern "C"{
 void igesd2d(int*,int*,int*, int*, int*,int*,int*);
@@ -30,6 +30,7 @@ void igamn2d(int*,char*,char*, int*,
      int*,int*,int*, int*, int*,int*,int*, int*);
 void blacs_pinfo(int*, int*);
 void blacs_get(int*, int*, int*);
+int  sys2blacs_handle(MPI_Comm);
 void blacs_barrier(int*, char*);
 void blacs_gridinfo(int*, int *, int *, int *, int *);
 void blacs_gridinit(int *, char*, int*, int*);
@@ -38,7 +39,6 @@ void blacs_abort(int*, int*);
 void blacs_gridexit(int*);
 int  blacs_pnum(int*, int*, int*);
 }
-
 
 #ifdef SCALAPACK
 extern "C"{
@@ -62,7 +62,8 @@ void Cigebr2d(int,char*,char*,int,int,int*,int,int,int);
 
 void Cblacs_pinfo(int*, int*);
 void Cblacs_get(int, int, int*);
-void Cblacs_barrier(int, char*);
+int  Csys2blacs_handle(MPI_Comm);
+void Cblacs_barrier(int, const char*);
 void Cblacs_gridinfo(int, int*, int*, int*, int*);
 void Cblacs_gridinit(int*, char [], int, int);
 void Cblacs_gridmap(int*, int*, int, int, int);

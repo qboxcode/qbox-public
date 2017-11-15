@@ -15,7 +15,6 @@
 // AtomSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.h,v 1.26 2010-05-10 20:52:54 fgygi Exp $
 
 #ifndef ATOMSET_H
 #define ATOMSET_H
@@ -23,6 +22,7 @@
 #include "Context.h"
 #include "Atom.h"
 #include "UnitCell.h"
+#include "D3tensor.h"
 #include <vector>
 #include <string>
 #include <list>
@@ -72,10 +72,10 @@ class AtomSet
   int nsp(void) const { return species_list.size(); }
   void get_positions(std::vector<std::vector<double> >& tau) const;
   void sync_positions(std::vector<std::vector<double> >& tau);
-  void set_positions(const std::vector<std::vector<double> >& tau);
+  void set_positions(std::vector<std::vector<double> >& tau);
   void get_velocities(std::vector<std::vector<double> >& vel) const;
   void sync_velocities(std::vector<std::vector<double> >& vel);
-  void set_velocities(const std::vector<std::vector<double> >& vel);
+  void set_velocities(std::vector<std::vector<double> >& vel);
   const UnitCell& cell(void) const { return cell_; }
   void set_cell(const UnitCell& cell) { cell_ = cell; }
   void set_cell(const D3vector& a, const D3vector& b, const D3vector& c);
@@ -87,6 +87,7 @@ class AtomSet
   void randomize_positions(double amplitude);
   D3vector vcm(void) const;
   D3vector dipole(void) const;
+  D3tensor quadrupole(void) const;
   void reset_vcm(void);
   void fold_in_ws(void);
   int size(void) const;

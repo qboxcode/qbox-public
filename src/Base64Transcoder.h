@@ -15,7 +15,6 @@
 // Base64Transcoder.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: Base64Transcoder.h,v 1.7 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef BASE64TRANSCODER_H
 #define BASE64TRANSCODER_H

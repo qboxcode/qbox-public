@@ -45,6 +45,7 @@ class Xc : public Var
 
     string v = argv[1];
     if ( !( v == "LDA" ||
+            v == "VWN" ||
             v == "PBE" ||
             v == "BLYP" ||
             v == "HF" ||
@@ -53,7 +54,8 @@ class Xc : public Var
             v == "B3LYP" ) )
     {
       if ( ui->onpe0() )
-        cout << " xc must be LDA, PBE, BLYP, HF, PBE0, HSE or B3LYP" << endl;
+        cout << " xc must be LDA, VWN, PBE, BLYP, "
+             << "HF, PBE0, HSE or B3LYP" << endl;
       return 1;
     }
 

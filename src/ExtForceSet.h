@@ -15,7 +15,6 @@
 // ExtForceSet.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ExtForceSet.h,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef EXTFORCESET_H
 #define EXTFORCESET_H

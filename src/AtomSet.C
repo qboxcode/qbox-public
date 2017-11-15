@@ -15,7 +15,6 @@
 // AtomSet.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: AtomSet.C,v 1.29 2010-04-16 21:40:50 fgygi Exp $
 
 #include "AtomSet.h"
 #include "Species.h"
@@ -358,8 +357,9 @@ void AtomSet::sync_positions(vector<vector<double> >& tau)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void AtomSet::set_positions(const vector<vector<double> >& tau)
+void AtomSet::set_positions(vector<vector<double> >& tau)
 {
+  sync_positions(tau);
   assert(tau.size() == atom_list.size());
   for ( int is = 0; is < atom_list.size(); is++ )
   {
@@ -412,8 +412,9 @@ void AtomSet::sync_velocities(vector<vector<double> >& vel)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void AtomSet::set_velocities(const vector<vector<double> >& vel)
+void AtomSet::set_velocities(vector<vector<double> >& vel)
 {
+  sync_velocities(vel);
   assert(vel.size() == atom_list.size());
   for ( int is = 0; is < atom_list.size(); is++ )
   {
@@ -498,6 +499,7 @@ void AtomSet::randomize_velocities(double temp)
     }
   }
   set_velocities(v);
+  reset_vcm();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -575,9 +577,28 @@ D3vector AtomSet::dipole(void) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+D3tensor AtomSet::quadrupole(void) const
+{
+  D3tensor sum;
+  for ( int is = 0; is < atom_list.size(); is++ )
+  {
+    double charge = species_list[is]->zval();
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      D3vector p = atom_list[is][ia]->position();
+      for ( int idir = 0; idir < 3; idir++ )
+        for ( int jdir = 0; jdir < 3; jdir++ )
+          sum[idir*3+jdir] += charge * p[idir] * p[jdir];
+    }
+  }
+  return sum;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void AtomSet::set_cell(const D3vector& a, const D3vector& b, const D3vector& c)
 {
   cell_.set(a,b,c);
+  sync_cell();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

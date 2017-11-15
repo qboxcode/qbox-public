@@ -15,7 +15,6 @@
 // UnitCell.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: UnitCell.C,v 1.19 2008-09-15 14:59:58 fgygi Exp $
 
 #include "UnitCell.h"
 #include <iostream>
@@ -124,8 +123,8 @@ void UnitCell::set(const D3vector& a0, const D3vector& a1, const D3vector& a2)
 
   for ( int i = 0; i < 13; i++ )
   {
-    an2h_[i] = 0.5 * norm(an_[i]);
-    bn2h_[i] = 0.5 * norm(bn_[i]);
+    an2h_[i] = 0.5 * norm2(an_[i]);
+    bn2h_[i] = 0.5 * norm2(bn_[i]);
   }
 
   for ( int i = 0; i < 3; i++ )

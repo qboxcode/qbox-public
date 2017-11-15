@@ -25,6 +25,7 @@
 #include "PSDWavefunctionStepper.h"
 #include "PSDAWavefunctionStepper.h"
 #include "JDWavefunctionStepper.h"
+#include "UserInterface.h"
 #include "Preconditioner.h"
 #include "SDIonicStepper.h"
 #include "SDAIonicStepper.h"
@@ -35,10 +36,7 @@
 #include "CGCellStepper.h"
 #include "AndersonMixer.h"
 #include "MLWFTransform.h"
-
-#ifdef USE_APC
-#include "apc.h"
-#endif
+#include "D3tensor.h"
 
 #include <iostream>
 #include <iomanip>
@@ -62,10 +60,10 @@ BOSampleStepper::~BOSampleStepper()
     s_.ctxt_.dmax(1,1,&tmax,1);
     if ( s_.ctxt_.myproc()==0 )
     {
-      cout << "<timing name=\""
-           << setw(15) << (*i).first << "\""
-           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
-           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+      string s = "name=\"" + (*i).first + "\"";
+      cout << "<timing " << left << setw(22) << s
+           << " min=\"" << setprecision(3) << tmin << "\""
+           << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
   }
@@ -181,8 +179,6 @@ void BOSampleStepper::step(int niter)
   Wavefunction& wf = s_.wf;
   const int nspin = wf.nspin();
 
-  const UnitCell& cell = wf.cell();
-
   const double dt = s_.ctrl.dt;
 
   const string wf_dyn = s_.ctrl.wf_dyn;
@@ -207,7 +203,6 @@ void BOSampleStepper::step(int niter)
                             cell_dyn != "LOCKED" );
   // GS-only calculation:
   const bool gs_only = !atoms_move && !cell_moves;
-  const bool use_confinement = ( s_.ctrl.ecuts > 0.0 );
 
   Timer tm_iter;
 
@@ -351,15 +346,15 @@ void BOSampleStepper::step(int niter)
       wkerker[i] = 1.0;
   }
 
+  if ( onpe0 )
+    cout << "<net_charge> " << atoms.nel()-wf.nel() << " </net_charge>\n";
+
   // Next line: special case of niter=0: compute GS only
   for ( int iter = 0; iter < max(niter,1); iter++ )
   {
     // ionic iteration
 
     tm_iter.start();
-#ifdef USE_APC
-    ApcStart(1);
-#endif
 
     if ( onpe0 )
       cout << "<iteration count=\"" << iter+1 << "\">\n";
@@ -372,39 +367,22 @@ void BOSampleStepper::step(int niter)
       cd_.update_density();
       tmap["charge"].stop();
 
+      tmap["update_vhxc"].start();
       ef_.update_vhxc(compute_stress);
+      tmap["update_vhxc"].stop();
       const bool compute_forces = true;
+      tmap["energy"].start();
       double energy =
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
-      double enthalpy = energy;
+      tmap["energy"].stop();
+      double enthalpy = ef_.enthalpy();
 
       if ( onpe0 )
       {
-        cout.setf(ios::fixed,ios::floatfield);
-        cout.setf(ios::right,ios::adjustfield);
-        cout << "  <ekin>   " << setprecision(8)
-             << setw(15) << ef_.ekin() << " </ekin>\n";
-        if ( use_confinement )
-          cout << "  <econf>  " << setw(15) << ef_.econf() << " </econf>\n";
-        cout << "  <eps>    " << setw(15) << ef_.eps() << " </eps>\n"
-             << "  <enl>    " << setw(15) << ef_.enl() << " </enl>\n"
-             << "  <ecoul>  " << setw(15) << ef_.ecoul() << " </ecoul>\n"
-             << "  <exc>    " << setw(15) << ef_.exc() << " </exc>\n"
-             << "  <esr>    " << setw(15) << ef_.esr() << " </esr>\n"
-             << "  <eself>  " << setw(15) << ef_.eself() << " </eself>\n"
-             << "  <ets>    " << setw(15) << ef_.ets() << " </ets>\n";
-        if ( s_.extforces.size() > 0 )
-          cout << "  <eexf>     " << setw(15) << ef_.eexf() << " </eexf>\n";
-        cout << "  <etotal> " << setw(15) << ef_.etotal() << " </etotal>\n";
-        if ( compute_stress )
-        {
-          const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-          enthalpy = ef_.etotal() + pext * cell.volume();
-          cout << "  <pv>     " << setw(15) << pext * cell.volume()
-               << " </pv>" << endl;
-          cout << "  <enthalpy> " << setw(15) << enthalpy << " </enthalpy>\n"
-             << flush;
-        }
+        cout << cd_;
+        cout << ef_;
+        if ( ef_.el_enth() )
+          cout << *ef_.el_enth();
       }
 
       if ( iter > 0 && ionic_stepper )
@@ -413,6 +391,30 @@ void BOSampleStepper::step(int niter)
       }
       // at this point, positions r0, velocities v0 and forces fion are
       // consistent
+
+      // execute commands in iter_cmd if defined
+      if ( !iter_cmd_.empty() )
+      {
+        if ( iter % iter_cmd_period_ == 0 )
+        {
+          // copy positions and velocities from IonicStepper to AtomSet
+          if ( ionic_stepper )
+          {
+            ionic_stepper->set_positions();
+            ionic_stepper->set_velocities();
+          }
+          // command must be terminated with \n
+          istringstream cmdstream(iter_cmd_ + "\n");
+          s_.ui->processCmds(cmdstream,"[iter_cmd]",true);
+          // copy positions and velocities back from AtomSet
+          if ( ionic_stepper )
+          {
+            ionic_stepper->get_positions();
+            ionic_stepper->get_velocities();
+          }
+        }
+      }
+
       double ekin_ion = 0.0, temp_ion = 0.0;
       if ( ionic_stepper )
       {
@@ -468,7 +470,8 @@ void BOSampleStepper::step(int niter)
         if ( ionic_stepper != 0 )
           ekin_stepper = ionic_stepper->ekin_stepper();
         cout << setprecision(8);
-        cout << "  <econst> " << energy+ekin_ion+ekin_stepper << " </econst>\n";
+        cout << "  <econst> " << enthalpy+ekin_ion+ekin_stepper
+             << " </econst>\n";
         cout << "  <ekin_ion> " << ekin_ion << " </ekin_ion>\n";
         cout << "  <temp_ion> " << temp_ion << " </temp_ion>\n";
       }
@@ -740,8 +743,11 @@ void BOSampleStepper::step(int niter)
         mixer.restart();
 
       double ehart, ehart_m;
+      bool scf_converged = false;
+      int itscf = 0;
+      double etotal = 0.0, etotal_m = 0.0, etotal_mm = 0.0;
 
-      for ( int itscf = 0; itscf < nitscf_; itscf++ )
+      while ( !scf_converged && itscf < nitscf_ )
       {
         if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: start scf iteration" << endl;
@@ -753,6 +759,9 @@ void BOSampleStepper::step(int niter)
         else
           cd_.update_density();
         tmap["charge"].stop();
+
+        if ( onpe0 )
+          cout << cd_;
 
         // charge mixing
         if ( nite_ > 0 )
@@ -833,15 +842,16 @@ void BOSampleStepper::step(int niter)
           }
         } // if nite_ > 0
 
+        tmap["update_vhxc"].start();
         ef_.update_vhxc(compute_stress);
+        tmap["update_vhxc"].stop();
 
         // reset stepper only if multiple non-selfconsistent steps
         if ( nite_ > 0 ) wf_stepper->preprocess();
 
         // non-self-consistent loop
-        // repeat until the change in etotal_int or in the
-        // eigenvalue sum is smaller than a fraction of the change in
-        // Hartree energy in the last scf iteration
+        // repeat until the change in eigenvalue_sum is smaller than a
+        // fraction of the change in Hartree energy in the last scf iteration
         bool nonscf_converged = false;
         if ( itscf > 0 )
           ehart_m = ehart;
@@ -852,19 +862,17 @@ void BOSampleStepper::step(int niter)
         // if ( onpe0 && nite_ > 0 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
-        double etotal_int, etotal_int_m;
-        double eigenvalue_sum, eigenvalue_sum_m;
+        double energy, etotal_int;
+
+        double eigenvalue_sum, eigenvalue_sum_m = 0.0;
         // if nite == 0: do 1 iteration, no screening in charge mixing
         // if nite > 0: do nite iterations, use screening in charge mixing
+        //
         while ( !nonscf_converged && ite < max(nite_,1) )
         {
-          double energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
-          double enthalpy = energy;
-
-          if ( ite > 0 )
-            etotal_int_m = etotal_int;
-
-          etotal_int = energy;
+          tmap["energy"].start();
+          energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+          tmap["energy"].stop();
 
           // compute the sum of eigenvalues (with fixed weight)
           // to measure convergence of the subspace update
@@ -878,41 +886,16 @@ void BOSampleStepper::step(int niter)
 
           eigenvalue_sum = real(s_.wf.dot(dwf));
           if ( onpe0 )
-            cout << "  <eigenvalue_sum> "
+            cout << "  <eigenvalue_sum>  "
                  << eigenvalue_sum << " </eigenvalue_sum>" << endl;
 
+          tmap["wf_update"].start();
           wf_stepper->update(dwf);
+          tmap["wf_update"].stop();
 
-          if ( onpe0 )
-          {
-            cout.setf(ios::fixed,ios::floatfield);
-            cout.setf(ios::right,ios::adjustfield);
-            cout << "  <etotal_int> " << setprecision(8) << setw(15)
-                 << energy << " </etotal_int>\n";
-          }
-          if ( compute_stress )
-          {
-            const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
-            enthalpy = energy + pext * cell.volume();
-            if ( onpe0 )
-              cout << "  <enthalpy_int> " << setw(15)
-                   << enthalpy << " </enthalpy_int>\n" << flush;
-          }
-
-          // compare delta_etotal_int only after first iteration
+          // compare delta_eig_sum only after first iteration
           if ( ite > 0 )
           {
-#if 0
-            double delta_etotal_int = fabs(etotal_int - etotal_int_m);
-            nonscf_converged |= (delta_etotal_int < 0.01 * delta_ehart);
-            if ( onpe0 )
-            {
-              cout << " BOSampleStepper::step: delta_e_int: "
-                   << delta_etotal_int << endl;
-              cout << " BOSampleStepper::step: delta_ehart: "
-                   << delta_ehart << endl;
-            }
-#else
             double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
             nonscf_converged |= (delta_eig_sum < 0.01 * delta_ehart);
 #ifdef DEBUG
@@ -924,21 +907,19 @@ void BOSampleStepper::step(int niter)
                    << delta_ehart << endl;
             }
 #endif
-#endif
-
           }
           ite++;
         }
 
-        // if ( onpe0 && nite_ > 0 && ite >= nite_ )
-        //   cout << " BOSampleStepper::step: nscf loop not converged after "
-        //        << nite_ << " iterations" << endl;
-
         // subspace diagonalization
         if ( compute_eigvec || s_.ctrl.wf_diag == "EIGVAL" )
         {
+          tmap["energy"].start();
           ef_.energy(true,dwf,false,fion,false,sigma_eks);
+          tmap["energy"].stop();
+          tmap["wfdiag"].start();
           s_.wf.diag(dwf,compute_eigvec);
+          tmap["wfdiag"].stop();
           if ( onpe0 )
           {
             cout << "<eigenset>" << endl;
@@ -972,27 +953,82 @@ void BOSampleStepper::step(int niter)
         }
 
         // update occupation numbers if fractionally occupied states
+        // compute weighted sum of eigenvalues
+        // default value if no fractional occupation
+        double w_eigenvalue_sum = 2.0 * eigenvalue_sum;
+
         if ( fractional_occ )
         {
           wf.update_occ(s_.ctrl.fermi_temp);
-          const double wf_entropy = wf.entropy();
+#if 0
           if ( onpe0 )
           {
             cout << "  Wavefunction entropy: " << wf_entropy << endl;
-            const double boltz = 1.0 / ( 11605.0 * 2.0 * 13.6058 );
             cout << "  Entropy contribution to free energy: "
                  << - wf_entropy * s_.ctrl.fermi_temp * boltz << endl;
           }
+#endif
+          w_eigenvalue_sum = 0.0;
+          for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+          {
+            for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+            {
+              const int nst = wf.sd(ispin,ikp)->nst();
+              const double wkp = wf.weight(ikp);
+              for ( int n = 0; n < nst; n++ )
+              {
+                const double occ = wf.sd(ispin,ikp)->occ(n);
+                w_eigenvalue_sum += wkp * occ * wf.sd(ispin,ikp)->eig(n);
+              }
+            }
+          }
         }
+
+        // Harris-Foulkes estimate of the total energy
+        etotal_int = w_eigenvalue_sum - ef_.ehart_e() + ef_.ehart_p() +
+                     ef_.esr() - ef_.eself() + ef_.dxc() + ef_.ets();
+#ifdef DEBUG
+        if ( onpe0 )
+        {
+          cout << setprecision(8);
+          cout << "w_eigenvalue_sum = " << setw(15) << w_eigenvalue_sum << endl;
+          cout << "ef.dxc()         = " << setw(15) << ef_.dxc() << endl;
+          cout << "ef.ehart()       = " << setw(15) << ef_.ehart() << endl;
+          cout << "ef.ehart_e()     = " << setw(15) << ef_.ehart_e() << endl;
+          cout << "ef.ehart_ep()    = " << setw(15) << ef_.ehart_ep() << endl;
+          cout << "ef.esr()         = " << setw(15) << ef_.esr() << endl;
+        }
+#endif
+
+        if ( onpe0 )
+        {
+          cout.setf(ios::fixed,ios::floatfield);
+          cout.setf(ios::right,ios::adjustfield);
+          cout << "  <etotal_int>  " << setprecision(8) << setw(15)
+               << etotal_int << " </etotal_int>\n";
+        }
+
+        etotal_mm = etotal_m;
+        etotal_m = etotal;
+        etotal = etotal_int;
 
         if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: end scf iteration" << endl;
-      } // for itscf
+
+        // delta_etotal = interval containing etotal, etotal_m and etotal_mm
+        double delta_etotal = fabs(etotal - etotal_m);
+        delta_etotal = max(delta_etotal,fabs(etotal - etotal_mm));
+        delta_etotal = max(delta_etotal,fabs(etotal_m - etotal_mm));
+        scf_converged |= (delta_etotal < s_.ctrl.scf_tol);
+        itscf++;
+      } // while scf
 
       if ( compute_mlwf || compute_mlwfc )
       {
+        tmap["mlwf"].start();
         for ( int ispin = 0; ispin < nspin; ispin++ )
         {
+          mlwft[ispin]->update();
           mlwft[ispin]->compute_transform();
         }
 
@@ -1014,20 +1050,36 @@ void BOSampleStepper::step(int niter)
             SlaterDet& sd = *(wf.sd(ispin,0));
             cout << " <mlwfset spin=\"" << ispin
                  << "\" size=\"" << sd.nst() << "\">" << endl;
+            double total_spread[6];
+            for ( int j = 0; j < 6; j++ )
+               total_spread[j] = 0.0;
             for ( int i = 0; i < sd.nst(); i++ )
             {
               D3vector ctr = mlwft[ispin]->center(i);
-              double sp = mlwft[ispin]->spread(i);
+              double spi[6];
+              for (int j=0; j<3; j++)
+              {
+                spi[j] = mlwft[ispin]->spread2(i,j);
+                total_spread[j] += spi[j];
+              }
+
               cout.setf(ios::fixed, ios::floatfield);
               cout.setf(ios::right, ios::adjustfield);
               cout << "   <mlwf center=\"" << setprecision(6)
                    << setw(12) << ctr.x
                    << setw(12) << ctr.y
                    << setw(12) << ctr.z
-                   << " \" spread=\" " << sp << " \"/>"
+                   << " \" spread=\" "
+                   << setw(12) << spi[0]
+                   << setw(12) << spi[1]
+                   << setw(12) << spi[2] << " \"/>"
                    << endl;
             }
 
+            cout << " <total_spread> ";
+            for ( int j = 0; j < 3; j++ )
+              cout << setw(10) << total_spread[j];
+            cout << " </total_spread>" << endl;
             D3vector edipole = mlwft[ispin]->dipole();
             cout << " <electronic_dipole spin=\"" << ispin << "\"> " << edipole
                  << " </electronic_dipole>" << endl;
@@ -1043,6 +1095,7 @@ void BOSampleStepper::step(int niter)
                << " </total_dipole_length>" << endl;
           cout << "</mlwfs>" << endl;
         }
+        tmap["mlwf"].stop();
       }
 
       // If GS calculation only, print energy and atomset at end of iterations
@@ -1052,13 +1105,19 @@ void BOSampleStepper::step(int niter)
         cd_.update_density();
         tmap["charge"].stop();
 
+        tmap["update_vhxc"].start();
         ef_.update_vhxc(compute_stress);
+        tmap["update_vhxc"].stop();
         const bool compute_forces = true;
+        tmap["energy"].start();
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
+        tmap["energy"].stop();
 
         if ( onpe0 )
         {
           cout << ef_;
+          if ( ef_.el_enth() )
+            cout << *ef_.el_enth();
           cout << "<atomset>" << endl;
           cout << atoms.cell();
           for ( int is = 0; is < atoms.atom_list.size(); is++ )
@@ -1113,17 +1172,24 @@ void BOSampleStepper::step(int niter)
       tmap["charge"].start();
       cd_.update_density();
       tmap["charge"].stop();
+      tmap["update_vhxc"].start();
       ef_.update_vhxc(compute_stress);
+      tmap["update_vhxc"].stop();
+      tmap["energy"].start();
       ef_.energy(true,dwf,false,fion,false,sigma_eks);
+      tmap["energy"].stop();
       if ( onpe0 )
       {
+        cout << cd_;
         cout << ef_;
+        if ( ef_.el_enth() )
+          cout << *ef_.el_enth();
       }
     }
 
-#ifdef USE_APC
-    ApcStop(1);
-#endif
+    if ( atoms_move )
+      s_.constraints.update_constraints(dt);
+
     // print iteration time
     double time = tm_iter.real();
     double tmin = time;
@@ -1132,14 +1198,13 @@ void BOSampleStepper::step(int niter)
     s_.ctxt_.dmax(1,1,&tmax,1);
     if ( onpe0 )
     {
-      cout << "  <timing name=\"iteration\""
-           << " min=\"" << setprecision(3) << setw(9) << tmin << "\""
-           << " max=\"" << setprecision(3) << setw(9) << tmax << "\"/>"
+      string s = "name=\"iteration\"";
+      cout << "<timing " << left << setw(22) << s
+           << " min=\"" << setprecision(3) << tmin << "\""
+           << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
       cout << "</iteration>" << endl;
     }
-    if ( atoms_move )
-      s_.constraints.update_constraints(dt);
   } // for iter
 
   if ( atoms_move )
@@ -1150,10 +1215,14 @@ void BOSampleStepper::step(int niter)
     cd_.update_density();
     tmap["charge"].stop();
 
+    tmap["update_vhxc"].start();
     ef_.update_vhxc(compute_stress);
+    tmap["update_vhxc"].stop();
     const bool compute_forces = true;
+    tmap["energy"].start();
     double energy =
       ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
+    tmap["energy"].stop();
 
     ionic_stepper->compute_v(energy,fion);
     // positions r0 and velocities v0 are consistent
@@ -1164,7 +1233,9 @@ void BOSampleStepper::step(int niter)
     // compute wavefunction velocity after last iteration
     // s_.wfv contains the previous wavefunction
 
+    tmap["align"].start();
     s_.wfv->align(s_.wf);
+    tmap["align"].stop();
 
     for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
     {
@@ -1210,10 +1281,14 @@ void BOSampleStepper::step(int niter)
     cd_.update_density();
     tmap["charge"].stop();
 
+    tmap["update_vhxc"].start();
     ef_.update_vhxc(compute_stress);
+    tmap["update_vhxc"].stop();
     const bool compute_forces = true;
+    tmap["energy"].start();
     double energy =
       ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
+    tmap["energy"].stop();
 
     ionic_stepper->compute_v(energy,fion);
     // positions r0 and velocities v0 are consistent
@@ -1228,7 +1303,7 @@ void BOSampleStepper::step(int niter)
 
   for ( int ispin = 0; ispin < nspin; ispin++ )
   {
-   delete mlwft[ispin];
+    delete mlwft[ispin];
   }
 
   // delete steppers

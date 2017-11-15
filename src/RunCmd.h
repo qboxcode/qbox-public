@@ -15,7 +15,6 @@
 // RunCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.h,v 1.7 2008-09-15 14:57:29 fgygi Exp $
 
 #ifndef RUNCMD_H
 #define RUNCMD_H
@@ -44,7 +43,7 @@ class RunCmd : public Cmd
     "   consists of one or more (nitscf) scf steps, each consisting\n"
     "   of one or more (nite) electronic steps.\n"
     "   If the -atomic_density option is used, the initial charge\n"
-    "   density if a sum of atomic charge densities.\n\n";
+    "   density is a sum of atomic charge densities.\n\n";
   }
 
   int action(int argc, char **argv);

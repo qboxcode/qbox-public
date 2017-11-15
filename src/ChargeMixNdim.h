@@ -15,7 +15,6 @@
 // ChargeMixNdim.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ChargeMixNdim.h,v 1.1 2009-03-08 01:09:58 fgygi Exp $
 
 #ifndef CHARGEMIXNDIM_H
 #define CHARGEMIXNDIM_H

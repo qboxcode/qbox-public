@@ -36,7 +36,6 @@ void BMDIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
   fm_ = f0;
   em_ = e0_;
   r0_ = rp_;
-  atoms_.sync_positions(r0_);
   atoms_.set_positions(r0_);
 }
 

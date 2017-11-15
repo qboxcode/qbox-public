@@ -15,7 +15,6 @@
 // SharedFilePtr.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: SharedFilePtr.h,v 1.4 2009-11-30 02:27:59 fgygi Exp $
 
 #ifndef SHAREDFILEPTR_H
 #define SHAREDFILEPTR_H

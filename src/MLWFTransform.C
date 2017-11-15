@@ -32,7 +32,8 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 MLWFTransform::MLWFTransform(const SlaterDet& sd) : sd_(sd),
-cell_(sd.basis().cell()), ctxt_(sd.context()),  bm_(BasisMapping(sd.basis()))
+cell_(sd.basis().cell()), ctxt_(sd.context()),  bm_(BasisMapping(sd.basis())),
+maxsweep_(50), tol_(1.e-8)
 {
   a_.resize(6);
   adiag_.resize(6);
@@ -44,6 +45,14 @@ cell_(sd.basis().cell()), ctxt_(sd.context()),  bm_(BasisMapping(sd.basis()))
     adiag_[k].resize(n);
   }
   u_ = new DoubleMatrix(ctxt_,n,n,nb,nb);
+
+  sdcosx_ = new SlaterDet(sd_);
+  sdcosy_ = new SlaterDet(sd_);
+  sdcosz_ = new SlaterDet(sd_);
+  sdsinx_ = new SlaterDet(sd_);
+  sdsiny_ = new SlaterDet(sd_);
+  sdsinz_ = new SlaterDet(sd_);
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -52,24 +61,26 @@ MLWFTransform::~MLWFTransform(void)
   for ( int k = 0; k < 6; k++ )
     delete a_[k];
   delete u_;
+
+  delete sdcosx_;
+  delete sdcosy_;
+  delete sdcosz_;
+  delete sdsinx_;
+  delete sdsiny_;
+  delete sdsinz_;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void MLWFTransform::compute_transform(void)
+void MLWFTransform::update(void)
 {
-  const int maxsweep = 50;
-  const double tol = 1.e-8;
-
-  SlaterDet sdcosx(sd_), sdsinx(sd_),
-            sdcosy(sd_), sdsiny(sd_),
-            sdcosz(sd_), sdsinz(sd_);
+  // recompute cos and sin matrices
   const ComplexMatrix& c = sd_.c();
-  ComplexMatrix& ccosx = sdcosx.c();
-  ComplexMatrix& csinx = sdsinx.c();
-  ComplexMatrix& ccosy = sdcosy.c();
-  ComplexMatrix& csiny = sdsiny.c();
-  ComplexMatrix& ccosz = sdcosz.c();
-  ComplexMatrix& csinz = sdsinz.c();
+  ComplexMatrix& ccosx = sdcosx_->c();
+  ComplexMatrix& csinx = sdsinx_->c();
+  ComplexMatrix& ccosy = sdcosy_->c();
+  ComplexMatrix& csiny = sdsiny_->c();
+  ComplexMatrix& ccosz = sdcosz_->c();
+  ComplexMatrix& csinz = sdsinz_->c();
   // proxy real matrices cr, cc, cs
   DoubleMatrix cr(c);
   DoubleMatrix ccx(ccosx);
@@ -183,8 +194,11 @@ void MLWFTransform::compute_transform(void)
   a_[4]->ger(-1.0,cr,0,ccz,0);
   a_[5]->gemm('t','n',2.0,cr,csz,0.0);
   a_[5]->ger(-1.0,cr,0,csz,0);
-
-  int nsweep = jade(maxsweep,tol,a_,*u_,adiag_);
+}
+////////////////////////////////////////////////////////////////////////////////
+void MLWFTransform::compute_transform(void)
+{
+  int nsweep = jade(maxsweep_,tol_,a_,*u_,adiag_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

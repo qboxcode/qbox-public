@@ -21,7 +21,7 @@
 
 #define MATRIX_DEF_BLOCK_SIZE 64
 
-class Context;
+#include "Context.h"
 
 #include <valarray>
 #include <complex>
@@ -259,6 +259,12 @@ class DoubleMatrix
 
     // compute inverse of a square matrix
     void inverse(void);
+    // compute inverse and determinant of a square matrix
+    double inverse_det(void);
+    // compute determinant of a square matrix in LU form
+    double det_from_lu(std::valarray<int> ipiv);
+    // compute inverse of a square matrix in LU form
+    void inverse_from_lu(std::valarray<int>& ipiv);
 
     // Inverse of triangular matrix
     void trtri(char uplo,char diag);
@@ -287,6 +293,8 @@ class DoubleMatrix
 
     // permute the coeff of the matrix *this
     void lapiv(char direc, char rowcol, const int *ipiv);
+    // signature of a permutation returned by lu
+    int signature(std::valarray<int> ipiv);
 
     // compute eigenvalues (only) of symmetric matrix *this
     // using the divide and conquer method of Tisseur and Dongarra
@@ -529,6 +537,21 @@ class ComplexMatrix
     // Inverse of a symmetric matrix from Cholesky factor
     void potri(char uplo);
 
+    // Polar decomposition, tolerance ||I-X^H*X||<tol or iter<maxiter
+    void polar(double tol, int maxiter);
+
+    // LU decomposition
+    void lu(std::valarray<int>& ipiv);
+
+    // compute inverse of a square matrix
+    void inverse(void);
+    // compute inverse and determinant of a square matrix
+    std::complex<double> inverse_det(void);
+    // compute determinant of a square matrix in LU form
+    std::complex<double> det_from_lu(std::valarray<int> ipiv);
+    // compute inverse of a square matrix in LU form
+    void inverse_from_lu(std::valarray<int>& ipiv);
+
     // Inverse of triangular matrix
     void trtri(char uplo,char diag);
 
@@ -547,6 +570,8 @@ class ComplexMatrix
 
     // permute the coeff of the matrix *this
     void lapiv(char direc, char rowcol, const int *ipiv);
+    // signature of a permutation returned by lu
+    int signature(std::valarray<int> ipiv);
 };
 std::ostream& operator << ( std::ostream& os, const ComplexMatrix& a );
 #endif

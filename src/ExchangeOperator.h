@@ -19,7 +19,6 @@
 #include "Sample.h"
 #include "SlaterDet.h"
 #include "FourierTransform.h"
-#include "KPGridConnectivity.h"
 #include "InteractionPotential.h"
 
 #ifndef EXCHANGEOPERATOR_H
@@ -53,10 +52,6 @@ class ExchangeOperator
     bool compute_stress);
   void   apply_VXC_(double mix, Wavefunction& wf_ref,
     Wavefunction& dwf_ref, Wavefunction& dwf);
-
-  // Connectivity of the kpoint Grid
-  KPConnectivity KPGridPerm_;
-  KPConnectivity KPGridStat_;
 
   // basis for pair densities
   Basis* vbasis_;
@@ -117,7 +112,7 @@ class ExchangeOperator
   vector<complex<double> > buffer_forces_2_;
 
   // contexts and communicators
-  Context gcontext_;
+  const Context &gcontext_;
   MPI_Comm vcomm_;
 
   // Communications

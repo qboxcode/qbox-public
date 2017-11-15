@@ -15,7 +15,6 @@
 // ExtForceCmd.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: ExtForceCmd.h,v 1.1 2010-02-20 23:13:02 fgygi Exp $
 
 #ifndef EXTFORCECMD_H
 #define EXTFORCECMD_H

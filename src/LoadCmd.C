@@ -15,7 +15,6 @@
 // LoadCmd.C
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: LoadCmd.C,v 1.12 2010-02-20 23:13:02 fgygi Exp $
 
 #include "LoadCmd.h"
 #include "SampleReader.h"

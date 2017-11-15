@@ -15,7 +15,6 @@
 // FermiTemp.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: FermiTemp.h,v 1.4 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef FERMITEMP_H
 #define FERMITEMP_H

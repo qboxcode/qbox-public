@@ -15,7 +15,6 @@
 // RunCmd.C:
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: RunCmd.C,v 1.11 2010-02-20 23:13:02 fgygi Exp $
 
 #include "RunCmd.h"
 #include<iostream>
@@ -47,6 +46,12 @@ int RunCmd::action(int argc, char **argv)
   {
     if ( ui->onpe0() )
       cout << " RunCmd: ecut = 0.0, cannot run" << endl;
+    return 1;
+  }
+  if ( s->wf.cell().volume() == 0.0 )
+  {
+    if ( ui->onpe0() )
+      cout << " RunCmd: volume = 0.0, cannot run" << endl;
     return 1;
   }
 
@@ -84,6 +89,8 @@ int RunCmd::action(int argc, char **argv)
     stepper = new BOSampleStepper(*s,nitscf,nite);
 
   assert(stepper!=0);
+  stepper->set_iter_cmd(s->ctrl.iter_cmd);
+  stepper->set_iter_cmd_period(s->ctrl.iter_cmd_period);
 
   if ( atomic_density )
     stepper->initialize_density();

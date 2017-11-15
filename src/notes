@@ -1,4 +1,204 @@
 --------------------------------------------------------------------------------
+rel1_63_10
+--------------------------------------------------------------------------------
+058730d Implemented PSDA for complex wave functions
+26c3495 Update printing of electronic charge & net charge
+c102a32 Add testSampleReader program
+8f85701 Add option to define constraint with current value
+35f2374 changed output format of constraint value, force
+e85f85d Changed logic of shifts: zero shifts include Gamma
+25f2f96 Generate xyz file from kpoint file
+718452c Changed bisection tolerance from 1.0 to 0.001
+--------------------------------------------------------------------------------
+rel1_63_9
+--------------------------------------------------------------------------------
+ee9efe5 Fix test for negative scf_tol value
+f47d0c1 New implementation of kpgen
+86be185 Added kpoint move functionality
+dd1a11b Merge branch 'upf2' into develop
+45aea94 Added NLCC functionality
+ac8d7e6 Implemented NL potential in UPF 2 format
+ff8a484 Implemented UPF 2 format for SL potentials
+feb88ae Fix end of line in rseed help msg.
+6309a0a Removed enthalpy_int.plt
+e19b136 Add util/enthalpy.plt script
+8d051ce Added -range option to cell.plt and econste_cmp.plt
+f030ffc Fix file headers
+--------------------------------------------------------------------------------
+rel1_63_8
+--------------------------------------------------------------------------------
+4ee30f9 Fix discontinuity in torsion constraint function
+d2a3c52 Removed $Id strings
+--------------------------------------------------------------------------------
+rel1_63_7
+--------------------------------------------------------------------------------
+r1920: Modified UserInterface.C to use C library, fsync() 
+to ensure synchronization.
+r1912-1919: improvements in util/qbdriver files, twin.C
+Added test programs in util/qbdriver
+Added runtwin.sh script for interactive test of client-server mode
+--------------------------------------------------------------------------------
+rel1_63_6
+--------------------------------------------------------------------------------
+r1907: add sync in UserInterface.C
+--------------------------------------------------------------------------------
+rel1_63_5
+--------------------------------------------------------------------------------
+r1886: fix coeff of divergence correction for nspin=2 and multiple k-points
+r1881,r1883: qbox_eig.py, xyz2qbox.py scripts
+r1871: fix etotal_int calc with multiple k-points
+r1869: removed blanks from timing name attribute
+Enabled iter_cmd with modifications of positions or velocities
+--------------------------------------------------------------------------------
+rel1_63_4
+--------------------------------------------------------------------------------
+r1844,r1845,r1846: add qbox_maxforce.py script
+r1835-r1843: B3LYP and BLYP spin-polarized implementation, SVWN updated
+r1829-r1832: qbox_angle.py and qbox_torsion.py scripts
+--------------------------------------------------------------------------------
+rel1_63_3
+--------------------------------------------------------------------------------
+r1825: TorsionCmd.h: revert to previous sign convention for compatibility 
+with VMD and consistency with torsion constraint.
+--------------------------------------------------------------------------------
+r1823: Revert to use of wf (rather than dwf) in preconditioner update
+--------------------------------------------------------------------------------
+r1818: Added set_velocity command.
+--------------------------------------------------------------------------------
+r1809-r1813: modified Context to accept MPI communicators as ctor argument.
+Removed pimpl idiom from implementation of Context.
+--------------------------------------------------------------------------------
+r1801 moved sync_positions and sync_velocities to AtomSet set_positions and
+set_velocities functions
+--------------------------------------------------------------------------------
+rel1_63_2
+--------------------------------------------------------------------------------
+r1797 BOSampleStepper.C removed timer used in onpe0 section
+r1796 JDWavefunctionStepper.C fixed timer name
+--------------------------------------------------------------------------------
+r1792 rel1_63_1
+--------------------------------------------------------------------------------
+r1792 CGIonicStepper.C: reset velocities at end of CG step
+r1791 BOSampleStepper.C: modified etotal_int convergence criterion
+r1788 added timers in JDWavefunctionStepper.C
+--------------------------------------------------------------------------------
+r1786 rel1_63_0
+--------------------------------------------------------------------------------
+r1779-r1782 Implementation of Harris-Foulkes functional for calc of etotal_int
+--------------------------------------------------------------------------------
+rel1_62_7 r1776
+--------------------------------------------------------------------------------
+r1774: Fixed output of partial_charge command. 
+Increased max iter in ConstraintSet (note: two changes in r1774. accidental)
+--------------------------------------------------------------------------------
+r1771 rel1_62_6
+Implementation of partial_charge command
+Implementation of iter_cmd and iter_cmd_period variables
+JDWavefunctionStepper.C Fix: use dwf for preconditioning.
+--------------------------------------------------------------------------------
+rel1_62_5 r1760
+r1758 GGIonicStepper.C
+Reduced alpha_max to 5.0
+Rescale alpha when displacement exceeds limit
+r1757 testFourierTransform.C
+Added MPI barriers for more accurate timing.
+Added print of grid sizes.
+r1756 AtomSet.C fix reset_vcm in randomize_velocities
+r1754 r1755 ElectricEnthalpy.C remove omp pragmas to avoid race condition
+--------------------------------------------------------------------------------
+rel1_62_4 r1748
+r1748 qb.C: Change URL in header to qboxcode.org
+r1742-r1744 ExchangeOperator.C Removed implementation of quadratic correction
+to exchange. Correction does not improve accuracy when far from asymptotic
+convergence of kpoint sampling.
+--------------------------------------------------------------------------------
+rel1_62_3 r1735
+r1733 Species.C: Fix bug in implementation of nonlocal potential f-projector
+r1735 NonLocalPotential.C: Fix bug in nonlocal potential stress contribution
+from f projectors
+--------------------------------------------------------------------------------
+rel1_62_2 r1725
+ElectricEnthalpy.[Ch] Changed "polarization" to "dipole" to reflect the
+correct physical definition of output. Adjusted output format.
+--------------------------------------------------------------------------------
+rel1_62_1 r1722
+Species.C use 12 digit precision
+Fix uninitialized variables
+--------------------------------------------------------------------------------
+rel1_62_0
+Implementation of electric field
+--------------------------------------------------------------------------------
+rel1_61_0
+Implementation of ONCV potentials
+/xml/species.xsd
+/xml/sample.xsd
+/src/NonLocalPotential.C
+/src/SpeciesHandler.C
+/src/NonLocalPotential.h
+/src/EnergyFunctional.C
+/src/SpeciesHandler.h
+/src/EnergyFunctional.h
+/src/Species.C
+/src/Species.h
+/src/ChargeDensity.C
+/src/ChargeDensity.h
+--------------------------------------------------------------------------------
+rel1_60_9
+r1656 ExchangeOperator.C: changed default bisection tolerance to 1.0
+--------------------------------------------------------------------------------
+rel1_60_8
+r1655 ExchangeOperator print exch time only if DEBUG defined
+r1652 Bisection.C print nsweep only if TIMING defined
+r1651 ExchangeOperator.C added omp directives in jade.C
+r1649 ExchangeOperator.C, Bisection.C added BISECTION_NSWEEP debug option
+--------------------------------------------------------------------------------
+rel1_60_7
+--------------------------------------------------------------------------------
+r1645: Bisection.C: modified pair_fraction to reduce calls to overlap.
+r1644: optimization of Bisection::overlap speeds up exchange on large problems
+r1644: added detailed timers to ExchangeOperator.C
+--------------------------------------------------------------------------------
+rel1_60_6
+--------------------------------------------------------------------------------
+r1605: added -vlocal option to the plot command. Plot Vloc+VHart+Vxc.
+r1570: cleanup testXMLGFPreprocessor.C
+r1569: cleanup tab ExchangeOperator.C
+--------------------------------------------------------------------------------
+rel1_60_5
+--------------------------------------------------------------------------------
+r1564: modify FFTW3 use of threads
+Added -pbc option to distance, angle and torsion functions
+PlotCmd.C: fixed -wfs option.
+r1552 CPSampleStepper.C: added stepper kinetic energy to econst
+Added reset_vcm at end of randomize_v
+--------------------------------------------------------------------------------
+rel1_60_4 r1550
+--------------------------------------------------------------------------------
+added FFTW3 option and restored ESSL_FFT functionality
+r1506: Fixed typo in AlphaPBE0.h
+--------------------------------------------------------------------------------
+rel1_60_2
+CGCellStepper.C: revert to 1.60.0 use of matrix transformations
+Use reduced alpha_init (0.002)
+--------------------------------------------------------------------------------
+rel1_60_1
+CGCellStepper.C: fixed incorrect use of amat_inv() in calc of gradient.
+Note: use was correct. later restored.
+CGCellStepper.C: reduced initial alpha value to 0.01, max to 0.5.
+--------------------------------------------------------------------------------
+qbox_msd.py: print msd value only, not step index
+--------------------------------------------------------------------------------
+Context.C: fixed deprecated cast to const char*
+--------------------------------------------------------------------------------
+rel1_60_0
+Added alpha_PBE0 variable
+--------------------------------------------------------------------------------
+rel1_59_0
+Added scf_tol variable
+--------------------------------------------------------------------------------
+rel1_58_0
+Added utility scripts
+--------------------------------------------------------------------------------
 rel1_57_15
 --------------------------------------------------------------------------------
 r1409: ExchangeOperator.C: fixed coeffs of divergent terms for empty states

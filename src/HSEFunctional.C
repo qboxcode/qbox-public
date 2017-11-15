@@ -326,10 +326,9 @@ void approximateIntegral(const double omega_kF, const double Hs2,
 void HSE_enhance(const double s_inp, const double kF, const double w,
   double *fx, double *dfx_ds, double* dfx_dkf)
 {
-
   // Correction of the reduced gradient to ensure Lieb-Oxford bound
-  // If a large value of s would violate the Lieb-Oxford bound, the value of s is reduced,
-  // so that this condition is fullfilled
+  // If a large value of s would violate the Lieb-Oxford bound, the
+  // value of s is reduced, so that this condition is fullfilled
   const double s_thresh = 8.3, s_max = 8.572844, s_chg = 18.796223;
   const bool correction = s_inp > s_thresh;
   const double s = ( correction ) ? s_max - s_chg / ( s_inp * s_inp ) : s_inp;
@@ -351,10 +350,10 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   // H(s) = ---------4------5------6-
   //         1 + a3 s + a4 s + a5 s
   // and
-  //     2                 3         5            3        4        5          2
-  // d( s H(s) )   ( 4 a1 s  + 6 a2 s ) - ( 4 a3 s + 5 a4 s + 6 a5 s ) * H(s) s
-  // ----------- = ---------------------4------5------6--------------------------
-  //     d s                    1 + a3 s + a4 s + a5 s
+  //   2                 3         5            3        4        5          2
+  // d(s H(s))   ( 4 a1 s  + 6 a2 s ) - ( 4 a3 s + 5 a4 s + 6 a5 s ) * H(s) s
+  // --------- = ---------------------4------5------6--------------------------
+  //    d s                    1 + a3 s + a4 s + a5 s
 
   const double a1 = 0.00979681, a2 = 0.0410834, a3 = 0.187440, a4 = 0.00120824,
     a5 = 0.0347188;
@@ -459,15 +458,22 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
 
   // calculate derivative w.r.t. s
   //
-  //             /  /3 Pi    \  d(b/s^2)   /           d a    \  d(Hs^2)       d a   d(Fs^2)
-  //            <  ( ---- + a ) -------   /  b/s^2  - -------  > -------  -  ------- -------
-  // d (Gs^2)    \  \ 4      /  d(Hs^2)  /            d(Hs^2) /    d s       d(Fs^2)   ds
-  // -------- = ----------------------------------------------------------------------------
-  //    ds                                     E b/s^2
+  //             /  /3 Pi    \  d(b/s^2)   /           d a    \  d(Hs^2)
+  //            <  ( ---- + a ) -------   /  b/s^2  - -------  > -------
+  // d (Gs^2)    \  \ 4      /  d(Hs^2)  /            d(Hs^2) /    d s
+  // -------- = --------------------------------------------------------
+  //    ds                             E b/s^2
+  //
+  //
+  //        d a   d(Fs^2)
+  //      ------- -------
+  //      d(Fs^2)   ds
+  //  - -----------------
+  //        E b/s^2
   //
   // notice that alpha and beta are abbreviated by a and b in this equation
-  const double dGs2_ds = ( ( r3Pi_4_alpha * dEbeta_dh / Ebeta_s2 - dalpha_dh ) * dHs2_ds
-    - dalpha_df * dFs2_ds ) / Ebeta_s2;
+  const double dGs2_ds = ( ( r3Pi_4_alpha * dEbeta_dh / Ebeta_s2 - dalpha_dh ) *
+    dHs2_ds - dalpha_df * dFs2_ds ) / Ebeta_s2;
 
   // helper variables for the integration of the exchange hole
   const double C_term = C * ( 1 + s2 * F );
@@ -494,13 +500,20 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   // /                                    \  F  /
   //  0
   // we use that
-  // inf                                                n
-  //   /                  2                     /     -----                                     \
-  //  |     2 n + 1  - q y              n!     |       \     (2m - 1)!!  m             -(2m + 1) |
-  //  | dy y        e      Erfc(y) = ----n+1-  |  1 -   )    ---------- q  sqrt( q + 1 )         |
-  //  |                               2 q      |       /       (2m)!!                            |
-  // /                                          \     -----                                     /
-  //  0                                               m = 0
+  // inf
+  //   /                  2
+  //  |     2 n + 1  - q y              n!
+  //  | dy y        e      Erfc(y) = ----n+1-  *
+  //  |                               2 q
+  // /
+  //  0
+  //            n
+  //    /     -----                                     \
+  //   |       \     (2m - 1)!!  m             -(2m + 1) |
+  //   |  1 -   )    ---------- q  sqrt( q + 1 )         |
+  //   |       /       (2m)!!                            |
+  //    \     -----                                     /
+  //          m = 0
   // with q = (D + H(s)s^2) k_F^2 / w^2
   // and n!! = n * (n-2) * (n-4) ...; if (n <= 0) := 1
 
@@ -566,17 +579,17 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   *fx = -r8_9 * ( appInt + B * intYExpErfc[0] + C_term * intYExpErfc[1]
     + E_term * intYExpErfc[2] );
 
-  // Calculate the derivatives with respect to s using that the derivatative of the integral
-  // yields higher orders of the same kind of integral intY1 -> -intY3 -> intY5 ... times
-  // the derivative of the exponent
+  // Calculate the derivatives with respect to s using that the derivatative
+  // of the integral yields higher orders of the same kind of integral
+  //  intY1 -> -intY3 -> intY5 ... times the derivative of the exponent
   *dfx_ds = -r8_9 * ( dAppInt_ds - ( B * intYExpErfc[1] + C_term
     * intYExpErfc[2] + E_term * intYExpErfc[3] ) * dHs2_ds + dCt_ds
     * intYExpErfc[1] + dEt_ds * intYExpErfc[2] );
   *dfx_dkf = -r8_9 * r1_kF * ( w_kF * ( B * intYGauss[0] + C_term
     * intYGauss[1] + E_term * intYGauss[2] ) + dAppInt_dkF );
 
-  // if the value of s has been corrected to satisfy Lieb-Oxford bound, derivative
-  // must be adjusted as well
+  // if the value of s has been corrected to satisfy Lieb-Oxford bound,
+  // derivative must be adjusted as well
   if ( correction )
   {
     *dfx_ds *= 2.0 * s_chg * pow(s_inp,-3);

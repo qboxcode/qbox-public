@@ -1336,7 +1336,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         const double tgz = g_z[ig];
         // factor 2.0: derivative of G^2
         const double fac = 2.0 * ( (coulomb_) ? t * ( rc2 + tg2i ) :
-          ( t * rc2 - 2.0 * expG2 * interaction_potential_.derivative(g2[ig]) ) );
+          ( t * rc2 - 2.0 * expG2 *
+            interaction_potential_.derivative(g2[ig]) ) );
         sigma_sumexp[0] += fac * tgx * tgx;
         sigma_sumexp[1] += fac * tgy * tgy;
         sigma_sumexp[2] += fac * tgz * tgz;

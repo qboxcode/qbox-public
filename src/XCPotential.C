@@ -228,15 +228,55 @@ void XCPotential::update(vector<vector<double> >& vr)
       } // j
     }
 
+    //!! requires cleanning up
+    // I think the basic structure is right but need to check proper variable
+    // names
     if ( xcf_->isMeta() )
     {
-      // compute tau
-      // Loop over number of occupied wave functions (n)
-         // Loop over 3 cartesian directions (j)
-            // Calculate and store in temp variable i*G_j*psi_n(G)
-            // Transform into real space
-            // Calculate |Grad_j(psi_n(r))|^2 add to tau
-      // SP same procedure except loop over n_up and n_down
+//      std::vector<std::complex<double> > tmptau1, tmptau2;
+//      tmptau1.resize(np012loc_);
+//      tmptau2.resize(np012loc_);
+//      double *taur = xcf_->tau;
+//
+//      #pragma omp parallel for
+//      for ( int i = 0; i < &np012loc_; i++ )
+//      {
+//        tmptau2[i] += 0.0;
+//      }
+//
+//      // compute tau
+//      if ( nspin_ == 1 )
+//      {
+//        // Loop over number of occupied wave functions (n)
+//        //!! s.nstloc() =? n_occ
+//        //!! add support for non-groundstate occupation
+//        for ( int ni = 0 ; ni < s.nstloc(); ni++ )
+//        {
+//          // Loop over 3 cartesian directions (j)
+//          for ( int j = 0; j < 3; j++ )
+//          {
+//            const double *const gxj = vbasis_.gx_ptr(j);
+//            // Calculate and store in temp variable i*G_j*psi_n(G)
+//            for ( int ig = 0; ig < ngloc_; ig++ )
+//            {
+//             tmp1[ig] = complex<double>(0.0,omega_inv*gxj[ig]) * s.wf[ni][ig];
+//            }
+//            // Transform into real space
+//            vft_.backward(&tmp1[0],&tmptau1[0]);
+//            // Calculate |Grad_j(psi_n(r))|^2 add to tau
+//            #pragma omp parallel for
+//            for ( int i = 0; i < &np012loc_; i++ )
+//            {
+//              tmptau2[i] += cabs(&tmptau1[i]) * cabs(&tmptau1[i]);
+//            }
+//          }
+//        }
+//      taur = tmptau2;
+//      }
+//      // SP same procedure except loop over n_up and n_down
+//      else //!! implement spin polarized tau
+//      {
+//      }
     }
 
     xcf_->setxc();
@@ -554,4 +594,15 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
 void XCPotential::apply_meta_operator(Wavefunction& dwf)
 {
   // apply meta operator to dwf using xcf_->vxc3
+
+  // Loop over 3 cartesian directions (j)
+  // Calculate and store in tmp1 variable i*G_j*psi_n(G)
+  // Transform tmp1 into real space and store in tmp2
+  // Multiply by xcf_->vxc3 and store as tmp3
+  // Fourier transform tmp3 and store in tmp4
+  // Calculate and store in tmp5 sum_j i*G_j*tmp4[j](G)
+  // End Loop
+  // Transform tmp5 into real space and store in tmp6
+  // Multiply tmp6 by psi_n(r)
+  // E_3 = -1/2 * Integral[tmp6, r]
 }

@@ -24,7 +24,16 @@
 #include "B3LYPFunctional.h"
 #include "SCANFunctional.h"
 #include "Sample.h"
+#include "Wavefunction.h"
+#include "ChargeDensity.h"
+#include "SlaterDet.h"
 #include "Basis.h"
+#include "StructureFactor.h"
+#include "XCOperator.h"
+#include "NonLocalPotential.h"
+#include "ConfinementPotential.h"
+#include "D3vector.h"
+#include "ElectricEnthalpy.h"
 #include "FourierTransform.h"
 #include "blas.h" // daxpy, dcopy
 #include <cassert>
@@ -229,54 +238,68 @@ void XCPotential::update(vector<vector<double> >& vr)
     }
 
     //!! requires cleanning up
-    // I think the basic structure is right but need to check proper variable
-    // names
-    if ( xcf_->isMeta() )
+    //!! I think the basic structure is right but needs to be checked
+    //if ( xcf_->isMeta() )
+    if (0)
     {
-//      std::vector<std::complex<double> > tmptau1, tmptau2;
-//      tmptau1.resize(np012loc_);
-//      tmptau2.resize(np012loc_);
-//      double *taur = xcf_->tau;
-//
-//      #pragma omp parallel for
-//      for ( int i = 0; i < &np012loc_; i++ )
-//      {
-//        tmptau2[i] += 0.0;
-//      }
-//
-//      // compute tau
-//      if ( nspin_ == 1 )
-//      {
-//        // Loop over number of occupied wave functions (n)
-//        //!! s.nstloc() =? n_occ
-//        //!! add support for non-groundstate occupation
-//        for ( int ni = 0 ; ni < s.nstloc(); ni++ )
-//        {
-//          // Loop over 3 cartesian directions (j)
-//          for ( int j = 0; j < 3; j++ )
-//          {
-//            const double *const gxj = vbasis_.gx_ptr(j);
-//            // Calculate and store in temp variable i*G_j*psi_n(G)
-//            for ( int ig = 0; ig < ngloc_; ig++ )
-//            {
-//             tmp1[ig] = complex<double>(0.0,omega_inv*gxj[ig]) * s.wf[ni][ig];
-//            }
-//            // Transform into real space
-//            vft_.backward(&tmp1[0],&tmptau1[0]);
-//            // Calculate |Grad_j(psi_n(r))|^2 add to tau
-//            #pragma omp parallel for
-//            for ( int i = 0; i < &np012loc_; i++ )
-//            {
-//              tmptau2[i] += cabs(&tmptau1[i]) * cabs(&tmptau1[i]);
-//            }
-//          }
-//        }
-//      taur = tmptau2;
-//      }
-//      // SP same procedure except loop over n_up and n_down
-//      else //!! implement spin polarized tau
-//      {
-//      }
+      // compute tau
+      std::vector<std::complex<double> > tmptau1;
+      std::vector<double> tmptau2, sum;
+      tmptau1.resize(np012loc_);
+      tmptau2.resize(np012loc_);
+      sum.resize(np012loc_);
+      double *taur = xcf_->tau;
+      const Wavefunction& wf = s_.wf;
+
+      #pragma omp parallel for
+      for ( int i = 0; i < np012loc_; i++ )
+      {
+        tmptau2[i] = 0.0;
+      }
+      for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+      {
+        for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+        {
+          const double weight = wf.weight(ikp);
+          const SlaterDet& sd = *(wf.sd(ispin,ikp));
+          const Basis& wfbasis = sd.basis();
+          // factor fac in next lines: 2.0 for G and -G (if basis is real) and
+          // 0.5 from 1/(2m)
+          const double fac = wfbasis.real() ? 1.0 : 0.5;
+          const ComplexMatrix& c = sd.c();
+          const Context& sdctxt = sd.context();
+          const int ngwloc = wfbasis.localsize();
+          const complex<double>* p = c.cvalptr();
+          const int pmloc = c.mloc();
+          const int pnloc = c.nloc();
+          const int nnbase = sdctxt.mycol() * c.nb();
+          const double * const occ = sd.occ_ptr(nnbase);
+          const double omega_inv = 1.0 / vbasis_.cell().volume();
+          for ( int j = 0; j < 3; j++ )
+          {
+            const double *const gxj = vbasis_.gx_ptr(j);
+            for ( int n = 0; n < pnloc; n++ )
+            {
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                /* i*G_j*c(G) */
+                tmp1[ig] = fac * occ[n] * complex<double>(0.0,omega_inv*gxj[ig])
+                           * p[ig+n*pmloc];
+              }
+              vft_.backward(&tmp1[0],&tmptau1[0]);
+              for ( int i = 0; i < np012loc_; i++ )
+              {
+                tmptau2[i] += abs(tmptau1[i]) * abs(tmptau1[i]);
+              }
+            }
+          }
+          for ( int i = 0; i < np012loc_; i++ )
+          {
+            sum[i] += weight * tmptau2[i];
+          }
+        }
+      }
+      *taur = sum[0];
     }
 
     xcf_->setxc();

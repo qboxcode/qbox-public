@@ -90,19 +90,6 @@ SCANFunctional::SCANFunctional(const vector<vector<double> > &rhoe,
 
 void SCANFunctional::setxc(void)
 {
-  cout << "test1 " << endl;
-  excSCAN(11.0, 17.0, 13.0, &exc[0], &vxc1[0], &vxc2[0], &vxc3[0]);
-  cout << "test2 " << endl;
-  excSCAN(12.1449, 0.5897, 11.1662, &exc[0], &vxc1[0], &vxc2[0], &vxc3[0]);
-  cout << "test3 " << endl;
-  excSCAN(19.3177, 11.7341, 0.9692, &exc[0], &vxc1[0], &vxc2[0], &vxc3[0]);
-  cout << "test4 " << endl;
-  excSCAN(0.8152, 0.8713, 19.038, &exc[0], &vxc1[0], &vxc2[0], &vxc3[0]);
-  cout << "test5 " << endl;
-  excSCAN(10.6963, 0.6824, 0.5125, &exc[0], &vxc1[0], &vxc2[0], &vxc3[0]);
-  cout << "test6 " << endl;
-  excSCAN(0.6868, 0.1628, 0.7919, &exc[0], &vxc1[0], &vxc2[0], &vxc3[0]);
-
   if ( _np == 0 ) return;
   if ( _nspin == 1 )
   {
@@ -258,7 +245,7 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
 
   // SCAN exchange enhancement factor
   tmp0 = (b1 * s2 + b2 * oneMalpha * exp(-b3 * oneMalpha * oneMalpha));
-  x = mu_AK * s2 * (1.0 + (b4 * s2 / mu_AK) * exp(-b4 * s2 / mu_AK)) +
+  x = mu_AK * s2 * (1.0 + (b4 * s2 / mu_AK) * exp(-b4 * s2 / mu_AK)) + 
       tmp0 * tmp0;
   gx = 1.0 - exp(-a1 / sqrt(s));
   hx1 = 1.0 + k1 - k1/(1.0 + x / k1);
@@ -356,10 +343,10 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   dbeta1drs = 0.066725 * (0.1 - 0.1778) / tmp2 / tmp2;
   dw1drs = - 1.0 * (1.0 + w1) * decLSDAdrs / gamma;
   dA1drs = dbeta1drs / (gamma * w1) - beta1 * dw1drs / (gamma * w1 * w1);
-  dt1drs = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (2.0 * rtrs * rtrs *
+  dt1drs = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (2.0 * rtrs * rtrs * 
            rtrs);
-  dH1drs = (1.0 - g1) * gamma / (1.0 + w1 * (1.0 - g1)) * dw1drs + w1 * gamma /
-           (1.0 + w1 * (1.0 - g1)) * (t1 * t1 * g1 * g1 * g1 * g1 * g1 *
+  dH1drs = (1.0 - g1) * gamma / (1.0 + w1 * (1.0 - g1)) * dw1drs + w1 * gamma / 
+           (1.0 + w1 * (1.0 - g1)) * (t1 * t1 * g1 * g1 * g1 * g1 * g1 * 
            dA1drs + 2.0 * A1 * t1 * g1 * g1 * g1 * g1 * g1 * dt1drs);
   dec1drs = decLSDAdrs + dH1drs;
 
@@ -391,8 +378,8 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   dsdn = -4.0 * s / (3.0 * rho);
   dalphadn = (tau_W / tau_unif - 5.0 * XCalpha / 3.0) / rho;
   decdn = (dec1drs * drsdn + dec1ds * dsdn) +
-          dfcdalpha * dalphadn * (ec0 - ec1) + fc *
-          ((dec0drs * drsdn + dec0ds * dsdn) -
+          dfcdalpha * dalphadn * (ec0 - ec1) + fc * 
+          ((dec0drs * drsdn + dec0ds * dsdn) - 
           (dec1drs * drsdn + dec1ds * dsdn));
   vc1 = ec + rho * decdn;
 
@@ -408,95 +395,6 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   decdtau = dfcdalpha * dalphadtau * (ec0 - ec1);
   vc3 = - rho * decdtau;
 
-  if (rho == 11.0)
-  {
-    cout << "eX " << ex << endl;
-    cout << "VX1 " << vx1 << endl;
-    cout << "VX2 " << vx2 << endl;
-    cout << "VX3 " << vx3 << endl;
-    cout << "eC " << ec << endl;
-    cout << "VC1 " << vc1 << endl;
-    cout << "VC2 " << vc2 << endl;
-    cout << "VC3 " << vc3 << endl;
-//    cout << "drsdn " << drsdn << endl;
-//    cout << "dsdn " << dsdn << endl;
-//    cout << "dalphadn " << dalphadn << endl;
-//    cout << "decdn " << decdn << endl;
-//    cout << "dec1drs " << dec1drs << endl;
-//    cout << "dec1ds " << dec1ds << endl;
-//    cout << "dfcdalpha " << dfcdalpha << endl;
-//    cout << "ec0 " << ec0 << endl;
-//    cout << "ec1 " << ec1 << endl;
-//    cout << "fc " << fc << endl;
-//    cout << "dec0drs " << dec0drs << endl;
-//    cout << "dec0ds " << dec0ds << endl;
-    cout << "decLSDAdrs " << decLSDAdrs << endl;
-    cout << "dH1drs " << dH1drs << endl;
-    cout << "decLDAdrs " << decLDAdrs << endl;
-    cout << "g1 " << g1 << endl;
-    cout << "gamma " << gamma << endl;
-    cout << "w1 " << w1 << endl;
-    cout << "dw1drs " << dw1drs << endl;
-    cout << "t1 " << t1 << endl;
-    cout << "dA1drs " << dA1drs << endl;
-    cout << "A1 " << A1 << endl;
-    cout << "dt1drs " << dt1drs << endl;
-  }
-  if (rho == 12.1449)
-  {
-    cout << "eX " << ex << endl;
-    cout << "VX1 " << vx1 << endl;
-    cout << "VX2 " << vx2 << endl;
-    cout << "VX3 " << vx3 << endl;
-    cout << "eC " << ec << endl;
-    cout << "VC1 " << vc1 << endl;
-    cout << "VC2 " << vc2 << endl;
-    cout << "VC3 " << vc3 << endl;
-  }
-  if (rho == 19.3177)
-  {
-    cout << "eX " << ex << endl;
-    cout << "VX1 " << vx1 << endl;
-    cout << "VX2 " << vx2 << endl;
-    cout << "VX3 " << vx3 << endl;
-    cout << "eC " << ec << endl;
-    cout << "VC1 " << vc1 << endl;
-    cout << "VC2 " << vc2 << endl;
-    cout << "VC3 " << vc3 << endl;
-  }
-  if (rho == 0.8152)
-  {
-    cout << "eX " << ex << endl;
-    cout << "VX1 " << vx1 << endl;
-    cout << "VX2 " << vx2 << endl;
-    cout << "VX3 " << vx3 << endl;
-    cout << "eC " << ec << endl;
-    cout << "VC1 " << vc1 << endl;
-    cout << "VC2 " << vc2 << endl;
-    cout << "VC3 " << vc3 << endl;
-  }
-  if (rho == 10.6963)
-  {
-    cout << "eX " << ex << endl;
-    cout << "VX1 " << vx1 << endl;
-    cout << "VX2 " << vx2 << endl;
-    cout << "VX3 " << vx3 << endl;
-    cout << "eC " << ec << endl;
-    cout << "VC1 " << vc1 << endl;
-    cout << "VC2 " << vc2 << endl;
-    cout << "VC3 " << vc3 << endl;
-  }
-  if (rho == 00.6868)
-  {
-    cout << "eX " << ex << endl;
-    cout << "VX1 " << vx1 << endl;
-    cout << "VX2 " << vx2 << endl;
-    cout << "VX3 " << vx3 << endl;
-    cout << "eC " << ec << endl;
-    cout << "VC1 " << vc1 << endl;
-    cout << "VC2 " << vc2 << endl;
-    cout << "VC3 " << vc3 << endl;
-  }
   // XC
   *exc = x_coeff_ * ex + c_coeff_ * ec;
   *vxc1 = x_coeff_ * vx1 + c_coeff_ * vc1;

@@ -245,7 +245,7 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
 
   // SCAN exchange enhancement factor
   tmp0 = (b1 * s2 + b2 * oneMalpha * exp(-b3 * oneMalpha * oneMalpha));
-  x = mu_AK * s2 * (1.0 + (b4 * s2 / mu_AK) * exp(-b4 * s2 / mu_AK)) + 
+  x = mu_AK * s2 * (1.0 + (b4 * s2 / mu_AK) * exp(-b4 * s2 / mu_AK)) +
       tmp0 * tmp0;
   gx = 1.0 - exp(-a1 / sqrt(s));
   hx1 = 1.0 + k1 - k1/(1.0 + x / k1);
@@ -343,10 +343,10 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   dbeta1drs = 0.066725 * (0.1 - 0.1778) / tmp2 / tmp2;
   dw1drs = - 1.0 * (1.0 + w1) * decLSDAdrs / gamma;
   dA1drs = dbeta1drs / (gamma * w1) - beta1 * dw1drs / (gamma * w1 * w1);
-  dt1drs = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (2.0 * rtrs * rtrs * 
+  dt1drs = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (2.0 * rtrs * rtrs *
            rtrs);
-  dH1drs = (1.0 - g1) * gamma / (1.0 + w1 * (1.0 - g1)) * dw1drs + w1 * gamma / 
-           (1.0 + w1 * (1.0 - g1)) * (t1 * t1 * g1 * g1 * g1 * g1 * g1 * 
+  dH1drs = (1.0 - g1) * gamma / (1.0 + w1 * (1.0 - g1)) * dw1drs + w1 * gamma /
+           (1.0 + w1 * (1.0 - g1)) * (t1 * t1 * g1 * g1 * g1 * g1 * g1 *
            dA1drs + 2.0 * A1 * t1 * g1 * g1 * g1 * g1 * g1 * dt1drs);
   dec1drs = decLSDAdrs + dH1drs;
 
@@ -378,8 +378,8 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   dsdn = -4.0 * s / (3.0 * rho);
   dalphadn = (tau_W / tau_unif - 5.0 * XCalpha / 3.0) / rho;
   decdn = (dec1drs * drsdn + dec1ds * dsdn) +
-          dfcdalpha * dalphadn * (ec0 - ec1) + fc * 
-          ((dec0drs * drsdn + dec0ds * dsdn) - 
+          dfcdalpha * dalphadn * (ec0 - ec1) + fc *
+          ((dec0drs * drsdn + dec0ds * dsdn) -
           (dec1drs * drsdn + dec1ds * dsdn));
   vc1 = ec + rho * decdn;
 

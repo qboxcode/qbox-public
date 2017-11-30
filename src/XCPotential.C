@@ -237,69 +237,10 @@ void XCPotential::update(vector<vector<double> >& vr)
       } // j
     }
 
-    //!! requires cleanning up
-    //!! I think the basic structure is right but needs to be checked
-    //if ( xcf_->isMeta() )
-    if (0)
+    if ( xcf_->isMeta() )
     {
       // compute tau
-      std::vector<std::complex<double> > tmptau1;
-      std::vector<double> tmptau2, sum;
-      tmptau1.resize(np012loc_);
-      tmptau2.resize(np012loc_);
-      sum.resize(np012loc_);
-      double *taur = xcf_->tau;
-      const Wavefunction& wf = s_.wf;
-
-      #pragma omp parallel for
-      for ( int i = 0; i < np012loc_; i++ )
-      {
-        tmptau2[i] = 0.0;
-      }
-      for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-      {
-        for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
-        {
-          const double weight = wf.weight(ikp);
-          const SlaterDet& sd = *(wf.sd(ispin,ikp));
-          const Basis& wfbasis = sd.basis();
-          // factor fac in next lines: 2.0 for G and -G (if basis is real) and
-          // 0.5 from 1/(2m)
-          const double fac = wfbasis.real() ? 1.0 : 0.5;
-          const ComplexMatrix& c = sd.c();
-          const Context& sdctxt = sd.context();
-          const int ngwloc = wfbasis.localsize();
-          const complex<double>* p = c.cvalptr();
-          const int pmloc = c.mloc();
-          const int pnloc = c.nloc();
-          const int nnbase = sdctxt.mycol() * c.nb();
-          const double * const occ = sd.occ_ptr(nnbase);
-          const double omega_inv = 1.0 / vbasis_.cell().volume();
-          for ( int j = 0; j < 3; j++ )
-          {
-            const double *const gxj = vbasis_.gx_ptr(j);
-            for ( int n = 0; n < pnloc; n++ )
-            {
-              for ( int ig = 0; ig < ngwloc; ig++ )
-              {
-                /* i*G_j*c(G) */
-                tmp1[ig] = fac * occ[n] * complex<double>(0.0,omega_inv*gxj[ig])
-                           * p[ig+n*pmloc];
-              }
-              vft_.backward(&tmp1[0],&tmptau1[0]);
-              for ( int i = 0; i < np012loc_; i++ )
-              {
-                tmptau2[i] += abs(tmptau1[i]) * abs(tmptau1[i]);
-              }
-            }
-          }
-          for ( int i = 0; i < np012loc_; i++ )
-          {
-            sum[i] += weight * tmptau2[i];
-          }
-        }
-      }
-      *taur = sum[0];
+      cd_.update_taur();
     }
 
     xcf_->setxc();

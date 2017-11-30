@@ -67,6 +67,7 @@ class SlaterDet
   void resize(const UnitCell& cell, const UnitCell& refcell,
               double ecut, int nst);
   void compute_density(FourierTransform& ft, double weight, double* rho) const;
+  void compute_tau(FourierTransform& ft, double weight, double* taur) const;
   void rs_mul_add(FourierTransform& ft, const double* v, SlaterDet& sdp) const;
   void randomize(double amplitude);
   void cleanup(void);

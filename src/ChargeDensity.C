@@ -211,22 +211,15 @@ void ChargeDensity::update_rhor(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void ChargeDensity::update_taur(void) const
+void ChargeDensity::update_taur(double* taur) const
 {
-  if (taur.size() != vft_->np012loc())
-  {
-    taur.resize(vft_->np012loc());
-  }
-
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
     tmap["update_taur"].start();
-    fill(taur.begin(),taur.end(),0.0);
+    memset( (void*)taur, 0, vft_->np012loc()*sizeof(double) );
     for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
     {
-      assert(taur.size()==ft_[ikp]->np012loc());
-      wf_.sd(ispin,ikp)->compute_tau(*ft_[ikp],
-          wf_.weight(ikp), &taur[0]);
+      wf_.sd(ispin,ikp)->compute_tau(*ft_[ikp], wf_.weight(ikp), taur);
     }
     tmap["update_taur"].stop();
 

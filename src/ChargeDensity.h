@@ -51,13 +51,12 @@ class ChargeDensity
   mutable TimerMap tmap;
 
   std::vector<std::vector<double> > rhor; // rhor[ispin][i]
-  mutable std::vector<double> taur; // taur[i]
   std::vector<std::vector<std::complex<double> > > rhog; // rhog[ispin][ig]
   // core density ptr. If non-zero, contains the real-space core density
   double* rhocore_r;
   void update_density(void);
   void update_rhor(void);
-  void update_taur(void) const;
+  void update_taur(double* taur) const;
 
   const Context& context(void) const { return ctxt_; }
   MPI_Comm vcomm(void) const { return vcomm_; }

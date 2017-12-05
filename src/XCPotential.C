@@ -236,11 +236,15 @@ void XCPotential::update(vector<vector<double> >& vr)
         dcopy(&np012loc_,p+1,&inc2,grj_dn,&inc1);
       } // j
     }
-
+    
     if ( xcf_->isMeta() )
     {
       // compute tau
       cd_.update_taur();
+      double* tautmp = xcf_->tau;
+      #pragma omp parallel for
+      for ( int i = 0; i < np012loc_; i++ )
+        tautmp[i] = cd_.taur[i];
     }
 
     xcf_->setxc();

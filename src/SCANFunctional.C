@@ -238,7 +238,7 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   //!! abs value in next line
   XCalpha = fabs(tau - tau_W) / tau_unif;
   oneMalpha = 1.0 - XCalpha;
-
+  
   // exchange
 
   exunif = -3.0 / 4.0 * pow(3.0 * rho / pi, 1.0/3.0);

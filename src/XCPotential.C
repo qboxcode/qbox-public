@@ -557,6 +557,36 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
 ////////////////////////////////////////////////////////////////////////////////
 void XCPotential::apply_meta_operator(Wavefunction& dwf)
 {
+  Wavefunction wf0 = s_.wf;
+  //double* tmp1;
+  for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
+  {
+    for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
+    {
+      // Placeholder for compute Grad[psi]
+      //wf0.sd(ispin,ikp)->compute_tau(*cd_.ft(ikp), wf0.weight(ikp), tmp1);
+    }
+    // Using a for loop tmp2 = xcf_->vxc3 * tmp1
+    // sum along columns?
+    // Fourier Transform to k-space ->tmp3
+    // tmp4 = sum_j [i*G_j*tmp3_j]
+    // Fourier Transform to real-space -> tmp1
+    // dwf[n] += tmp1[n] * wf0[n]
+    // (Prefactor above -1/2 ? needs verification)
+  }
+    
+  //Taken from charge_density::update_density, need similiar to sum columns
+  // sum on all indices except spin: sum along columns of spincontext
+  /*wf_.spincontext()->dsum('c',1,1,&sum,1);
+  tmap["charge_integral"].stop();
+  total_charge_[ispin] = sum;
+
+  tmap["charge_vft"].start();
+  vft_->forward(&rhotmp[0],&rhog[ispin][0]);
+  tmap["charge_vft"].stop();*/
+
+  
+  // Original pseudocode
   // apply meta operator to dwf using xcf_->vxc3
 
   // Loop over 3 cartesian directions (j)

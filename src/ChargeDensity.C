@@ -222,7 +222,18 @@ void ChargeDensity::update_taur(double* taur) const
       wf_.sd(ispin,ikp)->compute_tau(*ft_[ikp], wf_.weight(ikp), taur);
     }
     tmap["update_taur"].stop();
+    
+    //!!Taken from update_density, need similiar to sum columns
+    // sum on all indices except spin: sum along columns of spincontext
+/*  wf_.spincontext()->dsum('c',1,1,&sum,1);
+    tmap["charge_integral"].stop();
+    total_charge_[ispin] = sum;
 
+    tmap["charge_vft"].start();
+    vft_->forward(&rhotmp[0],&rhog[ispin][0]);
+    tmap["charge_vft"].stop();*/
+    
+    //!! Needed?
     if ( rhocore_r )
       assert(false);
   }

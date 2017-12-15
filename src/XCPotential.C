@@ -555,48 +555,76 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 void XCPotential::apply_meta_operator(Wavefunction& dwf)
 {
+  //!! Sum along columns not addressed
   Wavefunction wf0 = s_.wf;
-  //double* tmp1;
+
+  //std::vector<std::complex<double> > tmpgrd;
+  //tmpgrd.resize(np012loc_);
   for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
   {
     for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
     {
-      // Placeholder for compute Grad[psi]
-      //wf0.sd(ispin,ikp)->compute_tau(*cd_.ft(ikp), wf0.weight(ikp), tmp1);
+      if ( wf0.sd(ispin,ikp)->basis().real() )
+      {
+        const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+        const int np012loc = cd_.ft(ikp)->np012loc();
+        vector<complex<double> > tmp0(ngwloc), tmp1(np012loc), tmp2(np012loc);
+        const int mloc = wf0.sd(ispin,ikp)->c().mloc();
+        for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc(); n++ )
+        {
+          const int nn = wf0.sd(ispin,ikp)->context().mycol() *
+                         wf0.sd(ispin,ikp)->c().nb() + n;
+          //!! Verify that weight is correct
+          const double fac1 = wf0.weight(ikp) * wf0.sd(ispin,ikp)->occ()[nn] /
+                              wf0.sd(ispin,ikp)->basis().cell().volume();
+          const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
+          if ( fac1 > 0.0 )
+          {
+            for ( int j = 0; j < 3; j++ )
+            {
+              // Compute Grad_j psi_n(ikp)
+              const double *const gxj = wf0.sd(ispin,ikp)->basis().gx_ptr(j);
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                /* i*G_j*c(G) */
+                tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+              }
+              cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0]);
+              // Compute V3 * Grad_j psi_n(ikp)
+              for ( int i = 0; i < np012loc; i++ )
+                tmp1[i] *= fac1 * xcf_->vxc3[i];
+              // Transform to k-space
+              cd_.ft(ikp)->forward(&tmp1[0],&tmp0[0]);
+              // Compute Div_j[V3 * Grad_j psi_n(ikp)]
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                /* i*G_j*c(G) */
+                tmp0[ig] *= complex<double>(0.0,gxj[ig]);
+              }
+              cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0]);
+              // Compute psi_n(ikp)
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                /* i*G_j*c(G) */
+                tmp0[ig] = p[ig+n*mloc];
+              }
+              cd_.ft(ikp)->backward(&tmp0[0],&tmp2[0]);
+              // Compute -1/2 * Div_j[V3 * Grad_j psi_n(ikp)] * psi_n(ikp)
+              // Note -1/2 comes from definition of V3
+              for ( int i = 0; i < np012loc; i++ )
+                tmp1[i] *= -0.5 * tmp2[i];
+              //!! Add tmp1[i] to dwf, requires transformation back to k-space?
+            }
+          }
+        }
+      }
+      else
+      {
+        assert(0);
+      }
     }
-    // Using a for loop tmp2 = xcf_->vxc3 * tmp1
-    // sum along columns?
-    // Fourier Transform to k-space ->tmp3
-    // tmp4 = sum_j [i*G_j*tmp3_j]
-    // Fourier Transform to real-space -> tmp1
-    // dwf[n] += tmp1[n] * wf0[n]
-    // (Prefactor above -1/2 ? needs verification)
   }
-    
-  //Taken from charge_density::update_density, need similiar to sum columns
-  // sum on all indices except spin: sum along columns of spincontext
-  /*wf_.spincontext()->dsum('c',1,1,&sum,1);
-  tmap["charge_integral"].stop();
-  total_charge_[ispin] = sum;
-
-  tmap["charge_vft"].start();
-  vft_->forward(&rhotmp[0],&rhog[ispin][0]);
-  tmap["charge_vft"].stop();*/
-
-  
-  // Original pseudocode
-  // apply meta operator to dwf using xcf_->vxc3
-
-  // Loop over 3 cartesian directions (j)
-  // Calculate and store in tmp1 variable i*G_j*psi_n(G)
-  // Transform tmp1 into real space and store in tmp2
-  // Multiply by xcf_->vxc3 and store as tmp3
-  // Fourier transform tmp3 and store in tmp4
-  // Calculate and store in tmp5 sum_j i*G_j*tmp4[j](G)
-  // End Loop
-  // Transform tmp5 into real space and store in tmp6
-  // Multiply tmp6 by psi_n(r)
-  // E_3 = -1/2 * Integral[tmp6, r]
 }

@@ -555,14 +555,10 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
 void XCPotential::apply_meta_operator(Wavefunction& dwf)
 {
-  //!! Sum along columns not addressed
-  Wavefunction wf0 = s_.wf;
+  const Wavefunction& wf0 = s_.wf;
 
-  //std::vector<std::complex<double> > tmpgrd;
-  //tmpgrd.resize(np012loc_);
   for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
   {
     for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
@@ -570,53 +566,35 @@ void XCPotential::apply_meta_operator(Wavefunction& dwf)
       if ( wf0.sd(ispin,ikp)->basis().real() )
       {
         const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
-        const int np012loc = cd_.ft(ikp)->np012loc();
-        vector<complex<double> > tmp0(ngwloc), tmp1(np012loc), tmp2(np012loc);
+        vector<complex<double> > tmp0(ngwloc);
         const int mloc = wf0.sd(ispin,ikp)->c().mloc();
         for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc(); n++ )
         {
           const int nn = wf0.sd(ispin,ikp)->context().mycol() *
                          wf0.sd(ispin,ikp)->c().nb() + n;
-          //!! Verify that weight is correct
-          const double fac1 = wf0.weight(ikp) * wf0.sd(ispin,ikp)->occ()[nn] /
-                              wf0.sd(ispin,ikp)->basis().cell().volume();
           const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
-          if ( fac1 > 0.0 )
+          complex<double>* dp = dwf.sd(ispin,ikp)->c().valptr();
+          for ( int j = 0; j < 3; j++ )
           {
-            for ( int j = 0; j < 3; j++ )
+            // Compute Grad_j psi_n(ikp)
+            const double *const gxj = wf0.sd(ispin,ikp)->basis().gx_ptr(j);
+            for ( int ig = 0; ig < ngwloc; ig++ )
             {
-              // Compute Grad_j psi_n(ikp)
-              const double *const gxj = wf0.sd(ispin,ikp)->basis().gx_ptr(j);
-              for ( int ig = 0; ig < ngwloc; ig++ )
-              {
-                /* i*G_j*c(G) */
-                tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
-              }
-              cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0]);
-              // Compute V3 * Grad_j psi_n(ikp)
-              for ( int i = 0; i < np012loc; i++ )
-                tmp1[i] *= fac1 * xcf_->vxc3[i];
-              // Transform to k-space
-              cd_.ft(ikp)->forward(&tmp1[0],&tmp0[0]);
-              // Compute Div_j[V3 * Grad_j psi_n(ikp)]
-              for ( int ig = 0; ig < ngwloc; ig++ )
-              {
-                /* i*G_j*c(G) */
-                tmp0[ig] *= complex<double>(0.0,gxj[ig]);
-              }
-              cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0]);
-              // Compute psi_n(ikp)
-              for ( int ig = 0; ig < ngwloc; ig++ )
-              {
-                /* i*G_j*c(G) */
-                tmp0[ig] = p[ig+n*mloc];
-              }
-              cd_.ft(ikp)->backward(&tmp0[0],&tmp2[0]);
-              // Compute -1/2 * Div_j[V3 * Grad_j psi_n(ikp)] * psi_n(ikp)
-              // Note -1/2 comes from definition of V3
-              for ( int i = 0; i < np012loc; i++ )
-                tmp1[i] *= -0.5 * tmp2[i];
-              //!! Add tmp1[i] to dwf, requires transformation back to k-space?
+              /* i*G_j*c(G) */
+              tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+            }
+            cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
+            // Compute V3 * Grad_j psi_n(ikp)
+            for ( int i = 0; i < np012loc_; i++ )
+              tmpr[i] *= xcf_->vxc3[i];
+            // Transform to k-space
+            cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0]);
+            // Compute Div_j[V3 * Grad_j psi_n(ikp)]
+            // Note -1/2 comes from definition of V3
+            for ( int ig = 0; ig < ngwloc; ig++ )
+            {
+              /* i*G_j*c(G) */
+              dp[ig+n*mloc] += -0.5 * complex<double>(0.0,gxj[ig]) * tmp0[ig];
             }
           }
         }

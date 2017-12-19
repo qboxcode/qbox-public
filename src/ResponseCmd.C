@@ -38,8 +38,8 @@ using namespace std;
 int ResponseCmd::action(int argc, char **argv)
 {
   // " syntax: response amplitude nitscf [nite]\n\n"
-  // " syntax: response -vext vext_file [-RPA] [-amplitude a]
-  //                    [-io iomode -nx nx -ny ny -nz nz] nitscf [nite]\n\n"
+  // " syntax: response -vext vext_file [-RPA|-IPA] [-amplitude a]
+  //                    [-io iomode -nx nx -ny ny -nz nz] [-q qx qy qz] nitscf [nite]\n\n"
 
   if ( s->wf.nst() == 0 )
   {
@@ -60,22 +60,41 @@ int ResponseCmd::action(int argc, char **argv)
   int iarg = 1;
   if ( !strcmp(argv[iarg],"-vext") )
   {
+    // response to vext
+    if ( s->vext )
+    {
+      if ( ui->onpe0() )
+        cout << "  ResponseCmd: cannot run when vext is already set" << endl;
+      return 1;
+    }
+
     string filename;
     bool rpa = false;
-    double amplitude = atof(argv[iarg]);
+    bool ipa = false;
+    double amplitude = 0.0;
     string io = "cube";
     int nx, ny, nz;
     nx = ny = nz = 0;
+
     iarg++;
-    // response to vext
-    if ( s->vext )
-      delete s->vext;
     filename = argv[iarg];
     iarg++;
+
     if ( !strcmp(argv[iarg],"-RPA") )
     {
       rpa = true;
       iarg++;
+    }
+    if ( !strcmp(argv[iarg],"-IPA") )
+    {
+      ipa = true;
+      iarg++;
+    }
+    if ( rpa && ipa )
+    {
+      if ( ui->onpe0() )
+        cout << " Only one of -RPA or -IPA can be specified" << endl;
+      return 1;
     }
     if ( !strcmp(argv[iarg],"-amplitude") )
     {
@@ -106,6 +125,7 @@ int ResponseCmd::action(int argc, char **argv)
         iarg++;
       }
     }
+
     nitscf = atoi(argv[iarg]);
     iarg++;
 
@@ -121,7 +141,9 @@ int ResponseCmd::action(int argc, char **argv)
 
     s->vext = new ExternalPotential(*s, filename, io, nx, ny, nz);
     s->vext->set_amplitude(amplitude);
-    responseVext(rpa, nitscf, nite, io, nx, ny, nz);
+    responseVext(rpa, ipa, nitscf, nite, io);
+    delete s->vext;
+    s->vext = 0;
   }
   else
   {
@@ -222,9 +244,15 @@ void ResponseCmd::responseEfield(double amplitude, int nitscf, int nite)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void ResponseCmd::responseVext(bool rpa, int nitscf, int nite,
-                               string io, int nxx, int nyy, int nzz)
+void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string io)
 {
+//  if (ui->onpe0())
+//  {
+//    cout << "ResponseCmd:responseVext:\n"
+//         << "RPA = " << rpa << ", IPA = " << ipa << ", io = " << io
+//         << ", q = " << q << ", nitscf = " << nitscf << ", nite = " << nite << "\n";
+//  }
+
   s->wf.info(cout, "wavefunction");
 
   const int nspin = s->wf.nspin();
@@ -232,6 +260,12 @@ void ResponseCmd::responseVext(bool rpa, int nitscf, int nite,
 
   if (rpa)
     stepper->set_update_vxc(false);
+
+  if (ipa)
+  {
+    stepper->set_update_vh(false);
+    stepper->set_update_vxc(false);
+  }
 
   // save a copy of initial wave functions
   Wavefunction wf0(s->wf);
@@ -241,13 +275,15 @@ void ResponseCmd::responseVext(bool rpa, int nitscf, int nite,
   MPI_Comm vcomm = cd.vcomm();
 
   stepper->step(0);
-  const vector<vector<double> > rhor1 = cd.rhor;  // density with +Vext
+  vector<vector<double> > rhor1; // density with +Vext
+  rhor1 = cd.rhor;
 
   s->wf = wf0;
   s->vext->reverse();
 
   stepper->step(0);
-  const vector<vector<double> > rhor2 = cd.rhor;  // density with -Vext
+  vector<vector<double> > rhor2; // density with -Vext
+  rhor2 = cd.rhor;
   s->vext->reverse();
 
   // restore initial wave functions

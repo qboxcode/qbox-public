@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <algorithm> // fill
 #include <functional>
+#include <fstream>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////

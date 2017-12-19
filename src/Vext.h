@@ -37,26 +37,37 @@ class Vext : public Var
 
   int set ( int argc, char **argv )
   {
-    if ( argc > 3 )
+    if ( argc == 2 )
     {
-      if ( ui->onpe0() )
-      cout << " vext takes only one value" << endl;
-      return 1;
+      if ( !strcmp(argv[1],"NULL") )
+      {
+        // set vext NULL
+        delete s->vext;
+        s->vext = 0;
+      }
+      else
+      {
+        if ( s->vext )
+          delete s->vext;
+        s->vext = new ExternalPotential(*s,argv[1]);
+      }
     }
-
-    if ( !strcmp(argv[1],"NULL") )
+    else if ( argc == 3 and !strcmp(argv[1],"amplitude") )
     {
-      // set vext NULL
-      delete s->vext;
-      s->vext = 0;
+      if ( s->vext )
+        s->vext->set_amplitude(atof(argv[2]));
+      else
+      {
+        cout << "vext not set yet" << endl;
+        return 1;
+      }
     }
     else
     {
-      if ( s->vext )
-        delete s->vext;
-      s->vext = new ExternalPotential(*s,argv[1]);
+      if ( ui->onpe0() )
+        cout << "unknown option for vext variable" << endl;
+      return 1;
     }
-
     return 0;
   }
 
@@ -68,7 +79,8 @@ class Vext : public Var
      if ( s->vext )
      {
        st.setf(ios::right,ios::adjustfield);
-       st << setw(10) << s->vext->filename();
+       st << setw(10) << s->vext->filename()
+          << " (amplitude" << " = " << s->vext->amplitude() << ")";
      }
      return st.str();
   }

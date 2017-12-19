@@ -46,7 +46,7 @@ using namespace std;
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) :
   SampleStepper(s), cd_(s.wf), ef_(s,cd_),
   dwf(s.wf), wfv(s.wfv), nitscf_(nitscf), nite_(nite),
-  update_density_first_(true), update_vxc_(true) {}
+  update_density_first_(true), update_vh_(true), update_vxc_(true) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::~BOSampleStepper()
@@ -848,20 +848,12 @@ void BOSampleStepper::step(int niter)
         // at first scf step:
         // - update both vh and vxc
         // at later steps:
-        // - update vh
-        // - update vxc only if update_vxc_ is true
+        // - update depending of values of update_vh_ and update_vxc_
         tmap["update_vhxc"].start();
         if ( itscf == 0 )
           ef_.update_vhxc(compute_stress);
         else
-        {
-          if ( update_vxc_ )
-            ef_.update_vhxc(compute_stress);
-          else
-            // update vh only
-            ef_.update_vh(compute_stress);
-        }
-
+          ef_.update_vhxc(compute_stress, update_vh_, update_vxc_);
         tmap["update_vhxc"].stop();
 
         // reset stepper only if multiple non-selfconsistent steps

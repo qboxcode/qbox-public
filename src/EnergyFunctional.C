@@ -226,7 +226,7 @@ EnergyFunctional::~EnergyFunctional(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vxc)
+void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vh, bool update_vxc)
 {
   // called when the charge density has changed
   // update Hartree and xc potentials using the charge density cd_
@@ -315,7 +315,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vxc)
     ehesum += norm(r) * g2i[ig];
     ehepsum += 2.0*real(conj(r)*rp * g2i[ig]);
     ehpsum += norm(rp) * g2i[ig];
-    rhogt[ig] = r+rp;
+    if ( update_vh ) rhogt[ig] = r+rp;
   }
   // factor 1/2 from definition of Ehart cancels with half sum over G
   // Note: rhogt[ig] includes a factor 1/Omega

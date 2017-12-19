@@ -26,6 +26,7 @@
 #include <map>
 #include "Timer.h"
 #include "Context.h"
+#include "D3vector.h"
 
 class Wavefunction;
 class FourierTransform;

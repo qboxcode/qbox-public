@@ -27,9 +27,8 @@ class ResponseCmd : public Cmd
 {
   private:
 
-  void responseVext(bool rpa, int nitscf, int nite,
-                    string io, int nx, int ny, int nz);
   void responseEfield(double amplitude, int nitscf, int nite);
+  void responseVext(bool rpa, bool ipa, int nitscf, int nite, string io);
 
   public:
 
@@ -43,22 +42,25 @@ class ResponseCmd : public Cmd
     return
     "\n response\n\n"
     " syntax: response amplitude nitscf [nite]\n"
-    "         response -vext vext_file [-RPA] [-amplitude a] \n"
+    "         response -vext vext_file [-RPA|-IPA] [-amplitude a] \n"
     "                  [-io iomode -nx nx -ny ny -nz nz] nitscf [nite]\n\n"
     "   The response command computes the polarizability tensor by\n"
     "   finite differences using external electric fields in the x,y,z\n"
     "   directions with magnitude defined by the amplitude argument.\n"
     "   If the -vext option is used, the response command computes the\n"
     "   response to the external potential defined in the file vext_file.\n"
-    "   Acceptable control flags are:\n"
-    "     1. -RPA. Compute response within Random Phase Approximation, Vxc is frozen.\n"
-    "     2. -amplitude a. Scale the Vext by a before any calculations, \n"
-    "                      then scale the charge density response by 1/a before output.\n"
-    "     3. -io iomode. How the vext/response file shall be read/write. Possible choice:\n"
-    "        cube: Gaussian cube format.\n"
-    "        base64_serial or base64_parallel: base64-encoded binary grid function.\n"
-    "                                          grid size need to be specified by nx, ny, nz.\n"
-    "        use cube for best compatibility and base64_parallel for best performance\n\n";
+    "   Control flags:\n"
+    "   -RPA  Compute response within the Random Phase Approximation,\n"
+    "         Vxc is frozen.\n"
+    "   -IPA  Compute response within the Independent Particle Approximation,\n"
+    "         VHartree and Vxc are frozen.\n"
+    "   -amplitude a\n"
+    "         Scale the external potential by a before any calculation, \n"
+    "         then scale the charge density response by 1/a before output.\n"
+    "   -io iomode\n"
+    "         Valid choices of iomode: cube, base64_serial, base64_parallel\n"
+    "   -nx nx, -ny ny, -nz nz\n"
+    "         grid size (for base64_serial and base64_parallel only)\n\n";
   }
 
   int action(int argc, char **argv);

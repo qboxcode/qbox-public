@@ -43,7 +43,7 @@ class BOSampleStepper : public SampleStepper
   IonicStepper* ionic_stepper;
 
   bool update_density_first_;
-  bool update_vxc_;
+  bool update_vh_, update_vxc_;
 
   // Do not allow construction of BOSampleStepper unrelated to a Sample
   BOSampleStepper(void);
@@ -55,6 +55,7 @@ class BOSampleStepper : public SampleStepper
   void step(int niter);
   // initialize density with sum of atomic densities
   void initialize_density(void);
+  void set_update_vh(bool update_vh) { update_vh_ = update_vh; }
   void set_update_vxc(bool update_vxc) { update_vxc_ = update_vxc; }
   void set_update_density_first(bool update_density_first)
     { update_density_first_ = update_density_first; }

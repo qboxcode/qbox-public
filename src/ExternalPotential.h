@@ -46,7 +46,7 @@ class ExternalPotential
 
   ExternalPotential(Sample& s, std::string name, std::string io="cube",
                     int nx=0, int ny=0, int nz=0):
-    s_(s), filename_(name), ecut_(0.0), amplitude_(0.0), magnitude_(0.0), io_(io){
+    s_(s), filename_(name), ecut_(0.0), amplitude_(1.0), magnitude_(0.0), io_(io){
     assert( io_ == "cube" || io == "base64_serial" || io == "base64_parallel" );
     if (io != "cube")
     {

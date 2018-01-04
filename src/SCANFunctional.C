@@ -393,7 +393,7 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   // V3
   dalphadtau = 1.0 / tau_unif;
   decdtau = dfcdalpha * dalphadtau * (ec0 - ec1);
-  vc3 = - rho * decdtau;
+  vc3 = rho * decdtau;
 
   // XC
   *exc = x_coeff_ * ex + c_coeff_ * ec;

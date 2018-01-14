@@ -19,6 +19,7 @@
 #include "Sample.h"
 #include "SlaterDet.h"
 #include "FourierTransform.h"
+#include "InteractionPotential.h"
 
 #ifndef EXCHANGEOPERATOR_H
 #define EXCHANGEOPERATOR_H
@@ -74,10 +75,8 @@ class ExchangeOperator
   // G vectors
   valarray<double> qpG21_;
   valarray<double> qpG22_;
-  valarray<double> qpG2i1_;
-  valarray<double> qpG2i2_;
-  valarray<double> G2_;
-  valarray<double> G2i_;
+  valarray<double> int_pot1_;
+  valarray<double> int_pot2_;
 
   // numbers of states
   int nLocalStates_;
@@ -173,10 +172,17 @@ class ExchangeOperator
   vector<DoubleMatrix*> uc_;
   vector<long int> localization_;
 
+  // Fourier transform of interaction potential
+  const InteractionPotential interaction_potential_;
+
+  // coulomb potential
+  bool coulomb_;
+
   public:
 
   // constructor
-  ExchangeOperator(Sample& s_, double HFCoeff);
+  ExchangeOperator(Sample& s_, double HFCoeff,
+    const InteractionPotential& interaction_potential = InteractionPotential());
 
   // destructor
   ~ExchangeOperator();

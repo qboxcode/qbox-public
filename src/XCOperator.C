@@ -19,6 +19,7 @@
 #include "ChargeDensity.h"
 #include "XCPotential.h"
 #include "ExchangeOperator.h"
+#include "HSEFunctional.h"
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -67,6 +68,19 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
     hasGGA_ = xcp_->isGGA();
     hasHF_ = true;
     HFmixCoeff_ = s.ctrl.alpha_PBE0;;
+  }
+  else if ( functional_name == "HSE" )
+  {
+    // create an exchange potential
+    xcp_ = new XCPotential(cd, functional_name, s.ctrl);
+
+    // create the exchange operator with mixing coeff=0.25
+    xop_ = new ExchangeOperator(s, 0.25,
+      HSEFunctional::make_interaction_potential() );
+    hasPotential_ = true;
+    hasGGA_ = xcp_->isGGA();
+    hasHF_ = true;
+    HFmixCoeff_ = 0.25;
   }
   else if ( functional_name == "B3LYP" )
   {

@@ -375,6 +375,60 @@ void XCPotential::update(vector<vector<double> >& vr)
     exc_ = tsum[0];
     dxc_ = tsum[1];
   }
+  if ( xcf_->isMeta() )
+  {
+    // compute the exc energy from the meta operator
+    //!! next lines duplicates from apply_meta_operator
+    double esum = 0.0;
+    const Wavefunction& wf0 = s_.wf;
+
+    for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
+    {
+      for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
+      {
+        if ( wf0.sd(ispin,ikp)->basis().real() )
+        {
+          const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+          vector<complex<double> > tmp0(ngwloc);
+          const int mloc = wf0.sd(ispin,ikp)->c().mloc();
+          for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc(); n++ )
+          {
+            const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
+            for ( int j = 0; j < 3; j++ )
+            {
+              // Compute Grad_j psi_n(ikp)
+              const double *const gxj = wf0.sd(ispin,ikp)->basis().gx_ptr(j);
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                /* i*G_j*c(G) */
+                tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+              }
+              cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
+              // Compute V3 * Grad_j psi_n(ikp)
+              for ( int i = 0; i < np012loc_; i++ )
+                tmpr[i] *= xcf_->vxc3[i];
+              // Transform to k-space
+              cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0]);
+              // Compute Div_j[V3 * Grad_j psi_n(ikp)]
+              // Note -1/2 comes from definition of V3
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                /* i*G_j*c(G) */
+                complex<double> dc = -0.5*complex<double>(0.0,gxj[ig])*tmp0[ig];
+                // next line: no need to correct for G=0 double counting
+                esum += 2.0 * real(conj(dc)*p[ig+n*mloc]);
+              }
+            }
+          }
+          dxc_ -= esum;
+        }
+        else
+        {
+          assert(0);
+        }
+      }
+    }
+  }
 }
 ////////////////////////////////////////////////////////////////////////////////
 void XCPotential::compute_stress(valarray<double>& sigma_exc)

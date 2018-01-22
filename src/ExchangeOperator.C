@@ -35,11 +35,10 @@ using namespace std;
 #define Tag_States 5
 
 ////////////////////////////////////////////////////////////////////////////////
-ExchangeOperator::ExchangeOperator( Sample& s, double HFCoeff,
-  const InteractionPotential& interaction_potential ) :
-  s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf), HFCoeff_(HFCoeff),
-  interaction_potential_(interaction_potential),
-  coulomb_(interaction_potential.coulomb()),
+ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
+  double beta_sx, double mu_sx ) :
+  s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf),
+  coulomb_(alpha_sx==beta_sx),
   gcontext_(s.wf.sd(0,0)->context())
 {
   eex_ = 0.0; // exchange energy
@@ -541,9 +540,9 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
             else
             {
               int_pot1_[ig] = ( qpG21_[ig] > 0.0 ) ?
-                  interaction_potential_(qpG21_[ig]) : 0;
+                  vint(qpG21_[ig]) : 0;
               int_pot2_[ig] = ( qpG22_[ig] > 0.0 ) ?
-                  interaction_potential_(qpG22_[ig]) : 0;
+                  vint(qpG22_[ig]) : 0;
             }
 
             // if iKpi=0 (first k point)
@@ -658,7 +657,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     // acumulate weighted contributions
                     // Psi_j,kj(r) * TF( rhog[G]/|q+G|^2 ) and symmetric
                     // in dpsi_i. We take now into account the mixing coeff
-                    weight *= HFCoeff_;
                     for ( int ir = 0; ir < np012loc_; ir++ )
                     {
                       dstatei_[i][ir] += ( statej_[j][ir] * rhor1_[ir] +
@@ -713,8 +711,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     //
                     // We take also into account the mixing coefficient.
                     //
-                    weighti *= HFCoeff_;
-                    weightj *= HFCoeff_;
                     for ( int ir = 0; ir < np012loc_; ir++ )
                     {
                       dstatei_[i][ir] += ( statej_[j][ir] * rhor1_[ir] +
@@ -803,8 +799,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
       }
 
       // divergence corrections
-      const double factor = (coulomb_) ? 1.0 :
-        interaction_potential_.divergence_scaling(rcut_);
+      const double factor = (coulomb_) ? beta_sx_ : vint_div_scal(rcut_);
       const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ ) * factor;
       const double vbz = pow(2.0*M_PI,3.0) / omega;
 
@@ -852,7 +847,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
           complex<double> *pf1=dci.valptr(i*dci.mloc());
           complex<double> *pf2=&force_kpi_[i*dci.mloc()];
           for ( int j = 0; j < dci.mloc(); j++ )
-            pf1[j] += pf2[j] - ps[j] * div_corr * HFCoeff_;
+            pf1[j] += pf2[j] - ps[j] * div_corr;
         }
 
       } // for i
@@ -863,7 +858,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   // reduce the total energy
   gcontext_.dsum(1, 1, &exchange_sum, 1);
   extot = exchange_sum;
-  extot *= HFCoeff_;
 
   tm.stop();
 #ifdef DEBUG
@@ -1324,7 +1318,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       // factor 2.0: real basis
       const double tg2i = g2i[ig];
       // V(G) = 1/G^2 for Coulomb potential
-      const double int_pot = (coulomb_) ? tg2i : interaction_potential_(g2[ig]);
+      const double int_pot = (coulomb_) ? beta_sx_*tg2i : vint(g2[ig]);
       const double expG2 = exp( - rc2 * g2[ig] );
       double t = 2.0 * expG2 * int_pot;
       SumExpG2 += t;
@@ -1335,9 +1329,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         const double tgy = g_y[ig];
         const double tgz = g_z[ig];
         // factor 2.0: derivative of G^2
-        const double fac = 2.0 * ( (coulomb_) ? t * ( rc2 + tg2i ) :
-          ( t * rc2 - 2.0 * expG2 *
-            interaction_potential_.derivative(g2[ig]) ) );
+        const double fac = 2.0 * ( (coulomb_) ? beta_sx_*t * ( rc2 + tg2i ) :
+          ( t * rc2 - 2.0 * expG2 * dvint(g2[ig]) ) );
         sigma_sumexp[0] += fac * tgx * tgx;
         sigma_sumexp[1] += fac * tgy * tgy;
         sigma_sumexp[2] += fac * tgz * tgz;
@@ -1596,8 +1589,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // and |rho2(G)|^2*V(|G+q2|) to the exchange energy.
             // factor 2.0: real basis
             const double tg2i = g2i[ig];
-            const double int_pot = ( coulomb_ ) ? tg2i :
-              interaction_potential_(g2[ig]);
+            const double int_pot = ( coulomb_ ) ? beta_sx_*tg2i : vint(g2[ig]);
             const double factor2 = 2.0;
             const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
             const double t2 = factor2 * norm(rhog2_[ig]) * int_pot;
@@ -1610,9 +1602,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
               // factor 2.0: derivative of 1/G^2
-              const double fac1 = 2.0 * ( coulomb_ ? (t1 * tg2i) :
-                -factor2 * norm(rhog1_[ig]) *
-                interaction_potential_.derivative(g2[ig]) );
+              const double fac1 = 2.0 * ( coulomb_ ? beta_sx_*(t1 * tg2i) :
+                -factor2 * norm(rhog1_[ig]) * dvint(g2[ig]) );
               sigma_sum_1[0] += fac1 * tgx * tgx;
               sigma_sum_1[1] += fac1 * tgy * tgy;
               sigma_sum_1[2] += fac1 * tgz * tgz;
@@ -1620,9 +1611,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               sigma_sum_1[4] += fac1 * tgy * tgz;
               sigma_sum_1[5] += fac1 * tgz * tgx;
 
-              const double fac2 = 2.0 * ( coulomb_ ? (t2 * tg2i) :
-                -factor2 * norm(rhog2_[ig]) *
-                interaction_potential_.derivative(g2[ig]) );
+              const double fac2 = 2.0 * ( coulomb_ ? beta_sx_*(t2 * tg2i) :
+                -factor2 * norm(rhog2_[ig]) * dvint(g2[ig]) );
               sigma_sum_2[0] += fac2 * tgx * tgx;
               sigma_sum_2[1] += fac2 * tgy * tgy;
               sigma_sum_2[2] += fac2 * tgz * tgz;
@@ -1661,7 +1651,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
             if (dwf)
             {
-              const double weight = exfac * occ_kj_[j1] * HFCoeff_;
+              const double weight = exfac * occ_kj_[j1];
               double *dp = (double *) &dstatei_[i1][0];
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
@@ -1683,8 +1673,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
             if (dwf)
             {
-              double weighti = exfac * occ_ki_[i1] * HFCoeff_;
-              double weightj = exfac * occ_kj_[j1] * HFCoeff_;
+              double weighti = exfac * occ_ki_[i1];
+              double weightj = exfac * occ_kj_[j1];
               double *dpi = (double *) &dstatei_[i1][0];
               double *dpj = (double *) &dstatej_[j1][0];
               double *pi = (double *) &statei_[i1][0];
@@ -1715,7 +1705,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
             if (dwf)
             {
-              const double weight = exfac * occ_kj_[j2] * HFCoeff_;
+              const double weight = exfac * occ_kj_[j2];
               double *dp = (double *) &dstatei_[i2][0];
               double *pj = (double *) &statej_[j2][0];
               double *pr = (double *) &rhor1_[0];
@@ -1739,8 +1729,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
             if (dwf)
             {
-              double weighti = exfac * occ_ki_[i2] * HFCoeff_;
-              double weightj = exfac * occ_kj_[j2] * HFCoeff_;
+              double weighti = exfac * occ_ki_[i2];
+              double weightj = exfac * occ_kj_[j2];
               double *dpi = (double *) &dstatei_[i2][0];
               double *dpj = (double *) &dstatej_[j2][0];
               double *pi = (double *) &statei_[i2][0];
@@ -1796,8 +1786,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // and |rho2(G)|^2*V(|G|) to the exchange energy.
             // factor 2.0: real basis
             const double tg2i = g2i[ig];
-            const double int_pot = ( coulomb_ ) ? tg2i :
-              interaction_potential_(g2[ig]);
+            const double int_pot = ( coulomb_ ) ? beta_sx_*tg2i : vint(g2[ig]);
             const double factor2 = 2.0;
             const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
             ex_sum_1 += t1;
@@ -1808,9 +1797,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
               // factor 2.0: derivative of 1/G^2
-              const double fac = 2.0 * ( coulomb_ ? (t1 * tg2i) :
-                -factor2 * norm(rhog1_[ig]) *
-                interaction_potential_.derivative(g2[ig]) );
+              const double fac = 2.0 * ( coulomb_ ? beta_sx_*(t1 * tg2i) :
+                -factor2 * norm(rhog1_[ig]) * dvint(g2[ig]) );
               sigma_sum_1[0] += fac * tgx * tgx;
               sigma_sum_1[1] += fac * tgy * tgy;
               sigma_sum_1[2] += fac * tgz * tgz;
@@ -1845,7 +1833,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
             if (dwf)
             {
-              const double weight = exfac * occ_kj_[j1] * HFCoeff_;
+              const double weight = exfac * occ_kj_[j1];
               double *dp = (double *) &dstatei_[i1][0];
               double *pj = (double *) &statej_[j1][0];
               double *pr = (double *) &rhor1_[0];
@@ -1867,8 +1855,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
             if (dwf)
             {
-              double weighti = exfac * occ_ki_[i1] * HFCoeff_;
-              double weightj = exfac * occ_kj_[j1] * HFCoeff_;
+              double weighti = exfac * occ_ki_[i1];
+              double weightj = exfac * occ_kj_[j1];
               double *dpi = (double *) &dstatei_[i1][0];
               double *dpj = (double *) &dstatej_[j1][0];
               double *pi = (double *) &statei_[i1][0];
@@ -2123,8 +2111,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
       // analytical part
       // scaling factor relative to Coulomb potential
-      const double factor = (coulomb_) ? 1.0 :
-        interaction_potential_.divergence_scaling(rcut_);
+      const double factor = (coulomb_) ? 1.0 : vint_div_scal(rcut_);
       const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ ) * factor;
       const double vbz = pow(2.0*M_PI,3.0) / omega;
 
@@ -2147,7 +2134,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         complex<double> *ps=c.valptr(i*c.mloc());
         complex<double> *pf=dc.valptr(i*dc.mloc());
         for ( int j = 0; j < dc.mloc(); j++ )
-          pf[j] -= ps[j] * div_corr * HFCoeff_;
+          pf[j] -= ps[j] * div_corr;
       }
 
     } // for i
@@ -2165,13 +2152,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
   gcontext_.dsum(1, 1, &exchange_sum, 1);
   extot = exchange_sum;
 
-  extot *= HFCoeff_;
-
   // accumulate stress tensor contributions
   gcontext_.dsum(6,1,&sigma_exhf_[0],6);
-
-  // scale stress tensor with HF coefficient
-  sigma_exhf_ *= HFCoeff_;
 
   tm.stop();
 
@@ -2441,4 +2423,92 @@ void ExchangeOperator::CompleteSendingOccupations(int iRotationStep)
     // init reception flag
     wait_send_occupations_=0;
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// interaction potential
+// vint(r) = alpha_sx_ * erf(mu_sx_*r)/r + beta_sx * erfc(mu_sx_*r)/r
+//         = beta_sx_ / r + (alpha_sx_ - beta_sx_) * erf(mu_sx_*r)/r
+// Fourier transform:
+// vint(g2) = ( beta_sx + (alpha_sx-beta_sx) * exp( -g2 / 4*mu^2 ) ) / g2
+double ExchangeOperator::vint(double g2)
+{
+  const double r1_4w2 = 0.25 / ( mu_sx_ * mu_sx_ );
+  const double x = g2 * r1_4w2;
+
+  if ( g2 == 0 )
+  {
+    // if alpha_sx_ == 0, finite limit for g2 = 0
+    if ( alpha_sx_ == 0.0 )
+      return beta_sx_ * r1_4w2;
+    else
+      return 0.0;
+  }
+  else if ( g2 < 1e-6 )
+  {
+    if ( alpha_sx_ == 0.0 )
+    {
+      // Taylor expansion near origin
+      return r1_4w2 * beta_sx_ * ( 1.0 - 0.5 * x );
+    }
+    else
+      return 0.0;
+  }
+  else
+  {
+    return ( beta_sx_ + ( alpha_sx_ - beta_sx_ ) * exp(-x) ) / g2;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Derivative of the interaction potential vint(g2) w.r.t g2
+// dvint(g2) = d (vint(g2)) / d g2
+// dvint(g2) = vint(g2) * ( -1/g2 - 1/(4*w^2) )
+//
+//             exp( -g2 / 4 w^2 )   V(g2)
+// dvint(g2) = ------------------ - -----
+//                  4 g2 w^2         g2
+double ExchangeOperator::dvint(double g2)
+{
+  const double r1_4w2 = 0.25 / ( mu_sx_ * mu_sx_ );
+  const double x = g2 * r1_4w2;
+  const double third = 1.0 / 3.0;
+
+  if ( g2 == 0 )
+  {
+    if ( alpha_sx_ == 0.0 )
+    {
+      // if alpha_sx_ == 0, finite limit for g2 = 0
+      return -0.5 * beta_sx_ * r1_4w2 * r1_4w2;
+    }
+    else
+      return 0.0;
+  }
+  else if ( g2 < 1e-6 )
+  {
+    // Taylor expansion near origin
+    return beta_sx_ * ( -0.5 + x * third ) * r1_4w2 * r1_4w2;
+  }
+  else
+  {
+    // exact derivative
+    return - ( beta_sx_ / g2 +
+      ( alpha_sx_ - beta_sx_ ) * exp(-x) * ( r1_4w2 + 1.0/g2 ) ) / g2;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// scaling of the divergence correction relative to the Coulomb potential
+//
+// integral( exp(-rcut^2 G^2) * V(G^2) )            x
+// ------------------------------------- = 1 - -------------
+//  integral( exp(-rcut^2 G^2) / G^2 )         sqrt(x^2 + 1)
+//
+// with x = 2 * rcut * mu_sx_
+double ExchangeOperator::vint_div_scal(double rc)
+{
+  //!! next lines only correct if alpha_sx_==0
+  assert(alpha_sx_==0.0);
+  const double x = 2.0 * rc * mu_sx_;
+  return 1 - x / sqrt(x * x + 1);
 }

@@ -51,11 +51,12 @@ class Xc : public Var
             v == "HF" ||
             v == "PBE0" ||
             v == "HSE" ||
+            v == "RSH" ||
             v == "B3LYP" ) )
     {
       if ( ui->onpe0() )
         cout << " xc must be LDA, VWN, PBE, BLYP, "
-             << "HF, PBE0, HSE or B3LYP" << endl;
+             << "HF, PBE0, HSE, RSH or B3LYP" << endl;
       return 1;
     }
 

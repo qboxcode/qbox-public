@@ -38,9 +38,15 @@ using namespace std;
 ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
   double beta_sx, double mu_sx ) :
   s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf),
+  alpha_sx_(alpha_sx), beta_sx_(beta_sx), mu_sx_(mu_sx),
   coulomb_(alpha_sx==beta_sx),
   gcontext_(s.wf.sd(0,0)->context())
 {
+  // check validity of the values of alpha_sx, beta_sx, mu_sx
+  // if alpha_sx == beta_sx (Coulomb potential) mu_sx is not used
+  // if alpha_sx != beta_sx, mu_sx_ must be positive
+  if ( alpha_sx != beta_sx ) assert( mu_sx > 0.0 );
+
   eex_ = 0.0; // exchange energy
   rcut_ = 1.0;  // constant of support function for exchange integration
 
@@ -98,9 +104,6 @@ ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
   // if not only at gamma, allocate arrays q+G
   if ( !gamma_only_ )
   {
-    // allocate memory for |q+G| and related quantities
-    qpG21_.resize(ngloc);
-    qpG22_.resize(ngloc);
     int_pot1_.resize(ngloc);
     int_pot2_.resize(ngloc);
   }
@@ -513,7 +516,8 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                      +  dk2.y*sdi.basis().cell().b(1)
                      +  dk2.z*sdi.basis().cell().b(2);
 
-          // compute values of |q1+G| and |q2+G|
+          // compupte correction term exp(-rcut_^2*(q+G)^2)/(q+G)^2
+          // compute and store vint(q1+G) and vint(q2+G)
           double SumExpQpG2 = 0.0;
           const int ngloc = vbasis_->localsize();
           for ( int ig = 0; ig < ngloc; ig++ )
@@ -522,38 +526,22 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                        vbasis_->gx(ig+ngloc*1),
                        vbasis_->gx(ig+ngloc*2));
 
-            // compute G+q for each qi and find the value of the
-            // correction term: sum_(G,q) exp(-rcut_^2*|G+q|^2) V(|G+q|)
-            // => compute the square norm of q1+G
-            qpG21_[ig]  = ( G + q1 ) * ( G + q1 );
+            const double qpG21 = ( G + q1 ) * ( G + q1 );
+            int_pot1_[ig] = vint(qpG21);
 
-            // => compute the square norm of q2+G
-            qpG22_[ig]  = ( G + q2 ) * ( G + q2 );
-
-            // for Coulomb potential V(|G+q|) = 1/|G+q|^2
-            if ( coulomb_ )
-            {
-              int_pot1_[ig] = ( qpG21_[ig] > 0.0 ) ? 1.0 / qpG21_[ig] : 0.0;
-              int_pot2_[ig] = ( qpG22_[ig] > 0.0 ) ? 1.0 / qpG22_[ig] : 0.0;
-            }
-            // otherwise use given function V(|G+q|^2)
-            else
-            {
-              int_pot1_[ig] = ( qpG21_[ig] > 0.0 ) ?
-                  vint(qpG21_[ig]) : 0;
-              int_pot2_[ig] = ( qpG22_[ig] > 0.0 ) ?
-                  vint(qpG22_[ig]) : 0;
-            }
+            const double qpG22 = ( G + q2 ) * ( G + q2 );
+            int_pot2_[ig] = vint(qpG22);
 
             // if iKpi=0 (first k point)
-            // compute the numerical part of the correction
-            if ( iRotationStep==0 )
+            // correction term: sum_(G,q) exp(-rcut_^2*|G+q|^2)/(G+q)^2
+            if ( (iRotationStep==0) && (alpha_sx_ != 0.0))
             {
               const double rc2 = rcut_*rcut_;
-              if ( qpG21_[ig] > 0.0 )
-                SumExpQpG2 += (exp(-rc2*qpG21_[ig]) * int_pot1_[ig] );
-              if ( qpG22_[ig] > 0.0 )
-                SumExpQpG2 += (exp(-rc2*qpG22_[ig]) * int_pot2_[ig] );
+              const double qpG2i1 = ( qpG21 > 0.0 ) ? 1.0 / qpG21 : 0.0;
+              const double qpG2i2 = ( qpG22 > 0.0 ) ? 1.0 / qpG22 : 0.0;
+              SumExpQpG2 += alpha_sx_ * (exp(-rc2*qpG21) * qpG2i1 );
+              SumExpQpG2 += alpha_sx_ * (exp(-rc2*qpG22) * qpG2i2 );
+              //!! add here contributions to stress from correction
             }
           }
 
@@ -598,7 +586,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                   rhor2_[ir] =       statej_[j][ir]   * statei_[i][ir];
                 }
 
-                // Fourier transform the codensity to obtain rho(G).
+                // Fourier transform the pair density to obtain rho(G).
                 vft_->forward(&rhor1_[0], &rhog1_[0]);
                 vft_->forward(&rhor2_[0], &rhog2_[0]);
 
@@ -608,10 +596,8 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
 
                 for ( int ig = 0; ig < ngloc; ig++ )
                 {
-                  // Add the values of |rho1(G)|^2/|G+q1|^2
-                  // and |rho2(G)|^2/|G+q2|^2 to the exchange energy.
-                  // This does not take the point G=q=0 into account
-                  // where int_pot is set to 0.
+                  // Add the values of |rho1(G)|^2 * vint(q+G)
+                  // to the exchange energy.
                   const double t1 = norm(rhog1_[ig]) * int_pot1_[ig];
                   const double t2 = norm(rhog2_[ig]) * int_pot2_[ig];
                   ex_ki_i_kj_j += t1;
@@ -642,7 +628,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                   //
                   // => divide the weight of kpoint j by 2 as we implicitly
                   //    counted both kj and -kj in ex_ki_i_kj_j.
-                  // => take in account the occupation of the state psi(kj,j)
+                  // => take into account the occupation of the state psi(kj,j)
                   //    (divide by 2 to remove spin factor if only one spin).
                   // => multiply by the constants of computation
                   double weight = - 4.0 * M_PI / omega * wf.weight(iKpj) /
@@ -698,13 +684,13 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     // acumulate weighted contributions in dpsi_j and dpsi_j.
                     // the correspondances between rho12 and rho 21 are given by
                     //
-                    //                      /
+                    //              /
                     // rho1_12(r) = | psi2*(r')*psi1(r')/|r-r'|dr'
-                    //                      /
+                    //              /
                     //
-                    //                      /
+                    //              /
                     // rho2_12(r) = | psi2(r')*psi1(r')/|r-r'|dr'
-                    //                      /
+                    //              /
                     //
                     // => rho1_21  = rho1_12*
                     // => rho2_21  = rho2_12
@@ -799,57 +785,54 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
       }
 
       // divergence corrections
-      const double factor = (coulomb_) ? beta_sx_ : vint_div_scal(rcut_);
-      const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ ) * factor;
-      const double vbz = pow(2.0*M_PI,3.0) / omega;
-
-      for ( int i = 0; i < sdi.nstloc(); i++ )
+      if ( alpha_sx_ != 0.0 )
       {
-        double div_corr = 0.0;
+        const double integ = alpha_sx_ * 4.0 * M_PI * sqrt(M_PI) /
+          ( 2.0 * rcut_ );
+        const double vbz = pow(2.0*M_PI,3.0) / omega;
 
-        const double div_corr_1 = exfac * numerical_correction[iKpi] *
-                                  occ_ki_[i];
-        div_corr += div_corr_1;
-        const double e_div_corr_1 = -0.5 * div_corr_1 * occ_ki_[i];
-        exchange_sum += e_div_corr_1 * wf.weight(iKpi);
-        // add here contributions to stress from div_corr_1;
-
-        // rcut*rcut divergence correction
-        if ( vbasis_->mype() == 0 )
+        for ( int i = 0; i < sdi.nstloc(); i++ )
         {
-          // for screened Coulomb potential O(Omega^{-5/3})
-          if ( coulomb_ )
+          double div_corr = 0.0;
+
+          const double div_corr_1 = exfac * numerical_correction[iKpi] *
+                                    occ_ki_[i];
+          div_corr += div_corr_1;
+          const double e_div_corr_1 = -0.5 * div_corr_1 * occ_ki_[i];
+          exchange_sum += e_div_corr_1 * wf.weight(iKpi);
+          //!! add here contributions to stress from div_corr_1;
+
+          // rcut*rcut divergence correction
+          if ( vbasis_->mype() == 0 )
           {
-            const double div_corr_2 = - exfac * rcut_ * rcut_ * occ_ki_[i] *
-                                      wf.weight(iKpi);
+            const double div_corr_2 = - alpha_sx_ * exfac *
+               rcut_ * rcut_ * occ_ki_[i] * wf.weight(iKpi);
             div_corr += div_corr_2;
             const double e_div_corr_2 = -0.5 * div_corr_2 * occ_ki_[i];
             exchange_sum += e_div_corr_2 * wf.weight(iKpi);
-            // add here contributions of div_corr_2 to stress
+            //!! add here contributions of div_corr_2 to stress
+
+            const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
+            div_corr += div_corr_3;
+            const double e_div_corr_3 = -0.5 * div_corr_3 * occ_ki_[i];
+            exchange_sum += e_div_corr_3 * wf.weight(iKpi);
+            // no contribution to stress from div_corr_3
           }
 
-          const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
+          // contribution of divergence corrections to forces on wave functions
+          if (dwf)
+          {
+            // sum the partial contributions to the correction for state i
+            gcontext_.dsum('C', 1, 1, &div_corr, 1);
 
-          div_corr += div_corr_3;
-          const double e_div_corr_3 = -0.5 * div_corr_3 * occ_ki_[i];
-          exchange_sum += e_div_corr_3 * wf.weight(iKpi);
-          // no contribution to stress from div_corr_3
-        }
-
-        // contribution of divergence corrections to forces on wave functions
-        if (dwf)
-        {
-          // sum the partial contributions to the correction for state i
-          gcontext_.dsum('C', 1, 1, &div_corr, 1);
-
-          // add correction to the derivatives of state i
-          complex<double> *ps=ci.valptr(i*ci.mloc());
-          complex<double> *pf1=dci.valptr(i*dci.mloc());
-          complex<double> *pf2=&force_kpi_[i*dci.mloc()];
-          for ( int j = 0; j < dci.mloc(); j++ )
-            pf1[j] += pf2[j] - ps[j] * div_corr;
-        }
-
+            // add correction to the derivatives of state i
+            complex<double> *ps=ci.valptr(i*ci.mloc());
+            complex<double> *pf1=dci.valptr(i*dci.mloc());
+            complex<double> *pf2=&force_kpi_[i*dci.mloc()];
+            for ( int j = 0; j < dci.mloc(); j++ )
+              pf1[j] += pf2[j] - ps[j] * div_corr;
+          }
+        } // if alpha_sx_
       } // for i
       delete wfti_;
     } // for iKpi
@@ -1308,35 +1291,34 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     const double *g2i = vbasis_->g2i_ptr();
     const double rc2 = rcut_*rcut_;
 
-    // "divergence" correction (only truly divergent for Coulomb potential)
-    // subtract exp(-alpha G^2) V(G)
-    for ( int ig = 0; ig < ngloc; ig++ )
+    // divergence correction (Coulomb potential part only)
+    // The interaction potential is
+    // beta_sx*(1/r) + (alpha_sx-beta_sx)*erf(mu*r)/r
+    // The coefficient of the long range term is alpha_sx
+    // subtract alpha_sx * exp(-alpha G^2)/G^2
+    if ( alpha_sx_ != 0.0 )
     {
-      // no correction for G = 0
-      if ( g2[ig] == 0 ) continue;
-
-      // factor 2.0: real basis
-      const double tg2i = g2i[ig];
-      // V(G) = 1/G^2 for Coulomb potential
-      const double int_pot = (coulomb_) ? beta_sx_*tg2i : vint(g2[ig]);
-      const double expG2 = exp( - rc2 * g2[ig] );
-      double t = 2.0 * expG2 * int_pot;
-      SumExpG2 += t;
-
-      if ( compute_stress )
+      for ( int ig = 0; ig < ngloc; ig++ )
       {
-        const double tgx = g_x[ig];
-        const double tgy = g_y[ig];
-        const double tgz = g_z[ig];
-        // factor 2.0: derivative of G^2
-        const double fac = 2.0 * ( (coulomb_) ? beta_sx_*t * ( rc2 + tg2i ) :
-          ( t * rc2 - 2.0 * expG2 * dvint(g2[ig]) ) );
-        sigma_sumexp[0] += fac * tgx * tgx;
-        sigma_sumexp[1] += fac * tgy * tgy;
-        sigma_sumexp[2] += fac * tgz * tgz;
-        sigma_sumexp[3] += fac * tgx * tgy;
-        sigma_sumexp[4] += fac * tgy * tgz;
-        sigma_sumexp[5] += fac * tgz * tgx;
+        // factor 2.0: real basis
+        const double tg2i = g2i[ig];
+        double t = alpha_sx_ * 2.0 * exp( - rc2 * g2[ig] );
+        SumExpG2 += t;
+
+        if ( compute_stress )
+        {
+          const double tgx = g_x[ig];
+          const double tgy = g_y[ig];
+          const double tgz = g_z[ig];
+          // factor 2.0: derivative of G^2
+          const double fac = t * 2.0 * ( rc2 + tg2i );
+          sigma_sumexp[0] += fac * tgx * tgx;
+          sigma_sumexp[1] += fac * tgy * tgy;
+          sigma_sumexp[2] += fac * tgz * tgz;
+          sigma_sumexp[3] += fac * tgx * tgy;
+          sigma_sumexp[4] += fac * tgy * tgz;
+          sigma_sumexp[5] += fac * tgz * tgx;
+        }
       }
     }
 
@@ -1577,33 +1559,32 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
           for ( int ig = 0; ig < ngloc; ig++ )
           {
-            // G=0 is treated in divergence correction -> no contribution
-            if ( g2[ig] == 0 )
-            {
-              rhog1_[ig] = 0;
-              rhog2_[ig] = 0;
-              continue;
-            }
-
             // Add the values of |rho1(G)|^2*V(|G+q1|)
             // and |rho2(G)|^2*V(|G+q2|) to the exchange energy.
             // factor 2.0: real basis
             const double tg2i = g2i[ig];
-            const double int_pot = ( coulomb_ ) ? beta_sx_*tg2i : vint(g2[ig]);
-            const double factor2 = 2.0;
-            const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
-            const double t2 = factor2 * norm(rhog2_[ig]) * int_pot;
+            const double int_pot = vint(g2[ig]);
+            const double t1 = 2.0 * norm(rhog1_[ig]) * int_pot;
+            const double t2 = 2.0 * norm(rhog2_[ig]) * int_pot;
             ex_sum_1 += t1;
             ex_sum_2 += t2;
 
+            if (dwf)
+            {
+              // compute rhog1_[G]*V(G) and rhog2_[G]*V(G)
+              rhog1_[ig] *= int_pot;
+              rhog2_[ig] *= int_pot;
+            }
+
             if ( compute_stress )
             {
+              // dvint(g2) = d vint(g2)/d g2
+              const double d_int_pot = dvint(g2[ig]);
               const double tgx = g_x[ig];
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
-              // factor 2.0: derivative of 1/G^2
-              const double fac1 = 2.0 * ( coulomb_ ? beta_sx_*(t1 * tg2i) :
-                -factor2 * norm(rhog1_[ig]) * dvint(g2[ig]) );
+              // factor 2.0: derivative of G^2
+              const double fac1 = -2.0 * norm(rhog1_[ig]) * d_int_pot;
               sigma_sum_1[0] += fac1 * tgx * tgx;
               sigma_sum_1[1] += fac1 * tgy * tgy;
               sigma_sum_1[2] += fac1 * tgz * tgz;
@@ -1611,21 +1592,13 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               sigma_sum_1[4] += fac1 * tgy * tgz;
               sigma_sum_1[5] += fac1 * tgz * tgx;
 
-              const double fac2 = 2.0 * ( coulomb_ ? beta_sx_*(t2 * tg2i) :
-                -factor2 * norm(rhog2_[ig]) * dvint(g2[ig]) );
+              const double fac2 = -2.0 * norm(rhog2_[ig]) * d_int_pot;
               sigma_sum_2[0] += fac2 * tgx * tgx;
               sigma_sum_2[1] += fac2 * tgy * tgy;
               sigma_sum_2[2] += fac2 * tgz * tgz;
               sigma_sum_2[3] += fac2 * tgx * tgy;
               sigma_sum_2[4] += fac2 * tgy * tgz;
               sigma_sum_2[5] += fac2 * tgz * tgx;
-            }
-
-            if (dwf)
-            {
-              // compute rhog1_[G]/|G+q1|^2 and rhog2_[G]/|G+q1|^2
-              rhog1_[ig] *= int_pot;
-              rhog2_[ig] *= int_pot;
             }
           }
 
@@ -1775,41 +1748,32 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           }
           for ( int ig = 0; ig < ngloc; ig++ )
           {
-            // no contribution for G=0 as it is treated separately in
-            // the divergence correction
-            if ( g2[ig] == 0 )
-            {
-              rhog1_[ig] = 0;
-              continue;
-            }
             // Add the values of |rho1(G)|^2*V(|G|)
             // and |rho2(G)|^2*V(|G|) to the exchange energy.
             // factor 2.0: real basis
             const double tg2i = g2i[ig];
-            const double int_pot = ( coulomb_ ) ? beta_sx_*tg2i : vint(g2[ig]);
-            const double factor2 = 2.0;
-            const double t1 = factor2 * norm(rhog1_[ig]) * int_pot;
+            const double int_pot = vint(g2[ig]);
+            const double t1 = 2.0 * norm(rhog1_[ig]) * int_pot;
             ex_sum_1 += t1;
+
+            if (dwf)
+            {
+              rhog1_[ig] *= int_pot;
+            }
 
             if ( compute_stress )
             {
               const double tgx = g_x[ig];
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
-              // factor 2.0: derivative of 1/G^2
-              const double fac = 2.0 * ( coulomb_ ? beta_sx_*(t1 * tg2i) :
-                -factor2 * norm(rhog1_[ig]) * dvint(g2[ig]) );
+              // factor 2.0: derivative of G^2
+              const double fac = -2.0 * norm(rhog1_[ig]) * dvint(g2[ig]);
               sigma_sum_1[0] += fac * tgx * tgx;
               sigma_sum_1[1] += fac * tgy * tgy;
               sigma_sum_1[2] += fac * tgz * tgz;
               sigma_sum_1[3] += fac * tgx * tgy;
               sigma_sum_1[4] += fac * tgy * tgz;
               sigma_sum_1[5] += fac * tgz * tgx;
-            }
-
-            if (dwf)
-            {
-              rhog1_[ig] *= int_pot;
             }
           }
 
@@ -2074,70 +2038,69 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     }
     // dc now contains the forces
 
-    // "divergence" corrections
-
-    // correct the energy of state i
-    for ( int i = 0; i < sd.nstloc(); i++ )
+    // divergence corrections from long range Coulomb part
+    if ( alpha_sx_ != 0.0 )
     {
-
-      // divergence corrections
-      double div_corr = 0.0;
-
-      // SumExpG2 contribution
-      const double  div_corr_1 = exfac * SumExpG2 * occ_ki_[i];
-      div_corr += div_corr_1;
-      const double e_div_corr_1 = -0.5 * div_corr_1 * occ_ki_[i];
-      exchange_sum += e_div_corr_1;
-      const double fac1 = 0.5 * exfac * occ_ki_[i] * occ_ki_[i];
-      sigma_exhf_[0] += ( e_div_corr_1 + fac1 * sigma_sumexp[0] ) / omega;
-      sigma_exhf_[1] += ( e_div_corr_1 + fac1 * sigma_sumexp[1] ) / omega;
-      sigma_exhf_[2] += ( e_div_corr_1 + fac1 * sigma_sumexp[2] ) / omega;
-      sigma_exhf_[3] += ( fac1 * sigma_sumexp[3] ) / omega;
-      sigma_exhf_[4] += ( fac1 * sigma_sumexp[4] ) / omega;
-      sigma_exhf_[5] += ( fac1 * sigma_sumexp[5] ) / omega;
-
-      // rcut*rcut divergence correction (is O(Omega^(-5/3)) for
-      // screened Coulomb potential)
-      if ( vbasis_->mype() == 0 and coulomb_ )
-      {
-        const double div_corr_2 = - exfac * rcut_ * rcut_ * occ_ki_[i];
-        div_corr += div_corr_2;
-        const double e_div_corr_2 = -0.5 * div_corr_2 * occ_ki_[i];
-        exchange_sum += e_div_corr_2;
-        sigma_exhf_[0] += e_div_corr_2 / omega;
-        sigma_exhf_[1] += e_div_corr_2 / omega;
-        sigma_exhf_[2] += e_div_corr_2 / omega;
-      }
-
-      // analytical part
-      // scaling factor relative to Coulomb potential
-      const double factor = (coulomb_) ? 1.0 : vint_div_scal(rcut_);
-      const double integ = 4.0 * M_PI * sqrt(M_PI) / ( 2.0 * rcut_ ) * factor;
+      const double integ = alpha_sx_ * 4.0 * M_PI * sqrt(M_PI) /
+        ( 2.0 * rcut_ );
       const double vbz = pow(2.0*M_PI,3.0) / omega;
 
-      if ( vbasis_->mype() == 0 )
+      // correct the energy of state i
+      for ( int i = 0; i < sd.nstloc(); i++ )
       {
-        const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
-        div_corr += div_corr_3;
-        const double e_div_corr_3 = -0.5 * div_corr_3 * occ_ki_[i];
-        exchange_sum += e_div_corr_3;
-        // no contribution to stress
-      }
+        // divergence corrections
+        double div_corr = 0.0;
 
-      // contribution of divergence corrections to forces on wave functions
-      if (dwf)
-      {
-        // sum the partial contributions to the correction for state i
-        gcontext_.dsum('C', 1, 1, &div_corr, 1);
+        // SumExpG2 contribution
+        const double  div_corr_1 = exfac * SumExpG2 * occ_ki_[i];
+        div_corr += div_corr_1;
+        const double e_div_corr_1 = -0.5 * div_corr_1 * occ_ki_[i];
+        exchange_sum += e_div_corr_1;
+        const double fac1 = 0.5 * exfac * occ_ki_[i] * occ_ki_[i];
+        sigma_exhf_[0] += ( e_div_corr_1 + fac1 * sigma_sumexp[0] ) / omega;
+        sigma_exhf_[1] += ( e_div_corr_1 + fac1 * sigma_sumexp[1] ) / omega;
+        sigma_exhf_[2] += ( e_div_corr_1 + fac1 * sigma_sumexp[2] ) / omega;
+        sigma_exhf_[3] += ( fac1 * sigma_sumexp[3] ) / omega;
+        sigma_exhf_[4] += ( fac1 * sigma_sumexp[4] ) / omega;
+        sigma_exhf_[5] += ( fac1 * sigma_sumexp[5] ) / omega;
 
-        // add correction to the derivatives of state i
-        complex<double> *ps=c.valptr(i*c.mloc());
-        complex<double> *pf=dc.valptr(i*dc.mloc());
-        for ( int j = 0; j < dc.mloc(); j++ )
-          pf[j] -= ps[j] * div_corr;
-      }
+        // rcut*rcut divergence correction
+        if ( (vbasis_->mype() == 0) )
+        {
+          const double div_corr_2 = - alpha_sx_ * exfac *
+             rcut_ * rcut_ * occ_ki_[i];
+          div_corr += div_corr_2;
+          const double e_div_corr_2 = -0.5 * div_corr_2 * occ_ki_[i];
+          exchange_sum += e_div_corr_2;
+          sigma_exhf_[0] += e_div_corr_2 / omega;
+          sigma_exhf_[1] += e_div_corr_2 / omega;
+          sigma_exhf_[2] += e_div_corr_2 / omega;
+        }
 
-    } // for i
+        // analytical part
+        if ( vbasis_->mype() == 0 )
+        {
+          const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
+          div_corr += div_corr_3;
+          const double e_div_corr_3 = -0.5 * div_corr_3 * occ_ki_[i];
+          exchange_sum += e_div_corr_3;
+          // no contribution to stress
+        }
+
+        // contribution of divergence corrections to forces on wave functions
+        if (dwf)
+        {
+          // sum the partial contributions to the correction for state i
+          gcontext_.dsum('C', 1, 1, &div_corr, 1);
+
+          // add correction to the derivatives of state i
+          complex<double> *ps=c.valptr(i*c.mloc());
+          complex<double> *pf=dc.valptr(i*dc.mloc());
+          for ( int j = 0; j < dc.mloc(); j++ )
+            pf[j] -= ps[j] * div_corr;
+        }
+      } // for i
+    }
 
     // divergence corrections done
 
@@ -2157,7 +2120,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
   tm.stop();
 
-#ifdef DEBUG
+#if 0
   if ( gcontext_.onpe0() )
   {
     cout << setprecision(3);
@@ -2433,82 +2396,73 @@ void ExchangeOperator::CompleteSendingOccupations(int iRotationStep)
 // vint(g2) = ( beta_sx + (alpha_sx-beta_sx) * exp( -g2 / 4*mu^2 ) ) / g2
 double ExchangeOperator::vint(double g2)
 {
-  const double r1_4w2 = 0.25 / ( mu_sx_ * mu_sx_ );
-  const double x = g2 * r1_4w2;
+  // this function should not be called with mu_sx_ == 0.0 if alpha != beta
+  if ( alpha_sx_ != beta_sx_ ) assert(mu_sx_ != 0.0);
+  // check if zero potential
+  if ( ( alpha_sx_ == 0.0 ) && ( beta_sx_ == 0.0 ) )
+    return 0.0;
 
-  if ( g2 == 0 )
+  // Treat the Coulomb potential case separately (alpha_sx_ == beta_sx_)
+  if ( alpha_sx_ == beta_sx_ )
   {
-    // if alpha_sx_ == 0, finite limit for g2 = 0
-    if ( alpha_sx_ == 0.0 )
-      return beta_sx_ * r1_4w2;
-    else
+    if ( g2 == 0 )
       return 0.0;
-  }
-  else if ( g2 < 1e-6 )
-  {
-    if ( alpha_sx_ == 0.0 )
-    {
-      // Taylor expansion near origin
-      return r1_4w2 * beta_sx_ * ( 1.0 - 0.5 * x );
-    }
     else
-      return 0.0;
+      return alpha_sx_ / g2;
   }
   else
   {
-    return ( beta_sx_ + ( alpha_sx_ - beta_sx_ ) * exp(-x) ) / g2;
+    const double fac = 0.25 / ( mu_sx_ * mu_sx_ );
+    const double x = g2 * fac;
+    if ( g2 == 0 )
+      // return only the finite limit as g2 -> 0
+      return - ( alpha_sx_ - beta_sx_ ) * fac;
+    else if ( g2 < 1.e-6 )
+      // Use Taylor expansion of the regular part near origin
+      return alpha_sx_ / g2 + fac * beta_sx_ * ( 1.0 - 0.5 * x );
+    else
+      return ( beta_sx_ + ( alpha_sx_ - beta_sx_ ) * exp(-x) ) / g2;
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Derivative of the interaction potential vint(g2) w.r.t g2
 // dvint(g2) = d (vint(g2)) / d g2
-// dvint(g2) = vint(g2) * ( -1/g2 - 1/(4*w^2) )
-//
-//             exp( -g2 / 4 w^2 )   V(g2)
-// dvint(g2) = ------------------ - -----
-//                  4 g2 w^2         g2
 double ExchangeOperator::dvint(double g2)
 {
-  const double r1_4w2 = 0.25 / ( mu_sx_ * mu_sx_ );
-  const double x = g2 * r1_4w2;
-  const double third = 1.0 / 3.0;
+  // this function should not be called with mu_sx_ == 0.0 if alpha != beta
+  if ( alpha_sx_ != beta_sx_ ) assert(mu_sx_ != 0.0);
 
-  if ( g2 == 0 )
+  // check if zero potential
+  if ( ( alpha_sx_ == 0.0 ) && ( beta_sx_ == 0.0 ) )
+    return 0.0;
+
+  // Treat the Coulomb potential case separately (alpha_sx_ == beta_sx_)
+  if ( alpha_sx_ == beta_sx_ )
   {
-    if ( alpha_sx_ == 0.0 )
-    {
-      // if alpha_sx_ == 0, finite limit for g2 = 0
-      return -0.5 * beta_sx_ * r1_4w2 * r1_4w2;
-    }
-    else
+    // Coulomb potential with prefactor alpha_sx (= beta_sx)
+    if ( g2 == 0 )
       return 0.0;
-  }
-  else if ( g2 < 1e-6 )
-  {
-    // Taylor expansion near origin
-    return beta_sx_ * ( -0.5 + x * third ) * r1_4w2 * r1_4w2;
+    else
+      return - alpha_sx_ / ( g2 * g2 );
   }
   else
   {
-    // exact derivative
-    return - ( beta_sx_ / g2 +
-      ( alpha_sx_ - beta_sx_ ) * exp(-x) * ( r1_4w2 + 1.0/g2 ) ) / g2;
+    const double fac = 0.25 / ( mu_sx_ * mu_sx_ );
+    const double x = g2 * fac;
+    const double third = 1.0 / 3.0;
+    if ( g2 == 0 )
+      // return finite part of the limit only for g2 -> 0
+      return 0.5 * ( alpha_sx_ - beta_sx_ ) * fac * fac;
+    else if ( g2 < 1e-6 )
+      // Use Taylor expansion of regular term near origin
+      // return beta_sx_ * ( -0.5 + fac * g2 * third ) * fac * fac;
+      return - alpha_sx_ / ( g2 * g2 ) +
+             0.5 * ( alpha_sx_ - beta_sx_ ) * fac * fac -
+             ( alpha_sx_ - beta_sx_ ) * g2 * third * fac * fac * fac;
+    else
+      // exact derivative
+      return - ( beta_sx_ / g2 +
+        ( alpha_sx_ - beta_sx_ ) * exp(-x) * ( fac + 1.0/g2 ) ) / g2;
   }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// scaling of the divergence correction relative to the Coulomb potential
-//
-// integral( exp(-rcut^2 G^2) * V(G^2) )            x
-// ------------------------------------- = 1 - -------------
-//  integral( exp(-rcut^2 G^2) / G^2 )         sqrt(x^2 + 1)
-//
-// with x = 2 * rcut * mu_sx_
-double ExchangeOperator::vint_div_scal(double rc)
-{
-  //!! next lines only correct if alpha_sx_==0
-  assert(alpha_sx_==0.0);
-  const double x = 2.0 * rc * mu_sx_;
-  return 1 - x / sqrt(x * x + 1);
 }

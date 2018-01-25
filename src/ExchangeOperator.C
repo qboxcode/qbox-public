@@ -1295,14 +1295,14 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     // The interaction potential is
     // beta_sx*(1/r) + (alpha_sx-beta_sx)*erf(mu*r)/r
     // The coefficient of the long range term is alpha_sx
-    // subtract alpha_sx * exp(-alpha G^2)/G^2
+    // subtract alpha_sx * exp(-rc2*G^2)/G^2
     if ( alpha_sx_ != 0.0 )
     {
       for ( int ig = 0; ig < ngloc; ig++ )
       {
         // factor 2.0: real basis
         const double tg2i = g2i[ig];
-        double t = alpha_sx_ * 2.0 * exp( - rc2 * g2[ig] );
+        double t = alpha_sx_ * 2.0 * exp( - rc2 * g2[ig] ) * tg2i;
         SumExpG2 += t;
 
         if ( compute_stress )
@@ -1569,13 +1569,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             ex_sum_1 += t1;
             ex_sum_2 += t2;
 
-            if (dwf)
-            {
-              // compute rhog1_[G]*V(G) and rhog2_[G]*V(G)
-              rhog1_[ig] *= int_pot;
-              rhog2_[ig] *= int_pot;
-            }
-
             if ( compute_stress )
             {
               // dvint(g2) = d vint(g2)/d g2
@@ -1583,8 +1576,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgx = g_x[ig];
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
-              // factor 2.0: derivative of G^2
-              const double fac1 = -2.0 * norm(rhog1_[ig]) * d_int_pot;
+              // factor 4.0: derivative of G^2 and real basis
+              const double fac1 = -4.0 * norm(rhog1_[ig]) * d_int_pot;
               sigma_sum_1[0] += fac1 * tgx * tgx;
               sigma_sum_1[1] += fac1 * tgy * tgy;
               sigma_sum_1[2] += fac1 * tgz * tgz;
@@ -1592,13 +1585,20 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               sigma_sum_1[4] += fac1 * tgy * tgz;
               sigma_sum_1[5] += fac1 * tgz * tgx;
 
-              const double fac2 = -2.0 * norm(rhog2_[ig]) * d_int_pot;
+              const double fac2 = -4.0 * norm(rhog2_[ig]) * d_int_pot;
               sigma_sum_2[0] += fac2 * tgx * tgx;
               sigma_sum_2[1] += fac2 * tgy * tgy;
               sigma_sum_2[2] += fac2 * tgz * tgz;
               sigma_sum_2[3] += fac2 * tgx * tgy;
               sigma_sum_2[4] += fac2 * tgy * tgz;
               sigma_sum_2[5] += fac2 * tgz * tgx;
+            }
+
+            if (dwf)
+            {
+              // compute rhog1_[G]*V(G) and rhog2_[G]*V(G)
+              rhog1_[ig] *= int_pot;
+              rhog2_[ig] *= int_pot;
             }
           }
 
@@ -1766,8 +1766,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
               const double tgx = g_x[ig];
               const double tgy = g_y[ig];
               const double tgz = g_z[ig];
-              // factor 2.0: derivative of G^2
-              const double fac = -2.0 * norm(rhog1_[ig]) * dvint(g2[ig]);
+              // factor 4.0: derivative of G^2 and real basis
+              const double fac = -4.0 * norm(rhog1_[ig]) * dvint(g2[ig]);
               sigma_sum_1[0] += fac * tgx * tgx;
               sigma_sum_1[1] += fac * tgy * tgy;
               sigma_sum_1[2] += fac * tgz * tgz;

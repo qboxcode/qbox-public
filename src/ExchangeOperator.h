@@ -177,9 +177,6 @@ class ExchangeOperator
   double dvint(double g2);
   double vint_div_scal(double rc);
 
-  // coulomb potential flag (true if alpha_sx==beta_sx)
-  bool coulomb_;
-
   public:
 
   // constructor

@@ -15,6 +15,18 @@
 // ExchangeOperator.C
 //
 ////////////////////////////////////////////////////////////////////////////////
+//
+// Screened exchange operator
+// Diagonal screening is used with interaction potential
+// vint(r) = alpha_sx  * erf(mu_sx*r)/r + beta_sx * erfc(mu_sx*r)/r
+// The parameters alpha_sx, beta_sx and mu_sx are provided to the constructor
+//
+// Special cases:
+// alpha_sx = beta_sx = 0: no interaction
+// alpha_sx = beta_sx: Coulomb potential with prefactor alpha_sx (= beta_sx)
+// alpha_sx = 0, beta_sx = 0.25, mu = 0.11: HSE
+//
+////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
 #include <fstream>
@@ -39,7 +51,6 @@ ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
   double beta_sx, double mu_sx ) :
   s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf),
   alpha_sx_(alpha_sx), beta_sx_(beta_sx), mu_sx_(mu_sx),
-  coulomb_(alpha_sx==beta_sx),
   gcontext_(s.wf.sd(0,0)->context())
 {
   // check validity of the values of alpha_sx, beta_sx, mu_sx

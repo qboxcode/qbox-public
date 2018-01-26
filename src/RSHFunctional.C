@@ -50,9 +50,8 @@ const double A = 1.0161144, B = -0.37170836, C = -0.077215461, D = 0.57786348,
 // constructor
 RSHFunctional::RSHFunctional(const vector<vector<double> > &rhoe,
   double alpha_RSH, double beta_RSH, double mu_RSH):
-//!! todo: remove x_coeff and c_coeff initialization in next line
-  x_coeff_(0.75), c_coeff_(1.0), alpha_RSH_(alpha_RSH), beta_RSH_(beta_RSH),
-  mu_RSH_(mu_RSH), omega(mu_RSH)
+  alpha_RSH_(alpha_RSH), beta_RSH_(beta_RSH), mu_RSH_(mu_RSH), omega(mu_RSH),
+  x_coeff_(1.0-beta_RSH), c_coeff_(1.0)
 {
   // nonmagnetic or magnetic
   _nspin = rhoe.size();

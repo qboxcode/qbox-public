@@ -6,7 +6,8 @@ atom Si1 silicon  3.700 -0.100  0.300
 atom Si2 silicon -0.100  2.800 -0.200
 atom Si3 silicon -3.700  0.100  0.300
 atom Si4 silicon -0.100 -2.800 -0.200
-strain 0.02 0.04 0.06 0.03 0.05 0.07
+#strain 0.02 0.04 0.06 0.03 0.05 0.07
+strain 0.0 0.0 0.0 0.00 0.0 0.0
 params.i
 set wf_dyn PSDA
 set stress ON

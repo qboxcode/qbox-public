@@ -1,11 +1,11 @@
 #!/bin/bash
 #
-# Test the accuracy of the computed stress tensor by comparing it with a 
+# Test the accuracy of the computed stress tensor by comparing it with a
 # finite difference calculation of dE=tr(u*sigma)
 #
 # use: ./check_stress.sh [energy_term sigma_name] file.r
-#      If energy_term and sigma_name are not specified, 
-#      the terms ekin, eps, 
+#      If energy_term and sigma_name are not specified,
+#      the terms ekin, eps,
 # example: ./check_stress.sh ekin sigma_ekin gs.r
 #
 # The output file file.r must contain the following sequence
@@ -29,11 +29,11 @@ function check_stress_term
   file=$3
 
   echo $eterm $sigma_name
-  
+
   # read volume
   volume=$(grep '<unit_cell_volume>' $file | awk '{print $2}')
   echo volume: $volume
-  
+
   # compute energy difference E(+u)-E(-u)
   ep=$(grep '<'$eterm'>' $file | awk 'NR==2 {print $2}')
   em=$(grep '<'$eterm'>' $file | awk 'NR==3 {print $2}')
@@ -41,8 +41,8 @@ function check_stress_term
   echo em: $em
   de=$(echo "$ep - $em" | bc -l)
   echo de: $de
-  
-  # read strain 
+
+  # read strain
   u=$(grep '<cmd>' $file | grep strain | head -1 | \
     sed "s/<cmd>//" | sed "s/<\/cmd>//" | sed "s/\[qbox\]//" | sed "s/strain//")
   # echo $u
@@ -54,7 +54,7 @@ function check_stress_term
   uyz=$(echo ${strain[4]})
   uxz=$(echo ${strain[5]})
   echo strain: $uxx $uyy $uzz $uxy $uyz $uxz
-  
+
   # read computed stress tensor
   sxx=$(grep '<'${sigma_name}_xx'>' $file |head -1| awk '{print $2}')
   syy=$(grep '<'${sigma_name}_yy'>' $file |head -1| awk '{print $2}')
@@ -63,19 +63,19 @@ function check_stress_term
   syz=$(grep '<'${sigma_name}_yz'>' $file |head -1| awk '{print $2}')
   sxz=$(grep '<'${sigma_name}_xz'>' $file |head -1| awk '{print $2}')
   echo stress: $sxx $syy $szz $sxy $syz $sxz
-  
+
   # compute energy change from 2 * volume * tr(sigma*u)
   de_comp=$(echo "-2.0 * $volume * ($uxx * $sxx + $uyy * $syy + $uzz * $szz + \
    2.0 * ( $uxy * $sxy + $uyz * $syz + $uxz * $sxz) )" | bc -l)
   printf "E(+u)-E(-u):     %15.6e\n" $de
   printf "2*v*tr(sigma*u): %15.6e\n" $de_comp
-  
+
   # compute absolute error
   abs_err=$(echo "$de - $de_comp" | bc -l)
   printf "abs error:       %15.6e\n" $abs_err
   rel_err=$(echo "$abs_err / $de" | bc -l)
   printf "rel error:       %15.6e\n" $rel_err
-  
+
   echo "==============================================================="
 }
 

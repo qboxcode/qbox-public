@@ -32,7 +32,6 @@ using namespace std;
 #include "Base64Transcoder.h"
 #include <unistd.h>
 
-#define VEXT_TIMING true
 
 ////////////////////////////////////////////////////////////////////////////////
 int ResponseCmd::action(int argc, char **argv)
@@ -346,23 +345,23 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
                           s->vext->amplitude();
     }
   }
-  // at this point, drho has been computed (and distributed on column context)
+  // at this point, drho_r has been computed and distributed on column context
 
+  // now write drho_r to disk
   const Context* ctxt = s->wf.spincontext();
   int nprow = ctxt->nprow();
   int npcol = ctxt->npcol();
   int myrow = ctxt->myrow();
   int mycol = ctxt->mycol();
-#if VEXT_TIMING
   Timer tm_comm_drho, tm_write_drho;
-#endif
+
   if (io == "base64_parallel")
   {
 #if ! USE_MPI
     cout << "cannot use parallel_io when running in serial" << endl;
 #endif
-    // parallel write with base64-encoding
-    // all processors on the first column write collectively
+    // MPI parallel writing with base64 encoding
+    // all processors on column 1 write collectively
     Base64Transcoder xcdr;
     int lastproc = nprow - 1;
     while ( lastproc >= 0 && ft2.np2_loc(lastproc) == 0 ) lastproc --;
@@ -372,9 +371,8 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
     {
       // following part is a modified version of SlaterDet::write in SlaterDet.C
       // use group of 3 algorithm to adjust the size of drhor on each processor
-#if VEXT_TIMING
       tm_comm_drho.start();
-#endif
+
       int ndiff;
       assert(drho_r[ispin].size()==n012loc);
       if ( myrow == 0 )
@@ -484,9 +482,9 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
       else
         filename = s->vext->filename() + ".response."
                    + ((ispin == 0) ? "spin0" : "spin1");
-#if VEXT_TIMING
+
       tm_comm_drho.stop();
-#endif
+
       if ( mycol == 0 )
       {
         // compute offset
@@ -494,9 +492,8 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
         MPI_Scan(&nchars, &offset, 1, MPI_INT, MPI_SUM, basis.comm());
         offset -= nchars;
         // write file
-#if VEXT_TIMING
         tm_write_drho.start();
-#endif
+
         MPI_File fh;
         MPI_Info info;
         MPI_Info_create(&info);
@@ -517,9 +514,8 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
         err = MPI_File_close(&fh);
         if ( err != 0 )
           cout << myrow << ": error in MPI_File_close: " << err << endl;
-#if VEXT_TIMING
+
         tm_write_drho.stop();
-#endif
       }
 
       delete [] wbuf;
@@ -527,8 +523,9 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
   }
   else if (io == "base64_serial" or io == "cube")
   {
-    // serial write with base64-encoding or cube format
-    // first processor on each column collect drhor
+    // serial write with base64 encoding or cube format
+    // processors on row 1 collect drho from other rows
+    // processor at row 1, column 1 write drho to disk
     vector<double> drho_r_gathered;
     if (myrow == 0)
       drho_r_gathered.resize(ft2.np012());
@@ -545,14 +542,11 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
 
     for (int ispin = 0; ispin < nspin; ispin++)
     {
-#if VEXT_TIMING
       tm_comm_drho.start();
-#endif
       MPI_Gatherv(&drho_r[ispin][0], ft2.np012loc(), MPI_DOUBLE, &drho_r_gathered[0],
                   &rcounts[0], &displs[0], MPI_DOUBLE, 0, vcomm);
-#if VEXT_TIMING
       tm_comm_drho.stop();
-#endif
+
       if ( myrow == 0 && mycol == 0 )
       {
         string filename;
@@ -564,7 +558,7 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
         if (io == "base64_serial")
         {
           Base64Transcoder xcdr;
-          // transform drhor (stored in drho_r_gathered) to base 64 encoding
+          // transform drhor (stored in drho_r_gathered) to base64 encoding
           int nbytes = drho_r_gathered.size() * sizeof(double);
           int nchars = xcdr.nchars(nbytes);
           char *wbuf = new char[nchars];
@@ -578,9 +572,8 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
         else
         {
           // write cube file
-#if VEXT_TIMING
           tm_write_drho.start();
-#endif
+
           ofstream os(filename.c_str(), ios::out);
           // comment lines (first 2 lines of cube file)
           os << "Created " << isodate() << " by qbox-" << release() << "\n";
@@ -618,9 +611,8 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
                 os << drho_r_gathered[ir] << "\n";
               }
           os.close();
-#if VEXT_TIMING
+
           tm_write_drho.stop();
-#endif
         } // if io = base64_serial || cube
       } //if ( myrow == 0 && mycol == 0 )
     }
@@ -630,7 +622,6 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
     cout << "unknown io scheme" << endl;
   } // select case io
 
-#if VEXT_TIMING
   double time, tmin, tmax;
   time = tm_comm_drho.real();
   tmin = time;
@@ -652,7 +643,6 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
     cout << "  Time to write drho "
          << "min: " << tmin << " max: " << tmax << endl;
   }
-#endif
 
   delete stepper;
 }

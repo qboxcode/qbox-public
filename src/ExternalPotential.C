@@ -120,6 +120,7 @@ void ExternalPotential::update(const ChargeDensity& cd)
       vext_read.resize(n012_);
       xcdr.decode(nchars, rbuf, (byte *) (&vext_read[0]));
       vfile.close();
+      delete [] rbuf;
     }
   }
   tm_read_vext.stop();
@@ -226,6 +227,8 @@ void ExternalPotential::update(const ChargeDensity& cd)
       int j = 0;
       for ( int i = istart; i <= iend; i++ )
         vext_read_loc[j++] = tmpr[i];
+
+      delete [] rbuf;
       tm_read_vext.stop();
     } // if mycol == 0
 

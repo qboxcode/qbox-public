@@ -521,6 +521,8 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
         tm_write_drho.stop();
 #endif
       }
+
+      delete [] wbuf;
     } // for ispin
   }
   else if (io == "base64_serial" or io == "cube")
@@ -571,6 +573,7 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
           ofstream os(filename.c_str(), ios::out | ios::binary);
           os.write(wbuf, nchars);
           os.close();
+          delete [] wbuf;
         }
         else
         {

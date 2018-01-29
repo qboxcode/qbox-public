@@ -16,7 +16,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#define VEXT_TIMING true
 #include <unistd.h>
 
 #include <iostream>
@@ -46,21 +45,16 @@ void ExternalPotential::update(const ChargeDensity& cd)
   int mycol = ctxt->mycol();
   MPI_Comm vcomm = cd.vcomm();
 
-#if VEXT_TIMING
   Timer tm_read_vext, tm_comm_vext;
   double time, tmin, tmax;
-#endif
 
-  // vext_read stores the whole vext read from processes on row 1
-  // in cube mode and base64_serial mode
-  // vext_read_loc stores the vext distributed to all processors
-  // in base64_parallel mode, vext_read_loc is directly read from file
+  // In cube mode and base64_serial mode, the whole external potential is
+  // read by all processors on row 1 and stored in vext_read
+  // In base64_parallel mode, each processor on column 1 read part of external
+  // potential and store in vext_read_loc
   vector<double> vext_read, vext_read_loc;
 
-  // now get vext_read, if base64_parallel mode then skip this step
-#if VEXT_TIMING
   tm_read_vext.start();
-#endif
   if ( io_ == "cube" )
   {
     // read cube file, n_'s are determined by cube file
@@ -128,18 +122,17 @@ void ExternalPotential::update(const ChargeDensity& cd)
       vfile.close();
     }
   }
-#if VEXT_TIMING
   tm_read_vext.stop();
-#endif
-  // now, regardless of io mode, all processes have correct n_
-  // construct 2 Fourier transforms ft1 and ft2 according to n_.
-  // ft1 is used to transform vext_read_loc to vext_g (g space)
-  // ft2 is used to transform vext_g to vext_r_ (r space)
-  // the whole process is a Fourier interpolation/extrapolation
-  // to the charge density grid
+  // at this point, all processes have correct n_ regardless of io mode
 
-  // first create a Basis compatible with the vext_read from file, ecut is chosen to
-  // be the largest possible value that is compatible with vext and current unit cell
+  // now construct 2 Fourier transforms ft1 and ft2
+  // ft1 is used to transform vext_read_loc to vext_g (G space)
+  // ft2 is used to transform vext_g to vext_r_ (R space)
+  // the whole process is a Fourier interpolation/extrapolation
+  // of the external potential the charge density grid
+
+  // create a Basis with largest possible ecut that is compatible with
+  // the external potential grid from file
   const UnitCell& cell = cd.vbasis()->cell();
   int n0max = (n_[0]-2)/2;
   int n1max = (n_[1]-2)/2;
@@ -148,14 +141,15 @@ void ExternalPotential::update(const ChargeDensity& cd)
   double ecut1 = 0.5 * norm2(cell.b(1)) * n1max*n1max;
   double ecut2 = 0.5 * norm2(cell.b(2)) * n2max*n2max;
   ecut_ = min(min(ecut0,ecut1),ecut2);
-
   Basis basis(vcomm,D3vector(0,0,0));
   basis.resize(cell,cell,ecut_);
 
   FourierTransform *vft = cd.vft();
-  assert(basis.np(0)<=vft->np0());
-  assert(basis.np(1)<=vft->np1());
-  assert(basis.np(2)<=vft->np2());
+  // Following assertions are found to cause compatibility issues
+  // in Qbox-WEST coupling calculations
+  // assert(basis.np(0)<=vft->np0());
+  // assert(basis.np(1)<=vft->np1());
+  // assert(basis.np(2)<=vft->np2());
 
   FourierTransform ft1(basis,n_[0],n_[1],n_[2]);
   vext_read_loc.resize(ft1.np012loc());
@@ -166,17 +160,15 @@ void ExternalPotential::update(const ChargeDensity& cd)
 
   if ( io_== "base64_parallel" )
   {
-    // base64_parallel mode: all processor on column 0 read vext to
-    // vext_read_loc in parallel; then bcast to other columns
+    // base64_parallel mode: all processors on column 0 read
+    // in parallel, then bcast to other columns
     int np012 = ft1.np012();
     int np012loc = ft1.np012loc();
     int lastproc = nprow - 1;
     while ( lastproc >=0 && ft1.np2_loc(lastproc) == 0 ) lastproc --;
     if ( mycol == 0 )
     {
-#if VEXT_TIMING
       tm_read_vext.start();
-#endif
       Base64Transcoder xcdr;
       int np012end;
       MPI_Scan(&np012loc, &np012end, 1, MPI_INT, MPI_SUM, vcomm);
@@ -234,29 +226,22 @@ void ExternalPotential::update(const ChargeDensity& cd)
       int j = 0;
       for ( int i = istart; i <= iend; i++ )
         vext_read_loc[j++] = tmpr[i];
-#if VEXT_TIMING
       tm_read_vext.stop();
-#endif
     } // if mycol == 0
-#if VEXT_TIMING
+
     tm_comm_vext.start();
-#endif
     // bcast vext_read_loc to other columns
     if ( mycol == 0 )
       ctxt->dbcast_send('r',np012loc,1,&vext_read_loc[0],np012loc);
     else
       ctxt->dbcast_recv('r',np012loc,1,&vext_read_loc[0],np012loc, myrow, 0);
-#if VEXT_TIMING
     tm_comm_vext.stop();
-#endif
   }
   else
   {
-#if VEXT_TIMING
-    tm_comm_vext.start();
-#endif
     // base64_serial mode or cube mode: processors on row 0 scatter
-    // vext_read to vext_read_loc on other rows
+    // vext to other rows
+    tm_comm_vext.start();
     vector<int> scounts(nprow,0);
     vector<int> sdispls(nprow,0);
     int displ = 0;
@@ -268,27 +253,22 @@ void ExternalPotential::update(const ChargeDensity& cd)
     }
     MPI_Scatterv(&vext_read[0],&scounts[0],&sdispls[0],MPI_DOUBLE,
                  &vext_read_loc[0],ft1.np012loc(),MPI_DOUBLE,0,vcomm);
-#if VEXT_TIMING
     tm_comm_vext.stop();
-#endif
   }
+
   // now vext_read_loc on all processors contains the correct portion of vext
   // Fourier forward transform vext_read_loc to vext_g
   vector<complex<double> > tmp_r(ft1.np012loc());
   for ( int ir = 0; ir < tmp_r.size(); ir++ )
     tmp_r[ir] = complex<double>(vext_read_loc[ir],0);
   ft1.forward(&tmp_r[0],&vext_g[0]);
-  // Fourier backward transform vext_g_ to vext_r_
+  // Fourier backward transform vext_g to vext_r_
   tmp_r.resize(ft2.np012loc());
   ft2.backward(&vext_g[0],&tmp_r[0]);
   for ( int i = 0; i < vext_r_.size(); i++ )
     vext_r_[i] = real(tmp_r[i]);
   if ( onpe0 )
   {
-//    cout << "  ExternalPotential::update: magnitude: " << magnitude_ << endl;
-//    cout << "  ExternalPotential::update: ecut0: " << ecut0 << endl;
-//    cout << "  ExternalPotential::update: ecut1: " << ecut1 << endl;
-//    cout << "  ExternalPotential::update: ecut2: " << ecut2 << endl;
     cout << "  ExternalPotential::update: read external potential from file:  "
          << filename_ << endl;
     cout << "  ExternalPotential::update: grid size n0 = " << n_[0] << ", n1 = " << n_[1]
@@ -296,9 +276,6 @@ void ExternalPotential::update(const ChargeDensity& cd)
     cout << "  ExternalPotential::update: ecut:  " << ecut_ << endl;
     if ( amplitude_ != 0 )
       cout << "  ExternalPotential::update: amplitude:  " << amplitude_ << endl;
-//    cout << "  ExternalPotential::update: np0: " << basis.np(0) << endl;
-//    cout << "  ExternalPotential::update: np1: " << basis.np(1) << endl;
-//    cout << "  ExternalPotential::update: np2: " << basis.np(2) << endl;
   }
   if ( amplitude_ == 0.0 )
   {
@@ -316,7 +293,6 @@ void ExternalPotential::update(const ChargeDensity& cd)
            << amplitude_ << " (max abs value of vext = " << magnitude_ << ")" << endl;
   }
 
-#if VEXT_TIMING
   time = tm_read_vext.real();
   tmin = time;
   tmax = time;
@@ -337,7 +313,6 @@ void ExternalPotential::update(const ChargeDensity& cd)
     cout << "  ExternalPotential::update: Time to communicate vext file "
          << "min: " << tmin << " max: " << tmax << endl;
   }
-#endif
 }
 
 double ExternalPotential::compute_eext(const ChargeDensity& cd)

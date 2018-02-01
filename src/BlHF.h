@@ -46,10 +46,10 @@ class BlHF : public Var
     int v0 = atoi(argv[1]);
     int v1 = atoi(argv[2]);
     int v2 = atoi(argv[3]);
-    if ( v0 < 0 || v1 < 0 || v2 < 0 )
+    if ( v0 < 0 || v1 < 0 || v2 < 0 || v0 > 5 || v1 > 5 || v2 > 5 )
     {
       if ( ui->onpe0() )
-        cout << " blHF values must be > 0" << endl;
+        cout << " blHF values must be in [0,5]" << endl;
       return 1;
     }
 

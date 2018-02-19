@@ -408,26 +408,12 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
 
 
 
-  //test Exc functionals
-  //ex = 1.0;
-  //vx1 = 1.0;
-  //vx2 = 0.0;
-  //vx3 = 0.0;
+  //test Exc functional
 
-  //ex = -0.5 grad * grad / rho;
-  //vx1 = 0.0;
-  //vx2 = 1.0;
-  //vx3 = 0.0;
-
-  //ex = tau / rho;
-  //vx1 = 0.0;
-  //vx2 = 0.0;
-  //vx3 = 1.0;
-
-  //*exc = ex;
-  //*vxc1 = vx1;
-  //*vxc2 = vx2;
-  //*vxc3 = vx3;
+  //*exc = tau / rho;
+  //*vxc1 = 0.0;
+  //*vxc2 = 0.0;
+  //*vxc3 = 1.0;
 }
 
 //////////////////////////////////////////////////////////////////////////////

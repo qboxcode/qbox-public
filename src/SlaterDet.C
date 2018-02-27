@@ -370,8 +370,7 @@ void SlaterDet::compute_tau(FourierTransform& ft,
 
   if ( basis_->real() )
   {
-  vector<complex<double> > taug0(ngwloc);
-  vector<complex<double> > taug1(ngwloc);
+    vector<complex<double> > taug0(ngwloc), taug1(ngwloc);
     // transform two states at a time
     for ( int n = 0; n < nstloc()-1; n++, n++ )
     {

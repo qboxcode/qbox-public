@@ -278,14 +278,15 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
         DoubleMatrix dcref_proxy(dwf_ref.sd(ispin,ikp)->c());
         dc_proxy += dcref_proxy;
 #else
-        DoubleMatrix matproj1(ctxt,nst,nst);
-        DoubleMatrix matproj2(ctxt,nst,nst);
-        DoubleMatrix matenergy(ctxt,nst,nst);
-
         DoubleMatrix c_proxy(s_.wf.sd(ispin,ikp)->c());
         DoubleMatrix dc_proxy(dwf.sd(ispin,ikp)->c());
         DoubleMatrix cref_proxy(wf_ref.sd(ispin,ikp)->c());
         DoubleMatrix dcref_proxy(dwf_ref.sd(ispin,ikp)->c());
+
+	int nb = c_proxy.nb();
+        DoubleMatrix matproj1(ctxt,nst,nst,nb,nb);
+        DoubleMatrix matproj2(ctxt,nst,nst,nb,nb);
+        DoubleMatrix matenergy(ctxt,nst,nst,nb,nb);
 
         // matproj1 = <wf_ref|wf> => matproj1
         matproj1.gemm('t','n',2.0,cref_proxy,c_proxy,0.0);
@@ -311,14 +312,15 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
       }
       else // complex wave functions
       {
-        ComplexMatrix matproj1(ctxt,nst,nst);
-        ComplexMatrix matproj2(ctxt,nst,nst);
-        ComplexMatrix matenergy(ctxt,nst,nst);
-
         ComplexMatrix &c(s_.wf.sd(ispin,ikp)->c());
         ComplexMatrix &dc(dwf.sd(ispin,ikp)->c());
         ComplexMatrix &cref(wf_ref.sd(ispin,ikp)->c());
         ComplexMatrix &dcref(dwf_ref.sd(ispin,ikp)->c());
+	
+	int nb = c.nb();
+        ComplexMatrix matproj1(ctxt,nst,nst,nb,nb);
+        ComplexMatrix matproj2(ctxt,nst,nst,nb,nb);
+        ComplexMatrix matenergy(ctxt,nst,nst,nb,nb);
 
         // matproj1 = <wf_ref|wf>
         matproj1.gemm('c','n',1.0,cref,c,0.0);

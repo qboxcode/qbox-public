@@ -446,11 +446,11 @@ void SlaterDet::compute_tau(FourierTransform& ft,
       {
         for ( int j = 0; j < 3; j++ )
         {
-          const double *const gxj = basis_->gx_ptr(j);
+          const double *const kpgxj = basis_->kpgx_ptr(j);
           for ( int ig = 0; ig < ngwloc; ig++ )
           {
-            // i*G_j*c(G)
-            taug[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+            // i*(k+G)_j*c(G)
+            taug[ig] = complex<double>(0.0,kpgxj[ig]) * p[ig+n*mloc];
           }
           ft.backward(&taug[0],&tmp[0]);
           for ( int i = 0; i < np012loc; i++ )

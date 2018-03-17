@@ -655,11 +655,11 @@ void XCPotential::apply_meta_operator(Wavefunction& dwf)
           for ( int j = 0; j < 3; j++ )
           {
             // Compute Grad_j psi_n(ikp)
-            const double *const gxj = wf0.sd(ispin,ikp)->basis().gx_ptr(j);
+            const double *const kpgxj = wf0.sd(ispin,ikp)->basis().kpgx_ptr(j);
             for ( int ig = 0; ig < ngwloc; ig++ )
             {
-              /* i*G_j*c(G) */
-              tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+              // i*(k+G)_j*c(G)
+              tmp0[ig] = complex<double>(0.0,kpgxj[ig]) * p[ig+n*mloc];
             }
             cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
             // Compute V3 * Grad_j psi_n(ikp)
@@ -671,8 +671,8 @@ void XCPotential::apply_meta_operator(Wavefunction& dwf)
             // Note -1/2 comes from definition of V3
             for ( int ig = 0; ig < ngwloc; ig++ )
             {
-              /* i*G_j*c(G) */
-              dp[ig+n*mloc] += -0.5 * complex<double>(0.0,gxj[ig]) * tmp0[ig];
+              // i*(k+G)_j*c(G)
+              dp[ig+n*mloc] += -0.5 * complex<double>(0.0,kpgxj[ig]) * tmp0[ig];
             }
           }
         }

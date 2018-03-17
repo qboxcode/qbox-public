@@ -63,6 +63,7 @@ using namespace std;
 #include "RandomizeRCmd.h"
 #include "RandomizeVCmd.h"
 #include "RandomizeWfCmd.h"
+#include "ResetRotationCmd.h"
 #include "ResetVcmCmd.h"
 #include "RescaleVCmd.h"
 #include "RseedCmd.h"
@@ -280,6 +281,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new RandomizeVCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
   ui.addCmd(new RescaleVCmd(s));
+  ui.addCmd(new ResetRotationCmd(s));
   ui.addCmd(new ResetVcmCmd(s));
   ui.addCmd(new RseedCmd(s));
   ui.addCmd(new RunCmd(s));

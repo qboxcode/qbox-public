@@ -503,6 +503,25 @@ void AtomSet::randomize_velocities(double temp)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+D3vector AtomSet::rcm(void) const
+{
+  D3vector mrsum;
+  double msum = 0.0;
+  for ( int is = 0; is < atom_list.size(); is++ )
+  {
+    double mass = species_list[is]->mass();
+    for ( int ia = 0; ia < atom_list[is].size(); ia++ )
+    {
+      D3vector r = atom_list[is][ia]->position();
+      mrsum += mass * r;
+      msum += mass;
+    }
+  }
+  if ( msum == 0.0 ) return D3vector(0,0,0);
+  return mrsum / msum;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 D3vector AtomSet::vcm(void) const
 {
   D3vector mvsum;
@@ -539,6 +558,142 @@ void AtomSet::reset_vcm(void)
     }
   }
   set_velocities(v);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void AtomSet::reset_rotation(void)
+{
+  // check for special case of zero or one atom
+  if ( size() < 2 ) return;
+
+  D3vector rc = rcm();
+  D3vector vc = vcm();
+  vector<vector<double> > rt;
+  get_positions(rt);
+  vector<vector<double> > vt;
+  get_velocities(vt);
+
+  // compute angular momentum w.r.t. the center of mass
+  D3vector L;
+  for ( int is = 0; is < vt.size(); is++ )
+  {
+    double mass = species_list[is]->mass();
+    for ( int ia = 0; ia < na(is); ia++ )
+    {
+      D3vector r(rt[is][3*ia+0],rt[is][3*ia+1],rt[is][3*ia+2]);
+      r -= rc;
+      D3vector v(vt[is][3*ia+0],vt[is][3*ia+1],vt[is][3*ia+2]);
+      v -= vc;
+      L += mass * ( r ^ v );
+    }
+  }
+
+  // compute inertia tensor a and vector omega
+
+  // check for special case of all atoms aligned, for which the
+  // inertia tensor has a zero eigenvalue
+
+  // check if all atoms are aligned
+  // collect all positions in a single vector of D3vectors
+  vector<D3vector> rv(size());
+  int iat = 0;
+  for ( int is = 0; is < vt.size(); is++ )
+    for ( int ia = 0; ia < na(is); ia++ )
+      rv[iat++] = D3vector(rt[is][3*ia+0],rt[is][3*ia+1],rt[is][3*ia+2]);
+
+  // normalized direction e = (rv[1]-rv[0])
+  D3vector e = normalized(rv[1]-rv[0]);
+  bool aligned = true;
+  for ( int i = 2; (i < size()) && aligned; i++ )
+  {
+    D3vector u = normalized(rv[i]-rv[0]);
+    aligned &= length(u^e) < 1.e-6;
+  }
+
+  D3vector omega;
+  // compute the inertia tensor
+  // treat separately the case of all atoms aligned
+  if ( aligned )
+  {
+    // inertia tensor reduces to a scalar
+    double a = 0.0;
+    for ( int is = 0; is < vt.size(); is++ )
+    {
+      double mass = species_list[is]->mass();
+      for ( int ia = 0; ia < na(is); ia++ )
+      {
+        D3vector r(rt[is][3*ia+0],rt[is][3*ia+1],rt[is][3*ia+2]);
+        r -= rc;
+        a += mass * norm2(r);
+      }
+    }
+    omega = L / a;
+  }
+  else
+  {
+    double a00,a01,a02,a10,a11,a12,a20,a21,a22;
+    a00=a01=a02=a10=a11=a12=a20=a21=a22=0.0;
+
+    for ( int is = 0; is < vt.size(); is++ )
+    {
+      double mass = species_list[is]->mass();
+      for ( int ia = 0; ia < na(is); ia++ )
+      {
+        D3vector r(rt[is][3*ia+0],rt[is][3*ia+1],rt[is][3*ia+2]);
+        r -= rc;
+        a00 += mass * ( r.y * r.y + r.z * r.z );
+        a11 += mass * ( r.x * r.x + r.z * r.z );
+        a22 += mass * ( r.x * r.x + r.y * r.y );
+        a01 -= mass * r.x * r.y;
+        a02 -= mass * r.x * r.z;
+        a12 -= mass * r.y * r.z;
+      }
+    }
+    a10 = a01;
+    a20 = a02;
+    a21 = a12;
+
+    // inverse b of the inertia tensor a
+    // determinant
+    double det = a00 * ( a11 * a22 - a21 * a12 ) -
+                 a01 * ( a10 * a22 - a20 * a12 ) +
+                 a02 * ( a10 * a21 - a20 * a11 );
+    // the determinant must be positive
+    assert(det>1.e-8);
+    double b00,b01,b02,b10,b11,b12,b20,b21,b22;
+    b00 = ( -a12*a21 + a11*a22 ) / det;
+    b10 = (  a12*a20 - a10*a22 ) / det;
+    b20 = ( -a11*a20 + a10*a21 ) / det;
+
+    b01 = (  a02*a21 - a01*a22 ) / det;
+    b11 = ( -a02*a20 + a00*a22 ) / det;
+    b21 = (  a01*a20 - a00*a21 ) / det;
+
+    b02 = ( -a02*a11 + a01*a12 ) / det;
+    b12 = (  a02*a10 - a00*a12 ) / det;
+    b22 = ( -a01*a10 + a00*a11 ) / det;
+
+    // omega = inverse(a) * L
+    omega.x = b00 * L.x + b01 * L.y + b02 * L.z;
+    omega.y = b10 * L.x + b11 * L.y + b12 * L.z;
+    omega.z = b20 * L.x + b21 * L.y + b22 * L.z;
+  }
+
+  // correct velocities: v = v - omega ^ r
+  for ( int is = 0; is < vt.size(); is++ )
+  {
+    double mass = species_list[is]->mass();
+    for ( int ia = 0; ia < na(is); ia++ )
+    {
+      D3vector r(rt[is][3*ia+0],rt[is][3*ia+1],rt[is][3*ia+2]);
+      r -= rc;
+      D3vector dv = omega ^ r;
+      vt[is][3*ia+0] -= dv.x;
+      vt[is][3*ia+1] -= dv.y;
+      vt[is][3*ia+2] -= dv.z;
+    }
+  }
+  set_velocities(vt);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

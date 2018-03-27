@@ -86,8 +86,6 @@ void SpeciesReader::uri_to_species(const string uri, Species& sp)
   parser->setFeature(XMLUni::fgXercesSchemaFullChecking, schemaFullChecking);
   parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
 
-  int errorCount = 0;
-
   int nlink = 0;
   string current_uri = uri;
 
@@ -101,7 +99,7 @@ void SpeciesReader::uri_to_species(const string uri, Species& sp)
       parser->setContentHandler(&handler);
       parser->setErrorHandler(&handler);
       parser->parse(uri.c_str());
-      errorCount = parser->getErrorCount();
+      // errorCount = parser->getErrorCount();
       delete sp_handler;
     }
 
@@ -198,8 +196,6 @@ void SpeciesReader::string_to_species(const string xmlstr, Species& sp)
   parser->setFeature(XMLUni::fgXercesSchemaFullChecking, schemaFullChecking);
   parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
 
-  int errorCount = 0;
-
   MemBufInputSource* memBufIS = 0;
 
   try
@@ -211,7 +207,7 @@ void SpeciesReader::string_to_species(const string xmlstr, Species& sp)
     parser->setContentHandler(&handler);
     parser->setErrorHandler(&handler);
     parser->parse(*memBufIS);
-    errorCount = parser->getErrorCount();
+    // errorCount = parser->getErrorCount();
     delete sp_handler;
   }
 

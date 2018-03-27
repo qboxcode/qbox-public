@@ -682,7 +682,6 @@ void AtomSet::reset_rotation(void)
   // correct velocities: v = v - omega ^ r
   for ( int is = 0; is < vt.size(); is++ )
   {
-    double mass = species_list[is]->mass();
     for ( int ia = 0; ia < na(is); ia++ )
     {
       D3vector r(rt[is][3*ia+0],rt[is][3*ia+1],rt[is][3*ia+2]);

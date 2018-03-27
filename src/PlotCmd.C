@@ -287,9 +287,6 @@ int PlotCmd::action(int argc, char **argv)
     bool compute_stress = false;
     ef.update_vhxc(compute_stress);
 
-    FourierTransform *vft = cd.vft();
-    Basis *vbasis = cd.vbasis();
-
     tmpr.resize(cd.vft()->np012());
     np0 = cd.vft()->np0();
     np1 = cd.vft()->np1();

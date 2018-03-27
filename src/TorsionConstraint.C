@@ -97,13 +97,12 @@ vector<vector<double> > &rp) const
   D3vector r4p(pr4p);
 
   const double h = 0.001;
-  const double fac = 0.5 / h;
   D3vector dx(h,0,0), dy(0,h,0), dz(0,0,h);
 
   // compute gradient at r
   D3vector g1,g2,g3,g4;
   grad_sigma(r1,r2,r3,r4,g1,g2,g3,g4);
-  const double a = torsion_angle(r1,r2,r3,r4);
+  // const double a = torsion_angle(r1,r2,r3,r4);
   double ng = g1*g1 + g2*g2 + g3*g3 + g4*g4;
   assert(ng>=0.0);
 
@@ -299,7 +298,6 @@ void TorsionConstraint::compute_force(const vector<vector<double> > &r0,
   D3vector f4(pf4);
 
   const double h = 0.001;
-  const double fac = 0.5 / h;
   D3vector dx(h,0,0), dy(0,h,0), dz(0,0,h);
 
   // compute gradient at r

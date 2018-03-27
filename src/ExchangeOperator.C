@@ -388,12 +388,6 @@ void ExchangeOperator::cell_moved(void)
 double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   Wavefunction* dwf, bool compute_stress)
 {
-  if ( compute_stress )
-  {
-    cout << " stress at general k-point not implemented" << endl;
-    gcontext_.abort(1);
-  }
-
   Timer tm;
   tm.start();
 
@@ -410,7 +404,6 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
 
   // initialize total exchange energy
   double exchange_sum = 0.0;
-  double extot = 0.0;
 
   // initialize stress
   sigma_exhf_ = 0.0;
@@ -418,13 +411,14 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
   // loop on spins
   for ( int ispin=0; ispin < nspin; ispin++ )
   {
-    // initialize the numerical correction
-    // to the exchange integrals over kpoints j
-    vector<double> numerical_correction(nkpoints);
+    vector<double> num_corr(nkpoints);
+    vector<vector<double> > sigma_num_corr(nkpoints);
     for ( int iKpi = 0; iKpi < nkpoints; iKpi++ )
-      numerical_correction[iKpi]=0.0;
+    {
+      num_corr[iKpi]=0.0;
+      sigma_num_corr[iKpi].resize(6,0.0);
+    }
 
-    // loop over the kpoints
     for ( int iKpi = 0; iKpi < nkpoints; iKpi++ )
     {
       SlaterDet& sdi = *(wf.sd(ispin,iKpi));
@@ -439,16 +433,16 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
       // occupation numbers for kpoint i
       const double* occ = sdi.occ_ptr();
       for ( int i = 0; i<nStatesKpi_; i++ )
-        occ_ki_[i]=occ[ci.jglobal(i)];
+        occ_ki_[i] = occ[ci.jglobal(i)];
 
       // copy of the local states at kpoint iKpi
       const complex<double> *p = ci.cvalptr(0);
-      for ( int i = 0, bound = nStatesKpi_ * ci.mloc(); i < bound; i++ )
+      for ( int i = 0; i < nStatesKpi_ * ci.mloc(); i++ )
         state_kpi_[i]=p[i];
 
       if (dwf)
       {
-        for ( int i = 0, bound = nStatesKpi_ * dci.mloc(); i < bound; i++ )
+        for ( int i = 0; i < nStatesKpi_ * ci.mloc(); i++ )
           force_kpi_[i] = 0.0;
       }
 
@@ -469,7 +463,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
 
         CompleteSendingStates(iRotationStep);
 
-        for ( int i = 0, bound = nStatesKpi_ * ci.mloc(); i < bound; i++ )
+        for ( int i = 0; i < nStatesKpi_ * ci.mloc(); i++ )
           send_buf_states_[i]=state_kpi_[i];
 
         if (dwf)
@@ -527,50 +521,88 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                      +  dk2.y*sdi.basis().cell().b(1)
                      +  dk2.z*sdi.basis().cell().b(2);
 
-          // compupte correction term exp(-rcut_^2*(q+G)^2)/(q+G)^2
+          // compute correction term exp(-rcut_^2*(q+G)^2)/(q+G)^2
           // compute and store vint(q1+G) and vint(q2+G)
           double SumExpQpG2 = 0.0;
+          double sigma_sumexp[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
           const int ngloc = vbasis_->localsize();
           for ( int ig = 0; ig < ngloc; ig++ )
           {
             D3vector G(vbasis_->gx(ig+ngloc*0),
                        vbasis_->gx(ig+ngloc*1),
                        vbasis_->gx(ig+ngloc*2));
+            D3vector q1pG(q1+G);
+            D3vector q2pG(q2+G);
+            const double q1pG2 = norm2(q1pG);
+            int_pot1_[ig] = vint(q1pG2);
 
-            const double qpG21 = ( G + q1 ) * ( G + q1 );
-            int_pot1_[ig] = vint(qpG21);
-
-            const double qpG22 = ( G + q2 ) * ( G + q2 );
-            int_pot2_[ig] = vint(qpG22);
+            const double q2pG2 = norm2(q2pG);
+            int_pot2_[ig] = vint(q2pG2);
 
             // if iKpi=0 (first k point)
-            // correction term: sum_(G,q) exp(-rcut_^2*|G+q|^2)/(G+q)^2
+            // correction term: sum_(G,q) exp(-rcut_^2*|q+G|^2)/(q+G)^2
             if ( (iRotationStep==0) && (alpha_sx_ != 0.0))
             {
               const double rc2 = rcut_*rcut_;
-              const double qpG2i1 = ( qpG21 > 0.0 ) ? 1.0 / qpG21 : 0.0;
-              const double qpG2i2 = ( qpG22 > 0.0 ) ? 1.0 / qpG22 : 0.0;
-              SumExpQpG2 += alpha_sx_ * (exp(-rc2*qpG21) * qpG2i1 );
-              SumExpQpG2 += alpha_sx_ * (exp(-rc2*qpG22) * qpG2i2 );
-              //!! add here contributions to stress from correction
+              const double q1pG2i = ( q1pG2 > 0.0 ) ? 1.0 / q1pG2 : 0.0;
+              const double q2pG2i = ( q2pG2 > 0.0 ) ? 1.0 / q2pG2 : 0.0;
+              const double t1 = alpha_sx_ * (exp(-rc2*q1pG2) * q1pG2i );
+              const double t2 = alpha_sx_ * (exp(-rc2*q2pG2) * q2pG2i );
+              SumExpQpG2 += t1 + t2;
+              if ( compute_stress )
+              {
+                const double tq1pGx = q1pG.x;
+                const double tq1pGy = q1pG.y;
+                const double tq1pGz = q1pG.z;
+
+                const double tq2pGx = q2pG.x;
+                const double tq2pGy = q2pG.y;
+                const double tq2pGz = q2pG.z;
+
+                // factor 2.0: derivative of (q+G)^2
+                const double fac1 = t1 * 2.0 * ( rc2 + q1pG2i );
+                const double fac2 = t2 * 2.0 * ( rc2 + q2pG2i );
+                sigma_sumexp[0] += fac1 * tq1pGx * tq1pGx +
+                                   fac2 * tq2pGx * tq2pGx;
+                sigma_sumexp[1] += fac1 * tq1pGy * tq1pGy +
+                                   fac2 * tq2pGy * tq2pGy;
+                sigma_sumexp[2] += fac1 * tq1pGz * tq1pGz +
+                                   fac2 * tq2pGz * tq2pGz;
+                sigma_sumexp[3] += fac1 * tq1pGx * tq1pGy +
+                                   fac2 * tq2pGx * tq2pGy;
+                sigma_sumexp[4] += fac1 * tq1pGy * tq1pGz +
+                                   fac2 * tq2pGy * tq2pGz;
+                sigma_sumexp[5] += fac1 * tq1pGx * tq1pGz +
+                                   fac2 * tq2pGx * tq2pGz;
+              }
             }
           }
 
           // Add weighted contribution to numerical correction:
           // add the term sum_G exp(-a*|q+G|^2)/|q+G|^2 to the numerical
-          // correction. Works only if this is the first iKpoint.
+          // correction, if this is the first iKpoint.
           //
           // divide weight by 2 as we implicitly counted kpoint j and symmetric
-          if ( iRotationStep==0 ) // && ( iKpi==0 )
+          if ( iRotationStep==0 )
           {
             if ( iKpi==iKpj )
             {
-              numerical_correction[iKpi] += SumExpQpG2 * wf.weight(iKpj)/2.0;
+              num_corr[iKpi] += SumExpQpG2 * 0.5 * wf.weight(iKpj);
+              for ( int k = 0; k < 6; k++ )
+              {
+                sigma_num_corr[iKpi][k] += sigma_sumexp[k]*0.5*wf.weight(iKpi);
+              }
             }
             else
             {
-              numerical_correction[iKpi] += SumExpQpG2 * wf.weight(iKpj)/2.0;
-              numerical_correction[iKpj] += SumExpQpG2 * wf.weight(iKpi)/2.0;
+              num_corr[iKpi] += SumExpQpG2 * 0.5 * wf.weight(iKpj);
+              num_corr[iKpj] += SumExpQpG2 * 0.5 * wf.weight(iKpi);
+              for ( int k = 0; k < 6; k++ )
+              {
+                sigma_num_corr[iKpi][k] += sigma_sumexp[k]*0.5*wf.weight(iKpj);
+                sigma_num_corr[iKpj][k] += sigma_sumexp[k]*0.5*wf.weight(iKpi);
+              }
             }
           }
 
@@ -590,7 +622,9 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                 || ( occ_kj_[j]!=0.0 && wf.weight(iKpj)!=0.0 ) )
               {
                 // compute the pair densities
-                // rhor = statei_(r)' * statej_(r)
+                // contributions from both (ki,kj) and (ki,-kj)
+                // rhor1: conj(psi(kj))*psi(ki)
+                // rhor2: conj(psi(-kj))*psi(ki) == psi(kj)*psi(ki)
                 for ( int ir = 0; ir < np012loc_; ir++ )
                 {
                   rhor1_[ir] = conj( statej_[j][ir] ) * statei_[i][ir];
@@ -605,6 +639,8 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                 // energy associated to state psi(ki,i)
                 double ex_ki_i_kj_j = 0.0;
 
+                double sigma_sum[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+
                 for ( int ig = 0; ig < ngloc; ig++ )
                 {
                   // Add the values of |rho1(G)|^2 * vint(q+G)
@@ -614,6 +650,47 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                   ex_ki_i_kj_j += t1;
                   ex_ki_i_kj_j += t2;
 
+                  if ( compute_stress )
+                  {
+                    D3vector G(vbasis_->gx(ig+ngloc*0),
+                               vbasis_->gx(ig+ngloc*1),
+                               vbasis_->gx(ig+ngloc*2));
+                    D3vector q1pG(q1+G);
+                    D3vector q2pG(q2+G);
+                    const double q1pG2 = norm2(q1pG);
+                    const double q2pG2 = norm2(q2pG);
+                    // dvint(g2) = d vint(g2)/d g2
+                    const double d_int_pot1 = dvint(q1pG2);
+                    const double d_int_pot2 = dvint(q2pG2);
+
+                    const double tq1pGx = q1pG.x;
+                    const double tq1pGy = q1pG.y;
+                    const double tq1pGz = q1pG.z;
+
+                    const double tq2pGx = q2pG.x;
+                    const double tq2pGy = q2pG.y;
+                    const double tq2pGz = q2pG.z;
+
+                    // factor 2.0: derivative of (q+G)^2
+                    const double fac1 = -2.0 * norm(rhog1_[ig]) * d_int_pot1;
+                    const double fac2 = -2.0 * norm(rhog2_[ig]) * d_int_pot2;
+
+                    sigma_sum[0] += fac1 * tq1pGx * tq1pGx;
+                    sigma_sum[1] += fac1 * tq1pGy * tq1pGy;
+                    sigma_sum[2] += fac1 * tq1pGz * tq1pGz;
+                    sigma_sum[3] += fac1 * tq1pGx * tq1pGy;
+                    sigma_sum[4] += fac1 * tq1pGy * tq1pGz;
+                    sigma_sum[5] += fac1 * tq1pGx * tq1pGz;
+
+                    sigma_sum[0] += fac2 * tq2pGx * tq2pGx;
+                    sigma_sum[1] += fac2 * tq2pGy * tq2pGy;
+                    sigma_sum[2] += fac2 * tq2pGz * tq2pGz;
+                    sigma_sum[3] += fac2 * tq2pGx * tq2pGy;
+                    sigma_sum[4] += fac2 * tq2pGy * tq2pGz;
+                    sigma_sum[5] += fac2 * tq2pGx * tq2pGz;
+
+                  }
+
                   if ( dwf )
                   {
                     // compute rhog1_[G]*V(|G+q1|) and rhog2_[G]*V(|G+q1|)
@@ -621,6 +698,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     rhog2_[ig] *= int_pot2_[ig];
                   }
                 }
+
                 if ( dwf )
                 {
                   // Backtransform rhog[G]*V(|q+G|)
@@ -640,14 +718,25 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                   // => divide the weight of kpoint j by 2 as we implicitly
                   //    counted both kj and -kj in ex_ki_i_kj_j.
                   // => take into account the occupation of the state psi(kj,j)
-                  //    (divide by 2 to remove spin factor if only one spin).
-                  // => multiply by the constants of computation
-                  double weight = - 4.0 * M_PI / omega * wf.weight(iKpj) /
-                    2.0 * occ_kj_[j] * spinFactor;
+                  const double exfac = - ( 4.0 * M_PI / omega ) * spinFactor;
+                  double weight = exfac * 0.5 * wf.weight(iKpj) * occ_kj_[j];
 
                   // add contribution to exchange energy
-                  exchange_sum += ex_ki_i_kj_j * weight * wf.weight(iKpi) *
-                                  0.5 * occ_ki_[i];
+                  double fac = weight * wf.weight(iKpi) * 0.5 * occ_ki_[i];
+                  exchange_sum += fac * ex_ki_i_kj_j;
+
+                  if ( compute_stress )
+                  {
+                    sigma_exhf_[0] += fac * (ex_ki_i_kj_j - sigma_sum[0]) /
+                                      omega;
+                    sigma_exhf_[1] += fac * (ex_ki_i_kj_j - sigma_sum[1]) /
+                                      omega;
+                    sigma_exhf_[2] += fac * (ex_ki_i_kj_j - sigma_sum[2]) /
+                                      omega;
+                    sigma_exhf_[3] += fac * ( -sigma_sum[3] ) / omega;
+                    sigma_exhf_[4] += fac * ( -sigma_sum[4] ) / omega;
+                    sigma_exhf_[5] += fac * ( -sigma_sum[5] ) / omega;
+                  }
 
                   if (dwf)
                   {
@@ -676,19 +765,29 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                   // => divide the weight of kpoints j (resp. i) by 2 as we
                   //    implicitly counted both kj and -kj (resp ki and -ki)
                   //    in ex_ki_i_kj_j.
-                  // => take in account the occupation of the state psi(kj,j)
-                  //    (resp psi(ki,i)), and divide by 2 to remove spin factor
-                  // => multiply by the constants of computation
-                  double weighti = - 4.0 * M_PI / omega * wf.weight(iKpi) /
-                    2.0 * occ_ki_[i] * spinFactor;
-                  double weightj = - 4.0 * M_PI / omega * wf.weight(iKpj) /
-                    2.0 * occ_kj_[j] * spinFactor;
+                  // => take into account the occupation of the state psi(kj,j)
+                  //    (resp psi(ki,i))
+                  double weighti = exfac * 0.5 * wf.weight(iKpi) * occ_ki_[i];
+                  double weightj = exfac * 0.5 * wf.weight(iKpj) * occ_kj_[j];
 
                   // add contribution to exchange energy
-                  exchange_sum += ex_ki_i_kj_j * weightj * wf.weight(iKpi) *
-                                  0.5 * occ_ki_[i];
-                  exchange_sum += ex_ki_i_kj_j * weighti * wf.weight(iKpj) *
-                                  0.5 * occ_kj_[j];
+                  double fac_i = weightj * wf.weight(iKpi) * 0.5 * occ_ki_[i];
+                  double fac_j = weighti * wf.weight(iKpj) * 0.5 * occ_kj_[j];
+                  double fac = fac_i + fac_j;
+                  exchange_sum += fac * ex_ki_i_kj_j;
+
+                  if ( compute_stress )
+                  {
+                    sigma_exhf_[0] += fac * (ex_ki_i_kj_j - sigma_sum[0]) /
+                                      omega;
+                    sigma_exhf_[1] += fac * (ex_ki_i_kj_j - sigma_sum[1]) /
+                                      omega;
+                    sigma_exhf_[2] += fac * (ex_ki_i_kj_j - sigma_sum[2]) /
+                                      omega;
+                    sigma_exhf_[3] += fac * ( -sigma_sum[3] ) / omega;
+                    sigma_exhf_[4] += fac * ( -sigma_sum[4] ) / omega;
+                    sigma_exhf_[5] += fac * ( -sigma_sum[5] ) / omega;
+                  }
 
                   if (dwf)
                   {
@@ -717,7 +816,7 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
                     }
                   }
                 }
-              }
+              } // something to do for pair (i,j)
             } // for j
           } // for i
 
@@ -806,12 +905,27 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
         {
           double div_corr = 0.0;
 
-          const double div_corr_1 = exfac * numerical_correction[iKpi] *
-                                    occ_ki_[i];
+          const double div_corr_1 = exfac * num_corr[iKpi] * occ_ki_[i];
           div_corr += div_corr_1;
-          const double e_div_corr_1 = -0.5 * div_corr_1 * occ_ki_[i];
-          exchange_sum += e_div_corr_1 * wf.weight(iKpi);
-          //!! add here contributions to stress from div_corr_1;
+          const double e_div_corr_1 = -0.5 * div_corr_1 * occ_ki_[i] *
+                       wf.weight(iKpi);
+          exchange_sum += e_div_corr_1;
+
+          // contributions to stress from div_corr_1;
+          const double fac = 0.5 * exfac * occ_ki_[i] * occ_ki_[i] *
+                             wf.weight(iKpi);
+          if ( compute_stress )
+          {
+            sigma_exhf_[0] += ( e_div_corr_1+ fac * sigma_num_corr[iKpi][0] ) /
+                              omega;
+            sigma_exhf_[1] += ( e_div_corr_1+ fac * sigma_num_corr[iKpi][1] ) /
+                              omega;
+            sigma_exhf_[2] += ( e_div_corr_1+ fac * sigma_num_corr[iKpi][2] ) /
+                              omega;
+            sigma_exhf_[3] += ( fac * sigma_num_corr[iKpi][3] ) / omega;
+            sigma_exhf_[4] += ( fac * sigma_num_corr[iKpi][4] ) / omega;
+            sigma_exhf_[5] += ( fac * sigma_num_corr[iKpi][5] ) / omega;
+          }
 
           // rcut*rcut divergence correction
           if ( vbasis_->mype() == 0 )
@@ -821,7 +935,15 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
             div_corr += div_corr_2;
             const double e_div_corr_2 = -0.5 * div_corr_2 * occ_ki_[i];
             exchange_sum += e_div_corr_2 * wf.weight(iKpi);
-            //!! add here contributions of div_corr_2 to stress
+
+            // contributions of div_corr_2 to stress
+            if ( compute_stress )
+            {
+              const double fac = wf.weight(iKpi);
+              sigma_exhf_[0] += fac * e_div_corr_2 / omega;
+              sigma_exhf_[1] += fac * e_div_corr_2 / omega;
+              sigma_exhf_[2] += fac * e_div_corr_2 / omega;
+            }
 
             const double div_corr_3 = - exfac * integ/vbz * occ_ki_[i];
             div_corr += div_corr_3;
@@ -843,27 +965,21 @@ double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
             for ( int j = 0; j < dci.mloc(); j++ )
               pf1[j] += pf2[j] - ps[j] * div_corr;
           }
-        } // if alpha_sx_
-      } // for i
+        } // for i
+      } // if alpha_sx_
       delete wfti_;
     } // for iKpi
   } // for ispin
 
-  // reduce the total energy
+  // sum contributions to the exchange energy
   gcontext_.dsum(1, 1, &exchange_sum, 1);
-  extot = exchange_sum;
+
+  // sum stress tensor contributions
+  if ( compute_stress )
+    gcontext_.dsum(6,1,&sigma_exhf_[0],6);
 
   tm.stop();
-#ifdef DEBUG
-  if ( gcontext_.onpe0() )
-  {
-    cout << setprecision(10);
-    cout << " total exchange computation time: " << tm.real()
-         << " s" << endl;
-  }
-#endif
-
-  return extot;
+  return exchange_sum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -884,7 +1000,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
   // total exchange energy
   double exchange_sum = 0.0;
-  double extot = 0.0;
 
   sigma_exhf_ = 0.0;
   const double *const g_x = vbasis_->gx_ptr(0);
@@ -1573,7 +1688,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // Add the values of |rho1(G)|^2*V(|G+q1|)
             // and |rho2(G)|^2*V(|G+q2|) to the exchange energy.
             // factor 2.0: real basis
-            const double tg2i = g2i[ig];
             const double int_pot = vint(g2[ig]);
             const double t1 = 2.0 * norm(rhog1_[ig]) * int_pot;
             const double t2 = 2.0 * norm(rhog2_[ig]) * int_pot;
@@ -1626,12 +1740,15 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           {
             exchange_sum += fac1 * ex_sum_1;
 
-            sigma_exhf_[0] += fac1 * (ex_sum_1 - sigma_sum_1[0]) / omega;
-            sigma_exhf_[1] += fac1 * (ex_sum_1 - sigma_sum_1[1]) / omega;
-            sigma_exhf_[2] += fac1 * (ex_sum_1 - sigma_sum_1[2]) / omega;
-            sigma_exhf_[3] += fac1 * ( -sigma_sum_1[3] ) / omega;
-            sigma_exhf_[4] += fac1 * ( -sigma_sum_1[4] ) / omega;
-            sigma_exhf_[5] += fac1 * ( -sigma_sum_1[5] ) / omega;
+            if ( compute_stress )
+            {
+              sigma_exhf_[0] += fac1 * (ex_sum_1 - sigma_sum_1[0]) / omega;
+              sigma_exhf_[1] += fac1 * (ex_sum_1 - sigma_sum_1[1]) / omega;
+              sigma_exhf_[2] += fac1 * (ex_sum_1 - sigma_sum_1[2]) / omega;
+              sigma_exhf_[3] += fac1 * ( -sigma_sum_1[3] ) / omega;
+              sigma_exhf_[4] += fac1 * ( -sigma_sum_1[4] ) / omega;
+              sigma_exhf_[5] += fac1 * ( -sigma_sum_1[5] ) / omega;
+            }
 
             if (dwf)
             {
@@ -1762,7 +1879,6 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             // Add the values of |rho1(G)|^2*V(|G|)
             // and |rho2(G)|^2*V(|G|) to the exchange energy.
             // factor 2.0: real basis
-            const double tg2i = g2i[ig];
             const double int_pot = vint(g2[ig]);
             const double t1 = 2.0 * norm(rhog1_[ig]) * int_pot;
             ex_sum_1 += t1;
@@ -2122,48 +2238,15 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
   } // for ispin
 
-  // sum all contributions to the exchange energy
+  // sum contributions to the exchange energy
   gcontext_.dsum(1, 1, &exchange_sum, 1);
-  extot = exchange_sum;
 
   // accumulate stress tensor contributions
-  gcontext_.dsum(6,1,&sigma_exhf_[0],6);
+  if ( compute_stress )
+    gcontext_.dsum(6,1,&sigma_exhf_[0],6);
 
   tm.stop();
-
-#if 0
-  if ( gcontext_.onpe0() )
-  {
-    cout << setprecision(3);
-    cout << " total exchange computation time: " << tm.real()
-         << " s" << endl;
-    if ( compute_stress )
-    {
-      cout << " exchange stress (a.u.) " << endl;
-      cout.setf(ios::fixed,ios::floatfield);
-      cout.setf(ios::right,ios::adjustfield);
-      cout << setprecision(8);
-      cout << " <stress_tensor unit=\"atomic_units\">\n"
-           << "   <sigma_exhf_xx> " << setw(12)
-           << sigma_exhf_[0] << " </sigma_exhf_xx>\n"
-           << "   <sigma_exhf_yy> " << setw(12)
-           << sigma_exhf_[1] << " </sigma_exhf_yy>\n"
-           << "   <sigma_exhf_zz> " << setw(12)
-           << sigma_exhf_[2] << " </sigma_exhf_zz>\n"
-           << "   <sigma_exhf_xy> " << setw(12)
-           << sigma_exhf_[3] << " </sigma_exhf_xy>\n"
-           << "   <sigma_exhf_yz> " << setw(12)
-           << sigma_exhf_[4] << " </sigma_exhf_yz>\n"
-           << "   <sigma_exhf_xz> " << setw(12)
-           << sigma_exhf_[5] << " </sigma_exhf_xz>\n"
-           << " </stress_tensor>\n"
-           << endl;
-    }
-  }
-#endif
-
-  // return total exchange in Hartree, scaled by HF coefficient
-  return extot;
+  return exchange_sum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

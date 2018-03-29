@@ -19,7 +19,6 @@
 #include "Sample.h"
 #include "SlaterDet.h"
 #include "FourierTransform.h"
-#include "InteractionPotential.h"
 
 #ifndef EXCHANGEOPERATOR_H
 #define EXCHANGEOPERATOR_H
@@ -34,8 +33,6 @@ class ExchangeOperator
   double eex_;
   // constant of support function for exchange integration
   double rcut_;
-  // mixing coefficient for exchange energy and dwf accumulation
-  double HFCoeff_;
 
   // HF stress tensor
   std::valarray<double> sigma_exhf_;
@@ -172,24 +169,22 @@ class ExchangeOperator
   vector<DoubleMatrix*> uc_;
   vector<long int> localization_;
 
-  // Fourier transform of interaction potential
-  const InteractionPotential interaction_potential_;
-
-  // coulomb potential
-  bool coulomb_;
+  // screened interaction potential paramters
+  double alpha_sx_, beta_sx_, mu_sx_;
+  // interaction potential. g2 is the wave vector squared.
+  double vint(double g2);
+  // derivative of the interaction potential w.r.t. g2
+  double dvint(double g2);
+  double vint_div_scal(double rc);
 
   public:
 
   // constructor
-  ExchangeOperator(Sample& s_, double HFCoeff,
-    const InteractionPotential& interaction_potential = InteractionPotential());
+  // screened interaction potential: alpha*erf(mu*r)/r + beta*erfc(mu*r)/r
+  ExchangeOperator(Sample& s_, double alpha_sx, double beta_sx, double mu_sx);
 
   // destructor
   ~ExchangeOperator();
-
-  // parameters
-  void setmixCoeff(double value) { HFCoeff_ = value; };
-  double HFCoeff() { return HFCoeff_; };
 
   // exchange energy and forces computation
   double eex() { return eex_; };

@@ -12,11 +12,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// HSEFunctional.C
+// RSHFunctional.C
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Implements the HSE hybrid functional
+// Range-separated hybrid functional (RSH)
+// J.H.Skone et al. Phys. Rev. B93, 235106 (2016)
+// RSH is defined by alpha_RSH, beta_RSH, mu_RSH
+// sigma = alpha_RSH * rho(r,r') * erf(r-r')/(r-r') +
+//         beta_RSH * rho(r,r') * erfc(r-r')/(r-r') +
+//         (1 - alpha_RSH) * Vx_LR(r,mu_RSH) +
+//         (1 - beta_RSH) * Vx_SR(r,mu_RSH)
+// The HSE functional is obtained using alpha_RSH=0, beta_RSH=0.25, mu_RSH=0.11
 // Heyd et al.,      J. Chem. Phys. 118, 8207 (2003)
 // Heyd, Scuseria    J. Chem. Phys. 120, 7274 (2004)
 // Krukau et al.,    J. Chem. Phys. 125, 224106 (2006)
@@ -27,7 +34,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "HSEFunctional.h"
+#include "RSHFunctional.h"
 #include "ExponentialIntegral.h"
 #include <cassert>
 #include <cmath>
@@ -41,8 +48,10 @@ const double A = 1.0161144, B = -0.37170836, C = -0.077215461, D = 0.57786348,
   E = -0.051955731;
 
 // constructor
-HSEFunctional::HSEFunctional(const vector<vector<double> > &rhoe) :
-  x_coeff_(0.75), c_coeff_(1.0), omega(0.11)
+RSHFunctional::RSHFunctional(const vector<vector<double> > &rhoe,
+  double alpha_RSH, double beta_RSH, double mu_RSH):
+  alpha_RSH_(alpha_RSH), beta_RSH_(beta_RSH), mu_RSH_(mu_RSH), omega(mu_RSH),
+  x_coeff_(1.0-beta_RSH), c_coeff_(1.0)
 {
   // nonmagnetic or magnetic
   _nspin = rhoe.size();
@@ -127,7 +136,7 @@ HSEFunctional::HSEFunctional(const vector<vector<double> > &rhoe) :
 // and by exp( -2 x^2 ) above x = 14
 // then the integrals with the first part of the exchange hole
 // become analytically solvable
-void approximateIntegral(const double omega_kF, const double Hs2,
+void RSHFunctional::approximateIntegral(const double omega_kF, const double Hs2,
   const double D_term, const double dHs2_ds, double *appInt,
   double *dAppInt_ds, double *dAppInt_dkF)
 {
@@ -323,8 +332,8 @@ void approximateIntegral(const double omega_kF, const double Hs2,
 //                                   /          |
 //                                             /
 // see references for a definition of the functions F(s), G(s), and H(s)
-void HSE_enhance(const double s_inp, const double kF, const double w,
-  double *fx, double *dfx_ds, double* dfx_dkf)
+void RSHFunctional::RSH_enhance(const double s_inp, const double kF,
+  const double w, double *fx, double *dfx_ds, double* dfx_dkf)
 {
   // Correction of the reduced gradient to ensure Lieb-Oxford bound
   // If a large value of s would violate the Lieb-Oxford bound, the
@@ -606,8 +615,8 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
 // output:
 // ex       - exchange energy
 // vx1, vx2 - exchange potential such that vx = vx1 + div( vx2 * grad(n) )
-void HSE_exchange(const double rho, const double grad, const double a_ex,
-  const double w, double *ex, double *vx1, double *vx2)
+void RSHFunctional::RSH_exchange(const double rho, const double grad,
+  const double a_ex, const double w, double *ex, double *vx1, double *vx2)
 {
 
   // constants employed in the PBE/HSE exchange
@@ -644,7 +653,7 @@ void HSE_exchange(const double rho, const double grad, const double a_ex,
   const double fs = 2.0 * uk * ul / ( p0 * p0 );
   // calculate HSE enhancement factor and derivatives w.r.t. s and kF
   double fxhse, dfx_ds, dfx_dkf;
-  HSE_enhance(s,kF,w,&fxhse,&dfx_ds,&dfx_dkf);
+  RSH_enhance(s,kF,w,&fxhse,&dfx_ds,&dfx_dkf);
 
   // calculate exchange energy
   // ex = (1 - a) ex,SR + ex,LR
@@ -668,8 +677,8 @@ void HSE_exchange(const double rho, const double grad, const double a_ex,
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-void gcor2(double a, double a1, double b1, double b2, double b3, double b4,
-  double rtrs, double *gg, double *ggrs)
+void RSHFunctional::gcor2(double a, double a1, double b1, double b2,
+  double b3, double b4, double rtrs, double *gg, double *ggrs)
 {
   double q0, q1, q2, q3;
   q0 = -2.0 * a * ( 1.0 + a1 * rtrs * rtrs );
@@ -705,10 +714,9 @@ void gcor2(double a, double a1, double b1, double b2, double b3, double b4,
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-void PBE_correlation(const double rho, const double grad, double *ec,
-  double *vc1, double *vc2)
+void RSHFunctional::PBE_correlation(const double rho, const double grad,
+  double *ec, double *vc1, double *vc2)
 {
-
   const double third = 1.0 / 3.0;
   const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
   const double alpha = 1.91915829267751; /* pow(9.0*pi/4.0, third)*/
@@ -771,7 +779,7 @@ void PBE_correlation(const double rho, const double grad, double *ec,
 }
 
 // spin polarized case
-void PBE_correlation_sp(const double rho_up, const double rho_dn,
+void RSHFunctional::PBE_correlation_sp(const double rho_up, const double rho_dn,
   const double grad_up, const double grad_dn, const double grad, double *ec,
   double *vc1_up, double *vc1_dn, double *vc2)
 {
@@ -880,7 +888,7 @@ void PBE_correlation_sp(const double rho_up, const double rho_dn,
 }
 
 // update exchange correlation energy and potential
-void HSEFunctional::setxc(void)
+void RSHFunctional::setxc(void)
 {
   if ( _np == 0 ) return;
   if ( _nspin == 1 )
@@ -901,7 +909,7 @@ void HSEFunctional::setxc(void)
 
       // calculate HSE exchange and PBE correlation
       double ex, vx1, vx2, ec, vc1, vc2;
-      HSE_exchange(rho[i],grad,1 - x_coeff_,omega,&ex,&vx1,&vx2);
+      RSH_exchange(rho[i],grad,1 - x_coeff_,omega,&ex,&vx1,&vx2);
       PBE_correlation(rho[i],grad,&ec,&vc1,&vc2);
 
       // combine exchange and correlation energy
@@ -949,9 +957,9 @@ void HSEFunctional::setxc(void)
       // calculate HSE exchange and PBE correlation
       double ex_up, vx1_up, vx2_up, ex_dn, vx1_dn, vx2_dn;
       double ec, vc1_up, vc1_dn, vc2;
-      HSE_exchange(2.0 * rho_up[i],2.0 * grad_up,1 - x_coeff_,omega,&ex_up,
+      RSH_exchange(2.0 * rho_up[i],2.0 * grad_up,1 - x_coeff_,omega,&ex_up,
         &vx1_up,&vx2_up);
-      HSE_exchange(2.0 * rho_dn[i],2.0 * grad_dn,1 - x_coeff_,omega,&ex_dn,
+      RSH_exchange(2.0 * rho_dn[i],2.0 * grad_dn,1 - x_coeff_,omega,&ex_dn,
         &vx1_dn,&vx2_dn);
       PBE_correlation_sp(rho_up[i],rho_dn[i],grad_up,grad_dn,grad,&ec,&vc1_up,
         &vc1_dn,&vc2);
@@ -968,12 +976,13 @@ void HSEFunctional::setxc(void)
     }
   }
 }
+
 #if 0
-// evaluate fourier transform of nonlocal potential for given
+// evaluate Fourier transform of nonlocal potential for given
 // input g2 = G^2
-// fourier transform of erfc ( w r ) / r
+// Fourier transform of erfc ( w r ) / r
 // 1/g2 * [ 1 - exp( -g2 / 4 w^2 ) ]
-double HSEFunctional::interaction_potential(const double& g2)
+double RSHFunctional::interaction_potential(const double& g2)
 {
 
   // helper variable
@@ -1003,7 +1012,7 @@ double HSEFunctional::interaction_potential(const double& g2)
 // exp( -g2 / 4 w^2 )   V(g2)
 // ------------------ - -----
 //      4 g2 w^2         g2
-double HSEFunctional::derivative_interaction_potential(const double& g2)
+double RSHFunctional::derivative_interaction_potential(const double& g2)
 {
 
   // helper variable
@@ -1036,7 +1045,7 @@ double HSEFunctional::derivative_interaction_potential(const double& g2)
 //  integral( exp(-rcut^2 G^2) / G^2 )         sqrt(x^2 + 1)
 //
 // with x = 2 * rcut * omega
-double HSEFunctional::divergence_scaling(const double& rcut)
+double RSHFunctional::divergence_scaling(const double& rcut)
 {
   const double x = 2.0 * rcut * omega;
   return 1 - x / sqrt(x * x + 1);

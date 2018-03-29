@@ -78,7 +78,9 @@ using namespace std;
 #include "BisectionCmd.h"
 
 #include "AlphaPBE0.h"
+#include "AlphaRSH.h"
 #include "AtomsDyn.h"
+#include "BetaRSH.h"
 #include "BlHF.h"
 #include "BtHF.h"
 #include "Cell.h"
@@ -101,6 +103,7 @@ using namespace std;
 #include "IterCmd.h"
 #include "IterCmdPeriod.h"
 #include "Dt.h"
+#include "MuRSH.h"
 #include "Nempty.h"
 #include "NetCharge.h"
 #include "Nrowmax.h"
@@ -294,7 +297,9 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new TorsionCmd(s));
 
   ui.addVar(new AlphaPBE0(s));
+  ui.addVar(new AlphaRSH(s));
   ui.addVar(new AtomsDyn(s));
+  ui.addVar(new BetaRSH(s));
   ui.addVar(new BlHF(s));
   ui.addVar(new BtHF(s));
   ui.addVar(new Cell(s));
@@ -316,6 +321,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new FermiTemp(s));
   ui.addVar(new IterCmd(s));
   ui.addVar(new IterCmdPeriod(s));
+  ui.addVar(new MuRSH(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new NetCharge(s));
   ui.addVar(new Nrowmax(s));

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2014 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -12,12 +12,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Xc.h
+// BetaRSH.h
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef XC_H
-#define XC_H
+#ifndef BETARSH_H
+#define BETARSH_H
 
 #include<iostream>
 #include<iomanip>
@@ -26,41 +26,32 @@
 
 #include "Sample.h"
 
-class Xc : public Var
+class BetaRSH : public Var
 {
   Sample *s;
 
   public:
 
-  const char *name ( void ) const { return "xc"; };
+  const char *name ( void ) const { return "beta_RSH"; };
 
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
     {
       if ( ui->onpe0() )
-      cout << " xc takes only one value" << endl;
+      cout << " beta_RSH takes only one value" << endl;
       return 1;
     }
 
-    string v = argv[1];
-    if ( !( v == "LDA" ||
-            v == "VWN" ||
-            v == "PBE" ||
-            v == "BLYP" ||
-            v == "HF" ||
-            v == "PBE0" ||
-            v == "HSE" ||
-            v == "RSH" ||
-            v == "B3LYP" ) )
+    double v = atof(argv[1]);
+    if ( v < 0.0 )
     {
       if ( ui->onpe0() )
-        cout << " xc must be LDA, VWN, PBE, BLYP, "
-             << "HF, PBE0, HSE, RSH or B3LYP" << endl;
+        cout << " beta_RSH must be non-negative" << endl;
       return 1;
     }
 
-    s->ctrl.xc= v;
+    s->ctrl.beta_RSH = v;
 
     return 0;
   }
@@ -71,10 +62,13 @@ class Xc : public Var
      st.setf(ios::left,ios::adjustfield);
      st << setw(10) << name() << " = ";
      st.setf(ios::right,ios::adjustfield);
-     st << setw(10) << s->ctrl.xc;
+     st << s->ctrl.beta_RSH;
      return st.str();
   }
 
-  Xc(Sample *sample) : s(sample) { s->ctrl.xc = "LDA"; };
+  BetaRSH(Sample *sample) : s(sample)
+  {
+    s->ctrl.beta_RSH = 0.25;
+  }
 };
 #endif

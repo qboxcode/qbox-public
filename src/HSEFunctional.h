@@ -27,7 +27,6 @@
 #define HSEFUNCTIONAL_H
 
 #include "XCFunctional.h"
-#include "InteractionPotential.h"
 #include <vector>
 
 class HSEFunctional : public XCFunctional
@@ -35,7 +34,7 @@ class HSEFunctional : public XCFunctional
   const double x_coeff_, c_coeff_;
 
   // screening parameter of the HSE functional
-  static const double omega = 0.11;
+  const double omega; // == 0.11
 
   // vectors common to all GGA exchange functionals
   std::vector<double> _exc, _exc_up, _exc_dn;
@@ -61,22 +60,5 @@ class HSEFunctional : public XCFunctional
   }
 
   void setxc(void);
-
-  // evaluate fourier transform of nonlocal potential for given G vector
-  // input g2 = G^2
-  static double interaction_potential(const double& g2);
-  // derivative of interaction potential
-  static double derivative_interaction_potential(const double& g2);
-  // scaling of the divergence correction relative to the Coulomb potential
-  static double divergence_scaling(const double& rcut);
-
-  // construct interaction potential class
-  static const InteractionPotential make_interaction_potential()
-  {
-    return InteractionPotential(&interaction_potential,
-      &derivative_interaction_potential,&divergence_scaling);
-  }
-
 };
-
 #endif

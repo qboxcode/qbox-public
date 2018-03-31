@@ -1,3 +1,23 @@
+--------------------------------------------------------------------------------
+rel1_64_0
+--------------------------------------------------------------------------------
+d4c5c81 Merge branch 'develop'
+28c1fc2 Merge branch 'rsh-dev' into develop
+38843c5 Removed unused variables
+52cb12a Implemented stress for general RSH case
+211d90a adjust blocking factors of square matrices
+7c62abc Implement reset_rotation command
+0b1e4fa fix help msg in MoveCmd.h
+84416bf Reorganized stress tests as si4stress and si2stress
+7e0b69a Added tests for invalid bisection parameters
+5f7c1c7 Adjust strain values in test/stress files
+0d593a2 Cleanup files in test/stress dir
+9c5654f Add test of stress tensor
+6f049b7 Fixed x_coeff in RSHFunctional.C Cleanup & comment
+af533ce Fix errors in ExchangeOperator at gamma
+5e24b92 Cleanup ExchangeOperator
+ccd020c First RSH implementation
+52e6976 Merged HSE implementation
 fbb7421 Merge branch 'hse-dev' into develop
 5b93ad8 Add cstring header in ConstraintSet.C
 72e55a8 Fix force normalization in PairExtForce::energy
@@ -7,6 +27,11 @@ fbb7421 Merge branch 'hse-dev' into develop
 e9d66bf Add zero volume test to run command
 667cce0 Updated centos6.mk
 f9b90ad Updated notes
+--------------------------------------------------------------------------------
+rel1_63_11
+--------------------------------------------------------------------------------
+be7d4cc rel1_63_11
+4e6e1b6 adjust blocking factors of square matrices
 --------------------------------------------------------------------------------
 rel1_63_10
 --------------------------------------------------------------------------------

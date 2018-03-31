@@ -21,6 +21,8 @@
 #include "VWNFunctional.h"
 #include "PBEFunctional.h"
 #include "BLYPFunctional.h"
+#include "HSEFunctional.h"
+#include "RSHFunctional.h"
 #include "B3LYPFunctional.h"
 #include "Basis.h"
 #include "FourierTransform.h"
@@ -53,6 +55,14 @@ XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
     const double x_coeff = 1.0 - ctrl.alpha_PBE0;
     const double c_coeff = 1.0;
     xcf_ = new PBEFunctional(cd_.rhor,x_coeff,c_coeff);
+  }
+  else if ( functional_name == "HSE" )
+  {
+    xcf_ = new HSEFunctional(cd_.rhor);
+  }
+  else if ( functional_name == "RSH" )
+  {
+    xcf_ = new RSHFunctional(cd_.rhor,ctrl.alpha_RSH,ctrl.beta_RSH,ctrl.mu_RSH);
   }
   else if ( functional_name == "B3LYP" )
   {

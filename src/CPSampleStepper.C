@@ -134,7 +134,6 @@ void CPSampleStepper::step(int niter)
   ef_.update_vhxc(compute_stress);
   double energy =
     ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
-  double enthalpy = ef_.enthalpy();
 
   mdwf_stepper->compute_wfm(dwf);
 
@@ -254,7 +253,7 @@ void CPSampleStepper::step(int niter)
     ef_.update_vhxc(compute_stress);
     energy =
       ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
-    enthalpy = ef_.enthalpy();
+    ef_.enthalpy();
 
     if ( s_.ctxt_.mype() == 0 )
       cout << "</iteration>" << endl;

@@ -50,7 +50,7 @@ double PairExtForce::energy(const vector<vector<double> > &r,
   D3vector r1(pr1);
   D3vector r2(pr2);
 
-  D3vector e12(r2-r1);
+  D3vector e12 = normalized(r2-r1);
   f[is1_][3*ia1_+0] += force_ * e12.x;
   f[is1_][3*ia1_+1] += force_ * e12.y;
   f[is1_][3*ia1_+2] += force_ * e12.z;

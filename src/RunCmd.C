@@ -48,6 +48,12 @@ int RunCmd::action(int argc, char **argv)
       cout << " RunCmd: ecut = 0.0, cannot run" << endl;
     return 1;
   }
+  if ( s->wf.cell().volume() == 0.0 )
+  {
+    if ( ui->onpe0() )
+      cout << " RunCmd: volume = 0.0, cannot run" << endl;
+    return 1;
+  }
 
   SampleStepper* stepper;
 

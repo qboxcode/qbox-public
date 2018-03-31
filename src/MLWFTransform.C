@@ -198,7 +198,8 @@ void MLWFTransform::update(void)
 ////////////////////////////////////////////////////////////////////////////////
 void MLWFTransform::compute_transform(void)
 {
-  int nsweep = jade(maxsweep_,tol_,a_,*u_,adiag_);
+  // int nsweep = jade(maxsweep_,tol_,a_,*u_,adiag_);
+  jade(maxsweep_,tol_,a_,*u_,adiag_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

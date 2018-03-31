@@ -1,3 +1,23 @@
+fbb7421 Merge branch 'hse-dev' into develop
+5b93ad8 Add cstring header in ConstraintSet.C
+72e55a8 Fix force normalization in PairExtForce::energy
+000b3db Fixed charge integral in ChargeDensity::update_rhor
+80f2730 Fix long lines
+1c14353 Merge branch 'develop' into hse-dev
+e9d66bf Add zero volume test to run command
+667cce0 Updated centos6.mk
+f9b90ad Updated notes
+--------------------------------------------------------------------------------
+rel1_63_10
+--------------------------------------------------------------------------------
+058730d Implemented PSDA for complex wave functions
+26c3495 Update printing of electronic charge & net charge
+c102a32 Add testSampleReader program
+8f85701 Add option to define constraint with current value
+35f2374 changed output format of constraint value, force
+e85f85d Changed logic of shifts: zero shifts include Gamma
+25f2f96 Generate xyz file from kpoint file
+718452c Changed bisection tolerance from 1.0 to 0.001
 --------------------------------------------------------------------------------
 rel1_63_10
 --------------------------------------------------------------------------------

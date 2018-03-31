@@ -862,7 +862,7 @@ void BOSampleStepper::step(int niter)
         // if ( onpe0 && nite_ > 0 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
-        double energy, etotal_int;
+        double etotal_int;
 
         double eigenvalue_sum, eigenvalue_sum_m = 0.0;
         // if nite == 0: do 1 iteration, no screening in charge mixing
@@ -871,7 +871,7 @@ void BOSampleStepper::step(int niter)
         while ( !nonscf_converged && ite < max(nite_,1) )
         {
           tmap["energy"].start();
-          energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+          ef_.energy(true,dwf,false,fion,false,sigma_eks);
           tmap["energy"].stop();
 
           // compute the sum of eigenvalues (with fixed weight)

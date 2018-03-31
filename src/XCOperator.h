@@ -33,7 +33,6 @@ class XCOperator
   ExchangeOperator* xop_;
 
   const ChargeDensity& cd_;
-  double HFmixCoeff_ ;
   double exc_; // XC energy: includes local and HF terms
   double dxc_;
 

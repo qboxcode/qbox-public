@@ -401,7 +401,8 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
   // adiag_ is resized by jade
 
   // diagonalize projectors
-  int nsweep = jade(maxsweep,tol,amat_,*u_,adiag_);
+  // int nsweep = jade(maxsweep,tol,amat_,*u_,adiag_);
+  jade(maxsweep,tol,amat_,*u_,adiag_);
 #ifdef TIMING
   if ( ctxt_.onpe0() )
     cout << "Bisection::compute_transform: nsweep=" << nsweep

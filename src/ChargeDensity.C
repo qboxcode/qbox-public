@@ -21,6 +21,7 @@
 #include "Wavefunction.h"
 #include "FourierTransform.h"
 #include "SlaterDet.h"
+#include "blas.h" // dasum
 
 #include <iomanip>
 #include <algorithm> // fill
@@ -207,6 +208,18 @@ void ChargeDensity::update_rhor(void)
       for ( int i = 0; i < rhor_size; i++ )
         prhor[i] = rhotmp[i].real() * omega_inv;
     }
+
+    // integral of the charge density
+    tmap["charge_integral"].start();
+    int ione=1;
+    int n = rhor_size;
+    double sum = dasum(&n,prhor,&ione);
+    sum *= omega / vft_->np012();
+
+    // sum on all indices except spin: sum along columns of spincontext
+    wf_.spincontext()->dsum('c',1,1,&sum,1);
+    tmap["charge_integral"].stop();
+    total_charge_[ispin] = sum;
   }
 }
 

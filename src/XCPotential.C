@@ -378,26 +378,17 @@ void XCPotential::update(vector<vector<double> >& vr)
 
   if ( isMeta() )
   {
-    if ( nspin_ == 1 )
-    {
-      double sum = 0.0;
-      const double *const v3 = xcf_->vxc3;
-      const double *const tau = xcf_->tau;
+    double sum = 0.0;
+    const double *const v3 = xcf_->vxc3;
+    const double *const tau = xcf_->tau;
+    for ( int ir = 0; ir < np012loc_; ir++ )
       {
-        for ( int ir = 0; ir < np012loc_; ir++ )
-        {
-          sum += tau[ir] * v3[ir];
-        }
+        sum += tau[ir] * v3[ir];
       }
-      sum *= vbasis_.cell().volume() / vft_.np012();
-      double tsum = 0.0;
-      MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
-      dxc_ -= tsum;
-    }
-    else
-    {
-      assert(0);
-    }
+    sum *= vbasis_.cell().volume() / vft_.np012();
+    double tsum = 0.0;
+    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+    dxc_ -= tsum;
   }
 }
 ////////////////////////////////////////////////////////////////////////////////

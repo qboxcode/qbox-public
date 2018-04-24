@@ -38,11 +38,10 @@ class SCANFunctional : public XCFunctional
   void excSCAN(double rho, double grad, double tau, double *exc,
     double *vxc1, double *vxc2, double *vxc3);
 
-  void excSCAN_sp(double rho_up, double rho_dn,
-    double grad_up, double grad_dn, double grad,
-    double *exc_up, double *exc_dn,
-    double *vxc1_up, double *vxc1_dn, double *vxc2_upup, double *vxc2_dndn,
-    double *vxc2_updn, double *vxc2_dnup);
+  void excSCAN_sp(double rho_up, double rho_dn, double grad_up, double grad_dn,
+    double grad, double tau, double *exc_up, double *exc_dn, double *vxc1_up,
+    double *vxc1_dn, double *vxc2_upup, double *vxc2_dndn, double *vxc2_updn,
+    double *vxc2_dnup, double *vxc3);
 
   public:
 

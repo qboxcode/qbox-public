@@ -717,6 +717,15 @@ void RSHFunctional::gcor2(double a, double a1, double b1, double b2,
 void RSHFunctional::PBE_correlation(const double rho, const double grad,
   double *ec, double *vc1, double *vc2)
 {
+  *ec = 0.0;
+  *vc1 = 0.0;
+  *vc2 = 0.0;
+
+  if ( rho < 1.e-18  )
+  {
+    return;
+  }
+
   const double third = 1.0 / 3.0;
   const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
   const double alpha = 1.91915829267751; /* pow(9.0*pi/4.0, third)*/
@@ -783,6 +792,13 @@ void RSHFunctional::PBE_correlation_sp(const double rho_up, const double rho_dn,
   const double grad_up, const double grad_dn, const double grad, double *ec,
   double *vc1_up, double *vc1_dn, double *vc2)
 {
+  *ec = 0.0;
+  *vc1_up = 0.0;
+  *vc1_dn = 0.0;
+  *vc2 = 0.0;
+
+  const double rh_up = ( rho_up < 1.e-18 ) ? 0.0 : rho_up;
+  const double rh_dn = ( rho_dn < 1.e-18 ) ? 0.0 : rho_dn;
 
   const double third = 1.0 / 3.0;
   const double third2 = 2.0 / 3.0;
@@ -811,10 +827,10 @@ void RSHFunctional::PBE_correlation_sp(const double rho_up, const double rho_dn,
   // f = spin-scaling factor from [c] (9)
   // construct ec, using [c] (8)
 
-  const double rhotot = rho_up + rho_dn;
+  const double rhotot = rh_up + rh_dn;
 
   const double rh13 = pow(rhotot,third);
-  const double zet = ( rho_up - rho_dn ) / rhotot;
+  const double zet = ( rh_up - rh_dn ) / rhotot;
   const double g = 0.5 * ( pow(1.0 + zet,third2) + pow(1.0 - zet,third2) );
   const double fk = pi32third * rh13;
   const double rs = alpha / fk;

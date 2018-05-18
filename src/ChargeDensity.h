@@ -57,6 +57,7 @@ class ChargeDensity
   void update_density(void);
   void update_rhor(void);
   void update_taur(double* taur) const;
+  void update_taur(double* taur_up, double* taur_dn) const;
 
   const Context& context(void) const { return ctxt_; }
   MPI_Comm vcomm(void) const { return vcomm_; }

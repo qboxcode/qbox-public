@@ -124,7 +124,6 @@ void ChargeDensity::update_density(void)
 {
   assert(rhor.size() == wf_.nspin());
   const double omega = vbasis_->cell().volume();
-
   for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
   {
     assert(rhor[ispin].size() == vft_->np012loc() );
@@ -224,6 +223,31 @@ void ChargeDensity::update_taur(double* taur) const
   }
   // sum along columns of spincontext
   wf_.kpcontext()->dsum('r',vft_->np012loc(),1,&taur[0],vft_->np012loc());
+  tmap["update_taur"].stop();
+
+  if ( rhocore_r )
+    assert(false);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ChargeDensity::update_taur(double* taur_up, double* taur_dn) const
+{
+  //!! Work in progress
+  memset( (void*)taur_up, 0, vft_->np012loc()*sizeof(double) );
+  memset( (void*)taur_dn, 0, vft_->np012loc()*sizeof(double) );
+  tmap["update_taur"].start();
+
+  for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+  {
+    wf_.sd(0,ikp)->compute_tau(*ft_[ikp], wf_.weight(ikp), taur_up);
+  }
+  for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+  {
+    wf_.sd(1,ikp)->compute_tau(*ft_[ikp], wf_.weight(ikp), taur_dn);
+  }
+  // sum along columns of spincontext
+  wf_.kpcontext()->dsum('r',vft_->np012loc(),1,&taur_up[0],vft_->np012loc());
+  wf_.kpcontext()->dsum('r',vft_->np012loc(),1,&taur_dn[0],vft_->np012loc());
   tmap["update_taur"].stop();
 
   if ( rhocore_r )

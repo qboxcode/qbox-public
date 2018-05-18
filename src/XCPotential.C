@@ -236,11 +236,17 @@ void XCPotential::update(vector<vector<double> >& vr)
         dcopy(&np012loc_,p+1,&inc2,grj_dn,&inc1);
       } // j
     }
-
     if ( isMeta() )
     {
       // compute tau
-      cd_.update_taur(xcf_->tau);
+      if (nspin_ == 1)
+      {
+        cd_.update_taur(xcf_->tau);
+      }
+      else
+      {
+        cd_.update_taur(xcf_->tau_up, xcf_->tau_dn);
+      }
     }
 
     xcf_->setxc();
@@ -378,17 +384,42 @@ void XCPotential::update(vector<vector<double> >& vr)
 
   if ( isMeta() )
   {
-    double sum = 0.0;
-    const double *const v3 = xcf_->vxc3;
-    const double *const tau = xcf_->tau;
-    for ( int ir = 0; ir < np012loc_; ir++ )
-      {
-        sum += tau[ir] * v3[ir];
-      }
-    sum *= vbasis_.cell().volume() / vft_.np012();
-    double tsum = 0.0;
-    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
-    dxc_ -= tsum;
+    if ( nspin_ == 1 )
+    {
+      double sum = 0.0;
+      const double *const v3 = xcf_->vxc3;
+      const double *const tau = xcf_->tau;
+      for ( int ir = 0; ir < np012loc_; ir++ )
+        {
+          sum += tau[ir] * v3[ir];
+        }
+      sum *= vbasis_.cell().volume() / vft_.np012();
+      double tsum = 0.0;
+      MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+      dxc_ -= tsum;
+    }
+    else
+    {
+      //!! Need to Verify
+      double sum_up = 0.0;
+      double sum_dn = 0.0;
+      const double *const v3_up = xcf_->vxc3_up;
+      const double *const v3_dn = xcf_->vxc3_dn;
+      const double *const tau_up = xcf_->tau_up;
+      const double *const tau_dn = xcf_->tau_dn;
+      for ( int ir = 0; ir < np012loc_; ir++ )
+        {
+          sum_up += tau_up[ir] * v3_up[ir];
+          sum_dn += tau_dn[ir] * v3_dn[ir];
+        }
+      sum_up *= vbasis_.cell().volume() / vft_.np012();
+      sum_dn *= vbasis_.cell().volume() / vft_.np012();
+      double tsum_up = 0.0;
+      double tsum_dn = 0.0;
+      MPI_Allreduce(&sum_up,&tsum_up,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+      MPI_Allreduce(&sum_dn,&tsum_dn,1,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+      dxc_ -= (tsum_up + tsum_dn);
+    }
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -574,23 +605,123 @@ void XCPotential::apply_meta_operator(Wavefunction& dwf)
 {
   const Wavefunction& wf0 = s_.wf;
 
-  for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
+  if (wf0.nspin() == 1)
   {
+    for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
+    {
+      for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
+      {
+        if ( wf0.sd(ispin,ikp)->basis().real() )
+        {
+          const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+          vector<complex<double> > tmp0(ngwloc);
+          const int mloc = wf0.sd(ispin,ikp)->c().mloc();
+          const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
+          complex<double>* dp = dwf.sd(ispin,ikp)->c().valptr();
+          for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc()-1; n++, n++ )
+          {
+            for ( int j = 0; j < 3; j++ )
+            {
+              // Compute Grad_j psi_n(ikp)
+              const double *const gxj = wf0.sd(ispin,ikp)->basis().gx_ptr(j);
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                /* i*G_j*c(G) */
+                tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+                tmp1[ig] = complex<double>(0.0,gxj[ig]) * p[ig+(n+1)*mloc];
+              }
+              cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmpr[0]);
+              // Compute V3 * Grad_j psi_n(ikp)
+              for ( int i = 0; i < np012loc_; i++ )
+                tmpr[i] *= xcf_->vxc3[i];
+              // Transform to k-space
+              cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0],&tmp1[0]);
+              // Compute Div_j[V3 * Grad_j psi_n(ikp)]
+              // Note -1/2 comes from definition of V3
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                /* i*G_j*c(G) */
+                dp[ig+n*mloc] += -0.5 * complex<double>(0.0,gxj[ig]) * tmp0[ig];
+                dp[ig+(n+1)*mloc] += -0.5 * complex<double>(0.0,gxj[ig])*tmp1[ig];
+              }
+            }
+          }
+          if ( wf0.sd(ispin,ikp)->nstloc() % 2 != 0 )
+          {
+            const int n = wf0.sd(ispin,ikp)->nstloc()-1;
+            for ( int j = 0; j < 3; j++ )
+            {
+              const double *const gxj = wf0.sd(ispin,ikp)->basis().gx_ptr(j);
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+              }
+              cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
+              for ( int i = 0; i < np012loc_; i++ )
+                tmpr[i] *= xcf_->vxc3[i];
+              cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0]);
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                dp[ig+n*mloc] += -0.5 * complex<double>(0.0,gxj[ig]) * tmp0[ig];
+              }
+            }
+          }
+        }
+        else
+        {
+          const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+          vector<complex<double> > tmp0(ngwloc);
+          const int mloc = wf0.sd(ispin,ikp)->c().mloc();
+          const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
+          complex<double>* dp = dwf.sd(ispin,ikp)->c().valptr();
+          for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc(); n++ )
+          {
+            for ( int j = 0; j < 3; j++ )
+            {
+              // Compute Grad_j psi_n(ikp)
+              const double *const kpgxj = wf0.sd(ispin,ikp)->basis().kpgx_ptr(j);
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                // i*(k+G)_j*c(G)
+                tmp0[ig] = complex<double>(0.0,kpgxj[ig]) * p[ig+n*mloc];
+              }
+              cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
+              // Compute V3 * Grad_j psi_n(ikp)
+              for ( int i = 0; i < np012loc_; i++ )
+                tmpr[i] *= xcf_->vxc3[i];
+              // Transform to k-space
+              cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0]);
+              // Compute Div_j[V3 * Grad_j psi_n(ikp)]
+              // Note -1/2 comes from definition of V3
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                // i*(k+G)_j*c(G)
+                dp[ig+n*mloc] += -0.5 * complex<double>(0.0,kpgxj[ig]) * tmp0[ig];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    //Tau_up first
     for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
     {
-      if ( wf0.sd(ispin,ikp)->basis().real() )
+      if ( wf0.sd(0,ikp)->basis().real() )
       {
-        const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+        const int ngwloc = wf0.sd(0,ikp)->basis().localsize();
         vector<complex<double> > tmp0(ngwloc);
-        const int mloc = wf0.sd(ispin,ikp)->c().mloc();
-        const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
-        complex<double>* dp = dwf.sd(ispin,ikp)->c().valptr();
-        for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc()-1; n++, n++ )
+        const int mloc = wf0.sd(0,ikp)->c().mloc();
+        const complex<double>* p = wf0.sd(0,ikp)->c().cvalptr();
+        complex<double>* dp = dwf.sd(0,ikp)->c().valptr();
+        for ( int n = 0; n < wf0.sd(0,ikp)->nstloc()-1; n++, n++ )
         {
           for ( int j = 0; j < 3; j++ )
           {
             // Compute Grad_j psi_n(ikp)
-            const double *const gxj = wf0.sd(ispin,ikp)->basis().gx_ptr(j);
+            const double *const gxj = wf0.sd(0,ikp)->basis().gx_ptr(j);
             for ( int ig = 0; ig < ngwloc; ig++ )
             {
               /* i*G_j*c(G) */
@@ -600,7 +731,7 @@ void XCPotential::apply_meta_operator(Wavefunction& dwf)
             cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmpr[0]);
             // Compute V3 * Grad_j psi_n(ikp)
             for ( int i = 0; i < np012loc_; i++ )
-              tmpr[i] *= xcf_->vxc3[i];
+              tmpr[i] *= xcf_->vxc3_up[i];
             // Transform to k-space
             cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0],&tmp1[0]);
             // Compute Div_j[V3 * Grad_j psi_n(ikp)]
@@ -613,19 +744,19 @@ void XCPotential::apply_meta_operator(Wavefunction& dwf)
             }
           }
         }
-        if ( wf0.sd(ispin,ikp)->nstloc() % 2 != 0 )
+        if ( wf0.sd(0,ikp)->nstloc() % 2 != 0 )
         {
-          const int n = wf0.sd(ispin,ikp)->nstloc()-1;
+          const int n = wf0.sd(0,ikp)->nstloc()-1;
           for ( int j = 0; j < 3; j++ )
           {
-            const double *const gxj = wf0.sd(ispin,ikp)->basis().gx_ptr(j);
+            const double *const gxj = wf0.sd(0,ikp)->basis().gx_ptr(j);
             for ( int ig = 0; ig < ngwloc; ig++ )
             {
               tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
             }
             cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
             for ( int i = 0; i < np012loc_; i++ )
-              tmpr[i] *= xcf_->vxc3[i];
+              tmpr[i] *= xcf_->vxc3_up[i];
             cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0]);
             for ( int ig = 0; ig < ngwloc; ig++ )
             {
@@ -636,17 +767,17 @@ void XCPotential::apply_meta_operator(Wavefunction& dwf)
       }
       else
       {
-        const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+        const int ngwloc = wf0.sd(0,ikp)->basis().localsize();
         vector<complex<double> > tmp0(ngwloc);
-        const int mloc = wf0.sd(ispin,ikp)->c().mloc();
-        const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
-        complex<double>* dp = dwf.sd(ispin,ikp)->c().valptr();
-        for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc(); n++ )
+        const int mloc = wf0.sd(0,ikp)->c().mloc();
+        const complex<double>* p = wf0.sd(0,ikp)->c().cvalptr();
+        complex<double>* dp = dwf.sd(0,ikp)->c().valptr();
+        for ( int n = 0; n < wf0.sd(0,ikp)->nstloc(); n++ )
         {
           for ( int j = 0; j < 3; j++ )
           {
             // Compute Grad_j psi_n(ikp)
-            const double *const kpgxj = wf0.sd(ispin,ikp)->basis().kpgx_ptr(j);
+            const double *const kpgxj = wf0.sd(0,ikp)->basis().kpgx_ptr(j);
             for ( int ig = 0; ig < ngwloc; ig++ )
             {
               // i*(k+G)_j*c(G)
@@ -655,7 +786,101 @@ void XCPotential::apply_meta_operator(Wavefunction& dwf)
             cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
             // Compute V3 * Grad_j psi_n(ikp)
             for ( int i = 0; i < np012loc_; i++ )
-              tmpr[i] *= xcf_->vxc3[i];
+              tmpr[i] *= xcf_->vxc3_up[i];
+            // Transform to k-space
+            cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0]);
+            // Compute Div_j[V3 * Grad_j psi_n(ikp)]
+            // Note -1/2 comes from definition of V3
+            for ( int ig = 0; ig < ngwloc; ig++ )
+            {
+              // i*(k+G)_j*c(G)
+              dp[ig+n*mloc] += -0.5 * complex<double>(0.0,kpgxj[ig]) * tmp0[ig];
+            }
+          }
+        }
+      }
+    }
+    //Tau_dn second
+    for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
+    {
+      if ( wf0.sd(1,ikp)->basis().real() )
+      {
+        const int ngwloc = wf0.sd(1,ikp)->basis().localsize();
+        vector<complex<double> > tmp0(ngwloc);
+        const int mloc = wf0.sd(1,ikp)->c().mloc();
+        const complex<double>* p = wf0.sd(1,ikp)->c().cvalptr();
+        complex<double>* dp = dwf.sd(1,ikp)->c().valptr();
+        for ( int n = 0; n < wf0.sd(1,ikp)->nstloc()-1; n++, n++ )
+        {
+          for ( int j = 0; j < 3; j++ )
+          {
+            // Compute Grad_j psi_n(ikp)
+            const double *const gxj = wf0.sd(1,ikp)->basis().gx_ptr(j);
+            for ( int ig = 0; ig < ngwloc; ig++ )
+            {
+              /* i*G_j*c(G) */
+              tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+              tmp1[ig] = complex<double>(0.0,gxj[ig]) * p[ig+(n+1)*mloc];
+            }
+            cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmpr[0]);
+            // Compute V3 * Grad_j psi_n(ikp)
+            for ( int i = 0; i < np012loc_; i++ )
+              tmpr[i] *= xcf_->vxc3_dn[i];
+            // Transform to k-space
+            cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0],&tmp1[0]);
+            // Compute Div_j[V3 * Grad_j psi_n(ikp)]
+            // Note -1/2 comes from definition of V3
+            for ( int ig = 0; ig < ngwloc; ig++ )
+            {
+              /* i*G_j*c(G) */
+              dp[ig+n*mloc] += -0.5 * complex<double>(0.0,gxj[ig]) * tmp0[ig];
+              dp[ig+(n+1)*mloc] += -0.5 * complex<double>(0.0,gxj[ig])*tmp1[ig];
+            }
+          }
+        }
+        if ( wf0.sd(1,ikp)->nstloc() % 2 != 0 )
+        {
+          const int n = wf0.sd(1,ikp)->nstloc()-1;
+          for ( int j = 0; j < 3; j++ )
+          {
+            const double *const gxj = wf0.sd(1,ikp)->basis().gx_ptr(j);
+            for ( int ig = 0; ig < ngwloc; ig++ )
+            {
+              tmp0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+            }
+            cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
+            for ( int i = 0; i < np012loc_; i++ )
+              tmpr[i] *= xcf_->vxc3_dn[i];
+            cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0]);
+            for ( int ig = 0; ig < ngwloc; ig++ )
+            {
+              dp[ig+n*mloc] += -0.5 * complex<double>(0.0,gxj[ig]) * tmp0[ig];
+            }
+          }
+        }
+      }
+      else
+      {
+        const int ngwloc = wf0.sd(1,ikp)->basis().localsize();
+        vector<complex<double> > tmp0(ngwloc);
+        const int mloc = wf0.sd(1,ikp)->c().mloc();
+        const complex<double>* p = wf0.sd(1,ikp)->c().cvalptr();
+        complex<double>* dp = dwf.sd(1,ikp)->c().valptr();
+        for ( int n = 0; n < wf0.sd(1,ikp)->nstloc(); n++ )
+        {
+          for ( int j = 0; j < 3; j++ )
+          {
+            // Compute Grad_j psi_n(ikp)
+            const double *const kpgxj = wf0.sd(1,ikp)->basis().kpgx_ptr(j);
+            for ( int ig = 0; ig < ngwloc; ig++ )
+            {
+              // i*(k+G)_j*c(G)
+              tmp0[ig] = complex<double>(0.0,kpgxj[ig]) * p[ig+n*mloc];
+            }
+            cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
+            // Compute V3 * Grad_j psi_n(ikp)
+            for ( int i = 0; i < np012loc_; i++ )
+              tmpr[i] *= xcf_->vxc3_dn[i];
             // Transform to k-space
             cd_.ft(ikp)->forward(&tmpr[0],&tmp0[0]);
             // Compute Div_j[V3 * Grad_j psi_n(ikp)]

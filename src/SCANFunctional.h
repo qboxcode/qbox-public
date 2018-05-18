@@ -28,9 +28,9 @@ class SCANFunctional : public XCFunctional
   std::vector<double> exc_, exc_up_, exc_dn_;
   std::vector<double> vxc1_, vxc1_up_, vxc1_dn_,
                  vxc2_, vxc2_upup_, vxc2_updn_, vxc2_dnup_, vxc2_dndn_,
-                 vxc3_;
+                 vxc3_,vxc3_up_,vxc3_dn_;
   std::vector<double> grad_rho_[3], grad_rho_up_[3], grad_rho_dn_[3];
-  std::vector<double> tau_;
+  std::vector<double> tau_, tau_up_, tau_dn_;
 
   void gPW92(double alpha, double beta0, double beta1, double beta2,
     double beta3, double beta4, double rtrs, double *gg, double *dgdrs);
@@ -39,9 +39,9 @@ class SCANFunctional : public XCFunctional
     double *vxc1, double *vxc2, double *vxc3);
 
   void excSCAN_sp(double rho_up, double rho_dn, double grad_up, double grad_dn,
-    double grad, double tau, double *exc_up, double *exc_dn, double *vxc1_up,
-    double *vxc1_dn, double *vxc2_upup, double *vxc2_dndn, double *vxc2_updn,
-    double *vxc2_dnup, double *vxc3);
+    double grad, double tau_up, double tau_dn, double *exc_up, double *exc_dn,
+    double *vxc1_up, double *vxc1_dn, double *vxc2_upup, double *vxc2_dndn,
+    double *vxc2_updn, double *vxc2_dnup, double *vxc3_up, double *vxc3_dn);
 
   public:
 

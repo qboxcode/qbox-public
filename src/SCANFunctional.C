@@ -418,13 +418,6 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   *vxc1 = x_coeff_ * vx1 + c_coeff_ * vc1;
   *vxc2 = x_coeff_ * vx2 + c_coeff_ * vc2;
   *vxc3 = x_coeff_ * vx3 + c_coeff_ * vc3;
-
-  cout << "exc " << *exc << " vxc1 " << *vxc1 << endl;
-
-  *exc = x_coeff_ * ex + c_coeff_ * ec;
-  *vxc1 = x_coeff_ * vx1 + c_coeff_ * vc1;
-  *vxc2 = x_coeff_ * vx2 + c_coeff_ * vc2;
-  *vxc3 = x_coeff_ * vx3 + c_coeff_ * vc3;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -822,19 +815,6 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
   dalphadtau = 1.0 / tau_unif;
   decdtau = dfcdalpha * dalphadtau * (ec0 - ec1);
   vc3 = rhotot * decdtau;
-
-  *exc_up = x_coeff_ * ex_up + c_coeff_ * ec;
-  *exc_dn = x_coeff_ * ex_dn + c_coeff_ * ec;
-  *vxc1_up = x_coeff_ * vx1_up + c_coeff_ * vc1_up;
-  *vxc1_dn = x_coeff_ * vx1_dn + c_coeff_ * vc1_dn;
-  *vxc2_upup = x_coeff_ * 2.0 * vx2_up + c_coeff_ * vc2;
-  *vxc2_dndn = x_coeff_ * 2.0 * vx2_dn + c_coeff_ * vc2;
-  *vxc2_updn = c_coeff_ * vc2;
-  *vxc2_dnup = c_coeff_ * vc2;
-  *vxc3_up = x_coeff_ * vx3_up + c_coeff_ * vc3;
-  *vxc3_dn = x_coeff_ * vx3_dn + c_coeff_ * vc3;
-
-  cout << "exc_up " << *exc_up << " exc_dn " << *exc_dn << " vxc1_up " << *vxc1_up << " vxc1_dn " << *vxc1_dn << endl;
 
   *exc_up = x_coeff_ * ex_up + c_coeff_ * ec;
   *exc_dn = x_coeff_ * ex_dn + c_coeff_ * ec;

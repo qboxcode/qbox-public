@@ -672,149 +672,163 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
   if ( rho_up < 1.e-18 ) rho_up = 0.0;
   if ( rho_dn < 1.e-18 ) rho_dn = 0.0;
 
-  // correlation
-  zeta = (rho_up - rho_dn) / rhotot;
-  rs = pow(4.0 * pi * rhotot / 3.0, -1.0/3.0);
-  rtrs = sqrt(rs);
-  kF = pow(3.0 * pi * pi * rhotot, 1.0/3.0);
-  s = grad / ( 2.0 * kF * rhotot );
-  s2 = s * s;
-  tau_W = grad * grad / (8.0 * rhotot);
-  tau_unif = 0.3 * pow(3.0 * pi * pi, 2.0 / 3.0) * pow(rhotot, 5.0 / 3.0);
-  phi = ((pow(1.0 + zeta, 2.0 / 3.0)) + (pow(1.0 - zeta, 2.0 / 3.0))) / 2.0;
-  phi3 = phi * phi * phi;
-  //!! abs value in next line
-  XCalpha = fabs(tautot - tau_W) / tau_unif;
-  oneMalpha = 1.0 - XCalpha;
 
-  ecLDA = -bc0/(1.0 + bc1 * rtrs + bc2 * rs);
-  ginf = pow(1.0 + 4.0 * chi_inf * s2, -0.25);
-  w0 = exp(-ecLDA/bc1) - 1.0;
-  H0 = bc1 * log(1.0 + w0 * (1.0 - ginf));
-  Dx = ((pow(1.0 + zeta, 4.0 / 3.0)) + (pow(1.0 - zeta, 4.0 / 3.0))) / 2.0;
-  GC = (1.0 - GC1 * (Dx - 1.0)) * (1.0 - pow(zeta,12.0));
-  ec0 = (ecLDA + H0) * GC;
-  beta1 = 0.066725 * ( 1.0 + 0.1 * rs) / (1.0 + 0.1778 * rs);
-  gPW92(alpha0, beta00, beta10, beta20, beta30, beta40, rtrs,
-        &ecLSDA, &decLSDAdrs);
-  w1 = exp(-ecLSDA / (gamma * phi3)) - 1.0;
-  A1 = beta1 / (gamma * w1);
-  t1 = pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (phi * rtrs);
-  g1 = pow(1.0 + 4.0 * A1 * t1 * t1, -0.25);
-  g5 = g1 * g1 * g1 * g1 * g1;
-  H1 = gamma * phi3 * log(1.0 + w1 * (1.0 - g1));
-  ec1 = ecLSDA + H1;
-  if ( XCalpha < 1.0)
-  {
-    fc = exp(-cc1 * XCalpha / oneMalpha);
-  }
-  else if (XCalpha > 1.0)
-  {
-    fc = -dc * exp(cc2 / oneMalpha);
-  }
-  else
-  {
-    fc = 0.0;
-  }
-
-  ec = ec1 + fc * (ec0 - ec1);
-
-  // rs derivatives
-  tmp1 = 1.0 + bc1 * rtrs + bc2 * rs;
-  decLDAdrs = bc0 * (bc1 / rtrs + 2.0 * bc2) / (2.0 * tmp1 * tmp1);
-  dw0drs = -1.0 * (1.0 + w0) * decLDAdrs / bc1;
-  //dec0drs = decLDAdrs + (bc1 * (1.0 - ginf))/(1.0 + w0 * (1.0 - ginf)) * dw0drs;
-
-  tmp2 = (1.0 + 0.1778 * rs);
-  dbeta1drs = 0.066725 * (0.1 - 0.1778) / tmp2 / tmp2;
-  dw1drs = - 1.0 * (1.0 + w1) * decLSDAdrs / (gamma * phi3);
-  dA1drs = dbeta1drs / (gamma * w1) - beta1 * dw1drs / (gamma * w1 * w1);
-  dt1drs = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s /
-           (2.0 * phi * rtrs * rtrs * rtrs);
-  dH1drs = (1.0 - g1) * gamma * phi3 * dw1drs / (1.0 + w1 * (1.0 - g1)) +
-           w1 * gamma * phi3 / (1.0 + w1 * (1.0 - g1)) * 
-           (t1 * t1 * g5 * dA1drs + 2.0 * A1 * t1 * g5 * dt1drs);
-  //dec1drs = decLSDAdrs + dH1drs;
-
-  // s derivatives
-
-  dginfds = -2.0 * chi_inf * s * ginf * ginf * ginf * ginf * ginf;
-  dt1ds = pow(3.0 * pi * pi / 16.0, 1.0/3.0) / phi / rtrs;
-  dg1ds = -2.0 * A1 * t1 * g5 * dt1ds;
-  dec1ds = -gamma * phi3 * w1 / (1.0 + w1 * (1.0 - g1)) * dg1ds;
-  dH0ds = -bc1 * w0 * dginfds / (1.0 + w0 * (1.0 - ginf));
-  dec0ds = dH0ds * GC;
-
-  // alpha derivatives
-  if ( XCalpha < 1.0)
-  {
-    dfcdalpha = -cc1 / oneMalpha / oneMalpha * exp(-cc1 * XCalpha/ oneMalpha);
-  }
-  else if (XCalpha > 1.0)
-  {
-    dfcdalpha = -cc2 * dc / oneMalpha / oneMalpha * exp(cc2 / oneMalpha);
-  }
-  else
-  {
-    dfcdalpha = 0.0;
-  }
-
-  // phi derivatives
-
-  dw1dphi = 3.0 * ecLSDA / (gamma * phi3 * phi) * exp(-ecLSDA / (gamma * phi3));
-  dA1dphi = -1.0 * beta1 * dw1dphi / (gamma * w1 * w1);
-  dt1dphi = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (phi * phi * rtrs);
-  dgdphi = -2.0 * A1 * t1 * g5 * dt1dphi - t1 * t1 * g5 * dA1dphi;
-  dH1dphi = 3.0 * gamma * phi * phi * log(1.0 + w1 * (1.0 - g1)) +
-            gamma * phi3 * dw1dphi / (1.0 / (1.0 - g1) + w1) -
-            gamma * phi3 * dgdphi / (1.0 / w1 + (1.0 - g1));
-
-  // zeta derivatives
-  dDxdzeta = 2.0 / 3.0 * (pow(1.0 + zeta, 1.0/3.0) - pow(1.0 - zeta, 1.0/3.0));
-  dphidzeta = (pow(1.0 + zeta, -1.0/3.0) - pow(1.0 - zeta, -1.0/3.0)) / 3.0;
-
-  // n derivatives
-  drsdn = -rs / (3.0 * rhotot);
-  dsdn = -4.0 * s / (3.0 * rhotot);
-  dalphadn = (tau_W / tau_unif - 5.0 * XCalpha / 3.0) / rhotot;
-
-  // V1C_up
-  dzetadnup = 2.0 * rho_dn / rhotot / rhotot;
-  dec1dnup = decLSDAdrs * drsdn + dH1dphi * dphidzeta * dzetadnup +
-             dH1drs * drsdn + dec1ds * dsdn;
-  dH0dnup = bc1 * ((1.0 - ginf) * dw0drs * drsdn - w0 * dginfds * dsdn) /
-       (1.0 + w0 * (1.0 - ginf));
-  dGCdnup = -dzetadnup * (GC1 * dDxdzeta * (1.0 - pow(zeta,12.0)) + 
-            12.0 * (1.0 - GC1 * (Dx - 1.0)) * pow(zeta,11.0));
-  dec0dnup = (decLDAdrs * drsdn + dH0dnup) * GC + (ecLDA + H0) * dGCdnup;
-  dfcdnup = dfcdalpha * dalphadn;
-  decdnup = dec1dnup + dfcdnup * (ec0 - ec1) + fc * (dec0dnup - dec1dnup);
-  vc1_up = ec + rhotot * decdnup;
+  ec = 0.0;
+  vc1_up = 0.0;
+  vc1_dn = 0.0;
+  vc2 = 0.0;
+  vc3 = 0.0;
   
-  // V1C_dn
-  dzetadndn = -2.0 * rho_up / rhotot / rhotot;
-  dec1dndn = decLSDAdrs * drsdn + dH1dphi * dphidzeta * dzetadndn +
-             dH1drs * drsdn + dec1ds * dsdn;
-  dH0dndn = bc1 * ((1.0 - ginf) * dw0drs * drsdn - w0 * dginfds * dsdn) /
-       (1.0 + w0 * (1.0 - ginf));
-  dGCdndn = -dzetadndn * (GC1 * dDxdzeta * (1.0 - pow(zeta,12.0)) + 
-            12.0 * (1.0 - GC1 * (Dx - 1.0)) * pow(zeta,11.0));
-  dec0dndn = (decLDAdrs * drsdn + dH0dndn) * GC + (ecLDA + H0) * dGCdndn;
-  dfcdndn = dfcdalpha * dalphadn;
-  decdndn = dec1dndn + dfcdndn * (ec0 - ec1) + fc * (dec0dndn - dec1dndn);
-  vc1_dn = ec + rhotot * decdndn;
+  // correlation
+  if ( rhotot > 1.e-18 )
+  {
+    zeta = (rho_up - rho_dn) / rhotot;
+    if (zeta == 1.0)
+      zeta = 1.0 - 1e-9;
+    if (zeta == -1.0)
+      zeta = -1.0 + 1e-9;
+    rs = pow(4.0 * pi * rhotot / 3.0, -1.0/3.0);
+    rtrs = sqrt(rs);
+    kF = pow(3.0 * pi * pi * rhotot, 1.0/3.0);
+    s = grad / ( 2.0 * kF * rhotot );
+    s2 = s * s;
+    tau_W = grad * grad / (8.0 * rhotot);
+    tau_unif = 0.3 * pow(3.0 * pi * pi, 2.0 / 3.0) * pow(rhotot, 5.0 / 3.0);
+    phi = ((pow(1.0 + zeta, 2.0 / 3.0)) + (pow(1.0 - zeta, 2.0 / 3.0))) / 2.0;
+    phi3 = phi * phi * phi;
+    //!! abs value in next line
+    XCalpha = fabs(tautot - tau_W) / tau_unif;
+    oneMalpha = 1.0 - XCalpha;
 
-  // VC2
-  dsdgrad = s / grad;
-  dalphadgrad = -2.0 * tau_W / (grad * tau_unif);
-  decdgrad = dec1ds * dsdgrad + dfcdalpha * dalphadgrad *
-    (ec0 - ec1) + fc * ( dec0ds * dsdgrad - dec1ds * dsdgrad );
-  vc2 = -rhotot * decdgrad / grad;
+    ecLDA = -bc0/(1.0 + bc1 * rtrs + bc2 * rs);
+    ginf = pow(1.0 + 4.0 * chi_inf * s2, -0.25);
+    w0 = exp(-ecLDA/bc1) - 1.0;
+    H0 = bc1 * log(1.0 + w0 * (1.0 - ginf));
+    Dx = ((pow(1.0 + zeta, 4.0 / 3.0)) + (pow(1.0 - zeta, 4.0 / 3.0))) / 2.0;
+    GC = (1.0 - GC1 * (Dx - 1.0)) * (1.0 - pow(zeta,12.0));
+    ec0 = (ecLDA + H0) * GC;
+    beta1 = 0.066725 * ( 1.0 + 0.1 * rs) / (1.0 + 0.1778 * rs);
+    gPW92(alpha0, beta00, beta10, beta20, beta30, beta40, rtrs,
+          &ecLSDA, &decLSDAdrs);
+    w1 = exp(-ecLSDA / (gamma * phi3)) - 1.0;
+    A1 = beta1 / (gamma * w1);
+    t1 = pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (phi * rtrs);
+    g1 = pow(1.0 + 4.0 * A1 * t1 * t1, -0.25);
+    g5 = g1 * g1 * g1 * g1 * g1;
+    H1 = gamma * phi3 * log(1.0 + w1 * (1.0 - g1));
+    ec1 = ecLSDA + H1;
+    if ( XCalpha < 1.0)
+    {
+      fc = exp(-cc1 * XCalpha / oneMalpha);
+    }
+    else if (XCalpha > 1.0)
+    {
+      fc = -dc * exp(cc2 / oneMalpha);
+    }
+    else
+    {
+      fc = 0.0;
+    }
 
-  // VC3
-  dalphadtau = 1.0 / tau_unif;
-  decdtau = dfcdalpha * dalphadtau * (ec0 - ec1);
-  vc3 = rhotot * decdtau;
+    ec = ec1 + fc * (ec0 - ec1);
+
+    // rs derivatives
+    tmp1 = 1.0 + bc1 * rtrs + bc2 * rs;
+    decLDAdrs = bc0 * (bc1 / rtrs + 2.0 * bc2) / (2.0 * tmp1 * tmp1);
+    dw0drs = -1.0 * (1.0 + w0) * decLDAdrs / bc1;
+    //dec0drs = decLDAdrs + (bc1 * (1.0 - ginf))/(1.0 + w0 * (1.0 - ginf)) * dw0drs;
+
+    tmp2 = (1.0 + 0.1778 * rs);
+    dbeta1drs = 0.066725 * (0.1 - 0.1778) / tmp2 / tmp2;
+    dw1drs = - 1.0 * (1.0 + w1) * decLSDAdrs / (gamma * phi3);
+    dA1drs = dbeta1drs / (gamma * w1) - beta1 * dw1drs / (gamma * w1 * w1);
+    dt1drs = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s /
+             (2.0 * phi * rtrs * rtrs * rtrs);
+    dH1drs = (1.0 - g1) * gamma * phi3 * dw1drs / (1.0 + w1 * (1.0 - g1)) +
+             w1 * gamma * phi3 / (1.0 + w1 * (1.0 - g1)) * 
+             (t1 * t1 * g5 * dA1drs + 2.0 * A1 * t1 * g5 * dt1drs);
+    //dec1drs = decLSDAdrs + dH1drs;
+
+    // s derivatives
+
+    dginfds = -2.0 * chi_inf * s * ginf * ginf * ginf * ginf * ginf;
+    dt1ds = pow(3.0 * pi * pi / 16.0, 1.0/3.0) / phi / rtrs;
+    dg1ds = -2.0 * A1 * t1 * g5 * dt1ds;
+    dec1ds = -gamma * phi3 * w1 / (1.0 + w1 * (1.0 - g1)) * dg1ds;
+    dH0ds = -bc1 * w0 * dginfds / (1.0 + w0 * (1.0 - ginf));
+    dec0ds = dH0ds * GC;
+
+    // alpha derivatives
+    if ( XCalpha < 1.0)
+    {
+      dfcdalpha = -cc1 / oneMalpha / oneMalpha * exp(-cc1 * XCalpha/ oneMalpha);
+    }
+    else if (XCalpha > 1.0)
+    {
+      dfcdalpha = -cc2 * dc / oneMalpha / oneMalpha * exp(cc2 / oneMalpha);
+    }
+    else
+    {
+      dfcdalpha = 0.0;
+    }
+
+    // phi derivatives
+
+    dw1dphi = 3.0 * ecLSDA / (gamma * phi3 * phi) * exp(-ecLSDA / (gamma * phi3));
+    dA1dphi = -1.0 * beta1 * dw1dphi / (gamma * w1 * w1);
+    dt1dphi = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (phi * phi * rtrs);
+    dgdphi = -2.0 * A1 * t1 * g5 * dt1dphi - t1 * t1 * g5 * dA1dphi;
+    dH1dphi = 3.0 * gamma * phi * phi * log(1.0 + w1 * (1.0 - g1)) +
+              gamma * phi3 * dw1dphi / (1.0 / (1.0 - g1) + w1) -
+              gamma * phi3 * dgdphi / (1.0 / w1 + (1.0 - g1));
+
+    // zeta derivatives
+    dDxdzeta = 2.0 / 3.0 * (pow(1.0 + zeta, 1.0/3.0) - pow(1.0 - zeta, 1.0/3.0));
+    dphidzeta = (pow(1.0 + zeta, -1.0/3.0) - pow(1.0 - zeta, -1.0/3.0)) / 3.0;
+
+    // n derivatives
+    drsdn = -rs / (3.0 * rhotot);
+    dsdn = -4.0 * s / (3.0 * rhotot);
+    dalphadn = (tau_W / tau_unif - 5.0 * XCalpha / 3.0) / rhotot;
+
+    // V1C_up
+    dzetadnup = 2.0 * rho_dn / rhotot / rhotot;
+    dec1dnup = decLSDAdrs * drsdn + dH1dphi * dphidzeta * dzetadnup +
+               dH1drs * drsdn + dec1ds * dsdn;
+    dH0dnup = bc1 * ((1.0 - ginf) * dw0drs * drsdn - w0 * dginfds * dsdn) /
+         (1.0 + w0 * (1.0 - ginf));
+    dGCdnup = -dzetadnup * (GC1 * dDxdzeta * (1.0 - pow(zeta,12.0)) + 
+              12.0 * (1.0 - GC1 * (Dx - 1.0)) * pow(zeta,11.0));
+    dec0dnup = (decLDAdrs * drsdn + dH0dnup) * GC + (ecLDA + H0) * dGCdnup;
+    dfcdnup = dfcdalpha * dalphadn;
+    decdnup = dec1dnup + dfcdnup * (ec0 - ec1) + fc * (dec0dnup - dec1dnup);
+    vc1_up = ec + rhotot * decdnup;
+  
+    // V1C_dn
+    dzetadndn = -2.0 * rho_up / rhotot / rhotot;
+    dec1dndn = decLSDAdrs * drsdn + dH1dphi * dphidzeta * dzetadndn +
+               dH1drs * drsdn + dec1ds * dsdn;
+    dH0dndn = bc1 * ((1.0 - ginf) * dw0drs * drsdn - w0 * dginfds * dsdn) /
+         (1.0 + w0 * (1.0 - ginf));
+    dGCdndn = -dzetadndn * (GC1 * dDxdzeta * (1.0 - pow(zeta,12.0)) + 
+              12.0 * (1.0 - GC1 * (Dx - 1.0)) * pow(zeta,11.0));
+    dec0dndn = (decLDAdrs * drsdn + dH0dndn) * GC + (ecLDA + H0) * dGCdndn;
+    dfcdndn = dfcdalpha * dalphadn;
+    decdndn = dec1dndn + dfcdndn * (ec0 - ec1) + fc * (dec0dndn - dec1dndn);
+    vc1_dn = ec + rhotot * decdndn;
+
+    // VC2
+    dsdgrad = s / grad;
+    dalphadgrad = -2.0 * tau_W / (grad * tau_unif);
+    decdgrad = dec1ds * dsdgrad + dfcdalpha * dalphadgrad *
+               (ec0 - ec1) + fc * ( dec0ds * dsdgrad - dec1ds * dsdgrad );
+    vc2 = -rhotot * decdgrad / grad;
+
+    // VC3
+    dalphadtau = 1.0 / tau_unif;
+    decdtau = dfcdalpha * dalphadtau * (ec0 - ec1);
+    vc3 = rhotot * decdtau;
+  }
 
   *exc_up = x_coeff_ * ex_up + c_coeff_ * ec;
   *exc_dn = x_coeff_ * ex_dn + c_coeff_ * ec;

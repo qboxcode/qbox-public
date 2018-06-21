@@ -226,7 +226,8 @@ EnergyFunctional::~EnergyFunctional(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vh, bool update_vxc)
+void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vh,
+  bool update_vxc)
 {
   // called when the charge density has changed
   // update Hartree and xc potentials using the charge density cd_

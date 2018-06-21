@@ -38,7 +38,8 @@ int ResponseCmd::action(int argc, char **argv)
 {
   // " syntax: response amplitude nitscf [nite]\n\n"
   // " syntax: response -vext vext_file [-RPA|-IPA] [-amplitude a]
-  //                    [-io iomode -nx nx -ny ny -nz nz] [-q qx qy qz] nitscf [nite]\n\n"
+  //                    [-io iomode -nx nx -ny ny -nz nz]
+  //                    [-q qx qy qz] nitscf [nite]\n\n"
 
   if ( s->wf.nst() == 0 )
   {
@@ -243,13 +244,15 @@ void ResponseCmd::responseEfield(double amplitude, int nitscf, int nite)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string io)
+void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
+   string io)
 {
 //  if (ui->onpe0())
 //  {
 //    cout << "ResponseCmd:responseVext:\n"
 //         << "RPA = " << rpa << ", IPA = " << ipa << ", io = " << io
-//         << ", q = " << q << ", nitscf = " << nitscf << ", nite = " << nite << "\n";
+//         << ", q = " << q << ", nitscf = " << nitscf << ", nite = "
+//         << nite << "\n";
 //  }
 
   s->wf.info(cout, "wavefunction");
@@ -509,7 +512,8 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
         err = MPI_File_write_at_all(fh,offset,(void*) &wbuf[0],nchars,
                                     MPI_CHAR,&status);
         if ( err != 0 )
-          cout << myrow << ": error in MPI_File_write_at_all: err=" << err << endl;
+          cout << myrow << ": error in MPI_File_write_at_all: err="
+               << err << endl;
 
         err = MPI_File_close(&fh);
         if ( err != 0 )
@@ -543,8 +547,9 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite, string 
     for (int ispin = 0; ispin < nspin; ispin++)
     {
       tm_comm_drho.start();
-      MPI_Gatherv(&drho_r[ispin][0], ft2.np012loc(), MPI_DOUBLE, &drho_r_gathered[0],
-                  &rcounts[0], &displs[0], MPI_DOUBLE, 0, vcomm);
+      MPI_Gatherv(&drho_r[ispin][0], ft2.np012loc(), MPI_DOUBLE,
+                  &drho_r_gathered[0], &rcounts[0], &displs[0],
+                  MPI_DOUBLE, 0, vcomm);
       tm_comm_drho.stop();
 
       if ( myrow == 0 && mycol == 0 )

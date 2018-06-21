@@ -31,7 +31,8 @@ using namespace std;
 #include "FourierTransform.h"
 #include "Base64Transcoder.h"
 
-bool abs_compare(const double &a, const double &b){
+bool abs_compare(const double &a, const double &b)
+{
   return (abs(a) < abs(b));
 }
 
@@ -274,8 +275,8 @@ void ExternalPotential::update(const ChargeDensity& cd)
   {
     cout << "  ExternalPotential::update: read external potential from file:  "
          << filename_ << endl;
-    cout << "  ExternalPotential::update: grid size n0 = " << n_[0] << ", n1 = " << n_[1]
-         << ", n2 = " << n_[2] << endl;
+    cout << "  ExternalPotential::update: grid size n0 = "
+         << n_[0] << ", n1 = " << n_[1] << ", n2 = " << n_[2] << endl;
     cout << "  ExternalPotential::update: ecut:  " << ecut_ << endl;
     if ( amplitude_ != 0 )
       cout << "  ExternalPotential::update: amplitude:  " << amplitude_ << endl;
@@ -287,13 +288,15 @@ void ExternalPotential::update(const ChargeDensity& cd)
     // would be suitable. Here the amplitude is set to scale the
     // magnitude of vext to be 1.0E-3 hartree
     if (vext_read_loc.size() > 0)
-      magnitude_ = abs(*max_element( vext_read_loc.begin(), vext_read_loc.end(), abs_compare));
+      magnitude_ = abs(*max_element(vext_read_loc.begin(),
+                       vext_read_loc.end(), abs_compare));
     ctxt->dmax('C',1,1,&magnitude_,1);
     MPI_Bcast(&magnitude_,1,MPI_DOUBLE,0,vcomm);
     amplitude_ = 1.0E-3 / magnitude_;
     if ( onpe0 )
-      cout << "  ExternalPotential::update: amplitude automatically determined to be "
-           << amplitude_ << " (max abs value of vext = " << magnitude_ << ")" << endl;
+      cout << "  ExternalPotential::update: amplitude automatically"
+           << " determined to be " << amplitude_
+           << " (max abs value of vext = " << magnitude_ << ")" << endl;
   }
 
   time = tm_read_vext.real();

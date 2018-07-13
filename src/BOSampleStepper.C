@@ -564,7 +564,7 @@ void BOSampleStepper::step(int niter)
             }
             else if ( iter == 1 )
             {
-              s_.wfv->align(s_.wf);
+              s_.wfv->sd(ispin,ikp)->align(*s_.wf.sd(ispin,ikp));
               for ( int i = 0; i < len; i++ )
               {
                 const double x = c[i];
@@ -580,8 +580,7 @@ void BOSampleStepper::step(int niter)
             else
             {
               // align wf with wfmm before extrapolation
-              // s_.wf.align(*wfmm);
-              wfmm->align(s_.wf);
+              s_.wf.sd(ispin,ikp)->align(*wfmm->sd(ispin,ikp));
 
               // extrapolate
               for ( int i = 0; i < len; i++ )
@@ -635,7 +634,7 @@ void BOSampleStepper::step(int niter)
             }
             else if ( iter == 1 )
             {
-              //s_.wfv->align(s_.wf);
+              s_.wfv->sd(ispin,ikp)->align(*s_.wf.sd(ispin,ikp));
               for ( int i = 0; i < len; i++ )
               {
                 const double x = c[i];
@@ -651,8 +650,7 @@ void BOSampleStepper::step(int niter)
             else
             {
               // align wf with wfmm before extrapolation
-              // s_.wf.align(*wfmm);
-              // wfmm->align(s_.wf);
+              s_.wf.sd(ispin,ikp)->align(*wfmm->sd(ispin,ikp));
 
               // extrapolate
               for ( int i = 0; i < len; i++ )
@@ -707,7 +705,7 @@ void BOSampleStepper::step(int niter)
             else
             {
               tmap["align"].start();
-              s_.wfv->align(s_.wf);
+              s_.wfv->sd(ispin,ikp)->align(*s_.wf.sd(ispin,ikp));
               tmap["align"].stop();
 
               // linear extrapolation

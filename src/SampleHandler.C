@@ -46,7 +46,7 @@ void SampleHandler::endElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname, string& content)
 {
   // istringstream stst(st);
-  // string locname(XMLString::transcode(localname));
+  // string locname = StrX(localname).localForm();
   // cout << " SampleHandler::endElement " << locname << endl;
 }
 
@@ -59,7 +59,7 @@ StructureHandler* SampleHandler::startSubHandler(const XMLCh* const uri,
   // If it can, return a pointer to the StructureHandler, otherwise return 0
   // cout << " SampleHandler::startSubHandler " << StrX(qname) << endl;
 
-  string qnm = XMLString::transcode(qname);
+  string qnm = StrX(qname).localForm();
   if ( qnm == "atomset" )
   {
     return new AtomSetHandler(s_.atoms);

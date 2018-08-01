@@ -42,7 +42,7 @@ void AtomSetHandler::startElement(const XMLCh* const uri,
   const Attributes& attributes)
 {
   // cout << " AtomSetHandler::startElement " << StrX(qname) << endl;
-  string locname(XMLString::transcode(localname));
+  string locname = StrX(localname).localForm();
 
   // consider only elements that are dealt with directly by AtomSetHandler
   // i.e. "atom". The "species" element is delegated to a SpeciesHandler
@@ -52,8 +52,8 @@ void AtomSetHandler::startElement(const XMLCh* const uri,
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
-      string attrval(XMLString::transcode(attributes.getValue(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
+      string attrval = StrX(attributes.getValue(index)).localForm();
       istringstream stst(attrval);
       if ( attrname == "a")
       {
@@ -79,7 +79,7 @@ void AtomSetHandler::startElement(const XMLCh* const uri,
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
       if ( attrname == "name")
       {
         current_atom_name = StrX(attributes.getValue(index)).localForm();
@@ -96,7 +96,7 @@ void AtomSetHandler::startElement(const XMLCh* const uri,
 void AtomSetHandler::endElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname, string& content)
 {
-  string locname(XMLString::transcode(localname));
+  string locname = StrX(localname).localForm();
   // cout << " AtomSetHandler::endElement " << locname << endl;
   istringstream stst(content);
   if ( locname == "unit_cell")
@@ -146,14 +146,14 @@ StructureHandler* AtomSetHandler::startSubHandler(const XMLCh* const uri,
   // If it can, return a pointer to the StructureHandler, otherwise return 0
   // cout << " AtomSetHandler::startSubHandler " << StrX(qname) << endl;
 
-  string locname(XMLString::transcode(localname));
+  string locname = StrX(localname).localForm();
   if ( locname == "species")
   {
     // check for species attributes
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
       if ( attrname == "name")
       {
         current_species_name = StrX(attributes.getValue(index)).localForm();
@@ -175,7 +175,7 @@ void AtomSetHandler::endSubHandler(const XMLCh* const uri,
     const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const last)
 {
-  string locname(XMLString::transcode(localname));
+  string locname = StrX(localname).localForm();
   // cout << " AtomSetHandler::endSubHandler " << locname << endl;
   if ( locname == "species" )
   {

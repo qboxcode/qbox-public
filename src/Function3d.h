@@ -34,8 +34,6 @@ class Function3d
   std::string name_;
   std::vector<double> val_;
 
-  void byteswap_double(size_t n, double* x);
-
   const D3vector a(void) const { return a_; }
   const D3vector b(void) const { return b_; }
   const D3vector c(void) const { return c_; }

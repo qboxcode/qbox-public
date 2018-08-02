@@ -31,14 +31,14 @@ int main(int argc, char** argv)
   }
   f.read(argv[1]);
 
-  cout << "function name: " << f.name_ << endl;
-  cout << "function base64 size: " << f.str_.size() << endl;
-  cout << "function array size: " << f.val_.size() << endl;
+  cout << "function name: " << f.name << endl;
+  cout << "function grid size: " << f.nx << " " << f.ny << " " << f.nz  << endl;
+  cout << "function array size: " << f.val.size() << endl;
 
   double sum = 0.0;
-  for ( int i = 0; i < f.val_.size(); i++ )
+  for ( int i = 0; i < f.val.size(); i++ )
   {
-    sum += f.val_[i]*f.val_[i];
+    sum += f.val[i]*f.val[i];
   }
-  cout << "function norm2: " << sum / f.val_.size() << endl;
+  cout << "function norm2: " << sum / f.val.size() << endl;
 }

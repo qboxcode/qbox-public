@@ -17,6 +17,7 @@
 
 #include "Function3d.h"
 #include "Function3dHandler.h"
+#include "Base64Transcoder.h"
 #include "StrX.h"
 #include "Timer.h"
 #include <xercesc/util/XMLUniDefs.hpp>
@@ -47,7 +48,7 @@ void Function3dHandler::startElement(const XMLCh* const uri,
       string attrname = StrX(attributes.getLocalName(index)).localForm();
       if ( attrname == "name" )
       {
-        f_.name_ = StrX(attributes.getValue(index)).localForm();
+        f_.name = StrX(attributes.getValue(index)).localForm();
       }
     }
   }
@@ -60,17 +61,17 @@ void Function3dHandler::startElement(const XMLCh* const uri,
       if ( attrname == "a" )
       {
         istringstream stst(StrX(attributes.getValue(index)).localForm());
-        stst >> f_.a_;
+        stst >> f_.a;
       }
-      if ( attrname == "b" )
+      else if ( attrname == "b" )
       {
         istringstream stst(StrX(attributes.getValue(index)).localForm());
-        stst >> f_.b_;
+        stst >> f_.b;
       }
-      if ( attrname == "c" )
+      else if ( attrname == "c" )
       {
         istringstream stst(StrX(attributes.getValue(index)).localForm());
-        stst >> f_.c_;
+        stst >> f_.c;
       }
     }
   }
@@ -82,20 +83,23 @@ void Function3dHandler::startElement(const XMLCh* const uri,
       string attrname = StrX(attributes.getLocalName(index)).localForm();
       if ( attrname == "nx" )
       {
-        f_.gnx_ = atoi(StrX(attributes.getValue(index)).localForm());
+        f_.nx = atoi(StrX(attributes.getValue(index)).localForm());
       }
-      if ( attrname == "ny" )
+      else if ( attrname == "ny" )
       {
-        f_.gny_ = atoi(StrX(attributes.getValue(index)).localForm());
+        f_.ny = atoi(StrX(attributes.getValue(index)).localForm());
       }
-      if ( attrname == "nz" )
+      else if ( attrname == "nz" )
       {
-        f_.gnz_ = atoi(StrX(attributes.getValue(index)).localForm());
+        f_.nz = atoi(StrX(attributes.getValue(index)).localForm());
       }
     }
   }
   else if ( locname == "grid_function" )
   {
+    x0_ = 0;
+    y0_ = 0;
+    z0_ = 0;
     unsigned int len = attributes.getLength();
     for ( unsigned int index = 0; index < len; index++ )
     {
@@ -110,19 +114,31 @@ void Function3dHandler::startElement(const XMLCh* const uri,
           assert(!"Function3dHandler: incorrect grid_function type");
         }
       }
-      if ( attrname == "nx" )
+      else if ( attrname == "nx" )
       {
-        f_.nx_ = atoi(StrX(attributes.getValue(index)).localForm());
+        fnx_ = atoi(StrX(attributes.getValue(index)).localForm());
       }
-      if ( attrname == "ny" )
+      else if ( attrname == "ny" )
       {
-        f_.ny_ = atoi(StrX(attributes.getValue(index)).localForm());
+        fny_ = atoi(StrX(attributes.getValue(index)).localForm());
       }
-      if ( attrname == "nz" )
+      else if ( attrname == "nz" )
       {
-        f_.nz_ = atoi(StrX(attributes.getValue(index)).localForm());
+        fnz_ = atoi(StrX(attributes.getValue(index)).localForm());
       }
-      if ( attrname == "encoding" )
+      else if ( attrname == "x0" )
+      {
+        x0_ = atoi(StrX(attributes.getValue(index)).localForm());
+      }
+      else if ( attrname == "y0" )
+      {
+        y0_ = atoi(StrX(attributes.getValue(index)).localForm());
+      }
+      else if ( attrname == "z0" )
+      {
+        z0_ = atoi(StrX(attributes.getValue(index)).localForm());
+      }
+      else if ( attrname == "encoding" )
       {
         string type = StrX(attributes.getValue(index)).localForm();
         if ( type != "base64" )
@@ -133,7 +149,7 @@ void Function3dHandler::startElement(const XMLCh* const uri,
         }
       }
     }
-    buf = "";
+    buf_ = "";
   }
 }
 
@@ -153,7 +169,7 @@ void Function3dHandler::characters(const XMLCh* const chars,
 #endif
 
   char *str = XMLString::transcode(chars);
-  buf += str;
+  buf_ += str;
   XMLString::release(&str);
 
 #if TIMING
@@ -169,6 +185,25 @@ void Function3dHandler::endElement(const XMLCh* const uri,
   string locname = StrX(localname).localForm();
   if ( locname == "grid_function" )
   {
-    f_.str_ = buf;
+    if ( (fnx_ > f_.nx) || (fny_ > f_.ny) || (fnz_ > f_.nz) )
+    {
+      assert(!"Function3dHandler:: fragment size > grid size");
+    }
+    if ( (fnx_ != f_.nx) || (fny_ != f_.ny) || (fnz_ != f_.nz) )
+    {
+      assert(!"Function3dHandler:: fragment processing not implemented"); 
+    }
+    if ( x0_ != 0 || y0_ != 0 || z0_ != 0 )
+    {
+      assert(!"Function3dHandler:: fragment offset not implemented");
+    }
+    // process base64 data in buf
+    f_.val.resize(f_.nx*f_.ny*f_.nz);
+    Timer tm;
+    tm.start();
+    Base64Transcoder xcdr;
+    size_t nbytes = xcdr.decode(buf_.size(),buf_.data(),(byte*)&f_.val[0]);
+    assert(nbytes==f_.val.size()*sizeof(double));
+    buf_.clear();
   }
 }

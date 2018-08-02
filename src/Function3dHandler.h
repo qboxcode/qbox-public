@@ -26,10 +26,14 @@
 
 class Function3dHandler: public DefaultHandler
 {
-  public:
+  private:
 
-  std::string buf;
+  std::string buf_;
   Function3d& f_;
+  int fnx_, fny_, fnz_; // size of fragment read
+  int x0_, y0_, z0_;    // offset of fragment read
+
+  public:
 
   Function3dHandler(Function3d& f);
   virtual ~Function3dHandler(void);

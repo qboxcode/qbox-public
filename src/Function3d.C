@@ -16,13 +16,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "Function3d.h"
-#include "Timer.h"
 #include "Function3dHandler.h"
-#include "Base64Transcoder.h"
+#include "Timer.h"
 #include <string>
 #include <iostream>
-#include <iomanip>
-#include <cstdio>
 #include <sys/stat.h>
 using namespace std;
 #include <xercesc/util/XMLUniDefs.hpp>
@@ -56,13 +53,14 @@ void Function3d::read(string filename)
 
   // determine size
   off_t sz = statbuf.st_size;
-
-  // use contiguous read buffer, to be copied later to a string
-  char *rdbuf = new char[sz];
   cout << "Function3d::read: file size: " << sz << endl;
 
+  // read file into xmlcontent string
+  string xmlcontent;
+  xmlcontent.resize(sz);
+
   tm.start();
-  size_t items_read = fread(rdbuf,sizeof(char),sz,infile);
+  size_t items_read = fread(&xmlcontent[0],sizeof(char),sz,infile);
   assert(items_read==sz);
   fclose(infile);
   tm.stop();
@@ -70,10 +68,6 @@ void Function3d::read(string filename)
   cout << "Function3d::read: fread time: " << tm.real() << endl;
   cout << "Function3d::read: read rate: "
        << sz/(tm.real()*1024*1024) << " MB/s" << endl;
-
-  string xmlcontent;
-  xmlcontent.assign(rdbuf,sz);
-  delete [] rdbuf;
 
   tm.reset();
   tm.start();
@@ -163,19 +157,9 @@ void Function3d::read(string filename)
   XMLPlatformUtils::Terminate();
 
   tm.stop();
+
   cout << "Function3d::read: parse time: " << tm.real() << endl;
-
-  tm.reset();
-  tm.start();
-  val_.resize(gnx_*gny_*gnz_);
   cout << "Function3d::read: grid size: "
-       << gnx_ << " " << gny_ << " " << gnz_ << endl;
-  cout << "Function3d::read: str_ size: " << str_.size() << endl;
-
-  Base64Transcoder xcdr;
-  size_t nbytes = xcdr.decode(str_.size(),str_.data(),(byte*)&val_[0]);
-  tm.stop();
-  assert(nbytes==val_.size()*sizeof(double));
-  cout << "Function3d::read: base64 transcode time: " << tm.real() << endl;
-  str_.clear();
+       << nx << " " << ny << " " << nz << endl;
+  cout << "Function3d::read: val size: " << val.size() << endl;
 }

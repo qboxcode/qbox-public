@@ -17,7 +17,8 @@ include $(TARGET).mk
 EXEC=qb
 TESTEXECS=testMatrix testBasis \
 testSlaterDet testEnergyFunctional testSample \
-testChargeDensity  testFourierTransform testSpecies testContext
+testChargeDensity  testFourierTransform testSpecies testContext \
+testFunction3d
 
 OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         Wavefunction.o SlaterDet.o \
@@ -130,6 +131,9 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
         Base64Transcoder.o Matrix.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  test_fftw: test_fftw.o $(PLTOBJECTS)
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testFunction3d: testFunction3d.o Function3d.o Function3dHandler.o \
+        Base64Transcoder.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
 #------------------------------------------------------------------------------
 # generate dependencies in makefile: use -Y to avoid library header files
@@ -289,10 +293,10 @@ CellStepper.o: ExtForceSet.h Wavefunction.h Control.h
 CellStepper.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 CellStepper.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 CellStepper.o: Wavefunction.h Control.h
-ChargeDensity.o: ChargeDensity.h Timer.h Context.h blacs.h Basis.h D3vector.h
+ChargeDensity.o: ChargeDensity.h Timer.h Context.h blacs.h D3vector.h Basis.h
 ChargeDensity.o: UnitCell.h Wavefunction.h FourierTransform.h SlaterDet.h
 ChargeDensity.o: Matrix.h
-ChargeDensity.o: Timer.h Context.h blacs.h
+ChargeDensity.o: Timer.h Context.h blacs.h D3vector.h
 ChargeMixCoeff.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 ChargeMixCoeff.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 ChargeMixCoeff.o: Wavefunction.h Control.h
@@ -399,6 +403,7 @@ ExternalPotential.o: Basis.h D3vector.h UnitCell.h ExternalPotential.h
 ExternalPotential.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3tensor.h
 ExternalPotential.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 ExternalPotential.o: Control.h ChargeDensity.h Timer.h FourierTransform.h
+ExternalPotential.o: Base64Transcoder.h
 ExternalPotential.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 ExternalPotential.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
 ExternalPotential.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h
@@ -412,6 +417,12 @@ FoldInWsCmd.o: ExtForceSet.h Wavefunction.h Control.h
 FourierTransform.o: FourierTransform.h Timer.h Basis.h D3vector.h UnitCell.h
 FourierTransform.o: blas.h
 FourierTransform.o: Timer.h
+Function3d.o: Function3d.h D3vector.h Timer.h Function3dHandler.h StrX.h
+Function3d.o: Base64Transcoder.h
+Function3d.o: D3vector.h
+Function3dHandler.o: Function3d.h D3vector.h Function3dHandler.h StrX.h
+Function3dHandler.o: Timer.h
+Function3dHandler.o: Function3d.h D3vector.h StrX.h
 GlobalExtForce.o: GlobalExtForce.h ExtForce.h D3vector.h AtomSet.h Context.h
 GlobalExtForce.o: blacs.h Atom.h UnitCell.h D3tensor.h blas.h Species.h
 GlobalExtForce.o: ExtForce.h D3vector.h
@@ -567,7 +578,8 @@ ResponseCmd.o: blacs.h D3vector.h Wavefunction.h UnitCell.h SlaterDet.h
 ResponseCmd.o: Basis.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h
 ResponseCmd.o: ConstraintSet.h ExtForceSet.h Control.h ChargeDensity.h
 ResponseCmd.o: ExternalPotential.h FourierTransform.h ResponseCmd.h
-ResponseCmd.o: UserInterface.h
+ResponseCmd.o: UserInterface.h release.h isodate.h Species.h
+ResponseCmd.o: Base64Transcoder.h
 ResponseCmd.o: UserInterface.h
 RseedCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 RseedCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
@@ -786,6 +798,7 @@ testEnergyFunctional.o: ElectricEnthalpy.h Matrix.h SlaterDet.h Basis.h
 testEnergyFunctional.o: Timer.h
 testFourierTransform.o: Basis.h D3vector.h UnitCell.h FourierTransform.h
 testFourierTransform.o: Timer.h
+testFunction3d.o: Function3d.h D3vector.h
 testLDAFunctional.o: LDAFunctional.h XCFunctional.h
 testLineMinimizer.o: LineMinimizer.h
 testMatrix.o: Timer.h Context.h blacs.h Matrix.h

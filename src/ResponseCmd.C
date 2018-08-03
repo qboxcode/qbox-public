@@ -30,6 +30,7 @@ using namespace std;
 #include "isodate.h"
 #include "Species.h"
 #include "Base64Transcoder.h"
+#include "qbox_xmlns.h"
 #include <unistd.h>
 
 
@@ -345,7 +346,6 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
   // now write drho_r to disk
   const Context* ctxt = s->wf.spincontext();
   int nprow = ctxt->nprow();
-  int npcol = ctxt->npcol();
   int myrow = ctxt->myrow();
   int mycol = ctxt->mycol();
   Timer tm_write_drho;
@@ -395,8 +395,15 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
         xcdr.encode(nbytes, (byte *) &drho_r_gathered[0], wbuf);
 
         ofstream os(filename.c_str(), ios::out );
-        os << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-        os << "<function3d name=\"delta_rho\">" << endl;
+        os <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+           <<"<fpmd:function3d xmlns:fpmd=\""
+           << qbox_xmlns()
+           << "\"\n"
+           <<" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+           <<" xsi:schemaLocation=\""
+           << qbox_xmlns() << " function3d.xsd\"\n"
+           << " name=\"delta_rho\">"
+           << endl;
         D3vector a0 = s->atoms.cell().a(0);
         D3vector a1 = s->atoms.cell().a(1);
         D3vector a2 = s->atoms.cell().a(2);
@@ -410,7 +417,7 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
            << "\" encoding=\"base64\">" << endl;
         xcdr.print(nchars,wbuf,os);
         os << "</grid_function>" << endl;
-        os << "</function3d>" << endl;
+        os << "</fpmd:function3d>" << endl;
         os.close();
         delete [] wbuf;
         tm_write_drho.stop();

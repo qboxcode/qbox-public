@@ -17,9 +17,12 @@
 
 #include "Function3d.h"
 #include "Function3dHandler.h"
+#include "Base64Transcoder.h"
+#include "qbox_xmlns.h"
 #include "Timer.h"
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <sys/stat.h>
 #include <cstdio>
 using namespace std;
@@ -163,4 +166,42 @@ void Function3d::read(string filename)
   cout << "Function3d::read: grid size: "
        << nx << " " << ny << " " << nz << endl;
   cout << "Function3d::read: val size: " << val.size() << endl;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void Function3d::write(std::string filename) const
+{
+  Base64Transcoder xcdr;
+  #if PLT_BIG_ENDIAN
+  xcdr.byteswap_double(val.size(),&val[0]);
+  #endif
+  // transform val to base64 encoding
+  int nbytes = val.size() * sizeof(double);
+  int nchars = xcdr.nchars(nbytes);
+  char *wbuf = new char[nchars];
+  xcdr.encode(nbytes, (byte *) &val[0], wbuf);
+
+  ofstream os(filename.c_str());
+  os <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+     <<"<fpmd:function3d xmlns:fpmd=\""
+     << qbox_xmlns()
+     << "\"\n"
+     <<" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+     <<" xsi:schemaLocation=\""
+     << qbox_xmlns() << " function3d.xsd\"\n"
+     << " name=\"" << name << "\">"
+     << endl;
+  os << "<domain a=\"" << a << "\"" << endl;
+  os << "        b=\"" << b << "\"" << endl;
+  os << "        c=\"" << c << "\"/>" << endl;
+  os << "<grid nx=\"" << nx << "\" ny=\"" << ny
+     << "\" nz=\"" << nz << "\"/>" << endl;
+  os << "<grid_function type=\"double\" nx=\"" << nx
+     << "\" ny=\"" << ny << "\" nz=\"" << nz
+     << "\" encoding=\"base64\">" << endl;
+  xcdr.print(nchars,wbuf,os);
+  os << "</grid_function>" << endl;
+  os << "</fpmd:function3d>" << endl;
+  os.close();
+  delete [] wbuf;
 }

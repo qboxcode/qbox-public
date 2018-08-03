@@ -41,4 +41,13 @@ int main(int argc, char** argv)
     sum += f.val[i]*f.val[i];
   }
   cout << "function norm2: " << sum / f.val.size() << endl;
+
+  // modify function
+  f.name = "output";
+  for ( int i = 0; i < f.val.size(); i++ )
+  {
+    f.val[i] *= 0.5;
+  }
+
+  f.write("output.xml");
 }

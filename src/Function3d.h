@@ -33,6 +33,6 @@ class Function3d
   std::string name;
   std::vector<double> val;
   void read(std::string filename);
-  void write(std::string filename, std::string encoding) const;
+  void write(std::string filename) const;
 };
 #endif

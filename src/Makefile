@@ -134,7 +134,7 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  test_fftw: test_fftw.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testFunction3d: testFunction3d.o Function3d.o Function3dHandler.o \
-        Base64Transcoder.o $(PLTOBJECTS)
+        Base64Transcoder.o qbox_xmlns.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
 #------------------------------------------------------------------------------
 # generate dependencies in makefile: use -Y to avoid library header files
@@ -404,7 +404,7 @@ ExternalPotential.o: Basis.h D3vector.h UnitCell.h ExternalPotential.h
 ExternalPotential.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3tensor.h
 ExternalPotential.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 ExternalPotential.o: Control.h ChargeDensity.h Timer.h FourierTransform.h
-ExternalPotential.o: Base64Transcoder.h
+ExternalPotential.o: Function3d.h Base64Transcoder.h
 ExternalPotential.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 ExternalPotential.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
 ExternalPotential.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h
@@ -418,11 +418,11 @@ FoldInWsCmd.o: ExtForceSet.h Wavefunction.h Control.h
 FourierTransform.o: FourierTransform.h Timer.h Basis.h D3vector.h UnitCell.h
 FourierTransform.o: blas.h
 FourierTransform.o: Timer.h
-Function3d.o: Function3d.h D3vector.h Timer.h Function3dHandler.h StrX.h
-Function3d.o: Base64Transcoder.h
+Function3d.o: Function3d.h D3vector.h Function3dHandler.h StrX.h
+Function3d.o: Base64Transcoder.h qbox_xmlns.h Timer.h
 Function3d.o: D3vector.h
 Function3dHandler.o: Function3d.h D3vector.h Function3dHandler.h StrX.h
-Function3dHandler.o: Timer.h
+Function3dHandler.o: Base64Transcoder.h Timer.h
 Function3dHandler.o: Function3d.h D3vector.h StrX.h
 GlobalExtForce.o: GlobalExtForce.h ExtForce.h D3vector.h AtomSet.h Context.h
 GlobalExtForce.o: blacs.h Atom.h UnitCell.h D3tensor.h blas.h Species.h
@@ -580,7 +580,7 @@ ResponseCmd.o: Basis.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h
 ResponseCmd.o: ConstraintSet.h ExtForceSet.h Control.h ChargeDensity.h
 ResponseCmd.o: ExternalPotential.h FourierTransform.h ResponseCmd.h
 ResponseCmd.o: UserInterface.h release.h isodate.h Species.h
-ResponseCmd.o: Base64Transcoder.h
+ResponseCmd.o: Base64Transcoder.h qbox_xmlns.h
 ResponseCmd.o: UserInterface.h
 RseedCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 RseedCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h

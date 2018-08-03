@@ -42,7 +42,7 @@ class ResponseCmd : public Cmd
     return
     "\n response\n\n"
     " syntax: response amplitude nitscf [nite]\n"
-    "         response -vext vext_file [-cube] {-RPA|-IPA} [-amplitude a] \n"
+    "         response -vext vext_file [-cube] [-RPA|-IPA] [-amplitude a] \n"
     "                  nitscf [nite]\n\n"
     "   The response command computes the polarizability tensor by\n"
     "   finite differences using external electric fields in the x,y,z\n"

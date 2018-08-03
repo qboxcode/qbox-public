@@ -98,12 +98,6 @@ int ResponseCmd::action(int argc, char **argv)
         cout << " Only one of -RPA or -IPA can be specified" << endl;
       return 1;
     }
-    if ( !rpa && !ipa )
-    {
-      if ( ui->onpe0() )
-        cout << " Select -RPA or -IPA" << endl;
-      return 1;
-    }
 
     double amplitude = 0.0;
     if ( !strcmp(argv[iarg],"-amplitude") )

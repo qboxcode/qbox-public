@@ -43,7 +43,7 @@ class ResponseCmd : public Cmd
     "\n response\n\n"
     " syntax: response amplitude nitscf [nite]\n"
     "         response -vext vext_file [-RPA|-IPA] [-amplitude a] \n"
-    "                  [-io iomode -nx nx -ny ny -nz nz] nitscf [nite]\n\n"
+    "                  [-io iomode] nitscf [nite]\n\n"
     "   The response command computes the polarizability tensor by\n"
     "   finite differences using external electric fields in the x,y,z\n"
     "   directions with magnitude defined by the amplitude argument.\n"
@@ -55,12 +55,10 @@ class ResponseCmd : public Cmd
     "   -IPA  Compute response within the Independent Particle Approximation,\n"
     "         VHartree and Vxc are frozen.\n"
     "   -amplitude a\n"
-    "         Scale the external potential by a before any calculation, \n"
-    "         then scale the charge density response by 1/a before output.\n"
+    "         Multiply the external potential by a before any calculation, \n"
+    "         then divide the charge density response by a before output.\n"
     "   -io iomode\n"
-    "         Valid choices of iomode: cube, base64_serial, base64_parallel\n"
-    "   -nx nx, -ny ny, -nz nz\n"
-    "         grid size (for base64_serial and base64_parallel only)\n\n";
+    "         Valid choices: xml (default), cube\n\n";
   }
 
   int action(int argc, char **argv);

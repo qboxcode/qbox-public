@@ -29,8 +29,7 @@ using namespace std;
 #include "release.h"
 #include "isodate.h"
 #include "Species.h"
-#include "Base64Transcoder.h"
-#include "qbox_xmlns.h"
+#include "Function3d.h"
 #include <unistd.h>
 
 
@@ -384,42 +383,16 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
       if (io == "xml")
       {
         tm_write_drho.start();
-        Base64Transcoder xcdr;
-        #if PLT_BIG_ENDIAN
-        xcdr.byteswap_double(drho_r_gathered.size(),&drho_r_gathered[0]);
-        #endif
-        // transform drhor (stored in drho_r_gathered) to base64 encoding
-        int nbytes = drho_r_gathered.size() * sizeof(double);
-        int nchars = xcdr.nchars(nbytes);
-        char *wbuf = new char[nchars];
-        xcdr.encode(nbytes, (byte *) &drho_r_gathered[0], wbuf);
-
-        ofstream os(filename.c_str(), ios::out );
-        os <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-           <<"<fpmd:function3d xmlns:fpmd=\""
-           << qbox_xmlns()
-           << "\"\n"
-           <<" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-           <<" xsi:schemaLocation=\""
-           << qbox_xmlns() << " function3d.xsd\"\n"
-           << " name=\"delta_rho\">"
-           << endl;
-        D3vector a0 = s->atoms.cell().a(0);
-        D3vector a1 = s->atoms.cell().a(1);
-        D3vector a2 = s->atoms.cell().a(2);
-        os << "<domain a=\"" << a0 << "\"" << endl;
-        os << "        b=\"" << a1 << "\"" << endl;
-        os << "        c=\"" << a2 << "\"/>" << endl;
-        os << "<grid nx=\"" << n0 << "\" ny=\"" << n1
-           << "\" nz=\"" << n2 << "\"/>" << endl;
-        os << "<grid_function type=\"double\" nx=\"" << n0
-           << "\" ny=\"" << n1 << "\" nz=\"" << n2
-           << "\" encoding=\"base64\">" << endl;
-        xcdr.print(nchars,wbuf,os);
-        os << "</grid_function>" << endl;
-        os << "</fpmd:function3d>" << endl;
-        os.close();
-        delete [] wbuf;
+        Function3d f;
+        f.name = "delta_rho";
+        f.nx = n0;
+        f.ny = n1;
+        f.nz = n2;
+        f.a = s->atoms.cell().a(0);
+        f.b = s->atoms.cell().a(1);
+        f.c = s->atoms.cell().a(2);
+        f.val = drho_r_gathered;
+        f.write(filename);
         tm_write_drho.stop();
       }
       else

@@ -37,9 +37,10 @@ using namespace std;
 int ResponseCmd::action(int argc, char **argv)
 {
   // " syntax: response amplitude nitscf [nite]\n\n"
-  // " syntax: response -vext vext_file [-RPA|-IPA] [-amplitude a]
+  // " syntax: response -vext vext_file -drho drho_file
+  //                    [-RPA|-IPA] [-amplitude a]
   //                    [-io iomode -nx nx -ny ny -nz nz]
-  //                    [-q qx qy qz] nitscf [nite]\n\n"
+  //                    nitscf [nite]\n\n"
 
   if ( s->wf.nst() == 0 )
   {
@@ -72,9 +73,7 @@ int ResponseCmd::action(int argc, char **argv)
     bool rpa = false;
     bool ipa = false;
     double amplitude = 0.0;
-    string io = "cube";
-    int nx, ny, nz;
-    nx = ny = nz = 0;
+    string io = "xml";
 
     iarg++;
     filename = argv[iarg];
@@ -107,23 +106,23 @@ int ResponseCmd::action(int argc, char **argv)
     {
       iarg++;
       io = argv[iarg];
-      assert( io == "cube" || io == "base64_serial" || io == "base64_parallel");
+      assert( io == "cube" || io == "xml" );
       iarg++;
-      if ( io == "base64_serial" || io == "base64_parallel" )
-      {
-        assert(!strcmp(argv[iarg],"-nx"));
-        iarg++;
-        nx = atoi(argv[iarg]);
-        iarg++;
-        assert(!strcmp(argv[iarg],"-ny"));
-        iarg++;
-        ny = atoi(argv[iarg]);
-        iarg++;
-        assert(!strcmp(argv[iarg],"-nz"));
-        iarg++;
-        nz = atoi(argv[iarg]);
-        iarg++;
-      }
+//    if ( io == "xml" )
+//    {
+//      assert(!strcmp(argv[iarg],"-nx"));
+//      iarg++;
+//      nx = atoi(argv[iarg]);
+//      iarg++;
+//      assert(!strcmp(argv[iarg],"-ny"));
+//      iarg++;
+//      ny = atoi(argv[iarg]);
+//      iarg++;
+//      assert(!strcmp(argv[iarg],"-nz"));
+//      iarg++;
+//      nz = atoi(argv[iarg]);
+//      iarg++;
+//    }
     }
 
     nitscf = atoi(argv[iarg]);
@@ -139,7 +138,7 @@ int ResponseCmd::action(int argc, char **argv)
       return 1;
     }
 
-    s->vext = new ExternalPotential(*s, filename, io, nx, ny, nz);
+    s->vext = new ExternalPotential(*s, filename, io);
     s->vext->set_amplitude(amplitude);
     responseVext(rpa, ipa, nitscf, nite, io);
     delete s->vext;
@@ -148,6 +147,7 @@ int ResponseCmd::action(int argc, char **argv)
   else
   {
     // polarizability calculation
+    // response amplitude nitscf [nite]
     assert(argc > 2);
     if ( ui->onpe0() )
       cout << " ResponseCmd: polarizability with "
@@ -358,176 +358,9 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
   int mycol = ctxt->mycol();
   Timer tm_comm_drho, tm_write_drho;
 
-  if (io == "base64_parallel")
+  if (io == "xml" or io == "cube")
   {
-#if ! USE_MPI
-    cout << "cannot use parallel_io when running in serial" << endl;
-#endif
-    // MPI parallel writing with base64 encoding
-    // all processors on column 1 write collectively
-    Base64Transcoder xcdr;
-    int lastproc = nprow - 1;
-    while ( lastproc >= 0 && ft2.np2_loc(lastproc) == 0 ) lastproc --;
-    assert(lastproc >= 0);
-
-    for (int ispin = 0; ispin < nspin; ispin++)
-    {
-      // following part is a modified version of SlaterDet::write in SlaterDet.C
-      // use group of 3 algorithm to adjust the size of drhor on each processor
-      tm_comm_drho.start();
-
-      int ndiff;
-      assert(drho_r[ispin].size()==n012loc);
-      if ( myrow == 0 )
-      {
-        ndiff = n012loc % 3;
-        ctxt->ibcast_send('c',1,1,&ndiff,1);
-      }
-      else
-      {
-        ctxt->ibcast_recv('c',1,1,&ndiff,1,0,mycol);
-      }
-      // send/receive the head/tail of drhor to neighbor
-      int nsend_left=0, nsend_right=0, nrecv_left=0, nrecv_right=0;
-      if ( myrow % 3 == 0 )
-      {
-        if ( myrow < lastproc )
-          nsend_right = ndiff;
-      }
-      else if ( myrow % 3 == 1 )
-      {
-        if ( myrow <= lastproc )
-          nrecv_left = ndiff;
-        if ( myrow <= lastproc-1 )
-          nrecv_right = ndiff;
-      }
-      else if ( myrow % 3 == 2 )
-      {
-        if ( myrow <= lastproc && myrow > 0 )
-          nsend_left = ndiff;
-      }
-
-      double rbuf_left[2], rbuf_right[2], sbuf_left[2], sbuf_right[2];
-      int tmpr_size = n012loc;
-      if ( nsend_left > 0 )
-      {
-        for ( int i = 0; i < ndiff; i++ )
-          sbuf_left[i] = drho_r[ispin][i];
-        ctxt->dsend(ndiff,1,sbuf_left,ndiff,myrow-1,mycol);
-        tmpr_size -= ndiff;
-      }
-      if ( nsend_right > 0 )
-      {
-        for ( int i = 0; i < ndiff; i++ )
-          sbuf_right[i] = drho_r[ispin][n012loc-ndiff+i];
-        ctxt->dsend(ndiff,1,sbuf_right,ndiff,myrow+1,mycol);
-        tmpr_size -= ndiff;
-      }
-      if ( nrecv_left > 0 )
-      {
-        ctxt->drecv(ndiff,1,rbuf_left,ndiff,myrow-1,mycol);
-        tmpr_size += ndiff;
-      }
-      if ( nrecv_right > 0 )
-      {
-        ctxt->drecv(ndiff,1,rbuf_right,ndiff,myrow+1,mycol);
-        tmpr_size += ndiff;
-      }
-
-      // at this point, all communications has been finished
-      // now construct tmpr to store drhor, tmpr has
-      // size divisible by 3 (except last processor)
-      if ( myrow < lastproc ) assert(tmpr_size%3 == 0);
-      vector<double> tmpr(tmpr_size);
-      if ( nrecv_left > 0 || nrecv_right > 0 )
-      {
-        int index = 0;
-        if ( nrecv_left > 0 )
-        {
-          for ( int i = 0; i < ndiff; i++ )
-            tmpr[index++] = rbuf_left[i];
-        }
-        for ( int i = 0; i < n012loc; i++ )
-          tmpr[index++] = drho_r[ispin][i];
-        if ( nrecv_right > 0 )
-        {
-          for ( int i = 0; i < ndiff; i++ )
-            tmpr[index++] = rbuf_right[i];
-        }
-        assert(index==tmpr_size);
-      }
-      else if ( nsend_left > 0 || nsend_right > 0 )
-      {
-        int index = 0;
-        int istart = (nsend_left > 0) ? ndiff : 0;
-        int iend = (nsend_right > 0) ? n012loc - ndiff : n012loc;
-        for ( int i = istart; i < iend; i++ )
-          tmpr[index++] = drho_r[ispin][i];
-        assert(index==tmpr_size);
-      }
-      else
-      {
-        for (int i = 0; i < n012loc; i++)
-          tmpr[i] = drho_r[ispin][i];
-        assert(tmpr_size==n012loc);
-      }
-
-      // now transform drhor (as stored in tmpr) as base 64 encoding
-      int nbytes = tmpr.size() * sizeof(double);
-      int nchars = xcdr.nchars(nbytes);
-      char* wbuf = new char[nchars];
-      xcdr.encode(nbytes, (byte *) &tmpr[0], wbuf);
-
-      // column 0 write tmpr into file
-      string filename;
-      if (nspin == 1)
-        filename = s->vext->filename() + ".response";
-      else
-        filename = s->vext->filename() + ".response."
-                   + ((ispin == 0) ? "spin0" : "spin1");
-
-      tm_comm_drho.stop();
-
-      if ( mycol == 0 )
-      {
-        // compute offset
-        int offset;
-        MPI_Scan(&nchars, &offset, 1, MPI_INT, MPI_SUM, basis.comm());
-        offset -= nchars;
-        // write file
-        tm_write_drho.start();
-
-        MPI_File fh;
-        MPI_Info info;
-        MPI_Info_create(&info);
-        int err;
-
-        err = MPI_File_open(basis.comm(), (char*) filename.c_str(),
-                            MPI_MODE_WRONLY | MPI_MODE_CREATE, info, &fh);
-        if (err != 0)
-          cout << myrow << ": error in MPI_File_open: " << err << endl;
-        MPI_File_set_size(fh, 0);
-
-        MPI_Status status;
-        err = MPI_File_write_at_all(fh,offset,(void*) &wbuf[0],nchars,
-                                    MPI_CHAR,&status);
-        if ( err != 0 )
-          cout << myrow << ": error in MPI_File_write_at_all: err="
-               << err << endl;
-
-        err = MPI_File_close(&fh);
-        if ( err != 0 )
-          cout << myrow << ": error in MPI_File_close: " << err << endl;
-
-        tm_write_drho.stop();
-      }
-
-      delete [] wbuf;
-    } // for ispin
-  }
-  else if (io == "base64_serial" or io == "cube")
-  {
-    // serial write with base64 encoding or cube format
+    // serial write xml file or cube file
     // processors on row 1 collect drho from other rows
     // processor at row 1, column 1 write drho to disk
     vector<double> drho_r_gathered;
@@ -560,17 +393,35 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
         else
           filename = s->vext->filename() + ".response."
                      + ((ispin == 0) ? "spin0" : "spin1");
-        if (io == "base64_serial")
+        if (io == "xml")
         {
           Base64Transcoder xcdr;
+          #if PLT_BIG_ENDIAN
+          xcdr.byteswap_double(drho_r_gathered.size(),&drho_r_gathered[0]);
+          #endif
           // transform drhor (stored in drho_r_gathered) to base64 encoding
           int nbytes = drho_r_gathered.size() * sizeof(double);
           int nchars = xcdr.nchars(nbytes);
           char *wbuf = new char[nchars];
           xcdr.encode(nbytes, (byte *) &drho_r_gathered[0], wbuf);
 
-          ofstream os(filename.c_str(), ios::out | ios::binary);
-          os.write(wbuf, nchars);
+          ofstream os(filename.c_str(), ios::out );
+          os << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+          os << "<function3d name=\"delta_rho\">" << endl;
+          D3vector a0 = s->atoms.cell().a(0);
+          D3vector a1 = s->atoms.cell().a(1);
+          D3vector a2 = s->atoms.cell().a(2);
+          os << "<domain a=\"" << a0 << "\"" << endl;
+          os << "        b=\"" << a1 << "\"" << endl;
+          os << "        c=\"" << a2 << "\"/>" << endl;
+          os << "<grid nx=\"" << n0 << "\" ny=\"" << n1
+             << "\" nz=\"" << n2 << "\"/>" << endl;
+          os << "<grid_function type=\"double\" nx=\"" << n0
+             << "\" ny=\"" << n1 << "\" nz=\"" << n2
+             << "\" encoding=\"base64\">" << endl;
+          xcdr.print(nchars,wbuf,os);
+          os << "</grid_function>" << endl;
+          os << "</function3d>" << endl;
           os.close();
           delete [] wbuf;
         }

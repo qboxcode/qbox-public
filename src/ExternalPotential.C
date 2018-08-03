@@ -29,6 +29,7 @@ using namespace std;
 #include "Basis.h"
 #include "ExternalPotential.h"
 #include "FourierTransform.h"
+#include "Function3d.h"
 #include "Base64Transcoder.h"
 
 bool abs_compare(const double &a, const double &b)
@@ -49,10 +50,8 @@ void ExternalPotential::update(const ChargeDensity& cd)
   Timer tm_read_vext, tm_comm_vext;
   double time, tmin, tmax;
 
-  // In cube mode and base64_serial mode, the whole external potential is
+  // In cube mode and xml mode, the whole external potential is
   // read by all processors on row 1 and stored in vext_read
-  // In base64_parallel mode, each processor on column 1 read part of external
-  // potential and store in vext_read_loc
   vector<double> vext_read, vext_read_loc;
 
   tm_read_vext.start();
@@ -61,7 +60,7 @@ void ExternalPotential::update(const ChargeDensity& cd)
     // read cube file, n_'s are determined by cube file
     if ( myrow == 0 )
     {
-      ifstream vfile(filename_.c_str(), std::ios::in);
+      ifstream vfile(filename_.c_str());
       if (!vfile)
       {
         if (mycol == 0)
@@ -80,10 +79,9 @@ void ExternalPotential::update(const ChargeDensity& cd)
         vfile >> n_[i];
         getline(vfile, tmpstr);
       }
-      n012_ = n_[0] * n_[1] * n_[2];
       for (int i = 0; i < natom; i++)
         getline(vfile, tmpstr);  // skip atom coordinates
-      vext_read.resize(n012_);
+      vext_read.resize(n_[0] * n_[1] * n_[2]);
       for (int nx = 0; nx < n_[0]; nx++)
         for (int ny = 0; ny < n_[1]; ny++)
           for (int nz = 0; nz < n_[2]; nz++)
@@ -94,35 +92,19 @@ void ExternalPotential::update(const ChargeDensity& cd)
       vfile.close();
     }
     MPI_Bcast(&n_[0],3,MPI_INT,0,vcomm);
-    MPI_Bcast(&n012_,1,MPI_INT,0,vcomm);
   }
-  else if (io_ == "base64_serial")
+  else if (io_ == "xml")
   {
     if (myrow == 0)
     {
-      ifstream vfile(filename_.c_str(), std::ios::in | std::ios::binary);
-      if (!vfile)
-      {
-        if (mycol == 0)
-          cout << "  ExternalPotential::update: file not found: "
-               << filename_ << endl;
-        ctxt->abort(1);
-      }
-      Base64Transcoder xcdr;
-      int nchars = xcdr.nchars(n012_ * sizeof(double));
-      char *rbuf = new char[nchars];
-      vfile.seekg(0, ios::end);
-      assert(vfile.tellg() == nchars);
-      vfile.seekg(0, ios::beg);
-      vfile.read(rbuf, nchars);
-//        vector<char> rbuf(istreambuf_iterator<char>(vfile),
-//                          istreambuf_iterator<char>());
-//        assert(rbuf.size() == nchars);
-      vext_read.resize(n012_);
-      xcdr.decode(nchars, rbuf, (byte *) (&vext_read[0]));
-      vfile.close();
-      delete [] rbuf;
+      Function3d f;
+      f.read(filename_);
+      vext_read = f.val;
+      n_[0] = f.nx;
+      n_[1] = f.ny;
+      n_[2] = f.nz;
     }
+    MPI_Bcast(&n_[0],3,MPI_INT,0,vcomm);
   }
   tm_read_vext.stop();
   // at this point, all processes have correct n_ regardless of io mode
@@ -160,105 +142,21 @@ void ExternalPotential::update(const ChargeDensity& cd)
   FourierTransform ft2(basis,vft->np0(),vft->np1(),vft->np2());
   vext_r_.resize(ft2.np012loc());
 
-  if ( io_== "base64_parallel" )
+  // xml mode or cube mode: processors on row 0 scatter
+  // vext to other rows
+  tm_comm_vext.start();
+  vector<int> scounts(nprow,0);
+  vector<int> sdispls(nprow,0);
+  int displ = 0;
+  for ( int iproc = 0; iproc < nprow; iproc++ )
   {
-    // base64_parallel mode: all processors on column 0 read
-    // in parallel, then bcast to other columns
-    int np012 = ft1.np012();
-    int np012loc = ft1.np012loc();
-    int lastproc = nprow - 1;
-    while ( lastproc >=0 && ft1.np2_loc(lastproc) == 0 ) lastproc --;
-    if ( mycol == 0 )
-    {
-      tm_read_vext.start();
-      Base64Transcoder xcdr;
-      int np012end;
-      MPI_Scan(&np012loc, &np012end, 1, MPI_INT, MPI_SUM, vcomm);
-      int np012start = np012end - np012loc;
-      np012end -= 1;  // because index start from 0
-
-      // for simplicity, let the size of file (in bytes) read by each processor
-      // to be N*sizeof(double)*4, which correspond to N*3 float numbers
-      // denote each 3 floats as a group
-      int groupstart = np012start / 3;
-      int groupend = np012end / 3;
-      int offset = 4*sizeof(double)*groupstart;
-
-      int nfloats, nbytes, nchars;
-      if ( myrow < lastproc )
-      {
-        nfloats = 3 * (groupend - groupstart + 1);
-      }
-      else if ( myrow == lastproc )
-      {
-        nfloats = 3 * (groupend - groupstart) + (np012 - 1) % 3 + 1;
-      }
-      else
-      {
-        nfloats = 0;
-      }
-      if ( myrow < lastproc ) assert(nfloats >= vext_read_loc.size());
-      nbytes = nfloats * sizeof(double);
-      nchars = xcdr.nchars(nbytes);
-      char* rbuf = new char[nchars];
-
-      MPI_File fh;
-      MPI_Info info;
-      MPI_Info_create(&info);
-      int err;
-      err = MPI_File_open(vcomm, (char*) filename_.c_str(),
-                          MPI_MODE_RDONLY , info, &fh);
-      if (err != 0)
-        cout << myrow << ": error in MPI_File_open: " << err << endl;
-      MPI_Status status;
-      err = MPI_File_read_at_all(fh,offset,(void*) &rbuf[0],nchars,
-                                  MPI_CHAR,&status);
-      if ( err != 0 )
-        cout << myrow << ": error in MPI_File_read_at_all: err=" << err << endl;
-      err = MPI_File_close(&fh);
-      if ( err != 0 )
-        cout << myrow << ": error in MPI_File_close: " << err << endl;
-
-      vector<double> tmpr(nfloats);
-      xcdr.decode(nchars, rbuf, (byte*) &tmpr[0]);
-
-      int istart = np012start % 3;
-      int iend = istart + np012loc - 1;
-
-      int j = 0;
-      for ( int i = istart; i <= iend; i++ )
-        vext_read_loc[j++] = tmpr[i];
-
-      delete [] rbuf;
-      tm_read_vext.stop();
-    } // if mycol == 0
-
-    tm_comm_vext.start();
-    // bcast vext_read_loc to other columns
-    if ( mycol == 0 )
-      ctxt->dbcast_send('r',np012loc,1,&vext_read_loc[0],np012loc);
-    else
-      ctxt->dbcast_recv('r',np012loc,1,&vext_read_loc[0],np012loc, myrow, 0);
-    tm_comm_vext.stop();
+    sdispls[iproc] = displ;
+    scounts[iproc] = ft1.np012loc(iproc);
+    displ += ft1.np012loc(iproc);
   }
-  else
-  {
-    // base64_serial mode or cube mode: processors on row 0 scatter
-    // vext to other rows
-    tm_comm_vext.start();
-    vector<int> scounts(nprow,0);
-    vector<int> sdispls(nprow,0);
-    int displ = 0;
-    for ( int iproc = 0; iproc < nprow; iproc++ )
-    {
-      sdispls[iproc] = displ;
-      scounts[iproc] = ft1.np012loc(iproc);
-      displ += ft1.np012loc(iproc);
-    }
-    MPI_Scatterv(&vext_read[0],&scounts[0],&sdispls[0],MPI_DOUBLE,
-                 &vext_read_loc[0],ft1.np012loc(),MPI_DOUBLE,0,vcomm);
-    tm_comm_vext.stop();
-  }
+  MPI_Scatterv(&vext_read[0],&scounts[0],&sdispls[0],MPI_DOUBLE,
+               &vext_read_loc[0],ft1.np012loc(),MPI_DOUBLE,0,vcomm);
+  tm_comm_vext.stop();
 
   // now vext_read_loc on all processors contains the correct portion of vext
   // Fourier forward transform vext_read_loc to vext_g

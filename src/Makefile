@@ -52,6 +52,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         uuid_str.o sampling.o CGOptimizer.o LineMinimizer.o \
         ElectricEnthalpy.o PartialChargeCmd.o \
         ExternalPotential.o ResponseCmd.o \
+        Function3d.o Function3dHandler.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
  $(EXEC):    $(OBJECTS)

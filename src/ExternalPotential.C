@@ -44,7 +44,6 @@ void ExternalPotential::update(const ChargeDensity& cd)
   const Context* ctxt = s_.wf.spincontext();
   bool onpe0 = ctxt->onpe0();
   int nprow = ctxt->nprow();
-  int npcol = ctxt->npcol();
   int myrow = ctxt->myrow();
   int mycol = ctxt->mycol();
   MPI_Comm vcomm = cd.vcomm();

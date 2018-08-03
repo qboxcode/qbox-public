@@ -191,7 +191,7 @@ void Function3dHandler::endElement(const XMLCh* const uri,
     }
     if ( (fnx_ != f_.nx) || (fny_ != f_.ny) || (fnz_ != f_.nz) )
     {
-      assert(!"Function3dHandler:: fragment processing not implemented"); 
+      assert(!"Function3dHandler:: fragment processing not implemented");
     }
     if ( x0_ != 0 || y0_ != 0 || z0_ != 0 )
     {
@@ -205,5 +205,8 @@ void Function3dHandler::endElement(const XMLCh* const uri,
     size_t nbytes = xcdr.decode(buf_.size(),buf_.data(),(byte*)&f_.val[0]);
     assert(nbytes==f_.val.size()*sizeof(double));
     buf_.clear();
+    #if PLT_BIG_ENDIAN
+    xcdr.byteswap_double(f_.val.size(),&f_.val[0]);
+    #endif
   }
 }

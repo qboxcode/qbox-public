@@ -42,23 +42,23 @@ class ResponseCmd : public Cmd
     return
     "\n response\n\n"
     " syntax: response amplitude nitscf [nite]\n"
-    "         response -vext vext_file [-RPA|-IPA] [-amplitude a] \n"
-    "                  [-io iomode] nitscf [nite]\n\n"
+    "         response -vext vext_file [-cube] {-RPA|-IPA} [-amplitude a] \n"
+    "                  nitscf [nite]\n\n"
     "   The response command computes the polarizability tensor by\n"
     "   finite differences using external electric fields in the x,y,z\n"
     "   directions with magnitude defined by the amplitude argument.\n"
     "   If the -vext option is used, the response command computes the\n"
     "   response to the external potential defined in the file vext_file.\n"
-    "   Control flags:\n"
+    "   and writes the density response on a file vext_file.response.\n"
+    "   Options:\n"
+    "   -cube Use cube file format instead of XML for vext and response.\n"
     "   -RPA  Compute response within the Random Phase Approximation,\n"
     "         Vxc is frozen.\n"
     "   -IPA  Compute response within the Independent Particle Approximation,\n"
     "         VHartree and Vxc are frozen.\n"
     "   -amplitude a\n"
     "         Multiply the external potential by a before any calculation, \n"
-    "         then divide the charge density response by a before output.\n"
-    "   -io iomode\n"
-    "         Valid choices: xml (default), cube\n\n";
+    "         then divide the charge density response by a before output.\n\n";
   }
 
   int action(int argc, char **argv);

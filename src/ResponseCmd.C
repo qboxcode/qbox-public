@@ -55,8 +55,6 @@ int ResponseCmd::action(int argc, char **argv)
     return 1;
   }
 
-  int nitscf;
-  int nite = 0;
 
   int iarg = 1;
   if ( !strcmp(argv[iarg],"-vext") )
@@ -70,20 +68,25 @@ int ResponseCmd::action(int argc, char **argv)
     }
 
     string filename;
-    bool rpa = false;
-    bool ipa = false;
-    double amplitude = 0.0;
-    string io = "xml";
-
     iarg++;
     filename = argv[iarg];
     iarg++;
 
+    string io = "xml";
+    if ( !strcmp(argv[iarg],"-cube") )
+    {
+      io = "cube";
+      iarg++;
+    }
+
+    bool rpa = false;
     if ( !strcmp(argv[iarg],"-RPA") )
     {
       rpa = true;
       iarg++;
     }
+
+    bool ipa = false;
     if ( !strcmp(argv[iarg],"-IPA") )
     {
       ipa = true;
@@ -95,6 +98,14 @@ int ResponseCmd::action(int argc, char **argv)
         cout << " Only one of -RPA or -IPA can be specified" << endl;
       return 1;
     }
+    if ( !rpa && !ipa )
+    {
+      if ( ui->onpe0() )
+        cout << " Select -RPA or -IPA" << endl;
+      return 1;
+    }
+
+    double amplitude = 0.0;
     if ( !strcmp(argv[iarg],"-amplitude") )
     {
       iarg++;
@@ -102,32 +113,10 @@ int ResponseCmd::action(int argc, char **argv)
       iarg++;
     }
 
-    if ( !strcmp(argv[iarg],"-io") )
-    {
-      iarg++;
-      io = argv[iarg];
-      assert( io == "cube" || io == "xml" );
-      iarg++;
-//    if ( io == "xml" )
-//    {
-//      assert(!strcmp(argv[iarg],"-nx"));
-//      iarg++;
-//      nx = atoi(argv[iarg]);
-//      iarg++;
-//      assert(!strcmp(argv[iarg],"-ny"));
-//      iarg++;
-//      ny = atoi(argv[iarg]);
-//      iarg++;
-//      assert(!strcmp(argv[iarg],"-nz"));
-//      iarg++;
-//      nz = atoi(argv[iarg]);
-//      iarg++;
-//    }
-    }
-
-    nitscf = atoi(argv[iarg]);
+    int nitscf = atoi(argv[iarg]);
     iarg++;
 
+    int nite = 0;
     if ( iarg < argc )
       nite = atoi(argv[iarg]);
 
@@ -153,7 +142,8 @@ int ResponseCmd::action(int argc, char **argv)
       cout << " ResponseCmd: polarizability with "
            << " amplitude " << argv[1] << endl;
     double amplitude = atof(argv[1]);
-    nitscf = atoi(argv[2]);
+    int nitscf = atoi(argv[2]);
+    int nite = 0;
     if ( argc == 4 )
       nite = atoi(argv[3]);
     responseEfield(amplitude,nitscf,nite);
@@ -269,6 +259,8 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
     stepper->set_update_vxc(false);
   }
 
+  assert(io == "xml" || io == "cube");
+
   // save a copy of initial wave functions
   Wavefunction wf0(s->wf);
   wf0 = s->wf;
@@ -356,139 +348,122 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
   int npcol = ctxt->npcol();
   int myrow = ctxt->myrow();
   int mycol = ctxt->mycol();
-  Timer tm_comm_drho, tm_write_drho;
+  Timer tm_write_drho;
 
-  if (io == "xml" or io == "cube")
+  // serial write xml file or cube file
+  // processors on row 1 collect drho from other rows
+  // processor at row 1, column 1 write drho to disk
+  vector<double> drho_r_gathered;
+  if (myrow == 0)
+    drho_r_gathered.resize(ft2.np012());
+
+  vector<int> rcounts(nprow, 0);
+  vector<int> displs(nprow, 0);
+  int displ = 0;
+  for (int iproc = 0; iproc < nprow; iproc++)
   {
-    // serial write xml file or cube file
-    // processors on row 1 collect drho from other rows
-    // processor at row 1, column 1 write drho to disk
-    vector<double> drho_r_gathered;
-    if (myrow == 0)
-      drho_r_gathered.resize(ft2.np012());
-
-    vector<int> rcounts(nprow, 0);
-    vector<int> displs(nprow, 0);
-    int displ = 0;
-    for (int iproc = 0; iproc < nprow; iproc++)
-    {
-      displs[iproc] = displ;
-      displ += ft2.np012loc(iproc);
-      rcounts[iproc] = ft2.np012loc(iproc);
-    }
-
-    for (int ispin = 0; ispin < nspin; ispin++)
-    {
-      tm_comm_drho.start();
-      MPI_Gatherv(&drho_r[ispin][0], ft2.np012loc(), MPI_DOUBLE,
-                  &drho_r_gathered[0], &rcounts[0], &displs[0],
-                  MPI_DOUBLE, 0, vcomm);
-      tm_comm_drho.stop();
-
-      if ( myrow == 0 && mycol == 0 )
-      {
-        string filename;
-        if (nspin == 1)
-          filename = s->vext->filename() + ".response";
-        else
-          filename = s->vext->filename() + ".response."
-                     + ((ispin == 0) ? "spin0" : "spin1");
-        if (io == "xml")
-        {
-          Base64Transcoder xcdr;
-          #if PLT_BIG_ENDIAN
-          xcdr.byteswap_double(drho_r_gathered.size(),&drho_r_gathered[0]);
-          #endif
-          // transform drhor (stored in drho_r_gathered) to base64 encoding
-          int nbytes = drho_r_gathered.size() * sizeof(double);
-          int nchars = xcdr.nchars(nbytes);
-          char *wbuf = new char[nchars];
-          xcdr.encode(nbytes, (byte *) &drho_r_gathered[0], wbuf);
-
-          ofstream os(filename.c_str(), ios::out );
-          os << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-          os << "<function3d name=\"delta_rho\">" << endl;
-          D3vector a0 = s->atoms.cell().a(0);
-          D3vector a1 = s->atoms.cell().a(1);
-          D3vector a2 = s->atoms.cell().a(2);
-          os << "<domain a=\"" << a0 << "\"" << endl;
-          os << "        b=\"" << a1 << "\"" << endl;
-          os << "        c=\"" << a2 << "\"/>" << endl;
-          os << "<grid nx=\"" << n0 << "\" ny=\"" << n1
-             << "\" nz=\"" << n2 << "\"/>" << endl;
-          os << "<grid_function type=\"double\" nx=\"" << n0
-             << "\" ny=\"" << n1 << "\" nz=\"" << n2
-             << "\" encoding=\"base64\">" << endl;
-          xcdr.print(nchars,wbuf,os);
-          os << "</grid_function>" << endl;
-          os << "</function3d>" << endl;
-          os.close();
-          delete [] wbuf;
-        }
-        else
-        {
-          // write cube file
-          tm_write_drho.start();
-
-          ofstream os(filename.c_str(), ios::out);
-          // comment lines (first 2 lines of cube file)
-          os << "Created " << isodate() << " by qbox-" << release() << "\n";
-          os << "Charge density response under external potential "
-             << s->vext->filename() << "\n";
-          // atoms and unit cell
-          int natoms = s->atoms.size();
-          D3vector a0 = s->atoms.cell().a(0);
-          D3vector a1 = s->atoms.cell().a(1);
-          D3vector a2 = s->atoms.cell().a(2);
-          os << natoms << " " << -0.5 * (a0 + a1 + a2) << "\n";
-          os << n0 << " " << a0 / n0 << endl;
-          os << n1 << " " << a1 / n1 << endl;
-          os << n2 << " " << a2 / n2 << endl;
-          const int nsp = s->atoms.nsp();
-          for (int is = 0; is < nsp; is++)
-          {
-            Species *sp = s->atoms.species_list[is];
-            const int z = sp->atomic_number();
-            const int na = s->atoms.na(is);
-            for (int ia = 0; ia < na; ia++)
-            {
-              Atom *ap = s->atoms.atom_list[is][ia];
-              os << setprecision(5);
-              os << z << " " << ((double) z) << " " << ap->position() << "\n";
-            }
-          }
-          // charge density response
-          os << setprecision(6) << std::scientific;
-          for (int nx = 0; nx < n0; nx++)
-            for (int ny = 0; ny < n1; ny++)
-              for (int nz = 0; nz < n2; nz++)
-              {
-                const int ir = nx + ny * n0 + nz * n0 * n1;
-                os << drho_r_gathered[ir] << "\n";
-              }
-          os.close();
-
-          tm_write_drho.stop();
-        } // if io = base64_serial || cube
-      } //if ( myrow == 0 && mycol == 0 )
-    }
+    displs[iproc] = displ;
+    displ += ft2.np012loc(iproc);
+    rcounts[iproc] = ft2.np012loc(iproc);
   }
-  else
+
+  for (int ispin = 0; ispin < nspin; ispin++)
   {
-    cout << "unknown io scheme" << endl;
-  } // select case io
+    MPI_Gatherv(&drho_r[ispin][0], ft2.np012loc(), MPI_DOUBLE,
+                &drho_r_gathered[0], &rcounts[0], &displs[0],
+                MPI_DOUBLE, 0, vcomm);
+
+    if ( myrow == 0 && mycol == 0 )
+    {
+      string filename;
+      if (nspin == 1)
+        filename = s->vext->filename() + ".response";
+      else
+        filename = s->vext->filename() + ".response."
+                   + ((ispin == 0) ? "spin0" : "spin1");
+      if (io == "xml")
+      {
+        tm_write_drho.start();
+        Base64Transcoder xcdr;
+        #if PLT_BIG_ENDIAN
+        xcdr.byteswap_double(drho_r_gathered.size(),&drho_r_gathered[0]);
+        #endif
+        // transform drhor (stored in drho_r_gathered) to base64 encoding
+        int nbytes = drho_r_gathered.size() * sizeof(double);
+        int nchars = xcdr.nchars(nbytes);
+        char *wbuf = new char[nchars];
+        xcdr.encode(nbytes, (byte *) &drho_r_gathered[0], wbuf);
+
+        ofstream os(filename.c_str(), ios::out );
+        os << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+        os << "<function3d name=\"delta_rho\">" << endl;
+        D3vector a0 = s->atoms.cell().a(0);
+        D3vector a1 = s->atoms.cell().a(1);
+        D3vector a2 = s->atoms.cell().a(2);
+        os << "<domain a=\"" << a0 << "\"" << endl;
+        os << "        b=\"" << a1 << "\"" << endl;
+        os << "        c=\"" << a2 << "\"/>" << endl;
+        os << "<grid nx=\"" << n0 << "\" ny=\"" << n1
+           << "\" nz=\"" << n2 << "\"/>" << endl;
+        os << "<grid_function type=\"double\" nx=\"" << n0
+           << "\" ny=\"" << n1 << "\" nz=\"" << n2
+           << "\" encoding=\"base64\">" << endl;
+        xcdr.print(nchars,wbuf,os);
+        os << "</grid_function>" << endl;
+        os << "</function3d>" << endl;
+        os.close();
+        delete [] wbuf;
+        tm_write_drho.stop();
+      }
+      else
+      {
+        // write cube file
+        tm_write_drho.start();
+
+        ofstream os(filename.c_str(), ios::out);
+        // comment lines (first 2 lines of cube file)
+        os << "Created " << isodate() << " by qbox-" << release() << "\n";
+        os << "Charge density response under external potential "
+           << s->vext->filename() << "\n";
+        // atoms and unit cell
+        int natoms = s->atoms.size();
+        D3vector a0 = s->atoms.cell().a(0);
+        D3vector a1 = s->atoms.cell().a(1);
+        D3vector a2 = s->atoms.cell().a(2);
+        os << natoms << " " << -0.5 * (a0 + a1 + a2) << "\n";
+        os << n0 << " " << a0 / n0 << endl;
+        os << n1 << " " << a1 / n1 << endl;
+        os << n2 << " " << a2 / n2 << endl;
+        const int nsp = s->atoms.nsp();
+        for (int is = 0; is < nsp; is++)
+        {
+          Species *sp = s->atoms.species_list[is];
+          const int z = sp->atomic_number();
+          const int na = s->atoms.na(is);
+          for (int ia = 0; ia < na; ia++)
+          {
+            Atom *ap = s->atoms.atom_list[is][ia];
+            os << setprecision(5);
+            os << z << " " << ((double) z) << " " << ap->position() << "\n";
+          }
+        }
+        // charge density response
+        os << setprecision(6) << std::scientific;
+        for (int nx = 0; nx < n0; nx++)
+          for (int ny = 0; ny < n1; ny++)
+            for (int nz = 0; nz < n2; nz++)
+            {
+              const int ir = nx + ny * n0 + nz * n0 * n1;
+              os << drho_r_gathered[ir] << "\n";
+            }
+        os.close();
+
+        tm_write_drho.stop();
+      } // if io
+    } //if ( myrow == 0 && mycol == 0 )
+  } // for ispin
 
   double time, tmin, tmax;
-  time = tm_comm_drho.real();
-  tmin = time;
-  tmax = time;
-  s->ctxt_.dmin(1, 1, &tmin, 1);
-  s->ctxt_.dmax(1, 1, &tmax, 1);
-  if (ui->onpe0())
-  {
-    cout << "  Time to communicate drho "
-         << "min: " << tmin << " max: " << tmax << endl;
-  }
   time = tm_write_drho.real();
   tmin = time;
   tmax = time;
@@ -496,7 +471,7 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
   s->ctxt_.dmax('C', 1, 1, &tmax, 1);
   if (ui->onpe0())
   {
-    cout << "  Time to write drho "
+    cout << "  drho write time: "
          << "min: " << tmin << " max: " << tmax << endl;
   }
 

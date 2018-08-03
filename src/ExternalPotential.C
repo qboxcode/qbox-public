@@ -32,11 +32,13 @@ using namespace std;
 #include "Function3d.h"
 #include "Base64Transcoder.h"
 
+////////////////////////////////////////////////////////////////////////////////
 bool abs_compare(const double &a, const double &b)
 {
   return (abs(a) < abs(b));
 }
 
+////////////////////////////////////////////////////////////////////////////////
 void ExternalPotential::update(const ChargeDensity& cd)
 {
   const Context* ctxt = s_.wf.spincontext();
@@ -47,11 +49,11 @@ void ExternalPotential::update(const ChargeDensity& cd)
   int mycol = ctxt->mycol();
   MPI_Comm vcomm = cd.vcomm();
 
-  Timer tm_read_vext, tm_comm_vext;
+  Timer tm_read_vext;
   double time, tmin, tmax;
 
-  // In cube mode and xml mode, the whole external potential is
-  // read by all processors on row 1 and stored in vext_read
+  // In cube mode and xml mode, the external potential is
+  // read by processors on row 0 and stored in vext_read
   vector<double> vext_read, vext_read_loc;
 
   tm_read_vext.start();
@@ -113,7 +115,7 @@ void ExternalPotential::update(const ChargeDensity& cd)
   // ft1 is used to transform vext_read_loc to vext_g (G space)
   // ft2 is used to transform vext_g to vext_r_ (R space)
   // the whole process is a Fourier interpolation/extrapolation
-  // of the external potential the charge density grid
+  // of the external potential on the charge density grid
 
   // create a Basis with largest possible ecut that is compatible with
   // the external potential grid from file
@@ -144,7 +146,6 @@ void ExternalPotential::update(const ChargeDensity& cd)
 
   // xml mode or cube mode: processors on row 0 scatter
   // vext to other rows
-  tm_comm_vext.start();
   vector<int> scounts(nprow,0);
   vector<int> sdispls(nprow,0);
   int displ = 0;
@@ -156,7 +157,6 @@ void ExternalPotential::update(const ChargeDensity& cd)
   }
   MPI_Scatterv(&vext_read[0],&scounts[0],&sdispls[0],MPI_DOUBLE,
                &vext_read_loc[0],ft1.np012loc(),MPI_DOUBLE,0,vcomm);
-  tm_comm_vext.stop();
 
   // now vext_read_loc on all processors contains the correct portion of vext
   // Fourier forward transform vext_read_loc to vext_g
@@ -204,21 +204,12 @@ void ExternalPotential::update(const ChargeDensity& cd)
   ctxt->dmax(1,1,&tmax,1);
   if ( onpe0 )
   {
-    cout << "  ExternalPotential::update: Time to read vext file "
-         << "min: " << tmin << " max: " << tmax << endl;
-  }
-  time = tm_comm_vext.real();
-  tmin = time;
-  tmax = time;
-  ctxt->dmin(1,1,&tmin,1);
-  ctxt->dmax(1,1,&tmax,1);
-  if ( onpe0 )
-  {
-    cout << "  ExternalPotential::update: Time to communicate vext file "
+    cout << "  ExternalPotential::update: vext read time "
          << "min: " << tmin << " max: " << tmax << endl;
   }
 }
 
+////////////////////////////////////////////////////////////////////////////////
 double ExternalPotential::compute_eext(const ChargeDensity& cd)
 {
   // Eext =  integral ( rhor * vext_r )

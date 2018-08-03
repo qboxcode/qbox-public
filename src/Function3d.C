@@ -21,6 +21,7 @@
 #include <string>
 #include <iostream>
 #include <sys/stat.h>
+#include <cstdio>
 using namespace std;
 #include <xercesc/util/XMLUniDefs.hpp>
 #include <xercesc/sax2/Attributes.hpp>

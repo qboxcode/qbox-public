@@ -97,7 +97,7 @@ int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
     return 0;             /* return 0 for end of file */
 
   // output command line if reading from a script
-  if ( echo && i > 0 ) cout << "<cmd>" << s << "</cmd>" << endl;
+  if ( echo && i >= 0 ) cout << "<cmd>" << s << "</cmd>" << endl;
 
   if ( ch == '#' )
   {

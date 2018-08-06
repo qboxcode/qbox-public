@@ -1,4 +1,20 @@
 --------------------------------------------------------------------------------
+rel1_65_0
+--------------------------------------------------------------------------------
+fb22565 Merge branch 'develop'
+939c153 Add Mac OS makefile
+3ffc3f0 Fix -atomic_charge initialization when net_charge!=0
+e997363 Fix UserInterface processing of empty lines
+ca27b6e Add centos7 and centos7_intel makefiles
+707eadd Use StrX in XML handler classes to avoid mem leaks
+c4e49cf Fixed calls to align wfs in BOSampleStepper.C
+0436991 Add BHandHLYP hybrid functional
+f3b32ed Add qbox_move_to.py script
+5298a69 Added qso_plot_species.py plot utility
+fbf9477 Removed unused code from HSE and RSH functionals
+75919ee Test negative density in HSE and RSH functionals
+c940023 Fix text-form in SlaterDet::write
+--------------------------------------------------------------------------------
 rel1_64_0
 --------------------------------------------------------------------------------
 d4c5c81 Merge branch 'develop'

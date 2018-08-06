@@ -144,6 +144,9 @@ void BOSampleStepper::initialize_density(void)
     }
   }
 
+  // Adjust G=0 component of the charge if net_charge is non-zero
+  rhopst[0] += s_.wf.nel() - atoms.nel();
+
   // Initialize charge equally for both spins
   cd_.rhog[0] = rhopst;
   if ( cd_.rhog.size() == 2 )

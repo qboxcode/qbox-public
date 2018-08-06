@@ -30,6 +30,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         XCOperator.o ExchangeOperator.o Bisection.o \
 	XCPotential.o LDAFunctional.o VWNFunctional.o \
         PBEFunctional.o BLYPFunctional.o B3LYPFunctional.o  \
+        BHandHLYPFunctional.o \
 	ExponentialIntegral.o HSEFunctional.o \
         RSHFunctional.o \
 	NonLocalPotential.o SampleReader.o StructuredDocumentHandler.o \

@@ -1488,6 +1488,8 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
            << " nx=\"" << ft.np0()
            << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
            << " encoding=\"text\">" << endl;
+        os.setf(ios::scientific,ios::floatfield);
+        os.precision(std::numeric_limits<double>::digits10 + 1);
         int count = 0;
         for ( int k = 0; k < ft.np2(); k++ )
           for ( int j = 0; j < ft.np1(); j++ )
@@ -1593,147 +1595,146 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     while ( lastproc >= 0 && ft.np2_loc(lastproc) == 0 ) lastproc--;
     assert(lastproc>=0);
 
-    // Adjust number of values on each task to have a number of values
-    // divisible by three. This is necessary in order to have base64
-    // encoding without trailing '=' characters.
-    // The last node in the process column may have a number of values
-    // not divisible by 3.
-
-    // data now resides in wftmpr, distributed on ctxt_.mycol()
-    // All nodes in the process column except the last have the
-    // same wftmpr_loc_size
-    // Use group-of-three redistribution algorithm to make all sizes
-    // multiples of 3. In the group-of-three algorithm, nodes are divided
-    // into groups of three nodes. In each group, the left and right members
-    // send 1 or 2 values to the center member so that all three members
-    // end up with a number of values divisible by three.
-
-    // Determine how many values must be sent to the center-of-three node
-    int ndiff;
-    const int myrow = ctxt_.myrow();
-    if ( myrow == 0 )
-    {
-      ndiff = wftmpr_loc_size % 3;
-      ctxt_.ibcast_send('c',1,1,&ndiff,1);
-    }
-    else
-    {
-      ctxt_.ibcast_recv('c',1,1,&ndiff,1,0,ctxt_.mycol());
-    }
-    // assume that all nodes have at least ndiff values
-    if ( myrow <= lastproc ) assert(wftmpr_loc_size >= ndiff);
-
-    // Compute number of values to be sent to neighbors
-    int nsend_left=0, nsend_right=0, nrecv_left=0, nrecv_right=0;
-    if ( myrow % 3 == 0 )
-    {
-      // mype is the left member of a group of three
-      // send ndiff values to the right if not on the last node
-      if ( myrow < lastproc )
-        nsend_right = ndiff;
-    }
-    else if ( myrow % 3 == 1 )
-    {
-      // mype is the center member of a group of three
-      if ( myrow <= lastproc )
-        nrecv_left = ndiff;
-      if ( myrow <= lastproc-1 )
-        nrecv_right = ndiff;
-    }
-    else if ( myrow % 3 == 2 )
-    {
-      // mype is the right member of a group of three
-      // send ndiff values to the left if not on the first or last node
-      if ( myrow <= lastproc && myrow > 0 )
-        nsend_left = ndiff;
-    }
-
-    double rbuf_left[2], rbuf_right[2], sbuf_left[2], sbuf_right[2];
-    int tmpr_size = wftmpr_loc_size;
-    if ( nsend_left > 0 )
-    {
-      for ( int i = 0; i < ndiff; i++ )
-        sbuf_left[i] = wftmpr[i];
-      ctxt_.dsend(ndiff,1,sbuf_left,ndiff,ctxt_.myrow()-1,ctxt_.mycol());
-      tmpr_size -= ndiff;
-    }
-    if ( nsend_right > 0 )
-    {
-      for ( int i = 0; i < ndiff; i++)
-        sbuf_right[i] = wftmpr[wftmpr_loc_size-ndiff+i];
-      ctxt_.dsend(ndiff,1,sbuf_right,ndiff,ctxt_.myrow()+1,ctxt_.mycol());
-      tmpr_size -= ndiff;
-    }
-    if ( nrecv_left > 0 )
-    {
-      ctxt_.drecv(ndiff,1,rbuf_left,ndiff,ctxt_.myrow()-1,ctxt_.mycol());
-      tmpr_size += ndiff;
-    }
-    if ( nrecv_right > 0 )
-    {
-      ctxt_.drecv(ndiff,1,rbuf_right,ndiff,ctxt_.myrow()+1,ctxt_.mycol());
-      tmpr_size += ndiff;
-    }
-
-    // check that size is a multiple of 3 (except on last node)
-    // cout << ctxt_.mype() << ": tmpr_size: " << tmpr_size << endl;
-    if ( ctxt_.myrow() != lastproc )
-      assert(tmpr_size%3 == 0);
-    vector<double> tmpr(tmpr_size);
-
-    // Note: all nodes either receive data or send data, not both
-    if ( nrecv_left > 0 || nrecv_right > 0 )
-    {
-      // this node is a receiver
-      int index = 0;
-      if ( nrecv_left > 0 )
-      {
-        for ( int i = 0; i < ndiff; i++ )
-          tmpr[index++] = rbuf_left[i];
-      }
-      for ( int i = 0; i < wftmpr_loc_size; i++ )
-        tmpr[index++] = wftmpr[i];
-      if ( nrecv_right > 0 )
-      {
-        for ( int i = 0; i < ndiff; i++ )
-          tmpr[index++] = rbuf_right[i];
-      }
-      assert(index==tmpr_size);
-    }
-    else if ( nsend_left > 0 || nsend_right > 0 )
-    {
-      // this node is a sender
-      int index = 0;
-      int istart=0, iend=wftmpr_loc_size;
-      if ( nsend_left > 0 )
-        istart = ndiff;
-      if ( nsend_right > 0 )
-        iend = wftmpr_loc_size - ndiff;
-      for ( int i = istart; i < iend; i++ )
-          tmpr[index++] = wftmpr[i];
-      assert(index==tmpr_size);
-    }
-    else
-    {
-      // no send and no recv
-      for ( int i = 0; i < wftmpr_loc_size; i++ )
-        tmpr[i] = wftmpr[i];
-      assert(tmpr_size==wftmpr_loc_size);
-    }
-
-    // All nodes (except the last) now have a number of values
-    // divisible by 3 in tmpr[]
-
-    if ( ctxt_.myrow()!=lastproc ) assert(tmpr_size%3==0);
-
-    // convert local data to base64 and write to outfile
-
     // tmpr contains either a real or a complex array
-
     const string element_type = real_basis ? "double" : "complex";
 
     if ( encoding == "base64" )
     {
+      // Adjust number of values on each task to have a number of values
+      // divisible by three. This is necessary in order to have base64
+      // encoding without trailing '=' characters.
+      // The last node in the process column may have a number of values
+      // not divisible by 3.
+
+      // data now resides in wftmpr, distributed on ctxt_.mycol()
+      // All nodes in the process column except the last have the
+      // same wftmpr_loc_size
+      // Use group-of-three redistribution algorithm to make all sizes
+      // multiples of 3. In the group-of-three algorithm, nodes are divided
+      // into groups of three nodes. In each group, the left and right members
+      // send 1 or 2 values to the center member so that all three members
+      // end up with a number of values divisible by three.
+
+      // Determine how many values must be sent to the center-of-three node
+      int ndiff;
+      const int myrow = ctxt_.myrow();
+      if ( myrow == 0 )
+      {
+        ndiff = wftmpr_loc_size % 3;
+        ctxt_.ibcast_send('c',1,1,&ndiff,1);
+      }
+      else
+      {
+        ctxt_.ibcast_recv('c',1,1,&ndiff,1,0,ctxt_.mycol());
+      }
+      // assume that all nodes have at least ndiff values
+      if ( myrow <= lastproc ) assert(wftmpr_loc_size >= ndiff);
+
+      // Compute number of values to be sent to neighbors
+      int nsend_left=0, nsend_right=0, nrecv_left=0, nrecv_right=0;
+      if ( myrow % 3 == 0 )
+      {
+        // mype is the left member of a group of three
+        // send ndiff values to the right if not on the last node
+        if ( myrow < lastproc )
+          nsend_right = ndiff;
+      }
+      else if ( myrow % 3 == 1 )
+      {
+        // mype is the center member of a group of three
+        if ( myrow <= lastproc )
+          nrecv_left = ndiff;
+        if ( myrow <= lastproc-1 )
+          nrecv_right = ndiff;
+      }
+      else if ( myrow % 3 == 2 )
+      {
+        // mype is the right member of a group of three
+        // send ndiff values to the left if not on the first or last node
+        if ( myrow <= lastproc && myrow > 0 )
+          nsend_left = ndiff;
+      }
+
+      double rbuf_left[2], rbuf_right[2], sbuf_left[2], sbuf_right[2];
+      int tmpr_size = wftmpr_loc_size;
+      if ( nsend_left > 0 )
+      {
+        for ( int i = 0; i < ndiff; i++ )
+          sbuf_left[i] = wftmpr[i];
+        ctxt_.dsend(ndiff,1,sbuf_left,ndiff,ctxt_.myrow()-1,ctxt_.mycol());
+        tmpr_size -= ndiff;
+      }
+      if ( nsend_right > 0 )
+      {
+        for ( int i = 0; i < ndiff; i++)
+          sbuf_right[i] = wftmpr[wftmpr_loc_size-ndiff+i];
+        ctxt_.dsend(ndiff,1,sbuf_right,ndiff,ctxt_.myrow()+1,ctxt_.mycol());
+        tmpr_size -= ndiff;
+      }
+      if ( nrecv_left > 0 )
+      {
+        ctxt_.drecv(ndiff,1,rbuf_left,ndiff,ctxt_.myrow()-1,ctxt_.mycol());
+        tmpr_size += ndiff;
+      }
+      if ( nrecv_right > 0 )
+      {
+        ctxt_.drecv(ndiff,1,rbuf_right,ndiff,ctxt_.myrow()+1,ctxt_.mycol());
+        tmpr_size += ndiff;
+      }
+
+      // check that size is a multiple of 3 (except on last node)
+      // cout << ctxt_.mype() << ": tmpr_size: " << tmpr_size << endl;
+      if ( ctxt_.myrow() != lastproc )
+        assert(tmpr_size%3 == 0);
+      vector<double> tmpr(tmpr_size);
+
+      // Note: all nodes either receive data or send data, not both
+      if ( nrecv_left > 0 || nrecv_right > 0 )
+      {
+        // this node is a receiver
+        int index = 0;
+        if ( nrecv_left > 0 )
+        {
+          for ( int i = 0; i < ndiff; i++ )
+            tmpr[index++] = rbuf_left[i];
+        }
+        for ( int i = 0; i < wftmpr_loc_size; i++ )
+          tmpr[index++] = wftmpr[i];
+        if ( nrecv_right > 0 )
+        {
+          for ( int i = 0; i < ndiff; i++ )
+            tmpr[index++] = rbuf_right[i];
+        }
+        assert(index==tmpr_size);
+      }
+      else if ( nsend_left > 0 || nsend_right > 0 )
+      {
+        // this node is a sender
+        int index = 0;
+        int istart=0, iend=wftmpr_loc_size;
+        if ( nsend_left > 0 )
+          istart = ndiff;
+        if ( nsend_right > 0 )
+          iend = wftmpr_loc_size - ndiff;
+        for ( int i = istart; i < iend; i++ )
+            tmpr[index++] = wftmpr[i];
+        assert(index==tmpr_size);
+      }
+      else
+      {
+        // no send and no recv
+        for ( int i = 0; i < wftmpr_loc_size; i++ )
+          tmpr[i] = wftmpr[i];
+        assert(tmpr_size==wftmpr_loc_size);
+      }
+
+      // All nodes (except the last) now have a number of values
+      // divisible by 3 in tmpr[]
+
+      if ( ctxt_.myrow()!=lastproc ) assert(tmpr_size%3==0);
+
+      // convert local data to base64 and write to outfile
+
       #if PLT_BIG_ENDIAN
       xcdr.byteswap_double(tmpr_size,&tmpr[0]);
       #endif
@@ -1768,6 +1769,8 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
              << "\" ny=\"" << ft.np1() << "\" nz=\"" << ft.np2() << "\""
              << " encoding=\"text\">" << endl;
       }
+      ostr.setf(ios::scientific,ios::floatfield);
+      ostr.precision(std::numeric_limits<double>::digits10 + 1);
       int count = 0;
       for ( int k = 0; k < ft.np2_loc(); k++ )
         for ( int j = 0; j < ft.np1(); j++ )
@@ -1775,9 +1778,9 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
           {
             int index = ft.index(i,j,k);
             if ( real_basis )
-              ostr << " " << tmpr[index];
+              ostr << " " << wftmpr[index];
             else
-              ostr << " " << tmpr[2*index] << " " << tmpr[2*index+1];
+              ostr << " " << wftmpr[2*index] << " " << wftmpr[2*index+1];
             if ( count++%4 == 3)
               ostr << "\n";
           }

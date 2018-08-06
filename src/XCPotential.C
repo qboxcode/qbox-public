@@ -24,6 +24,7 @@
 #include "HSEFunctional.h"
 #include "RSHFunctional.h"
 #include "B3LYPFunctional.h"
+#include "BHandHLYPFunctional.h"
 #include "Basis.h"
 #include "FourierTransform.h"
 #include "blas.h" // daxpy, dcopy
@@ -67,6 +68,10 @@ XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
   else if ( functional_name == "B3LYP" )
   {
     xcf_ = new B3LYPFunctional(cd_.rhor);
+  }
+  else if ( functional_name == "BHandHLYP" )
+  {
+    xcf_ = new BHandHLYPFunctional(cd_.rhor);
   }
   else
   {

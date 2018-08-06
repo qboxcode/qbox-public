@@ -101,6 +101,17 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
     hasGGA_ = xcp_->isGGA();
     hasHF_ = true;
   }
+  else if ( functional_name == "BHandHLYP" )
+  {
+    // create an exchange potential
+    xcp_ = new XCPotential(cd, functional_name, s.ctrl);
+
+    // create the exchange operator with mixing coeff=0.50
+    xop_ = new ExchangeOperator(s, 0.50, 0.50, 0.0);
+    hasPotential_ = true;
+    hasGGA_ = xcp_->isGGA();
+    hasHF_ = true;
+  }
   else
   {
     throw XCOperatorException(

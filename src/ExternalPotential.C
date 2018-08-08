@@ -16,14 +16,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-//#include <unistd.h>
-
 #include <iostream>
 #include <fstream>
 #include <cassert>
-#include <algorithm>
-#include <numeric>
-#include <functional>
 using namespace std;
 
 #include "Basis.h"
@@ -130,15 +125,13 @@ void ExternalPotential::update(const ChargeDensity& cd)
   basis.resize(cell,cell,ecut_);
 
   FourierTransform *vft = cd.vft();
-  // Following assertions are found to cause compatibility issues
-  // in Qbox-WEST coupling calculations
-  // assert(basis.np(0)<=vft->np0());
-  // assert(basis.np(1)<=vft->np1());
-  // assert(basis.np(2)<=vft->np2());
 
   FourierTransform ft1(basis,n_[0],n_[1],n_[2]);
   vext_read_loc.resize(ft1.np012loc());
   vector<complex<double> > vext_g(basis.localsize());
+
+  // check that the basis fits in the vft grid
+  //assert(basis.fits_in_grid(vft->np0(),vft->np1(),vft->np2()));
 
   FourierTransform ft2(basis,vft->np0(),vft->np1(),vft->np2());
   vext_r_.resize(ft2.np012loc());

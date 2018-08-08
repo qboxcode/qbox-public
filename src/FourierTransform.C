@@ -248,6 +248,10 @@ FourierTransform::FourierTransform (const Basis &basis,
     rdispl[iproc] = rdispl[iproc-1] + rcounts[iproc-1];
   }
 
+  // check if the basis_ fits in the grid np0, np1, np2
+  basis_fits_in_grid_ = basis_.fits_in_grid(np0,np1,np2);
+  assert(basis_fits_in_grid_);
+
   if ( basis_.real() )
   {
     // compute index arrays ifftp_ and ifftm_ for mapping vector->zvec

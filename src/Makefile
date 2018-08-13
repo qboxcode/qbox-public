@@ -136,6 +136,9 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testFunction3d: testFunction3d.o Function3d.o Function3dHandler.o \
         Base64Transcoder.o qbox_xmlns.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ test_vext: test_vext.o Function3d.o Function3dHandler.o \
+        Base64Transcoder.o qbox_xmlns.o $(PLTOBJECTS)
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
 #------------------------------------------------------------------------------
 # generate dependencies in makefile: use -Y to avoid library header files
 # that are likely to be different on other platforms.
@@ -579,8 +582,7 @@ ResponseCmd.o: blacs.h D3vector.h Wavefunction.h UnitCell.h SlaterDet.h
 ResponseCmd.o: Basis.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h
 ResponseCmd.o: ConstraintSet.h ExtForceSet.h Control.h ChargeDensity.h
 ResponseCmd.o: ExternalPotential.h FourierTransform.h ResponseCmd.h
-ResponseCmd.o: UserInterface.h release.h isodate.h Species.h
-ResponseCmd.o: Base64Transcoder.h qbox_xmlns.h
+ResponseCmd.o: UserInterface.h release.h isodate.h Species.h Function3d.h
 ResponseCmd.o: UserInterface.h
 RseedCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 RseedCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
@@ -820,6 +822,7 @@ testWavefunction.o: SlaterDet.h Basis.h Matrix.h Timer.h
 testXCFunctional.o: LDAFunctional.h XCFunctional.h PBEFunctional.h Timer.h
 testXMLGFPreprocessor.o: Context.h blacs.h Matrix.h XMLGFPreprocessor.h
 test_fftw.o: Timer.h readTSC.h
+test_vext.o: Function3d.h D3vector.h
 testjacobi.o: Timer.h Context.h blacs.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h blacs.h Matrix.h jade.h
 uuid_str.o: uuid_str.h

@@ -30,8 +30,6 @@ using namespace std;
 #include "isodate.h"
 #include "Species.h"
 #include "Function3d.h"
-//#include <unistd.h>
-
 
 ////////////////////////////////////////////////////////////////////////////////
 int ResponseCmd::action(int argc, char **argv)

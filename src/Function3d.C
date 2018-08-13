@@ -169,7 +169,14 @@ void Function3d::read(string filename)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Function3d::write(std::string filename) const
+void Function3d::write(string filename) const
+{
+  ofstream os(filename.c_str());
+  print(os);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void Function3d::print(ostream& os) const
 {
   Base64Transcoder xcdr;
   #if PLT_BIG_ENDIAN
@@ -181,7 +188,6 @@ void Function3d::write(std::string filename) const
   char *wbuf = new char[nchars];
   xcdr.encode(nbytes, (byte *) &val[0], wbuf);
 
-  ofstream os(filename.c_str());
   os <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
      <<"<fpmd:function3d xmlns:fpmd=\""
      << qbox_xmlns()
@@ -202,6 +208,12 @@ void Function3d::write(std::string filename) const
   xcdr.print(nchars,wbuf,os);
   os << "</grid_function>" << endl;
   os << "</fpmd:function3d>" << endl;
-  os.close();
   delete [] wbuf;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+ostream& operator<<(ostream& os, const Function3d& f)
+{
+  f.print(os);
+  return os;
 }

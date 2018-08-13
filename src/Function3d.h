@@ -34,5 +34,7 @@ class Function3d
   std::vector<double> val;
   void read(std::string filename);
   void write(std::string filename) const;
+  void print(std::ostream& os) const;
 };
+std::ostream& operator << ( std::ostream& os, const Function3d& f );
 #endif

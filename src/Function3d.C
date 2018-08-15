@@ -197,6 +197,8 @@ void Function3d::print(ostream& os) const
      << qbox_xmlns() << " function3d.xsd\"\n"
      << " name=\"" << name << "\">"
      << endl;
+  os.setf(ios::fixed,ios::floatfield);
+  os.precision(8);
   os << "<domain a=\"" << a << "\"" << endl;
   os << "        b=\"" << b << "\"" << endl;
   os << "        c=\"" << c << "\"/>" << endl;

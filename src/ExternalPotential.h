@@ -39,15 +39,15 @@ class ExternalPotential
   double amplitude_;       // overall scaling factor of external potential
   vector<double> vext_r_;  // vext in real space
   std::string filename_;   // file name for external potential
-  std::string io_;          // "cube", "base64_serial" or "base64_parallel"
+  std::string fmt_;        // file format: "cube" or "xml"
 
   public:
 
-  ExternalPotential(Sample& s, std::string name, std::string io="xml"):
+  ExternalPotential(Sample& s, std::string name, std::string fmt="xml"):
     s_(s), filename_(name), ecut_(0.0), amplitude_(1.0), magnitude_(0.0),
-    io_(io)
+    fmt_(fmt)
   {
-    assert( io_ == "cube" || io == "xml" );
+    assert( fmt_ == "cube" || fmt_ == "xml" );
   }
   ~ExternalPotential() {}
 

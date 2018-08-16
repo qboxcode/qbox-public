@@ -51,7 +51,7 @@ void ExternalPotential::update(const ChargeDensity& cd)
   vector<double> vext_read, vext_read_loc;
 
   tm_read_vext.start();
-  if ( io_ == "cube" )
+  if ( fmt_ == "cube" )
   {
     // read cube file, n_'s are determined by cube file
     if ( myrow == 0 )
@@ -89,7 +89,7 @@ void ExternalPotential::update(const ChargeDensity& cd)
     }
     MPI_Bcast(&n_[0],3,MPI_INT,0,vcomm);
   }
-  else if (io_ == "xml")
+  else if ( fmt_ == "xml" )
   {
     if (myrow == 0)
     {

@@ -197,6 +197,8 @@ AtomsDyn.o: Control.h
 B3LYPFunctional.o: B3LYPFunctional.h XCFunctional.h BLYPFunctional.h
 B3LYPFunctional.o: VWNFunctional.h
 B3LYPFunctional.o: XCFunctional.h
+BHandHLYPFunctional.o: BHandHLYPFunctional.h XCFunctional.h BLYPFunctional.h
+BHandHLYPFunctional.o: XCFunctional.h
 BLYPFunctional.o: BLYPFunctional.h XCFunctional.h
 BLYPFunctional.o: XCFunctional.h
 BMDIonicStepper.o: BMDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
@@ -729,8 +731,9 @@ XCOperator.o: Wavefunction.h Control.h
 XCPotential.o: XCPotential.h Control.h D3vector.h ChargeDensity.h Timer.h
 XCPotential.o: Context.h blacs.h LDAFunctional.h XCFunctional.h
 XCPotential.o: VWNFunctional.h PBEFunctional.h BLYPFunctional.h
-XCPotential.o: HSEFunctional.h RSHFunctional.h B3LYPFunctional.h Basis.h
-XCPotential.o: UnitCell.h FourierTransform.h blas.h
+XCPotential.o: HSEFunctional.h RSHFunctional.h B3LYPFunctional.h
+XCPotential.o: BHandHLYPFunctional.h Basis.h UnitCell.h FourierTransform.h
+XCPotential.o: blas.h
 XCPotential.o: Control.h D3vector.h ChargeDensity.h Timer.h Context.h blacs.h
 XMLGFPreprocessor.o: Timer.h Context.h blacs.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h
@@ -749,16 +752,16 @@ qb.o: Control.h Timer.h AngleCmd.h AtomCmd.h ComputeMLWFCmd.h MLWFTransform.h
 qb.o: BasisMapping.h ConstraintCmd.h DistanceCmd.h ExtForceCmd.h
 qb.o: FoldInWsCmd.h HelpCmd.h KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h
 qb.o: LoadCmd.h MoveCmd.h PartialChargeCmd.h PlotCmd.h PrintCmd.h QuitCmd.h
-qb.o: RandomizeRCmd.h RandomizeVCmd.h RandomizeWfCmd.h ResetVcmCmd.h
-qb.o: RescaleVCmd.h RseedCmd.h RunCmd.h SaveCmd.h SetCmd.h SetVelocityCmd.h
-qb.o: SpeciesCmd.h StatusCmd.h StrainCmd.h TorsionCmd.h BisectionCmd.h
-qb.o: Bisection.h SlaterDet.h Basis.h Matrix.h AlphaPBE0.h AlphaRSH.h
-qb.o: AtomsDyn.h BetaRSH.h BlHF.h BtHF.h Cell.h CellDyn.h CellLock.h
-qb.o: CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h Debug.h
-qb.o: Dspin.h Ecut.h Ecutprec.h Ecuts.h Efield.h Polarization.h Emass.h
-qb.o: ExtStress.h FermiTemp.h IterCmd.h IterCmdPeriod.h Dt.h MuRSH.h Nempty.h
-qb.o: NetCharge.h Nrowmax.h Nspin.h RefCell.h ScfTol.h Stress.h Thermostat.h
-qb.o: ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
+qb.o: RandomizeRCmd.h RandomizeVCmd.h RandomizeWfCmd.h ResetRotationCmd.h
+qb.o: ResetVcmCmd.h RescaleVCmd.h RseedCmd.h RunCmd.h SaveCmd.h SetCmd.h
+qb.o: SetVelocityCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h TorsionCmd.h
+qb.o: BisectionCmd.h Bisection.h SlaterDet.h Basis.h Matrix.h AlphaPBE0.h
+qb.o: AlphaRSH.h AtomsDyn.h BetaRSH.h BlHF.h BtHF.h Cell.h CellDyn.h
+qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
+qb.o: Debug.h Dspin.h Ecut.h Ecutprec.h Ecuts.h Efield.h Polarization.h
+qb.o: Emass.h ExtStress.h FermiTemp.h IterCmd.h IterCmdPeriod.h Dt.h MuRSH.h
+qb.o: Nempty.h NetCharge.h Nrowmax.h Nspin.h RefCell.h ScfTol.h Stress.h
+qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h

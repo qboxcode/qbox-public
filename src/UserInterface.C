@@ -23,7 +23,7 @@
 #include <fstream>
 #include <sstream>
 #include <unistd.h> // fsync()
-#include <stdio.h> // fopen(), fclose(), fprintf()
+#include <cstdio> // fopen(), fclose(), fprintf()
 #include <sys/types.h>
 #include <sys/stat.h> // stat()
 #include <mpi.h>
@@ -65,57 +65,59 @@ UserInterface::~UserInterface(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int UserInterface::readCmd(char *s, int max, istream &fp, bool echo)
+int UserInterface::readCmd(string& s, istream &is, bool echo)
 {
-  int ch, i = 0;
-  while ( (ch = fp.get()) != EOF &&  !( ch == '\n' || ch ==';' || ch == '#') )
+  getline(is,s);
+
+  if ( is.eof() )
+    return 0;
+
+  // process line continuation if last character is '\'
+  while ( (s.size() > 0) && (s[s.size()-1] == '\\') )
   {
-    if ( ch == '\\' ) // line continuation character
-    {
-      // check if backslash is followed by a newline
-      ch = fp.get();
-      if ( ch == '\n' )
-      {
-        // backslash followed by newline, do nothing
-      }
-      else
-      {
-        // backslash not followed by newline
-        if ( i < max - 1 )
-          s[i++] = '\\';
-        if ( i < max - 1 )
-          s[i++] = ch;
-      }
-    }
-    if (i < max - 1)
-      s[i++] = ch;
+    s[s.size()-1] = ' ';
+    string stmp;
+    getline(is,stmp);
+    s += stmp;
   }
 
-  if (max > 0) s[i] = '\0';  /* add terminating NULL */
+  if ( echo )
+    cout << "<cmd>" << s << "</cmd>" << endl;
 
-  if ( fp.eof() )
-    return 0;             /* return 0 for end of file */
+  // remove comments before processing
+  string::size_type pos = s.find_first_of("#");
+  if ( pos != string::npos )
+    s = s.substr(0,pos);
+#ifdef DEBUG
+  cout << "readCmd: after removing comments: @" << s << "@" << endl;
+#endif
 
-  // output command line if reading from a script
-  if ( echo && i >= 0 ) cout << "<cmd>" << s << "</cmd>" << endl;
+  // remove leading white space
+  pos = s.find_first_not_of(" \t");
+  if ( pos != string::npos )
+    s = s.substr(pos);
+  else
+    s.clear();
+#ifdef DEBUG
+  cout << "readCmd: after removing leading space: @" << s << "@" << endl;
+#endif
 
-  if ( ch == '#' )
+  // remove trailing white space
+  pos = s.find_last_not_of(" \t");
+  if ( pos != string::npos )
   {
-    if ( echo ) cout << "<cmd>#";
-    while ( (ch = fp.get()) != EOF && !( ch == '\n' ) )
-    {
-      if ( echo ) cout << (char) ch;
-    }
-    if ( echo && ch=='\n' ) cout << "</cmd>" << endl;
-    if ( !(ch == '\n') )
-      return 0;             /* return 0 for end of file */
+    pos++;
+    s = s.substr(0,pos);
   }
+#ifdef DEBUG
+  cout << "readCmd: after removing trailing space: @" << s << "@" << endl;
+#endif
 
-  return 1; // a command was read
+  return 1; // a command was read into s
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
+void UserInterface::processCmds(istream &cmdstream, const string prompt,
   bool echo)
 {
 #if DEBUG
@@ -123,11 +125,9 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
        << prompt << " echo=" << echo << endl;
 #endif
   // read and process commands from cmdstream until done
-  const int cmdlinemax = 1024;
-  char cmdline[cmdlinemax];
+  string cmdline;
   list<Cmd*>::iterator cmd;
-  const char *separators = " ;\t";
-  int done=0,cmd_read,status;
+  int done = 0, cmd_read = 0;
 
   if ( onpe0_ )
     cout << prompt << " ";
@@ -136,142 +136,30 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
   {
     if ( onpe0_ )
     {
-      for ( int i = 0; i < cmdlinemax; i++ )
-        cmdline[i] = '\0';
       // readCmd returns 1 if a command is read, 0 if at EOF
-      cmd_read = readCmd(cmdline, cmdlinemax, cmdstream, echo );
+      cmd_read = readCmd(cmdline, cmdstream, echo );
       done = !cmd_read;
     }
-    MPI_Bcast(&cmdline[0],cmdlinemax,MPI_CHAR,0,MPI_COMM_WORLD);
+
     MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
 
     if ( cmd_read )
     {
-      // cmdline contains a string of tokens terminated by '\0'
-      // cout << " command line is: " << cmdline << endl;
+      int n = cmdline.size();
+      MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD);
+      char* buf = new char[n];
+      if ( onpe0_ )
+        strncpy(buf,cmdline.c_str(),n);
+      MPI_Bcast(buf,n,MPI_CHAR,0,MPI_COMM_WORLD);
+      cmdline = string(buf,n);
+      delete [] buf;
 
-      // comment lines: start with '#'
-      int i;
-      if ( cmdline[i=strspn(cmdline," ")] == '#' )
-      {
-        // cout << " comment line" << endl;
-        // do nothing, not even write prompt
-      }
-      else if ( cmdline[i=strspn(cmdline," ")] == '!' )
-      {
-        // shell escape commands start with '!'
-        // cout << " shell escape" << endl;
-        if ( onpe0_ )
-        {
-          system ( &cmdline[i+1] );
-          cout << prompt << " ";
-        }
-      }
-      else
-      {
-        // cout << " command split in the following tokens:" << endl;
-
-        // scan tokens and build argument list
-        list<char*> arglist;
-        int ntok = 0;
-        char* tok = strtok(cmdline, separators);
-        while ( tok != 0 )
-        {
-          arglist.push_back(tok);
-          ntok++;
-          // cout << "\"" << tok << "\"" << endl;
-          tok = strtok(0,separators);
-        }
-        // cout << " total of " << ntok << " tokens" << endl;
-        // arglist.dump();
-
-        // build ac and av
-        int ac = ntok;
-        char **av = new char *[ntok+1];
-        i = 0;
-        list<char*>::iterator iarg = arglist.begin();
-        while ( iarg != arglist.end() )
-        {
-          av[i++] = *iarg++;
-        }
-        av[ntok] = 0;
-
-        // write arguments
-        // for ( i = 0; i < ac; i++ )
-        // {
-        //   cout << av[i] << endl;
-        // }
-
-        // search cmdlist for command
-
-        tok = av[0];
-
-        // check for empty command line
-        if ( tok != 0 )
-        {
-          Cmd *cmdptr = findCmd(tok);
-
-          if ( cmdptr )
-          {
-            MPI_Barrier(MPI_COMM_WORLD);
-#if DEBUG
-            cout << " execute command " << cmdptr->name() << endl;
-#endif
-            cmdptr->action(ac,av);
-            MPI_Barrier(MPI_COMM_WORLD);
-#if DEBUG
-            cout << " command completed " << cmdptr->name() << endl;
-#endif
-          }
-          else
-          {
-            // command is not in the command list, check for script files
-            ifstream cmdstr;
-            if ( onpe0_ )
-            {
-              cmdstr.open(av[0],ios::in);
-              status = !cmdstr;
-            }
-            MPI_Bcast(&status,1,MPI_INT,0,MPI_COMM_WORLD);
-            if ( !status )
-            {
-              // create new prompt in the form: prompt<filename>
-              char *newprompt=0;
-              if ( onpe0_ )
-              {
-                newprompt = new char[strlen(prompt)+strlen(av[0])+4];
-                newprompt = strcpy(newprompt,prompt);
-                newprompt = strcat(newprompt,"[");
-                newprompt = strcat(newprompt,av[0]);
-                newprompt = strcat(newprompt,"]");
-              }
-                // MPI: process commands on all processes.
-                // Note: newprompt is 0 on all processes > 0
-                // Note: echo == true for scripts
-              processCmds (cmdstr, newprompt, true);
-              if ( onpe0_ )
-                delete newprompt;
-            }
-            else
-            {
-              if ( onpe0_ )
-                cout << " No such command or file name: " << tok << endl;
-            }
-          }
-        }
-        delete [] av;
-        if ( onpe0_ )
-          cout << prompt << " ";
-      }
-    }
-    else // if cmd_read
-    {
-      // found eof
-      done = true;
+      execCmd(cmdline,prompt);
     }
 
     if ( onpe0_ )
       done |= terminate_;
+
     MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
   }
 
@@ -281,24 +169,21 @@ void UserInterface::processCmds ( istream &cmdstream, const char *prompt,
 
 ////////////////////////////////////////////////////////////////////////////////
 void UserInterface::processCmdsServer ( string inputfilename,
-  string outputfilename, const char *prompt, bool echo)
+  string outputfilename, const string prompt, bool echo)
 {
   // process commands in server mode
   // read commands from inputfilename
   // redirect cout to outputfilename
 
-  char cmdline[256];
+  string cmdline;
   list<Cmd*>::iterator cmd;
-  const char *separators = " ;\t";
-  int i,done=0,cmd_read,status;
+  int done = 0, cmd_read = 0;
 
   string lockfilename = inputfilename + ".lock";
 
   // in server mode, redirect output to stream qbout
   streambuf *cout_buf;
   ifstream qbin;
-
-  ofstream tstfile;
   ostringstream os;
 
   while ( !done )
@@ -335,143 +220,30 @@ void UserInterface::processCmdsServer ( string inputfilename,
       if ( onpe0_ )
       {
         // readCmd returns 1 if a command is read, 0 if at EOF
-        cmd_read = readCmd(cmdline, 256, qbin, echo );
+        cmd_read = readCmd(cmdline, qbin, echo);
         cout << prompt << " " << cmdline << endl;
       }
-      MPI_Bcast(&cmdline[0],256,MPI_CHAR,0,MPI_COMM_WORLD);
+
       MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
 
       if ( cmd_read )
       {
+        int n = cmdline.size();
+        MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD);
+        char* buf = new char[n];
         if ( onpe0_ )
-        {
-          cerr << " read cmd: " << cmdline << endl;
-          cerr << " executing ... ";
-        }
+          strncpy(buf,cmdline.c_str(),n);
+        MPI_Bcast(buf,n,MPI_CHAR,0,MPI_COMM_WORLD);
+        cmdline = string(buf,n);
+        delete [] buf;
 
-        // cmdline contains a string of tokens terminated by '\0'
-        // cout << " command line is: " << cmdline << endl;
+        execCmd(cmdline,prompt);
+      }
 
-        // comment lines: start with '#'
-        if ( cmdline[i=strspn(cmdline," ")] == '#' )
-        {
-          // cout << " comment line" << endl;
-          // do nothing, not even write prompt
-        }
-        else if ( cmdline[i=strspn(cmdline," ")] == '!' )
-        {
-          // shell escape commands start with '!'
-          // cout << " shell escape" << endl;
-          if ( onpe0_ )
-          {
-            system ( &cmdline[i+1] );
-            // cout << prompt << " ";
-          }
-        }
-        else
-        {
-          // cout << " command split in the following tokens:" << endl;
+      if ( onpe0_ )
+        done |= terminate_;
 
-          // scan tokens and build argument list
-          list<char*> arglist;
-          int ntok = 0;
-          char* tok = strtok(cmdline, separators);
-          while ( tok != 0 )
-          {
-            arglist.push_back(tok);
-            ntok++;
-            // cout << "\"" << tok << "\"" << endl;
-            tok = strtok(0,separators);
-          }
-          // cout << " total of " << ntok << " tokens" << endl;
-          // arglist.dump();
-
-          // build ac and av
-          int ac = ntok;
-          char **av = new char *[ntok+1];
-          i = 0;
-          list<char*>::iterator iarg = arglist.begin();
-          while ( iarg != arglist.end() )
-          {
-            av[i++] = *iarg++;
-          }
-          av[ntok] = 0;
-
-          // write arguments
-          // for ( i = 0; i < ac; i++ )
-          // {
-          //   cout << av[i] << endl;
-          // }
-
-          // search cmdlist for command
-
-          tok = av[0];
-
-          // check for empty command line
-          if ( tok != 0 )
-          {
-            Cmd *cmdptr = findCmd(tok);
-
-            if ( cmdptr )
-            {
-              MPI_Barrier(MPI_COMM_WORLD);
-#if DEBUG
-              cerr << " execute command " << cmdptr->name() << endl;
-#endif
-              cmdptr->action(ac,av);
-              MPI_Barrier(MPI_COMM_WORLD);
-#if DEBUG
-              cerr << " command completed " << cmdptr->name() << endl;
-#endif
-            }
-            else
-            {
-              // command is not in the command list, check for script files
-              ifstream cmdstr;
-              if ( onpe0_ )
-              {
-                cmdstr.open(av[0],ios::in);
-                status = !cmdstr;
-              }
-              MPI_Bcast(&status,1,MPI_INT,0,MPI_COMM_WORLD);
-              if ( !status )
-              {
-                // create new prompt in the form: prompt<filename>
-                char *newprompt=0;
-                if ( onpe0_ )
-                {
-                  newprompt = new char[strlen(prompt)+strlen(av[0])+4];
-                  newprompt = strcpy(newprompt,prompt);
-                  newprompt = strcat(newprompt,"[");
-                  newprompt = strcat(newprompt,av[0]);
-                  newprompt = strcat(newprompt,"]");
-                }
-                // MPI: process commands on all processes.
-                // Note: newprompt is 0 on all processes > 0
-                // Note: echo == true for scripts
-                processCmds (cmdstr, newprompt, true);
-                if ( onpe0_ )
-                  delete newprompt;
-              }
-              else
-              {
-                if ( onpe0_ )
-                  cout << " No such command or file name: " << tok << endl;
-              }
-            }
-          }
-          delete [] av;
-        }
-
-        if ( onpe0_ )
-          cerr << "done" << endl;
-
-        // check if terminate_ flag was set during command execution
-        if ( onpe0_ )
-          done = terminate_;
-        MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
-
-      } // if cmd_read
+      MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
 
     } while ( !done && cmd_read );
 
@@ -502,5 +274,129 @@ void UserInterface::processCmdsServer ( string inputfilename,
   {
     // remove lock file
     remove(lockfilename.c_str());
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void UserInterface::execCmd(string cmdline, string prompt)
+{
+  // check if line contains only white space or comments
+  if ( cmdline.size() == 0 )
+  {
+#ifdef DEBUG
+    cout << " empty command line" << endl;
+#endif
+    if ( onpe0_ )
+      cout << prompt << " ";
+  }
+  else if ( cmdline[0] == '!' )
+  {
+    // shell escape commands start with '!'
+    if ( onpe0_ )
+    {
+      // remove '!' character
+      cmdline[0] = ' ';
+#ifdef DEBUG
+      cout << " shell escape: " << cmdline.c_str() << endl;
+#endif
+      system( cmdline.c_str() );
+      cout << prompt << " ";
+    }
+  }
+  else
+  {
+#ifdef DEBUG
+    cout << " command is: " << cmdline.c_str() << endl;
+#endif
+    // cout << " command split in the following tokens:" << endl;
+
+    // scan tokens and build argument list
+    list<char*> arglist;
+    int ntok = 0;
+    char* buf = strdup(cmdline.c_str());
+    char* tok = strtok(buf, " \t");
+    while ( tok != 0 )
+    {
+      arglist.push_back(tok);
+      ntok++;
+      // cout << "\"" << tok << "\"" << endl;
+      tok = strtok(0," \t");
+    }
+    // cout << " total of " << ntok << " tokens" << endl;
+    // arglist.dump();
+
+    // build ac and av
+    int ac = ntok;
+    char **av = new char *[ntok+1];
+    int i = 0;
+    list<char*>::iterator iarg = arglist.begin();
+    while ( iarg != arglist.end() )
+    {
+      av[i++] = *iarg++;
+    }
+    av[ntok] = 0;
+
+    // write arguments
+    // for ( i = 0; i < ac; i++ )
+    // {
+    //   cout << av[i] << endl;
+    // }
+
+    // search cmdlist for command
+
+    tok = av[0];
+
+    // check for empty command line
+    if ( tok != 0 )
+    {
+      Cmd *cmdptr = findCmd(tok);
+
+      if ( cmdptr )
+      {
+        MPI_Barrier(MPI_COMM_WORLD);
+#if DEBUG
+        cout << " execute command " << cmdptr->name() << endl;
+#endif
+        cmdptr->action(ac,av);
+        MPI_Barrier(MPI_COMM_WORLD);
+#if DEBUG
+        cout << " command completed " << cmdptr->name() << endl;
+#endif
+      }
+      else
+      {
+        // command is not in the command list, check for script files
+        ifstream cmdstr;
+        int status;
+        if ( onpe0_ )
+        {
+          cmdstr.open(av[0],ios::in);
+          status = !cmdstr;
+        }
+        MPI_Bcast(&status,1,MPI_INT,0,MPI_COMM_WORLD);
+        if ( !status )
+        {
+          // create new prompt in the form: prompt<filename>
+          string newprompt;
+          if ( onpe0_ )
+          {
+            newprompt = prompt + "[" + av[0] + "]";
+          }
+            // MPI: process commands on all processes.
+            // Note: newprompt is 0 on all processes > 0
+            // Note: echo == true for scripts
+          processCmds(cmdstr, newprompt, true);
+        }
+        else
+        {
+          if ( onpe0_ )
+            cout << " No such command or file name: " << tok << endl;
+        }
+      }
+    }
+    delete [] av;
+    if ( onpe0_ )
+      cout << prompt << " ";
+    free(buf);
   }
 }

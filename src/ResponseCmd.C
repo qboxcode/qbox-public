@@ -34,12 +34,6 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 int ResponseCmd::action(int argc, char **argv)
 {
-  // " syntax: response amplitude nitscf [nite]\n\n"
-  // " syntax: response -vext vext_file -drho drho_file
-  //                    [-RPA|-IPA] [-amplitude a]
-  //                    [-io iomode -nx nx -ny ny -nz nz]
-  //                    nitscf [nite]\n\n"
-
   if ( s->wf.nst() == 0 )
   {
     if ( ui->onpe0() )
@@ -53,6 +47,9 @@ int ResponseCmd::action(int argc, char **argv)
     return 1;
   }
 
+  bool rpa = false;
+  bool ipa = false;
+  double amplitude = 0.0;
 
   int iarg = 1;
   if ( !strcmp(argv[iarg],"-vext") )
@@ -64,27 +61,44 @@ int ResponseCmd::action(int argc, char **argv)
         cout << "  ResponseCmd: cannot run when vext is already set" << endl;
       return 1;
     }
-
-    string filename;
     iarg++;
-    filename = argv[iarg];
+    if ( iarg >= argc )
+    {
+      if ( ui->onpe0() )
+        cout << help_msg();
+      return 1;
+    }
+    string filename = argv[iarg];
     iarg++;
-
-    string io = "xml";
+    string fmt = "xml";
+    if ( iarg >= argc )
+    {
+      if ( ui->onpe0() )
+        cout << help_msg();
+      return 1;
+    }
     if ( !strcmp(argv[iarg],"-cube") )
     {
-      io = "cube";
+      fmt = "cube";
       iarg++;
     }
-
-    bool rpa = false;
+    if ( iarg >= argc )
+    {
+      if ( ui->onpe0() )
+        cout << help_msg();
+      return 1;
+    }
     if ( !strcmp(argv[iarg],"-RPA") )
     {
       rpa = true;
       iarg++;
     }
-
-    bool ipa = false;
+    if ( iarg >= argc )
+    {
+      if ( ui->onpe0() )
+        cout << help_msg();
+      return 1;
+    }
     if ( !strcmp(argv[iarg],"-IPA") )
     {
       ipa = true;
@@ -96,18 +110,34 @@ int ResponseCmd::action(int argc, char **argv)
         cout << " Only one of -RPA or -IPA can be specified" << endl;
       return 1;
     }
-
-    double amplitude = 0.0;
+    if ( iarg >= argc )
+    {
+      if ( ui->onpe0() )
+        cout << help_msg();
+      return 1;
+    }
     if ( !strcmp(argv[iarg],"-amplitude") )
     {
       iarg++;
+      if ( iarg >= argc )
+      {
+        if ( ui->onpe0() )
+          cout << help_msg();
+        return 1;
+      }
       amplitude = atof(argv[iarg]);
       iarg++;
     }
 
-    int nitscf = atoi(argv[iarg]);
+    int nitscf = 0;
+    if ( iarg >= argc )
+    {
+      if ( ui->onpe0() )
+        cout << help_msg();
+      return 1;
+    }
+    nitscf = atoi(argv[iarg]);
     iarg++;
-
     int nite = 0;
     if ( iarg < argc )
       nite = atoi(argv[iarg]);
@@ -119,37 +149,84 @@ int ResponseCmd::action(int argc, char **argv)
       return 1;
     }
 
-    s->vext = new ExternalPotential(*s, filename, io);
+    s->vext = new ExternalPotential(*s, filename, fmt);
     s->vext->set_amplitude(amplitude);
-    responseVext(rpa, ipa, nitscf, nite, io);
+    responseVext(rpa, ipa, nitscf, nite, fmt);
     delete s->vext;
     s->vext = 0;
   }
   else
   {
-    // polarizability calculation
-    // response amplitude nitscf [nite]
-    assert(argc > 2);
+    // polarizability calculation in constant field
+    // response amplitude [-RPA|-IPA] nitscf [nite]
+    if ( argc < 3 || argc > 5 )
+    {
+      if ( ui->onpe0() )
+        cout << help_msg();
+      return 1;
+    }
+    amplitude = atof(argv[iarg]);
+    iarg++;
+    if ( !strcmp(argv[iarg],"-RPA") )
+    {
+      rpa = true;
+      iarg++;
+    }
+    if ( iarg >= argc )
+    {
+      if ( ui->onpe0() )
+        cout << help_msg();
+      return 1;
+    }
+    if ( !strcmp(argv[iarg],"-IPA") )
+    {
+      ipa = true;
+      iarg++;
+    }
+    if ( rpa && ipa )
+    {
+      if ( ui->onpe0() )
+        cout << " Only one of -RPA or -IPA can be specified" << endl;
+      return 1;
+    }
+    if ( iarg >= argc )
+    {
+      if ( ui->onpe0() )
+        cout << help_msg();
+      return 1;
+    }
+    int nitscf = atoi(argv[iarg]);
+    iarg++;
+    int nite = 0;
+    if ( iarg < argc )
+      nite = atoi(argv[iarg]);
+
     if ( ui->onpe0() )
       cout << " ResponseCmd: polarizability with "
            << " amplitude " << argv[1] << endl;
-    double amplitude = atof(argv[1]);
-    int nitscf = atoi(argv[2]);
-    int nite = 0;
-    if ( argc == 4 )
-      nite = atoi(argv[3]);
-    responseEfield(amplitude,nitscf,nite);
+    responseEfield(amplitude,rpa,ipa,nitscf,nite);
   }
 
   return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void ResponseCmd::responseEfield(double amplitude, int nitscf, int nite)
+void ResponseCmd::responseEfield(double amplitude, bool rpa, bool ipa,
+  int nitscf, int nite)
 {
   // compute dipole change
-  SampleStepper* stepper = new BOSampleStepper(*s,nitscf,nite);
+  BOSampleStepper* stepper = new BOSampleStepper(*s,nitscf,nite);
   assert(stepper!=0);
+
+  if ( rpa )
+    stepper->set_update_vxc(false);
+
+  if ( ipa )
+  {
+    stepper->set_update_vh(false);
+    stepper->set_update_vxc(false);
+  }
+
   ElectricEnthalpy* el_enth = stepper->ef().el_enth();
   if ( el_enth == 0 )
   {
@@ -229,23 +306,15 @@ void ResponseCmd::responseEfield(double amplitude, int nitscf, int nite)
 void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
    string io)
 {
-//  if (ui->onpe0())
-//  {
-//    cout << "ResponseCmd:responseVext:\n"
-//         << "RPA = " << rpa << ", IPA = " << ipa << ", io = " << io
-//         << ", q = " << q << ", nitscf = " << nitscf << ", nite = "
-//         << nite << "\n";
-//  }
-
   s->wf.info(cout, "wavefunction");
 
   const int nspin = s->wf.nspin();
   BOSampleStepper *stepper = new BOSampleStepper(*s, nitscf, nite);
 
-  if (rpa)
+  if ( rpa )
     stepper->set_update_vxc(false);
 
-  if (ipa)
+  if ( ipa )
   {
     stepper->set_update_vh(false);
     stepper->set_update_vxc(false);

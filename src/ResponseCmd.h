@@ -27,7 +27,7 @@ class ResponseCmd : public Cmd
 {
   private:
 
-  void responseEfield(double amplitude, int nitscf, int nite);
+  void responseEfield(double amplitude, bool rpa, bool ipa, int nitscf, int nite);
   void responseVext(bool rpa, bool ipa, int nitscf, int nite, string io);
 
   public:
@@ -41,7 +41,7 @@ class ResponseCmd : public Cmd
   {
     return
     "\n response\n\n"
-    " syntax: response amplitude nitscf [nite]\n"
+    " syntax: response amplitude [-RPA|-IPA] nitscf [nite]\n"
     "         response -vext vext_file [-cube] [-RPA|-IPA] [-amplitude a] \n"
     "                  nitscf [nite]\n\n"
     "   The response command computes the polarizability tensor by\n"

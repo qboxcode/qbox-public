@@ -27,8 +27,9 @@ class ResponseCmd : public Cmd
 {
   private:
 
-  void responseEfield(double amplitude, bool rpa, bool ipa, int nitscf, int nite);
-  void responseVext(bool rpa, bool ipa, int nitscf, int nite, string io);
+  void responseEfield(double amplitude, bool rpa, bool ipa,
+    int nitscf, int nite);
+  void responseVext(bool rpa, bool ipa, int nitscf, int nite, std::string fmt);
 
   public:
 

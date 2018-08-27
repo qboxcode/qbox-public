@@ -304,7 +304,7 @@ void ResponseCmd::responseEfield(double amplitude, bool rpa, bool ipa,
 
 ////////////////////////////////////////////////////////////////////////////////
 void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
-   string io)
+   string fmt)
 {
   s->wf.info(cout, "wavefunction");
 
@@ -320,7 +320,7 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
     stepper->set_update_vxc(false);
   }
 
-  assert(io == "xml" || io == "cube");
+  assert(fmt == "xml" || fmt == "cube");
 
   // save a copy of initial wave functions
   Wavefunction wf0(s->wf);
@@ -441,7 +441,7 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
       else
         filename = s->vext->filename() + ".response."
                    + ((ispin == 0) ? "spin0" : "spin1");
-      if (io == "xml")
+      if (fmt == "xml")
       {
         tm_write_drho.start();
         Function3d f;
@@ -500,7 +500,7 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
         os.close();
 
         tm_write_drho.stop();
-      } // if io
+      } // if fmt
     } //if ( myrow == 0 && mycol == 0 )
   } // for ispin
 

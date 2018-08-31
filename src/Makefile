@@ -31,6 +31,9 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         XCOperator.o ExchangeOperator.o Bisection.o \
 	XCPotential.o LDAFunctional.o VWNFunctional.o \
         PBEFunctional.o BLYPFunctional.o B3LYPFunctional.o  \
+        BHandHLYPFunctional.o \
+	ExponentialIntegral.o HSEFunctional.o \
+        RSHFunctional.o \
 	NonLocalPotential.o SampleReader.o StructuredDocumentHandler.o \
 	SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \
         XMLGFPreprocessor.o Base64Transcoder.o \
@@ -99,8 +102,19 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
  testEnergyFunctional: testEnergyFunctional.o EnergyFunctional.o Basis.o \
 	SlaterDet.o Matrix.o UnitCell.o Context.o FourierTransform.o \
         Wavefunction.o Species.o Atom.o AtomSet.o StructureFactor.o \
-        ChargeDensity.o \
-        sinft.o spline.o
+        ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
+        GlobalExtForce.o \
+        ConstraintSet.o Constraint.o DistanceConstraint.o \
+        AngleConstraint.o TorsionConstraint.o PositionConstraint.o \
+        NonLocalPotential.o sampling.o Base64Transcoder.o \
+        ChargeDensity.o sinft.o spline.o \
+        XCOperator.o ExchangeOperator.o Bisection.o \
+	XCPotential.o LDAFunctional.o VWNFunctional.o \
+        PBEFunctional.o BLYPFunctional.o B3LYPFunctional.o  \
+        BHandHLYPFunctional.o \
+	ExponentialIntegral.o HSEFunctional.o RSHFunctional.o \
+        ConfinementPotential.o ElectricEnthalpy.o MLWFTransform.o \
+        jade.o BasisMapping.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSlaterDet: testSlaterDet.o SlaterDet.o FourierTransform.o \
         Basis.o UnitCell.o Matrix.o Context.o Base64Transcoder.o
@@ -112,6 +126,10 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 	SpeciesReader.o StructuredDocumentHandler.o SpeciesHandler.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testXCFunctional: testXCFunctional.o LDAFunctional.o PBEFunctional.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testLDAFunctional: testLDAFunctional.o LDAFunctional.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testVWN: testVWN.o VWNFunctional.o LDAFunctional.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testMatrix: testMatrix.o Matrix.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -130,6 +148,8 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testXMLGFPreprocessor: testXMLGFPreprocessor.o XMLGFPreprocessor.o Context.o \
         Base64Transcoder.o Matrix.o
+	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
+ testBase64Transcoder: testBase64Transcoder.o Base64Transcoder.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  test_fftw: test_fftw.o $(PLTOBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
@@ -170,6 +190,9 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 AlphaPBE0.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 AlphaPBE0.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 AlphaPBE0.o: Wavefunction.h Control.h
+AlphaRSH.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
+AlphaRSH.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+AlphaRSH.o: Control.h
 AndersonMixer.o: AndersonMixer.h blas.h
 AngleCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 AngleCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
@@ -200,6 +223,8 @@ AtomsDyn.o: Control.h
 B3LYPFunctional.o: B3LYPFunctional.h XCFunctional.h BLYPFunctional.h
 B3LYPFunctional.o: VWNFunctional.h
 B3LYPFunctional.o: XCFunctional.h
+BHandHLYPFunctional.o: BHandHLYPFunctional.h XCFunctional.h BLYPFunctional.h
+BHandHLYPFunctional.o: XCFunctional.h
 BLYPFunctional.o: BLYPFunctional.h XCFunctional.h
 BLYPFunctional.o: XCFunctional.h
 BMDIonicStepper.o: BMDIonicStepper.h IonicStepper.h Sample.h AtomSet.h
@@ -233,6 +258,9 @@ Basis.o: Basis.h D3vector.h UnitCell.h
 Basis.o: D3vector.h UnitCell.h
 BasisMapping.o: Basis.h D3vector.h UnitCell.h Context.h blacs.h
 BasisMapping.o: BasisMapping.h
+BetaRSH.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
+BetaRSH.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+BetaRSH.o: Control.h
 Bisection.o: Bisection.h Context.h blacs.h SlaterDet.h Basis.h D3vector.h
 Bisection.o: UnitCell.h Matrix.h Timer.h jade.h FourierTransform.h
 Bisection.o: Context.h blacs.h SlaterDet.h Basis.h D3vector.h UnitCell.h
@@ -299,7 +327,7 @@ CellStepper.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 CellStepper.o: Wavefunction.h Control.h
 ChargeDensity.o: ChargeDensity.h Timer.h Context.h blacs.h D3vector.h Basis.h
 ChargeDensity.o: UnitCell.h Wavefunction.h FourierTransform.h SlaterDet.h
-ChargeDensity.o: Matrix.h
+ChargeDensity.o: Matrix.h blas.h
 ChargeDensity.o: Timer.h Context.h blacs.h D3vector.h
 ChargeMixCoeff.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 ChargeMixCoeff.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
@@ -392,6 +420,7 @@ ExchangeOperator.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 ExchangeOperator.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h
 ExchangeOperator.o: ExtForceSet.h Wavefunction.h Control.h SlaterDet.h
 ExchangeOperator.o: Basis.h Matrix.h Timer.h FourierTransform.h
+ExponentialIntegral.o: ExponentialIntegral.h
 ExtForce.o: ExtForce.h D3vector.h
 ExtForce.o: D3vector.h
 ExtForceCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
@@ -430,6 +459,8 @@ Function3dHandler.o: Function3d.h D3vector.h StrX.h
 GlobalExtForce.o: GlobalExtForce.h ExtForce.h D3vector.h AtomSet.h Context.h
 GlobalExtForce.o: blacs.h Atom.h UnitCell.h D3tensor.h blas.h Species.h
 GlobalExtForce.o: ExtForce.h D3vector.h
+HSEFunctional.o: HSEFunctional.h XCFunctional.h ExponentialIntegral.h
+HSEFunctional.o: XCFunctional.h
 HelpCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 HelpCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 HelpCmd.o: ExtForceSet.h Wavefunction.h Control.h
@@ -490,6 +521,9 @@ Matrix.o: Context.h blacs.h
 MoveCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 MoveCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 MoveCmd.o: ExtForceSet.h Wavefunction.h Control.h
+MuRSH.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
+MuRSH.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+MuRSH.o: Control.h
 Nempty.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
 Nempty.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 Nempty.o: Control.h
@@ -558,6 +592,8 @@ PrintCmd.o: ExtForceSet.h Wavefunction.h Control.h
 QuitCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 QuitCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 QuitCmd.o: ExtForceSet.h Wavefunction.h Control.h
+RSHFunctional.o: RSHFunctional.h XCFunctional.h ExponentialIntegral.h
+RSHFunctional.o: XCFunctional.h
 RandomizeRCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 RandomizeRCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 RandomizeRCmd.o: ExtForceSet.h Wavefunction.h Control.h
@@ -573,6 +609,9 @@ RefCell.o: Control.h
 RescaleVCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 RescaleVCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 RescaleVCmd.o: ExtForceSet.h Wavefunction.h Control.h
+ResetRotationCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h
+ResetRotationCmd.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
+ResetRotationCmd.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
 ResetVcmCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 ResetVcmCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 ResetVcmCmd.o: ExtForceSet.h Wavefunction.h Control.h
@@ -682,7 +721,8 @@ SpeciesReader.o: Species.h SpeciesReader.h StructuredDocumentHandler.h StrX.h
 SpeciesReader.o: StructureHandler.h SpeciesHandler.h
 StatusCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 StatusCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
-StatusCmd.o: ExtForceSet.h Wavefunction.h Control.h
+StatusCmd.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h Timer.h
+StatusCmd.o: FourierTransform.h
 StrainCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 StrainCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 StrainCmd.o: ExtForceSet.h Wavefunction.h Control.h
@@ -742,14 +782,17 @@ XCOperator.o: XCOperator.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 XCOperator.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 XCOperator.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h Timer.h
 XCOperator.o: XCPotential.h ExchangeOperator.h SlaterDet.h Basis.h Matrix.h
-XCOperator.o: FourierTransform.h
+XCOperator.o: FourierTransform.h HSEFunctional.h XCFunctional.h
+XCOperator.o: RSHFunctional.h
 XCOperator.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
 XCOperator.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 XCOperator.o: Wavefunction.h Control.h
 XCPotential.o: XCPotential.h Control.h D3vector.h ChargeDensity.h Timer.h
 XCPotential.o: Context.h blacs.h LDAFunctional.h XCFunctional.h
 XCPotential.o: VWNFunctional.h PBEFunctional.h BLYPFunctional.h
-XCPotential.o: B3LYPFunctional.h Basis.h UnitCell.h FourierTransform.h blas.h
+XCPotential.o: HSEFunctional.h RSHFunctional.h B3LYPFunctional.h
+XCPotential.o: BHandHLYPFunctional.h Basis.h UnitCell.h FourierTransform.h
+XCPotential.o: blas.h
 XCPotential.o: Control.h D3vector.h ChargeDensity.h Timer.h Context.h blacs.h
 XMLGFPreprocessor.o: Timer.h Context.h blacs.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h
@@ -768,17 +811,17 @@ qb.o: Control.h Timer.h AngleCmd.h AtomCmd.h ComputeMLWFCmd.h MLWFTransform.h
 qb.o: BasisMapping.h ConstraintCmd.h DistanceCmd.h ExtForceCmd.h
 qb.o: FoldInWsCmd.h HelpCmd.h KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h
 qb.o: LoadCmd.h MoveCmd.h PartialChargeCmd.h PlotCmd.h PrintCmd.h QuitCmd.h
-qb.o: RandomizeRCmd.h RandomizeVCmd.h RandomizeWfCmd.h ResetVcmCmd.h
-qb.o: RescaleVCmd.h ResponseCmd.h RseedCmd.h RunCmd.h SaveCmd.h SetCmd.h
-qb.o: SetVelocityCmd.h SpeciesCmd.h StatusCmd.h StrainCmd.h TorsionCmd.h
-qb.o: BisectionCmd.h Bisection.h SlaterDet.h Basis.h Matrix.h AlphaPBE0.h
-qb.o: AtomsDyn.h BlHF.h BtHF.h Cell.h CellDyn.h CellLock.h CellMass.h
+qb.o: RandomizeRCmd.h RandomizeVCmd.h RandomizeWfCmd.h ResetRotationCmd.h
+qb.o: ResetVcmCmd.h RescaleVCmd.h ResponseCmd.h RseedCmd.h RunCmd.h SaveCmd.h
+qb.o: SetCmd.h SetVelocityCmd.h SpeciesCmd.h StatusCmd.h ChargeDensity.h
+qb.o: FourierTransform.h StrainCmd.h TorsionCmd.h BisectionCmd.h Bisection.h
+qb.o: SlaterDet.h Basis.h Matrix.h AlphaPBE0.h AlphaRSH.h AtomsDyn.h
+qb.o: BetaRSH.h BlHF.h BtHF.h Cell.h CellDyn.h CellLock.h CellMass.h
 qb.o: ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h Debug.h Dspin.h Ecut.h
 qb.o: Ecutprec.h Ecuts.h Efield.h Polarization.h Emass.h ExtStress.h
-qb.o: FermiTemp.h IterCmd.h IterCmdPeriod.h Dt.h Nempty.h NetCharge.h
+qb.o: FermiTemp.h IterCmd.h IterCmdPeriod.h Dt.h MuRSH.h Nempty.h NetCharge.h
 qb.o: Nrowmax.h Nspin.h RefCell.h ScfTol.h Stress.h Thermostat.h ThTemp.h
-qb.o: ThTime.h ThWidth.h Vext.h ExternalPotential.h ChargeDensity.h WfDiag.h
-qb.o: WfDyn.h Xc.h
+qb.o: ThTime.h ThWidth.h Vext.h ExternalPotential.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h
@@ -796,9 +839,9 @@ testContext.o: Context.h blacs.h
 testEnergyFunctional.o: Context.h blacs.h Sample.h AtomSet.h Atom.h
 testEnergyFunctional.o: D3vector.h UnitCell.h D3tensor.h blas.h
 testEnergyFunctional.o: ConstraintSet.h ExtForceSet.h Wavefunction.h
-testEnergyFunctional.o: Control.h EnergyFunctional.h StructureFactor.h
-testEnergyFunctional.o: ElectricEnthalpy.h Matrix.h SlaterDet.h Basis.h
-testEnergyFunctional.o: Timer.h
+testEnergyFunctional.o: Control.h ChargeDensity.h Timer.h EnergyFunctional.h
+testEnergyFunctional.o: StructureFactor.h ElectricEnthalpy.h Matrix.h
+testEnergyFunctional.o: SlaterDet.h Basis.h
 testFourierTransform.o: Basis.h D3vector.h UnitCell.h FourierTransform.h
 testFourierTransform.o: Timer.h
 testFunction3d.o: Function3d.h D3vector.h

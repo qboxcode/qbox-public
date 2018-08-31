@@ -21,10 +21,9 @@
 
 #include <iostream>
 #include <string>
-#include <cstring>
-#include <iomanip>
+#include <cstring> // strncpy(), strtok()
+#include <cstdlib> // free(), system()
 #include <list>
-#include <algorithm>
 
 class UserInterface;
 
@@ -52,7 +51,8 @@ class UserInterface
 {
   private:
 
-  int readCmd(char *s, int max, std::istream &fp, bool echo);
+  int readCmd(std::string& s, std::istream &is, bool echo);
+  void execCmd(std::string s, std::string prompt);
   bool terminate_;
   bool onpe0_;
 
@@ -107,9 +107,10 @@ class UserInterface
     }
   };
 
-  void processCmds(std::istream &cmdstream, const char *prompt, bool echo);
+  void processCmds(std::istream &cmdstream, const std::string prompt,
+                   bool echo);
   void processCmdsServer(std::string inputfilename, std::string outputfilename,
-                         const char *prompt, bool echo);
+                         const std::string prompt, bool echo);
 
   void terminate(void) { terminate_ = true; }
 

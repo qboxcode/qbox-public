@@ -33,8 +33,6 @@ class ExchangeOperator
   double eex_;
   // constant of support function for exchange integration
   double rcut_;
-  // mixing coefficient for exchange energy and dwf accumulation
-  double HFCoeff_;
 
   // HF stress tensor
   std::valarray<double> sigma_exhf_;
@@ -74,10 +72,8 @@ class ExchangeOperator
   // G vectors
   valarray<double> qpG21_;
   valarray<double> qpG22_;
-  valarray<double> qpG2i1_;
-  valarray<double> qpG2i2_;
-  valarray<double> G2_;
-  valarray<double> G2i_;
+  valarray<double> int_pot1_;
+  valarray<double> int_pot2_;
 
   // numbers of states
   int nLocalStates_;
@@ -173,17 +169,22 @@ class ExchangeOperator
   vector<DoubleMatrix*> uc_;
   vector<long int> localization_;
 
+  // screened interaction potential paramters
+  double alpha_sx_, beta_sx_, mu_sx_;
+  // interaction potential. g2 is the wave vector squared.
+  double vint(double g2);
+  // derivative of the interaction potential w.r.t. g2
+  double dvint(double g2);
+  double vint_div_scal(double rc);
+
   public:
 
   // constructor
-  ExchangeOperator(Sample& s_, double HFCoeff);
+  // screened interaction potential: alpha*erf(mu*r)/r + beta*erfc(mu*r)/r
+  ExchangeOperator(Sample& s_, double alpha_sx, double beta_sx, double mu_sx);
 
   // destructor
   ~ExchangeOperator();
-
-  // parameters
-  void setmixCoeff(double value) { HFCoeff_ = value; };
-  double HFCoeff() { return HFCoeff_; };
 
   // exchange energy and forces computation
   double eex() { return eex_; };

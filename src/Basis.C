@@ -136,6 +136,14 @@ bool Basis::factorizable(int n) const
 int Basis::np(int i) const { return np_[i]; }
 
 ////////////////////////////////////////////////////////////////////////////////
+bool Basis::fits_in_grid(int np0, int np1, int np2) const
+{ return
+  ( idxmax_[0] < np0/2 ) && ( idxmin_[0] >= -np0/2 ) &&
+  ( idxmax_[1] < np1/2 ) && ( idxmin_[1] >= -np1/2 ) &&
+  ( idxmax_[2] < np2/2 ) && ( idxmin_[2] >= -np2/2 );
+}
+
+////////////////////////////////////////////////////////////////////////////////
 const D3vector Basis::kpoint(void) const { return kpoint_; }
 
 ////////////////////////////////////////////////////////////////////////////////

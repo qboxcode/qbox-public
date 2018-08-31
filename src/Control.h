@@ -54,6 +54,9 @@ struct Control
 
   std::string xc;
   double alpha_PBE0;
+  double alpha_RSH;
+  double beta_RSH;
+  double mu_RSH;
   std::string spin;
   int delta_spin;
 

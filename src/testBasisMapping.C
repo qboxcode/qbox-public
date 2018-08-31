@@ -26,6 +26,7 @@
 #include <fstream>
 #include <iomanip>
 #include <cassert>
+#include <cstdlib>
 using namespace std;
 
 #ifdef USE_MPI
@@ -39,7 +40,6 @@ int main(int argc, char **argv)
 #endif
   {
     // use: testBasisMapping a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut npr npc
-    double err;
     assert(argc==13);
     D3vector a(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     D3vector b(atof(argv[4]),atof(argv[5]),atof(argv[6]));

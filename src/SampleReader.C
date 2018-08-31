@@ -127,7 +127,6 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   parser->setFeature(XMLUni::fgXercesSchemaFullChecking, schemaFullChecking);
   parser->setFeature(XMLUni::fgSAX2CoreNameSpacePrefixes, namespacePrefixes);
 
-  int errorCount = 0;
   SampleHandler* s_handler = new SampleHandler(s,gfdata);
 
   try
@@ -140,7 +139,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     if ( onpe0 ) cout << " Starting XML parsing" << endl;
       parser->parse(*memBufIS);
     if ( onpe0 ) cout << " XML parsing done" << endl;
-    errorCount = parser->getErrorCount();
+    // errorCount = parser->getErrorCount();
   }
 
   catch (const XMLException& toCatch)

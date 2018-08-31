@@ -61,6 +61,11 @@ int main(int argc, char **argv)
   ifstream infile(infilename);
 
   assert(argc == 2 || argc == 3);
+  if ( !(argc==2 || argc==3) )
+  {
+    cout << "use: testMatrix inputfile [-check]" << endl;
+    return 1;
+  }
   bool tcheck = false;
   if ( argc == 3 )
   {

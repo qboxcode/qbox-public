@@ -76,9 +76,10 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
 
   if ( s_.ctxt_.onpe0() )
   {
-    cout << "  EnergyFunctional: np0v,np1v,np2v: " << np0v << " "
-         << np1v << " " << np2v << endl;
-    cout << "  EnergyFunctional: vft->np012(): "
+    cout << " EnergyFunctional: <np0v> " << np0v << " </np0v>  "
+         << "<np1v> " << np1v << " </np1v>  "
+         << "<np2v> " << np2v << " </np2v>" << endl;
+    cout << " EnergyFunctional: vft->np012(): "
          << vft->np012() << endl;
   }
 
@@ -426,7 +427,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       const double weight = wf.weight(ikp);
       const SlaterDet& sd = *(wf.sd(ispin,ikp));
       const Basis& wfbasis = sd.basis();
-      const D3vector kp = wfbasis.kpoint();
       // factor fac in next lines: 2.0 for G and -G (if basis is real) and
       // 0.5 from 1/(2m)
       const double fac = wfbasis.real() ? 1.0 : 0.5;

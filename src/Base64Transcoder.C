@@ -120,7 +120,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
   // nchars: number of chars in array "from"
   // the number of bytes successfully translated is returned
 
-  byte a0,a1,a2,a3,b0,b1,b2,b3;
+  byte a2,a3,b0,b1,b2,b3;
   int c;
   const char* fptr = from;
   const char* const fptr_end = from+nchars+1;
@@ -142,7 +142,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
 #endif
       break;
     }
-    a0 = (byte) c;
+    // a0 = (byte) c;
     b0 = (byte) dtable[c];
 
     do
@@ -158,7 +158,7 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
 #endif
       break;
     }
-    a1 = (byte) c;
+    // a1 = (byte) c;
     b1 = (byte) dtable[c];
 
     do

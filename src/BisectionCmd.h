@@ -65,6 +65,35 @@ class BisectionCmd : public Cmd
     nLevels[1]=atoi(argv[2]);
     nLevels[2]=atoi(argv[3]);
 
+    if ( epsilon < 0.0 )
+    {
+      if ( ui->onpe0() )
+      {
+        cout << " BisectionCmd: threshold must be non-negative" << endl;
+      }
+      return 1;
+    }
+
+    if ( wf.nkp() > 1 )
+    {
+      if ( ui->onpe0() )
+      {
+        cout << " BisectionCmd: only implemented for k=0" << endl;
+      }
+      return 1;
+    }
+
+    if ( nLevels[0] < 0 || nLevels[0] > 5 ||
+         nLevels[1] < 0 || nLevels[1] > 5 ||
+         nLevels[2] < 0 || nLevels[2] > 5 )
+    {
+      if ( ui->onpe0() )
+      {
+        cout << " BisectionCmd: levels must be in [0,5]" << endl;
+      }
+      return 1;
+    }
+
     tm.reset();
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {

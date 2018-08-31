@@ -248,6 +248,10 @@ FourierTransform::FourierTransform (const Basis &basis,
     rdispl[iproc] = rdispl[iproc-1] + rcounts[iproc-1];
   }
 
+  // check if the basis_ fits in the grid np0, np1, np2
+  basis_fits_in_grid_ = basis_.fits_in_grid(np0,np1,np2);
+  assert(basis_fits_in_grid_);
+
   if ( basis_.real() )
   {
     // compute index arrays ifftp_ and ifftm_ for mapping vector->zvec
@@ -700,15 +704,7 @@ void FourierTransform::bwd(complex<double>* val)
 
   // copy from rbuf to val
   // scatter index array iunpack
-  {
-    const int len = np012loc() * 2;
-    double* const pv = (double*) &val[0];
-    #pragma omp parallel for
-    for ( int i = 0; i < len; i++ )
-    {
-      pv[i]   = 0.0;
-    }
-  }
+  memset((void*)&val[0],0,2*np012loc()*sizeof(double));
 
 #if TIMING
   tm_b_zero.stop();
@@ -1594,15 +1590,10 @@ void FourierTransform::init_lib(void)
 ////////////////////////////////////////////////////////////////////////////////
 void FourierTransform::vector_to_zvec(const complex<double> *c)
 {
+  // map one real or complex function to zvec
+  memset((void*)&zvec_[0],0,zvec_.size()*sizeof(complex<double>));
   const int ng = basis_.localsize();
-  const int zvec_size = zvec_.size();
   double* const pz = (double*) &zvec_[0];
-  #pragma omp parallel for
-  for ( int i = 0; i < zvec_size; i++ )
-  {
-    pz[2*i]   = 0.0;
-    pz[2*i+1] = 0.0;
-  }
   const double* const pc = (double*) &c[0];
   if ( basis_.real() )
   {
@@ -1655,16 +1646,10 @@ void FourierTransform::zvec_to_vector(complex<double> *c)
 void FourierTransform::doublevector_to_zvec(const complex<double> *c1,
   const complex<double> *c2)
 {
-  // Mapping of two real functions onto zvec
+  // map two real functions to zvec
   assert(basis_.real());
-  const int zvec_size = zvec_.size();
+  memset((void*)&zvec_[0],0,zvec_.size()*sizeof(complex<double>));
   double* const pz = (double*) &zvec_[0];
-  #pragma omp parallel for
-  for ( int i = 0; i < zvec_size; i++ )
-  {
-    pz[2*i] = 0.0;
-    pz[2*i+1] = 0.0;
-  }
   const int ng = basis_.localsize();
   const double* const pc1 = (double*) &c1[0];
   const double* const pc2 = (double*) &c2[0];

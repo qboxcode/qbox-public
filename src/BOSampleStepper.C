@@ -144,6 +144,9 @@ void BOSampleStepper::initialize_density(void)
     }
   }
 
+  // Adjust G=0 component of the charge if net_charge is non-zero
+  rhopst[0] += s_.wf.nel() - atoms.nel();
+
   // Initialize charge equally for both spins
   cd_.rhog[0] = rhopst;
   if ( cd_.rhog.size() == 2 )
@@ -565,7 +568,7 @@ void BOSampleStepper::step(int niter)
             }
             else if ( iter == 1 )
             {
-              s_.wfv->align(s_.wf);
+              s_.wfv->sd(ispin,ikp)->align(*s_.wf.sd(ispin,ikp));
               for ( int i = 0; i < len; i++ )
               {
                 const double x = c[i];
@@ -581,8 +584,7 @@ void BOSampleStepper::step(int niter)
             else
             {
               // align wf with wfmm before extrapolation
-              // s_.wf.align(*wfmm);
-              wfmm->align(s_.wf);
+              s_.wf.sd(ispin,ikp)->align(*wfmm->sd(ispin,ikp));
 
               // extrapolate
               for ( int i = 0; i < len; i++ )
@@ -636,7 +638,7 @@ void BOSampleStepper::step(int niter)
             }
             else if ( iter == 1 )
             {
-              //s_.wfv->align(s_.wf);
+              s_.wfv->sd(ispin,ikp)->align(*s_.wf.sd(ispin,ikp));
               for ( int i = 0; i < len; i++ )
               {
                 const double x = c[i];
@@ -652,8 +654,7 @@ void BOSampleStepper::step(int niter)
             else
             {
               // align wf with wfmm before extrapolation
-              // s_.wf.align(*wfmm);
-              // wfmm->align(s_.wf);
+              s_.wf.sd(ispin,ikp)->align(*wfmm->sd(ispin,ikp));
 
               // extrapolate
               for ( int i = 0; i < len; i++ )
@@ -708,7 +709,7 @@ void BOSampleStepper::step(int niter)
             else
             {
               tmap["align"].start();
-              s_.wfv->align(s_.wf);
+              s_.wfv->sd(ispin,ikp)->align(*s_.wf.sd(ispin,ikp));
               tmap["align"].stop();
 
               // linear extrapolation
@@ -872,7 +873,7 @@ void BOSampleStepper::step(int niter)
         // if ( onpe0 && nite_ > 0 )
         //   cout << " delta_ehart = " << delta_ehart << endl;
         int ite = 0;
-        double energy, etotal_int;
+        double etotal_int;
 
         double eigenvalue_sum, eigenvalue_sum_m = 0.0;
         // if nite == 0: do 1 iteration, no screening in charge mixing
@@ -881,7 +882,7 @@ void BOSampleStepper::step(int niter)
         while ( !nonscf_converged && ite < max(nite_,1) )
         {
           tmap["energy"].start();
-          energy = ef_.energy(true,dwf,false,fion,false,sigma_eks);
+          ef_.energy(true,dwf,false,fion,false,sigma_eks);
           tmap["energy"].stop();
 
           // compute the sum of eigenvalues (with fixed weight)

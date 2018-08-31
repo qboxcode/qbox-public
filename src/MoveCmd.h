@@ -45,7 +45,7 @@ class MoveCmd : public Cmd
     "   The new position is defined by absolute coordinates (to) or\n"
     "   by a relative displacement (by).\n"
     "   When using 'to', if one or more of the arguments is '*',\n"
-    "   the corresponding component of the velocity is unchanged.\n\n";
+    "   the corresponding component of the position is unchanged.\n\n";
   }
 
   int action(int argc, char **argv)

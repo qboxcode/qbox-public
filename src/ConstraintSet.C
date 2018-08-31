@@ -28,6 +28,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cstdlib> // atof
+#include <cstring> // strcmp
 using namespace std;
 
 const int constraints_maxiter = 50;

@@ -40,7 +40,13 @@ int main(int argc, char **argv)
   {
     // use:
     // testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nspin nkp
-    assert(argc==14);
+    if ( argc !=14 )
+    {
+      cout <<
+      " use: testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nspin nkp"
+      << endl;
+      return 1;
+    }
     D3vector a(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     D3vector b(atof(argv[4]),atof(argv[5]),atof(argv[6]));
     D3vector c(atof(argv[7]),atof(argv[8]),atof(argv[9]));

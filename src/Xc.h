@@ -50,10 +50,14 @@ class Xc : public Var
             v == "BLYP" ||
             v == "HF" ||
             v == "PBE0" ||
-            v == "B3LYP" ) )
+            v == "HSE" ||
+            v == "RSH" ||
+            v == "B3LYP" ||
+            v == "BHandHLYP" ) )
     {
       if ( ui->onpe0() )
-        cout << " xc must be LDA, VWN, PBE, BLYP, HF, PBE0 or B3LYP" << endl;
+        cout << " xc must be LDA, VWN, PBE, BLYP, "
+             << "HF, PBE0, HSE, RSH, B3LYP or BHandHLYP" << endl;
       return 1;
     }
 

@@ -51,8 +51,8 @@ int jacobi(int maxsweep, double threshold, DoubleMatrix& a, DoubleMatrix& u,
   assert(a.nb()==u.nb());
 
   const int mloc = a.mloc();
-  const int nloc = a.nloc();
-  //cout << ctxt.mype() << ": nloc: " << nloc << endl;
+  // const int nloc = a.nloc();
+  // cout << ctxt.mype() << ": nloc: " << nloc << endl;
 
   // identify the last active process column
   // process columns beyond that column do not have any elements of a[k]

@@ -1,4 +1,19 @@
 --------------------------------------------------------------------------------
+rel1_65_1
+--------------------------------------------------------------------------------
+a23e645 Remove static_cast and cleanup RSH and HSE functionals
+de21bb8 Cleanup test programs
+a312251 Add error msg in BisectionCmd if nkp > 1
+cd77e32 Print np0v,np1v,np2v as XML elements in EnergyFunctional
+5abca0d Compute and print np0v,np1v,np2v in StatusCmd
+dc43a96 Add README and COPYING files
+0827954 Rewrite and simplify UserInterface
+218356e Update Makefile dependencies
+df25ed5 Fix missing continuation character
+58547ce Add basis_fits_in_grid function
+e66b7c0 Replace zeroing loops with memset in FourierTransform.C
+5af642d Add stress tests to test Makefile
+--------------------------------------------------------------------------------
 rel1_65_0
 --------------------------------------------------------------------------------
 fb22565 Merge branch 'develop'

@@ -32,6 +32,11 @@ int main(int argc, char **argv)
   MPI_Comm_size(MPI_COMM_WORLD, &npes);
   MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 
+  if ( argc != 3 )
+  {
+    cout << "use: testContext nrow ncol" << endl;
+    return 1;
+  }
   int nr = atoi(argv[1]);
   int nc = atoi(argv[2]);
 

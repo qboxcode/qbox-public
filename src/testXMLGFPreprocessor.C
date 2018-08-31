@@ -34,7 +34,11 @@ int main(int argc, char** argv)
   // extra scope to ensure that BlacsContext objects get destructed before
   // the MPI_Finalize call
   {
-    assert(argc==4);
+    if ( argc != 4 )
+    {
+      cout << "use: testXMLGFPreprocessor nprow npcol filename" << endl;
+      return 1;
+    }
     const int nr = atoi(argv[1]);
     const int nc = atoi(argv[2]);
     const char* const filename = argv[3];

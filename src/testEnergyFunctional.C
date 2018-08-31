@@ -19,6 +19,7 @@
 #include "Context.h"
 #include "Sample.h"
 #include "Wavefunction.h"
+#include "ChargeDensity.h"
 #include "EnergyFunctional.h"
 #include "Timer.h"
 
@@ -38,7 +39,12 @@ int main(int argc, char **argv)
 #endif
   {
     // use: testEnergyFunctional a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel
-    assert(argc==12);
+    if ( argc != 12 )
+    {
+      cout << "use: testEnergyFunctional a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel"
+           << endl;
+      return 1;
+    }
     D3vector a(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     D3vector b(atof(argv[4]),atof(argv[5]),atof(argv[6]));
     D3vector c(atof(argv[7]),atof(argv[8]),atof(argv[9]));
@@ -48,21 +54,17 @@ int main(int argc, char **argv)
 
     Timer tm;
 
-    Context ctxt;
+    Context ctxt(MPI_COMM_WORLD);
     cout << " initial context: " << ctxt;
     Sample s(ctxt);
-    s.atoms.addAtom(
-      new Atom("G","gaussium",D3vector(0.2,0.3,0),D3vector(0,0,0)));
-    s.atoms.listAtoms();
-    s.atoms.listSpecies();
 
     s.wf.resize(cell,cell,ecut);
     s.wf.set_nel(nel);
 
     if ( ctxt.onpe0() ) cout << " nel: " << s.wf.nel() << endl;
 
-    s.wf.update_occ();
-    //s.wf.randomize(0.05);
+    s.wf.update_occ(0.0);
+    s.wf.randomize(0.05);
 
     tm.reset();
     tm.start();
@@ -70,16 +72,31 @@ int main(int argc, char **argv)
     tm.stop();
     cout << " Gram: CPU/Real: " << tm.cpu() << " / " << tm.real() << endl;
 
+    ChargeDensity cd(s.wf);
     tm.reset();
     tm.start();
-    EnergyFunctional ef(s);
+    cout << " ChargeDensity::update_density..." << endl;
+    cd.update_density();
+    tm.stop();
+    cout << " ChargeDensity::update_density: CPU/Real: "
+         << tm.cpu() << " / " << tm.real() << endl;
+
+    s.ctrl.xc = "LDA";
+    s.ctrl.polarization = "OFF";
+    tm.reset();
+    tm.start();
+    EnergyFunctional ef(s,cd);
     tm.stop();
     cout << " EnergyFunctional:ctor: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
 
     tm.reset();
     tm.start();
-    cout << " ef.energy(): " << ef.energy() << endl;
+    Wavefunction dwf(s.wf);
+    vector<vector<double> > fion;
+    valarray<double> sigma(6);
+    double e = ef.energy(true,dwf,false,fion,false,sigma);
+    cout << " ef.energy(): " << e << endl;
     tm.stop();
     cout << " EnergyFunctional:energy: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;

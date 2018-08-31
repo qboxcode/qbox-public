@@ -38,8 +38,15 @@ int main(int argc, char **argv)
 #endif
   {
     // use: testSlaterDet a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nst kx ky kz npr npc
+    if ( argc != 17 )
+    {
+      cout <<
+      "use: testSlaterDet a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nst kx ky kz npr npc"
+      << endl;
+      return 1;
+    }
     double err;
-    assert(argc==17);
+
     D3vector a(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     D3vector b(atof(argv[4]),atof(argv[5]),atof(argv[6]));
     D3vector c(atof(argv[7]),atof(argv[8]),atof(argv[9]));

@@ -118,7 +118,11 @@ int main(int argc, char **argv)
 #endif
 
   Timer tm;
-  assert(argc==5);
+  if ( argc != 5 )
+  {
+    cout << "use: testjade nprow npcol n nb" << endl;
+    return 1;
+  }
   int nprow=atoi(argv[1]);
   int npcol=atoi(argv[2]);
   int m_a=atoi(argv[3]);

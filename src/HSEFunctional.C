@@ -203,13 +203,13 @@ void approximateIntegral(const double omega_kF, const double Hs2,
 
     for ( int i = 1; i < no_integral / 2; i++ )
     {
-      term1 = term1 / bw2_D_term * static_cast<double> (i);
+      term1 = i * term1 / bw2_D_term;
       factor2 = -factor2 * r9_4A;
       term2 = term2 + arg_n;
 
       integral[2 * ( i + 1 )] = term1 + factor2 * term2;
 
-      arg_n = -arg_n * static_cast<double> (i) / arg;
+      arg_n = -arg_n * i / arg;
     }
 
     // The n = 1 integral is
@@ -537,9 +537,8 @@ void HSE_enhance(const double s_inp, const double kF, const double w,
   {
 
     // update values
-    prefactor *= static_cast<double> (i) * r1_D_term;
-    summand *= static_cast<double> (2 * i - 1) / static_cast<double> (2 * i)
-      * q_q_1;
+    prefactor *= i * r1_D_term;
+    summand *= (2.0 * i - 1.0) / (2.0 * i) * q_q_1;
     sum -= summand;
 
     intYExpErfc.push_back(prefactor * sum);
@@ -682,7 +681,7 @@ void gcor2(double a, double a1, double b1, double b2, double b3, double b4,
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  calculate correletation energy of PBE functional
+//  calculate correlation energy of the PBE functional
 //  K.Burke's modification of PW91 codes, May 14, 1996.
 //  Modified again by K.Burke, June 29, 1996, with simpler Fx(s)
 //  Translated into C and modified by F.Gygi, Dec 9, 1996.
@@ -900,7 +899,6 @@ void HSEFunctional::setxc(void)
   if ( _np == 0 ) return;
   if ( _nspin == 1 )
   {
-    // test for void pointer
     assert(rho != 0);
     assert(grad_rho[0] != 0 && grad_rho[1] != 0 && grad_rho[2] != 0);
     assert(exc != 0);
@@ -928,7 +926,6 @@ void HSEFunctional::setxc(void)
   }
   else
   {
-    // test for void pointer
     assert(rho_up != 0);
     assert(rho_dn != 0);
     assert(grad_rho_up[0] != 0 && grad_rho_up[1] != 0 && grad_rho_up[2] != 0);

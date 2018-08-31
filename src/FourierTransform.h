@@ -65,6 +65,7 @@ class FourierTransform
   int ntrans0_,ntrans1_,ntrans2_;
 
   int nvec_;
+  bool basis_fits_in_grid_;
 
   std::vector<int> np2_loc_; // np2_loc_[iproc], iproc=0, nprocs_-1
   std::vector<int> np2_first_; // np2_first_[iproc], iproc=0, nprocs_-1

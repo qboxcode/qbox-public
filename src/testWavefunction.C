@@ -37,7 +37,13 @@ int main(int argc, char **argv)
   {
     // use:
     // testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nempty nspin nkp
-    assert(argc==15);
+    if ( argc != 15 )
+    {
+      cout <<
+    "use: testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nempty nspin nkp"
+      << endl;
+      return 1;
+    }
     D3vector a(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     D3vector b(atof(argv[4]),atof(argv[5]),atof(argv[6]));
     D3vector c(atof(argv[7]),atof(argv[8]),atof(argv[9]));
@@ -70,6 +76,12 @@ int main(int argc, char **argv)
     wf.set_nspin(nspin);
     tm.stop();
     cout << " wf.set_nspin: CPU/Real: "
+         << tm.cpu() << " / " << tm.real() << endl;
+
+    tm.reset(); tm.start();
+    wf.set_nempty(nempty);
+    tm.stop();
+    cout << " wf.set_nempty: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
 
     for ( int ikp = 0; ikp < nkp-1; ikp++ )

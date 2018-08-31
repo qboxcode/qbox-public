@@ -80,6 +80,7 @@ class Basis
   const UnitCell& refcell() const;// reference cell dimensions
   const D3vector kpoint() const; // k-point in units of b0,b1,b2
   int np(int i) const;           // good size of FFT grid in direction i
+  bool fits_in_grid(int np0, int np1, int np2) const;
   bool factorizable(int n) const;// check if n is factorizable with low factors
   int idxmin(int i) const;       // smallest index in direction i
   int idxmax(int i) const;       // largest index in direction i

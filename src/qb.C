@@ -24,9 +24,6 @@ using namespace std;
 #include <unistd.h>
 #include <cstdlib>
 #include <fstream>
-#if AIX
-#include<filehdr.h>
-#endif
 
 #include "isodate.h"
 #include "release.h"
@@ -119,10 +116,6 @@ using namespace std;
 #include "WfDyn.h"
 #include "Xc.h"
 
-#if BGLDEBUG
-#include <rts.h>
-#endif
-
 int main(int argc, char **argv, char **envp)
 {
   Timer tm;
@@ -130,21 +123,6 @@ int main(int argc, char **argv, char **envp)
 
 #if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
-
-#if BGLDEBUG
-  {
-    int myrank,mysize;
-    BGLPersonality personality;
-    rts_get_personality (&personality, sizeof(personality));
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mysize);
-    cout << myrank << ": at "
-         << personality.xCoord << " "
-         << personality.yCoord << " "
-         << personality.zCoord << endl;
-  }
 #endif
 
   {
@@ -176,25 +154,10 @@ int main(int argc, char **argv, char **envp)
   cout << "                   ============================\n\n";
   cout << "\n";
   cout << "<release> " << release() << " " << TARGET << " </release>" << endl;
-#ifdef SVN_VERSION
-  cout << "<svn_version> " << SVN_VERSION << " </svn_version>" << endl;
-#endif
 
   // Identify executable name, checksum, size and link date
   if ( getlogin() != 0 )
     cout << "<user> " << getlogin() << " </user>" << endl;
-#if AIX || OSF1
-  // read filehdr for link time
-  filehdr hdr;
-  FILE *fx = fopen(argv[0],"r");
-  if ( fx != 0 )
-  {
-    size_t sz = fread((void*)&hdr,sizeof(filehdr),1,fx);
-    fclose(fx);
-    string s = ctime((time_t*)&hdr.f_timdat);
-    cout << "<linktime> " << s << " </linktime>" << endl;
-  }
-#endif
 
   // Identify platform
   {
@@ -346,15 +309,26 @@ int main(int argc, char **argv, char **envp)
     string inputfilename(argv[1]);
     string outputfilename("stdout");
     ifstream in;
+    int file_ok = 0;
     if ( ctxt.onpe0() )
+    {
       in.open(argv[1],ios::in);
-    if ( in )
+      if ( in )
+      {
+        // file was opened on process 0
+        file_ok = 1;
+      }
+    }
+    MPI_Bcast(&file_ok,1,MPI_INT,0,MPI_COMM_WORLD);
+
+    if ( file_ok )
+    {
       ui.processCmds(in, "[qbox]", echo);
+    }
     else
     {
-      cout << " qbox: could not open input file "
-           << argv[1] << endl;
-      ctxt.abort(1);
+      if ( ctxt.onpe0() )
+        cout << " Could not open input file " << argv[1] << endl;
     }
   }
   else if ( argc == 4 )

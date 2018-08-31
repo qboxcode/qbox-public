@@ -1,0 +1,31 @@
+
+ Qbox First-Principles Molecular Dynamics
+ ========================================
+
+ Qbox is a C++/MPI/OpenMP implementation of First-Principles Molecular Dynamics.
+ It implements electronic structure calculations within the framework
+ of Density Functional Theory, using a plane-wave basis set and
+ norm-conserving pseudopotentials.
+
+ For documentation, examples and installation instructions 
+ see http://qboxcode.org
+
+ Qbox is developed in the Gygi group at the University of California Davis.
+
+ Qbox is distributed under the terms of the GNU General Public License
+ as published by the Free Software Foundation, either version 2 of
+ the License, or (at your option) any later version.
+ See the file COPYING in the root directory of this distribution
+ or <http://www.gnu.org/licenses/>.
+
+ Qbox was written by Francois Gygi. 
+ Ivan Duchemin developed the Hartree-Fock exchange implementation and the 
+ client-server interface. 
+ Jun Wu developed the implementation of van der Waals density functionals.
+ Quan (Andy) Wan implemented the FFTW3 interface.
+ William Dawson contributed to the implementation of Hartree-Fock exchange.
+ Martin Schlipf implemented Optimized Norm-Conserving Vanderbilt potentials.
+ Martin Schlipf implemented the HSE hybrid density functional
+ Quan (Andy) Wan implemented the electric field.
+ Ma He contributed to the implementation of the response functionality.
+

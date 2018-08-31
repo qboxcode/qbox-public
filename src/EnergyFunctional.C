@@ -73,9 +73,10 @@ EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
 
   if ( s_.ctxt_.onpe0() )
   {
-    cout << "  EnergyFunctional: np0v,np1v,np2v: " << np0v << " "
-         << np1v << " " << np2v << endl;
-    cout << "  EnergyFunctional: vft->np012(): "
+    cout << " EnergyFunctional: <np0v> " << np0v << " </np0v>  "
+         << "<np1v> " << np1v << " </np1v>  "
+         << "<np2v> " << np2v << " </np2v>" << endl;
+    cout << " EnergyFunctional: vft->np012(): "
          << vft->np012() << endl;
   }
 

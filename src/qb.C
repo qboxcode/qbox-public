@@ -63,6 +63,7 @@ using namespace std;
 #include "ResetRotationCmd.h"
 #include "ResetVcmCmd.h"
 #include "RescaleVCmd.h"
+#include "ResponseCmd.h"
 #include "RseedCmd.h"
 #include "RunCmd.h"
 #include "SaveCmd.h"
@@ -112,6 +113,7 @@ using namespace std;
 #include "ThTemp.h"
 #include "ThTime.h"
 #include "ThWidth.h"
+#include "Vext.h"
 #include "WfDiag.h"
 #include "WfDyn.h"
 #include "Xc.h"
@@ -249,6 +251,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new RescaleVCmd(s));
   ui.addCmd(new ResetRotationCmd(s));
   ui.addCmd(new ResetVcmCmd(s));
+  ui.addCmd(new ResponseCmd(s));
   ui.addCmd(new RseedCmd(s));
   ui.addCmd(new RunCmd(s));
   ui.addCmd(new SaveCmd(s));
@@ -297,6 +300,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new ThTemp(s));
   ui.addVar(new ThTime(s));
   ui.addVar(new ThWidth(s));
+  ui.addVar(new Vext(s));
   ui.addVar(new WfDiag(s));
   ui.addVar(new WfDyn(s));
   ui.addVar(new Xc(s));

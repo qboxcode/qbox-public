@@ -20,6 +20,8 @@
 #define SAMPLESTEPPER_H
 
 #include "Timer.h"
+#include "EnergyFunctional.h"
+#include "ChargeDensity.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -53,6 +55,9 @@ class SampleStepper
   virtual void initialize_density() {}
   void set_iter_cmd(std::string s) { iter_cmd_ = s; }
   void set_iter_cmd_period(int i) { iter_cmd_period_ = i; }
+
+  virtual EnergyFunctional& ef(void) {}
+  virtual ChargeDensity& cd(void) {}
 
   SampleStepper(Sample& s);
   virtual ~SampleStepper(void);

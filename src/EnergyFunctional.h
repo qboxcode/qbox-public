@@ -68,7 +68,7 @@ class EnergyFunctional
   std::vector<int> na_;
   int nsp_;
   double ekin_, econf_, eps_, enl_, ehart_, ehart_e_, ehart_ep_, ehart_p_,
-         ecoul_, exc_, esr_, eself_, ets_, eexf_, etotal_;
+         ecoul_, exc_, esr_, eself_, ets_, eexf_, eext_, etotal_;
   double dxc_;
   double epv_, eefield_, enthalpy_;
   std::valarray<double> sigma_ekin,sigma_econf,sigma_eps,sigma_ehart,sigma_exc,
@@ -79,6 +79,7 @@ class EnergyFunctional
   public:
 
   std::vector<std::vector<double> > v_r;
+  std::vector<std::vector<double> > vxc_r;
   mutable TimerMap tmap;
 
   double energy(bool compute_hpsi, Wavefunction& dwf,
@@ -104,12 +105,18 @@ class EnergyFunctional
   double eefield(void) const { return eefield_; }
   double epv(void) const { return epv_; }
   double enthalpy(void) const { return enthalpy_; }
+  double eext(void) const { return eext_; }
 
   ElectricEnthalpy* el_enth() { return el_enth_; }
 
   const ConfinementPotential *confpot(int ikp) const { return cfp[ikp]; }
 
-  void update_vhxc(bool compute_stress);
+  void update_vhxc(bool compute_stress, bool update_vh, bool update_vxc);
+  // update both vh and vxc
+  void update_vhxc(bool compute_stress)
+  {
+    update_vhxc(compute_stress, true, true);
+  }
 
   void atoms_moved(void);
   void cell_moved(void);

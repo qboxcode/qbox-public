@@ -55,7 +55,7 @@ class Basis
 
   std::vector<int>    idx_;   // 3-d index of vectors idx[i*3+j]
   std::vector<double> g_;     // norm of g vectors g[localsize]
-  std::vector<double> kpg_;   // norm of g vectors g[localsize]
+  std::vector<double> kpg_;   // norm of k+g vectors kpg[localsize]
   std::vector<double> gi_;    // inverse norm of g vectors gi[localsize]
   std::vector<double> kpgi_;  // inverse norm of k+g vectors kpgi[localsize]
   std::vector<double> g2_;    // 2-norm of g vectors g2[localsize]

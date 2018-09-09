@@ -26,6 +26,7 @@
 #include <map>
 #include "Timer.h"
 #include "Context.h"
+#include "D3vector.h"
 
 class Wavefunction;
 class FourierTransform;
@@ -56,6 +57,7 @@ class ChargeDensity
   double* rhocore_r;
   void update_density(void);
   void update_rhor(void);
+  void update_rhog(void);
 
   const Context& context(void) const { return ctxt_; }
   MPI_Comm vcomm(void) const { return vcomm_; }

@@ -23,6 +23,7 @@
 #include "TorsionConstraint.h"
 #include "Atom.h"
 #include "AtomSet.h"
+#include <cstring>
 #include "Context.h"
 #include <iostream>
 #include <iomanip>

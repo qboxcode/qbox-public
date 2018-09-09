@@ -108,7 +108,7 @@ bool XCPotential::isGGA(void)
 ////////////////////////////////////////////////////////////////////////////////
 void XCPotential::update(vector<vector<double> >& vr)
 {
-  // compute exchange-correlation energy and add vxc potential to vr[ispin][ir]
+  // compute exchange-correlation energy and vxc potential vr[ispin][ir]
 
   // Input: total electronic density in:
   //   vector<vector<double> >           cd_.rhor[ispin][ir] (real space)
@@ -156,7 +156,7 @@ void XCPotential::update(vector<vector<double> >& vr)
         const double rh_i = rh[i];
         exc_ += rh_i * e_i;
         dxc_ += rh_i * ( e_i - v_i );
-        vr[0][i] += v_i;
+        vr[0][i] = v_i;
       }
     }
     else
@@ -171,8 +171,8 @@ void XCPotential::update(vector<vector<double> >& vr)
         const double r_i = rh_up[i] + rh_dn[i];
         exc_ += r_i * e[i];
         dxc_ += r_i * e[i] - rh_up[i] * v_up[i] - rh_dn[i] * v_dn[i];
-        vr[0][i] += v_up[i];
-        vr[1][i] += v_dn[i];
+        vr[0][i] = v_up[i];
+        vr[1][i] = v_dn[i];
       }
     }
     double sum[2],tsum[2];
@@ -314,7 +314,7 @@ void XCPotential::update(vector<vector<double> >& vr)
       } // j
     }
 
-    // add xc potential to local potential in vr[i]
+    // xc potential vr[i]
     // div(vxc2*grad_rho) is stored in vxctmp[ispin][ir]
 
     double esum=0.0;
@@ -332,7 +332,7 @@ void XCPotential::update(vector<vector<double> >& vr)
           const double v_i = v1[ir] + vxctmp[0][ir];
           esum += rh_i * e_i;
           dsum += rh_i * ( e_i - v_i );
-          vr[0][ir] += v_i;
+          vr[0][ir] = v_i;
         }
       }
     }
@@ -352,8 +352,8 @@ void XCPotential::update(vector<vector<double> >& vr)
         const double v_up = v1_up[ir] + vxctmp[0][ir];
         const double v_dn = v1_dn[ir] + vxctmp[1][ir];
         dsum += r_up_i * ( eup[ir] - v_up ) + r_dn_i * ( edn[ir] - v_dn );
-        vr[0][ir] += v_up;
-        vr[1][ir] += v_dn;
+        vr[0][ir] = v_up;
+        vr[1][ir] = v_dn;
       }
     }
     double sum[2], tsum[2];

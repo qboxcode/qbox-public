@@ -46,7 +46,7 @@ using namespace std;
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) :
   SampleStepper(s), cd_(s.wf), ef_(s,cd_),
   dwf(s.wf), wfv(s.wfv), nitscf_(nitscf), nite_(nite),
-  initial_atomic_density(false) {}
+  update_density_first_(true), update_vh_(true), update_vxc_(true) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::~BOSampleStepper()
@@ -158,7 +158,8 @@ void BOSampleStepper::initialize_density(void)
       cd_.rhog[1][i] = 0.5 * rhopst[i];
     }
   }
-  initial_atomic_density = true;
+  cd_.update_rhor();
+  update_density_first_ = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -753,11 +754,12 @@ void BOSampleStepper::step(int niter)
         if ( nite_ > 0 && onpe0 )
           cout << "  BOSampleStepper: start scf iteration" << endl;
 
-        // compute new density in cd_.rhog
+        // update charge density
         tmap["charge"].start();
-        if ( itscf==0 && initial_atomic_density )
-          cd_.update_rhor();
-        else
+        // The density is updated at the first step if update_density_first_
+        // is true.
+        // It is always updated after the first step
+        if ( ( update_density_first_ || itscf>0 ) )
           cd_.update_density();
         tmap["charge"].stop();
 
@@ -843,8 +845,16 @@ void BOSampleStepper::step(int niter)
           }
         } // if nite_ > 0
 
+        // update vhxc:
+        // at first scf step:
+        // - update both vh and vxc
+        // at later steps:
+        // - update depending of values of update_vh_ and update_vxc_
         tmap["update_vhxc"].start();
-        ef_.update_vhxc(compute_stress);
+        if ( itscf == 0 )
+          ef_.update_vhxc(compute_stress);
+        else
+          ef_.update_vhxc(compute_stress, update_vh_, update_vxc_);
         tmap["update_vhxc"].stop();
 
         // reset stepper only if multiple non-selfconsistent steps
@@ -1294,13 +1304,6 @@ void BOSampleStepper::step(int niter)
     ionic_stepper->compute_v(energy,fion);
     // positions r0 and velocities v0 are consistent
   }
-  else
-  {
-    // delete wavefunction velocities
-    if ( s_.wfv != 0 )
-      delete s_.wfv;
-    s_.wfv = 0;
-  }
 
   for ( int ispin = 0; ispin < nspin; ispin++ )
   {
@@ -1314,5 +1317,5 @@ void BOSampleStepper::step(int niter)
 
   if ( ntc_extrapolation || asp_extrapolation ) delete wfmm;
 
-  initial_atomic_density = false;
+  update_density_first_ = true;
 }

@@ -163,7 +163,7 @@ void UnitCell::fold_in_ws(D3vector& v) const
   while ( !done && iter < maxiter )
   {
     done = true;
-    for ( int i = 0; (i < 13) && done; i++ )
+    for ( int i = 0; i < 13; i++ )
     {
       const double sp = v*an_[i];
       if ( sp > an2h_[i] + epsilon )
@@ -209,9 +209,9 @@ void UnitCell::fold_in_bz(D3vector& k) const
   while ( !done && iter < maxiter )
   {
     done = true;
-    for ( int i = 0; (i < 13) && done; i++ )
+    for ( int i = 0; i < 13; i++ )
     {
-      double sp = k*bn_[i];
+      const double sp = k*bn_[i];
       if ( sp > bn2h_[i] + epsilon )
       {
         done = false;

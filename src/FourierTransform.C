@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <map>
 #include <cassert>
+#include <cstring> // memset
 
 #if _OPENMP
 #include <omp.h>

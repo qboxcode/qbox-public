@@ -37,7 +37,7 @@ class Vext : public Var
 
   int set ( int argc, char **argv )
   {
-    if ( argc > 3 )
+    if ( argc > 2 )
     {
       if ( ui->onpe0() )
       cout << " vext takes only one value" << endl;

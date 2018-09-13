@@ -179,14 +179,19 @@ void Function3d::write(string filename) const
 void Function3d::print(ostream& os) const
 {
   Base64Transcoder xcdr;
-  #if PLT_BIG_ENDIAN
-  xcdr.byteswap_double(val.size(),&val[0]);
-  #endif
-  // transform val to base64 encoding
   int nbytes = val.size() * sizeof(double);
   int nchars = xcdr.nchars(nbytes);
   char *wbuf = new char[nchars];
+#if PLT_BIG_ENDIAN
+  // make copy of val for byte swapping without affecting original array
+  vector<double> tmpval(val);
+  xcdr.byteswap_double(tmpval.size(),&tmpval[0]);
+  // transform tmpval to base64 encoding
+  xcdr.encode(nbytes, (byte *) &tmpval[0], wbuf);
+#else
+  // transform val to base64 encoding
   xcdr.encode(nbytes, (byte *) &val[0], wbuf);
+#endif
 
   os <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
      <<"<fpmd:function3d xmlns:fpmd=\""

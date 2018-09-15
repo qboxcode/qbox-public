@@ -897,7 +897,7 @@ void BOSampleStepper::step(int niter)
 
           eigenvalue_sum = real(s_.wf.dot(dwf));
           if ( onpe0 )
-            cout << "  <eigenvalue_sum>  "
+            cout << "  <eigenvalue_sum>  " << setprecision(8)
                  << eigenvalue_sum << " </eigenvalue_sum>" << endl;
 
           tmap["wf_update"].start();

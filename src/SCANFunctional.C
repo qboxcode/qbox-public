@@ -135,7 +135,6 @@ void SCANFunctional::setxc(void)
     assert( vxc2_dndn != 0 );
     assert( vxc3_up != 0 );
     assert( vxc3_dn != 0 );
-
     #pragma omp parallel for
     for ( int i = 0; i < _np; i++ )
     {
@@ -204,13 +203,16 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   const double cc2 = 1.5;
   const double dc = 0.7;
   const double alpha0 = 0.2137;
-  const double beta00 = 0.031097;
+  const double beta00 = 0.0310907;
   const double beta10 = 7.5957;
   const double beta20 = 3.5876;
   const double beta30 = 1.6382;
   const double beta40 = 0.49294;
-  const double gamma = 0.03109069086965489; /* gamma = (1-ln2)/pi^2 */
-  const double chi_inf = 0.128026;
+  const double gamma = 0.03109069086965489; //gamma = (1-ln2)/pi^2
+  const double chi_inf = 0.12802585262625815;
+  const double z1 = 0.066724550603149220;
+  const double z2 = 0.1;
+  const double z3 = 0.1778;
 
   double tmp0, tmp1, tmp2;
 
@@ -312,9 +314,11 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   dalphadtau = 1.0 / tau_unif;
 
   dFXds = dgxds * (hx1 + fx * (hx0 - hx1)) + gx * (1.0 - fx) * dhx1dx * dxds;
-  dFXdalpha = gx * (dhx1dx * dxdalpha + dfxdalpha * (hx0 - hx1) - fx * dhx1dx * dxdalpha);
+  dFXdalpha = gx * (dhx1dx * dxdalpha + dfxdalpha * (hx0 - hx1) -
+                    fx * dhx1dx * dxdalpha);
 
-  vx1 = exunif * ((4.0/3.0) * FXSCAN + rho * (dFXds * dsdn + dFXdalpha * dalphadn));
+  vx1 = exunif * ((4.0/3.0) * FXSCAN + rho * (dFXds * dsdn +
+                  dFXdalpha * dalphadn));
   vx2 = -rho * exunif * (dFXds * dsdgrad + dFXdalpha * dalphadgrad);
   vx3 = rho * exunif * dFXdalpha * dalphadtau;
 
@@ -322,11 +326,11 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   // SCAN Correlation energy
   ecLDA = -bc0/(1.0 + bc1 * rtrs + bc2 * rs);
   ginf = pow(1.0 + 4.0 * chi_inf * s2, -0.25);
-  w0 = exp(-ecLDA/bc1) - 1.0;
-  H0 = bc1 * log(1.0 + w0 * (1.0 - ginf));
+  w0 = exp(-ecLDA/bc0) - 1.0;
+  H0 = bc0 * log(1.0 + w0 * (1.0 - ginf));
   ec0 = ecLDA + H0;
 
-  beta1 = 0.066725 * ( 1.0 + 0.1 * rs) / (1.0 + 0.1778 * rs);
+  beta1 = z1 * ( 1.0 + z2 * rs) / (1.0 + z3 * rs);
   gPW92(alpha0, beta00, beta10, beta20, beta30, beta40, rtrs,
         &ecLSDA, &decLSDAdrs);
   w1 = exp(-ecLSDA/gamma) - 1.0;
@@ -354,11 +358,11 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   // rs derivatives
   tmp1 = 1.0 + bc1 * rtrs + bc2 * rs;
   decLDAdrs = bc0 * (bc1 / rtrs + 2.0 * bc2) / (2.0 * tmp1 * tmp1);
-  dw0drs = -1.0 * (1.0 + w0) / bc1 * decLDAdrs;
-  dec0drs = decLDAdrs + (bc1 * (1.0 - ginf))/(1.0 + w0 * (1.0 - ginf)) * dw0drs;
+  dw0drs = -1.0 * (1.0 + w0) / bc0 * decLDAdrs;
+  dec0drs = decLDAdrs + (bc0 * (1.0 - ginf))/(1.0 + w0 * (1.0 - ginf)) * dw0drs;
 
-  tmp2 = (1.0 + 0.1778 * rs);
-  dbeta1drs = 0.066725 * (0.1 - 0.1778) / tmp2 / tmp2;
+  tmp2 = (1.0 + z3 * rs);
+  dbeta1drs = z1 * (z2 - z3) / tmp2 / tmp2;
   dw1drs = - 1.0 * (1.0 + w1) * decLSDAdrs / gamma;
   dA1drs = dbeta1drs / (gamma * w1) - beta1 * dw1drs / (gamma * w1 * w1);
   dt1drs = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (2.0 * rtrs * rtrs *
@@ -371,7 +375,7 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   // s derivatives
 
   dginfds = -2.0 * chi_inf * s * ginf * ginf * ginf * ginf * ginf;
-  dec0ds = -bc1 * w0 * dginfds / (1.0 + w0 * (1.0 - ginf));
+  dec0ds = -bc0 * w0 * dginfds / (1.0 + w0 * (1.0 - ginf));
 
   dt1ds = pow(3.0 * pi * pi / 16.0, 1.0/3.0) / rtrs;
   dg1ds = -2.0 * A1 * t1 * g5 * dt1ds;
@@ -447,17 +451,33 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
   const double dc = 0.7;
   const double GC1 = 2.3631;
   const double alpha0 = 0.2137;
-  const double beta00 = 0.031097;
+  const double beta00 = 0.0310907;
   const double beta10 = 7.5957;
   const double beta20 = 3.5876;
   const double beta30 = 1.6382;
   const double beta40 = 0.49294;
+  const double alpha1 = 0.20548;
+  const double beta01 = 0.01554535;
+  const double beta11 = 14.1189;
+  const double beta21 = 6.1977;
+  const double beta31 = 3.3662;
+  const double beta41 = 0.62517;
+  const double alpha2 = 0.11125;
+  const double beta02 = 0.0168869;
+  const double beta12 = 10.357;
+  const double beta22 = 3.6231;
+  const double beta32 = 0.88026;
+  const double beta42 = 0.49671;
   const double gamma = 0.03109069086965489; //gamma = (1-ln2)/pi^2
-  const double chi_inf = 0.128026;
+  const double gamma2 = 0.5198420997897463295344212145565;
+  const double chi_inf = 0.12802585262625815;
+  const double z1 = 0.066724550603149220;
+  const double z2 = 0.1;
+  const double z3 = 0.1778;
 
   double tmp0, tmp1, tmp2;
 
-  double rs, rtrs, kF, s, s2, tau_W, tau_unif, XCalpha, oneMalpha;
+  double rs, rtrs, kF, s, s2, tau_W, tau_unif, ds, XCalpha, oneMalpha;
   double exunif, x, gx, hx1, fx, FXSCAN;
   double dxds, dxdalpha, dgxds, dhx1dx, dfxdalpha;
   double dFXdalpha, dFXds;
@@ -466,17 +486,18 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
   double rhotot = rho_up + rho_dn, tautot = tau_up + tau_dn;
 
   double fc, ec0, ec1, H0, H1, w0, w1, GC;
-  double Dx, phi, phi3, zeta, beta1, ginf, A1, t1, g1, g5;
-  double ecLDA, decLDAdrs, ecLSDA, decLSDAdrs;
+  double Dx, phi, phi3, zeta, beta1, F, ginf, A1, t1, g1, g5;
+  double ecLDA, decLDAdrs, ecLSDA, ecLSDA0, ecLSDA1, ecLSDA2, decLSDAdrs,
+         decLSDAdrs0, decLSDAdrs1, decLSDAdrs2;
 
   double dw0drs, dbeta1drs, dw1drs, dA1drs, dt1drs, dH1drs;
   double dt1ds, dg1ds, dec1ds, dginfds, dH0ds, dec0ds;
-  double dw1dphi, dA1dphi, dt1dphi, dgdphi, dH1dphi;
 
   double drsdn, dsdn, dalphadn;
   double dsdgrad, dalphadgrad, decdgrad;
   double dfcdalpha, dalphadtau, decdtau;
-  double dDxdzeta, dphidzeta;
+  double dalphadzeta, dDxdzeta, dFdzeta, dw1dzeta, decLSDAdzeta,
+         dtdzeta, dAdzeta, dgdzeta, dH1dzeta, dphidzeta;
   double dzetadnup, dec1dnup, dH0dnup, dGCdnup, dec0dnup, dfcdnup, decdnup;
   double dzetadndn, dec1dndn, dH0dndn, dGCdndn, dec0dndn, dfcdndn, decdndn;
 
@@ -579,10 +600,13 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     dalphadtau = 1.0 / tau_unif;
 
     dFXds = dgxds * (hx1 + fx * (hx0 - hx1)) + gx * (1.0 - fx) * dhx1dx * dxds;
-    dFXdalpha = gx * (dhx1dx * dxdalpha + dfxdalpha * (hx0 - hx1) - fx * dhx1dx * dxdalpha);
+    dFXdalpha = gx * (dhx1dx * dxdalpha + dfxdalpha * (hx0 - hx1) -
+                      fx * dhx1dx * dxdalpha);
 
-    vx1_up = exunif * ((4.0/3.0) * FXSCAN + tworhoup * (dFXds * dsdn + dFXdalpha * dalphadn));
-    vx2_up = -tworhoup * exunif / twogradup * (dFXds * dsdgrad + dFXdalpha * dalphadgrad);
+    vx1_up = exunif * ((4.0/3.0) * FXSCAN + tworhoup * (dFXds * dsdn +
+                       dFXdalpha * dalphadn));
+    vx2_up = -tworhoup * exunif / twogradup *
+             (dFXds * dsdgrad + dFXdalpha * dalphadgrad);
     vx3_up = tworhoup * exunif * dFXdalpha * dalphadtau;
   }
 
@@ -660,10 +684,13 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     dalphadtau = 1.0 / tau_unif;
 
     dFXds = dgxds * (hx1 + fx * (hx0 - hx1)) + gx * (1.0 - fx) * dhx1dx * dxds;
-    dFXdalpha = gx * (dhx1dx * dxdalpha + dfxdalpha * (hx0 - hx1) - fx * dhx1dx * dxdalpha);
+    dFXdalpha = gx * (dhx1dx * dxdalpha + dfxdalpha * (hx0 - hx1) -
+                      fx * dhx1dx * dxdalpha);
 
-    vx1_dn = exunif * ((4.0/3.0) * FXSCAN + tworhodn * (dFXds * dsdn + dFXdalpha * dalphadn));
-    vx2_dn = -tworhodn * exunif / twograddn * (dFXds * dsdgrad + dFXdalpha * dalphadgrad);
+    vx1_dn = exunif * ((4.0/3.0) * FXSCAN + tworhodn *
+                       (dFXds * dsdn + dFXdalpha * dalphadn));
+    vx2_dn = -tworhodn * exunif / twograddn *
+             (dFXds * dsdgrad + dFXdalpha * dalphadgrad);
     vx3_dn = tworhodn * exunif * dFXdalpha * dalphadtau;
   }
 
@@ -678,7 +705,7 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
   vc1_dn = 0.0;
   vc2 = 0.0;
   vc3 = 0.0;
-  
+
   // correlation
   if ( rhotot > 1.e-18 )
   {
@@ -692,8 +719,9 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     kF = pow(3.0 * pi * pi * rhotot, 1.0/3.0);
     s = grad / ( 2.0 * kF * rhotot );
     s2 = s * s;
+    ds = ((pow(1.0 + zeta, 5.0 / 3.0)) + (pow(1.0 - zeta, 5.0 / 3.0))) / 2.0;
     tau_W = grad * grad / (8.0 * rhotot);
-    tau_unif = 0.3 * pow(3.0 * pi * pi, 2.0 / 3.0) * pow(rhotot, 5.0 / 3.0);
+    tau_unif = 0.3 * pow(3.0 * pi * pi, 2.0 / 3.0) * pow(rhotot, 5.0 / 3.0) *ds;
     phi = ((pow(1.0 + zeta, 2.0 / 3.0)) + (pow(1.0 - zeta, 2.0 / 3.0))) / 2.0;
     phi3 = phi * phi * phi;
     //!! abs value in next line
@@ -702,14 +730,21 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
 
     ecLDA = -bc0/(1.0 + bc1 * rtrs + bc2 * rs);
     ginf = pow(1.0 + 4.0 * chi_inf * s2, -0.25);
-    w0 = exp(-ecLDA/bc1) - 1.0;
-    H0 = bc1 * log(1.0 + w0 * (1.0 - ginf));
+    w0 = exp(-ecLDA/bc0) - 1.0;
+    H0 = bc0 * log(1.0 + w0 * (1.0 - ginf));
     Dx = ((pow(1.0 + zeta, 4.0 / 3.0)) + (pow(1.0 - zeta, 4.0 / 3.0))) / 2.0;
     GC = (1.0 - GC1 * (Dx - 1.0)) * (1.0 - pow(zeta,12.0));
     ec0 = (ecLDA + H0) * GC;
-    beta1 = 0.066725 * ( 1.0 + 0.1 * rs) / (1.0 + 0.1778 * rs);
+    beta1 = z1 * ( 1.0 + z2 * rs) / (1.0 + z3 * rs);
+    F = (pow(1.0 + zeta,4.0/3.0) + pow(1.0 - zeta,4.0/3.0) - 2.0) / gamma2;
     gPW92(alpha0, beta00, beta10, beta20, beta30, beta40, rtrs,
-          &ecLSDA, &decLSDAdrs);
+          &ecLSDA0, &decLSDAdrs0);
+    gPW92(alpha1, beta01, beta11, beta21, beta31, beta41, rtrs,
+          &ecLSDA1, &decLSDAdrs1);
+    gPW92(alpha2, beta02, beta12, beta22, beta32, beta42, rtrs,
+          &ecLSDA2, &decLSDAdrs2);
+    ecLSDA = ecLSDA0 * (1.0 - F * pow(zeta,4.0)) + ecLSDA1 * F * pow(zeta,4.0)
+             - ecLSDA2 * F * (1.0 - pow(zeta,4.0))/(8.0/(9.0 * gamma2));
     w1 = exp(-ecLSDA / (gamma * phi3)) - 1.0;
     A1 = beta1 / (gamma * w1);
     t1 = pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (phi * rtrs);
@@ -735,17 +770,19 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     // rs derivatives
     tmp1 = 1.0 + bc1 * rtrs + bc2 * rs;
     decLDAdrs = bc0 * (bc1 / rtrs + 2.0 * bc2) / (2.0 * tmp1 * tmp1);
-    dw0drs = -1.0 * (1.0 + w0) * decLDAdrs / bc1;
-    //dec0drs = decLDAdrs + (bc1 * (1.0 - ginf))/(1.0 + w0 * (1.0 - ginf)) * dw0drs;
+    dw0drs = -1.0 * (1.0 + w0) * decLDAdrs / bc0;
 
-    tmp2 = (1.0 + 0.1778 * rs);
-    dbeta1drs = 0.066725 * (0.1 - 0.1778) / tmp2 / tmp2;
+    tmp2 = (1.0 + z3 * rs);
+    dbeta1drs = z1 * (z2 - z3) / tmp2 / tmp2;
+    decLSDAdrs = decLSDAdrs0 * (1.0 - F * pow(zeta,4.0)) + decLSDAdrs1 * F *
+                 pow(zeta,4.0) - decLSDAdrs2 * F * (1.0 - pow(zeta,4.0)) /
+                 (8.0 / (9.0 * gamma2));
     dw1drs = - 1.0 * (1.0 + w1) * decLSDAdrs / (gamma * phi3);
     dA1drs = dbeta1drs / (gamma * w1) - beta1 * dw1drs / (gamma * w1 * w1);
     dt1drs = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s /
              (2.0 * phi * rtrs * rtrs * rtrs);
     dH1drs = (1.0 - g1) * gamma * phi3 * dw1drs / (1.0 + w1 * (1.0 - g1)) +
-             w1 * gamma * phi3 / (1.0 + w1 * (1.0 - g1)) * 
+             w1 * gamma * phi3 / (1.0 + w1 * (1.0 - g1)) *
              (t1 * t1 * g5 * dA1drs + 2.0 * A1 * t1 * g5 * dt1drs);
     //dec1drs = decLSDAdrs + dH1drs;
 
@@ -755,7 +792,7 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     dt1ds = pow(3.0 * pi * pi / 16.0, 1.0/3.0) / phi / rtrs;
     dg1ds = -2.0 * A1 * t1 * g5 * dt1ds;
     dec1ds = -gamma * phi3 * w1 / (1.0 + w1 * (1.0 - g1)) * dg1ds;
-    dH0ds = -bc1 * w0 * dginfds / (1.0 + w0 * (1.0 - ginf));
+    dH0ds = -bc0 * w0 * dginfds / (1.0 + w0 * (1.0 - ginf));
     dec0ds = dH0ds * GC;
 
     // alpha derivatives
@@ -772,19 +809,31 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
       dfcdalpha = 0.0;
     }
 
-    // phi derivatives
-
-    dw1dphi = 3.0 * ecLSDA / (gamma * phi3 * phi) * exp(-ecLSDA / (gamma * phi3));
-    dA1dphi = -1.0 * beta1 * dw1dphi / (gamma * w1 * w1);
-    dt1dphi = -1.0 * pow(3.0 * pi * pi / 16.0, 1.0/3.0) * s / (phi * phi * rtrs);
-    dgdphi = -2.0 * A1 * t1 * g5 * dt1dphi - t1 * t1 * g5 * dA1dphi;
-    dH1dphi = 3.0 * gamma * phi * phi * log(1.0 + w1 * (1.0 - g1)) +
-              gamma * phi3 * dw1dphi / (1.0 / (1.0 - g1) + w1) -
-              gamma * phi3 * dgdphi / (1.0 / w1 + (1.0 - g1));
-
     // zeta derivatives
-    dDxdzeta = 2.0 / 3.0 * (pow(1.0 + zeta, 1.0/3.0) - pow(1.0 - zeta, 1.0/3.0));
     dphidzeta = (pow(1.0 + zeta, -1.0/3.0) - pow(1.0 - zeta, -1.0/3.0)) / 3.0;
+    dDxdzeta = 2.0 / 3.0 * (pow(1.0 + zeta, 1.0/3.0) -
+               pow(1.0 - zeta, 1.0/3.0));
+    dalphadzeta = 5.0 * XCalpha *
+                  (pow(1.0 - zeta, 2.0/3.0) - pow(1.0 + zeta, 2.0/3.0)) /
+                  (3.0 * (pow(1.0 - zeta, 5.0/3.0) + pow(1.0 + zeta, 5.0/3.0)));
+    dFdzeta = 4.0 * (pow(1.0 + zeta, 1.0/3.0) - pow(1.0 - zeta, 1.0/3.0)) /
+              (3.0 * gamma2);
+    decLSDAdzeta = ecLSDA0 * (-1.0 * dFdzeta * pow(zeta,4.0) -
+                   4.0 * F * pow(zeta,3.0)) + ecLSDA1 * (dFdzeta*pow(zeta,4.) +
+                   4.0 * F * pow(zeta,3.0)) - ecLSDA2 * (dFdzeta *
+                   (1.0 - pow(zeta,4.0)) - 4.0 * F * pow(zeta,3.0)) /
+                   (8.0 / (9.0 * gamma2));
+    dw1dzeta = (-decLSDAdzeta / (gamma * phi3) + ((3.0 * ecLSDA * dphidzeta) /
+                (gamma * phi * phi3))) * exp(-ecLSDA / (gamma * phi3));
+    dtdzeta = pow((3.0 * pi * pi) / 16.0, 1.0 / 3.0) * (-s * dphidzeta) /
+              (phi * phi * rtrs);
+    dAdzeta = (-beta1 * dw1dzeta)/(gamma * w1 * w1);
+    dgdzeta = (-dAdzeta * t1 * t1) / pow(1.0 + 4.0 * A1 * t1 * t1, 5.0 / 4.0) +
+              (-2.0 * A1 * t1 * dtdzeta) /
+              pow(1.0 + 4.0 * A1 * t1 * t1, 5.0 / 4.0);
+    dH1dzeta = 3.0 * dphidzeta * H1 / phi + (gamma * phi3 * (dw1dzeta *
+               (1.0 - g1))) / (1.0 + w1 * (1.0 - g1)) + (gamma * phi3 *
+               (w1 * (-dgdzeta))) / (1.0 + w1 * (1.0 - g1));
 
     // n derivatives
     drsdn = -rs / (3.0 * rhotot);
@@ -793,27 +842,27 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
 
     // V1C_up
     dzetadnup = 2.0 * rho_dn / rhotot / rhotot;
-    dec1dnup = decLSDAdrs * drsdn + dH1dphi * dphidzeta * dzetadnup +
-               dH1drs * drsdn + dec1ds * dsdn;
-    dH0dnup = bc1 * ((1.0 - ginf) * dw0drs * drsdn - w0 * dginfds * dsdn) /
+    dec1dnup = decLSDAdrs * drsdn + decLSDAdzeta * dzetadnup +
+               dH1dzeta * dzetadnup + dH1drs * drsdn + dec1ds * dsdn;
+    dH0dnup = bc0 * ((1.0 - ginf) * dw0drs * drsdn - w0 * dginfds * dsdn) /
          (1.0 + w0 * (1.0 - ginf));
-    dGCdnup = -dzetadnup * (GC1 * dDxdzeta * (1.0 - pow(zeta,12.0)) + 
+    dGCdnup = -dzetadnup * (GC1 * dDxdzeta * (1.0 - pow(zeta,12.0)) +
               12.0 * (1.0 - GC1 * (Dx - 1.0)) * pow(zeta,11.0));
     dec0dnup = (decLDAdrs * drsdn + dH0dnup) * GC + (ecLDA + H0) * dGCdnup;
-    dfcdnup = dfcdalpha * dalphadn;
+    dfcdnup = dfcdalpha * (dalphadn + dalphadzeta * dzetadnup);
     decdnup = dec1dnup + dfcdnup * (ec0 - ec1) + fc * (dec0dnup - dec1dnup);
     vc1_up = ec + rhotot * decdnup;
-  
+
     // V1C_dn
     dzetadndn = -2.0 * rho_up / rhotot / rhotot;
-    dec1dndn = decLSDAdrs * drsdn + dH1dphi * dphidzeta * dzetadndn +
-               dH1drs * drsdn + dec1ds * dsdn;
-    dH0dndn = bc1 * ((1.0 - ginf) * dw0drs * drsdn - w0 * dginfds * dsdn) /
+    dec1dndn = decLSDAdrs * drsdn + decLSDAdzeta * dzetadndn +
+               dH1dzeta * dzetadndn + dH1drs * drsdn + dec1ds * dsdn;
+    dH0dndn = bc0 * ((1.0 - ginf) * dw0drs * drsdn - w0 * dginfds * dsdn) /
          (1.0 + w0 * (1.0 - ginf));
-    dGCdndn = -dzetadndn * (GC1 * dDxdzeta * (1.0 - pow(zeta,12.0)) + 
+    dGCdndn = -dzetadndn * (GC1 * dDxdzeta * (1.0 - pow(zeta,12.0)) +
               12.0 * (1.0 - GC1 * (Dx - 1.0)) * pow(zeta,11.0));
     dec0dndn = (decLDAdrs * drsdn + dH0dndn) * GC + (ecLDA + H0) * dGCdndn;
-    dfcdndn = dfcdalpha * dalphadn;
+    dfcdndn = dfcdalpha * (dalphadn + dalphadzeta * dzetadndn);
     decdndn = dec1dndn + dfcdndn * (ec0 - ec1) + fc * (dec0dndn - dec1dndn);
     vc1_dn = ec + rhotot * decdndn;
 

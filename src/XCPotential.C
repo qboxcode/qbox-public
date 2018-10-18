@@ -427,7 +427,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
 {
   // compute exchange-correlation contributions to the stress tensor
 
-  if ( !isGGA() )
+  if ( !isGGA() && !isMeta())
   {
     // LDA functional
 
@@ -473,7 +473,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
     sigma_exc[4] = 0.0;
     sigma_exc[5] = 0.0;
   }
-  else
+  else if ( isGGA() && !isMeta())
   {
     // GGA functional
 
@@ -578,6 +578,157 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                 v2_dnup_ir * grx_dn * grz_up +
                 v2_dndn_ir * grx_dn * grz_dn;
       }
+    }
+    double fac = 1.0 / vft_.np012();
+    double sum[6],tsum[6];
+    // Next line: factor omega in volume element cancels 1/omega in
+    // definition of sigma_exc
+    sum[0] = - fac * ( dsum + sum0 );
+    sum[1] = - fac * ( dsum + sum1 );
+    sum[2] = - fac * ( dsum + sum2 );
+    sum[3] = - fac * sum3;
+    sum[4] = - fac * sum4;
+    sum[5] = - fac * sum5;
+    MPI_Allreduce(sum,tsum,6,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+
+    sigma_exc[0] = tsum[0];
+    sigma_exc[1] = tsum[1];
+    sigma_exc[2] = tsum[2];
+    sigma_exc[3] = tsum[3];
+    sigma_exc[4] = tsum[4];
+    sigma_exc[5] = tsum[5];
+  }
+  else
+  {
+    // MetaGGA functional
+    double dsum=0.0,sum0=0.0,sum1=0.0,sum2=0.0,
+           sum3=0.0,sum4=0.0,sum5=0.0;
+    if ( nspin_ == 1 )
+    {
+      const double *const e = xcf_->exc;
+      const double *const v1 = xcf_->vxc1;
+      const double *const v2 = xcf_->vxc2;
+      const double *const v3 = xcf_->vxc3;
+      const double *const rh = xcf_->rho;
+      
+      //V3 Stress -V3 * sum_n[grad_i rho_n * grad_j rho_n]
+      const Wavefunction& wf0 = s_.wf;
+
+      vector<complex<double> > tmp10(ngloc_);
+      std::vector<std::complex<double> > tmpr0(np012loc_);
+      std::vector<double> v3txx(np012loc_), v3txy(np012loc_),v3txz(np012loc_),
+                          v3tyy(np012loc_), v3tyz(np012loc_),v3tzz(np012loc_);
+      for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
+      {
+        for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
+        {
+          double omega_inv = 1.0 / wf0.sd(ispin,ikp)->basis().cell().volume();
+          const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+          vector<complex<double> > tmp0(ngwloc), tmp00(ngwloc);
+          const int mloc = wf0.sd(ispin,ikp)->c().mloc();
+          const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
+          for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc(); n++)
+          {
+            double nn = wf0.sd(ispin,ikp)->context().mycol() * wf0.sd(ispin,ikp)->c().nb() + n;
+            double occ = wf0.sd(ispin,ikp)->occ(nn);
+            for ( int j1 = 0; j1 < 3; j1++ )
+            {
+            for ( int j2 = j1; j2 < 3; j2++ )
+            {
+              // Compute Grad_j1 psi_n(ikp)
+              const double *const gxj1 = wf0.sd(ispin,ikp)->basis().gx_ptr(j1);
+              for ( int ig = 0; ig < ngwloc; ig++ )
+              {
+                /* i*G_j1*c(G) */
+                tmp0[ig] = complex<double>(0.0,gxj1[ig]) * p[ig+n*mloc];
+              }
+              // Compute Grad_j1 psi_n(ikp)
+              cd_.ft(ikp)->backward(&tmp0[0],&tmpr[0]);
+              // Compute Grad_j2 psi_n(ikp)
+              if (j1 == j2)
+              {
+                tmpr0 = tmpr;
+              }
+              else
+              {
+                const double *const gxj2 = wf0.sd(ispin,ikp)->basis().gx_ptr(j2);
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j2*c(G) */
+                  tmp00[ig] = complex<double>(0.0,gxj2[ig]) * p[ig+n*mloc];
+                }
+                // Compute Grad_j2 psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp00[0],&tmpr0[0]);
+              }
+              // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
+              if (j1 == 0 && j2 == 0)
+              {
+                for ( int i = 0; i < np012loc_; i++ )
+                v3txx[i] += wf0.weight(ikp) * occ * omega_inv * v3[i] *
+                            std::real(std::conj(tmpr[i]) * tmpr0[i]);
+              }
+              if (j1 == 0 && j2 == 1)
+              {
+                for ( int i = 0; i < np012loc_; i++ )
+                v3txy[i] += wf0.weight(ikp) * occ * omega_inv * v3[i] *
+                            std::real(std::conj(tmpr[i]) * tmpr0[i]);
+              }
+              if (j1 == 0 && j2 == 2)
+              {
+                for ( int i = 0; i < np012loc_; i++ )
+                v3txz[i] += wf0.weight(ikp) * occ * omega_inv * v3[i] *
+                            std::real(std::conj(tmpr[i]) * tmpr0[i]);
+              }
+              if (j1 == 1 && j2 == 1)
+              {
+                for ( int i = 0; i < np012loc_; i++ )
+                v3tyy[i] += wf0.weight(ikp) * occ * omega_inv * v3[i] *
+                            std::real(std::conj(tmpr[i]) * tmpr0[i]);
+              }
+              if (j1 == 1 && j2 == 2)
+              {
+                for ( int i = 0; i < np012loc_; i++ )
+                v3tyz[i] += wf0.weight(ikp) * occ * omega_inv * v3[i] *
+                            std::real(std::conj(tmpr[i]) * tmpr0[i]);
+              }
+              if (j1 == 2 && j2 == 2)
+              {
+                for ( int i = 0; i < np012loc_; i++ )
+                v3tzz[i] += wf0.weight(ikp) * occ * omega_inv * v3[i] *
+                            std::real(std::conj(tmpr[i]) * tmpr0[i]);
+              }
+            }
+            }
+          }
+        }
+      }
+      for ( int ir = 0; ir < np012loc_; ir++ )
+      {
+        //V1 Stress rho * (Exc - V1)
+        dsum += rh[ir] * (e[ir] - v1[ir] );
+        //V2 Stress V2 * (delta_ij * grad^2 + grad_i * grad_j)
+        const double grx = xcf_->grad_rho[0][ir];
+        const double gry = xcf_->grad_rho[1][ir];
+        const double grz = xcf_->grad_rho[2][ir];
+        const double grx2 = grx * grx;
+        const double gry2 = gry * gry;
+        const double grz2 = grz * grz;
+        const double grad2 = grx2 + gry2 + grz2;
+        const double v2t = v2[ir];
+        sum0 += ( grad2 + grx2 ) * v2t - v3txx[ir];
+        sum1 += ( grad2 + gry2 ) * v2t - v3tyy[ir];
+        sum2 += ( grad2 + grz2 ) * v2t - v3tzz[ir];
+        sum3 += grx * gry * v2t - v3txy[ir];
+        sum4 += gry * grz * v2t - v3tyz[ir];
+        sum5 += grx * grz * v2t - v3txz[ir];
+      }
+    }
+    else
+    {
+      cout << "Error: spin polarized stress for Meta-GGA ";
+      cout << "is not currently implemented" << endl;
+      assert(false);
+      return;
     }
     double fac = 1.0 / vft_.np012();
     double sum[6],tsum[6];

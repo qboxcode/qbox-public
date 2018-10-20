@@ -383,12 +383,12 @@ void SlaterDet::compute_tau(FourierTransform& ft,
       {
         for ( int j = 0; j < 3; j++ )
         {
-          const double *const gxj = basis_->gx_ptr(j);
+          const double *const kpgxj = basis_->kpgx_ptr(j);
           for ( int ig = 0; ig < ngwloc; ig++ )
           {
             // i*G_j*c(G)
-            taug0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
-            taug1[ig] = complex<double>(0.0,gxj[ig]) * p[ig+(n+1)*mloc];
+            taug0[ig] = complex<double>(0.0,kpgxj[ig]) * p[ig+n*mloc];
+            taug1[ig] = complex<double>(0.0,kpgxj[ig]) * p[ig+(n+1)*mloc];
           }
           ft.backward(&taug0[0],&taug1[0],&tmp[0]);
           const double* gpsi = (double*) &tmp[0];
@@ -414,11 +414,11 @@ void SlaterDet::compute_tau(FourierTransform& ft,
       {
         for ( int j = 0; j < 3; j++ )
         {
-          const double *const gxj = basis_->gx_ptr(j);
+          const double *const kpgxj = basis_->kpgx_ptr(j);
           for ( int ig = 0; ig < ngwloc; ig++ )
           {
             // i*G_j*c(G)
-            taug1[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+            taug1[ig] = complex<double>(0.0,kpgxj[ig]) * p[ig+n*mloc];
           }
           ft.backward(&taug1[0],&tmp[0]);
           const double* gpsi = (double*) &tmp[0];

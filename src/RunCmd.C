@@ -30,9 +30,11 @@ int RunCmd::action(int argc, char **argv)
   if ( argc < 2 || argc > 5)
   {
     if ( ui->onpe0() )
+    {
       cout << " use: run [-atomic_density] niter" << endl;
       cout << "      run [-atomic_density] niter nitscf" << endl;
       cout << "      run [-atomic_density] niter nitscf nite" << endl;
+    }
     return 1;
   }
 
@@ -46,6 +48,12 @@ int RunCmd::action(int argc, char **argv)
   {
     if ( ui->onpe0() )
       cout << " RunCmd: ecut = 0.0, cannot run" << endl;
+    return 1;
+  }
+  if ( s->wf.cell().volume() == 0.0 )
+  {
+    if ( ui->onpe0() )
+      cout << " RunCmd: volume = 0.0, cannot run" << endl;
     return 1;
   }
 
@@ -91,6 +99,14 @@ int RunCmd::action(int argc, char **argv)
 
   s->wf.info(cout,"wavefunction");
   stepper->step(niter);
+
+  // Delete wave function velocity if not using atoms_dyn = MD
+  if ( s->ctrl.atoms_dyn != "MD" )
+  {
+    if ( s->wfv != 0 )
+      delete s->wfv;
+    s->wfv = 0;
+  }
 
   delete stepper;
 

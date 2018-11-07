@@ -22,6 +22,8 @@
 #include <iostream>
 #include "UserInterface.h"
 #include "Sample.h"
+#include "ChargeDensity.h"
+#include "FourierTransform.h"
 
 class StatusCmd : public Cmd
 {
@@ -47,8 +49,22 @@ class StatusCmd : public Cmd
 
   int action(int argc, char **argv)
   {
+    // compute the size of the potential grid
+    int np0v = 0;
+    int np1v = 0;
+    int np2v = 0;
+    if ( s->wf.ecut() > 0 && s->wf.cell().volume() > 0 )
+    {
+      ChargeDensity cd(s->wf);
+      np0v = cd.vft()->np0();
+      np1v = cd.vft()->np1();
+      np2v = cd.vft()->np2();
+    }
     if ( ui->onpe0() )
     {
+      cout << "<np0v> " << np0v << " </np0v>  "
+           << "<np1v> " << np1v << " </np1v>  "
+           << "<np2v> " << np2v << " </np2v>" << endl;
       s->wf.info(cout,"wf");
       if ( s->wfv != 0 )
         s->wfv->info(cout,"wfv");

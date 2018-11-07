@@ -65,7 +65,11 @@ int main(int argc, char **argv)
   //ifstream infile(infilename);
 
   Timer tm;
-  assert(argc==5);
+  if ( argc != 5 )
+  {
+    cout << "use: testjacobi nprow npcol n nb" << endl;
+    return 1;
+  }
   int nprow=atoi(argv[1]);
   int npcol=atoi(argv[2]);
   int m_a=atoi(argv[3]);

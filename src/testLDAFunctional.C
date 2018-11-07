@@ -23,27 +23,26 @@
 // dExc/da must be 0.911682
 
 #include<iostream>
+#include<vector>
 #include "LDAFunctional.h"
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 using namespace std;
 
 int main(int argc, char **argv)
 {
-  // use: testxcf alat np
   if ( argc != 3 )
   {
-    cout << " use: testLDAFunctional alat np" << endl;
-    return 0;
+    cout << " use: testLDAFunctional alat n" << endl;
+    return 1;
   }
-  assert(argc==3);
   double a = atof(argv[1]);
   double omega = a*a*a;
   int n = atoi(argv[2]);
   int n3 = n*n*n;
-  double *rh = new double[n3];
-  double *vxc = new double[n3];
-  double *exc = new double[n3];
+  vector<vector<double> > rh(1);
+  rh[0].resize(n3);
   double excsum = 0.0, dxcsum = 0.0;
 
   double rc = 0.1 * a;
@@ -62,8 +61,8 @@ int main(int argc, char **argv)
         double z = ( k * a ) / n - a/2;
         double r2 = x*x + y*y + z*z;
         int ii = i + n * ( j + n * k );
-        rh[ii] = fac * exp( -r2 / (rc*rc) );
-        sum += rh[ii];
+        rh[0][ii] = fac * exp( -r2 / (rc*rc) );
+        sum += rh[0][ii];
       }
     }
   }
@@ -71,19 +70,13 @@ int main(int argc, char **argv)
   // the density should be normalized
   cout << " Integrated density: " << sum << endl;
 
-  LDAFunctional xcf;
-
-  int nspin = 1;
-  xcf.rho = rh;
-  xcf.vxc1 = vxc;
-  xcf.exc = exc;
-
-  xcf.setxc(n3,nspin);
+  LDAFunctional xcf(rh);
+  xcf.setxc();
 
   for ( int i = 0; i < n3; i++ )
-    excsum += rh[i] * exc[i];
+    excsum += xcf.rho[i] * xcf.exc[i];
   for ( int i = 0; i < n3; i++ )
-    dxcsum += rh[i] * ( exc[i] - vxc[i] );
+    dxcsum += xcf.rho[i] * ( xcf.exc[i] - xcf.vxc1[i] );
 
   cout << " Total LDA xc energy: " << excsum * omega / n3 << endl;
 

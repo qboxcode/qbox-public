@@ -55,7 +55,7 @@ class Basis
 
   std::vector<int>    idx_;   // 3-d index of vectors idx[i*3+j]
   std::vector<double> g_;     // norm of g vectors g[localsize]
-  std::vector<double> kpg_;   // norm of g vectors g[localsize]
+  std::vector<double> kpg_;   // norm of k+g vectors kpg[localsize]
   std::vector<double> gi_;    // inverse norm of g vectors gi[localsize]
   std::vector<double> kpgi_;  // inverse norm of k+g vectors kpgi[localsize]
   std::vector<double> g2_;    // 2-norm of g vectors g2[localsize]
@@ -80,6 +80,7 @@ class Basis
   const UnitCell& refcell() const;// reference cell dimensions
   const D3vector kpoint() const; // k-point in units of b0,b1,b2
   int np(int i) const;           // good size of FFT grid in direction i
+  bool fits_in_grid(int np0, int np1, int np2) const;
   bool factorizable(int n) const;// check if n is factorizable with low factors
   int idxmin(int i) const;       // smallest index in direction i
   int idxmax(int i) const;       // largest index in direction i

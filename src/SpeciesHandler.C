@@ -39,7 +39,7 @@ void SpeciesHandler::read(const Attributes& attributes)
   unsigned int len = attributes.getLength();
   for ( unsigned int index = 0; index < len; index++ )
   {
-    string attrname(XMLString::transcode(attributes.getLocalName(index)));
+    string attrname = StrX(attributes.getLocalName(index)).localForm();
     if ( attrname == "l" )
     {
       current_l = atoi(StrX(attributes.getValue(index)).localForm());
@@ -84,7 +84,7 @@ void SpeciesHandler::startElement(const XMLCh* const uri,
 {
 //  cout << " SpeciesHandler::startElement " << StrX(qname) << endl;
 
-  string locname(XMLString::transcode(localname));
+  string locname = StrX(localname).localForm();
 
   if ( locname == "species" )
   {
@@ -92,7 +92,7 @@ void SpeciesHandler::startElement(const XMLCh* const uri,
     unsigned int len = attributes.getLength();
     for ( unsigned int index = 0; index < len; index++ )
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
       if ( attrname == "name" )
       {
         current_name = StrX(attributes.getValue(index)).localForm();
@@ -135,10 +135,8 @@ void SpeciesHandler::startElement(const XMLCh* const uri,
 void SpeciesHandler::endElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname, string& content)
 {
-  string locname(XMLString::transcode(localname));
+  string locname = StrX(localname).localForm();
   istringstream stst(content);
-//  cout << " SpeciesHandler::endElement " << StrX(qname) << " content="
-//    << string(content,0,20) << endl;
 
   if ( locname == "description" )
   {

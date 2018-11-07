@@ -45,6 +45,11 @@ int main(int argc, char** argv)
 
     SampleReader s_reader(s->ctxt_);
     bool serial = false;
+    if ( argc != 2 )
+    {
+      cout << "use: testSampleReader {file|URI}" << endl;
+      return 1;
+    }
     const char* filename = argv[1];
 
     try

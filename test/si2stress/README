@@ -1,0 +1,14 @@
+--------------------------------------------------------------------------------
+ Test of the accuracy of the stress tensor
+--------------------------------------------------------------------------------
+Use:
+$ make
+
+The file test.r contains a comparison of stress tensor components computed
+by finite difference vs computed by Qbox
+
+Notes:
+- To change the choice of xc, ecut, ecuts, edit the file params.i
+- In order to test off-diagonal elements of the stress tensor,
+  the starting unit cell in gs.i is distorted arbitrarily.
+--------------------------------------------------------------------------------

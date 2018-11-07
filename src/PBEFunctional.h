@@ -51,7 +51,6 @@ class PBEFunctional : public XCFunctional
                 double x_coeff=1.0, double c_coeff=1.0);
 
   bool isGGA() const { return true; };
-  bool isMeta() const { return false; };
   std::string name() const { return "PBE"; };
   void setxc(void);
 };

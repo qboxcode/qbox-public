@@ -27,6 +27,7 @@
 
 class Context;
 class UserInterface;
+class ExternalPotential;
 
 class Sample
 {
@@ -39,6 +40,7 @@ class Sample
   AtomSet atoms;
   ConstraintSet constraints;
   ExtForceSet extforces;
+  ExternalPotential* vext;
   Wavefunction wf;
   Wavefunction* wfv; // wavefunction velocity
   Control ctrl;
@@ -46,7 +48,7 @@ class Sample
 
   Sample(const Context& ctxt, UserInterface *ui_ = 0) : ctxt_(ctxt), ui(ui_),
     atoms(ctxt), constraints(ctxt),
-    extforces(ctxt), wf(ctxt), wfv(0) {}
+    extforces(ctxt), vext(0), wf(ctxt), wfv(0) {}
   ~Sample(void) { delete wfv; }
   void reset(void)
   {

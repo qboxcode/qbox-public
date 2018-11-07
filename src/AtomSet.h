@@ -85,10 +85,12 @@ class AtomSet
   void rescale_velocities(double fac);
   void randomize_velocities(double temp);
   void randomize_positions(double amplitude);
+  D3vector rcm(void) const;
   D3vector vcm(void) const;
   D3vector dipole(void) const;
   D3tensor quadrupole(void) const;
   void reset_vcm(void);
+  void reset_rotation(void);
   void fold_in_ws(void);
   int size(void) const;
  };

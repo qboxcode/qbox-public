@@ -80,7 +80,7 @@ vector<vector<double> > &rp) const
   D3vector r3(pr3);
   D3vector g1,g2,g3;
   grad_sigma(r1,r2,r3,g1,g2,g3);
-  const double a = bond_angle(r1,r2,r3);
+  // const double a = bond_angle(r1,r2,r3);
   double ng = g1*g1 + g2*g2 + g3*g3;
   assert(ng>=0.0);
 
@@ -358,9 +358,9 @@ void AngleConstraint::grad_sigma(const D3vector &r1, const D3vector &r2,
     // angle is large enough. Use finite differences
     //cout << " ========= grad_sigma using finite differences" << endl;
 
-    const double r12_inv = 1.0/length(r12);
-    const double r32_inv = 1.0/length(r32);
-    const double a = bond_angle(r1,r2,r3);
+    // const double r12_inv = 1.0/length(r12);
+    // const double r32_inv = 1.0/length(r32);
+    // const double a = bond_angle(r1,r2,r3);
 
     const double l12 = length(r1-r2);
     const double l32 = length(r3-r2);

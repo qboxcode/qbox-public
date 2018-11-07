@@ -21,10 +21,12 @@
 #include "Wavefunction.h"
 #include "FourierTransform.h"
 #include "SlaterDet.h"
+#include "blas.h" // dasum
 
 #include <iomanip>
 #include <algorithm> // fill
 #include <functional>
+#include <fstream>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -206,6 +208,18 @@ void ChargeDensity::update_rhor(void)
       for ( int i = 0; i < rhor_size; i++ )
         prhor[i] = rhotmp[i].real() * omega_inv;
     }
+
+    // integral of the charge density
+    tmap["charge_integral"].start();
+    int ione=1;
+    int n = rhor_size;
+    double sum = dasum(&n,prhor,&ione);
+    sum *= omega / vft_->np012();
+
+    // sum on all indices except spin: sum along columns of spincontext
+    wf_.spincontext()->dsum('c',1,1,&sum,1);
+    tmap["charge_integral"].stop();
+    total_charge_[ispin] = sum;
   }
 }
 
@@ -280,4 +294,35 @@ ostream& operator<< ( ostream& os, const ChargeDensity& cd )
 {
   cd.print(os);
   return os;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void ChargeDensity::update_rhog(void)
+{
+  // recalculate rhog from rhor
+  assert(rhor.size() == wf_.nspin());
+  const double omega = vbasis_->cell().volume();
+  assert(omega!=0.0);
+
+  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  {
+    const int rhor_size = rhor[ispin].size();
+    double *const prhor = &rhor[ispin][0];
+    if ( rhocore_r )
+    {
+      #pragma omp parallel for
+      for ( int i = 0; i < rhor_size; i++ )
+        rhotmp[i] = complex<double> ( omega * (prhor[i] - rhocore_r[i]), 0);
+    }
+    else
+    {
+      #pragma omp parallel for
+      for ( int i = 0; i < rhor_size; i++ )
+        rhotmp[i] = complex<double> ( omega * prhor[i], 0);
+    }
+
+    assert(rhotmp.size() == vft_->np012loc() );
+
+    vft_->forward(&rhotmp[0],&rhog[ispin][0]);
+  }
 }

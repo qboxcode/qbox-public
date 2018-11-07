@@ -1,0 +1,51 @@
+--------------------------------------------------------------------------------
+External potential files for Qbox
+--------------------------------------------------------------------------------
+mkvext.py: Generating arbitrary potentials using the mkvext.py python script
+
+Edit the function f(x,y,z) in the file mkvext.py
+Edit the values of a,b,c and nx,ny,nz
+--------------------------------------------------------------------------------
+Test of the harmonic potential v(x,y,z) = 0.5*(x*x+y*y+z*z)
+Expected eigenvalues: 3/2, 5/2, 7/2 (Hartree)
+$ mkvext.py > v.xml
+
+Qbox test.i:
+set cell 16 0 0  0 16 0  0 0 16
+set ecut 20
+set ecutprec 10
+set wf_dyn JD
+set nempty 32
+set vext v.xml
+randomize_wf
+run 0 1 200
+
+  <eigenvalues spin="0" kpoint="0.00000000 0.00000000 0.00000000" weight="1.00000000" n="32">
+    40.81741    68.02907    68.02907    68.02907    95.24116
+    95.24116    95.24118    95.24118    95.24118    95.24182
+   122.45522   122.45525   122.45528   122.45543   122.45569
+   122.45617   122.45713   122.46055   122.46069   122.46156
+   149.67716   149.67753   149.67799   149.67872   149.68386
+   149.68546   149.68898   149.69523   149.70300   149.70490
+   149.70837   149.72245
+  </eigenvalues>
+
+Eigenvalues in Hartree:
+ 40.81741 eV = 1.4999999 Ha
+ 68.02907 eV = 2.5000018 Ha
+ 95.24116 eV = 3.5000196 Ha
+ 122.45528 eV = 4.5001119 Ha
+ 149.67716 eV = 5.5004893 Ha
+
+--------------------------------------------------------------------------------
+Generating an arbitrary vext file in XML format using R
+
+Use the base64encode and base64decode functions of the caTools R package
+Install the caTools R package from CRAN
+> install.packages("caTools")
+> library("caTools")
+> x <- rnorm(10)
+> s <- base64encode(x)
+# s contains the base64 representation of the vector x
+
+--------------------------------------------------------------------------------

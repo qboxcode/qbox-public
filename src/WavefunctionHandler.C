@@ -65,7 +65,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
 {
   bool onpe0 = wf_.context().onpe0();
   // cout << " WavefunctionHandler::startElement " << StrX(qname) << endl;
-  string locname(XMLString::transcode(localname));
+  string locname = StrX(localname).localForm();
 
   int nspin=1, nel=0, nempty=0;
 
@@ -76,7 +76,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
       if ( attrname == "ecut")
       {
         ecut = atof(StrX(attributes.getValue(index)).localForm());
@@ -116,8 +116,8 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
-      string attrval(XMLString::transcode(attributes.getValue(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
+      string attrval = StrX(attributes.getValue(index)).localForm();
       istringstream stst(attrval);
       if ( attrname == "a")
       {
@@ -143,8 +143,8 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
-      string attrval(XMLString::transcode(attributes.getValue(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
+      string attrval = StrX(attributes.getValue(index)).localForm();
       istringstream stst(attrval);
       if ( attrname == "a")
       {
@@ -171,8 +171,8 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     string dmat_form;
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
-      string attrval(XMLString::transcode(attributes.getValue(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
+      string attrval = StrX(attributes.getValue(index)).localForm();
       istringstream stst(attrval);
       if ( attrname == "form")
       {
@@ -195,8 +195,8 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
-      string attrval(XMLString::transcode(attributes.getValue(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
+      string attrval = StrX(attributes.getValue(index)).localForm();
       istringstream stst(attrval);
       if ( attrname == "nx")
       {
@@ -240,8 +240,8 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
-      string attrval(XMLString::transcode(attributes.getValue(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
+      string attrval = StrX(attributes.getValue(index)).localForm();
       istringstream stst(attrval);
       if ( attrname == "kpoint")
       {
@@ -302,8 +302,8 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     unsigned int len = attributes.getLength();
     for (unsigned int index = 0; index < len; index++)
     {
-      string attrname(XMLString::transcode(attributes.getLocalName(index)));
-      string attrval(XMLString::transcode(attributes.getValue(index)));
+      string attrname = StrX(attributes.getLocalName(index)).localForm();
+      string attrval = StrX(attributes.getValue(index)).localForm();
       istringstream stst(attrval);
       if ( attrname == "nx")
       {
@@ -338,7 +338,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
 {
   const Context& ctxt = wf_.context();
   bool onpe0 = ctxt.onpe0();
-  string locname(XMLString::transcode(localname));
+  string locname = StrX(localname).localForm();
   //cout << " WavefunctionHandler::endElement " << locname << endl;
   if ( locname == "density_matrix")
   {
@@ -495,7 +495,7 @@ void WavefunctionHandler::endSubHandler(const XMLCh* const uri,
     const XMLCh* const localname, const XMLCh* const qname,
     const StructureHandler* const last)
 {
-  string locname(XMLString::transcode(localname));
+  string locname = StrX(localname).localForm();
   //cout << " WavefunctionHandler::endSubHandler " << locname << endl;
   delete last;
 }

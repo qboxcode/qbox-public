@@ -1,3 +1,12 @@
+fbb7421 Merge branch 'hse-dev' into develop
+5b93ad8 Add cstring header in ConstraintSet.C
+72e55a8 Fix force normalization in PairExtForce::energy
+000b3db Fixed charge integral in ChargeDensity::update_rhor
+80f2730 Fix long lines
+1c14353 Merge branch 'develop' into hse-dev
+e9d66bf Add zero volume test to run command
+667cce0 Updated centos6.mk
+f9b90ad Updated notes
 --------------------------------------------------------------------------------
 rel1_63_10
 --------------------------------------------------------------------------------

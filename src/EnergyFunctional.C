@@ -30,6 +30,7 @@
 #include "ConfinementPotential.h"
 #include "D3vector.h"
 #include "ElectricEnthalpy.h"
+#include "ExternalPotential.h"
 
 #include "Timer.h"
 #include "blas.h"
@@ -41,7 +42,7 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
+EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
  : s_(s), cd_(cd)
 {
   const AtomSet& atoms = s_.atoms;
@@ -65,19 +66,26 @@ EnergyFunctional::EnergyFunctional( Sample& s, ChargeDensity& cd)
   int np2v = vft->np2();
 
   v_r.resize(wf.nspin());
+  vxc_r.resize(wf.nspin());
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
   {
     v_r[ispin].resize(vft->np012loc());
+    vxc_r[ispin].resize(vft->np012loc());
   }
   tmp_r.resize(vft->np012loc());
 
   if ( s_.ctxt_.onpe0() )
   {
-    cout << "  EnergyFunctional: np0v,np1v,np2v: " << np0v << " "
-         << np1v << " " << np2v << endl;
-    cout << "  EnergyFunctional: vft->np012(): "
+    cout << " EnergyFunctional: <np0v> " << np0v << " </np0v>  "
+         << "<np1v> " << np1v << " </np1v>  "
+         << "<np2v> " << np2v << " </np2v>" << endl;
+    cout << " EnergyFunctional: vft->np012(): "
          << vft->np012() << endl;
   }
+
+  // external potential
+  if ( s_.vext )
+    s_.vext->update(cd_);
 
   const int ngloc = vbasis_->localsize();
 
@@ -219,7 +227,8 @@ EnergyFunctional::~EnergyFunctional(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void EnergyFunctional::update_vhxc(bool compute_stress)
+void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vh,
+  bool update_vxc)
 {
   // called when the charge density has changed
   // update Hartree and xc potentials using the charge density cd_
@@ -253,10 +262,10 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   // update XC operator
   // compute xc energy, update self-energy operator and potential
   tmap["exc"].start();
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-    memset((void*)&v_r[ispin][0], 0, vft->np012loc()*sizeof(double));
 
-  xco->update(v_r, compute_stress);
+  if ( update_vxc )
+    xco->update(vxc_r, compute_stress);
+
   exc_ = xco->exc();
   dxc_ = xco->dxc();
   if ( compute_stress )
@@ -267,7 +276,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
     // compute Fourier coefficients of Vxc
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
-      copy(v_r[ispin].begin(),v_r[ispin].end(),tmp_r.begin());
+      copy(vxc_r[ispin].begin(),vxc_r[ispin].end(),tmp_r.begin());
       if ( ispin == 0 )
       {
         vft->forward(&tmp_r[0],&vxc_g[0]);
@@ -308,7 +317,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
     ehesum += norm(r) * g2i[ig];
     ehepsum += 2.0*real(conj(r)*rp * g2i[ig]);
     ehpsum += norm(rp) * g2i[ig];
-    rhogt[ig] = r+rp;
+    if ( update_vh ) rhogt[ig] = r+rp;
   }
   // factor 1/2 from definition of Ehart cancels with half sum over G
   // Note: rhogt[ig] includes a factor 1/Omega
@@ -336,14 +345,23 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
   // FT to tmpr_r
   vft->backward(&vlocal_g[0],&tmp_r[0]);
 
-  // add local potential in tmp_r to v_r[ispin][i]
-  // v_r contains the xc potential
+  // add external potential vext to tmp_r
+  if ( s_.vext )
+  {
+    for ( int i = 0; i < tmp_r.size(); i++ )
+      tmp_r[i] += s_.vext->v(i);
+    // update eext_
+    eext_ = s_.vext->compute_eext(cd_);
+  }
+
+  // compute local potential v_r[ispin][i]
+  // vxc_r contains the xc potential
   const int size = tmp_r.size();
   if ( wf.nspin() == 1 )
   {
     for ( int i = 0; i < size; i++ )
     {
-      v_r[0][i] += real(tmp_r[i]);
+      v_r[0][i] = vxc_r[0][i] + real(tmp_r[i]);
     }
   }
   else
@@ -351,8 +369,8 @@ void EnergyFunctional::update_vhxc(bool compute_stress)
     for ( int i = 0; i < size; i++ )
     {
       const double vloc = real(tmp_r[i]);
-      v_r[0][i] += vloc;
-      v_r[1][i] += vloc;
+      v_r[0][i] = vxc_r[0][i] + vloc;
+      v_r[1][i] = vxc_r[1][i] + vloc;
     }
   }
 
@@ -409,7 +427,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       const double weight = wf.weight(ikp);
       const SlaterDet& sd = *(wf.sd(ispin,ikp));
       const Basis& wfbasis = sd.basis();
-      const D3vector kp = wfbasis.kpoint();
       // factor fac in next lines: 2.0 for G and -G (if basis is real) and
       // 0.5 from 1/(2m)
       const double fac = wfbasis.real() ? 1.0 : 0.5;
@@ -677,6 +694,8 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     ets_ = - wf_entropy * s_.ctrl.fermi_temp * boltz;
   }
   etotal_ = ekin_ + econf_ + eps_ + enl_ + ecoul_ + exc_ + ets_ + eexf_;
+  if ( s_.vext )
+    etotal_ += eext_;
   enthalpy_ = etotal_;
 
   // Electric enthalpy
@@ -1187,6 +1206,8 @@ void EnergyFunctional::print(ostream& os) const
      << "  <epv>     " << setw(15) << epv() << " </epv>\n"
      << "  <eefield> " << setw(15) << eefield() << " </eefield>\n"
      << "  <enthalpy>" << setw(15) << enthalpy() << " </enthalpy>" << endl;
+  if ( s_.vext )
+    os << "  <eext>    " << setw(15) << eext() << " </eext>" << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

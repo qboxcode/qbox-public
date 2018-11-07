@@ -71,11 +71,14 @@ class XCFunctional
   double *vxc2, *vxc2_upup, *vxc2_dndn, *vxc2_updn, *vxc2_dnup;
   double *vxc3,*vxc3_up,*vxc3_dn;
 
-  virtual bool isGGA(void) const = 0;
-  virtual bool isMeta(void) const = 0;
+  // default functional is not GGA, not Meta
+  // GGA functionals must override isGGA()
+  // meta functionals must override isMeta()
+  virtual bool isGGA(void) const { return false; }
+  virtual bool isMeta(void) const { return false; }
   virtual std::string name(void) const = 0;
-  int np(void) const { return _np; };
-  int nspin(void) const { return _nspin; };
+  int np(void) const { return _np; }
+  int nspin(void) const { return _nspin; }
 
   XCFunctional()
   {

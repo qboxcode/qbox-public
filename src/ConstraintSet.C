@@ -23,10 +23,12 @@
 #include "TorsionConstraint.h"
 #include "Atom.h"
 #include "AtomSet.h"
+#include <cstring>
 #include "Context.h"
 #include <iostream>
 #include <iomanip>
 #include <cstdlib> // atof
+#include <cstring> // strcmp
 using namespace std;
 
 const int constraints_maxiter = 50;

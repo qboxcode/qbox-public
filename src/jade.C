@@ -164,7 +164,10 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
   // apq[3*ipair+2 + k*3*nploc] = aqq[k][ipair]
   vector<double> apq(a.size()*3*nploc);
 
-  double diag_sum = 0.0, previous_diag_sum = 0.0;
+  double diag_sum = 0.0;
+#ifdef DEBUG
+  double previous_diag_sum = 0.0;
+#endif
   while ( !done )
   {
     // sweep: process local pairs and rotate 2*np-1 times
@@ -485,7 +488,9 @@ int jade(int maxsweep, double tol, vector<DoubleMatrix*> a,
     {
       // compute sum of squares of diagonal elements using current values
       // (after rotation)
+#ifdef DEBUG
       previous_diag_sum = diag_sum;
+#endif
       diag_sum = 0.0;
       for ( int k = 0; k < a.size(); k++ )
       {

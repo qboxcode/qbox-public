@@ -49,7 +49,6 @@ class BLYPFunctional : public XCFunctional
     double *vc2_upup, double *vc2_dndn, double *vc2_updn, double *vc2_dnup);
 
   bool isGGA() const { return true; };
-  bool isMeta() const { return false; };
   std::string name() const { return "BLYP"; };
   void setxc(void);
 };

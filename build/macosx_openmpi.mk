@@ -26,19 +26,19 @@
  CXX=mpiCC
  LD=$(CXX)
 
- PLTFLAGS += -DIA32 -DUSE_MPI -DUSE_FFTW2 -D_LARGEFILE_SOURCE \
+ PLTFLAGS += -DIA32 -DUSE_MPI -DUSE_FFTW3 -D_LARGEFILE_SOURCE \
              -D_FILE_OFFSET_BITS=64 -DADD_ \
              -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES -DXERCESC_3 \
              -DSCALAPACK -DUSE_UUID
 
  INCLUDE = -I$(FFTWDIR)
 
- CXXFLAGS= -g -O3 -Wunused -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
+ CXXFLAGS= -g -O3 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(SCALAPACKDIR) -L$(LAPACKDIR) -L$(BLASDIR)
 
- LIBS =  -lfftw -lscalapack -llapack -lblas -lm -lgfortran \
-         -lxerces-c -lpthread -lmpi_cxx -lstdc++ -lcurl -liconv
+ LIBS =  -lfftw3 -lscalapack -llapack -lblas -lm -lgfortran \
+         -lxerces-c -lpthread -lstdc++
 
  LDFLAGS = $(LIBPATH) $(LIBS)
 #-------------------------------------------------------------------------------

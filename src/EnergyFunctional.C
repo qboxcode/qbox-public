@@ -724,7 +724,8 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   if ( compute_stress )
   {
     valarray<double> sigma_ext(s_.ctrl.ext_stress,6);
-    const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/3.0;
+    const double gpa = 29421.5;
+    const double pext = (sigma_ext[0]+sigma_ext[1]+sigma_ext[2])/(3.0*gpa);
     epv_ = pext * omega;
     enthalpy_ += epv_;
   }
@@ -880,7 +881,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
 
   if ( debug_stress && s_.ctxt_.onpe0() )
   {
-    //const double gpa = 29421.5;
     cout.setf(ios::fixed,ios::floatfield);
     cout.setf(ios::right,ios::adjustfield);
     cout << setprecision(8);

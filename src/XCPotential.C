@@ -849,10 +849,369 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
     }
     else
     {
-      cout << "Error: spin polarized stress for Meta-GGA ";
-      cout << "is not currently implemented" << endl;
-      assert(false);
-      return;
+      const double *const v1_up = xcf_->vxc1_up;
+      const double *const v1_dn = xcf_->vxc1_dn;
+      const double *const v2_upup = xcf_->vxc2_upup;
+      const double *const v2_updn = xcf_->vxc2_updn;
+      const double *const v2_dnup = xcf_->vxc2_dnup;
+      const double *const v2_dndn = xcf_->vxc2_dndn;
+      const double *const v3_up = xcf_->vxc3_up;
+      const double *const v3_dn = xcf_->vxc3_dn;
+      const double *const eup = xcf_->exc_up;
+      const double *const edn = xcf_->exc_dn;
+      const double *const rh_up = xcf_->rho_up;
+      const double *const rh_dn = xcf_->rho_dn;
+      const double *const tau_up = xcf_->tau_up;
+      const double *const tau_dn = xcf_->tau_dn;
+      
+      //V3 Stress -V3 * sum_n[grad_i rho_n * grad_j rho_n]
+      const Wavefunction& wf0 = s_.wf;
+
+      std::vector<std::complex<double> > tmprx(np012loc_),tmpry(np012loc_),
+                                         tmprz(np012loc_);
+      std::vector<double> v3txxup(np012loc_), v3txyup(np012loc_),
+                          v3txzup(np012loc_), v3tyyup(np012loc_),
+                          v3tyzup(np012loc_), v3tzzup(np012loc_),
+                          v3txxdn(np012loc_), v3txydn(np012loc_),
+                          v3txzdn(np012loc_), v3tyydn(np012loc_),
+                          v3tyzdn(np012loc_), v3tzzdn(np012loc_);
+      for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
+      {
+        for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
+        {
+          double omega_inv = 1.0 / wf0.sd(ispin,ikp)->basis().cell().volume();
+          if ( wf0.sd(ispin,ikp)->basis().real() )
+          {
+            const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+            vector<complex<double> > tmp0(ngwloc);
+            const int mloc = wf0.sd(ispin,ikp)->c().mloc();
+            const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
+            const double *const gxjx = wf0.sd(ispin,ikp)->basis().gx_ptr(0);
+            const double *const gxjy = wf0.sd(ispin,ikp)->basis().gx_ptr(1);
+            const double *const gxjz = wf0.sd(ispin,ikp)->basis().gx_ptr(2);
+            for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc()-1; n++, n++ )
+            {
+              double nn = wf0.sd(ispin,ikp)->context().mycol() *
+                          wf0.sd(ispin,ikp)->c().nb() + n;
+              double occ = wf0.sd(ispin,ikp)->occ(nn);
+              if (occ > 0.0)
+              {
+                // Compute Grad_j psi_n(ikp)
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j1*c(G) */
+                  tmp0[ig] = complex<double>(0.0,gxjx[ig]) * p[ig+n*mloc];
+                  tmp1[ig] = complex<double>(0.0,gxjx[ig]) * p[ig+(n+1)*mloc];
+                }
+                // Compute Grad_x psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmprx[0]);
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j1*c(G) */
+                  tmp0[ig] = complex<double>(0.0,gxjy[ig]) * p[ig+n*mloc];
+                  tmp1[ig] = complex<double>(0.0,gxjy[ig]) * p[ig+(n+1)*mloc];
+                }
+                // Compute Grad_y psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmpry[0]);
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j1*c(G) */
+                  tmp0[ig] = complex<double>(0.0,gxjz[ig]) * p[ig+n*mloc];
+                  tmp1[ig] = complex<double>(0.0,gxjz[ig]) * p[ig+(n+1)*mloc];
+                }
+                // Compute Grad_z psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmprz[0]);
+
+                // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
+                if(ispin==0)
+                {
+                for ( int i = 0; i < np012loc_; i++ )
+                {
+                  v3txxup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmprx[i].real() +
+                               tmprx[i].imag() * tmprx[i].imag());
+                  v3tyyup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmpry[i].real() * tmpry[i].real() +
+                               tmpry[i].imag() * tmpry[i].imag());
+                  v3tzzup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprz[i].real() * tmprz[i].real() +
+                               tmprz[i].imag() * tmprz[i].imag());
+                  v3txyup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmpry[i].real() +
+                               tmprx[i].imag() * tmpry[i].imag());
+                  v3txzup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmprz[i].real() +
+                               tmprx[i].imag() * tmprz[i].imag());
+                  v3tyzup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmpry[i].real() * tmprz[i].real() +
+                               tmpry[i].imag() * tmprz[i].imag());
+                }
+                }
+                else if(ispin==1)
+                {
+                for ( int i = 0; i < np012loc_; i++ )
+                {
+                  v3txxdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmprx[i].real() +
+                               tmprx[i].imag() * tmprx[i].imag());
+                  v3tyydn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmpry[i].real() * tmpry[i].real() +
+                               tmpry[i].imag() * tmpry[i].imag());
+                  v3tzzdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprz[i].real() * tmprz[i].real() +
+                               tmprz[i].imag() * tmprz[i].imag());
+                  v3txydn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmpry[i].real() +
+                               tmprx[i].imag() * tmpry[i].imag());
+                  v3txzdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmprz[i].real() +
+                               tmprx[i].imag() * tmprz[i].imag());
+                  v3tyzdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmpry[i].real() * tmprz[i].real() +
+                               tmpry[i].imag() * tmprz[i].imag());
+                }
+                }
+              }
+            }
+            if ( wf0.sd(ispin,ikp)->nstloc() % 2 != 0 )
+            {
+              const int n = wf0.sd(ispin,ikp)->nstloc()-1;
+              double nn = wf0.sd(ispin,ikp)->context().mycol() *
+                          wf0.sd(ispin,ikp)->c().nb() + n;
+              double occ = wf0.sd(ispin,ikp)->occ(nn);
+              if (occ > 0.0)
+              {
+                // Compute Grad_j psi_n(ikp)
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j1*c(G) */
+                  tmp0[ig] = complex<double>(0.0,gxjx[ig]) * p[ig+n*mloc];
+                }
+                // Compute Grad_x psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp0[0],&tmprx[0]);
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j1*c(G) */
+                  tmp0[ig] = complex<double>(0.0,gxjy[ig]) * p[ig+n*mloc];
+                }
+                // Compute Grad_y psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp0[0],&tmpry[0]);
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j1*c(G) */
+                  tmp0[ig] = complex<double>(0.0,gxjz[ig]) * p[ig+n*mloc];
+                }
+                // Compute Grad_z psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp0[0],&tmprz[0]);
+
+                // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
+                if(ispin==0)
+                {
+                for ( int i = 0; i < np012loc_; i++ )
+                {
+                  v3txxup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmprx[i].real());
+                  v3tyyup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmpry[i].real() * tmpry[i].real());
+                  v3tzzup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprz[i].real() * tmprz[i].real());
+                  v3txyup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmpry[i].real());
+                  v3txzup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmprz[i].real());
+                  v3tyzup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmpry[i].real() * tmprz[i].real());
+                }
+                }
+                else if(ispin==1)
+                {
+                for ( int i = 0; i < np012loc_; i++ )
+                {
+                  v3txxdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmprx[i].real());
+                  v3tyydn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmpry[i].real() * tmpry[i].real());
+                  v3tzzdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprz[i].real() * tmprz[i].real());
+                  v3txydn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmpry[i].real());
+                  v3txzdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmprx[i].real() * tmprz[i].real());
+                  v3tyzdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              (tmpry[i].real() * tmprz[i].real());
+                }
+                }
+              }
+            }
+          }
+          else
+          {
+            const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+            vector<complex<double> > tmp0(ngwloc);
+            const int mloc = wf0.sd(ispin,ikp)->c().mloc();
+            const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
+            const double *const kpgxjx = wf0.sd(ispin,ikp)->basis().kpgx_ptr(0);
+            const double *const kpgxjy = wf0.sd(ispin,ikp)->basis().kpgx_ptr(1);
+            const double *const kpgxjz = wf0.sd(ispin,ikp)->basis().kpgx_ptr(2);
+            for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc(); n++)
+            {
+              double nn = wf0.sd(ispin,ikp)->context().mycol() *
+                          wf0.sd(ispin,ikp)->c().nb() + n;
+              double occ = wf0.sd(ispin,ikp)->occ(nn);
+              if (occ > 0.0)
+              {
+                // Compute Grad_j psi_n(ikp)
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j1*c(G) */
+                  tmp0[ig] = complex<double>(0.0,kpgxjx[ig]) * p[ig+n*mloc];
+                }
+                // Compute Grad_x psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp0[0],&tmprx[0]);
+
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j1*c(G) */
+                  tmp0[ig] = complex<double>(0.0,kpgxjy[ig]) * p[ig+n*mloc];
+                }
+                // Compute Grad_y psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp0[0],&tmpry[0]);
+
+                for ( int ig = 0; ig < ngwloc; ig++ )
+                {
+                  /* i*G_j1*c(G) */
+                  tmp0[ig] = complex<double>(0.0,kpgxjz[ig]) * p[ig+n*mloc];
+                }
+                // Compute Grad_z psi_n(ikp)
+                cd_.ft(ikp)->backward(&tmp0[0],&tmprz[0]);
+
+                // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
+                if(ispin==0)
+                {
+                for ( int i = 0; i < np012loc_; i++ )
+                {
+                  v3txxup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmprx[i]) * tmprx[i]);
+                  v3tyyup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmpry[i]) * tmpry[i]);
+                  v3tzzup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmprz[i]) * tmprz[i]);
+                  v3txyup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmprx[i]) * tmpry[i]);
+                  v3txzup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmprx[i]) * tmprz[i]);
+                  v3tyzup[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmpry[i]) * tmprz[i]);
+                }
+                }
+                else if(ispin==1)
+                {
+                for ( int i = 0; i < np012loc_; i++ )
+                {
+                  v3txxdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmprx[i]) * tmprx[i]);
+                  v3tyydn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmpry[i]) * tmpry[i]);
+                  v3tzzdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmprz[i]) * tmprz[i]);
+                  v3txydn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmprx[i]) * tmpry[i]);
+                  v3txzdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmprx[i]) * tmprz[i]);
+                  v3tyzdn[i] += wf0.weight(ikp) * omega_inv * occ *
+                              std::real(std::conj(tmpry[i]) * tmprz[i]);
+                }
+                }
+              }
+            }
+          }
+        }
+      }
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txxup[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyyup[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tzzup[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txyup[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txzup[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyzup[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txxdn[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyydn[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tzzdn[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txydn[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txzdn[0],np012loc_);
+      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyzdn[0],np012loc_);
+      
+      for ( int ir = 0; ir < np012loc_; ir++ )
+      {
+        const double r_up = rh_up[ir];
+        const double r_dn = rh_dn[ir];
+        dsum += r_up * ( eup[ir] - v1_up[ir] ) +
+                r_dn * ( edn[ir] - v1_dn[ir] );
+
+        const double grx_up = xcf_->grad_rho_up[0][ir];
+        const double gry_up = xcf_->grad_rho_up[1][ir];
+        const double grz_up = xcf_->grad_rho_up[2][ir];
+        const double grx2_up = grx_up * grx_up;
+        const double gry2_up = gry_up * gry_up;
+        const double grz2_up = grz_up * grz_up;
+        const double grad2_up = grx2_up + gry2_up + grz2_up;
+
+        const double grx_dn = xcf_->grad_rho_dn[0][ir];
+        const double gry_dn = xcf_->grad_rho_dn[1][ir];
+        const double grz_dn = xcf_->grad_rho_dn[2][ir];
+        const double grx2_dn = grx_dn * grx_dn;
+        const double gry2_dn = gry_dn * gry_dn;
+        const double grz2_dn = grz_dn * grz_dn;
+        const double grad2_dn = grx2_dn + gry2_dn + grz2_dn;
+
+        const double grad_up_grad_dn = grx_up * grx_dn +
+                                       gry_up * gry_dn +
+                                       grz_up * grz_dn;
+
+        const double v2_upup_ir = v2_upup[ir];
+        const double v2_updn_ir = v2_updn[ir];
+        const double v2_dnup_ir = v2_dnup[ir];
+        const double v2_dndn_ir = v2_dndn[ir];
+        const double v3tup = v3_up[ir];
+        const double v3tdn = v3_dn[ir];
+        const double taurup = tau_up[ir];
+        const double taurdn = tau_dn[ir];
+
+        sum0 += v2_upup_ir * ( grad2_up + grx2_up ) +
+                v2_updn_ir * ( grad_up_grad_dn + grx_up * grx_dn ) +
+                v2_dnup_ir * ( grad_up_grad_dn + grx_dn * grx_up ) +
+                v2_dndn_ir * ( grad2_dn + grx2_dn ) -
+                v3tup * (taurup + v3txxup[ir]) - v3tdn * (taurdn + v3txxdn[ir]);
+
+        sum1 += v2_upup_ir * ( grad2_up + gry2_up ) +
+                v2_updn_ir * ( grad_up_grad_dn + gry_up * gry_dn ) +
+                v2_dnup_ir * ( grad_up_grad_dn + gry_dn * gry_up ) +
+                v2_dndn_ir * ( grad2_dn + gry2_dn ) -
+                v3tup * (taurup + v3tyyup[ir]) - v3tdn * (taurdn + v3tyydn[ir]);
+
+        sum2 += v2_upup_ir * ( grad2_up + grz2_up ) +
+                v2_updn_ir * ( grad_up_grad_dn + grz_up * grz_dn ) +
+                v2_dnup_ir * ( grad_up_grad_dn + grz_dn * grz_up ) +
+                v2_dndn_ir * ( grad2_dn + grz2_dn ) -
+                v3tup * (taurup + v3tzzup[ir]) - v3tdn * (taurdn + v3tzzdn[ir]);
+
+        sum3 += v2_upup_ir * grx_up * gry_up +
+                v2_updn_ir * grx_up * gry_dn +
+                v2_dnup_ir * grx_dn * gry_up +
+                v2_dndn_ir * grx_dn * gry_dn -
+                v3tup * (v3txyup[ir]) - v3tdn * (v3txydn[ir]);
+
+        sum4 += v2_upup_ir * gry_up * grz_up +
+                v2_updn_ir * gry_up * grz_dn +
+                v2_dnup_ir * gry_dn * grz_up +
+                v2_dndn_ir * gry_dn * grz_dn -
+                v3tup * (v3tyzup[ir]) - v3tdn * (v3tyzdn[ir]);
+
+        sum5 += v2_upup_ir * grx_up * grz_up +
+                v2_updn_ir * grx_up * grz_dn +
+                v2_dnup_ir * grx_dn * grz_up +
+                v2_dndn_ir * grx_dn * grz_dn -
+                v3tup * (v3txzup[ir]) - v3tdn * (v3txzdn[ir]);
+      }
     }
     double fac = 1.0 / vft_.np012();
     double sum[6],tsum[6];

@@ -19,5 +19,5 @@
 #include "release.h"
 std::string release(void)
 {
-  return std::string("wrk_scan6");
+  return std::string("wrk_scan7");
 }

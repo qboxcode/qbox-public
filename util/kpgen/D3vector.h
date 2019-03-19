@@ -17,7 +17,6 @@
 // double 3-vectors
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: D3vector.h,v 1.8 2008-09-08 15:56:18 fgygi Exp $
 
 #ifndef D3VECTOR_H
 #define D3VECTOR_H
@@ -39,6 +38,14 @@ class D3vector
   explicit D3vector(const double* r) : x(r[0]), y(r[1]), z(r[2]) {}
 
   double& operator[](const int &i)
+  {
+    assert(i>=0 && i <3);
+    if ( i == 0 ) return x;
+    else if ( i == 1 ) return y;
+    else return z;
+  }
+
+  double operator[] (const int &i) const
   {
     assert(i>=0 && i <3);
     if ( i == 0 ) return x;
@@ -142,7 +149,7 @@ class D3vector
     return sqrt( a.x * a.x + a.y * a.y + a.z * a.z );
   }
 
-  friend double norm( const D3vector& a )
+  friend double norm2( const D3vector& a )
   {
     return a.x * a.x + a.y * a.y + a.z * a.z;
   }

@@ -77,8 +77,10 @@ SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt),
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const SlaterDet& rhs) : ctxt_(rhs.context()),
-  basis_(new Basis(*(rhs.basis_))),
-  my_col_comm_(rhs.my_col_comm_), c_(rhs.c_){}
+  basis_(new Basis(*(rhs.basis_))), c_(rhs.c_)
+  {
+    MPI_Comm_dup(rhs.my_col_comm_,&my_col_comm_);
+  }
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::~SlaterDet()
@@ -103,6 +105,7 @@ SlaterDet::~SlaterDet()
     }
   }
 #endif
+  MPI_Comm_free(&my_col_comm_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

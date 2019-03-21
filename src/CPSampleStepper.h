@@ -47,6 +47,8 @@ class CPSampleStepper : public SampleStepper
   mutable TimerMap tmap;
 
   void step(int niter);
+  ChargeDensity& cd(void) { return cd_; }
+  EnergyFunctional& ef(void) { return ef_; }
 
   CPSampleStepper(Sample& s);
   ~CPSampleStepper();

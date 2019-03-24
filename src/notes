@@ -1,4 +1,15 @@
 --------------------------------------------------------------------------------
+rel1_66_3
+--------------------------------------------------------------------------------
+23da694 Adjust atomic radii. Update logic of non-scf loop termination.
+24ec148 Fix pure virtual functions declarations in SampleStepper.h
+0cae884 Fix MPI_Comm leak in SlaterDet copy ctor
+ffa583a Remove old kpgen.C, replaced by util/kpgen/kpgen.cpp
+2e5500e Update util/kpgen files
+c67d4c3 Fix units of ext_stress
+648574e Update mk file for MacBook Pro Mojave
+d51cdb9 Fix precision of eigenvalue_sum output
+--------------------------------------------------------------------------------
 rel1_66_2
 --------------------------------------------------------------------------------
 2fdf056 Fix Function3d byte swapping on big endian systems

@@ -76,27 +76,27 @@ void BOSampleStepper::initialize_density(void)
 
   double atom_radius[] =
   {
-    0.00,  0.80,  0.59,  3.16,  2.12,  // null H  He  Li  Be
-    1.64,  1.27,  1.06,  0.91,  0.79,  //  B   C   N   O   F
-    0.72,  3.59,  2.74,  2.23,  2.10,  // Ne  Na  Mg  Al  Si
-    1.85,  1.66,  1.49,  1.34,  4.59,  //  P   S  Cl  Ar   K
-    3.67,  3.48,  3.33,  3.23,  3.14,  // Ca  Sc  Ti   V  Cr
-    3.04,  2.95,  2.87,  2.82,  2.74,  // Mn  Fe  Co  Ni  Cu
-    2.68,  2.57,  2.36,  2.15,  1.95,  // Zn  Ga  Ge  As  Se
-    1.78,  1.66,  5.01,  4.14,  4.01,  // Br  Kr  Rb  Sr   Y
-    3.89,  3.74,  3.59,  3.46,  3.36,  // Zr  Nb  Mo  Tc  Ru
-    3.27,  3.19,  3.12,  3.04,  2.95,  // Rh  Pd  Ag  Cd  In
-    2.74,  2.51,  2.32,  2.17,  2.04,  // Sn  Sb  Te   I  Xe
-    5.63,  4.78,  0.00,  0.00,  4.67,  // Cs  Ba  La  Ce  Pr
-    3.89,  3.87,  4.50,  4.37,  4.40,  // Nd  Pm  Sm  Eu  Gd
-    4.25,  4.31,  0.00,  4.27,  4.20,  // Tb  Dy  Ho  Er  Tm
-    4.20,  4.10,  3.93,  3.78,  3.65,  // Yb  Lu  Hf  Ta   W
-    3.55,  3.50,  3.40,  3.34,  3.29,  // Re  Os  Ir  Pt  Au
-    3.23,  2.95,  2.91,  2.70,  2.55,  // Hg  Tl  Pb  Bi  Po
-    4.00,  2.27,  4.00,  4.00,  4.00,  // At  Rn  Fr  Ra  Ac
-    4.00,  4.00,  4.00,  4.00,  4.00,  // Th  Pa   U  Np  Pu
-    4.00,  4.00,  4.00,  4.00,  4.00,  // Am  Cm  Bk  Cf  Es
-    4.00,  4.00,  4.00,  4.00          // Fm  Md  No  Lr
+    0.000, 1.542, 0.931, 1.727, 1.636, // null H  He  Li  Be
+    1.845, 1.538, 1.311, 1.141, 1.014, //  B   C   N   O   F
+    0.983, 1.238, 1.347, 1.376, 2.151, // Ne  Na  Mg  Al  Si
+    1.927, 1.733, 1.563, 1.429, 1.546, //  P   S  Cl  Ar   K
+    1.663, 1.604, 1.516, 1.434, 1.377, // Ca  Sc  Ti   V  Cr
+    1.310, 1.245, 1.201, 1.162, 1.098, // Mn  Fe  Co  Ni  Cu
+    1.077, 1.331, 1.415, 2.015, 1.880, // Zn  Ga  Ge  As  Se
+    1.749, 1.630, 1.705, 1.819, 1.794, // Br  Kr  Rb  Sr   Y
+    1.728, 1.664, 1.589, 1.523, 1.461, // Zr  Nb  Mo  Tc  Ru
+    1.410, 1.348, 1.306, 1.303, 1.554, // Rh  Pd  Ag  Cd  In
+    1.609, 1.611, 1.530, 1.514, 1.464, // Sn  Sb  Te   I  Xe
+    1.946, 1.967, 1.943, 1.930, 1.920, // Cs  Ba  La  Ce  Pr
+    1.910, 1.900, 1.890, 1.880, 1.870, // Nd  Pm  Sm  Eu  Gd
+    1.860, 1.850, 1.840, 1.830, 1.820, // Tb  Dy  Ho  Er  Tm
+    1.810, 1.800, 1.701, 1.658, 1.606, // Yb  Lu  Hf  Ta   W
+    1.550, 1.500, 1.446, 1.398, 1.355, // Re  Os  Ir  Pt  Au
+    1.314, 1.624, 1.659, 1.634, 1.620, // Hg  Tl  Pb  Bi  Po
+    1.600, 1.500, 1.600, 1.600, 1.600, // At  Rn  Fr  Ra  Ac
+    1.600, 1.600, 1.600, 1.600, 1.600, // Th  Pa   U  Np  Pu
+    1.600, 1.600, 1.600, 1.600, 1.600, // Am  Cm  Bk  Cf  Es
+    1.600, 1.600, 1.600, 1.600         // Fm  Md  No  Lr
   };
 
   const AtomSet& atoms = s_.atoms;
@@ -115,8 +115,7 @@ void BOSampleStepper::initialize_density(void)
     const int zval = s->zval();
     const int atomic_number = s->atomic_number();
     assert(atomic_number < sizeof(atom_radius)/sizeof(double));
-    // scaling factor 2.0 in next line is empirically adjusted
-    double rc = 2.0 * atom_radius[atomic_number];
+    double rc = atom_radius[atomic_number];
     for ( int ig = 0; ig < ngloc; ig++ )
     {
       double arg = 0.25 * rc * rc * g2[ig];
@@ -745,6 +744,7 @@ void BOSampleStepper::step(int niter)
         mixer.restart();
 
       double ehart, ehart_m;
+      double delta_ehart;
       bool scf_converged = false;
       int itscf = 0;
       double etotal = 0.0, etotal_m = 0.0, etotal_mm = 0.0;
@@ -862,16 +862,36 @@ void BOSampleStepper::step(int niter)
 
         // non-self-consistent loop
         // repeat until the change in eigenvalue_sum is smaller than a
-        // fraction of the change in Hartree energy in the last scf iteration
+        // fraction delta_ratio of the change in Hartree energy delta_ehart
+        // in the last scf iteration
         bool nonscf_converged = false;
-        if ( itscf > 0 )
+        if ( itscf == 0 )
+        {
+          ehart = ef_.ehart();
+          delta_ehart = 0.0;
+        }
+        else if ( itscf == 1 )
+        {
           ehart_m = ehart;
-        ehart = ef_.ehart();
-        double delta_ehart = 0.0;
-        if ( itscf > 0 )
+          ehart = ef_.ehart();
           delta_ehart = fabs(ehart - ehart_m);
-        // if ( onpe0 && nite_ > 0 )
-        //   cout << " delta_ehart = " << delta_ehart << endl;
+        }
+        else
+        {
+          // itscf > 1
+          // only allow decrease in delta_ehart
+          ehart_m = ehart;
+          ehart = ef_.ehart();
+          delta_ehart = min(delta_ehart,fabs(ehart - ehart_m));
+        }
+#if DEBUG
+        if ( onpe0 )
+        {
+          cout << " BOSampleStepper::step: delta_ehart: "
+               << delta_ehart << endl;
+        }
+#endif
+
         int ite = 0;
         double etotal_int;
 
@@ -897,7 +917,7 @@ void BOSampleStepper::step(int niter)
 
           eigenvalue_sum = real(s_.wf.dot(dwf));
           if ( onpe0 )
-            cout << "  <eigenvalue_sum>  "
+            cout << "  <eigenvalue_sum>  " << setprecision(8)
                  << eigenvalue_sum << " </eigenvalue_sum>" << endl;
 
           tmap["wf_update"].start();
@@ -907,15 +927,14 @@ void BOSampleStepper::step(int niter)
           // compare delta_eig_sum only after first iteration
           if ( ite > 0 )
           {
+            const double delta_ratio = 0.1;
             double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
-            nonscf_converged |= (delta_eig_sum < 0.01 * delta_ehart);
-#ifdef DEBUG
+            nonscf_converged |= (delta_eig_sum < delta_ratio * delta_ehart);
+#if DEBUG
             if ( onpe0 )
             {
               cout << " BOSampleStepper::step delta_eig_sum: "
                    << delta_eig_sum << endl;
-              cout << " BOSampleStepper::step: delta_ehart: "
-                   << delta_ehart << endl;
             }
 #endif
           }

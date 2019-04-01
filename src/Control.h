@@ -72,6 +72,8 @@ struct Control
   double btHF;
 
   double scf_tol;
+  double force_tol;
+  double stress_tol;
 
   D3vector e_field;
   std::string polarization;

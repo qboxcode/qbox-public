@@ -94,6 +94,7 @@ using namespace std;
 #include "Ecutprec.h"
 #include "Ecuts.h"
 #include "Efield.h"
+#include "ForceTol.h"
 #include "Polarization.h"
 #include "Emass.h"
 #include "ExtStress.h"
@@ -109,6 +110,7 @@ using namespace std;
 #include "RefCell.h"
 #include "ScfTol.h"
 #include "Stress.h"
+#include "StressTol.h"
 #include "Thermostat.h"
 #include "ThTemp.h"
 #include "ThTime.h"
@@ -281,6 +283,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new Ecutprec(s));
   ui.addVar(new Ecuts(s));
   ui.addVar(new Efield(s));
+  ui.addVar(new ForceTol(s));
   ui.addVar(new Polarization(s));
   ui.addVar(new Emass(s));
   ui.addVar(new ExtStress(s));
@@ -296,6 +299,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new RefCell(s));
   ui.addVar(new ScfTol(s));
   ui.addVar(new Stress(s));
+  ui.addVar(new StressTol(s));
   ui.addVar(new Thermostat(s));
   ui.addVar(new ThTemp(s));
   ui.addVar(new ThTime(s));

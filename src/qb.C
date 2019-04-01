@@ -157,7 +157,11 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I http://qboxcode.org      I\n";
   cout << "                   ============================\n\n";
   cout << "\n";
-  cout << "<release> " << release() << " " << TARGET << " </release>" << endl;
+  cout << "<release> " << release() << " " << TARGET;
+#ifdef VERSION
+  cout << " " << VERSION;
+#endif
+  cout << " </release>" << endl;
 
   // Identify executable name, checksum, size and link date
   if ( getlogin() != 0 )

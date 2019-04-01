@@ -58,6 +58,9 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         Function3d.o Function3dHandler.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
+# to include VERSION info in release string, use:
+# env VERSION=`git describe` make
+CXXFLAGS += -DVERSION='"$(VERSION)"'
  $(EXEC):    $(OBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  lib:   $(OBJECTS)

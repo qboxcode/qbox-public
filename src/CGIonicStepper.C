@@ -25,7 +25,7 @@ CGIonicStepper::CGIonicStepper(Sample& s) : IonicStepper(s),
   cgopt_(CGOptimizer(3*natoms_))
 {
   cgopt_.set_alpha_start(1.0);
-  cgopt_.set_alpha_max(5.0);
+  cgopt_.set_alpha_max(50.0);
   cgopt_.set_beta_max(10.0);
 #ifdef DEBUG
   if ( s.ctxt_.onpe0() )
@@ -63,7 +63,7 @@ void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
 
   // check largest displacement
   // max_disp: largest acceptable displacement
-  const double max_disp = 0.05;
+  const double max_disp = 0.2;
   double largest_disp = 0.0;
   for ( int i = 0; i < xp.size(); i++ )
     largest_disp = max(largest_disp,fabs(xp[i]-x[i]));
@@ -74,9 +74,6 @@ void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
     // rescale displacement and reset the CG optimizer
     double fac = max_disp/largest_disp;
     xp = x + fac * (xp - x);
-
-    // reduce alpha starting value in CG optmizer
-    cgopt_.set_alpha_start(fac*cgopt_.alpha_start());
     cgopt_.reset();
   }
 

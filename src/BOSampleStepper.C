@@ -1250,7 +1250,7 @@ void BOSampleStepper::step(int niter)
         cout << "  maxstress: " << scientific
              << setprecision(4) << maxstress << endl;
     }
-    iter_done = ( maxforce <= force_tol ) && ( maxstress <= stress_tol );
+    iter_done = ( maxforce < force_tol ) && ( maxstress < stress_tol );
 
     // print iteration time
     double time = tm_iter.real();

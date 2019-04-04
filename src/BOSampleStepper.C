@@ -1240,17 +1240,22 @@ void BOSampleStepper::step(int niter)
     if ( atoms_move )
       s_.constraints.update_constraints(dt);
 
-    // check if maxforce and maxstress within tolerance
-    if ( onpe0 )
+    // if using force_tol or stress_tol, check if maxforce and maxstress
+    // within tolerance
+    if ( force_tol > 0.0 )
     {
-      if ( force_tol > 0.0 )
+      if ( onpe0 )
         cout << "  maxforce: " << scientific
-             << setprecision(4) << maxforce << endl;
-      if ( stress_tol > 0.0 )
-        cout << "  maxstress: " << scientific
-             << setprecision(4) << maxstress << endl;
+             << setprecision(4) << maxforce << fixed << endl;
+      iter_done |= ( maxforce < force_tol );
     }
-    iter_done = ( maxforce < force_tol ) && ( maxstress < stress_tol );
+    if ( stress_tol > 0.0 )
+    {
+      if ( onpe0 )
+        cout << "  maxstress: " << scientific
+             << setprecision(4) << maxstress << fixed << endl;
+      iter_done |= ( maxstress < stress_tol );
+    }
 
     // print iteration time
     double time = tm_iter.real();

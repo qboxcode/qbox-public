@@ -1,4 +1,16 @@
 --------------------------------------------------------------------------------
+rel1_67_0
+--------------------------------------------------------------------------------
+c1bad59 Restore scaling of alpha_start in CGIonicStepper.C
+8ab5bfa Fix force_tol and stress_tol convergence test in BOSampleStepper.C
+a7c7157 Fix test convergence test of force_tol and stress_tol
+61ac1c1 Add optional VERSION macro in qb.C and Makefile
+0ed5ed8 Add force_tol and stress_tol variables
+ef0e7eb Adjust params in CGIonicStepper, remove rescaling of alpha_start
+4a664cb Change beta_max in testCGOptimizer
+66305fd Add set_nstep_max function to LineMinimizer
+e800eeb Fix PlotCmd argument parsing for -vlocal with nspin=2
+--------------------------------------------------------------------------------
 rel1_66_3
 --------------------------------------------------------------------------------
 23da694 Adjust atomic radii. Update logic of non-scf loop termination.
@@ -97,18 +109,6 @@ c102a32 Add testSampleReader program
 8f85701 Add option to define constraint with current value
 35f2374 changed output format of constraint value, force
 e85f85d Changed logic of shifts: zero shifts include Gamma
-25f2f96 Generate xyz file from kpoint file
-718452c Changed bisection tolerance from 1.0 to 0.001
---------------------------------------------------------------------------------
-rel1_63_10
---------------------------------------------------------------------------------
-a04d421 Merge branch 'develop'
-058730d Implemented PSDA for complex wave functions
-26c3495 Update printing of electronic charge & net charge
-c102a32 Add testSampleReader program
-8f85701 Add option to define constraint with current value
-35f2374 changed output format of constraint value, force
-e85f85d Changed kpgen logic of shifts: zero shifts include Gamma
 25f2f96 Generate xyz file from kpoint file
 718452c Changed bisection tolerance from 1.0 to 0.001
 --------------------------------------------------------------------------------

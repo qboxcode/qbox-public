@@ -53,6 +53,7 @@ class LineMinimizer
   void set_sigma2(double s) { sigma2_ = s; }
   void set_alpha_start(double a) { alpha_start_ = a; }
   void set_alpha_max(double a) { alpha_max_ = a; }
+  void set_nstep_max(int n) { nstep_max_ = n; }
   void set_debug_print(void) { debug_print = true; }
 
   double next_alpha(double alpha, double f, double fp);

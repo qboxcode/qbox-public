@@ -146,7 +146,7 @@ int PlotCmd::action(int argc, char **argv)
     }
     else if ( !strcmp(argv[iarg],"-spin") )
     {
-      if ( !(plot_density || plot_wf || plot_wfs) )
+      if ( !(plot_density || plot_wf || plot_wfs || plot_vlocal) )
       {
         if ( ui->onpe0() )
           cout << usage << endl;

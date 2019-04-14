@@ -207,6 +207,9 @@ void BOSampleStepper::step(int niter)
   // GS-only calculation:
   const bool gs_only = !atoms_move && !cell_moves;
 
+  const double force_tol = s_.ctrl.force_tol;
+  const double stress_tol = s_.ctrl.stress_tol;
+
   Timer tm_iter;
 
   Preconditioner prec(wf,ef_,s_.ctrl.ecutprec);
@@ -353,7 +356,8 @@ void BOSampleStepper::step(int niter)
     cout << "<net_charge> " << atoms.nel()-wf.nel() << " </net_charge>\n";
 
   // Next line: special case of niter=0: compute GS only
-  for ( int iter = 0; iter < max(niter,1); iter++ )
+  bool iter_done = false;
+  for ( int iter = 0; iter < max(niter,1) && !iter_done; iter++ )
   {
     // ionic iteration
 
@@ -363,6 +367,8 @@ void BOSampleStepper::step(int niter)
       cout << "<iteration count=\"" << iter+1 << "\">\n";
 
     // compute energy and ionic forces using existing wavefunction
+    double maxforce = 0.0;
+    double maxstress = 0.0;
 
     if ( !gs_only )
     {
@@ -379,6 +385,20 @@ void BOSampleStepper::step(int niter)
         ef_.energy(false,dwf,compute_forces,fion,compute_stress,sigma_eks);
       tmap["energy"].stop();
       double enthalpy = ef_.enthalpy();
+
+      if ( force_tol > 0.0 )
+      {
+        maxforce = 0.0;
+        for ( int is = 0; is < fion.size(); is++ )
+          for ( int i = 0; i < fion[is].size(); i++ )
+            maxforce = max(maxforce, fabs(fion[is][i]));
+      }
+
+      if ( stress_tol > 0.0 )
+      {
+        for ( int i = 0; i < sigma.size(); i++ )
+          maxstress = max(maxstress, fabs(sigma[i]));
+      }
 
       if ( onpe0 )
       {
@@ -1220,6 +1240,23 @@ void BOSampleStepper::step(int niter)
     if ( atoms_move )
       s_.constraints.update_constraints(dt);
 
+    // if using force_tol or stress_tol, check if maxforce and maxstress
+    // within tolerance
+    if ( force_tol > 0.0 )
+    {
+      if ( onpe0 )
+        cout << "  maxforce: " << scientific
+             << setprecision(4) << maxforce << fixed << endl;
+      iter_done |= ( maxforce < force_tol );
+    }
+    if ( stress_tol > 0.0 )
+    {
+      if ( onpe0 )
+        cout << "  maxstress: " << scientific
+             << setprecision(4) << maxstress << fixed << endl;
+      iter_done |= ( maxstress < stress_tol );
+    }
+
     // print iteration time
     double time = tm_iter.real();
     double tmin = time;
@@ -1235,6 +1272,7 @@ void BOSampleStepper::step(int niter)
            << endl;
       cout << "</iteration>" << endl;
     }
+
   } // for iter
 
   if ( atoms_move )

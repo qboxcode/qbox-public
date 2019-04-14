@@ -58,6 +58,9 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         Function3d.o Function3dHandler.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
+# to include VERSION info in release string, use:
+# env VERSION=`git describe` make
+CXXFLAGS += -DVERSION='"$(VERSION)"'
  $(EXEC):    $(OBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  lib:   $(OBJECTS)
@@ -447,6 +450,9 @@ FermiTemp.o: Wavefunction.h Control.h
 FoldInWsCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 FoldInWsCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 FoldInWsCmd.o: ExtForceSet.h Wavefunction.h Control.h
+ForceTol.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
+ForceTol.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+ForceTol.o: Control.h
 FourierTransform.o: FourierTransform.h Timer.h Basis.h D3vector.h UnitCell.h
 FourierTransform.o: blas.h
 FourierTransform.o: Timer.h
@@ -729,6 +735,9 @@ StrainCmd.o: ExtForceSet.h Wavefunction.h Control.h
 Stress.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
 Stress.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 Stress.o: Control.h
+StressTol.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
+StressTol.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+StressTol.o: Wavefunction.h Control.h
 StructureFactor.o: StructureFactor.h Basis.h D3vector.h UnitCell.h
 StructuredDocumentHandler.o: StructuredDocumentHandler.h StrX.h
 StructuredDocumentHandler.o: StructureHandler.h
@@ -803,7 +812,6 @@ Xc.o: Control.h
 isodate.o: isodate.h
 jacobi.o: blacs.h Context.h Matrix.h blas.h
 jade.o: blacs.h Context.h Matrix.h blas.h Timer.h
-kpgen.o: D3vector.h
 qb.o: isodate.h release.h qbox_xmlns.h uuid_str.h Context.h blacs.h
 qb.o: UserInterface.h Sample.h AtomSet.h Atom.h D3vector.h UnitCell.h
 qb.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
@@ -818,10 +826,11 @@ qb.o: FourierTransform.h StrainCmd.h TorsionCmd.h BisectionCmd.h Bisection.h
 qb.o: SlaterDet.h Basis.h Matrix.h AlphaPBE0.h AlphaRSH.h AtomsDyn.h
 qb.o: BetaRSH.h BlHF.h BtHF.h Cell.h CellDyn.h CellLock.h CellMass.h
 qb.o: ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h Debug.h Dspin.h Ecut.h
-qb.o: Ecutprec.h Ecuts.h Efield.h Polarization.h Emass.h ExtStress.h
-qb.o: FermiTemp.h IterCmd.h IterCmdPeriod.h Dt.h MuRSH.h Nempty.h NetCharge.h
-qb.o: Nrowmax.h Nspin.h RefCell.h ScfTol.h Stress.h Thermostat.h ThTemp.h
-qb.o: ThTime.h ThWidth.h Vext.h ExternalPotential.h WfDiag.h WfDyn.h Xc.h
+qb.o: Ecutprec.h Ecuts.h Efield.h ForceTol.h Polarization.h Emass.h
+qb.o: ExtStress.h FermiTemp.h IterCmd.h IterCmdPeriod.h Dt.h MuRSH.h Nempty.h
+qb.o: NetCharge.h Nrowmax.h Nspin.h RefCell.h ScfTol.h Stress.h StressTol.h
+qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h Vext.h ExternalPotential.h
+qb.o: WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h
@@ -865,6 +874,7 @@ testWavefunction.o: SlaterDet.h Basis.h Matrix.h Timer.h
 testXCFunctional.o: LDAFunctional.h XCFunctional.h PBEFunctional.h Timer.h
 testXMLGFPreprocessor.o: Context.h blacs.h Matrix.h XMLGFPreprocessor.h
 test_fftw.o: Timer.h readTSC.h
+test_sym.o: Basis.h D3vector.h UnitCell.h
 test_vext.o: Function3d.h D3vector.h
 testjacobi.o: Timer.h Context.h blacs.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h blacs.h Matrix.h jade.h

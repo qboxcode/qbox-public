@@ -189,7 +189,7 @@ double LineMinimizer::next_alpha(double alpha, double f, double fp)
   {
     // we are already in bracketing mode
     nstep_++;
-    if ( nstep_ > nstep_max_ )
+    if ( nstep_max_ > 0 && nstep_ > nstep_max_ )
     {
       if ( debug_print )
         cout << "LineMinimizer: fail, nstep_max" << endl;

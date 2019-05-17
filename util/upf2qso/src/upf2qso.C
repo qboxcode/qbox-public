@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include "spline.h"
+#include "isodate.h"
 #include "PeriodicTable.h"
 using namespace std;
 
@@ -753,7 +754,8 @@ int main(int argc, char** argv)
     cout << "  xsi:schemaLocation=\"http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"  << endl;
     cout << "  species.xsd\">" << endl;
     cout << "<description>" << endl;
-    cout << "Translated from UPF format by upf2qso " << release << endl;
+    cout << "Translated from UPF format by upf2qso " << release
+         << " on " << isodate() << endl;
     cout << upf_pp_info;
     cout << "</description>" << endl;
     cout << "<symbol>" << upf_symbol << "</symbol>" << endl;
@@ -1392,7 +1394,8 @@ int main(int argc, char** argv)
       cout << "  xsi:schemaLocation=\"http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"  << endl;
       cout << "  species.xsd\">" << endl;
       cout << "<description>" << endl;
-      cout << "Translated from UPF format by upf2qso " << release << endl;
+      cout << "Translated from UPF format by upf2qso " << release
+           << " on " << isodate() << endl;
       cout << upf_pp_info;
       cout << "</description>" << endl;
       cout << "<symbol>" << upf_symbol << "</symbol>" << endl;
@@ -1617,7 +1620,8 @@ int main(int argc, char** argv)
       cout << "  xsi:schemaLocation=\"http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"  << endl;
       cout << "  species.xsd\">" << endl;
       cout << "<description>" << endl;
-      cout << "Translated from UPF format by upf2qso " << release << endl;
+      cout << "Translated from UPF format by upf2qso " << release
+           << " on " << isodate() << endl;
       cout << upf_pp_info;
       cout << "</description>" << endl;
       cout << "<symbol>" << upf_symbol << "</symbol>" << endl;

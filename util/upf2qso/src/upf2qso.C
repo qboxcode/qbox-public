@@ -113,8 +113,11 @@ void seek_str(string tag)
 ////////////////////////////////////////////////////////////////////////////////
 string get_attr(string buf, string attr)
 {
+  //cerr << " get_attr: searching for: " << attr << endl;
+  //cerr << " in buffer: " << endl;
+  //cerr << buf << endl;
   bool done = false;
-  string s, search_string = " " + attr + "=";
+  string s, search_string = attr + "=";
 
   // find attribute name in buf
   string::size_type p = buf.find(search_string);
@@ -128,7 +131,10 @@ string get_attr(string buf, string attr)
       cerr << " get_attr: attribute not found: " << attr << endl;
       throw invalid_argument(attr);
     }
-    return buf.substr(b+1,e-b-1);
+    s = buf.substr(b+1,e-b-1);
+    // remove white space
+    s.erase(remove_if(s.begin(),s.end(),::isspace),s.end());
+    return s;
   }
   else
   {
@@ -151,7 +157,7 @@ void skipln(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-const string release="1.6";
+const string release="1.7";
 
 int main(int argc, char** argv)
 {
@@ -560,6 +566,8 @@ int main(int argc, char** argv)
         else
           // use value closest to the origin for r=0
           nlcc_lin[i] = upf_nlcc[0];
+        if ( fabs(nlcc_lin[i]) < 1.e-12 )
+          nlcc_lin[i] = 0.0;
       }
     }
 
@@ -745,7 +753,7 @@ int main(int argc, char** argv)
     cout << "  xsi:schemaLocation=\"http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"  << endl;
     cout << "  species.xsd\">" << endl;
     cout << "<description>" << endl;
-    cout << "Translated from UPF format by upf2qso" << endl;
+    cout << "Translated from UPF format by upf2qso " << release << endl;
     cout << upf_pp_info;
     cout << "</description>" << endl;
     cout << "<symbol>" << upf_symbol << "</symbol>" << endl;
@@ -929,17 +937,6 @@ int main(int argc, char** argv)
     find_end_element("PP_RAB");
     find_end_element("PP_MESH");
 
-    // NLCC
-    vector<double> upf_nlcc;
-    if ( upf_nlcc_flag == "T" )
-    {
-      find_start_element("PP_NLCC");
-      upf_nlcc.resize(upf_mesh_size);
-      for ( int i = 0; i < upf_mesh_size; i++ )
-        cin >> upf_nlcc[i];
-      find_end_element("PP_NLCC");
-    }
-
     find_start_element("PP_LOCAL");
     vector<double> upf_vloc(upf_mesh_size);
     for ( int i = 0; i < upf_mesh_size; i++ )
@@ -1085,6 +1082,17 @@ int main(int argc, char** argv)
       }
       find_end_element("PP_PSWFC");
 
+      // NLCC
+      vector<double> upf_nlcc;
+      if ( upf_nlcc_flag == "T" )
+      {
+        find_start_element("PP_NLCC");
+        upf_nlcc.resize(upf_mesh_size);
+        for ( int i = 0; i < upf_mesh_size; i++ )
+          cin >> upf_nlcc[i];
+        find_end_element("PP_NLCC");
+      }
+
       // output original data in file upf.dat
       ofstream upf("upf.dat");
       upf << "# vloc" << endl;
@@ -1197,6 +1205,8 @@ int main(int argc, char** argv)
           else
             // use value closest to the origin for r=0
             nlcc_lin[i] = upf_nlcc[0];
+          if ( fabs(nlcc_lin[i]) < 1.e-12 )
+            nlcc_lin[i] = 0.0;
         }
       }
 
@@ -1382,7 +1392,7 @@ int main(int argc, char** argv)
       cout << "  xsi:schemaLocation=\"http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"  << endl;
       cout << "  species.xsd\">" << endl;
       cout << "<description>" << endl;
-      cout << "Translated from UPF format by upf2qso" << endl;
+      cout << "Translated from UPF format by upf2qso " << release << endl;
       cout << upf_pp_info;
       cout << "</description>" << endl;
       cout << "<symbol>" << upf_symbol << "</symbol>" << endl;
@@ -1443,6 +1453,17 @@ int main(int argc, char** argv)
 
     if ( pseudo_type == "NC" )
     {
+      // NLCC
+      vector<double> upf_nlcc;
+      if ( upf_nlcc_flag == "T" )
+      {
+        find_start_element("PP_NLCC");
+        upf_nlcc.resize(upf_mesh_size);
+        for ( int i = 0; i < upf_mesh_size; i++ )
+          cin >> upf_nlcc[i];
+        find_end_element("PP_NLCC");
+      }
+
       cerr << " NC potential" << endl;
       // output original data in file upf.dat
       ofstream upf("upf.dat");
@@ -1504,6 +1525,8 @@ int main(int argc, char** argv)
           else
             // use value closest to the origin for r=0
             nlcc_lin[i] = upf_nlcc[0];
+          if ( fabs(nlcc_lin[i]) < 1.e-12 )
+            nlcc_lin[i] = 0.0;
         }
       }
 
@@ -1541,12 +1564,18 @@ int main(int argc, char** argv)
 
       for ( int j = 0; j < upf_nproj; j++ )
       {
-        // factor 0.5: convert from Ry in UPF to Hartree in QSO
-        for ( int i = 0; i < upf_vnl.size(); i++ )
-          f[i] = 0.5 * upf_vnl[j][i];
+        // interpolate projectors
+        // note: upf_vnl contains r*projector
+        // See UPF documentation at http://www.quantum-espresso.org/
+        //   pseudopotentials/unified-pseudopotential-format
+        // note: the projector normalization convention is the same as the one
+        // adopted in the UPF 2 file
+        assert(f.size()>=upf_vnl[j].size());
+        for ( int i = 0; i < upf_vnl[j].size(); i++ )
+          f[i] = upf_vnl[j][i];
 
-        int n = upf_vloc.size();
-        int bcnat_left = 0;
+        int n = f.size();
+        int bcnat_left = 1;
         double yp_left = 0.0;
         int bcnat_right = 1;
         double yp_right = 0.0;
@@ -1559,7 +1588,9 @@ int main(int argc, char** argv)
           if ( r >= upf_r[0] )
             splint(n,&upf_r[0],&f[0],&fspl[0],r,&vnl_lin[j][i]);
           else
-            vnl_lin[j][i] = 0.5 * upf_vnl[j][0];
+            vnl_lin[j][i] = upf_vnl[j][0];
+          if ( fabs(vnl_lin[j][i]) < 1.e-12 )
+            vnl_lin[j][i] = 0.0;
         }
       }
 
@@ -1586,7 +1617,7 @@ int main(int argc, char** argv)
       cout << "  xsi:schemaLocation=\"http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"  << endl;
       cout << "  species.xsd\">" << endl;
       cout << "<description>" << endl;
-      cout << "Translated from UPF format by upf2qso" << endl;
+      cout << "Translated from UPF format by upf2qso " << release << endl;
       cout << upf_pp_info;
       cout << "</description>" << endl;
       cout << "<symbol>" << upf_symbol << "</symbol>" << endl;
@@ -1612,6 +1643,7 @@ int main(int argc, char** argv)
       cout << "</local_potential>" << endl;
 
       // projectors
+      // note: vnl_lin contains r[i]*projector[i]
       int ip = 0;
       for ( int l = 0; l <= upf_lmax; l++ )
       {
@@ -1620,8 +1652,25 @@ int main(int argc, char** argv)
           cout << "<projector l=\"" << l << "\" i=\""
                << i+1 << "\" size=\"" << nplin << "\">"
                << endl;
-          for ( int j = 0; j < nplin; j++ )
-            cout << setprecision(10) << vnl_lin[ip][j] << endl;
+          // value at r=0:
+          // quadratic extrapolation of vnl_lin(r)/r to r=0 if l==0
+          if ( l == 0 )
+          {
+            // use quadratic extrapolation to zero
+            const double h = mesh_spacing;
+            const double v = (4.0/3.0)*vnl_lin[ip][1]/h -
+                             (1.0/3.0)*vnl_lin[ip][2]/(2*h);
+            cout << setprecision(10) << v << endl;
+          }
+          else
+          {
+            cout << setprecision(10) << 0.0 << endl;
+          }
+          for ( int j = 1; j < nplin; j++ )
+          {
+            const double r = j * mesh_spacing;
+            cout << setprecision(10) << vnl_lin[ip][j]/r << endl;
+          }
           ip++;
           cout << "</projector>" << endl;
         }
@@ -1640,7 +1689,7 @@ int main(int argc, char** argv)
               int ij = i + j*upf_nproj;
               cout << "<d_ij l=\"" << l << "\""
                    << " i=\"" << i-ibase+1 << "\" j=\"" << j-jbase+1
-                   << "\" " << setprecision(10) << 0.5*upf_d[ij] << " />"
+                   << "\"> " << setprecision(10) << upf_d[ij] << " </d_ij>"
                    << endl;
             }
           }

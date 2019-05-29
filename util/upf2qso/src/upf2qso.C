@@ -159,7 +159,7 @@ void skipln(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-const string release="1.7";
+const string release="1.8";
 
 int main(int argc, char** argv)
 {
@@ -1572,11 +1572,9 @@ int main(int argc, char** argv)
         // note: upf_vnl contains r*projector
         // See UPF documentation at http://www.quantum-espresso.org/
         //   pseudopotentials/unified-pseudopotential-format
-        // note: the projector normalization convention is the same as the one
-        // adopted in the UPF 2 file
         assert(f.size()>=upf_vnl[j].size());
         for ( int i = 0; i < upf_vnl[j].size(); i++ )
-          f[i] = upf_vnl[j][i];
+          f[i] = 0.5 * upf_vnl[j][i];
 
         int n = f.size();
         int bcnat_left = 1;
@@ -1694,7 +1692,7 @@ int main(int argc, char** argv)
               int ij = i + j*upf_nproj;
               cout << "<d_ij l=\"" << l << "\""
                    << " i=\"" << i-ibase+1 << "\" j=\"" << j-jbase+1
-                   << "\"> " << setprecision(10) << upf_d[ij] << " </d_ij>"
+                   << "\"> " << setprecision(10) << 0.5*upf_d[ij] << " </d_ij>"
                    << endl;
             }
           }

@@ -1574,7 +1574,7 @@ int main(int argc, char** argv)
         //   pseudopotentials/unified-pseudopotential-format
         assert(f.size()>=upf_vnl[j].size());
         for ( int i = 0; i < upf_vnl[j].size(); i++ )
-          f[i] = 0.5 * upf_vnl[j][i];
+          f[i] = upf_vnl[j][i];
 
         int n = f.size();
         int bcnat_left = 1;

@@ -35,43 +35,46 @@ using namespace std;
 XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
   const Control& ctrl): cd_(cd), vft_(*cd_.vft()), vbasis_(*cd_.vbasis())
 {
+  // copy arrays to resize rhototal_r_ and rhototal_g_
+  rhototal_r_ = cd_.rhor;
+  rhototal_g_ = cd_.rhog;
   if ( functional_name == "LDA" )
   {
-    xcf_ = new LDAFunctional(cd_.rhor);
+    xcf_ = new LDAFunctional(rhototal_r_);
   }
   else if ( functional_name == "VWN" )
   {
-    xcf_ = new VWNFunctional(cd_.rhor);
+    xcf_ = new VWNFunctional(rhototal_r_);
   }
   else if ( functional_name == "PBE" )
   {
-    xcf_ = new PBEFunctional(cd_.rhor);
+    xcf_ = new PBEFunctional(rhototal_r_);
   }
   else if ( functional_name == "BLYP" )
   {
-    xcf_ = new BLYPFunctional(cd_.rhor);
+    xcf_ = new BLYPFunctional(rhototal_r_);
   }
   else if ( functional_name == "PBE0" )
   {
     const double x_coeff = 1.0 - ctrl.alpha_PBE0;
     const double c_coeff = 1.0;
-    xcf_ = new PBEFunctional(cd_.rhor,x_coeff,c_coeff);
+    xcf_ = new PBEFunctional(rhototal_r_,x_coeff,c_coeff);
   }
   else if ( functional_name == "HSE" )
   {
-    xcf_ = new HSEFunctional(cd_.rhor);
+    xcf_ = new HSEFunctional(rhototal_r_);
   }
   else if ( functional_name == "RSH" )
   {
-    xcf_ = new RSHFunctional(cd_.rhor,ctrl.alpha_RSH,ctrl.beta_RSH,ctrl.mu_RSH);
+    xcf_ = new RSHFunctional(rhototal_r_,ctrl.alpha_RSH,ctrl.beta_RSH,ctrl.mu_RSH);
   }
   else if ( functional_name == "B3LYP" )
   {
-    xcf_ = new B3LYPFunctional(cd_.rhor);
+    xcf_ = new B3LYPFunctional(rhototal_r_);
   }
   else if ( functional_name == "BHandHLYP" )
   {
-    xcf_ = new BHandHLYPFunctional(cd_.rhor);
+    xcf_ = new BHandHLYPFunctional(rhototal_r_);
   }
   else
   {
@@ -116,6 +119,10 @@ void XCPotential::update(vector<vector<double> >& vr)
   // The array cd_.rhog is only used if xcf->isGGA() == true
   // to compute the density gradients
 
+  // if a non-linear core correction is included,
+  // rhototal_r_ = cd_.rhor+cd_.rhocore_r. Otherwise
+  // rhototal_r_ = cd_.rhor
+
   // Output: (through member function xcf())
   //
   // exc_, dxc_
@@ -132,6 +139,24 @@ void XCPotential::update(vector<vector<double> >& vr)
   //                     xcf()->vxc1_up, xcf()->vxc1_dn
   //                     xcf()->vxc2_upup, xcf()->vxc2_dndn,
   //                     xcf()->vxc2_updn, xcf()->vxc2_dnup
+
+  rhototal_r_ = cd_.rhor;
+  rhototal_g_ = cd_.rhog;
+  // test if a non-linear core correction is used
+  // if so, add core density to rhototal_r_ and rhototal_g_
+  if ( !cd_.rhocore_r.empty() )
+  {
+    // add core charge
+    // note: if nspin==2, the cd_.rhocore_{rg} vectors each
+    // contain half of the total core charge
+    for ( int ispin = 0; ispin < rhototal_r_.size(); ispin++ )
+    {
+      for ( int i = 0; i < rhototal_r_[ispin].size(); i++ )
+        rhototal_r_[ispin][i] += cd_.rhocore_r[i];
+      for ( int i = 0; i < rhototal_g_[ispin].size(); i++ )
+        rhototal_g_[ispin][i] += cd_.rhocore_g[i];
+    }
+  }
 
   if ( !xcf_->isGGA() )
   {
@@ -197,7 +222,7 @@ void XCPotential::update(vector<vector<double> >& vr)
         for ( int ig = 0; ig < ngloc_; ig++ )
         {
           /* i*G_j*c(G) */
-          tmp1[ig] = complex<double>(0.0,omega_inv*gxj[ig]) * cd_.rhog[0][ig];
+          tmp1[ig] = complex<double>(0.0,omega_inv*gxj[ig])*rhototal_g_[0][ig];
         }
         vft_.backward(&tmp1[0],&tmpr[0]);
         int inc2=2, inc1=1;
@@ -210,8 +235,8 @@ void XCPotential::update(vector<vector<double> >& vr)
       for ( int j = 0; j < 3; j++ )
       {
         const double *const gxj = vbasis_.gx_ptr(j);
-        const complex<double>* rhg0 = &cd_.rhog[0][0];
-        const complex<double>* rhg1 = &cd_.rhog[1][0];
+        const complex<double>* rhg0 = &rhototal_g_[0][0];
+        const complex<double>* rhg1 = &rhototal_g_[1][0];
         for ( int ig = 0; ig < ngloc_; ig++ )
         {
           /* i*G_j*c(G) */

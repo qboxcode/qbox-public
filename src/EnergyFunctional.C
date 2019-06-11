@@ -282,6 +282,19 @@ void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vh,
           vxc_g[ig] = 0.5 * ( vxc_g[ig] + vtemp[ig] );
       }
     }
+    // correct dxc_ to include the core charge exchange-correlation term
+    // in Harris-Foulkes estimates
+    // dxc_correction = sum_ig vxc_g[ig] * rhocore_g[ig]
+    double sum = 0.0;
+    complex<double> *rh = &cd_.rhocore_g[0];
+    int len=2*ngloc,inc1=1;
+    sum = 2.0 * ddot(&len,(double*)&vxc_g[0],&inc1,(double*)&rh[0],&inc1);
+    // remove double counting for G=0
+    if ( vbasis_->mype() == 0 )
+      sum -= real(conj(vxc_g[0])*rh[0]);
+    double tsum = 0.0;
+    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
+    dxc_ += tsum;
   }
 
   tmap["exc"].stop();
@@ -621,7 +634,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
           s->drhocoreg(g,rhoc_g,drhoc_g);
           // next line: keep only real part
           // contribution of core correction
-          temp -= (vxc_g[ig].real() * sg.real() + vxc_g[ig].imag() * sg.imag())
+          temp -= (vxc_g[ig].real()*sg.real() + vxc_g[ig].imag()*sg.imag())
                * drhoc_g * gi * omega_inv / fpi;
         }
 
@@ -1009,7 +1022,7 @@ void EnergyFunctional::atoms_moved(void)
     for ( int is = 0; is < atoms.nsp(); is++ )
     {
       complex<double> *s = &sf.sfac[is][0];
-      double *r = &rhocore_sp_g[is][0]; 
+      double *r = &rhocore_sp_g[is][0];
       for ( int ig = 0; ig < ngloc; ig++ )
         cd_.rhocore_g[ig] += spin_fac * s[ig] * r[ig];
     }

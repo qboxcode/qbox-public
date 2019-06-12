@@ -1,4 +1,20 @@
 --------------------------------------------------------------------------------
+rel1_67_2
+--------------------------------------------------------------------------------
+9459eed Merge branch 'develop'
+1d85485 Use daxpy in XCPotential loops
+136f424 Fix total energy and stress calc with NLCC
+4e6d0f5 Fix non-linear core correction
+c59340b Add rhocore_r and rhocore_g to ChargeDensity
+d010476 Fix initialization of core correction in Species.C
+593b1d1 update release string to 1.9
+ddcb699 Restore 1.0 coefficient of non-local projectors to follow QE definitions
+715e140 Add fast return in NonLocalPotential if no non-local species
+72caf01 Add factor 0.5 in upf2qso.C for consistency of energy units
+a52c966 Add <algorithm> header in upf2qso.C for g++ compilation
+797585d Added ISO date stamp in upf2qso output
+4f93df7 Fix upf2qso.C to work with UPF 2 pseudopotentials
+--------------------------------------------------------------------------------
 rel1_67_1
 --------------------------------------------------------------------------------
 00fb07e Add missing files ForceTol.h and StressTol.h
@@ -139,7 +155,7 @@ d2a3c52 Removed $Id strings
 --------------------------------------------------------------------------------
 rel1_63_7
 --------------------------------------------------------------------------------
-r1920: Modified UserInterface.C to use C library, fsync() 
+r1920: Modified UserInterface.C to use C library, fsync()
 to ensure synchronization.
 r1912-1919: improvements in util/qbdriver files, twin.C
 Added test programs in util/qbdriver
@@ -165,7 +181,7 @@ r1829-r1832: qbox_angle.py and qbox_torsion.py scripts
 --------------------------------------------------------------------------------
 rel1_63_3
 --------------------------------------------------------------------------------
-r1825: TorsionCmd.h: revert to previous sign convention for compatibility 
+r1825: TorsionCmd.h: revert to previous sign convention for compatibility
 with VMD and consistency with torsion constraint.
 --------------------------------------------------------------------------------
 r1823: Revert to use of wf (rather than dwf) in preconditioner update
@@ -195,7 +211,7 @@ r1779-r1782 Implementation of Harris-Foulkes functional for calc of etotal_int
 --------------------------------------------------------------------------------
 rel1_62_7 r1776
 --------------------------------------------------------------------------------
-r1774: Fixed output of partial_charge command. 
+r1774: Fixed output of partial_charge command.
 Increased max iter in ConstraintSet (note: two changes in r1774. accidental)
 --------------------------------------------------------------------------------
 r1771 rel1_62_6
@@ -324,7 +340,7 @@ r1363: XMLGFPreprocessor.C: implemented sample loading using http connection.
 rel1_57_13
 --------------------------------------------------------------------------------
 r1358: ExchangeOperator.C: Fixed exchange contributions to stress.
-KPGridConnectivity.[Ch]: Added cell_moved() member to update cell-dependent 
+KPGridConnectivity.[Ch]: Added cell_moved() member to update cell-dependent
 quantities during cell optimization.
 --------------------------------------------------------------------------------
 rel1_57_12

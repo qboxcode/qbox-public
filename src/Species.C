@@ -1063,24 +1063,8 @@ void Species::initialize_nlcc()
   nlccg_spl_.resize(ndft_);
   nlccg_spl2_.resize(ndft_);
 
-  // expand nlcc to large mesh
-  const int np = nlcc_.size();
+  fill( nlcc_spl_.begin(), nlcc_spl_.end(), 0.0 );
   copy( nlcc_.begin(), nlcc_.end(), nlcc_spl_.begin() );
-  // if function is not decaying, keep it at constant value
-  if ( nlcc_[np-2] <= nlcc_[np-1] )
-  {
-    fill( nlcc_spl_.begin()+np, nlcc_spl_.end(), nlcc_[np-1] );
-  }
-  // otherwise expand nlcc to large mesh using a
-  // exponential decay exp(-alpha r)
-  else
-  {
-    const double factor = nlcc_[np-1] / nlcc_[np-2];
-    for ( int i = np; i < ndft_; i++ )
-    {
-      nlcc_spl_[i] = nlcc_spl_[i-1] * factor;
-    }
-  }
 
   // compute spline coefficients
   spline(ndft_,&rps_spl_[0],&nlcc_spl_[0],0.0,0.0,0,1,&nlcc_spl2_[0]);

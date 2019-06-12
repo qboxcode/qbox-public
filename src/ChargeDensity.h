@@ -51,10 +51,12 @@ class ChargeDensity
 
   mutable TimerMap tmap;
 
+  // rhor, rhog: valence density
   std::vector<std::vector<double> > rhor; // rhor[ispin][i]
   std::vector<std::vector<std::complex<double> > > rhog; // rhog[ispin][ig]
-  // core density ptr. If non-zero, contains the real-space core density
-  double* rhocore_r;
+  // rhocore_r, rhocore_g: core density. Non-zero size only if nlcc used
+  std::vector<double> rhocore_r;
+  std::vector<std::complex<double> > rhocore_g;
   void update_density(void);
   void update_rhor(void);
   void update_rhog(void);

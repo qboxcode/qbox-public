@@ -241,6 +241,8 @@ void NonLocalPotential::update_twnl(void)
 
   tmap["update_twnl"].start();
 
+  if ( nspnl == 0 ) return;
+
   const int ngwl = basis_.localsize();
   const double pi = M_PI;
   const double fpi = 4.0 * pi;
@@ -1257,6 +1259,15 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
     bool compute_forces, vector<vector<double> >& fion_enl,
     bool compute_stress, valarray<double>& sigma_enl)
 {
+  for ( int is = 0; is < fion_enl.size(); is++ )
+    for ( int i = 0; i < fion_enl[is].size(); i++ )
+       fion_enl[is][i] = 0.0;
+  sigma_enl = 0.0;
+
+  if ( nspnl == 0 ) return 0.0;
+
+  double enl = 0.0;
+  double tsum[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   const vector<double>& occ = sd_.occ();
   const int ngwl = basis_.localsize();
   // define atom block size
@@ -1267,13 +1278,6 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
   vector<vector<double> > tau;
   atoms_.get_positions(tau);
 
-  double enl = 0.0;
-  double tsum[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-  for ( int is = 0; is < fion_enl.size(); is++ )
-    for ( int i = 0; i < fion_enl[is].size(); i++ )
-       fion_enl[is][i] = 0.0;
-
-  if ( nspnl == 0 ) return 0.0;
   const double omega = basis_.cell().volume();
   assert(omega != 0.0);
   const double omega_inv = 1.0 / omega;
@@ -2026,7 +2030,6 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
   // reduction of enl across rows
   ctxt_.dsum('r',1,1,&enl,1);
 
-  sigma_enl = 0.0;
   if ( compute_stress )
   {
     ctxt_.dsum(6,1,&tsum[0],6);

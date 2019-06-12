@@ -106,8 +106,6 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
     rhops[is].resize(ngloc);
   }
 
-  xco = new XCOperator(s_, cd_);
-
   nlp.resize(wf.nspin());
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
   {
@@ -158,10 +156,8 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
     rhocore_sp_g.resize(nsp_);
     for ( int is = 0; is < nsp_; is++ )
       rhocore_sp_g[is].resize(ngloc);
-    rhocore_g.resize(ngloc);
-    rhocore_r.resize(vft->np012loc());
-    // set rhocore_r ptr in ChargeDensity
-    cd_.rhocore_r = &rhocore_r[0];
+    cd_.rhocore_g.resize(ngloc);
+    cd_.rhocore_r.resize(vft->np012loc());
   }
 
   // FT for interpolation of wavefunctions on the fine grid
@@ -189,11 +185,9 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
     el_enth_ = new ElectricEnthalpy(s_);
 
   sf.init(tau0,*vbasis_);
-
+  xco = new XCOperator(s_, cd_);
   cell_moved();
-
   atoms_moved();
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -288,6 +282,19 @@ void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vh,
           vxc_g[ig] = 0.5 * ( vxc_g[ig] + vtemp[ig] );
       }
     }
+    // correct dxc_ to include the core charge exchange-correlation term
+    // in Harris-Foulkes estimates
+    // dxc_correction = sum_ig vxc_g[ig] * rhocore_g[ig]
+    double sum = 0.0;
+    complex<double> *rh = &cd_.rhocore_g[0];
+    int len=2*ngloc,inc1=1;
+    sum = 2.0 * ddot(&len,(double*)&vxc_g[0],&inc1,(double*)&rh[0],&inc1);
+    // remove double counting for G=0
+    if ( vbasis_->mype() == 0 )
+      sum -= real(conj(vxc_g[0])*rh[0]);
+    double tsum = 0.0;
+    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
+    dxc_ += tsum;
   }
 
   tmap["exc"].stop();
@@ -342,7 +349,7 @@ void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vh,
     vlocal_g[ig] = vion_local_g[ig] + fpi * rhogt[ig] * g2i[ig];
   }
 
-  // FT to tmpr_r
+  // FT to tmp_r
   vft->backward(&vlocal_g[0],&tmp_r[0]);
 
   // add external potential vext to tmp_r
@@ -627,7 +634,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
           s->drhocoreg(g,rhoc_g,drhoc_g);
           // next line: keep only real part
           // contribution of core correction
-          temp -= (vxc_g[ig].real() * sg.real() + vxc_g[ig].imag() * sg.imag())
+          temp -= (vxc_g[ig].real()*sg.real() + vxc_g[ig].imag()*sg.imag())
                * drhoc_g * gi * omega_inv / fpi;
         }
 
@@ -992,6 +999,7 @@ void EnergyFunctional::atoms_moved(void)
 {
   const AtomSet& atoms = s_.atoms;
   const Wavefunction& wf = s_.wf;
+  const UnitCell& cell = s_.wf.cell();
   int ngloc = vbasis_->localsize();
 
   // fill tau0 with values in atom_list
@@ -1007,23 +1015,22 @@ void EnergyFunctional::atoms_moved(void)
   if ( core_charge_ )
   {
     // recalculate Fourier coefficients of the core charge
-    assert(rhocore_g.size()==ngloc);
-    memset( (void*)&rhocore_g[0], 0, 2*ngloc*sizeof(double) );
-    const double spin_fac = wf.cell().volume() / wf.nspin();
+    assert(cd_.rhocore_g.size()==ngloc);
+    memset( (void*)&cd_.rhocore_g[0], 0, 2*ngloc*sizeof(double) );
+    // divide core charge by two if two spins
+    const double spin_fac = cell.volume() / wf.nspin();
     for ( int is = 0; is < atoms.nsp(); is++ )
     {
       complex<double> *s = &sf.sfac[is][0];
+      double *r = &rhocore_sp_g[is][0];
       for ( int ig = 0; ig < ngloc; ig++ )
-      {
-        const complex<double> sg = s[ig];
-        // divide core charge by two if two spins
-        rhocore_g[ig] += spin_fac * sg * rhocore_sp_g[is][ig];
-      }
+        cd_.rhocore_g[ig] += spin_fac * s[ig] * r[ig];
     }
     // recalculate real-space core charge
-    vft->backward(&rhocore_g[0],&tmp_r[0]);
+    vft->backward(&cd_.rhocore_g[0],&tmp_r[0]);
+    const double omega_inv = 1.0 / cell.volume();
     for ( int i = 0; i < tmp_r.size(); i++ )
-      rhocore_r[i] = tmp_r[i].real();
+      cd_.rhocore_r[i] = tmp_r[i].real() * omega_inv;
   }
 
   for ( int is = 0; is < atoms.nsp(); is++ )
@@ -1039,7 +1046,6 @@ void EnergyFunctional::atoms_moved(void)
   }
 
   // compute esr: pseudocharge repulsion energy
-  const UnitCell& cell = s_.wf.cell();
   const double omega_inv = 1.0 / cell.volume();
   // distance between opposite planes of the cell
   const double d0 = 2.0 * M_PI / length(cell.b(0));

@@ -151,10 +151,19 @@ void XCPotential::update(vector<vector<double> >& vr)
     // contain half of the total core charge
     for ( int ispin = 0; ispin < rhototal_r_.size(); ispin++ )
     {
-      for ( int i = 0; i < rhototal_r_[ispin].size(); i++ )
-        rhototal_r_[ispin][i] += cd_.rhocore_r[i];
-      for ( int i = 0; i < rhototal_g_[ispin].size(); i++ )
-        rhototal_g_[ispin][i] += cd_.rhocore_g[i];
+      //for ( int i = 0; i < rhototal_r_[ispin].size(); i++ )
+      //  rhototal_r_[ispin][i] += cd_.rhocore_r[i];
+      int len = rhototal_r_[ispin].size();
+      int inc1 = 1;
+      double one = 1.0;
+      daxpy(&len,&one,(double*)&cd_.rhocore_r[0],&inc1,
+            &rhototal_r_[ispin][0],&inc1);
+
+      //for ( int i = 0; i < rhototal_g_[ispin].size(); i++ )
+      //  rhototal_g_[ispin][i] += cd_.rhocore_g[i];
+      len = 2*rhototal_g_[ispin].size();
+      daxpy(&len,&one,(double*)&cd_.rhocore_g[0],&inc1,
+            (double*)&rhototal_g_[ispin][0],&inc1);
     }
   }
 

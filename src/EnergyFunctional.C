@@ -294,7 +294,8 @@ void EnergyFunctional::update_vhxc(bool compute_stress, bool update_vh,
       sum -= real(conj(vxc_g[0])*rh[0]);
     double tsum = 0.0;
     MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,vbasis_->comm());
-    dxc_ += tsum;
+    // factor nspin: rhocore_g contains half the core charge if nspin == 2
+    dxc_ += wf.nspin() * tsum;
   }
 
   tmap["exc"].stop();

@@ -23,8 +23,11 @@
 #include <vector>
 using namespace std;
 
-PBEFunctional::PBEFunctional(const vector<vector<double> > &rhoe,
+PBEFunctional::PBEFunctional(const vector<vector<double> > &rhoe, bool sol,
   double x_coeff, double c_coeff)
+: sol(sol),
+  um(sol ? 10./81 : 0.2195149727645171),
+  bet(sol ? 0.046 : 0.06672455060314922)
 {
   x_coeff_ = x_coeff;
   c_coeff_ = c_coeff;
@@ -171,7 +174,6 @@ void PBEFunctional::excpbe(double rho, double grad,
   const double third  = 1.0 / 3.0;
   const double third4 = 4.0 / 3.0;
   const double ax = -0.7385587663820224058; /* -0.75*pow(3.0/pi,third) */
-  const double um = 0.2195149727645171;
   const double uk = 0.804;
   const double ul = um / uk;
   const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
@@ -179,7 +181,6 @@ void PBEFunctional::excpbe(double rho, double grad,
   const double seven_sixth  =  7.0 / 6.0;
   const double four_over_pi = 1.27323954473516;
   const double gamma = 0.03109069086965489; /* gamma = (1-ln2)/pi^2 */
-  const double bet = 0.06672455060314922; /* see [a] (4) */
   const double delt = bet / gamma;
 
   double rtrs,fk,twoks,rs,t,h,
@@ -290,7 +291,6 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   const double third4 =  4.0 / 3.0;
   const double sixthm = -1.0 / 6.0;
   const double ax = -0.7385587663820224058; /* -0.75*pow(3.0/pi,third) */
-  const double um = 0.2195149727645171;
   const double uk = 0.804;
   const double ul = um / uk;
   const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
@@ -300,7 +300,6 @@ void PBEFunctional::excpbe_sp(double rho_up, double rho_dn,
   const double gam = 0.5198420997897463; /* gam = 2^(4/3) - 2 */
   const double fzz = 8.0 / ( 9.0 * gam );
   const double gamma = 0.03109069086965489; /* gamma = (1-ln2)/pi^2 */
-  const double bet = 0.06672455060314922; /* see [a] (4) */
   const double delt = bet / gamma;
   const double eta = 1.e-12; // small number to avoid blowup as |zeta|->1
 

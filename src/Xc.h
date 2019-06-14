@@ -47,6 +47,7 @@ class Xc : public Var
     if ( !( v == "LDA" ||
             v == "VWN" ||
             v == "PBE" ||
+            v == "PBEsol" ||
             v == "BLYP" ||
             v == "HF" ||
             v == "PBE0" ||
@@ -56,7 +57,7 @@ class Xc : public Var
             v == "BHandHLYP" ) )
     {
       if ( ui->onpe0() )
-        cout << " xc must be LDA, VWN, PBE, BLYP, "
+        cout << " xc must be LDA, VWN, PBE, PBEsol, BLYP, "
              << "HF, PBE0, HSE, RSH, B3LYP or BHandHLYP" << endl;
       return 1;
     }

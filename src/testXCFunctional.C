@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 
   XCFunctional *xcf_list[2];
   xcf_list[0] = new LDAFunctional(rh);
-  xcf_list[1] = new PBEFunctional(rh);
+  xcf_list[1] = new PBEFunctional(rh, false);
 
   for ( int ixcf = 0; ixcf < 2; ixcf++ )
   {

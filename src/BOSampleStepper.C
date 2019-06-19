@@ -178,6 +178,8 @@ void BOSampleStepper::step(int niter)
   const bool compute_mlwfc = s_.ctrl.wf_diag == "MLWFC";
   enum ortho_type { GRAM, LOWDIN, ORTHO_ALIGN, RICCATI };
 
+  const double gpa = 29421.5;
+
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
   const int nspin = wf.nspin();
@@ -396,8 +398,9 @@ void BOSampleStepper::step(int niter)
 
       if ( stress_tol > 0.0 )
       {
+        compute_sigma();
         for ( int i = 0; i < sigma.size(); i++ )
-          maxstress = max(maxstress, fabs(sigma[i]));
+          maxstress = max(maxstress, gpa*fabs(sigma[i]));
       }
 
       if ( onpe0 )

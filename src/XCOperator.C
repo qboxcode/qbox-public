@@ -40,6 +40,7 @@ XCOperator::XCOperator(Sample& s, const ChargeDensity& cd) :cd_(cd)
   if ( ( functional_name ==  "LDA" ) ||
        ( functional_name ==  "VWN" ) ||
        ( functional_name ==  "PBE" ) ||
+       ( functional_name == "PBEsol" ) ||
        ( functional_name == "BLYP" ) )
   {
     // create only an xc potential

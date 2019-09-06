@@ -48,7 +48,11 @@ XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
   }
   else if ( functional_name == "PBE" )
   {
-    xcf_ = new PBEFunctional(rhototal_r_);
+    xcf_ = new PBEFunctional(rhototal_r_, false);
+  }
+  else if ( functional_name == "PBEsol" )
+  {
+    xcf_ = new PBEFunctional(rhototal_r_, true);
   }
   else if ( functional_name == "BLYP" )
   {
@@ -58,7 +62,7 @@ XCPotential::XCPotential(const ChargeDensity& cd, const string functional_name,
   {
     const double x_coeff = 1.0 - ctrl.alpha_PBE0;
     const double c_coeff = 1.0;
-    xcf_ = new PBEFunctional(rhototal_r_,x_coeff,c_coeff);
+    xcf_ = new PBEFunctional(rhototal_r_,false,x_coeff,c_coeff);
   }
   else if ( functional_name == "HSE" )
   {

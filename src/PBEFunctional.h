@@ -24,6 +24,8 @@
 
 class PBEFunctional : public XCFunctional
 {
+  const bool sol; //!< PBEsol, if true
+  const double um, bet; //!< only constants that change between PBE and PBEsol
   double x_coeff_, c_coeff_;
   std::vector<double> _exc, _exc_up, _exc_dn;
   std::vector<double> _vxc1, _vxc1_up, _vxc1_dn,
@@ -46,12 +48,12 @@ class PBEFunctional : public XCFunctional
   public:
 
   // constructor with variable coefficients for exchange and correlation
-  // with default values 1.0
-  PBEFunctional(const std::vector<std::vector<double> > &rhoe,
+  // with default values 1.0, and sol = true/false switches between PBE and PBEsol
+  PBEFunctional(const std::vector<std::vector<double> > &rhoe, bool sol,
                 double x_coeff=1.0, double c_coeff=1.0);
 
   bool isGGA() const { return true; };
-  std::string name() const { return "PBE"; };
+  std::string name() const { return (sol ? "PBEsol" : "PBE"); };
   void setxc(void);
 };
 #endif

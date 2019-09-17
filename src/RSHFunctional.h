@@ -74,16 +74,10 @@ class RSHFunctional : public XCFunctional
   RSHFunctional(const std::vector<std::vector<double> > &rhoe,
                 double alpha_RSH, double beta_RSH, double mu_RSH);
 
-  bool isGGA() const
-  {
-    return true;
-  }
+  bool isGGA() const { return true; }
 
   // return the name of the functional
-  std::string name() const
-  {
-    return "RSH";
-  }
+  std::string name() const { return "RSH"; }
 
   void setxc(void);
 };

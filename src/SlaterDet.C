@@ -358,6 +358,115 @@ void SlaterDet::compute_density(FourierTransform& ft,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void SlaterDet::compute_tau(FourierTransform& ft,
+  double weight, double* taur) const
+{
+  // compute tau of the states residing on my column of ctxt_
+  assert(occ_.size() == c_.n());
+  vector<complex<double> > tmp(ft.np012loc());
+  const int ngwloc = basis_->localsize();
+
+  const int mloc = c_.mloc();
+  assert(basis_->cell().volume() > 0.0);
+  const double omega_inv = 1.0 / basis_->cell().volume();
+  const int np012loc = ft.np012loc();
+
+  if ( basis_->real() )
+  {
+    vector<complex<double> > taug0(ngwloc), taug1(ngwloc);
+    // transform two states at a time
+    for ( int n = 0; n < nstloc()-1; n++, n++ )
+    {
+      const int nn = ctxt_.mycol() * c_.nb() + n;
+      // next line: factor 0.5 from definition of tau
+      const double fac1 = 0.5 * weight * omega_inv * occ_[nn];
+      const double fac2 = 0.5 * weight * omega_inv * occ_[nn+1];
+      const complex<double>* p = c_.cvalptr();
+      if ( fac1 + fac2 > 0.0 )
+      {
+        for ( int j = 0; j < 3; j++ )
+        {
+          const double *const gxj = basis_->gx_ptr(j);
+          for ( int ig = 0; ig < ngwloc; ig++ )
+          {
+            // i*G_j*c(G)
+            taug0[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+            taug1[ig] = complex<double>(0.0,gxj[ig]) * p[ig+(n+1)*mloc];
+          }
+          ft.backward(&taug0[0],&taug1[0],&tmp[0]);
+          const double* gpsi = (double*) &tmp[0];
+          int ii = 0;
+          for ( int i = 0; i < np012loc; i++ )
+          {
+            const double gpsi1 = gpsi[ii];
+            const double gpsi2 = gpsi[ii+1];
+            taur[i] += fac1 * gpsi1 * gpsi1 + fac2 * gpsi2 * gpsi2;
+            ii++; ii++;
+          }
+        }
+      }
+    }
+    if ( nstloc() % 2 != 0 )
+    {
+      const int n = nstloc()-1;
+      // global n index
+      const int nn = ctxt_.mycol() * c_.nb() + n;
+      const double fac1 = 0.5 * weight * omega_inv * occ_[nn];
+      const complex<double>* p = c_.cvalptr();
+      if ( fac1 > 0.0 )
+      {
+        for ( int j = 0; j < 3; j++ )
+        {
+          const double *const gxj = basis_->gx_ptr(j);
+          for ( int ig = 0; ig < ngwloc; ig++ )
+          {
+            // i*G_j*c(G)
+            taug1[ig] = complex<double>(0.0,gxj[ig]) * p[ig+n*mloc];
+          }
+          ft.backward(&taug1[0],&tmp[0]);
+          const double* gpsi = (double*) &tmp[0];
+          int ii = 0;
+          for ( int i = 0; i < np012loc; i++ )
+          {
+            const double gpsi1 = gpsi[ii];
+            taur[i] += fac1 * gpsi1 * gpsi1;
+            ii++; ii++;
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    vector<complex<double> > taug(ngwloc);
+    for ( int n = 0; n < nstloc(); n++ )
+    {
+      const int nn = ctxt_.mycol() * c_.nb() + n;
+      // next line: factor 0.5 from definition of tau
+      const double fac1 = 0.5 * weight * omega_inv * occ_[nn];
+      const complex<double>* p = c_.cvalptr();
+      if ( fac1 > 0.0 )
+      {
+        for ( int j = 0; j < 3; j++ )
+        {
+          const double *const kpgxj = basis_->kpgx_ptr(j);
+          for ( int ig = 0; ig < ngwloc; ig++ )
+          {
+            // i*(k+G)_j*c(G)
+            taug[ig] = complex<double>(0.0,kpgxj[ig]) * p[ig+n*mloc];
+          }
+          ft.backward(&taug[0],&tmp[0]);
+          for ( int i = 0; i < np012loc; i++ )
+          {
+            taur[i] += fac1 * norm(tmp[i]);
+          }
+        }
+      }
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::rs_mul_add(FourierTransform& ft,
   const double* v, SlaterDet& sdp) const
 {

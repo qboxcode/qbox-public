@@ -62,7 +62,6 @@ class LDAFunctional : public XCFunctional
     }
   };
 
-  bool isGGA() const { return false; };
   std::string name() const { return "LDA"; };
   void setxc(void);
 };

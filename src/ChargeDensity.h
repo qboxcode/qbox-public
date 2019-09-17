@@ -59,6 +59,8 @@ class ChargeDensity
   std::vector<std::complex<double> > rhocore_g;
   void update_density(void);
   void update_rhor(void);
+  void update_taur(double* taur) const;
+  void update_taur(double* taur_up, double* taur_dn) const;
   void update_rhog(void);
 
   const Context& context(void) const { return ctxt_; }

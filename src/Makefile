@@ -30,8 +30,8 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         SpeciesCmd.o SpeciesReader.o SpeciesHandler.o \
         XCOperator.o ExchangeOperator.o Bisection.o \
 	XCPotential.o LDAFunctional.o VWNFunctional.o \
-        PBEFunctional.o BLYPFunctional.o B3LYPFunctional.o  \
-        BHandHLYPFunctional.o \
+        PBEFunctional.o BLYPFunctional.o SCANFunctional.o \
+        B3LYPFunctional.o  BHandHLYPFunctional.o \
 	ExponentialIntegral.o HSEFunctional.o \
         RSHFunctional.o \
 	NonLocalPotential.o SampleReader.o StructuredDocumentHandler.o \
@@ -491,6 +491,17 @@ JDWavefunctionStepper.o: D3vector.h UnitCell.h
 KpointCmd.o: UserInterface.h D3vector.h Sample.h AtomSet.h Context.h blacs.h
 KpointCmd.o: Atom.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 KpointCmd.o: ExtForceSet.h Wavefunction.h Control.h
+LBFGS_IonicStepper.o: LBFGS_IonicStepper.h IonicStepper.h Sample.h AtomSet.h
+LBFGS_IonicStepper.o: Context.h blacs.h Atom.h D3vector.h UnitCell.h
+LBFGS_IonicStepper.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+LBFGS_IonicStepper.o: Wavefunction.h Control.h Species.h
+LBFGS_IonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h blacs.h
+LBFGS_IonicStepper.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
+LBFGS_IonicStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+LBFGS_IonicStepper.o: Species.h
+LBFGS_hessian.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
+LBFGS_hessian.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
+LBFGS_hessian.o: Wavefunction.h Control.h
 LDAFunctional.o: LDAFunctional.h XCFunctional.h
 LDAFunctional.o: XCFunctional.h
 LineMinimizer.o: LineMinimizer.h
@@ -638,6 +649,8 @@ RunCmd.o: Context.h blacs.h D3vector.h Wavefunction.h UnitCell.h SlaterDet.h
 RunCmd.o: Basis.h Sample.h AtomSet.h Atom.h D3tensor.h blas.h ConstraintSet.h
 RunCmd.o: ExtForceSet.h Control.h ChargeDensity.h CPSampleStepper.h
 RunCmd.o: UserInterface.h
+SCANFunctional.o: SCANFunctional.h XCFunctional.h
+SCANFunctional.o: XCFunctional.h
 SDAIonicStepper.o: SDAIonicStepper.h IonicStepper.h Sample.h AtomSet.h
 SDAIonicStepper.o: Context.h blacs.h Atom.h D3vector.h UnitCell.h D3tensor.h
 SDAIonicStepper.o: blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
@@ -793,15 +806,15 @@ XCOperator.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h Timer.h
 XCOperator.o: XCPotential.h ExchangeOperator.h SlaterDet.h Basis.h Matrix.h
 XCOperator.o: FourierTransform.h HSEFunctional.h XCFunctional.h
 XCOperator.o: RSHFunctional.h
-XCOperator.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
-XCOperator.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-XCOperator.o: Wavefunction.h Control.h
 XCPotential.o: XCPotential.h Control.h D3vector.h ChargeDensity.h Timer.h
 XCPotential.o: Context.h blacs.h LDAFunctional.h XCFunctional.h
 XCPotential.o: VWNFunctional.h PBEFunctional.h BLYPFunctional.h
-XCPotential.o: HSEFunctional.h RSHFunctional.h B3LYPFunctional.h
-XCPotential.o: BHandHLYPFunctional.h Basis.h UnitCell.h FourierTransform.h
-XCPotential.o: blas.h
+XCPotential.o: SCANFunctional.h HSEFunctional.h RSHFunctional.h
+XCPotential.o: B3LYPFunctional.h BHandHLYPFunctional.h Sample.h AtomSet.h
+XCPotential.o: Atom.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
+XCPotential.o: ExtForceSet.h Wavefunction.h SlaterDet.h Basis.h Matrix.h
+XCPotential.o: StructureFactor.h XCOperator.h NonLocalPotential.h
+XCPotential.o: ConfinementPotential.h ElectricEnthalpy.h FourierTransform.h
 XCPotential.o: Control.h D3vector.h ChargeDensity.h Timer.h Context.h blacs.h
 XMLGFPreprocessor.o: Timer.h Context.h blacs.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h

@@ -1,4 +1,12 @@
 --------------------------------------------------------------------------------
+rel1_68_0
+--------------------------------------------------------------------------------
+05cd227 Merge branch 'scan' into develop
+5c8ff65 Make Sample const in ExchangeOperator
+15649b6 Make nlevels const in Bisection
+8afc2a0 Add qbox_species_temp.sh utility script
+4f46485 Add scripts to extract position,velocity,force
+--------------------------------------------------------------------------------
 rel1_67_4
 --------------------------------------------------------------------------------
 6e23b88 Merge branch 'develop'

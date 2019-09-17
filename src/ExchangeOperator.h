@@ -28,7 +28,7 @@ class ExchangeOperator
 {
   private:
 
-  Sample& s_;
+  const Sample& s_;
   // exchange energy
   double eex_;
   // constant of support function for exchange integration
@@ -43,7 +43,7 @@ class ExchangeOperator
   // copy of wf
   Wavefunction wfc_;
 
-  double compute_exchange_for_general_case_(Sample* s, Wavefunction* dwf,
+  double compute_exchange_for_general_case_(const Sample* s, Wavefunction* dwf,
     bool compute_stress);
   double compute_exchange_at_gamma_(const Wavefunction &wf, Wavefunction* dwf,
     bool compute_stress);

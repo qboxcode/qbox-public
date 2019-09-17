@@ -19,7 +19,6 @@
 #ifndef XCPOTENTIAL_H
 #define XCPOTENTIAL_H
 
-#include "Control.h"
 #include "ChargeDensity.h"
 #include <string>
 #include <vector>
@@ -29,11 +28,14 @@
 class Basis;
 class FourierTransform;
 class XCFunctional;
+class Sample;
+class Wavefunction;
 
 class XCPotential
 {
   private:
 
+  const Sample& s_;
   const ChargeDensity& cd_;
   XCFunctional* xcf_;
 
@@ -58,11 +60,13 @@ class XCPotential
 
   const XCFunctional* xcf() { return xcf_; }
   bool isGGA(void);
+  bool isMeta(void);
   XCPotential(const ChargeDensity& cd, const std::string functional_name,
-    const Control& ctrl);
+    const Sample& s);
   ~XCPotential();
   void update(std::vector<std::vector<double> >& vr);
   void compute_stress(std::valarray<double>& sigma_exc);
+  void apply_meta_operator(Wavefunction& dwf);
   double exc(void) { return exc_; }
   double dxc(void) { return dxc_; }
 };

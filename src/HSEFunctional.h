@@ -48,16 +48,10 @@ class HSEFunctional : public XCFunctional
   HSEFunctional(const std::vector<std::vector<double> > &rhoe);
 
   // HSE's local part is derived from PBE
-  bool isGGA() const
-  {
-    return true;
-  }
+  bool isGGA() const { return true; }
 
   // return the name of the functional
-  std::string name() const
-  {
-    return "HSE";
-  }
+  std::string name() const { return "HSE"; }
 
   void setxc(void);
 };

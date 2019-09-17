@@ -74,7 +74,8 @@ int walsh(int l, int n, int i)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-Bisection::Bisection(const SlaterDet& sd, int nlevels[3]) : ctxt_(sd.context())
+Bisection::Bisection(const SlaterDet& sd, const int nlevels[3])
+  : ctxt_(sd.context())
 {
   // localization vectors are long int
   assert(sizeof(long int) >= 4);

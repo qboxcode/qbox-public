@@ -74,7 +74,6 @@ class VWNFunctional : public XCFunctional
   static void ecvwn_sp(double roe_up, double roe_dn,
     double &ec, double &vc_up, double &vc_dn);
 
-  bool isGGA() const { return false; };
   std::string name() const { return "VWN"; };
   void setxc(void);
 };

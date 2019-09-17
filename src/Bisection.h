@@ -69,7 +69,7 @@ class Bisection
 
   public:
 
-    Bisection(const SlaterDet& sd, int nlevels[3]);
+    Bisection(const SlaterDet& sd, const int nlevels[3]);
     void compute_transform(const SlaterDet& sd, int maxsweep, double tol);
     void compute_localization(double epsilon);
     void forward(SlaterDet& sd);

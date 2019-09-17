@@ -387,7 +387,7 @@ void ExchangeOperator::cell_moved(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-double ExchangeOperator::compute_exchange_for_general_case_( Sample* s,
+double ExchangeOperator::compute_exchange_for_general_case_(const Sample* s,
   Wavefunction* dwf, bool compute_stress)
 {
   Timer tm;

@@ -356,7 +356,7 @@ int main(int argc, char **argv, char **envp)
     // first argument is "-server"
     string inputfilename(argv[2]);
     string outputfilename(argv[3]);
-    bool echo = false;
+    bool echo = true;
     ui.processCmdsServer(inputfilename, outputfilename, "[qbox]", echo);
   }
   else

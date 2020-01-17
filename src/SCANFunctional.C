@@ -230,7 +230,7 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   double dt1ds, dg1ds, dec1ds, dginfds, dec0ds;
 
   double drsdn, dsdn, dalphadn, decdn;
-  double dsdgrad, dalphadgrad, decdgrad,dFXdsdsdgrad;
+  double dsdgrad, dalphadgrad, decdgrad, dFXdsdsdgrad;
   double dfcdalpha, dalphadtau, decdtau;
 
   *exc = 0.0;
@@ -268,7 +268,7 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   {
     fx = exp(-cx1 * XCalpha / oneMalpha);
   }
-  else if (XCalpha > 1.0)
+  else if ( XCalpha > 1.0 )
   {
     fx = -dx * exp(cx2 / oneMalpha);
   }
@@ -290,7 +290,7 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   dxdalpha = (2.0 * b3 * oneMalpha * oneMalpha - 1.0) *
              (2.0 * b2 * exp(-b3 * oneMalpha * oneMalpha)) *
              (b1 * s2 + b2 * (oneMalpha) * exp(-b3 * oneMalpha * oneMalpha));
-  if(s==0)
+  if ( s == 0 )
   {
     dgxds = 0;
   }
@@ -300,11 +300,11 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   }
   dhx1dx = (k1 / (k1 + x)) * (k1 / (k1 + x));
 
-  if (XCalpha < 1.0)
+  if ( XCalpha < 1.0 )
   {
     dfxdalpha = -cx1 / oneMalpha / oneMalpha * exp(-cx1 * XCalpha / oneMalpha);
   }
-  else if (XCalpha > 1.0)
+  else if ( XCalpha > 1.0 )
   {
     dfxdalpha = -cx2 * dx / oneMalpha / oneMalpha * exp(cx2 / oneMalpha);
   }
@@ -323,12 +323,8 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   dFXds = dgxds * (hx1 + fx * (hx0 - hx1)) + gx * (1.0 - fx) * dhx1dx * dxds;
   dFXdalpha = gx * (dhx1dx * dxdalpha + dfxdalpha * (hx0 - hx1) -
                     fx * dhx1dx * dxdalpha);
-  
-  if (s != 0)
-  {
-    dFXdsdsdgrad = dFXds * dsdgrad;
-  }
-  else
+
+  if ( s == 0 )
   {
     dFXdsdsdgrad = gx * (1.0 - fx) * dhx1dx *
          (2.0 * mu_AK * (1.0 + 2.0 * (b4 * s2/ mu_AK) *
@@ -336,6 +332,10 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
          exp(-b4 * s2 / mu_AK)) + 4.0 * b1 *
          (b1 * s2 + b2 * oneMalpha * exp(-b3 * oneMalpha * oneMalpha))) *
          (1.0 / ( 2.0 * kF * rho ) / ( 2.0 * kF * rho ));
+  }
+  else
+  {
+    dFXdsdsdgrad = dFXds * dsdgrad;
   }
 
   //Note: 1/sigma from vx2 distributed to dsdgrad and dalphadgrad to
@@ -363,11 +363,11 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   g5 = g1 * g1 * g1 * g1 * g1;
   H1 = gamma * log(1.0 + w1 * (1.0 - g1));
   ec1 = ecLSDA + H1;
-  if ( XCalpha < 1.0)
+  if ( XCalpha < 1.0 )
   {
     fc = exp(-cc1 * XCalpha / oneMalpha);
   }
-  else if (XCalpha > 1.0)
+  else if ( XCalpha > 1.0 )
   {
     fc = -dc * exp(cc2 / oneMalpha);
   }
@@ -405,11 +405,11 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   dec1ds = -gamma * w1 / (1.0 + w1 * (1.0 - g1)) * dg1ds;
 
   // alpha derivatives
-  if ( XCalpha < 1.0)
+  if ( XCalpha < 1.0 )
   {
     dfcdalpha = -cc1 / oneMalpha / oneMalpha * exp(-cc1 * XCalpha/ oneMalpha);
   }
-  else if (XCalpha > 1.0)
+  else if ( XCalpha > 1.0 )
   {
     dfcdalpha = -cc2 * dc / oneMalpha / oneMalpha * exp(cc2 / oneMalpha);
   }
@@ -433,11 +433,11 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
   dalphadgrad = -2.0 * tau_W / (grad * tau_unif);
   decdgrad = dec1ds * dsdgrad + dfcdalpha * dalphadgrad *
     (ec0 - ec1) + fc * ( dec0ds * dsdgrad - dec1ds * dsdgrad );
-  vc2 = -rho * decdgrad / grad;
 
   // V2 grad=0
-  if (s == 0){
-    double dg1ds2 = -A1 * g5 * dt1ds / 
+  if ( s == 0 )
+  {
+    double dg1ds2 = -A1 * g5 * dt1ds /
                     (pow(16.0 * rho * rho * rho * rho,1.0/3.0) * rtrs);
     double dec1ds2 = -gamma * w1 / (1.0 + w1 * (1.0 - g1)) * dg1ds2;
     double dginfds2 = -chi_inf * ginf * ginf * ginf * ginf * ginf /
@@ -448,6 +448,10 @@ void SCANFunctional::excSCAN(double rho, double grad, double tau, double *exc,
     double decdgrad2 = dec1ds2 * dsdgrad2 + dfcdalpha * dalphadgrad2 *
     (ec0 - ec1) + fc * (dec0ds2 * dsdgrad2 - dec1ds2 * dsdgrad2);
     vc2 = -rho * decdgrad2;
+  }
+  else
+  {
+    vc2 = -rho * decdgrad / grad;
   }
 
   // V3
@@ -593,7 +597,7 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     {
       fx = exp(-cx1 * XCalpha / oneMalpha);
     }
-    else if (XCalpha > 1.0)
+    else if ( XCalpha > 1.0 )
     {
       fx = -dx * exp(cx2 / oneMalpha);
     }
@@ -615,7 +619,7 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     dxdalpha = (2.0 * b3 * oneMalpha * oneMalpha - 1.0) *
                (2.0 * b2 * exp(-b3 * oneMalpha * oneMalpha)) *
                (b1 * s2 + b2 * (oneMalpha) * exp(-b3 * oneMalpha * oneMalpha));
-    if(s==0)
+    if ( s == 0 )
     {
       dgxds = 0;
     }
@@ -625,11 +629,11 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     }
     dhx1dx = (k1 / (k1 + x)) * (k1 / (k1 + x));
 
-    if (XCalpha < 1.0)
+    if ( XCalpha < 1.0 )
     {
      dfxdalpha = -cx1 / oneMalpha / oneMalpha * exp(-cx1 * XCalpha / oneMalpha);
     }
-    else if (XCalpha > 1.0)
+    else if ( XCalpha > 1.0 )
     {
       dfxdalpha = -cx2 * dx / oneMalpha / oneMalpha * exp(cx2 / oneMalpha);
     }
@@ -648,11 +652,7 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     dFXds = dgxds * (hx1 + fx * (hx0 - hx1)) + gx * (1.0 - fx) * dhx1dx * dxds;
     dFXdalpha = gx * (dhx1dx * dxdalpha + dfxdalpha * (hx0 - hx1) -
                       fx * dhx1dx * dxdalpha);
-    if (s !=0)
-    {
-      dFXdsdsdgrad = dFXds * dsdgrad;
-    }
-    else
+    if ( s == 0 )
     {
       dFXdsdsdgrad = gx * (1.0 - fx) * dhx1dx *
            (2.0 * mu_AK * (1.0 + 2.0 * (b4 * s2/ mu_AK) *
@@ -660,6 +660,10 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
            exp(-b4 * s2 / mu_AK)) + 4.0 * b1 *
            (b1 * s2 + b2 * oneMalpha * exp(-b3 * oneMalpha * oneMalpha))) *
            (1.0 / ( 2.0 * kF * tworhoup ) / ( 2.0 * kF * tworhoup ));
+    }
+    else
+    {
+      dFXdsdsdgrad = dFXds * dsdgrad;
     }
 
     //Note: 1/sigma_up from vx2 distributed to dsdgrad and dalphadgrad to
@@ -699,7 +703,7 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     {
       fx = exp(-cx1 * XCalpha / oneMalpha);
     }
-    else if (XCalpha > 1.0)
+    else if ( XCalpha > 1.0 )
     {
       fx = -dx * exp(cx2 / oneMalpha);
     }
@@ -721,7 +725,7 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     dxdalpha = (2.0 * b3 * oneMalpha * oneMalpha - 1.0) *
                (2.0 * b2 * exp(-b3 * oneMalpha * oneMalpha)) *
                (b1 * s2 + b2 * (oneMalpha) * exp(-b3 * oneMalpha * oneMalpha));
-    if(s==0)
+    if ( s == 0 )
     {
       dgxds = 0;
     }
@@ -731,11 +735,11 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     }
     dhx1dx = (k1 / (k1 + x)) * (k1 / (k1 + x));
 
-    if (XCalpha < 1.0)
+    if ( XCalpha < 1.0 )
     {
      dfxdalpha = -cx1 / oneMalpha / oneMalpha * exp(-cx1 * XCalpha / oneMalpha);
     }
-    else if (XCalpha > 1.0)
+    else if ( XCalpha > 1.0 )
     {
       dfxdalpha = -cx2 * dx / oneMalpha / oneMalpha * exp(cx2 / oneMalpha);
     }
@@ -754,11 +758,7 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     dFXds = dgxds * (hx1 + fx * (hx0 - hx1)) + gx * (1.0 - fx) * dhx1dx * dxds;
     dFXdalpha = gx * (dhx1dx * dxdalpha + dfxdalpha * (hx0 - hx1) -
                       fx * dhx1dx * dxdalpha);
-    if (s !=0)
-    {
-      dFXdsdsdgrad = dFXds * dsdgrad;
-    }
-    else
+    if ( s == 0 )
     {
       dFXdsdsdgrad = gx * (1.0 - fx) * dhx1dx *
            (2.0 * mu_AK * (1.0 + 2.0 * (b4 * s2/ mu_AK) *
@@ -766,6 +766,10 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
            exp(-b4 * s2 / mu_AK)) + 4.0 * b1 *
            (b1 * s2 + b2 * oneMalpha * exp(-b3 * oneMalpha * oneMalpha))) *
            (1.0 / ( 2.0 * kF * tworhodn ) / ( 2.0 * kF * tworhodn ));
+    }
+    else
+    {
+      dFXdsdsdgrad = dFXds * dsdgrad;
     }
 
     vx1_dn = exunif * ((4.0/3.0) * FXSCAN + tworhodn * (dFXds * dsdn +
@@ -775,8 +779,8 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
   }
 
   // set negative densities to positive for correlation part
-  if (rho_up < 0.0 ) rho_up = -rho_up;
-  if (rho_dn < 0.0 ) rho_dn = -rho_dn;
+  if ( rho_up < 0.0 ) rho_up = -rho_up;
+  if ( rho_dn < 0.0 ) rho_dn = -rho_dn;
   // set small densities to 0 for correlation part
   if (rho_up < 1.e-18 ) rho_up = 0.0;
   if (rho_dn < 1.e-18 ) rho_dn = 0.0;
@@ -793,9 +797,9 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
   if ( rhotot > 1.e-18 )
   {
     zeta = (rho_up - rho_dn) / rhotot;
-    if (zeta == 1.0)
+    if ( zeta == 1.0 )
       zeta = 1.0 - 1e-9;
-    if (zeta == -1.0)
+    if ( zeta == -1.0 )
       zeta = -1.0 + 1e-9;
     rs = pow(4.0 * pi * rhotot / 3.0, -1.0/3.0);
     rtrs = sqrt(rs);
@@ -835,11 +839,11 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     g5 = g1 * g1 * g1 * g1 * g1;
     H1 = gamma * phi3 * log(1.0 + w1 * (1.0 - g1));
     ec1 = ecLSDA + H1;
-    if ( XCalpha < 1.0)
+    if ( XCalpha < 1.0 )
     {
       fc = exp(-cc1 * XCalpha / oneMalpha);
     }
-    else if (XCalpha > 1.0)
+    else if ( XCalpha > 1.0 )
     {
       fc = -dc * exp(cc2 / oneMalpha);
     }
@@ -879,11 +883,11 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     dec0ds = dH0ds * GC;
 
     // alpha derivatives
-    if ( XCalpha < 1.0)
+    if ( XCalpha < 1.0 )
     {
       dfcdalpha = -cc1 / oneMalpha / oneMalpha * exp(-cc1 * XCalpha/ oneMalpha);
     }
-    else if (XCalpha > 1.0)
+    else if ( XCalpha > 1.0 )
     {
       dfcdalpha = -cc2 * dc / oneMalpha / oneMalpha * exp(cc2 / oneMalpha);
     }
@@ -954,11 +958,11 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
     dalphadgrad = -2.0 * tau_W / (grad * tau_unif);
     decdgrad = dec1ds * dsdgrad + dfcdalpha * dalphadgrad *
                (ec0 - ec1) + fc * ( dec0ds * dsdgrad - dec1ds * dsdgrad );
-    vc2 = -rhotot * decdgrad / grad;
 
     // V2 grad=0
-    if (s == 0){
-      double dg1ds2 = -A1 * g5 * dt1ds / 
+    if ( s == 0 )
+    {
+      double dg1ds2 = -A1 * g5 * dt1ds /
                       (pow(16.0 * pow(rhotot,4.0),1.0/3.0) * phi * rtrs);
       double dec1ds2 = -gamma * w1 / (1.0 + w1 * (1.0 - g1)) * dg1ds2;
       double dginfds2 = -chi_inf * ginf * ginf * ginf * ginf * ginf /
@@ -969,6 +973,10 @@ void SCANFunctional::excSCAN_sp(double rho_up, double rho_dn, double grad_up,
       double decdgrad2 = dec1ds2 * dsdgrad2 + dfcdalpha * dalphadgrad2 *
       (ec0 - ec1) + fc * (dec0ds2 * dsdgrad2 - dec1ds2 * dsdgrad2);
       vc2 = -rhotot * decdgrad2;
+    }
+    else
+    {
+      vc2 = -rhotot * decdgrad / grad;
     }
 
     // VC3

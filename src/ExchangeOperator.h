@@ -43,8 +43,8 @@ class ExchangeOperator
   // copy of wf
   Wavefunction wfc_;
 
-  double compute_exchange_for_general_case_(const Sample* s, Wavefunction* dwf,
-    bool compute_stress);
+  double compute_exchange_for_general_case_(const Wavefunction& wf,
+    Wavefunction* dwf, bool compute_stress);
   double compute_exchange_at_gamma_(const Wavefunction &wf, Wavefunction* dwf,
     bool compute_stress);
   void   apply_VXC_(double mix, Wavefunction& wf_ref,
@@ -190,7 +190,7 @@ class ExchangeOperator
   double eex() { return eex_; };
   double update_energy(bool compute_stress);
   double update_operator(bool compute_stress);
-  double apply_operator(Wavefunction& dwf);
+  void apply_operator(Wavefunction& dwf);
   void add_stress (std::valarray<double> & sigma_exc);
   void cell_moved(void);
 };

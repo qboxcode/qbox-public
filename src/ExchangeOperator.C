@@ -253,7 +253,7 @@ double ExchangeOperator::update_energy(bool compute_stress)
   if ( gamma_only_ )
     return eex_ = compute_exchange_at_gamma_(s_.wf, 0, compute_stress);
   else
-    return eex_ = compute_exchange_for_general_case_(&s_, 0, compute_stress);
+    return eex_ = compute_exchange_for_general_case_(s_.wf, 0, compute_stress);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -265,7 +265,7 @@ double ExchangeOperator::update_operator(bool compute_stress)
   if ( gamma_only_ )
     eex_ = compute_exchange_at_gamma_(s_.wf, &dwf0_, compute_stress);
   else
-    eex_ = compute_exchange_for_general_case_(&s_, &dwf0_, compute_stress);
+    eex_ = compute_exchange_for_general_case_(s_.wf, &dwf0_, compute_stress);
 
   // wf0_ is kept as a reference state
   wf0_ = s_.wf;
@@ -288,12 +288,6 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
       const Context &ctxt = s_.wf.sd(ispin,ikp)->c().context();
       if ( s_.wf.sd(ispin,ikp)->basis().real() )
       {
-#if 0
-        update_sigma();
-        DoubleMatrix dc_proxy(dwf.sd(ispin,ikp)->c());
-        DoubleMatrix dcref_proxy(dwf_ref.sd(ispin,ikp)->c());
-        dc_proxy += dcref_proxy;
-#else
         DoubleMatrix c_proxy(s_.wf.sd(ispin,ikp)->c());
         DoubleMatrix dc_proxy(dwf.sd(ispin,ikp)->c());
         DoubleMatrix cref_proxy(wf_ref.sd(ispin,ikp)->c());
@@ -324,7 +318,6 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
 
         // |dwf> += mix * |wf_ref> * matproj2
         dc_proxy.gemm('n','n',mix,cref_proxy,matproj2,1.0);
-#endif
       }
       else // complex wave functions
       {
@@ -361,12 +354,12 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double ExchangeOperator::apply_operator(Wavefunction& dwf)
+void ExchangeOperator::apply_operator(Wavefunction& dwf)
 {
+  cout << "ExchangeOperator::apply_operator" << endl;
   // apply sigmaHF to s_.wf and store result in dwf
   // use the reference function wf0_ and reference sigma(wf) dwf0_
   apply_VXC_(1.0, wf0_, dwf0_, dwf);
-  return eex_;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -387,13 +380,11 @@ void ExchangeOperator::cell_moved(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-double ExchangeOperator::compute_exchange_for_general_case_(const Sample* s,
-  Wavefunction* dwf, bool compute_stress)
+double ExchangeOperator::compute_exchange_for_general_case_
+  (const Wavefunction& wf, Wavefunction* dwf, bool compute_stress)
 {
   Timer tm;
   tm.start();
-
-  const Wavefunction& wf = s->wf;
 
   const double omega = wf.cell().volume();
   const int nkpoints = wf.nkp();

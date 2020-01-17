@@ -1,4 +1,12 @@
 --------------------------------------------------------------------------------
+rel1_68_1
+--------------------------------------------------------------------------------
+b2326e0 Remove unneeded loop in XCPotential.C
+6ce2309 Fix white space, reorder tests in SCANFunctional.C
+186b7a8 Cleanup ExchangeOperator functions params and return values
+e1a0d16 Modified SCANFunctional to not crash with grad=0, or negative density
+52c16a2 Set echo=true in qb.C to echo commands in server mode
+--------------------------------------------------------------------------------
 rel1_68_0
 --------------------------------------------------------------------------------
 05cd227 Merge branch 'scan' into develop

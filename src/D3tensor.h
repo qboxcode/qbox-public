@@ -244,9 +244,9 @@ class D3tensor
 
   double norm2(const D3tensor& a) const
   {
-    return a_[0]*a_[0] + a_[1]*a_[1] + a_[2]*a_[2] +
-           a_[3]*a_[3] + a_[4]*a_[4] + a_[5]*a_[5] +
-           a_[6]*a_[6] + a_[7]*a_[7] + a_[8]*a_[8];
+    return a[0]*a[0] + a[1]*a[1] + a[2]*a[2] +
+           a[3]*a[3] + a[4]*a[4] + a[5]*a[5] +
+           a[6]*a[6] + a[7]*a[7] + a[8]*a[8];
   }
 
   double norm(const D3tensor& a) const

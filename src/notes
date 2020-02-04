@@ -1,4 +1,11 @@
 --------------------------------------------------------------------------------
+rel1_68_2
+--------------------------------------------------------------------------------
+260b6be Remove debug print in ExchangeOperator.C
+0d66277 Fix Matrix.C calc of lwork, return values
+a0ff3b7 Fix D3tensor.h
+39fd798 Changed default to all atomsets in qbox_xyz.py
+--------------------------------------------------------------------------------
 rel1_68_1
 --------------------------------------------------------------------------------
 b2326e0 Remove unneeded loop in XCPotential.C

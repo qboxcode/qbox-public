@@ -2,33 +2,33 @@
 # Copyright 2016 The Regents of the University of California
 # This file is part of Qbox
 #
-# qbox_xyz.py: extract first (or all) set(s) of atomic positions in xyz format
+# qbox_xyz.py: extract sets of atomic positions in xyz format
 # from a Qbox output file or from a Qbox sample file using SAX 
 # incremental parsing
 #
-# use: qbox_xyz.py [-all] {file|URL}
+# use: qbox_xyz.py [-first] {file|URL}
 import os.path
 import xml.sax
 import sys
 import urllib2
 
 def usage():
-  print "use: ",sys.argv[0]," [-all] {file|URL}"
+  print "use: ",sys.argv[0]," [-first] {file|URL}"
   sys.exit()
 
 argc=len(sys.argv)
 if ( argc < 2 or argc > 3 ):
   usage()
 
-# check if option "-all" is used
-# "-all" option: extract all atomsets
-# default: extract first atomset only
-first_only = True
+# check if option "-first" is used
+# "-first" option: extract first atomset only
+# default: extract all atomsets
+first_only = False
 input_source = sys.argv[1]
-if ( sys.argv[1] == "-all" ):
+if ( sys.argv[1] == "-first" ):
   if ( argc != 3 ):
     usage()
-  first_only = False
+  first_only = True
   input_source = sys.argv[2]
 
 # conversion from Bohr to Angstrom

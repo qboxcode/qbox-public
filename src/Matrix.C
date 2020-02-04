@@ -2025,6 +2025,7 @@ double DoubleMatrix::det_from_lu(valarray<int> ipiv)
 
     return det;
   }
+  return 0.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2041,6 +2042,7 @@ double DoubleMatrix::inverse_det(void)
     inverse_from_lu(ipiv);
     return det;
   }
+  return 0.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2131,6 +2133,7 @@ complex<double> ComplexMatrix::det_from_lu(valarray<int> ipiv)
 
     return det;
   }
+  return complex<double>(0.0,0.0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2147,6 +2150,7 @@ complex<double> ComplexMatrix::inverse_det(void)
     inverse_from_lu(ipiv);
     return det;
   }
+  return complex<double>(0.0,0.0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2814,7 +2818,7 @@ void DoubleMatrix::syev(char uplo, valarray<double>& w, DoubleMatrix& z)
             z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
             &info);
 
-    lwork = (int) (tmpwork + 0.1);
+    lwork = (int) (tmpwork + 1);
     double* work=new double[lwork];
     pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
             z.val, &ione, &ione, z.desc_, work, &lwork,
@@ -2871,7 +2875,7 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w, DoubleMatrix& z)
             z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
             &tmpiwork, &liwork, &info);
 
-    lwork = (int) (tmpwork + 0.1);
+    lwork = (int) (tmpwork + 1);
     double* work=new double[lwork];
     liwork = tmpiwork;
     int* iwork = new int[liwork];
@@ -2943,7 +2947,7 @@ void DoubleMatrix::syevx(char uplo, valarray<double>& w, DoubleMatrix& z,
 
     assert(info==0);
 
-    lwork = (int) (tmpwork + 0.1);
+    lwork = (int) (tmpwork + 1);
     double* work=new double[lwork];
     liwork = tmpiwork;
     int* iwork = new int[liwork];
@@ -3061,7 +3065,7 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w)
             zval, &ione, &ione, descz, &tmpwork, &lwork,
             &tmpiwork, &liwork, &info);
 
-    lwork = (int) (tmpwork + 0.1);
+    lwork = (int) (tmpwork + 1);
     double* work=new double[lwork];
     liwork = tmpiwork;
     int* iwork = new int[liwork];

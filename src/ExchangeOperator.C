@@ -356,7 +356,6 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
 ////////////////////////////////////////////////////////////////////////////////
 void ExchangeOperator::apply_operator(Wavefunction& dwf)
 {
-  cout << "ExchangeOperator::apply_operator" << endl;
   // apply sigmaHF to s_.wf and store result in dwf
   // use the reference function wf0_ and reference sigma(wf) dwf0_
   apply_VXC_(1.0, wf0_, dwf0_, dwf);

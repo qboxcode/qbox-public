@@ -74,6 +74,8 @@ StructureHandler* SampleHandler::startSubHandler(const XMLCh* const uri,
     read_wfv = true;
     assert(read_wf);
     s_.wfv = new Wavefunction(s_.wf);
+    // reset wfv to have only k=0
+    s_.wfv->reset();
     return new WavefunctionHandler(*s_.wfv,gfdata_,current_gfdata_pos);
   }
   else

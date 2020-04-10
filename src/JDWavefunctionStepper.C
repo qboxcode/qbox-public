@@ -257,7 +257,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
         // q is (2n,2n)
         DoubleMatrix q(h.context(),h.n(),h.n(),h.nb(),h.nb());
         tmap_["jd_syev"].start();
-        h.syev('l',w,q);
+        h.syevd('l',w,q);
         tmap_["jd_syev"].stop();
 
         // compute the first n eigenvectors and store in wf
@@ -332,7 +332,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
         // q is (2n,2n)
         ComplexMatrix q(h.context(),h.n(),h.n(),h.nb(),h.nb());
         tmap_["jd_heev"].start();
-        h.heev('l',w,q);
+        h.heevd('l',w,q);
         tmap_["jd_heev"].stop();
 
         // compute the first n eigenvectors and store in wf

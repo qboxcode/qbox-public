@@ -2819,6 +2819,8 @@ void DoubleMatrix::syev(char uplo, valarray<double>& w, DoubleMatrix& z)
             &info);
 
     lwork = (int) (tmpwork + 1);
+    // set lwork to max value among all tasks
+    ctxt_.imax(1,1,&lwork,1);
     double* work=new double[lwork];
     pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
             z.val, &ione, &ione, z.desc_, work, &lwork,
@@ -2876,7 +2878,10 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w, DoubleMatrix& z)
             &tmpiwork, &liwork, &info);
 
     lwork = (int) (tmpwork + 1);
+    // set lwork to max value among all tasks
+    ctxt_.imax(1,1,&lwork,1);
     double* work=new double[lwork];
+
     liwork = tmpiwork;
     int* iwork = new int[liwork];
     pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],

@@ -56,6 +56,7 @@ OBJECTS=qb.o AtomSet.o Atom.o Species.o \
         ElectricEnthalpy.o PartialChargeCmd.o \
         ExternalPotential.o ResponseCmd.o \
         Function3d.o Function3dHandler.o \
+        SpectrumCmd.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
 # to include VERSION info in release string, use:
@@ -738,6 +739,10 @@ SpeciesHandler.o: SpeciesHandler.h StructureHandler.h Species.h StrX.h
 SpeciesHandler.o: StructureHandler.h
 SpeciesReader.o: Species.h SpeciesReader.h StructuredDocumentHandler.h StrX.h
 SpeciesReader.o: StructureHandler.h SpeciesHandler.h
+SpectrumCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
+SpectrumCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
+SpectrumCmd.o: ExtForceSet.h Wavefunction.h Control.h MLWFTransform.h
+SpectrumCmd.o: BasisMapping.h
 StatusCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 StatusCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 StatusCmd.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h Timer.h
@@ -806,16 +811,14 @@ XCOperator.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h Timer.h
 XCOperator.o: XCPotential.h ExchangeOperator.h SlaterDet.h Basis.h Matrix.h
 XCOperator.o: FourierTransform.h HSEFunctional.h XCFunctional.h
 XCOperator.o: RSHFunctional.h
-XCPotential.o: XCPotential.h Control.h D3vector.h ChargeDensity.h Timer.h
-XCPotential.o: Context.h blacs.h LDAFunctional.h XCFunctional.h
-XCPotential.o: VWNFunctional.h PBEFunctional.h BLYPFunctional.h
-XCPotential.o: SCANFunctional.h HSEFunctional.h RSHFunctional.h
-XCPotential.o: B3LYPFunctional.h BHandHLYPFunctional.h Sample.h AtomSet.h
-XCPotential.o: Atom.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
-XCPotential.o: ExtForceSet.h Wavefunction.h SlaterDet.h Basis.h Matrix.h
-XCPotential.o: StructureFactor.h XCOperator.h NonLocalPotential.h
-XCPotential.o: ConfinementPotential.h ElectricEnthalpy.h FourierTransform.h
-XCPotential.o: Control.h D3vector.h ChargeDensity.h Timer.h Context.h blacs.h
+XCPotential.o: XCPotential.h ChargeDensity.h Timer.h Context.h blacs.h
+XCPotential.o: D3vector.h LDAFunctional.h XCFunctional.h VWNFunctional.h
+XCPotential.o: PBEFunctional.h BLYPFunctional.h HSEFunctional.h
+XCPotential.o: RSHFunctional.h B3LYPFunctional.h BHandHLYPFunctional.h
+XCPotential.o: SCANFunctional.h Sample.h AtomSet.h Atom.h UnitCell.h
+XCPotential.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+XCPotential.o: Control.h SlaterDet.h Basis.h Matrix.h FourierTransform.h
+XCPotential.o: ChargeDensity.h Timer.h Context.h blacs.h D3vector.h
 XMLGFPreprocessor.o: Timer.h Context.h blacs.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h
 XMLGFPreprocessor.o: Matrix.h Context.h blacs.h
@@ -834,19 +837,24 @@ qb.o: FoldInWsCmd.h HelpCmd.h KpointCmd.h ListAtomsCmd.h ListSpeciesCmd.h
 qb.o: LoadCmd.h MoveCmd.h PartialChargeCmd.h PlotCmd.h PrintCmd.h QuitCmd.h
 qb.o: RandomizeRCmd.h RandomizeVCmd.h RandomizeWfCmd.h ResetRotationCmd.h
 qb.o: ResetVcmCmd.h RescaleVCmd.h ResponseCmd.h RseedCmd.h RunCmd.h SaveCmd.h
-qb.o: SetCmd.h SetVelocityCmd.h SpeciesCmd.h StatusCmd.h ChargeDensity.h
-qb.o: FourierTransform.h StrainCmd.h TorsionCmd.h BisectionCmd.h Bisection.h
-qb.o: SlaterDet.h Basis.h Matrix.h AlphaPBE0.h AlphaRSH.h AtomsDyn.h
-qb.o: BetaRSH.h BlHF.h BtHF.h Cell.h CellDyn.h CellLock.h CellMass.h
-qb.o: ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h Debug.h Dspin.h Ecut.h
-qb.o: Ecutprec.h Ecuts.h Efield.h ForceTol.h Polarization.h Emass.h
-qb.o: ExtStress.h FermiTemp.h IterCmd.h IterCmdPeriod.h Dt.h MuRSH.h Nempty.h
-qb.o: NetCharge.h Nrowmax.h Nspin.h RefCell.h ScfTol.h Stress.h StressTol.h
-qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h Vext.h ExternalPotential.h
-qb.o: WfDiag.h WfDyn.h Xc.h
+qb.o: SetCmd.h SetVelocityCmd.h SpeciesCmd.h SpectrumCmd.h StatusCmd.h
+qb.o: ChargeDensity.h FourierTransform.h StrainCmd.h TorsionCmd.h
+qb.o: BisectionCmd.h Bisection.h SlaterDet.h Basis.h Matrix.h AlphaPBE0.h
+qb.o: AlphaRSH.h AtomsDyn.h BetaRSH.h BlHF.h BtHF.h Cell.h CellDyn.h
+qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
+qb.o: Debug.h Dspin.h Ecut.h Ecutprec.h Ecuts.h Efield.h ForceTol.h
+qb.o: Polarization.h Emass.h ExtStress.h FermiTemp.h IterCmd.h
+qb.o: IterCmdPeriod.h Dt.h MuRSH.h Nempty.h NetCharge.h Nrowmax.h Nspin.h
+qb.o: RefCell.h ScfTol.h Stress.h StressTol.h Thermostat.h ThTemp.h ThTime.h
+qb.o: ThWidth.h Vext.h ExternalPotential.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h
+spectrumCmd.o: SpectrumCmd.h UserInterface.h Sample.h AtomSet.h Context.h
+spectrumCmd.o: blacs.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
+spectrumCmd.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
+spectrumCmd.o: MLWFTransform.h BasisMapping.h SlaterDet.h Basis.h Matrix.h
+spectrumCmd.o: Timer.h
 spline.o: spline.h
 testAndersonMixer.o: AndersonMixer.h
 testBase64Transcoder.o: Base64Transcoder.h

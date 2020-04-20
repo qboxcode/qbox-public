@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2020 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -17,7 +17,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "SpectrumCmd.h"
-#include<iostream>
+#include <iostream>
+#include <fstream>
 #include "Context.h"
 #include "SlaterDet.h"
 using namespace std;
@@ -32,66 +33,138 @@ int SpectrumCmd::action(int argc, char **argv)
   {
     if ( ui->onpe0() )
     {
-      cout << " SpectrumCmd::action: spectrum can only be used at\n"
+      cout << " SpectrumCmd::action: spectrum only implemented at\n"
            << " the Gamma point (k=0)" << endl;
     }
     return 1;
   }
 
   const UnitCell& cell = wf.cell();
-  if ( ui->onpe0() )
-    cout << "<dipole_matrix_elements>" << endl;
+
+  // width of gaussian convolution in eV
+  const double width = 0.2;
+  // energy spacing of spectrum array in eV
+  const double de = 0.01;
+  const double eVolt = 2.0 * 13.6058;
+
+  const int nspin = wf.nspin();
+  vector<vector<double> > sp(nspin);
 
   for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
   {
     SlaterDet& sd = *(wf.sd(ispin,0));
+    const int n = sd.nst();
+    const double erange = eVolt * ( sd.eig(n-1) - sd.eig(0) ) + 3 * width;
+    const int np = erange / de;
+    sp[ispin].resize(np);
+    fill(sp[ispin].begin(),sp[ispin].end(),0.0);
+
     MLWFTransform* mlwft = new MLWFTransform(sd);
 
     mlwft->update();
 
     if ( ui->onpe0() )
+      cout << "<dipole_matrix_elements ispin=\"" << ispin+1 << "\">" << endl;
+
+    const DoubleMatrix *amat[6];
+    for ( int i = 0; i < 6; i++ )
+      amat[i] = mlwft->a(i);
+
+    const double *c0 = amat[0]->cvalptr();
+    const double *s0 = amat[1]->cvalptr();
+    const double *c1 = amat[2]->cvalptr();
+    const double *s1 = amat[3]->cvalptr();
+    const double *c2 = amat[4]->cvalptr();
+    const double *s2 = amat[5]->cvalptr();
+
+    const Context& ctxt = amat[0]->context();
+
+    // loop over global indices (i,j)
+    for ( int i = 0; i < n; i++ )
     {
-      const int n = sd.nst();
-      const double *c0 = mlwft->a(0)->cvalptr();
-      const double *s0 = mlwft->a(1)->cvalptr();
-      const double *c1 = mlwft->a(2)->cvalptr();
-      const double *s1 = mlwft->a(3)->cvalptr();
-      const double *c2 = mlwft->a(4)->cvalptr();
-      const double *s2 = mlwft->a(5)->cvalptr();
-      const double fac = 0.5 / M_PI;
-
-      cout.setf(ios::fixed, ios::floatfield);
-      cout.setf(ios::right, ios::adjustfield);
-
-      for ( int i = 0; i < n; i++ )
+      for ( int j = i+1; j < n; j++ )
       {
-        for ( int j = i; j < n; j++ )
+        // if i occupied and j empty
+        if ( sd.occ(i) > 0.0 && sd.occ(j) == 0.0 )
         {
-          double c[3] = { fac*c0[i+n*j], fac*c1[i+n*j], fac*c2[i+n*j] };
-          double s[3] = { fac*s0[i+n*j], fac*s1[i+n*j], fac*s2[i+n*j] };
+          const double delta_e = eVolt * ( sd.eig(j) - sd.eig(i) );
+          // dipole transition strength w
+          double w = 0.0;
 
-          // cc, ss: matrix elements in cartesian coordinates
-          double cc[3], ss[3];
-          cell.vecmult3x3(cell.amat(),c,cc);
-          cell.vecmult3x3(cell.amat(),s,ss);
+          // if element (i,j) is located on the current task,
+          // compute local indices (iloc,jloc)
+          const int pr = amat[0]->pr(i);
+          const int pc = amat[0]->pc(j);
+          if ( pr == ctxt.myrow() && pc == ctxt.mycol() )
+          {
+            const int iloc = amat[0]->l(i) * amat[0]->mb() + amat[0]->x(i);
+            const int jloc = amat[0]->m(j) * amat[0]->nb() + amat[0]->y(j);
+            const int mloc = amat[0]->mloc();
+            // position in local array is k = iloc+mloc*jloc
+            const int k = iloc + mloc * jloc;
+            const double fac = 0.5 * M_1_PI;
+            double c[3] = { fac*c0[k], fac*c1[k], fac*c2[k] };
+            double s[3] = { fac*s0[k], fac*s1[k], fac*s2[k] };
 
-          cout << " <dipole i=\"" << i+1 << "\" j=\"" << j+1 << "\">" << endl;
-          cout << setw(12) << setprecision(6) << cc[0] << " "
-               << setw(12) << setprecision(6) << ss[0] << endl;
-          cout << setw(12) << setprecision(6) << cc[1] << " "
-               << setw(12) << setprecision(6) << ss[1] << endl;
-          cout << setw(12) << setprecision(6) << cc[2] << " "
-               << setw(12) << setprecision(6) << ss[2] << endl;
-          cout << cc[0]*cc[0]+cc[1]*cc[1]+cc[2]*cc[2]+
-                  ss[0]*ss[0]+ss[1]*ss[1]+ss[2]*ss[2] << endl;
-          cout << " </dipole>" << endl;
-        }
-      }
-    }
+            // cc, ss: matrix elements in cartesian coordinates
+            double cc[3], ss[3];
+            cell.vecmult3x3(cell.amat(),c,cc);
+            cell.vecmult3x3(cell.amat(),s,ss);
+
+            w = cc[0]*cc[0]+cc[1]*cc[1]+cc[2]*cc[2]+
+                ss[0]*ss[0]+ss[1]*ss[1]+ss[2]*ss[2];
+
+            // add contribution to the absorption spectrum
+            for ( int ie = 0; ie < np; ie++ )
+            {
+              const double t = ( ie * de - delta_e ) / width;
+              sp[ispin][ie] += w * width * sqrt(M_PI) * exp(-t*t);
+            }
+
+            // only send if not on pe 0
+            if ( !ui->onpe0() )
+              ctxt.dsend(1,1,&w,1,0,0);
+
+          } // if pr,pc
+
+          // receive if on pe 0 and element was sent from another pe
+          if ( ui->onpe0() && !( pr==0 && pc==0 ) )
+            ctxt.drecv(1,1,&w,1,pr,pc);
+
+          if ( ui->onpe0() )
+          {
+            cout.setf(ios::fixed, ios::floatfield);
+            cout.setf(ios::right, ios::adjustfield);
+            cout << " <dipole i=\"" << i+1 << "\" j=\"" << j+1 << "\"> ";
+            cout << setprecision(6) << delta_e << " "
+                 << w << " </dipole>" << endl;
+          }
+        } // if i occupied and j empty
+      } // for j
+    } // for i
+
+    // sum contributions to sp from all tasks
+    ctxt.dsum(np,1,&sp[ispin][0],np);
+
+    if ( ui->onpe0() )
+      cout << "</dipole_matrix_elements>" << endl;
+
     delete mlwft;
+
+  } // ispin
+
+  // write spectrum to file spectrum.dat
+  if ( ui->onpe0() )
+  {
+    for ( int ispin = 0; ispin < nspin; ispin++ )
+    {
+      ofstream spfile("spectrum.dat");
+      spfile << "# spectrum ispin=" << ispin+1 << endl;
+      for ( int ie = 0; ie < sp[ispin].size(); ie++ )
+        spfile << ie * de << " " << sp[ispin][ie] << endl;
+      spfile << endl << endl;
+    }
   }
 
-  if ( ui->onpe0() )
-    cout << "</dipole_matrix_elements>" << endl;
   return 0;
 }

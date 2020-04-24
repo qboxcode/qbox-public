@@ -19,6 +19,7 @@
 #include "SpectrumCmd.h"
 #include <iostream>
 #include <fstream>
+#include <cassert>
 #include "Context.h"
 #include "SlaterDet.h"
 using namespace std;
@@ -39,13 +40,50 @@ int SpectrumCmd::action(int argc, char **argv)
     return 1;
   }
 
+  if ( !( argc == 4 || argc == 6 ) )
+  {
+    if ( ui->onpe0() )
+    {
+      cout << " use: spectrum [emin emax] de width filename" << endl;
+    }
+    return 1;
+  }
+
+  const double eVolt = 2.0 * 13.6058;
   const UnitCell& cell = wf.cell();
 
-  // width of gaussian convolution in eV
-  const double width = 0.2;
-  // energy spacing of spectrum array in eV
-  const double de = 0.01;
-  const double eVolt = 2.0 * 13.6058;
+  // emin, emax: bounds of plot in eV
+  // de: energy spacing of plot values in eV
+  // width: gaussian width of convolution in eV
+  double emin = 0.0, emax = 0.0, de = 0.01, width = 0.05, erange = 0.0;
+  const char *spfilename;
+
+  // spectrum width
+  if ( argc == 4 )
+  {
+    de = atof(argv[1]);
+    width = atof(argv[2]);
+    spfilename = argv[3];
+  }
+
+  // spectrum emin emax de width
+  if ( argc == 6 )
+  {
+    emin = atof(argv[1]);
+    emax = atof(argv[2]);
+    de = atof(argv[3]);
+    width = atof(argv[4]);
+    spfilename = argv[5];
+    erange = emax - emin + 3 * width;
+    if ( emax <= emin )
+    {
+      if ( ui->onpe0() )
+      {
+        cout << " SpectrumCmd::action: emax must be larger than emin" << endl;
+      }
+      return 1;
+    }
+  }
 
   const int nspin = wf.nspin();
   vector<vector<double> > sp(nspin);
@@ -54,7 +92,8 @@ int SpectrumCmd::action(int argc, char **argv)
   {
     SlaterDet& sd = *(wf.sd(ispin,0));
     const int n = sd.nst();
-    const double erange = eVolt * ( sd.eig(n-1) - sd.eig(0) ) + 3 * width;
+    if ( erange == 0.0 )
+      erange = eVolt * ( sd.eig(n-1) - sd.eig(0) ) + 3 * width;
     const int np = erange / de;
     sp[ispin].resize(np);
     fill(sp[ispin].begin(),sp[ispin].end(),0.0);
@@ -117,7 +156,7 @@ int SpectrumCmd::action(int argc, char **argv)
             // add contribution to the absorption spectrum
             for ( int ie = 0; ie < np; ie++ )
             {
-              const double t = ( ie * de - delta_e ) / width;
+              const double t = ( emin + ie * de - delta_e ) / width;
               sp[ispin][ie] += w * width * sqrt(M_PI) * exp(-t*t);
             }
 
@@ -158,10 +197,11 @@ int SpectrumCmd::action(int argc, char **argv)
   {
     for ( int ispin = 0; ispin < nspin; ispin++ )
     {
-      ofstream spfile("spectrum.dat");
-      spfile << "# spectrum ispin=" << ispin+1 << endl;
+      ofstream spfile(spfilename);
+      spfile << "# spectrum ispin=" << ispin+1
+             << " width=" << width << endl;
       for ( int ie = 0; ie < sp[ispin].size(); ie++ )
-        spfile << ie * de << " " << sp[ispin][ie] << endl;
+        spfile << emin + ie * de << " " << sp[ispin][ie] << endl;
       spfile << endl << endl;
     }
   }

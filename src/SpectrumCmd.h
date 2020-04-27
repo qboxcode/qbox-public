@@ -41,9 +41,20 @@ class SpectrumCmd : public Cmd
   {
     return
     "\n spectrum\n\n"
-    " syntax: spectrum\n\n"
-    "   The spectrum command computes dipole matrix elements \n"
-    " between occupied and empty orbitals.\n\n";
+    " syntax: spectrum de width filename\n\n"
+    "         spectrum [emin emax] de width filename\n\n"
+    "   The spectrum command computes the dipole transition strength\n"
+    " between occupied and empty orbitals, following a calculation of\n"
+    " Kohn-Sham eigenvalues and eigenfunctions. The corresponding absorption\n"
+    " spectrum is written on an output file after convolution with a\n"
+    " gaussian function.\n"
+    "   emin, emax: energy range (optional)\n"
+    "   de        : energy spacing of values in the output file\n"
+    "   width     : width of the gaussian function used in the convolution\n"
+    "   filename  : output file name\n"
+    " If the emin, emax parameters are not given, the energy range is defined\n"
+    " by all possible transitions between occupied and empty orbitals,\n"
+    " All energy parameters must be given in eV.\n\n";
   }
 
   int action(int argc, char **argv);

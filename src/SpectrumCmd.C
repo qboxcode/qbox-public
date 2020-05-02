@@ -68,6 +68,8 @@ int SpectrumCmd::action(int argc, char **argv)
 
   if ( ui->onpe0() )
   {
+    cout.setf(ios::fixed, ios::floatfield);
+    cout.setf(ios::right, ios::adjustfield);
     cout << "<eigenset>" << endl;
     // print eigenvalues
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
@@ -210,7 +212,7 @@ int SpectrumCmd::action(int argc, char **argv)
             for ( int ie = 0; ie < np; ie++ )
             {
               const double t = ( emin + ie * de - delta_e ) / width;
-              sp[ispin][ie] += w * width * sqrt(M_PI) * exp(-t*t);
+              sp[ispin][ie] += w * ( sqrt(M_PI) / width ) * exp(-t*t);
             }
 
             // only send if not on pe 0

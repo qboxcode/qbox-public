@@ -21,7 +21,9 @@
 #include <fstream>
 #include <cassert>
 #include "Context.h"
-#include "SlaterDet.h"
+#include "ChargeDensity.h"
+#include "EnergyFunctional.h"
+#include "MLWFTransform.h"
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -40,40 +42,91 @@ int SpectrumCmd::action(int argc, char **argv)
     return 1;
   }
 
-  if ( !( argc == 4 || argc == 6 ) )
+  if ( !( argc == 2 || argc == 3 || argc == 5 ) )
   {
     if ( ui->onpe0() )
     {
-      cout << " use: spectrum [emin emax] de width filename" << endl;
+      cout << " use: spectrum [emin emax] [width] filename" << endl;
     }
     return 1;
+  }
+
+  // Compute eigenvalues using the current wave function wf
+  Wavefunction dwf(wf);
+  ChargeDensity cd(wf);
+  cd.update_density();
+  EnergyFunctional ef(*s,cd);
+  const bool compute_stress = false;
+  ef.update_vhxc(compute_stress);
+  const bool compute_forces = false;
+  const bool compute_hpsi = true;
+  valarray<double> sigma_eks;
+  vector<vector<double> > fion;
+  ef.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
+  const bool compute_eigvec = true;
+  wf.diag(dwf,compute_eigvec);
+
+  if ( ui->onpe0() )
+  {
+    cout << "<eigenset>" << endl;
+    // print eigenvalues
+    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+    {
+      for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+      {
+        const int nst = wf.sd(ispin,ikp)->nst();
+        const double eVolt = 2.0 * 13.6058;
+        cout <<    "  <eigenvalues spin=\"" << ispin
+             << "\" kpoint=\""
+             << setprecision(8)
+             << wf.sd(ispin,ikp)->kpoint()
+             << "\" weight=\""
+             << setprecision(8)
+             << wf.weight(ikp)
+             << "\" n=\"" << nst << "\">" << endl;
+        for ( int i = 0; i < nst; i++ )
+        {
+          cout << setw(12) << setprecision(5)
+               << wf.sd(ispin,ikp)->eig(i)*eVolt;
+          if ( i%5 == 4 ) cout << endl;
+        }
+        if ( nst%5 != 0 ) cout << endl;
+        cout << "  </eigenvalues>" << endl;
+      }
+    }
+    cout << "</eigenset>" << endl;
   }
 
   const double eVolt = 2.0 * 13.6058;
   const UnitCell& cell = wf.cell();
 
   // emin, emax: bounds of plot in eV
-  // de: energy spacing of plot values in eV
-  // width: gaussian width of convolution in eV
-  double emin = 0.0, emax = 0.0, de = 0.01, width = 0.05, erange = 0.0;
+  // de: energy spacing of plot values in eV (fixed at 0.01)
+  // width: gaussian width of convolution in eV (default 0.05)
+  const double de = 0.01;
+  double emin = 0.0, emax = 0.0, width = 0.05, erange = 0.0;
   const char *spfilename;
 
-  // spectrum width
-  if ( argc == 4 )
+  // spectrum file
+  if ( argc == 2 )
   {
-    de = atof(argv[1]);
-    width = atof(argv[2]);
-    spfilename = argv[3];
+    spfilename = argv[1];
   }
 
-  // spectrum emin emax de width
-  if ( argc == 6 )
+  // spectrum width file
+  if ( argc == 3 )
+  {
+    width = atof(argv[1]);
+    spfilename = argv[2];
+  }
+
+  // spectrum emin emax de width file
+  if ( argc == 5 )
   {
     emin = atof(argv[1]);
     emax = atof(argv[2]);
-    de = atof(argv[3]);
-    width = atof(argv[4]);
-    spfilename = argv[5];
+    width = atof(argv[3]);
+    spfilename = argv[4];
     erange = emax - emin + 3 * width;
     if ( emax <= emin )
     {

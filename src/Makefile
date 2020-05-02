@@ -492,17 +492,6 @@ JDWavefunctionStepper.o: D3vector.h UnitCell.h
 KpointCmd.o: UserInterface.h D3vector.h Sample.h AtomSet.h Context.h blacs.h
 KpointCmd.o: Atom.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 KpointCmd.o: ExtForceSet.h Wavefunction.h Control.h
-LBFGS_IonicStepper.o: LBFGS_IonicStepper.h IonicStepper.h Sample.h AtomSet.h
-LBFGS_IonicStepper.o: Context.h blacs.h Atom.h D3vector.h UnitCell.h
-LBFGS_IonicStepper.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-LBFGS_IonicStepper.o: Wavefunction.h Control.h Species.h
-LBFGS_IonicStepper.o: IonicStepper.h Sample.h AtomSet.h Context.h blacs.h
-LBFGS_IonicStepper.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-LBFGS_IonicStepper.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-LBFGS_IonicStepper.o: Species.h
-LBFGS_hessian.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h
-LBFGS_hessian.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-LBFGS_hessian.o: Wavefunction.h Control.h
 LDAFunctional.o: LDAFunctional.h XCFunctional.h
 LDAFunctional.o: XCFunctional.h
 LineMinimizer.o: LineMinimizer.h
@@ -739,10 +728,13 @@ SpeciesHandler.o: SpeciesHandler.h StructureHandler.h Species.h StrX.h
 SpeciesHandler.o: StructureHandler.h
 SpeciesReader.o: Species.h SpeciesReader.h StructuredDocumentHandler.h StrX.h
 SpeciesReader.o: StructureHandler.h SpeciesHandler.h
-SpectrumCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
-SpectrumCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
-SpectrumCmd.o: ExtForceSet.h Wavefunction.h Control.h MLWFTransform.h
-SpectrumCmd.o: BasisMapping.h
+SpectrumCmd.o: SpectrumCmd.h UserInterface.h Context.h blacs.h
+SpectrumCmd.o: ChargeDensity.h Timer.h D3vector.h EnergyFunctional.h
+SpectrumCmd.o: StructureFactor.h ElectricEnthalpy.h Matrix.h Wavefunction.h
+SpectrumCmd.o: UnitCell.h SlaterDet.h Basis.h Sample.h AtomSet.h Atom.h
+SpectrumCmd.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Control.h
+SpectrumCmd.o: MLWFTransform.h BasisMapping.h
+SpectrumCmd.o: UserInterface.h
 StatusCmd.o: UserInterface.h Sample.h AtomSet.h Context.h blacs.h Atom.h
 StatusCmd.o: D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 StatusCmd.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h Timer.h
@@ -850,11 +842,6 @@ qb.o: ThWidth.h Vext.h ExternalPotential.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h
-spectrumCmd.o: SpectrumCmd.h UserInterface.h Sample.h AtomSet.h Context.h
-spectrumCmd.o: blacs.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
-spectrumCmd.o: ConstraintSet.h ExtForceSet.h Wavefunction.h Control.h
-spectrumCmd.o: MLWFTransform.h BasisMapping.h SlaterDet.h Basis.h Matrix.h
-spectrumCmd.o: Timer.h
 spline.o: spline.h
 testAndersonMixer.o: AndersonMixer.h
 testBase64Transcoder.o: Base64Transcoder.h
@@ -895,7 +882,6 @@ testWavefunction.o: SlaterDet.h Basis.h Matrix.h Timer.h
 testXCFunctional.o: LDAFunctional.h XCFunctional.h PBEFunctional.h Timer.h
 testXMLGFPreprocessor.o: Context.h blacs.h Matrix.h XMLGFPreprocessor.h
 test_fftw.o: Timer.h readTSC.h
-test_sym.o: Basis.h D3vector.h UnitCell.h
 test_vext.o: Function3d.h D3vector.h
 testjacobi.o: Timer.h Context.h blacs.h Matrix.h jacobi.h
 testjade.o: Timer.h Context.h blacs.h Matrix.h jade.h

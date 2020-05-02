@@ -1,4 +1,17 @@
 --------------------------------------------------------------------------------
+rel1_69_0
+--------------------------------------------------------------------------------
+beb8bee Cleanup trailing spaces in util scripts
+3137cbd Add scripts qbox_reduce.sh, qbox_move_subsample.py
+8d434af Fix spectrum file for nspin==2
+7a00811 Update spectrum command
+6ba92e5 Update spectrum command help msg
+80c343d Initialize eig with zero in SlaterDet
+4031b74 Modify spectrum command parameters
+539499d write spectrum on file, fix parallel SpectrumCmd
+54058fe Add spectrum cmd to Makefile and qb.C
+fc34625 Add spectrum command
+--------------------------------------------------------------------------------
 rel1_68_4
 --------------------------------------------------------------------------------
 d9bac45 Use syevd/heevd in JD stepper, workaround lwork size calculation

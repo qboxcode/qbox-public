@@ -70,6 +70,7 @@ using namespace std;
 #include "SetCmd.h"
 #include "SetVelocityCmd.h"
 #include "SpeciesCmd.h"
+#include "SpectrumCmd.h"
 #include "StatusCmd.h"
 #include "StrainCmd.h"
 #include "TorsionCmd.h"
@@ -264,6 +265,7 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new SetCmd(s));
   ui.addCmd(new SetVelocityCmd(s));
   ui.addCmd(new SpeciesCmd(s));
+  ui.addCmd(new SpectrumCmd(s));
   ui.addCmd(new StatusCmd(s));
   ui.addCmd(new StrainCmd(s));
   ui.addCmd(new TorsionCmd(s));

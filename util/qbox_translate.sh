@@ -1,5 +1,5 @@
 #!/bin/bash
-# qbox_translate: translate all atoms 
+# qbox_translate: translate all atoms
 # use: qbox_replicate cell.sys dx dy dz > newcell.sys
 #
 if (( $# != 4 ))

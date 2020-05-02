@@ -1,38 +1,28 @@
 #!/usr/bin/python
-# Copyright 2016 The Regents of the University of California
+# Copyright 2018 The Regents of the University of California
 # This file is part of Qbox
 #
-# qbox_xyz.py: extract sets of atomic positions in xyz format
-# from a Qbox output file or from a Qbox sample file using SAX
-# incremental parsing
+# qbox_move_subsample.py: create a qbox input file moving atoms to the positions
+# of iterations of a simulation subsampled every "interval" number of steps
+# Each set of moves is followed by a command cmd given as an argument
 #
-# use: qbox_xyz.py [-first] {file|URL}
+# use: qbox_move_subsample.py interval cmd {file|URL}
 import os.path
 import xml.sax
 import sys
 import urllib2
 
 def usage():
-  print "use: ",sys.argv[0]," [-first] {file|URL}"
+  print "use: ",sys.argv[0]," interval cmd {file|URL}"
   sys.exit()
 
 argc=len(sys.argv)
-if ( argc < 2 or argc > 3 ):
+if ( argc != 4 ):
   usage()
 
-# check if option "-first" is used
-# "-first" option: extract first atomset only
-# default: extract all atomsets
-first_only = False
-input_source = sys.argv[1]
-if ( sys.argv[1] == "-first" ):
-  if ( argc != 3 ):
-    usage()
-  first_only = True
-  input_source = sys.argv[2]
-
-# conversion from Bohr to Angstrom
-a0=0.529177
+interval = int(sys.argv[1])
+cmd = sys.argv[2]
+input_source = sys.argv[3]
 
 # Qbox output handler to extract and process data
 class QboxOutputHandler(xml.sax.handler.ContentHandler):
@@ -41,7 +31,6 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     self.inAtomset = 0
     self.inAtom = 0
     self.inPosition = 0
-    self.done_first = False
 
   def startElement(self, name, attributes):
     if name == "atomset":
@@ -68,33 +57,23 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.inAtom = 0
     if (name == "position") & self.inAtom:
       pos = self.buffer.split()
-      x = a0*float(pos[0])
-      y = a0*float(pos[1])
-      z = a0*float(pos[2])
-      self.tau.append([x,y,z])
+      self.tau.append([pos[0],pos[1],pos[2]])
       self.inPosition = 0
     elif name == "atomset":
       self.step += 1
-      print len(self.tau)
-      avec = self.cell_a.split()
-      bvec = self.cell_b.split()
-      cvec = self.cell_c.split()
-      print self.step,\
-      '%.6f'%(a0*float(avec[0])),\
-      '%.6f'%(a0*float(avec[1])),\
-      '%.6f'%(a0*float(avec[2])),\
-      '%.6f'%(a0*float(bvec[0])),\
-      '%.6f'%(a0*float(bvec[1])),\
-      '%.6f'%(a0*float(bvec[2])),\
-      '%.6f'%(a0*float(cvec[0])),\
-      '%.6f'%(a0*float(cvec[1])),\
-      '%.6f'%(a0*float(cvec[2]))
-      for i in range(len(self.tau)):
-        print self.atomname[i],'%.6f'%self.tau[i][0],\
-                               '%.6f'%self.tau[i][1],\
-                               '%.6f'%self.tau[i][2]
+      if ( self.step % interval == 0 ):
+        print "#",input_source,"iteration",self.step
+        avec = self.cell_a.split()
+        bvec = self.cell_b.split()
+        cvec = self.cell_c.split()
+        print "set cell ",avec[0],avec[1],avec[2],\
+          bvec[0],bvec[1],bvec[2],\
+          cvec[0],cvec[1],cvec[2]
+        for i in range(len(self.tau)):
+          print "move ",self.atomname[i]," to ",\
+            self.tau[i][0],self.tau[i][1],self.tau[i][2]
+        print cmd
       self.inAtomset = 0
-      self.done_first = True
 
 parser = xml.sax.make_parser()
 handler = QboxOutputHandler()
@@ -104,7 +83,7 @@ parser.setContentHandler(handler)
 if ( os.path.isfile(input_source) ):
   file = open(input_source)
   s = file.read(8192)
-  while ( s !="" and not (first_only and handler.done_first) ):
+  while ( s !="" ):
     parser.feed(s)
     s = file.read(8192)
   file.close()
@@ -113,7 +92,7 @@ else:
   try:
     f = urllib2.urlopen(input_source)
     s = f.read(8192)
-    while ( s !="" and not (first_only and handler.done_first) ):
+    while ( s !="" ):
       parser.feed(s)
       s = f.read(8192)
     f.close()

@@ -129,7 +129,7 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
     // perform normal resize operations, possibly resetting contents of c_
     basis_->resize(cell,refcell,ecut);
     occ_.resize(nst);
-    eig_.resize(nst);
+    eig_.resize(nst,0.0);
 
     const int mb = basis_->maxlocalsize();
     const int m = ctxt_.nprow() * mb;

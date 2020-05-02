@@ -7,7 +7,7 @@
 # use: qbox_species_temp.sh species_name file [file ...]
 #
 if (($#<2))
- then echo " use: qbox_species_temp.sh species file [file ...]" 
+ then echo " use: qbox_species_temp.sh species file [file ...]"
       exit 1
 fi
 species=$1

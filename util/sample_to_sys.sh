@@ -32,8 +32,8 @@ xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
   <xsl:text>atom </xsl:text>
   <xsl:value-of select="@name"/> <xsl:text> </xsl:text>
   <xsl:value-of select="@species"/> <xsl:text> </xsl:text>
-  <xsl:value-of select="position"/>  <xsl:text> </xsl:text> 
-  <xsl:value-of select="velocity"/> <xsl:text> 
+  <xsl:value-of select="position"/>  <xsl:text> </xsl:text>
+  <xsl:value-of select="velocity"/> <xsl:text>
 </xsl:text>
 </xsl:template>
 <xsl:template match="*"/>

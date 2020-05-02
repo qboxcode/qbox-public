@@ -248,15 +248,16 @@ int SpectrumCmd::action(int argc, char **argv)
   // write spectrum to file spectrum.dat
   if ( ui->onpe0() )
   {
+    ofstream spfile(spfilename);
     for ( int ispin = 0; ispin < nspin; ispin++ )
     {
-      ofstream spfile(spfilename);
       spfile << "# spectrum ispin=" << ispin+1
              << " width=" << width << endl;
       for ( int ie = 0; ie < sp[ispin].size(); ie++ )
         spfile << emin + ie * de << " " << sp[ispin][ie] << endl;
       spfile << endl << endl;
     }
+    spfile.close();
   }
 
   return 0;

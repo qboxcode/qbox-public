@@ -293,7 +293,7 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
         DoubleMatrix cref_proxy(wf_ref.sd(ispin,ikp)->c());
         DoubleMatrix dcref_proxy(dwf_ref.sd(ispin,ikp)->c());
 
-	int nb = c_proxy.nb();
+        int nb = c_proxy.nb();
         DoubleMatrix matproj1(ctxt,nst,nst,nb,nb);
         DoubleMatrix matproj2(ctxt,nst,nst,nb,nb);
         DoubleMatrix matenergy(ctxt,nst,nst,nb,nb);
@@ -325,8 +325,8 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
         ComplexMatrix &dc(dwf.sd(ispin,ikp)->c());
         ComplexMatrix &cref(wf_ref.sd(ispin,ikp)->c());
         ComplexMatrix &dcref(dwf_ref.sd(ispin,ikp)->c());
-	
-	int nb = c.nb();
+
+        int nb = c.nb();
         ComplexMatrix matproj1(ctxt,nst,nst,nb,nb);
         ComplexMatrix matproj2(ctxt,nst,nst,nb,nb);
         ComplexMatrix matenergy(ctxt,nst,nst,nb,nb);

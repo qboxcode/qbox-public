@@ -18,7 +18,7 @@ xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
 </xsl:template>
 <xsl:template match="atom">
   <xsl:text>move </xsl:text>
-  <xsl:value-of select="@name"/> 
+  <xsl:value-of select="@name"/>
   <xsl:text> to </xsl:text>
   <xsl:value-of select="position"/> <xsl:text>
 </xsl:text>

@@ -73,9 +73,9 @@ for h in hlist:
     print "# current ",h[1]," at ", h[3],h[4],h[5]
     print "# nearest O is at ", nearest_o[3],nearest_o[4],nearest_o[5]
     print "# move ",h[1]," by ", sx_min, sy_min, sz_min
-    h[3] += sx_min    
-    h[4] += sy_min    
-    h[5] += sz_min    
+    h[3] += sx_min
+    h[4] += sy_min
+    h[5] += sz_min
 
 for o in olist:
   print o[0],o[1],o[2],'%10.5f'%o[3],'%10.5f'%o[4],'%10.5f'%o[5]

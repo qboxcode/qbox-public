@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Convert <atomset> elements from quantum-simulation.org (QSO) format 
+# Convert <atomset> elements from quantum-simulation.org (QSO) format
 # to Qbox input file
 # use: qso2qbox.py [-last] {file|URL}
 # Default: only the first <atomset> element is processed
@@ -10,7 +10,7 @@ import os.path
 import xml.sax
 import sys
 import urllib2
-import datetime 
+import datetime
 
 def usage():
   print "use: ",sys.argv[0]," [-last] {file|URL}"

@@ -45,10 +45,10 @@ class AtomSet:
 class Sample:
   def __init__(self):
     self.atoms = AtomSet()
- 
+
 # The following handler processes the <atomset> element of
 # an XML document and updates the AtomSet data of the Sample
-# If multiple instances of <atomset> are found, the 
+# If multiple instances of <atomset> are found, the
 # handler overwrites the AtomSet data
 class QSOAtomSetHandler(xml.sax.handler.ContentHandler):
   def __init__(self,sample):
@@ -73,7 +73,7 @@ class QSOAtomSetHandler(xml.sax.handler.ContentHandler):
       self.s.atoms.cell.a = attributes["a"]
       self.s.atoms.cell.b = attributes["b"]
       self.s.atoms.cell.c = attributes["c"]
-    elif (name == "species"): 
+    elif (name == "species"):
       self.inSpecies = True
       self.species_name = "species_name"
       if "name" in attributes:
@@ -83,9 +83,9 @@ class QSOAtomSetHandler(xml.sax.handler.ContentHandler):
         self.species_href = attributes["href"]
       self.species_symbol = self.species_name+"_symbol"
       self.species_atomic_number = self.species_name+"_atomic_number"
-      self.species_mass = self.species_name+"_mass" 
+      self.species_mass = self.species_name+"_mass"
     elif (name == "atom") and self.inAtomSet:
-      self.inAtom = True 
+      self.inAtom = True
       self.atom_name = attributes["name"]
       self.atom_species = attributes["species"]
       sp = Species(self.species_name,self.species_href,self.species_symbol,
@@ -124,7 +124,7 @@ class QSOAtomSetHandler(xml.sax.handler.ContentHandler):
       x = float(pos[0])
       y = float(pos[1])
       z = float(pos[2])
-      self.atom_position = [x,y,z] 
+      self.atom_position = [x,y,z]
       self.inPosition = False
     if (name == "velocity") and self.inAtom:
       vel = self.buffer.split()

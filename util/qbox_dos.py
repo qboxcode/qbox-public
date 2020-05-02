@@ -36,7 +36,7 @@ de = (emax - emin)/(ndos-1)
 # f(x) = 1/(sqrt(pi)*width) * exp(-(x/width)^2 )
 def gauss(x, width):
   return (1.0/(math.sqrt(math.pi)*width)) * math.exp(-(x/width)**2)
-  
+
 # Qbox output handler to extract and process data
 class QboxOutputHandler(xml.sax.handler.ContentHandler):
   def __init__(self):

@@ -3,7 +3,7 @@
 # This file is part of Qbox
 #
 # qbox_xyz.py: extract sets of atomic positions in xyz format
-# from a Qbox output file or from a Qbox sample file using SAX 
+# from a Qbox output file or from a Qbox sample file using SAX
 # incremental parsing
 #
 # use: qbox_xyz.py [-first] {file|URL}

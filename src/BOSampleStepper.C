@@ -1012,7 +1012,8 @@ void BOSampleStepper::step(int niter)
 
         if ( fractional_occ )
         {
-          wf.update_occ(s_.ctrl.fermi_temp);
+          if ( s_.ctrl.fermi_temp > 0 )
+            wf.update_occ(s_.ctrl.fermi_temp);
 #if 0
           if ( onpe0 )
           {

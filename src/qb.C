@@ -108,6 +108,7 @@ using namespace std;
 #include "NetCharge.h"
 #include "Nrowmax.h"
 #include "Nspin.h"
+#include "Occ.h"
 #include "RefCell.h"
 #include "ScfTol.h"
 #include "Stress.h"
@@ -301,6 +302,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new NetCharge(s));
   ui.addVar(new Nrowmax(s));
   ui.addVar(new Nspin(s));
+  ui.addVar(new Occ(s));
   ui.addVar(new Dspin(s));
   ui.addVar(new RefCell(s));
   ui.addVar(new ScfTol(s));

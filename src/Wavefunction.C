@@ -42,15 +42,12 @@ nempty_(0), nspin_(1), deltaspin_(0), ecut_(0.0), nrowmax_(32)
 
 ////////////////////////////////////////////////////////////////////////////////
 Wavefunction::Wavefunction(const Wavefunction& wf) : ctxt_(wf.ctxt_),
-nel_(wf.nel_), nempty_(wf.nempty_), nspin_(wf.nspin_),
+nel_(wf.nel_), nempty_(wf.nempty_), nspin_(wf.nspin_), nst_(wf.nst_),
 deltaspin_(wf.deltaspin_), nrowmax_(wf.nrowmax_),
 cell_(wf.cell_), refcell_(wf.refcell_),
 ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
 {
   // Create a Wavefunction using the dimensions of the argument
-
-  compute_nst();
-
   // Next lines: do special allocation of contexts to ensure that
   // contexts are same as those of wf
   spincontext_ = new Context(*wf.spincontext_);
@@ -58,8 +55,7 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
   sdcontext_ = new Context(*wf.sdcontext_);
 
   allocate();
-
-  resize(cell_,refcell_,ecut_);
+  resize();
   init();
 }
 
@@ -147,6 +143,34 @@ double Wavefunction::entropy(void) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void Wavefunction::resize(void)
+{
+  try
+  {
+    // resize all SlaterDets using current cell_, refcell_, ecut_, nst_[ispin]
+    for ( int ispin = 0; ispin < nspin_; ispin++ )
+    {
+      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+      {
+        sd_[ispin][ikp]->resize(cell_,refcell_,ecut_,nst_[ispin]);
+      }
+    }
+  }
+  catch ( const SlaterDetException& sdex )
+  {
+    cout << " Wavefunction: SlaterDetException during resize: " << endl
+         << sdex.msg << endl;
+    // no resize took place
+    return;
+  }
+  catch ( bad_alloc )
+  {
+    cout << " Wavefunction: insufficient memory for resize operation" << endl;
+    return;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell,
   double ecut)
 {
@@ -176,7 +200,6 @@ void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell,
     cout << " Wavefunction: insufficient memory for resize operation" << endl;
     return;
   }
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -252,7 +275,7 @@ void Wavefunction::set_nel(int nel)
 
   nel_ = nel;
   compute_nst();
-  resize(cell_,refcell_,ecut_);
+  resize();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -267,7 +290,7 @@ void Wavefunction::set_nempty(int nempty)
   nempty_ = nempty;
   compute_nst();
   update_occ(0.0);
-  resize(cell_,refcell_,ecut_);
+  resize();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -281,7 +304,7 @@ void Wavefunction::set_nspin(int nspin)
 
   compute_nst();
   allocate();
-  resize(cell_,refcell_,ecut_);
+  resize();
   init();
   update_occ(0.0);
 }
@@ -306,7 +329,7 @@ void Wavefunction::set_deltaspin(int deltaspin)
   deltaspin_ = deltaspin;
   compute_nst();
   allocate();
-  resize(cell_,refcell_,ecut_);
+  resize();
   init();
   update_occ(0.0);
 }
@@ -345,7 +368,7 @@ void Wavefunction::set_nrowmax(int n)
   create_contexts();
   compute_nst();
   allocate();
-  resize(cell_,refcell_,ecut_);
+  resize();
   init();
 }
 
@@ -421,7 +444,7 @@ void Wavefunction::del_kpoint(D3vector kpoint)
   kpoint_.erase(pk);
   weight_.erase(pw);
   allocate();
-  resize(cell_,refcell_,ecut_);
+  resize();
   init();
   update_occ(0.0);
 }

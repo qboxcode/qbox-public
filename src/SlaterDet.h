@@ -89,6 +89,7 @@ class SlaterDet
   const double* occ_ptr(int i) const { return &occ_[i]; }
   void set_occ(std::vector<double>& occ)
     { assert(occ_.size()==occ.size()); occ_ = occ; }
+  void set_occ(int i, double f) { occ_[i] = f; }
   void set_eig(std::vector<double>& eig)
     { assert(eig_.size()==eig.size()); eig_ = eig; }
   void set_eig(std::valarray<double>& eig)

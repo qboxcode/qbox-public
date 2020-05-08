@@ -548,6 +548,9 @@ Nrowmax.o: Control.h
 Nspin.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
 Nspin.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
 Nspin.o: Control.h
+Occ.o: Sample.h AtomSet.h Context.h blacs.h Atom.h D3vector.h UnitCell.h
+Occ.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h Wavefunction.h
+Occ.o: Control.h
 PBEFunctional.o: PBEFunctional.h XCFunctional.h
 PBEFunctional.o: XCFunctional.h
 PSDAWavefunctionStepper.o: PSDAWavefunctionStepper.h WavefunctionStepper.h
@@ -837,8 +840,8 @@ qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
 qb.o: Debug.h Dspin.h Ecut.h Ecutprec.h Ecuts.h Efield.h ForceTol.h
 qb.o: Polarization.h Emass.h ExtStress.h FermiTemp.h IterCmd.h
 qb.o: IterCmdPeriod.h Dt.h MuRSH.h Nempty.h NetCharge.h Nrowmax.h Nspin.h
-qb.o: RefCell.h ScfTol.h Stress.h StressTol.h Thermostat.h ThTemp.h ThTime.h
-qb.o: ThWidth.h Vext.h ExternalPotential.h WfDiag.h WfDyn.h Xc.h
+qb.o: Occ.h RefCell.h ScfTol.h Stress.h StressTol.h Thermostat.h ThTemp.h
+qb.o: ThTime.h ThWidth.h Vext.h ExternalPotential.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h

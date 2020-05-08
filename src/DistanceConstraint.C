@@ -216,7 +216,8 @@ void DistanceConstraint::compute_force(const vector<vector<double> > &r0,
   const double proj1 = f1*e1;
   const double proj2 = f2*e2;
 
-  force_ = -0.5*(proj1+proj2);
+  // A positive force on the constraint tends to increase the distance
+  force_ = 0.5*(proj1+proj2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

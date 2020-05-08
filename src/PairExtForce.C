@@ -50,16 +50,18 @@ double PairExtForce::energy(const vector<vector<double> > &r,
   D3vector r1(pr1);
   D3vector r2(pr2);
 
+  // A positive value of force_ corresponds to a repulsive force
+  // i.e. a positive force tends to increase the distance
   D3vector e12 = normalized(r2-r1);
-  f[is1_][3*ia1_+0] += force_ * e12.x;
-  f[is1_][3*ia1_+1] += force_ * e12.y;
-  f[is1_][3*ia1_+2] += force_ * e12.z;
+  f[is1_][3*ia1_+0] -= force_ * e12.x;
+  f[is1_][3*ia1_+1] -= force_ * e12.y;
+  f[is1_][3*ia1_+2] -= force_ * e12.z;
 
-  f[is2_][3*ia2_+0] -= force_ * e12.x;
-  f[is2_][3*ia2_+1] -= force_ * e12.y;
-  f[is2_][3*ia2_+2] -= force_ * e12.z;
+  f[is2_][3*ia2_+0] += force_ * e12.x;
+  f[is2_][3*ia2_+1] += force_ * e12.y;
+  f[is2_][3*ia2_+2] += force_ * e12.z;
 
-  return  2 * force_ * length(r2-r1);
+  return  -2 * force_ * length(r2-r1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

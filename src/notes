@@ -1,4 +1,11 @@
 --------------------------------------------------------------------------------
+rel1_70_0
+--------------------------------------------------------------------------------
+c790914 Fix xsd links in upf2qso dir
+2348554 Update test/Makefile
+785af78 Add test/siatom test of custom occupation numbers
+0af0f85 Add occ variable for custom occupation numbers
+--------------------------------------------------------------------------------
 rel1_69_1
 --------------------------------------------------------------------------------
 cb15c6c Fix output formatting in SpectrumCmd.C

@@ -506,6 +506,7 @@ void BOSampleStepper::step(int niter)
       {
         if ( s_.constraints.size() > 0 )
         {
+          s_.constraints.update_constraints(dt);
           s_.constraints.compute_forces(ionic_stepper->r0(), fion);
           if ( onpe0 )
           {
@@ -1240,9 +1241,6 @@ void BOSampleStepper::step(int niter)
           cout << *ef_.el_enth();
       }
     }
-
-    if ( atoms_move )
-      s_.constraints.update_constraints(dt);
 
     // if using force_tol or stress_tol, check if maxforce and maxstress
     // within tolerance

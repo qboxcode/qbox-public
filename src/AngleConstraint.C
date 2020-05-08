@@ -285,7 +285,8 @@ void AngleConstraint::compute_force(const vector<vector<double> > &r0,
   }
 
   const double proj = f1*g1 + f2*g2 + f3*g3;
-  force_ = -proj/norm2;
+  // A positive force on the angle constraint tends to increase the angle
+  force_ = proj/norm2;
 
   // compute weight
   const double z = m1_inv_ * g1 * g1 +

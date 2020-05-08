@@ -314,7 +314,8 @@ void TorsionConstraint::compute_force(const vector<vector<double> > &r0,
     force_ = 0.0;
     return;
   }
-  force_ = -proj/norm2;
+  // A positive force on the torsion constraint tends to increase the angle
+  force_ = proj/norm2;
   // compute weight
   const double z = m1_inv_ * g1 * g1 +
                    m2_inv_ * g2 * g2 +

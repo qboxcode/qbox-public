@@ -61,9 +61,9 @@ class BasisMapping
   void zvec_to_vector(const std::complex<double> *zvec,
                       std::complex<double> *c);
 
-  void transpose_fwd(const std::complex<double> *zvec,
+  void transpose_bwd(const std::complex<double> *zvec,
                      std::complex<double> *ct);
-  void transpose_bwd(const std::complex<double> *ct,
+  void transpose_fwd(const std::complex<double> *ct,
                      std::complex<double> *zvec);
 };
 #endif

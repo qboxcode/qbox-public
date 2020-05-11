@@ -80,7 +80,7 @@ int main(int argc, char **argv)
            << f[i] << endl;
     }
     bmap.vector_to_zvec(&f[0],&zvec[0]);
-    bmap.transpose_fwd(&zvec[0],&ct[0]);
+    bmap.transpose_bwd(&zvec[0],&ct[0]);
 
     for ( int k = 0; k < bmap.np2loc(); k++ )
       for ( int j = 0; j < bmap.np1(); j++ )
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     // transpose back to zvec
     for ( int i = 0; i < zvec.size(); i++ )
       zvec[i] = 0.0;
-    bmap.transpose_bwd(&ct[0],&zvec[0]);
+    bmap.transpose_fwd(&ct[0],&zvec[0]);
 
     // transpose back to array f2
     vector<complex<double> > f2(basis.localsize());

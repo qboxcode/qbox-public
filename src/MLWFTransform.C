@@ -132,7 +132,7 @@ void MLWFTransform::update(void)
 
     // x direction
     // map zvec to ct
-    bm_.transpose_fwd(&zvec[0],&ct[0]);
+    bm_.transpose_bwd(&zvec[0],&ct[0]);
 
     for ( int iz = 0; iz < np2loc; iz++ )
     {
@@ -142,10 +142,10 @@ void MLWFTransform::update(void)
         compute_sincos(np0,&ct[ibase],&ct_cos[ibase],&ct_sin[ibase]);
       }
     }
-    // transpose back ct_cos to zvec_cos
-    bm_.transpose_bwd(&ct_cos[0],&zvec_cos[0]);
-    // transpose back ct_sin to zvec_sin
-    bm_.transpose_bwd(&ct_sin[0],&zvec_sin[0]);
+    // transpose ct_cos to zvec_cos
+    bm_.transpose_fwd(&ct_cos[0],&zvec_cos[0]);
+    // transpose ct_sin to zvec_sin
+    bm_.transpose_fwd(&ct_sin[0],&zvec_sin[0]);
 
     // map back zvec_cos to sdcos and zvec_sin to sdsin
     bm_.zvec_to_vector(&zvec_cos[0],&fcx[0]);
@@ -167,10 +167,10 @@ void MLWFTransform::update(void)
         zcopy(&len,&csin_tmp[0],&one,&ct_sin[ibase],&stride);
       }
     }
-    // transpose back ct_cos to zvec_cos
-    bm_.transpose_bwd(&ct_cos[0],&zvec_cos[0]);
-    // transpose back ct_sin to zvec_sin
-    bm_.transpose_bwd(&ct_sin[0],&zvec_sin[0]);
+    // transpose ct_cos to zvec_cos
+    bm_.transpose_fwd(&ct_cos[0],&zvec_cos[0]);
+    // transpose ct_sin to zvec_sin
+    bm_.transpose_fwd(&ct_sin[0],&zvec_sin[0]);
 
     // map back zvec_cos and zvec_sin
     bm_.zvec_to_vector(&zvec_cos[0],&fcy[0]);

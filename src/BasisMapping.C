@@ -388,7 +388,7 @@ BasisMapping::BasisMapping (const Basis &basis) : basis_(basis)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void BasisMapping::transpose_fwd(const complex<double> *zvec,
+void BasisMapping::transpose_bwd(const complex<double> *zvec,
   complex<double> *ct)
 {
   // Transpose zvec to ct
@@ -475,10 +475,10 @@ void BasisMapping::transpose_fwd(const complex<double> *zvec,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void BasisMapping::transpose_bwd(const complex<double> *ct,
+void BasisMapping::transpose_fwd(const complex<double> *ct,
   complex<double> *zvec)
 {
-  // transpose back distributed array ct into zvec
+  // transpose ct to zvec
   // gather ct into rbuf
 #if USE_GATHER_SCATTER
   // zgthr: x(i) = y(indx(i))

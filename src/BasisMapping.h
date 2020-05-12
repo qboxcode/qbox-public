@@ -49,7 +49,10 @@ class BasisMapping
   int np0(void) const { return np0_; }
   int np1(void) const { return np1_; }
   int np2(void) const { return np2_; }
-  int np2loc(void) const { return np2_loc_[myproc_]; }
+  int np2_loc(void) const { return np2_loc_[myproc_]; }
+  int np2_loc(int iproc) const { return np2_loc_[iproc]; }
+  int np2_first(void) const { return np2_first_[myproc_]; }
+  int np2_first(int iproc) const { return np2_first_[iproc]; }
   int np012loc(void) const { return np012loc_; }
   int nvec(void) const { return nvec_; }
   int zvec_size(void) const { return nvec_ * np2_; }

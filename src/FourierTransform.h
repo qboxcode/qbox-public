@@ -45,10 +45,6 @@
 #endif
 #endif
 
-#if USE_MPI
-#include <mpi.h>
-#endif
-
 #include "Timer.h"
 #include "BasisMapping.h"
 
@@ -58,18 +54,14 @@ class FourierTransform
 {
   private:
 
-  MPI_Comm comm_;
   const Basis& basis_;
   const BasisMapping bm_;
-  int nprocs_, myproc_;
 
   const int np0_,np1_,np2_;
+  const int nvec_;
+
   int ntrans0_,ntrans1_,ntrans2_;
 
-  int nvec_;
-
-  std::vector<int> np2_loc_; // np2_loc_[iproc], iproc=0, nprocs_-1
-  std::vector<int> np2_first_; // np2_first_[iproc], iproc=0, nprocs_-1
   std::vector<std::complex<double> > zvec_;
   void init_lib(void);
 
@@ -108,7 +100,6 @@ class FourierTransform
 
   FourierTransform (const Basis &basis, int np0, int np1, int np2);
   ~FourierTransform ();
-  MPI_Comm comm(void) const { return comm_; }
 
   // backward: Fourier synthesis, compute real-space function
   // forward:  Fourier analysis, compute Fourier coefficients
@@ -128,13 +119,13 @@ class FourierTransform
   int np0() const { return np0_; }
   int np1() const { return np1_; }
   int np2() const { return np2_; }
-  int np2_loc() const { return np2_loc_[myproc_]; }
-  int np2_loc(int iproc) const { return np2_loc_[iproc]; }
-  int np2_first() const { return np2_first_[myproc_]; }
-  int np2_first(int iproc) const { return np2_first_[iproc]; }
+  int np2_loc(void) const { return bm_.np2_loc(); }
+  int np2_loc(int iproc) const { return bm_.np2_loc(iproc); }
+  int np2_first(void) const { return bm_.np2_first(); }
+  int np2_first(int iproc) const { return bm_.np2_first(iproc); }
   long int np012() const { return ((long int)np0_) * np1_ * np2_; }
-  int np012loc(int iproc) const { return np0_ * np1_ * np2_loc_[iproc]; }
-  int np012loc() const { return np0_ * np1_ * np2_loc_[myproc_]; }
+  int np012loc(int iproc) const { return np0_ * np1_ * np2_loc(iproc); }
+  int np012loc(void) const { return np0_ * np1_ * np2_loc(); }
   int index(int i, int j, int k) const
   { return i + np0_ * ( j +  np1_ * k ); }
   int i(int ind) const { return ind % np0_; }

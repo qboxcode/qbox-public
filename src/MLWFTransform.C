@@ -106,7 +106,7 @@ void MLWFTransform::update(void)
   const int np1 = bm_.np1();
   const int np2 = bm_.np2();
   const int np01 = np0 * np1;
-  const int np2loc = bm_.np2loc();
+  const int np2loc = bm_.np2_loc();
   const int nvec = bm_.nvec();
   for ( int n = 0; n < c.nloc(); n++ )
   {

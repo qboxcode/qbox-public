@@ -22,10 +22,7 @@
 #include "blas.h"
 
 #include <complex>
-#include <algorithm>
-#include <map>
 #include <cassert>
-#include <cstring> // memset
 
 #if _OPENMP
 #include <omp.h>
@@ -34,12 +31,6 @@
 #if defined(USE_FFTW3_THREADS)
 #error "Need OpenMP to use FFTW3 threads"
 #endif
-#endif
-
-#if USE_MPI
-#include <mpi.h>
-#else
-typedef int MPI_Comm;
 #endif
 
 #if defined(USE_FFTW2) || defined(USE_FFTW3)
@@ -103,60 +94,10 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 FourierTransform::FourierTransform (const Basis &basis,
-  int np0, int np1, int np2) : comm_(basis.comm()), basis_(basis),
-  bm_(BasisMapping(basis,np0,np1,np2)), np0_(np0), np1_(np1), np2_(np2)
+  int np0, int np1, int np2) : basis_(basis),
+  bm_(BasisMapping(basis,np0,np1,np2)), np0_(np0), np1_(np1), np2_(np2),
+  nvec_(bm_.nvec())
 {
-  MPI_Comm_size(comm_,&nprocs_);
-  MPI_Comm_rank(comm_,&myproc_);
-
-  np2_loc_.resize(nprocs_);
-  np2_first_.resize(nprocs_);
-
-  // Block-cyclic distribution for np2
-  // Partition np2 into nprocs_ intervals and
-  // store local sizes in np2_loc_[iproc]
-  // Use same block distribution as in ScaLAPACK
-  // Blocks 0,...,nprocs_-2 have size np2_block_size
-  // Block nprocs_-1 may have a smaller size
-  if ( np2_ % nprocs_ == 0 )
-  {
-    // all blocks have equal size
-    const int np2_block_size = np2_ / nprocs_;
-    for ( int iproc = 0; iproc < nprocs_; iproc++ )
-      np2_loc_[iproc] = np2_block_size;
-  }
-  else
-  {
-    // first k-1 blocks have same size, k_th block is smaller, others zero
-    const int np2_block_size = np2_ / nprocs_ + 1;
-    const int k = np2_ / np2_block_size;
-    for ( int iproc = 0; iproc < k; iproc++ )
-      np2_loc_[iproc] = np2_block_size;
-    np2_loc_[k] = np2_ - k * np2_block_size;
-    for ( int iproc = k+1; iproc < nprocs_; iproc++ )
-      np2_loc_[iproc] = 0;
-  }
-
-  np2_first_[0] = 0;
-  for ( int iproc = 1; iproc < nprocs_; iproc++ )
-  {
-    np2_first_[iproc] = np2_first_[iproc-1] + np2_loc_[iproc-1];
-  }
-
-  // number of local z vectors
-  if ( basis_.real() )
-  {
-    if ( myproc_ == 0 )
-      // rod(0,0) is mapped to only one z vector
-      nvec_ = 2 * basis_.nrod_loc() - 1;
-    else
-      nvec_ = 2 * basis_.nrod_loc();
-  }
-  else
-  {
-    nvec_ = basis_.nrod_loc();
-  }
-
   // compute number of transforms along the x,y and z directions
   // ntrans0_ is the number of transforms along x in one of the two blocks
   // of vectors corresponding to positive and negative y indices
@@ -354,12 +295,12 @@ void FourierTransform::bwd(complex<double>* val)
                      (fftw_complex*)&val[0] );
 #elif USE_FFTW3_2D
   #pragma omp parallel for
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
     fftw_execute_dft ( bwplan2d, (fftw_complex*)&val[k*np0_*np1_],
                        (fftw_complex*)&val[k*np0_*np1_] );
 #else // FFTW3_2D
   // fftw3 1d
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
   {
     int ibase = k * np0_ * np1_;
 #if TIMING
@@ -410,7 +351,7 @@ void FourierTransform::bwd(complex<double>* val)
 #endif // USE_FFTW3_2D
 
 #elif USE_ESSL_FFT
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
   {
     // transform along x for non-zero vectors only
     // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
@@ -468,7 +409,7 @@ void FourierTransform::bwd(complex<double>* val)
   } // k
 
 #elif USE_FFTW2
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
   {
     // transform along x for non-zero vectors only
     // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
@@ -538,7 +479,7 @@ void FourierTransform::bwd(complex<double>* val)
   } // k
 #elif defined(FFT_NOLIB) // USE_FFTW2
   // No library
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
   {
     // transform along x for non-zero vectors only
     // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
@@ -590,11 +531,11 @@ void FourierTransform::fwd(complex<double>* val)
                      (fftw_complex*)&val[0] );
 #elif USE_FFTW3_2D // USE_FFTW3_2D
   #pragma omp parallel for
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
     fftw_execute_dft ( fwplan2d, (fftw_complex*)&val[k*np0_*np1_],
                        (fftw_complex*)&val[k*np0_*np1_] );
 #else // USE_FFTW3_2D
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
   {
     const int ibase = k * np0_ * np1_;
 #if TIMING
@@ -645,7 +586,7 @@ void FourierTransform::fwd(complex<double>* val)
   }
 #endif // USE_FFTW3_2D
 #elif USE_ESSL_FFT
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
   {
     // transform along x for non-zero vectors only
     // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
@@ -700,7 +641,7 @@ void FourierTransform::fwd(complex<double>* val)
 #endif // USE_ESSL_2DFFT
   } // k
 #elif USE_FFTW2
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
   {
     // transform along x for non-zero vectors only
     // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
@@ -767,7 +708,7 @@ void FourierTransform::fwd(complex<double>* val)
   } // k
 #elif defined(FFT_NOLIB)
   // No library
-  for ( int k = 0; k < np2_loc_[myproc_]; k++ )
+  for ( int k = 0; k < np2_loc(); k++ )
   {
     // transform along x for non-zero vectors only
     // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
@@ -1020,12 +961,12 @@ void FourierTransform::init_lib(void)
 #if USE_FFTW3_THREADS
   fftw_init_threads();
   fftw_plan_with_nthreads(omp_get_max_threads());
-  vector<complex<double> > aux1(np0_*np1_*np2_loc_[myproc_]);
+  vector<complex<double> > aux1(np0_*np1_*np2_loc());
 
   // xy
   int rank = 2;
   int n[] = {np1_,np0_};
-  int howmany = np2_loc_[myproc_];
+  int howmany = np2_loc();
   //int howmany = 1;
   int idist = np0_*np1_, odist = np0_*np1_;
   int istride = 1, ostride = 1; /* array is contiguous in memory */

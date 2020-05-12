@@ -45,7 +45,7 @@ class BasisMapping
 
   public:
 
-  BasisMapping (const Basis &basis);
+  BasisMapping (const Basis &basis, int np0, int np1, int np2);
   int np0(void) const { return np0_; }
   int np1(void) const { return np1_; }
   int np2(void) const { return np2_; }
@@ -56,14 +56,20 @@ class BasisMapping
 
   // map a function c(G) to zvec_
   void vector_to_zvec(const std::complex<double> *c,
-                      std::complex<double> *zvec);
+    std::complex<double> *zvec) const;
+  // map two real functions c1(G) and c2(G) to zvec_
+  void doublevector_to_zvec(const std::complex<double> *c1,
+    const std::complex<double> *c2,std::complex<double> *zvec) const;
   // map zvec_ to a function c(G)
   void zvec_to_vector(const std::complex<double> *zvec,
-                      std::complex<double> *c);
+    std::complex<double> *c) const;
+  // map zvec_ to two real functions c1(G) and c2(G)
+  void zvec_to_doublevector(const std::complex<double> *zvec,
+    std::complex<double> *c1, std::complex<double> *c2) const;
 
   void transpose_bwd(const std::complex<double> *zvec,
-                     std::complex<double> *ct);
+                     std::complex<double> *ct) const;
   void transpose_fwd(const std::complex<double> *ct,
-                     std::complex<double> *zvec);
+                     std::complex<double> *zvec) const;
 };
 #endif

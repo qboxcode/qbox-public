@@ -22,17 +22,15 @@
 
 #include <iostream>
 #include <cassert>
+#include <cstring> // memset
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-BasisMapping::BasisMapping (const Basis &basis) : basis_(basis)
+BasisMapping::BasisMapping (const Basis &basis, int np0, int np1, int np2) :
+ basis_(basis), np0_(np0), np1_(np1), np2_(np2)
 {
   nprocs_ = basis_.npes();
   myproc_ = basis_.mype();
-
-  np0_ = basis.np(0);
-  np1_ = basis.np(1);
-  np2_ = basis.np(2);
 
   np2_loc_.resize(nprocs_);
   np2_first_.resize(nprocs_);
@@ -126,6 +124,9 @@ BasisMapping::BasisMapping (const Basis &basis) : basis_(basis)
     sdispl[iproc] = sdispl[iproc-1] + scounts[iproc-1];
     rdispl[iproc] = rdispl[iproc-1] + rcounts[iproc-1];
   }
+
+  // check if the basis_ fits in the grid np0, np1, np2
+  assert(basis_.fits_in_grid(np0_,np1_,np2_));
 
   if ( basis_.real() )
   {
@@ -389,7 +390,7 @@ BasisMapping::BasisMapping (const Basis &basis) : basis_(basis)
 
 ////////////////////////////////////////////////////////////////////////////////
 void BasisMapping::transpose_bwd(const complex<double> *zvec,
-  complex<double> *ct)
+  complex<double> *ct) const
 {
   // Transpose zvec to ct
   // scatter zvec to sbuf for transpose
@@ -476,7 +477,7 @@ void BasisMapping::transpose_bwd(const complex<double> *zvec,
 
 ////////////////////////////////////////////////////////////////////////////////
 void BasisMapping::transpose_fwd(const complex<double> *ct,
-  complex<double> *zvec)
+  complex<double> *zvec) const
 {
   // transpose ct to zvec
   // gather ct into rbuf
@@ -545,7 +546,7 @@ void BasisMapping::transpose_fwd(const complex<double> *ct,
 
 ////////////////////////////////////////////////////////////////////////////////
 void BasisMapping::vector_to_zvec(const complex<double> *c,
-  complex<double> *zvec)
+  complex<double> *zvec) const
 {
   // map coefficients from the basis order to a zvec
   const int ng = basis_.localsize();
@@ -584,9 +585,43 @@ void BasisMapping::vector_to_zvec(const complex<double> *c,
       pz[2*ip+1] = b;
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+void BasisMapping::doublevector_to_zvec(const complex<double> *c1,
+  const complex<double> *c2, complex<double> *zvec) const
+{
+  // map two real functions to zvec
+  assert(basis_.real());
+  memset((void*)&zvec[0],0,zvec_size()*sizeof(complex<double>));
+  double* const pz = (double*) &zvec[0];
+  const int ng = basis_.localsize();
+  const double* const pc1 = (double*) &c1[0];
+  const double* const pc2 = (double*) &c2[0];
+  #pragma omp parallel for
+  for ( int ig = 0; ig < ng; ig++ )
+  {
+    // const double a = c1[ig].real();
+    // const double b = c1[ig].imag();
+    // const double c = c2[ig].real();
+    // const double d = c2[ig].imag();
+    // zvec_[ip] = complex<double>(a-d, b+c);
+    // zvec_[im] = complex<double>(a+d, c-b);
+    const double a = pc1[2*ig];
+    const double b = pc1[2*ig+1];
+    const double c = pc2[2*ig];
+    const double d = pc2[2*ig+1];
+    const int ip = ip_[ig];
+    const int im = im_[ig];
+    pz[2*ip]   = a - d;
+    pz[2*ip+1] = b + c;
+    pz[2*im]   = a + d;
+    pz[2*im+1] = c - b;
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 void BasisMapping::zvec_to_vector(const complex<double> *zvec,
-  complex<double> *c)
+  complex<double> *c) const
 {
   const int ng = basis_.localsize();
   const double* const pz = (const double*) zvec;
@@ -599,5 +634,37 @@ void BasisMapping::zvec_to_vector(const complex<double> *zvec,
     const double pz1 = pz[2*ip+1];
     pc[2*ig]   = pz0;
     pc[2*ig+1] = pz1;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void BasisMapping::zvec_to_doublevector(const complex<double> *zvec,
+  complex<double> *c1, complex<double> *c2 ) const
+{
+  // Mapping of zvec onto two real functions
+  assert(basis_.real());
+  const int ng = basis_.localsize();
+  const double* const pz = (double*) &zvec[0];
+  double* const pc1 = (double*) &c1[0];
+  double* const pc2 = (double*) &c2[0];
+  #pragma omp parallel for
+  for ( int ig = 0; ig < ng; ig++ )
+  {
+    // const double a = 0.5*zvec_[ip].real();
+    // const double b = 0.5*zvec_[ip].imag();
+    // const double c = 0.5*zvec_[im].real();
+    // const double d = 0.5*zvec_[im].imag();
+    // c1[ig] = complex<double>(a+c, b-d);
+    // c2[ig] = complex<double>(b+d, c-a);
+    const int ip = ip_[ig];
+    const int im = im_[ig];
+    const double a = pz[2*ip];
+    const double b = pz[2*ip+1];
+    const double c = pz[2*im];
+    const double d = pz[2*im+1];
+    pc1[2*ig]   = 0.5 * ( a + c );
+    pc1[2*ig+1] = 0.5 * ( b - d );
+    pc2[2*ig]   = 0.5 * ( b + d );
+    pc2[2*ig+1] = 0.5 * ( c - a );
   }
 }

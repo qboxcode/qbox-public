@@ -32,8 +32,9 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 MLWFTransform::MLWFTransform(const SlaterDet& sd) : sd_(sd),
-cell_(sd.basis().cell()), ctxt_(sd.context()),  bm_(BasisMapping(sd.basis())),
-maxsweep_(50), tol_(1.e-8)
+ cell_(sd.basis().cell()), ctxt_(sd.context()),
+ bm_(BasisMapping(sd.basis(),sd.basis().np(0),sd.basis().np(1),
+ sd.basis().np(2))), maxsweep_(50), tol_(1.e-8)
 {
   a_.resize(6);
   adiag_.resize(6);

@@ -50,6 +50,7 @@
 #endif
 
 #include "Timer.h"
+#include "BasisMapping.h"
 
 class Basis;
 
@@ -59,24 +60,17 @@ class FourierTransform
 
   MPI_Comm comm_;
   const Basis& basis_;
+  const BasisMapping bm_;
   int nprocs_, myproc_;
 
-  int np0_,np1_,np2_;
+  const int np0_,np1_,np2_;
   int ntrans0_,ntrans1_,ntrans2_;
 
   int nvec_;
-  bool basis_fits_in_grid_;
 
   std::vector<int> np2_loc_; // np2_loc_[iproc], iproc=0, nprocs_-1
   std::vector<int> np2_first_; // np2_first_[iproc], iproc=0, nprocs_-1
   std::vector<std::complex<double> > zvec_;
-
-  std::vector<int> scounts, sdispl, rcounts, rdispl;
-  std::vector<std::complex<double> > sbuf, rbuf;
-
-  std::vector<int> ifftp_, ifftm_;
-  std::vector<int> ipack_, iunpack_;
-
   void init_lib(void);
 
 #if USE_ESSL_FFT
@@ -107,11 +101,6 @@ class FourierTransform
 #error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
-  void vector_to_zvec(const std::complex<double>* c);
-  void zvec_to_vector(std::complex<double>* c);
-  void doublevector_to_zvec(const std::complex<double>* c1,
-       const std::complex<double> *c2);
-  void zvec_to_doublevector(std::complex<double>* c1, std::complex<double>* c2);
   void fwd(std::complex<double>* val);
   void bwd(std::complex<double>* val);
 

@@ -63,9 +63,9 @@ void print_timing(std::string name, FourierTransform& ft,
       cout << ipe << ": tm_trans_fwd: " << ft.tm_trans_fwd.real() << endl;
       cout << ipe << ": tm_trans_bwd: " << ft.tm_trans_bwd.real() << endl;
       cout << ipe << ": tm_fxy:       " << ft.tm_fxy.real() << endl;
-      cout << ipe << ": tm_fxy_inv:   " << ft.tm_fxy.real() << endl;
+      cout << ipe << ": tm_fxy_inv:   " << ft.tm_fxy_inv.real() << endl;
       cout << ipe << ": tm_fz:        " << ft.tm_fz.real() << endl;
-      cout << ipe << ": tm_fz_inv:    " << ft.tm_fz.real() << endl;
+      cout << ipe << ": tm_fz_inv:    " << ft.tm_fz_inv.real() << endl;
       cout << ipe << ": time: " << tm.cpu() << " / " << tm.real()
       << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
     }
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
   tm.start();
   vft.forward(&vf[0],&vg[0]);
   tm.stop();
-  print_timing("vgrid->vg",ft2,flops,tm);
+  print_timing("vgrid->vg",vft,flops,tm);
 
   MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
   tm.start();
   vft.backward(&vg[0],&vf[0]);
   tm.stop();
-  print_timing("vg->vgrid",ft2,flops,tm);
+  print_timing("vg->vgrid",vft,flops,tm);
 
   } // end of scope for wf-v transforms
 

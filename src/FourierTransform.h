@@ -93,6 +93,10 @@ class FourierTransform
 #error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
+  void fxy(std::complex<double>* val);
+  void fxy_inv(std::complex<double>* val);
+  void fz(void);
+  void fz_inv(void);
   void fwd(std::complex<double>* val);
   void bwd(std::complex<double>* val);
 
@@ -133,11 +137,7 @@ class FourierTransform
   int k(int ind) const { return (ind / np0_) / np1_ + np2_first(); }
 
   void reset_timers(void);
-  Timer tm_f_map, tm_f_fft, tm_f_pack, tm_f_mpi, tm_f_zero, tm_f_unpack,
-        tm_b_map, tm_b_fft, tm_b_pack, tm_b_mpi, tm_b_zero, tm_b_unpack,
-        tm_f_xy, tm_f_z, tm_f_x, tm_f_y,
-        tm_b_xy, tm_b_z, tm_b_x, tm_b_y,
-        tm_init, tm_b_com, tm_f_com;
-
+  Timer tm_fwd, tm_bwd, tm_map_fwd, tm_map_bwd, tm_trans_fwd, tm_trans_bwd,
+        tm_fxy, tm_fxy_inv, tm_fz, tm_fz_inv, tm_init;
 };
 #endif

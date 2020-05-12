@@ -108,15 +108,8 @@ FourierTransform::FourierTransform (const Basis &basis,
   // resize array zvec holding columns
   zvec_.resize(nvec_ * np2_);
 
-#if TIMING
-  tm_init.start();
-#endif
   // Initialize FT library auxiliary arrays
   init_lib();
-#if TIMING
-  tm_init.stop();
-#endif
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -150,42 +143,27 @@ FourierTransform::~FourierTransform()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void FourierTransform::backward(const complex<double>* c, complex<double>* f)
-{
-#if TIMING
-  tm_b_map.start();
-#endif
-  bm_.vector_to_zvec(c,&zvec_[0]);
-#if TIMING
-  tm_b_map.stop();
-#endif
-  bwd(f);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 void FourierTransform::forward(complex<double>* f, complex<double>* c)
 {
   fwd(f);
 #if TIMING
-  tm_f_map.start();
+  tm_map_fwd.start();
 #endif
   bm_.zvec_to_vector(&zvec_[0],c);
 #if TIMING
-  tm_f_map.stop();
+  tm_map_fwd.stop();
 #endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void FourierTransform::backward(const complex<double>* c1,
-                               const complex<double>* c2,
-                               complex<double>* f)
+void FourierTransform::backward(const complex<double>* c, complex<double>* f)
 {
 #if TIMING
-  tm_b_map.start();
+  tm_map_bwd.start();
 #endif
-  bm_.doublevector_to_zvec(c1,c2,&zvec_[0]);
+  bm_.vector_to_zvec(c,&zvec_[0]);
 #if TIMING
-  tm_b_map.stop();
+  tm_map_bwd.stop();
 #endif
   bwd(f);
 }
@@ -196,99 +174,290 @@ void FourierTransform::forward(complex<double>* f,
 {
   fwd(f);
 #if TIMING
-  tm_f_map.start();
+  tm_map_fwd.start();
 #endif
   bm_.zvec_to_doublevector(&zvec_[0],c1,c2);
 #if TIMING
-  tm_f_map.stop();
+  tm_map_fwd.stop();
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void FourierTransform::backward(const complex<double>* c1,
+                               const complex<double>* c2,
+                               complex<double>* f)
+{
+#if TIMING
+  tm_map_bwd.start();
+#endif
+  bm_.doublevector_to_zvec(c1,c2,&zvec_[0]);
+#if TIMING
+  tm_map_bwd.stop();
+#endif
+  bwd(f);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void FourierTransform::fwd(complex<double>* val)
+{
+#if TIMING
+  tm_fwd.start();
+#endif
+  fxy(val);
+#if TIMING
+  tm_trans_fwd.start();
+#endif
+  bm_.transpose_fwd(val,&zvec_[0]);
+#if TIMING
+  tm_trans_fwd.stop();
+#endif
+  fz();
+#if TIMING
+  tm_fwd.stop();
 #endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void FourierTransform::bwd(complex<double>* val)
 {
-  // transform zvec along z, transpose and transform along x,y, store
-  // result in val
-  // The columns of zvec[nvec_ * np2_] contain the full vectors
-  // to be transformed
-  //
-  // If the basis is real: Column (h,k) is followed by column (-h,-k),
-  // except for (0,0)
-
 #if TIMING
-  tm_b_fft.start();
-  tm_b_z.start();
+  tm_bwd.start();
+#endif
+  fz_inv();
+#if TIMING
+  tm_trans_bwd.start();
+#endif
+  bm_.transpose_bwd(&zvec_[0],val);
+#if TIMING
+  tm_trans_bwd.stop();
+#endif
+  fxy_inv(val);
+#if TIMING
+  tm_bwd.stop();
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void FourierTransform::fxy(complex<double>* val)
+{
+#if TIMING
+  tm_fxy.start();
 #endif
 
-#if USE_ESSL_FFT
-  int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = -1, initflag = 0;
-  double scale = 1.0;
-
-  if ( ntrans > 0 )
-    dcft_(&initflag,&zvec_[0],&inc1,&inc2,&zvec_[0],&inc1,&inc2,&np2_,&ntrans,
-          &isign,&scale,&aux1zb[0],&naux1z,&aux2[0],&naux2);
-#elif USE_FFTW2
-   /*
-    * void fftw(fftw_plan plan, int howmany,
-    *    FFTW_COMPLEX *in, int istride, int idist,
-    *    FFTW_COMPLEX *out, int ostride, int odist);
-    */
-#if _OPENMP
-  #pragma omp parallel for
-  for ( int i = 0; i < nvec_; i++ )
-  {
-    fftw_one(bwplan2,(FFTW_COMPLEX*)&zvec_[i*np2_],(FFTW_COMPLEX*)0);
-  }
-#else
-  int ntrans = nvec_, inc1 = 1, inc2 = np2_;
-  fftw(bwplan2,ntrans,(FFTW_COMPLEX*)&zvec_[0],inc1,inc2,
-                      (FFTW_COMPLEX*)0,0,0);
-#endif // _OPENMP
-
-#elif USE_FFTW3 // USE_FFTW2
-
+//fftw_execute_dft is thread safe
+#if USE_FFTW3
 #if USE_FFTW3_THREADS
-  fftw_execute_dft ( bwplan, (fftw_complex*)&zvec_[0],
-                     (fftw_complex*)&zvec_[0]);
-#else
+  fftw_execute_dft ( fwplan2d, (fftw_complex*)&val[0],
+                     (fftw_complex*)&val[0] );
+#elif USE_FFTW3_2D // USE_FFTW3_2D
   #pragma omp parallel for
-  for ( int i = 0; i < nvec_; i++ )
+  for ( int k = 0; k < np2_loc(); k++ )
+    fftw_execute_dft ( fwplan2d, (fftw_complex*)&val[k*np0_*np1_],
+                       (fftw_complex*)&val[k*np0_*np1_] );
+#else // USE_FFTW3_2D
+  for ( int k = 0; k < np2_loc(); k++ )
   {
-    fftw_execute_dft ( bwplan, (fftw_complex*)&zvec_[i*np2_],
-                       (fftw_complex*)&zvec_[i*np2_]);
-  }
-#endif // USE_FFTW3_THREADS
+    const int ibase = k * np0_ * np1_;
+#if FFTW_TRANSPOSE
+    #pragma omp parallel
+    {
+      vector<complex<double> >t_trans(np1_);
+      #pragma omp for
+      for ( int i = 0; i < np0_; i++ )
+      {
+        int length = t_trans.size();
+        int inc1 = 1, inc2 = np0_;
+        zcopy(&length, &val[ibase+i], &inc2, &t_trans[0], &inc1);
+        fftw_execute_dft ( fwplany, (fftw_complex*)&t_trans[0],
+                         (fftw_complex*)&t_trans[0]);
+        zcopy(&length, &t_trans[0], &inc1, &val[ibase+i], &inc2);
+      }
+    }
+#else // FFTW_TRANSPOSE
+    #pragma omp parallel for
+    for ( int i = 0; i < np0_; i++ )
+    {
+      fftw_execute_dft ( fwplany, (fftw_complex*)&val[ibase+i],
+                         (fftw_complex*)&val[ibase+i]);
+    }
+#endif // FFTW_TRANSPOSE
+    #pragma omp parallel for
+    for ( int i = 0; i < ntrans0_; i++ )
+    {
+      // Transform first block along x: positive y indices
+      fftw_execute_dft ( fwplanx,(fftw_complex*)&val[ibase+i*np0_],
+                         (fftw_complex*)&val[ibase+i*np0_]);
 
-#elif defined(FFT_NOLIB) // USE_FFTW3
+      // Transform second block along x: negative y indices
+      fftw_execute_dft ( fwplanx,
+                         (fftw_complex*)&val[ibase+(np1_-ntrans0_+i)*np0_],
+                         (fftw_complex*)&val[ibase+(np1_-ntrans0_+i)*np0_]);
+    }
+  }
+#endif // USE_FFTW3_2D
+#elif USE_ESSL_FFT
+  for ( int k = 0; k < np2_loc(); k++ )
+  {
+    // transform along x for non-zero vectors only
+    // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
+#if USE_ESSL_2DFFT
+
+    // use 2D FFT for x and y transforms
+    int inc1, inc2, istart, isign = 1, initflag = 0;
+    double scale = 1.0;
+
+    // xy transform
+    istart = k * np0_ * np1_;
+    inc1 = 1; inc2 = np0_;
+    dcft2_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
+          &np0_,&np1_,&isign,&scale,&aux1xyf[0],&naux1xy,&aux2[0],&naux2);
+
+#else
+
+    // use multiple 1-d FFTs for x and y transforms
+
+    int inc1, inc2, ntrans, istart, length, isign = 1, initflag = 0;
+    double scale = 1.0;
+    // transform along y for all values of x
+    ntrans = np0_;
+    if ( ntrans > 0 )
+    {
+      inc1 = np0_;
+      inc2 = 1;
+      istart = k * np0_ * np1_;
+      length = np1_;
+      dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
+            &length,&ntrans,&isign,&scale,&aux1yf[0],&naux1y,&aux2[0],&naux2);
+    }
+
+    // transform only non-zero vectors along x
+    ntrans = ntrans0_;
+    if ( ntrans > 0 )
+    {
+      inc1 = 1;
+      inc2 = np0_;
+      istart = k * np0_ * np1_;
+      length = np0_;
+      dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
+            &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
+
+      inc1 = 1;
+      inc2 = np0_;
+      istart = np0_ * ( (np1_-ntrans) + k * np1_ );
+      length = np0_;
+      dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
+            &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
+    }
+#endif // USE_ESSL_2DFFT
+  } // k
+#elif USE_FFTW2
+  for ( int k = 0; k < np2_loc(); k++ )
+  {
+    // transform along x for non-zero vectors only
+    // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
+#if _OPENMP
+  int ibase = k * np0_ * np1_;
+  //complex<double> *tmp1 = new complex<double>[np1_];
+  #pragma omp parallel for
+  for ( int i = 0; i < np0_; i++ )
+  {
+    //#pragma omp task
+    {
+      // transform along y for all values of x
+      // copy data to local array
+      int one=1;
+      #if 0
+      zcopy_(&np1_,&val[ibase+i],&np0_,tmp1,&one);
+      fftw_one(fwplan1,(FFTW_COMPLEX*)tmp1,(FFTW_COMPLEX*)0);
+      zcopy_(&np1_,tmp1,&one,&val[ibase+i],&np0_);
+      #else
+      fftw(fwplan1,1,(FFTW_COMPLEX*)&val[ibase+i],np0_,one,
+                     (FFTW_COMPLEX*)0,0,0);
+      #endif
+    }
+  }
+  //delete [] tmp1;
+
+  #pragma omp parallel for
+  for ( int i = 0; i < ntrans0_; i++ )
+  {
+    //#pragma omp task
+    {
+      // Transform first block along x: positive y indices
+      fftw_one(fwplan0,(FFTW_COMPLEX*)&val[ibase+i*np0_],(FFTW_COMPLEX*)0);
+      // Transform second block along x: negative y indices
+      fftw_one(fwplan0,(FFTW_COMPLEX*)&val[ibase+(np1_-ntrans0_+i)*np0_],
+                       (FFTW_COMPLEX*)0);
+    }
+  }
+#else // _OPENMP
+    int inc1, inc2, istart;
+
+    // transform along y for all values of x
+    int ntrans = np0_;
+    inc1 = np0_;
+    inc2 = 1;
+    istart = k * np0_ * np1_;
+    fftw(fwplan1,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
+                        (FFTW_COMPLEX*)0,0,0);
+
+    ntrans = ntrans0_;
+    // Transform first block along x: positive y indices
+    inc1 = 1;
+    inc2 = np0_;
+    istart = k * np0_ * np1_;
+    fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
+                        (FFTW_COMPLEX*)0,0,0);
+    // Transform second block along x: negative y indices
+    inc1 = 1;
+    inc2 = np0_;
+    istart = np0_ * ( (np1_-ntrans) + k * np1_ );
+    fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
+                        (FFTW_COMPLEX*)0,0,0);
+#endif // _OPENMP
+  } // k
+#elif defined(FFT_NOLIB)
   // No library
-  /* Transform along z */
-  int ntrans = nvec_;
-  int length = np2_;
-  int ainc   = 1;
-  int ajmp   = np2_;
-  double scale = 1.0;
-  int idir = -1;
-  cfftm ( &zvec_[0], &zvec_[0], scale, ntrans, length, ainc, ajmp, idir );
+  for ( int k = 0; k < np2_loc(); k++ )
+  {
+    // transform along x for non-zero vectors only
+    // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
+    // transform along y for all values of x
+    int ntrans = np0_;
+    int istart = k * np0_ * np1_;
+    int length = np1_;
+    int ainc = np0_;
+    int ajmp = 1;
+    double scale = 1.0;
+    int idir = 1;
+    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
+
+    // transform along x for non-zero elements
+    ntrans = ntrans0_;
+    istart = k * np0_ * np1_;
+    length = np0_;
+    ainc   = 1;
+    ajmp   = np0_;
+    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
+
+    istart = np0_ * ( (np1_-ntrans) + k * np1_ );
+    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
+  } // for k
 #else
 #error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
-#endif // USE_FFTW3
-
-#if TIMING
-  tm_b_z.stop();
-  tm_b_com.start();
-  tm_b_fft.stop();
-  tm_b_pack.start();
 #endif
 
-  bm_.transpose_bwd(&zvec_[0],val);
-
 #if TIMING
-  tm_b_unpack.stop();
-  tm_b_fft.start();
-  tm_b_com.stop();
-  tm_b_xy.start();
+  tm_fxy.stop();
 #endif
+}
 
+////////////////////////////////////////////////////////////////////////////////
+void FourierTransform::fxy_inv(complex<double>* val)
+{
+#if TIMING
+  tm_fxy_inv.start();
+#endif
 #if USE_FFTW3
 #if USE_FFTW3_THREADS
   fftw_execute_dft ( bwplan2d, (fftw_complex*)&val[0],
@@ -303,9 +472,6 @@ void FourierTransform::bwd(complex<double>* val)
   for ( int k = 0; k < np2_loc(); k++ )
   {
     int ibase = k * np0_ * np1_;
-#if TIMING
-    tm_b_x.start();
-#endif
     #pragma omp parallel for
     for ( int i = 0; i < ntrans0_; i++ )
     {
@@ -317,10 +483,6 @@ void FourierTransform::bwd(complex<double>* val)
                          (fftw_complex*)&val[ibase+(np1_-ntrans0_+i)*np0_],
                          (fftw_complex*)&val[ibase+(np1_-ntrans0_+i)*np0_]);
     }
-#if TIMING
-    tm_b_x.stop();
-    tm_b_y.start();
-#endif
 #if FFTW_TRANSPOSE
     #pragma omp parallel
     {
@@ -344,9 +506,6 @@ void FourierTransform::bwd(complex<double>* val)
                          (fftw_complex*)&val[ibase+i]);
     }
 #endif // FFTW_TRANSPOSE
-#if TIMING
-    tm_b_y.stop();
-#endif
   }
 #endif // USE_FFTW3_2D
 
@@ -511,247 +670,16 @@ void FourierTransform::bwd(complex<double>* val)
 #endif
 
 #if TIMING
-  tm_b_xy.stop();
-  tm_b_fft.stop();
+  tm_fxy_inv.stop();
 #endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void FourierTransform::fwd(complex<double>* val)
+void FourierTransform::fz(void)
 {
+  // transform zvec along z
 #if TIMING
-  tm_f_fft.start();
-  tm_f_xy.start();
-#endif
-
-//fftw_execute_dft is thread safe
-#if USE_FFTW3
-#if USE_FFTW3_THREADS
-  fftw_execute_dft ( fwplan2d, (fftw_complex*)&val[0],
-                     (fftw_complex*)&val[0] );
-#elif USE_FFTW3_2D // USE_FFTW3_2D
-  #pragma omp parallel for
-  for ( int k = 0; k < np2_loc(); k++ )
-    fftw_execute_dft ( fwplan2d, (fftw_complex*)&val[k*np0_*np1_],
-                       (fftw_complex*)&val[k*np0_*np1_] );
-#else // USE_FFTW3_2D
-  for ( int k = 0; k < np2_loc(); k++ )
-  {
-    const int ibase = k * np0_ * np1_;
-#if TIMING
-    tm_f_y.start();
-#endif
-#if FFTW_TRANSPOSE
-    #pragma omp parallel
-    {
-      vector<complex<double> >t_trans(np1_);
-      #pragma omp for
-      for ( int i = 0; i < np0_; i++ )
-      {
-        int length = t_trans.size();
-        int inc1 = 1, inc2 = np0_;
-        zcopy(&length, &val[ibase+i], &inc2, &t_trans[0], &inc1);
-        fftw_execute_dft ( fwplany, (fftw_complex*)&t_trans[0],
-                         (fftw_complex*)&t_trans[0]);
-        zcopy(&length, &t_trans[0], &inc1, &val[ibase+i], &inc2);
-      }
-    }
-#else // FFTW_TRANSPOSE
-    #pragma omp parallel for
-    for ( int i = 0; i < np0_; i++ )
-    {
-      fftw_execute_dft ( fwplany, (fftw_complex*)&val[ibase+i],
-                         (fftw_complex*)&val[ibase+i]);
-    }
-#endif // FFTW_TRANSPOSE
-#if TIMING
-    tm_f_y.stop();
-    tm_f_x.start();
-#endif
-    #pragma omp parallel for
-    for ( int i = 0; i < ntrans0_; i++ )
-    {
-      // Transform first block along x: positive y indices
-      fftw_execute_dft ( fwplanx,(fftw_complex*)&val[ibase+i*np0_],
-                         (fftw_complex*)&val[ibase+i*np0_]);
-
-      // Transform second block along x: negative y indices
-      fftw_execute_dft ( fwplanx,
-                         (fftw_complex*)&val[ibase+(np1_-ntrans0_+i)*np0_],
-                         (fftw_complex*)&val[ibase+(np1_-ntrans0_+i)*np0_]);
-    }
-#if TIMING
-    tm_f_x.stop();
-#endif
-  }
-#endif // USE_FFTW3_2D
-#elif USE_ESSL_FFT
-  for ( int k = 0; k < np2_loc(); k++ )
-  {
-    // transform along x for non-zero vectors only
-    // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
-#if USE_ESSL_2DFFT
-
-    // use 2D FFT for x and y transforms
-    int inc1, inc2, istart, isign = 1, initflag = 0;
-    double scale = 1.0;
-
-    // xy transform
-    istart = k * np0_ * np1_;
-    inc1 = 1; inc2 = np0_;
-    dcft2_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
-          &np0_,&np1_,&isign,&scale,&aux1xyf[0],&naux1xy,&aux2[0],&naux2);
-
-#else
-
-    // use multiple 1-d FFTs for x and y transforms
-
-    int inc1, inc2, ntrans, istart, length, isign = 1, initflag = 0;
-    double scale = 1.0;
-    // transform along y for all values of x
-    ntrans = np0_;
-    if ( ntrans > 0 )
-    {
-      inc1 = np0_;
-      inc2 = 1;
-      istart = k * np0_ * np1_;
-      length = np1_;
-      dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
-            &length,&ntrans,&isign,&scale,&aux1yf[0],&naux1y,&aux2[0],&naux2);
-    }
-
-    // transform only non-zero vectors along x
-    ntrans = ntrans0_;
-    if ( ntrans > 0 )
-    {
-      inc1 = 1;
-      inc2 = np0_;
-      istart = k * np0_ * np1_;
-      length = np0_;
-      dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
-            &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
-
-      inc1 = 1;
-      inc2 = np0_;
-      istart = np0_ * ( (np1_-ntrans) + k * np1_ );
-      length = np0_;
-      dcft_(&initflag,&val[istart],&inc1,&inc2,&val[istart],&inc1,&inc2,
-            &length,&ntrans,&isign,&scale,&aux1xf[0],&naux1x,&aux2[0],&naux2);
-    }
-#endif // USE_ESSL_2DFFT
-  } // k
-#elif USE_FFTW2
-  for ( int k = 0; k < np2_loc(); k++ )
-  {
-    // transform along x for non-zero vectors only
-    // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
-#if _OPENMP
-  int ibase = k * np0_ * np1_;
-  //complex<double> *tmp1 = new complex<double>[np1_];
-  #pragma omp parallel for
-  for ( int i = 0; i < np0_; i++ )
-  {
-    //#pragma omp task
-    {
-      // transform along y for all values of x
-      // copy data to local array
-      int one=1;
-      #if 0
-      zcopy_(&np1_,&val[ibase+i],&np0_,tmp1,&one);
-      fftw_one(fwplan1,(FFTW_COMPLEX*)tmp1,(FFTW_COMPLEX*)0);
-      zcopy_(&np1_,tmp1,&one,&val[ibase+i],&np0_);
-      #else
-      fftw(fwplan1,1,(FFTW_COMPLEX*)&val[ibase+i],np0_,one,
-                     (FFTW_COMPLEX*)0,0,0);
-      #endif
-    }
-  }
-  //delete [] tmp1;
-
-  #pragma omp parallel for
-  for ( int i = 0; i < ntrans0_; i++ )
-  {
-    //#pragma omp task
-    {
-      // Transform first block along x: positive y indices
-      fftw_one(fwplan0,(FFTW_COMPLEX*)&val[ibase+i*np0_],(FFTW_COMPLEX*)0);
-      // Transform second block along x: negative y indices
-      fftw_one(fwplan0,(FFTW_COMPLEX*)&val[ibase+(np1_-ntrans0_+i)*np0_],
-                       (FFTW_COMPLEX*)0);
-    }
-  }
-#else // _OPENMP
-    int inc1, inc2, istart;
-
-    // transform along y for all values of x
-    int ntrans = np0_;
-    inc1 = np0_;
-    inc2 = 1;
-    istart = k * np0_ * np1_;
-    fftw(fwplan1,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
-                        (FFTW_COMPLEX*)0,0,0);
-
-    ntrans = ntrans0_;
-    // Transform first block along x: positive y indices
-    inc1 = 1;
-    inc2 = np0_;
-    istart = k * np0_ * np1_;
-    fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
-                        (FFTW_COMPLEX*)0,0,0);
-    // Transform second block along x: negative y indices
-    inc1 = 1;
-    inc2 = np0_;
-    istart = np0_ * ( (np1_-ntrans) + k * np1_ );
-    fftw(fwplan0,ntrans,(FFTW_COMPLEX*)&val[istart],inc1,inc2,
-                        (FFTW_COMPLEX*)0,0,0);
-#endif // _OPENMP
-  } // k
-#elif defined(FFT_NOLIB)
-  // No library
-  for ( int k = 0; k < np2_loc(); k++ )
-  {
-    // transform along x for non-zero vectors only
-    // transform along x for y in [0,ntrans0_] and y in [np1-ntrans0_, np1-1]
-    // transform along y for all values of x
-    int ntrans = np0_;
-    int istart = k * np0_ * np1_;
-    int length = np1_;
-    int ainc = np0_;
-    int ajmp = 1;
-    double scale = 1.0;
-    int idir = 1;
-    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
-
-    // transform along x for non-zero elements
-    ntrans = ntrans0_;
-    istart = k * np0_ * np1_;
-    length = np0_;
-    ainc   = 1;
-    ajmp   = np0_;
-    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
-
-    istart = np0_ * ( (np1_-ntrans) + k * np1_ );
-    cfftm (&val[istart],&val[istart],scale,ntrans,length,ainc,ajmp,idir );
-  } // for k
-#else
-#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
-#endif
-
-#if TIMING
-  tm_f_xy.stop();
-  tm_f_com.start();
-  tm_f_fft.stop();
-  tm_f_pack.start();
-#endif
-
-  bm_.transpose_fwd(val,&zvec_[0]);
-
-  // transform along z
-#if TIMING
-  tm_f_unpack.stop();
-  tm_f_fft.start();
-  tm_f_com.stop();
-  tm_f_z.start();
+  tm_fz.start();
 #endif
 
 #if USE_ESSL_FFT
@@ -827,8 +755,73 @@ void FourierTransform::fwd(complex<double>* val)
 #endif
 
 #if TIMING
-  tm_f_z.stop();
-  tm_f_fft.stop();
+  tm_fz.stop();
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void FourierTransform::fz_inv(void)
+{
+  // transform zvec along z
+#if TIMING
+  tm_fz_inv.start();
+#endif
+
+#if USE_ESSL_FFT
+  int inc1 = 1, inc2 = np2_, ntrans = nvec_, isign = -1, initflag = 0;
+  double scale = 1.0;
+
+  if ( ntrans > 0 )
+    dcft_(&initflag,&zvec_[0],&inc1,&inc2,&zvec_[0],&inc1,&inc2,&np2_,&ntrans,
+          &isign,&scale,&aux1zb[0],&naux1z,&aux2[0],&naux2);
+#elif USE_FFTW2
+   /*
+    * void fftw(fftw_plan plan, int howmany,
+    *    FFTW_COMPLEX *in, int istride, int idist,
+    *    FFTW_COMPLEX *out, int ostride, int odist);
+    */
+#if _OPENMP
+  #pragma omp parallel for
+  for ( int i = 0; i < nvec_; i++ )
+  {
+    fftw_one(bwplan2,(FFTW_COMPLEX*)&zvec_[i*np2_],(FFTW_COMPLEX*)0);
+  }
+#else
+  int ntrans = nvec_, inc1 = 1, inc2 = np2_;
+  fftw(bwplan2,ntrans,(FFTW_COMPLEX*)&zvec_[0],inc1,inc2,
+                      (FFTW_COMPLEX*)0,0,0);
+#endif // _OPENMP
+
+#elif USE_FFTW3 // USE_FFTW2
+
+#if USE_FFTW3_THREADS
+  fftw_execute_dft ( bwplan, (fftw_complex*)&zvec_[0],
+                     (fftw_complex*)&zvec_[0]);
+#else
+  #pragma omp parallel for
+  for ( int i = 0; i < nvec_; i++ )
+  {
+    fftw_execute_dft ( bwplan, (fftw_complex*)&zvec_[i*np2_],
+                       (fftw_complex*)&zvec_[i*np2_]);
+  }
+#endif // USE_FFTW3_THREADS
+
+#elif defined(FFT_NOLIB) // USE_FFTW3
+  // No library
+  /* Transform along z */
+  int ntrans = nvec_;
+  int length = np2_;
+  int ainc   = 1;
+  int ajmp   = np2_;
+  double scale = 1.0;
+  int idir = -1;
+  cfftm ( &zvec_[0], &zvec_[0], scale, ntrans, length, ainc, ajmp, idir );
+#else
+#error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
+#endif // USE_FFTW3
+
+#if TIMING
+  tm_fz_inv.stop();
 #endif
 }
 
@@ -836,6 +829,9 @@ void FourierTransform::fwd(complex<double>* val)
 void FourierTransform::init_lib(void)
 {
   // initialization of FFT libs
+#if TIMING
+  tm_init.start();
+#endif
 
 #if USE_ESSL_FFT
   complex<double> *p = 0;
@@ -1059,6 +1055,9 @@ void FourierTransform::init_lib(void)
 #error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
+#if TIMING
+  tm_init.stop();
+#endif
 }
 
 #if defined(FFT_NOLIB)
@@ -1264,18 +1263,16 @@ void fftstp ( int idir, complex<double> *zin, int after,
 void FourierTransform::reset_timers(void)
 {
 #if TIMING
-  tm_f_map.reset();
-  tm_f_fft.reset();
-  tm_f_pack.reset();
-  tm_f_mpi.reset();
-  tm_f_zero.reset();
-  tm_f_unpack.reset();
-
-  tm_b_map.reset();
-  tm_b_fft.reset();
-  tm_b_pack.reset();
-  tm_b_mpi.reset();
-  tm_b_zero.reset();
-  tm_b_unpack.reset();
+  tm_fwd.reset();
+  tm_bwd.reset();
+  tm_map_fwd.reset();
+  tm_map_fwd.reset();
+  tm_trans_fwd.reset();
+  tm_trans_bwd.reset();
+  tm_fxy.reset();
+  tm_fxy_inv.reset();
+  tm_fz.reset();
+  tm_fz_inv.reset();
+  tm_init.reset();
 #endif
 }

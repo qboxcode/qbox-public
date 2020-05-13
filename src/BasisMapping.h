@@ -38,7 +38,7 @@ class BasisMapping
   std::vector<int> np2_first_; // np2_first_[iproc], iproc=0, nprocs_-1
 
   std::vector<int> scounts, sdispl, rcounts, rdispl;
-  std::vector<std::complex<double> > sbuf, rbuf;
+  mutable std::vector<std::complex<double> > sbuf, rbuf;
 
   std::vector<int> ip_, im_;
   std::vector<int> ipack_, iunpack_;

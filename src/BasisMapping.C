@@ -428,19 +428,22 @@ void BasisMapping::transpose_bwd(const complex<double> *zvec,
   // segments of z-vectors are now in sbuf
 
   // transpose
-#if USE_MPI
-  int status = MPI_Alltoallv((double*)&sbuf[0],&scounts[0],&sdispl[0],
+  if ( nprocs_ == 1 )
+  {
+    assert(sbuf.size()==rbuf.size());
+    rbuf.swap(sbuf);
+  }
+  else
+  {
+    int status = MPI_Alltoallv((double*)&sbuf[0],&scounts[0],&sdispl[0],
       MPI_DOUBLE,(double*)&rbuf[0],&rcounts[0],&rdispl[0],MPI_DOUBLE,
       basis_.comm());
-  if ( status != 0 )
-  {
-    cout << " BasisMapping: status = " << status << endl;
-    MPI_Abort(basis_.comm(),2);
+    if ( status != 0 )
+    {
+      cout << " BasisMapping: status = " << status << endl;
+      MPI_Abort(basis_.comm(),2);
+    }
   }
-#else
-  assert(sbuf.size()==rbuf.size());
-  rbuf = sbuf;
-#endif
 
   // clear ct
   memset((void*)ct,0,np012loc_*sizeof(complex<double>));
@@ -505,15 +508,22 @@ void BasisMapping::transpose_fwd(const complex<double> *ct,
 #endif
 
   // transpose
-#if USE_MPI
-  int status = MPI_Alltoallv((double*)&rbuf[0],&rcounts[0],&rdispl[0],
+  if ( nprocs_ == 1 )
+  {
+    assert(sbuf.size()==rbuf.size());
+    sbuf.swap(rbuf);
+  }
+  else
+  {
+    int status = MPI_Alltoallv((double*)&rbuf[0],&rcounts[0],&rdispl[0],
       MPI_DOUBLE,(double*)&sbuf[0],&scounts[0],&sdispl[0],MPI_DOUBLE,
       basis_.comm());
-  assert ( status == 0 );
-#else
-  assert(sbuf.size()==rbuf.size());
-  sbuf = rbuf;
-#endif
+    if ( status != 0 )
+    {
+      cout << " BasisMapping: status = " << status << endl;
+      MPI_Abort(basis_.comm(),2);
+    }
+  }
 
   // segments of z-vectors are now in sbuf
   // gather sbuf into zvec_

@@ -442,18 +442,11 @@ void BasisMapping::transpose_bwd(const complex<double> *zvec,
   rbuf = sbuf;
 #endif
 
-  // copy from rbuf to ct
-  // scatter index array iunpack
-  {
-    const int len = np012loc_;
-    double* const pv = (double*) ct;
-    for ( int i = 0; i < len; i++ )
-    {
-      pv[2*i]   = 0.0;
-      pv[2*i+1] = 0.0;
-    }
-  }
+  // clear ct
+  memset((void*)ct,0,np012loc_*sizeof(complex<double>));
 
+  // copy from rbuf to ct
+  // using scatter index array iunpack
 #if USE_GATHER_SCATTER
   // zsctr(n,x,indx,y): y(indx(i)) = x(i)
   {
@@ -553,15 +546,12 @@ void BasisMapping::transpose_fwd(const complex<double> *ct,
 void BasisMapping::vector_to_zvec(const complex<double> *c,
   complex<double> *zvec) const
 {
+  // clear zvec
+  memset((void*)&zvec[0],0,zvec_size()*sizeof(complex<double>));
+
   // map coefficients from the basis order to a zvec
-  const int ng = basis_.localsize();
-  const int len = zvec_size();
   double* const pz = (double*) zvec;
-  for ( int i = 0; i < len; i++ )
-  {
-    pz[2*i]   = 0.0;
-    pz[2*i+1] = 0.0;
-  }
+  const int ng = basis_.localsize();
   const double* const pc = (const double*) c;
   if ( basis_.real() )
   {
@@ -595,9 +585,12 @@ void BasisMapping::vector_to_zvec(const complex<double> *c,
 void BasisMapping::doublevector_to_zvec(const complex<double> *c1,
   const complex<double> *c2, complex<double> *zvec) const
 {
-  // map two real functions to zvec
   assert(basis_.real());
+
+  // clear zvec
   memset((void*)&zvec[0],0,zvec_size()*sizeof(complex<double>));
+
+  // map two real functions to zvec
   double* const pz = (double*) &zvec[0];
   const int ng = basis_.localsize();
   const double* const pc1 = (double*) &c1[0];

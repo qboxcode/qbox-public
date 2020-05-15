@@ -82,15 +82,15 @@ CPSampleStepper::~CPSampleStepper(void)
 void CPSampleStepper::step(int niter)
 {
   const bool onpe0 = s_.ctxt_.onpe0();
-  // CP dynamics is allowed only for all doubly occupied states
-  // check if states are all doubly occupied
-  const bool wf_double_occ = (s_.wf.nel() == 2 * s_.wf.nst());
-  if ( !wf_double_occ )
+
+  // check that there are no fractionally occupied states
+  // next line: (3-nspin) = 2 if nspin==1 and 1 if nspin==2
+  if ( s_.wf.nel() != (( 3 - s_.wf.nspin() ) * s_.wf.nst()) )
   {
     if ( s_.ctxt_.onpe0() )
     {
       cout << " CPSampleStepper::step:"
-              " not all states doubly occupied: cannot run" << endl;
+              " fractionally occupied or empty states: cannot run" << endl;
     }
     return;
   }

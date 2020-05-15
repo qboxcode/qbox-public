@@ -23,6 +23,7 @@
 
 #include <complex>
 #include <cassert>
+#include <cstdlib> // abs
 
 #if _OPENMP
 #include <omp.h>

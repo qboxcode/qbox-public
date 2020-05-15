@@ -435,9 +435,10 @@ void BasisMapping::transpose_bwd(const complex<double> *zvec,
   }
   else
   {
-    int status = MPI_Alltoallv((double*)&sbuf[0],&scounts[0],&sdispl[0],
-      MPI_DOUBLE,(double*)&rbuf[0],&rcounts[0],&rdispl[0],MPI_DOUBLE,
-      basis_.comm());
+    int status =
+      MPI_Alltoallv((double*)&sbuf[0],(int*)&scounts[0],(int*)&sdispl[0],
+      MPI_DOUBLE,(double*)&rbuf[0],(int*)&rcounts[0],(int*)&rdispl[0],
+      MPI_DOUBLE, basis_.comm());
     if ( status != 0 )
     {
       cout << " BasisMapping: status = " << status << endl;
@@ -515,9 +516,10 @@ void BasisMapping::transpose_fwd(const complex<double> *ct,
   }
   else
   {
-    int status = MPI_Alltoallv((double*)&rbuf[0],&rcounts[0],&rdispl[0],
-      MPI_DOUBLE,(double*)&sbuf[0],&scounts[0],&sdispl[0],MPI_DOUBLE,
-      basis_.comm());
+    int status =
+      MPI_Alltoallv((double*)&rbuf[0],(int*)&rcounts[0],(int*)&rdispl[0],
+      MPI_DOUBLE,(double*)&sbuf[0],(int*)&scounts[0],(int*)&sdispl[0],
+      MPI_DOUBLE, basis_.comm());
     if ( status != 0 )
     {
       cout << " BasisMapping: status = " << status << endl;

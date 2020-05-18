@@ -406,7 +406,7 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
   jade(maxsweep,tol,amat_,*u_,adiag_);
 #ifdef TIMING
   if ( ctxt_.onpe0() )
-    cout << "Bisection::compute_transform: nsweep=" << nsweep
+    cout << "Bisection::compute_transform:"
          << " maxsweep=" << maxsweep << " tol=" << tol << endl;
 #endif
 

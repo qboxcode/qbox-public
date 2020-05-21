@@ -1,4 +1,21 @@
 --------------------------------------------------------------------------------
+rel1_71_1
+--------------------------------------------------------------------------------
+0b54b01 Merge branch 'develop'
+04bf383 Fix timing msg in Bisection.C
+8ad14a3 Fix bisection timer for nspin==2
+4b2de68 Fix constness in BasisMapping
+1a2fb01 Enable spin-polarized CP dynamics
+2aad1f5 Add cstdlib header for abs()
+2d6f542 Use vector swap in BasisMapping for single-node
+e9d9631 Use memset to zero arrays in BasisMapping
+90f6ddc Update gather/scatter in BasisMapping for MKL
+4f1caa4 Fix timers in testFourierTransform
+2311fdd Add fxy and fz functions in FourierTransform
+984676c Cleanup FourierTransform and BasisMapping
+8dc7100 Rewrite BasisMapping and FourierTransform
+57f8d91 Switch names of transpose fns in BasisMapping
+--------------------------------------------------------------------------------
 rel1_71_0
 --------------------------------------------------------------------------------
 a26cbfa Update constraints before ionic step

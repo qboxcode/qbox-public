@@ -32,8 +32,9 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 MLWFTransform::MLWFTransform(const SlaterDet& sd) : sd_(sd),
-cell_(sd.basis().cell()), ctxt_(sd.context()),  bm_(BasisMapping(sd.basis())),
-maxsweep_(50), tol_(1.e-8)
+ cell_(sd.basis().cell()), ctxt_(sd.context()),
+ bm_(BasisMapping(sd.basis(),sd.basis().np(0),sd.basis().np(1),
+ sd.basis().np(2))), maxsweep_(50), tol_(1.e-8)
 {
   a_.resize(6);
   adiag_.resize(6);
@@ -105,7 +106,7 @@ void MLWFTransform::update(void)
   const int np1 = bm_.np1();
   const int np2 = bm_.np2();
   const int np01 = np0 * np1;
-  const int np2loc = bm_.np2loc();
+  const int np2loc = bm_.np2_loc();
   const int nvec = bm_.nvec();
   for ( int n = 0; n < c.nloc(); n++ )
   {
@@ -132,7 +133,7 @@ void MLWFTransform::update(void)
 
     // x direction
     // map zvec to ct
-    bm_.transpose_fwd(&zvec[0],&ct[0]);
+    bm_.transpose_bwd(&zvec[0],&ct[0]);
 
     for ( int iz = 0; iz < np2loc; iz++ )
     {
@@ -142,10 +143,10 @@ void MLWFTransform::update(void)
         compute_sincos(np0,&ct[ibase],&ct_cos[ibase],&ct_sin[ibase]);
       }
     }
-    // transpose back ct_cos to zvec_cos
-    bm_.transpose_bwd(&ct_cos[0],&zvec_cos[0]);
-    // transpose back ct_sin to zvec_sin
-    bm_.transpose_bwd(&ct_sin[0],&zvec_sin[0]);
+    // transpose ct_cos to zvec_cos
+    bm_.transpose_fwd(&ct_cos[0],&zvec_cos[0]);
+    // transpose ct_sin to zvec_sin
+    bm_.transpose_fwd(&ct_sin[0],&zvec_sin[0]);
 
     // map back zvec_cos to sdcos and zvec_sin to sdsin
     bm_.zvec_to_vector(&zvec_cos[0],&fcx[0]);
@@ -167,10 +168,10 @@ void MLWFTransform::update(void)
         zcopy(&len,&csin_tmp[0],&one,&ct_sin[ibase],&stride);
       }
     }
-    // transpose back ct_cos to zvec_cos
-    bm_.transpose_bwd(&ct_cos[0],&zvec_cos[0]);
-    // transpose back ct_sin to zvec_sin
-    bm_.transpose_bwd(&ct_sin[0],&zvec_sin[0]);
+    // transpose ct_cos to zvec_cos
+    bm_.transpose_fwd(&ct_cos[0],&zvec_cos[0]);
+    // transpose ct_sin to zvec_sin
+    bm_.transpose_fwd(&ct_sin[0],&zvec_sin[0]);
 
     // map back zvec_cos and zvec_sin
     bm_.zvec_to_vector(&zvec_cos[0],&fcy[0]);

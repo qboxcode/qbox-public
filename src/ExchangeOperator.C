@@ -1007,6 +1007,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     // if using bisection, localize the wave functions
     if ( use_bisection_ )
     {
+      tmb.reset();
       tmb.start();
       int maxsweep = 50;
       if ( s_.ctrl.debug.find("BISECTION_MAXSWEEP") != string::npos )

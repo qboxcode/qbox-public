@@ -15,21 +15,61 @@
 //
 // test and timing of the Qbox FourierTransform class
 //
-// The FourierTransform functionality is tested in the following 8 tests
+// The FourierTransform functionality is tested in the following tests
 // relevant to the use of the class in different parts of Qbox
 
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
+#include <string>
 using namespace std;
 
 #include "Basis.h"
 #include "FourierTransform.h"
 #include "Timer.h"
 
-double fft_flops(int n)
+int mype, npes;
+
+double fft_flops_1d(int n)
 {
   return 5.0 * n * log((double) n) / log(2.0);
+}
+
+double fft_flops(Basis& b, FourierTransform& ft)
+{
+  return  2*b.nrod_loc() * fft_flops_1d(ft.np2()) +
+          ft.np1()/2 * ft.np2() * fft_flops_1d(ft.np0()) +
+          ft.np0()   * ft.np2() * fft_flops_1d(ft.np1());
+}
+
+void print_timing(std::string name, FourierTransform& ft,
+  double flops, Timer& tm)
+{
+  if ( mype == 0 )
+  {
+    cout << "*****************************************************" << endl;
+    cout << " " << name << endl;
+    cout << " size: " << ft.np0() << " " << ft.np1() << " " << ft.np2() << endl;
+  }
+  for ( int ipe = 0; ipe < npes; ipe++ )
+  {
+    MPI_Barrier(MPI_COMM_WORLD);
+    if ( ipe == mype )
+    {
+      cout << ipe << ": tm_fwd:       " << ft.tm_fwd.real() << endl;
+      cout << ipe << ": tm_bwd:       " << ft.tm_bwd.real() << endl;
+      cout << ipe << ": tm_map_fwd:   " << ft.tm_map_fwd.real() << endl;
+      cout << ipe << ": tm_map_bwd:   " << ft.tm_map_bwd.real() << endl;
+      cout << ipe << ": tm_trans_fwd: " << ft.tm_trans_fwd.real() << endl;
+      cout << ipe << ": tm_trans_bwd: " << ft.tm_trans_bwd.real() << endl;
+      cout << ipe << ": tm_fxy:       " << ft.tm_fxy.real() << endl;
+      cout << ipe << ": tm_fxy_inv:   " << ft.tm_fxy_inv.real() << endl;
+      cout << ipe << ": tm_fz:        " << ft.tm_fz.real() << endl;
+      cout << ipe << ": tm_fz_inv:    " << ft.tm_fz_inv.real() << endl;
+      cout << ipe << ": time: " << tm.cpu() << " / " << tm.real()
+      << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
+    }
+  }
 }
 
 int main(int argc, char **argv)
@@ -48,7 +88,7 @@ int main(int argc, char **argv)
   const char* processor_name = "serial";
 #endif
 
-  int mype;
+  MPI_Comm_size(MPI_COMM_WORLD,&npes);
   MPI_Comm_rank(MPI_COMM_WORLD,&mype);
   cout << " Process " << mype << " on " << processor_name << endl;
 
@@ -84,9 +124,8 @@ int main(int argc, char **argv)
   UnitCell cell(a,b,c);
   const double omega = cell.volume();
 
-  // start scope of wf-v transforms
+  // start scope of transforms
   {
-  // transform and interpolate as for wavefunctions
 
   Basis basis(MPI_COMM_WORLD,kpoint);
   basis.resize(cell,cell,ecut);
@@ -98,9 +137,7 @@ int main(int argc, char **argv)
   vector<complex<double> > x1(basis.localsize());
   vector<complex<double> > x2(basis.localsize());
 
-  double flops = 2*basis.nrod_loc() *      fft_flops(ft2.np2()) +
-                 ft2.np1()/2 * ft2.np2() * fft_flops(ft2.np0()) +
-                 ft2.np0()   * ft2.np2() * fft_flops(ft2.np1());
+  double flops;
   if ( mype == 0 )
   {
     cout << " wfbasis.size() = " << basis.size() << endl;
@@ -118,7 +155,6 @@ int main(int argc, char **argv)
   cout << setprecision(6);
 
   const double rc = 1.0;
-#if 1
   // Initialize with Fourier coefficients of a normalized gaussian distribution
   for ( int i = 0; i < basis.localsize(); i++ )
   {
@@ -129,19 +165,28 @@ int main(int argc, char **argv)
     x2[i] = y;
     // x[i] = complex<double>(y,y);
   }
-#endif
 
-  // test ft (small grid)
-  cout << mype << ": ft.np2_loc(): " << ft.np2_loc() << endl;
+  // wfgrid->wf transforms
+  flops = fft_flops(basis,ft);
+
   MPI_Barrier(MPI_COMM_WORLD);
-  cout << " test ft: ";
+  tm.reset();
+  ft.reset_timers();
+  tm.start();
   ft.forward(&f1[0],&x[0]);
-  cout << " forward done ";
-  ft.backward(&x[0],&f1[0]);
-  cout << " backward done " << endl;
-  MPI_Barrier(MPI_COMM_WORLD);
+  tm.stop();
+  print_timing("wfgrid->wf",ft,flops,tm);
 
-#if 1
+  MPI_Barrier(MPI_COMM_WORLD);
+  tm.reset();
+  ft.reset_timers();
+  tm.start();
+  ft.backward(&x[0],&f2[0]);
+  tm.stop();
+  print_timing("wf->wfgrid",ft,flops,tm);
+
+  // vgrid->wf transforms
+  flops = fft_flops(basis,ft2);
 
   MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
@@ -149,23 +194,7 @@ int main(int argc, char **argv)
   tm.start();
   ft2.forward(&f2[0],&x[0]);
   tm.stop();
-  cout << " fwd1: size: " << ft2.np0() << " "
-       << ft2.np1() << " " << ft2.np2() << endl;
-  cout << " fwd1: vgrid->wf" << endl;
-  cout << " fwd1: tm_f_fft:    " << ft2.tm_f_fft.real() << endl;
-  cout << " fwd1: tm_f_mpi:    " << ft2.tm_f_mpi.real() << endl;
-  cout << " fwd1: tm_f_pack:   " << ft2.tm_f_pack.real() << endl;
-  cout << " fwd1: tm_f_unpack: " << ft2.tm_f_unpack.real() << endl;
-  cout << " fwd1: tm_f_zero:   " << ft2.tm_f_zero.real() << endl;
-  cout << " fwd1: tm_f_map:    " << ft2.tm_f_map.real() << endl;
-  cout << " fwd1: tm_f_total:  " << ft2.tm_f_fft.real() +
-                                    ft2.tm_f_mpi.real() +
-                                    ft2.tm_f_pack.real() +
-                                    ft2.tm_f_unpack.real() +
-                                    ft2.tm_f_zero.real() +
-                                    ft2.tm_f_map.real() << endl;
-  cout << " fwd1 time: " << tm.cpu() << " / " << tm.real()
-  << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
+  print_timing("vgrid->wf",ft2,flops,tm);
 
   MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
@@ -173,102 +202,16 @@ int main(int argc, char **argv)
   tm.start();
   ft2.backward(&x[0],&f2[0]);
   tm.stop();
-  cout << " bwd1: size: " << ft2.np0() << " "
-       << ft2.np1() << " " << ft2.np2() << endl;
-  cout << " bwd1: wf->vgrid" << endl;
-  cout << " bwd1: tm_b_fft:    " << ft2.tm_b_fft.real() << endl;
-  cout << " bwd1: tm_b_mpi:    " << ft2.tm_b_mpi.real() << endl;
-  cout << " bwd1: tm_b_pack:   " << ft2.tm_b_pack.real() << endl;
-  cout << " bwd1: tm_b_unpack: " << ft2.tm_b_unpack.real() << endl;
-  cout << " bwd1: tm_b_zero:   " << ft2.tm_b_zero.real() << endl;
-  cout << " bwd1: tm_b_map:    " << ft2.tm_b_map.real() << endl;
-  cout << " bwd1: tm_b_total:  " << ft2.tm_b_fft.real() +
-                                    ft2.tm_b_mpi.real() +
-                                    ft2.tm_b_pack.real() +
-                                    ft2.tm_b_unpack.real() +
-                                    ft2.tm_b_zero.real() +
-                                    ft2.tm_b_map.real() << endl;
-  cout << " bwd1 time: " << tm.cpu() << " / " << tm.real()
-  << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
+  print_timing("wf->vgrid",ft2,flops,tm);
 
-  MPI_Barrier(MPI_COMM_WORLD);
-  tm.reset();
-  ft2.reset_timers();
-  tm.start();
-  ft2.forward(&f2[0],&x[0]);
-  tm.stop();
-  cout << " fwd2: size: " << ft2.np0() << " "
-       << ft2.np1() << " " << ft2.np2() << endl;
-  cout << " fwd2: vgrid->wf" << endl;
-  cout << " fwd2: tm_f_fft:    " << ft2.tm_f_fft.real() << endl;
-  cout << " fwd2: tm_f_mpi:    " << ft2.tm_f_mpi.real() << endl;
-  cout << " fwd2: tm_f_pack:   " << ft2.tm_f_pack.real() << endl;
-  cout << " fwd2: tm_f_unpack: " << ft2.tm_f_unpack.real() << endl;
-  cout << " fwd2: tm_f_zero:   " << ft2.tm_f_zero.real() << endl;
-  cout << " fwd2: tm_f_map:    " << ft2.tm_f_map.real() << endl;
-  cout << " fwd2: tm_f_total:  " << ft2.tm_f_fft.real() +
-                                    ft2.tm_f_mpi.real() +
-                                    ft2.tm_f_pack.real() +
-                                    ft2.tm_f_unpack.real() +
-                                    ft2.tm_f_zero.real() +
-                                    ft2.tm_f_map.real() << endl;
-
-  //cout << " " << 2*basis.np(0) << " " << 2*basis.np(1)
-  //     << " " << 2*basis.np(2) << " ";
-  cout << " fwd2 time: " << tm.cpu() << " / " << tm.real()
-  << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
-
-  MPI_Barrier(MPI_COMM_WORLD);
-  tm.reset();
-  ft2.reset_timers();
-  tm.start();
-  ft2.backward(&x[0],&f2[0]);
-  tm.stop();
-  cout << " bwd2: size: " << ft2.np0() << " "
-       << ft2.np1() << " " << ft2.np2() << endl;
-  cout << " bwd2: wf->vgrid" << endl;
-  cout << " bwd2: tm_b_fft:    " << ft2.tm_b_fft.real() << endl;
-  cout << " bwd2: tm_b_mpi:    " << ft2.tm_b_mpi.real() << endl;
-  cout << " bwd2: tm_b_pack:   " << ft2.tm_b_pack.real() << endl;
-  cout << " bwd2: tm_b_unpack: " << ft2.tm_b_unpack.real() << endl;
-  cout << " bwd2: tm_b_zero:   " << ft2.tm_b_zero.real() << endl;
-  cout << " bwd2: tm_b_map:    " << ft2.tm_b_map.real() << endl;
-  cout << " bwd2: tm_b_total:  " << ft2.tm_b_fft.real() +
-                                    ft2.tm_b_mpi.real() +
-                                    ft2.tm_b_pack.real() +
-                                    ft2.tm_b_unpack.real() +
-                                    ft2.tm_b_zero.real() +
-                                    ft2.tm_b_map.real() << endl;
-
-  //cout << " " << 2*basis.np(0) << " " << 2*basis.np(1)
-  //     << " " << 2*basis.np(2) << " ";
-  cout << " bwd2 time: " << tm.cpu() << " / " << tm.real()
-  << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
-
-  // double transform
+  // double vgrid-wf transforms
   MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   ft2.reset_timers();
   tm.start();
   ft2.forward(&f2[0],&x1[0],&x2[0]);
   tm.stop();
-  cout << " fwd3: size: " << ft2.np0() << " "
-       << ft2.np1() << " " << ft2.np2() << endl;
-  cout << " fwd3: vgrid->wf double transform" << endl;
-  cout << " fwd3: tm_f_fft:    " << ft2.tm_f_fft.real() << endl;
-  cout << " fwd3: tm_f_mpi:    " << ft2.tm_f_mpi.real() << endl;
-  cout << " fwd3: tm_f_pack:   " << ft2.tm_f_pack.real() << endl;
-  cout << " fwd3: tm_f_unpack: " << ft2.tm_f_unpack.real() << endl;
-  cout << " fwd3: tm_f_zero:   " << ft2.tm_f_zero.real() << endl;
-  cout << " fwd3: tm_f_map:    " << ft2.tm_f_map.real() << endl;
-  cout << " fwd3: tm_f_total:  " << ft2.tm_f_fft.real() +
-                                    ft2.tm_f_mpi.real() +
-                                    ft2.tm_f_pack.real() +
-                                    ft2.tm_f_unpack.real() +
-                                    ft2.tm_f_zero.real() +
-                                    ft2.tm_f_map.real() << endl;
-  cout << " fwd3 time: " << tm.cpu() << " / " << tm.real()
-  << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
+  print_timing("vgrid->wf double transform",ft2,flops,tm);
 
   MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
@@ -276,30 +219,9 @@ int main(int argc, char **argv)
   tm.start();
   ft2.backward(&x1[0],&x2[0],&f2[0]);
   tm.stop();
-  cout << " bwd3: size: " << ft2.np0() << " "
-       << ft2.np1() << " " << ft2.np2() << endl;
-  cout << " bwd3: wf->vgrid double transform" << endl;
-  cout << " bwd3: tm_b_fft:    " << ft2.tm_b_fft.real() << endl;
-  cout << " bwd3: tm_b_mpi:    " << ft2.tm_b_mpi.real() << endl;
-  cout << " bwd3: tm_b_pack:   " << ft2.tm_b_pack.real() << endl;
-  cout << " bwd3: tm_b_unpack: " << ft2.tm_b_unpack.real() << endl;
-  cout << " bwd3: tm_b_zero:   " << ft2.tm_b_zero.real() << endl;
-  cout << " bwd3: tm_b_map:    " << ft2.tm_b_map.real() << endl;
-  cout << " bwd3: tm_b_total:  " << ft2.tm_b_fft.real() +
-                                    ft2.tm_b_mpi.real() +
-                                    ft2.tm_b_pack.real() +
-                                    ft2.tm_b_unpack.real() +
-                                    ft2.tm_b_zero.real() +
-                                    ft2.tm_b_map.real() << endl;
-  cout << " bwd3 time: " << tm.cpu() << " / " << tm.real()
-  << "    " << 1.e-6*flops/tm.real() << " MFlops" << endl;
+  print_timing("wf->vgrid double transform",ft2,flops,tm);
 
-#endif
-  } // end of scope for wf-v transforms
-
-#if 1
-  ////////////////////////////////////////////////////////////
-  // v(g)->vgrid
+  // v(g)->vgrid transforms
   Basis vbasis(MPI_COMM_WORLD,kpoint);
   vbasis.resize(cell,cell,4.0*ecut);
   cout << " vbasis.np() = " << vbasis.np(0) << " " << vbasis.np(1)
@@ -308,32 +230,15 @@ int main(int argc, char **argv)
   vector<complex<double> > vf(vft.np012loc());
   vector<complex<double> > vg(vbasis.localsize());
 
-  double vflops = 2*vbasis.nrod_loc() *      fft_flops(vft.np2()) +
-                   vft.np1()   * vft.np2() * fft_flops(vft.np0()) +
-                   vft.np0()   * vft.np2() * fft_flops(vft.np1());
+  flops = fft_flops(vbasis,vft);
+
   MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
   vft.reset_timers();
   tm.start();
   vft.forward(&vf[0],&vg[0]);
   tm.stop();
-  cout << " fwd4: size: " << vft.np0() << " "
-       << vft.np1() << " " << vft.np2() << endl;
-  cout << " fwd4: vgrid->v(g)" << endl;
-  cout << " fwd4: tm_f_fft:    " << vft.tm_f_fft.real() << endl;
-  cout << " fwd4: tm_f_mpi:    " << vft.tm_f_mpi.real() << endl;
-  cout << " fwd4: tm_f_pack:   " << vft.tm_f_pack.real() << endl;
-  cout << " fwd4: tm_f_unpack: " << vft.tm_f_unpack.real() << endl;
-  cout << " fwd4: tm_f_zero:   " << vft.tm_f_zero.real() << endl;
-  cout << " fwd4: tm_f_map:    " << vft.tm_f_map.real() << endl;
-  cout << " fwd4: tm_f_total:  " << vft.tm_f_fft.real() +
-                                    vft.tm_f_mpi.real() +
-                                    vft.tm_f_pack.real() +
-                                    vft.tm_f_unpack.real() +
-                                    vft.tm_f_zero.real() +
-                                    vft.tm_f_map.real() << endl;
-  cout << " fwd4 time: " << tm.cpu() << " / " << tm.real()
-  << "    " << 1.e-6*vflops/tm.real() << " MFlops" << endl;
+  print_timing("vgrid->vg",vft,flops,tm);
 
   MPI_Barrier(MPI_COMM_WORLD);
   tm.reset();
@@ -341,23 +246,10 @@ int main(int argc, char **argv)
   tm.start();
   vft.backward(&vg[0],&vf[0]);
   tm.stop();
-  cout << " bwd4: size: " << vft.np0() << " "
-       << vft.np1() << " " << vft.np2() << endl;
-  cout << " bwd4: v(g)->vgrid" << endl;
-  cout << " bwd4: tm_b_fft:    " << vft.tm_b_fft.real() << endl;
-  cout << " bwd4: tm_b_mpi:    " << vft.tm_b_mpi.real() << endl;
-  cout << " bwd4: tm_b_pack:   " << vft.tm_b_pack.real() << endl;
-  cout << " bwd4: tm_b_unpack: " << vft.tm_b_unpack.real() << endl;
-  cout << " bwd4: tm_b_zero:   " << vft.tm_b_zero.real() << endl;
-  cout << " bwd4: tm_b_map:    " << vft.tm_b_map.real() << endl;
-  cout << " bwd4: tm_b_total:  " << vft.tm_b_fft.real() +
-                                    vft.tm_b_mpi.real() +
-                                    vft.tm_b_pack.real() +
-                                    vft.tm_b_unpack.real() +
-                                    vft.tm_b_zero.real() +
-                                    vft.tm_b_map.real() << endl;
-  cout << " bwd4 time: " << tm.cpu() << " / " << tm.real()
-  << "    " << 1.e-6*vflops/tm.real() << " MFlops" << endl;
+  print_timing("vg->vgrid",vft,flops,tm);
+
+  } // end of scope for wf-v transforms
+
 #if 0
   //////////////////////////////////////////////////////////////////////////////
   // Integration of a 2-norm normalized plane wave
@@ -433,7 +325,6 @@ int main(int argc, char **argv)
   MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,ctxt.comm());
 
   cout << " gaussian rnorm: " << sum / ft2.np012() << endl;
-#endif
 #endif
 
   } // Context scope

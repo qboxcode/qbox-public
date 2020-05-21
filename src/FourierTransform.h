@@ -45,11 +45,8 @@
 #endif
 #endif
 
-#if USE_MPI
-#include <mpi.h>
-#endif
-
 #include "Timer.h"
+#include "BasisMapping.h"
 
 class Basis;
 
@@ -57,26 +54,15 @@ class FourierTransform
 {
   private:
 
-  MPI_Comm comm_;
   const Basis& basis_;
-  int nprocs_, myproc_;
+  const BasisMapping bm_;
 
-  int np0_,np1_,np2_;
+  const int np0_,np1_,np2_;
+  const int nvec_;
+
   int ntrans0_,ntrans1_,ntrans2_;
 
-  int nvec_;
-  bool basis_fits_in_grid_;
-
-  std::vector<int> np2_loc_; // np2_loc_[iproc], iproc=0, nprocs_-1
-  std::vector<int> np2_first_; // np2_first_[iproc], iproc=0, nprocs_-1
   std::vector<std::complex<double> > zvec_;
-
-  std::vector<int> scounts, sdispl, rcounts, rdispl;
-  std::vector<std::complex<double> > sbuf, rbuf;
-
-  std::vector<int> ifftp_, ifftm_;
-  std::vector<int> ipack_, iunpack_;
-
   void init_lib(void);
 
 #if USE_ESSL_FFT
@@ -107,11 +93,10 @@ class FourierTransform
 #error "Must define USE_FFTW2, USE_FFTW3, USE_ESSL_FFT or FFT_NOLIB"
 #endif
 
-  void vector_to_zvec(const std::complex<double>* c);
-  void zvec_to_vector(std::complex<double>* c);
-  void doublevector_to_zvec(const std::complex<double>* c1,
-       const std::complex<double> *c2);
-  void zvec_to_doublevector(std::complex<double>* c1, std::complex<double>* c2);
+  void fxy(std::complex<double>* val);
+  void fxy_inv(std::complex<double>* val);
+  void fz(void);
+  void fz_inv(void);
   void fwd(std::complex<double>* val);
   void bwd(std::complex<double>* val);
 
@@ -119,7 +104,6 @@ class FourierTransform
 
   FourierTransform (const Basis &basis, int np0, int np1, int np2);
   ~FourierTransform ();
-  MPI_Comm comm(void) const { return comm_; }
 
   // backward: Fourier synthesis, compute real-space function
   // forward:  Fourier analysis, compute Fourier coefficients
@@ -139,13 +123,13 @@ class FourierTransform
   int np0() const { return np0_; }
   int np1() const { return np1_; }
   int np2() const { return np2_; }
-  int np2_loc() const { return np2_loc_[myproc_]; }
-  int np2_loc(int iproc) const { return np2_loc_[iproc]; }
-  int np2_first() const { return np2_first_[myproc_]; }
-  int np2_first(int iproc) const { return np2_first_[iproc]; }
+  int np2_loc(void) const { return bm_.np2_loc(); }
+  int np2_loc(int iproc) const { return bm_.np2_loc(iproc); }
+  int np2_first(void) const { return bm_.np2_first(); }
+  int np2_first(int iproc) const { return bm_.np2_first(iproc); }
   long int np012() const { return ((long int)np0_) * np1_ * np2_; }
-  int np012loc(int iproc) const { return np0_ * np1_ * np2_loc_[iproc]; }
-  int np012loc() const { return np0_ * np1_ * np2_loc_[myproc_]; }
+  int np012loc(int iproc) const { return np0_ * np1_ * np2_loc(iproc); }
+  int np012loc(void) const { return np0_ * np1_ * np2_loc(); }
   int index(int i, int j, int k) const
   { return i + np0_ * ( j +  np1_ * k ); }
   int i(int ind) const { return ind % np0_; }
@@ -153,11 +137,7 @@ class FourierTransform
   int k(int ind) const { return (ind / np0_) / np1_ + np2_first(); }
 
   void reset_timers(void);
-  Timer tm_f_map, tm_f_fft, tm_f_pack, tm_f_mpi, tm_f_zero, tm_f_unpack,
-        tm_b_map, tm_b_fft, tm_b_pack, tm_b_mpi, tm_b_zero, tm_b_unpack,
-        tm_f_xy, tm_f_z, tm_f_x, tm_f_y,
-        tm_b_xy, tm_b_z, tm_b_x, tm_b_y,
-        tm_init, tm_b_com, tm_f_com;
-
+  Timer tm_fwd, tm_bwd, tm_map_fwd, tm_map_bwd, tm_trans_fwd, tm_trans_bwd,
+        tm_fxy, tm_fxy_inv, tm_fz, tm_fz_inv, tm_init;
 };
 #endif

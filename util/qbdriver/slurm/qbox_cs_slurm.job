@@ -1,0 +1,27 @@
+#!/bin/bash
+# qbox_cs_slurm.job: 
+# Client-server operation using one client and multiple servers
+# Using SLURM array jobs
+# Example: 2 SLURM tasks of 20 cores each
+# submit with: sbatch --array=1,2 qbox_csslurm.job
+#
+#SBATCH --ntasks=20
+#SBATCH --cpus-per-task=1
+#SBATCH --exclusive
+
+module load xerces intelmpi mkl
+exe=$HOME/qb/export/rel1_71_0/src/qb
+
+echo Task ID: $SLURM_ARRAY_TASK_ID
+echo Task ID First: $SLURM_ARRAY_TASK_MIN
+echo Task ID Last:t $SLURM_ARRAY_TASK_MAX
+echo $(hostname) $SLURM_ARRAY_TASK_ID
+
+# Launch the client program on the first SGE task
+if [ $SLURM_ARRAY_TASK_ID -eq $SLURM_ARRAY_TASK_MIN ]
+then
+  echo "Launch client program"
+fi
+# Launch a server program on all SGE tasks
+echo "Launch server program" $SLURM_ARRAY_TASK_ID
+mpirun $exe

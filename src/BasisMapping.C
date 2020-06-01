@@ -19,6 +19,7 @@
 #include "Basis.h"
 #include "Context.h"
 #include "BasisMapping.h"
+#include "blas.h" // zcopy
 
 #include <iostream>
 #include <cassert>
@@ -37,6 +38,9 @@ void zsctr_(int* n, complex<double>* x, int* indx, complex<double>* y);
 BasisMapping::BasisMapping (const Basis &basis, int np0, int np1, int np2) :
  basis_(basis), np0_(np0), np1_(np1), np2_(np2)
 {
+  // check if the basis_ fits in the grid np0, np1, np2
+  assert(basis_.fits_in_grid(np0_,np1_,np2_));
+
   nprocs_ = basis_.npes();
   myproc_ = basis_.mype();
 
@@ -89,56 +93,9 @@ BasisMapping::BasisMapping (const Basis &basis, int np0, int np1, int np2) :
     nvec_ = basis_.nrod_loc();
   }
 
-  // allocate send buffer
-  sbuf.resize(nvec_ * np2_);
-
-  // allocate receive buffer
-  if ( basis_.real() )
-    rbuf.resize((2 * basis_.nrods() - 1) * np2_loc_[myproc_]);
-  else
-    rbuf.resize(basis_.nrods() * np2_loc_[myproc_]);
-
-  // compute send/receive counts and displacements in units of sizeof(double)
-
-  scounts.resize(nprocs_);
-  sdispl.resize(nprocs_);
-  rcounts.resize(nprocs_);
-  rdispl.resize(nprocs_);
-
+  // compute index arrays ip_ and im_ for mapping vector->zvec
   if ( basis_.real() )
   {
-    for ( int iproc = 0; iproc < nprocs_; iproc++ )
-    {
-      scounts[iproc] = 2 * nvec_ * np2_loc_[iproc];
-      int nvec_iproc = iproc == 0 ? 2*basis_.nrod_loc(iproc)-1 :
-                                2 * basis_.nrod_loc(iproc);
-      rcounts[iproc] = 2 * nvec_iproc * np2_loc_[myproc_];
-    }
-  }
-  else
-  {
-    for ( int iproc = 0; iproc < nprocs_; iproc++ )
-    {
-      scounts[iproc] = 2 * nvec_ * np2_loc_[iproc];
-      int nvec_iproc = basis_.nrod_loc(iproc);
-      rcounts[iproc] = 2 * nvec_iproc * np2_loc_[myproc_];
-    }
-  }
-
-  sdispl[0] = 0;
-  rdispl[0] = 0;
-  for ( int iproc = 1; iproc < nprocs_; iproc++ )
-  {
-    sdispl[iproc] = sdispl[iproc-1] + scounts[iproc-1];
-    rdispl[iproc] = rdispl[iproc-1] + rcounts[iproc-1];
-  }
-
-  // check if the basis_ fits in the grid np0, np1, np2
-  assert(basis_.fits_in_grid(np0_,np1_,np2_));
-
-  if ( basis_.real() )
-  {
-    // compute index arrays ip_ and im_ for mapping vector->zvec
     ip_.resize(basis_.localsize());
     im_.resize(basis_.localsize());
 
@@ -206,105 +163,6 @@ BasisMapping::BasisMapping (const Basis &basis, int np0, int np1, int np2) :
       }
       assert(ig == basis_.localsize());
     }
-
-    // compute ipack index array
-    // used in packing zvec_ into sbuf
-    // sbuf[ipack_[i]] = zvec_[i]
-    ipack_.resize(nvec_*np2_);
-    int idest = 0;
-    for ( int iproc = 0; iproc < nprocs_; iproc++ )
-    {
-      int isource = np2_first_[iproc];
-      int sz = np2_loc_[iproc];
-      for ( int ivec = 0; ivec < nvec_; ivec++ )
-      {
-        for ( int i = 0; i < sz; i++ )
-        {
-          ipack_[isource+i] = idest + i;
-        }
-        idest += sz;
-        isource += np2_;
-      }
-    }
-
-    // compute array iunpack
-    // used in unpacking rbuf into val
-    // val[iunpack[i]] = rbuf[i]
-
-    // rbuf contains 2*_nrods-1 segments of size np2_loc[myproc]
-    // the position of vector ivec in local rbuf[_nrods*np2_loc_] is
-    // obtained from rod_h[iproc][irod], rod_k[irod][iproc]
-    // compute iunpack[i], i = 0, .. , _nrods * np2_loc_
-    iunpack_.resize((2*basis_.nrods()-1)*np2_loc_[myproc_]);
-
-    // map rod(0,0)
-    for ( int l = 0; l < np2_loc_[myproc_]; l++ )
-    {
-      iunpack_[l] = l * np0_ * np1_;
-    }
-    int isource_p = np2_loc_[myproc_];
-    int isource_m = 2 * np2_loc_[myproc_];
-
-    // all rods of pe 0
-    for ( int irod = 1; irod < basis_.nrod_loc(0); irod++ )
-    {
-      // map rod(h,k) and rod(-h,-k) columns of zvec_
-
-      // map rod(h,k)
-      // find position of rod(h,k) in the slab
-      int hp = basis_.rod_h(0,irod);
-      int kp = basis_.rod_k(0,irod);
-      if ( hp < 0 ) hp += np0_;
-      if ( kp < 0 ) kp += np1_;
-
-      int hm = -hp;
-      int km = -kp;
-      if ( hm < 0 ) hm += np0_;
-      if ( km < 0 ) km += np1_;
-
-      for ( int l = 0; l < np2_loc_[myproc_]; l++ )
-      {
-        int idest_p = hp + np0_ * ( kp + np1_ * l );
-        iunpack_[isource_p+l] = idest_p;
-
-        int idest_m = hm + np0_ * ( km + np1_ * l );
-        iunpack_[isource_m+l] = idest_m;
-      }
-      isource_p += 2 * np2_loc_[myproc_];
-      isource_m += 2 * np2_loc_[myproc_];
-    }
-
-    // pe's above pe0
-    for ( int iproc = 1; iproc < nprocs_; iproc++ )
-    {
-      for ( int irod = 0; irod < basis_.nrod_loc(iproc); irod++ )
-      {
-        // map rod(h,k) and rod(-h,-k) columns of zvec_
-
-        // map rod(h,k)
-        // find position of rod(h,k) in the slab
-        int hp = basis_.rod_h(iproc,irod);
-        int kp = basis_.rod_k(iproc,irod);
-        if ( hp < 0 ) hp += np0_;
-        if ( kp < 0 ) kp += np1_;
-
-        int hm = -hp;
-        int km = -kp;
-        if ( hm < 0 ) hm += np0_;
-        if ( km < 0 ) km += np1_;
-
-        for ( int l = 0; l < np2_loc_[myproc_]; l++ )
-        {
-          int idest_p = hp + np0_ * ( kp + np1_ * l );
-          iunpack_[isource_p+l] = idest_p;
-
-          int idest_m = hm + np0_ * ( km + np1_ * l );
-          iunpack_[isource_m+l] = idest_m;
-        }
-        isource_p += 2 * np2_loc_[myproc_];
-        isource_m += 2 * np2_loc_[myproc_];
-      }
-    }
   }
   else
   {
@@ -329,71 +187,258 @@ BasisMapping::BasisMapping (const Basis &basis, int np0, int np1, int np2) :
       }
     }
     assert(ig == basis_.localsize());
+  }
 
-    // compute ipack index array
-    // used in packing zvec_ into sbuf
-    // sbuf[ipack_[i]] = zvec_[i]
-    ipack_.resize(nvec_*np2_);
-    int idest = 0;
-    for ( int iproc = 0; iproc < nprocs_; iproc++ )
+  if ( nprocs_ == 1 )
+  {
+    // single task
+    if ( basis_.real() )
     {
-      int isource = np2_first_[iproc];
-      int sz = np2_loc_[iproc];
-      for ( int ivec = 0; ivec < nvec_; ivec++ )
+      // single-task mapping from zvec to val
+      zvec_to_val_.push_back(0);
+      for ( int irod = 1; irod < basis_.nrods(); irod++ )
       {
-        for ( int i = 0; i < sz; i++ )
-        {
-          ipack_[isource+i] = idest + i;
-        }
-        idest += sz;
-        isource += np2_;
+        int hp = basis_.rod_h(0,irod);
+        int kp = basis_.rod_k(0,irod);
+        if (hp < 0) hp += np0_;
+        if (kp < 0) kp += np1_;
+
+        int hm = - hp;
+        int km = - kp;
+        if (hm < 0) hm += np0_;
+        if (km < 0) km += np1_;
+
+        zvec_to_val_.push_back(hp+np1_*kp);
+        zvec_to_val_.push_back(hm+np1_*km);
+      }
+    }
+    else
+    {
+      // basis is complex
+      int h, k;
+      for ( int irod = 0; irod < basis_.nrods(); irod++ )
+      {
+        h = basis_.rod_h(0,irod);
+        k = basis_.rod_k(0,irod);
+        if (h < 0) h += np0_;
+        if (k < 0) k += np1_;
+        zvec_to_val_.push_back(h+np1_*k);
+      }
+    }
+  }
+  else
+  {
+    // allocate send buffer
+    sbuf.resize(nvec_ * np2_);
+
+    // allocate receive buffer
+    if ( basis_.real() )
+      rbuf.resize((2 * basis_.nrods() - 1) * np2_loc_[myproc_]);
+    else
+      rbuf.resize(basis_.nrods() * np2_loc_[myproc_]);
+
+    // compute send/receive counts and displacements in units of sizeof(double)
+
+    scounts.resize(nprocs_);
+    sdispl.resize(nprocs_);
+    rcounts.resize(nprocs_);
+    rdispl.resize(nprocs_);
+
+    if ( basis_.real() )
+    {
+      for ( int iproc = 0; iproc < nprocs_; iproc++ )
+      {
+        scounts[iproc] = 2 * nvec_ * np2_loc_[iproc];
+        int nvec_iproc = iproc == 0 ? 2*basis_.nrod_loc(iproc)-1 :
+                                  2 * basis_.nrod_loc(iproc);
+        rcounts[iproc] = 2 * nvec_iproc * np2_loc_[myproc_];
+      }
+    }
+    else
+    {
+      for ( int iproc = 0; iproc < nprocs_; iproc++ )
+      {
+        scounts[iproc] = 2 * nvec_ * np2_loc_[iproc];
+        int nvec_iproc = basis_.nrod_loc(iproc);
+        rcounts[iproc] = 2 * nvec_iproc * np2_loc_[myproc_];
       }
     }
 
-    // compute array iunpack
-    // used in unpacking rbuf into val
-    // val[iunpack[i]] = rbuf[i]
-
-    // rbuf contains _nrods segments of size np2_loc[mype]
-    // the position of vector ivec in local rbuf[_nrods*np2_loc_] is
-    // obtained from rod_h[iproc][irod], rod_k[irod][iproc]
-    // compute iunpack[i], i = 0, .. , _nrods * np2_loc_
-    iunpack_.resize(basis_.nrods()*np2_loc_[myproc_]);
-
-    int isource = 0;
-    for ( int iproc = 0; iproc < nprocs_; iproc++ )
+    sdispl[0] = 0;
+    rdispl[0] = 0;
+    for ( int iproc = 1; iproc < nprocs_; iproc++ )
     {
-      for ( int irod = 0; irod < basis_.nrod_loc(iproc); irod++ )
+      sdispl[iproc] = sdispl[iproc-1] + scounts[iproc-1];
+      rdispl[iproc] = rdispl[iproc-1] + rcounts[iproc-1];
+    }
+
+    // compute arrays ipack and iunpack
+    if ( basis_.real() )
+    {
+      ipack_.resize(nvec_*np2_);
+      // compute ipack index array
+      // used in packing zvec_ into sbuf
+      // sbuf[ipack_[i]] = zvec_[i]
+      int idest = 0;
+      for ( int iproc = 0; iproc < nprocs_; iproc++ )
       {
+        int isource = np2_first_[iproc];
+        int sz = np2_loc_[iproc];
+        for ( int ivec = 0; ivec < nvec_; ivec++ )
+        {
+          for ( int i = 0; i < sz; i++ )
+          {
+            ipack_[isource+i] = idest + i;
+          }
+          idest += sz;
+          isource += np2_;
+        }
+      }
+
+      // compute array iunpack
+      // used in unpacking rbuf into val
+      // val[iunpack[i]] = rbuf[i]
+
+      // rbuf contains 2*_nrods-1 segments of size np2_loc[myproc]
+      // the position of vector ivec in local rbuf[_nrods*np2_loc_] is
+      // obtained from rod_h[iproc][irod], rod_k[irod][iproc]
+      // compute iunpack[i], i = 0, .. , _nrods * np2_loc_
+      iunpack_.resize((2*basis_.nrods()-1)*np2_loc_[myproc_]);
+
+      // map rod(0,0)
+      for ( int l = 0; l < np2_loc_[myproc_]; l++ )
+      {
+        iunpack_[l] = l * np0_ * np1_;
+      }
+      int isource_p = np2_loc_[myproc_];
+      int isource_m = 2 * np2_loc_[myproc_];
+
+      // all rods of pe 0
+      for ( int irod = 1; irod < basis_.nrod_loc(0); irod++ )
+      {
+        // map rod(h,k) and rod(-h,-k) columns of zvec_
+
         // map rod(h,k)
         // find position of rod(h,k) in the slab
-        int h = basis_.rod_h(iproc,irod);
-        int k = basis_.rod_k(iproc,irod);
-        if ( h < 0 ) h += np0_;
-        if ( k < 0 ) k += np1_;
+        int hp = basis_.rod_h(0,irod);
+        int kp = basis_.rod_k(0,irod);
+        if ( hp < 0 ) hp += np0_;
+        if ( kp < 0 ) kp += np1_;
+
+        int hm = -hp;
+        int km = -kp;
+        if ( hm < 0 ) hm += np0_;
+        if ( km < 0 ) km += np1_;
 
         for ( int l = 0; l < np2_loc_[myproc_]; l++ )
         {
-          int idest = h + np0_ * ( k + np1_ * l );
-          iunpack_[isource+l] = idest;
+          int idest_p = hp + np0_ * ( kp + np1_ * l );
+          iunpack_[isource_p+l] = idest_p;
 
+          int idest_m = hm + np0_ * ( km + np1_ * l );
+          iunpack_[isource_m+l] = idest_m;
         }
-        isource += np2_loc_[myproc_];
+        isource_p += 2 * np2_loc_[myproc_];
+        isource_m += 2 * np2_loc_[myproc_];
+      }
+
+      // pe's above pe0
+      for ( int iproc = 1; iproc < nprocs_; iproc++ )
+      {
+        for ( int irod = 0; irod < basis_.nrod_loc(iproc); irod++ )
+        {
+          // map rod(h,k) and rod(-h,-k) columns of zvec_
+
+          // map rod(h,k)
+          // find position of rod(h,k) in the slab
+          int hp = basis_.rod_h(iproc,irod);
+          int kp = basis_.rod_k(iproc,irod);
+          if ( hp < 0 ) hp += np0_;
+          if ( kp < 0 ) kp += np1_;
+
+          int hm = -hp;
+          int km = -kp;
+          if ( hm < 0 ) hm += np0_;
+          if ( km < 0 ) km += np1_;
+
+          for ( int l = 0; l < np2_loc_[myproc_]; l++ )
+          {
+            int idest_p = hp + np0_ * ( kp + np1_ * l );
+            iunpack_[isource_p+l] = idest_p;
+
+            int idest_m = hm + np0_ * ( km + np1_ * l );
+            iunpack_[isource_m+l] = idest_m;
+          }
+          isource_p += 2 * np2_loc_[myproc_];
+          isource_m += 2 * np2_loc_[myproc_];
+        }
       }
     }
-  }
+    else
+    {
+      // basis is complex
+      ipack_.resize(nvec_*np2_);
+      int idest = 0;
+      for ( int iproc = 0; iproc < nprocs_; iproc++ )
+      {
+        int isource = np2_first_[iproc];
+        int sz = np2_loc_[iproc];
+        for ( int ivec = 0; ivec < nvec_; ivec++ )
+        {
+          for ( int i = 0; i < sz; i++ )
+          {
+            ipack_[isource+i] = idest + i;
+          }
+          idest += sz;
+          isource += np2_;
+        }
+      }
+
+      // compute array iunpack
+      // used in unpacking rbuf into val
+      // val[iunpack[i]] = rbuf[i]
+
+      // rbuf contains _nrods segments of size np2_loc[mype]
+      // the position of vector ivec in local rbuf[_nrods*np2_loc_] is
+      // obtained from rod_h[iproc][irod], rod_k[irod][iproc]
+      // compute iunpack[i], i = 0, .. , _nrods * np2_loc_
+      iunpack_.resize(basis_.nrods()*np2_loc_[myproc_]);
+
+      int isource = 0;
+      for ( int iproc = 0; iproc < nprocs_; iproc++ )
+      {
+        for ( int irod = 0; irod < basis_.nrod_loc(iproc); irod++ )
+        {
+          // map rod(h,k)
+          // find position of rod(h,k) in the slab
+          int h = basis_.rod_h(iproc,irod);
+          int k = basis_.rod_k(iproc,irod);
+          if ( h < 0 ) h += np0_;
+          if ( k < 0 ) k += np1_;
+
+          for ( int l = 0; l < np2_loc_[myproc_]; l++ )
+          {
+            int idest = h + np0_ * ( k + np1_ * l );
+            iunpack_[isource+l] = idest;
+
+          }
+          isource += np2_loc_[myproc_];
+        }
+      }
+    }
 
 #if USE_GATHER_SCATTER
-  // shift index array by one for fortran ZGTHR and ZSCTR calls
-  for ( int i = 0; i < iunpack_.size(); i++ )
-  {
-    iunpack_[i]++;
-  }
-  for ( int i = 0; i < ipack_.size(); i++ )
-  {
-    ipack_[i]++;
-  }
+    // shift index array by one for fortran ZGTHR and ZSCTR calls
+    for ( int i = 0; i < iunpack_.size(); i++ )
+    {
+      iunpack_[i]++;
+    }
+    for ( int i = 0; i < ipack_.size(); i++ )
+    {
+      ipack_[i]++;
+    }
 #endif
+  } // single task
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -401,40 +446,55 @@ void BasisMapping::transpose_bwd(const complex<double> *zvec,
   complex<double> *ct) const
 {
   // Transpose zvec to ct
-  // scatter zvec to sbuf for transpose
-#if USE_GATHER_SCATTER
-  // zsctr: y(indx(i)) = x(i)
-  {
-    complex<double>* y = const_cast<complex<double>*>(&sbuf[0]);
-    complex<double>* x = const_cast<complex<double>*>(zvec);
-    int n = zvec_size();
-    zsctr_(&n,x,const_cast<int*>(&ipack_[0]),y);
-  }
-#else
-  const int len = zvec_size();
-  double* const ps = (double*) &sbuf[0];
-  const double* const pz = (const double*) zvec;
-  for ( int i = 0; i < len; i++ )
-  {
-    // sbuf[ipack_[i]] = zvec[i];
-    const int ip = ipack_[i];
-    const double a = pz[2*i];
-    const double b = pz[2*i+1];
-    ps[2*ip]   = a;
-    ps[2*ip+1] = b;
-  }
-#endif
-
-  // segments of z-vectors are now in sbuf
-
-  // transpose
   if ( nprocs_ == 1 )
   {
-    assert(sbuf.size()==rbuf.size());
-    rbuf.swap(sbuf);
+    // single task
+
+    // clear ct
+    memset((void*)ct,0,np012loc_*sizeof(complex<double>));
+
+    for ( int ivec = 0; ivec < nvec_; ivec++ )
+    {
+      int src = ivec*np2_;
+      int dest = zvec_to_val_[ivec];
+      complex<double>* x = const_cast<complex<double>*>(&zvec[src]);
+      complex<double>* y = const_cast<complex<double>*>(&ct[dest]);
+      int incx = 1;
+      int incy = np0_*np1_;
+      int count = np2_;
+      zcopy(&count,x,&incx,y,&incy);
+    }
   }
   else
   {
+    // multiple tasks
+    // scatter zvec to sbuf for transpose
+#if USE_GATHER_SCATTER
+    // zsctr: y(indx(i)) = x(i)
+    {
+      complex<double>* y = const_cast<complex<double>*>(&sbuf[0]);
+      complex<double>* x = const_cast<complex<double>*>(zvec);
+      int n = zvec_size();
+      zsctr_(&n,x,const_cast<int*>(&ipack_[0]),y);
+    }
+#else
+    const int len = zvec_size();
+    double* const ps = (double*) &sbuf[0];
+    const double* const pz = (const double*) zvec;
+    for ( int i = 0; i < len; i++ )
+    {
+      // sbuf[ipack_[i]] = zvec[i];
+      const int ip = ipack_[i];
+      const double a = pz[2*i];
+      const double b = pz[2*i+1];
+      ps[2*ip]   = a;
+      ps[2*ip+1] = b;
+    }
+#endif
+
+    // segments of z-vectors are now in sbuf
+
+    // transpose
     int status =
       MPI_Alltoallv((double*)&sbuf[0],(int*)&scounts[0],(int*)&sdispl[0],
       MPI_DOUBLE,(double*)&rbuf[0],(int*)&rcounts[0],(int*)&rdispl[0],
@@ -444,39 +504,39 @@ void BasisMapping::transpose_bwd(const complex<double> *zvec,
       cout << " BasisMapping: status = " << status << endl;
       MPI_Abort(basis_.comm(),2);
     }
-  }
 
-  // clear ct
-  memset((void*)ct,0,np012loc_*sizeof(complex<double>));
+    // clear ct
+    memset((void*)ct,0,np012loc_*sizeof(complex<double>));
 
-  // copy from rbuf to ct
-  // using scatter index array iunpack
+    // copy from rbuf to ct
+    // using scatter index array iunpack
 #if USE_GATHER_SCATTER
-  // zsctr(n,x,indx,y): y(indx(i)) = x(i)
-  {
-    complex<double>* y = ct;
-    complex<double>* x = const_cast<complex<double>*>(&rbuf[0]);
-    int n = rbuf.size();
-    zsctr_(&n,x,const_cast<int*>(&iunpack_[0]),y);
-  }
-#else
-  {
-    const int rbuf_size = rbuf.size();
-    const double* const pr = (double*) &rbuf[0];
-    double* const pv = (double*) ct;
-    for ( int i = 0; i < rbuf_size; i++ )
+    // zsctr(n,x,indx,y): y(indx(i)) = x(i)
     {
-      // val[iunpack_[i]] = rbuf[i];
-      const int iu = iunpack_[i];
-      const double a = pr[2*i];
-      const double b = pr[2*i+1];
-      pv[2*iu]   = a;
-      pv[2*iu+1] = b;
+      complex<double>* y = ct;
+      complex<double>* x = const_cast<complex<double>*>(&rbuf[0]);
+      int n = rbuf.size();
+      zsctr_(&n,x,const_cast<int*>(&iunpack_[0]),y);
     }
-  }
+#else
+    {
+      const int rbuf_size = rbuf.size();
+      const double* const pr = (double*) &rbuf[0];
+      double* const pv = (double*) ct;
+      for ( int i = 0; i < rbuf_size; i++ )
+      {
+        // val[iunpack_[i]] = rbuf[i];
+        const int iu = iunpack_[i];
+        const double a = pr[2*i];
+        const double b = pr[2*i+1];
+        pv[2*iu]   = a;
+        pv[2*iu+1] = b;
+      }
+    }
 #endif
+    // coefficients are now in ct
 
-  // coefficients are now in ct
+  } // single task
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -484,38 +544,48 @@ void BasisMapping::transpose_fwd(const complex<double> *ct,
   complex<double> *zvec) const
 {
   // transpose ct to zvec
-  // gather ct into rbuf
-#if USE_GATHER_SCATTER
-  // zgthr: x(i) = y(indx(i))
-  {
-    complex<double>* y = const_cast<complex<double>*>(ct);
-    complex<double>* x = const_cast<complex<double>*>(&rbuf[0]);
-    int n = rbuf.size();
-    zgthr_(&n,y,x,const_cast<int*>(&iunpack_[0]));
-  }
-#else
-  const int rbuf_size = rbuf.size();
-  double* const pr = (double*) &rbuf[0];
-  const double* const pv = (const double*) ct;
-  for ( int i = 0; i < rbuf_size; i++ )
-  {
-    // rbuf[i] = val[iunpack_[i]];
-    const int iu = iunpack_[i];
-    const double a = pv[2*iu];
-    const double b = pv[2*iu+1];
-    pr[2*i]   = a;
-    pr[2*i+1] = b;
-  }
-#endif
-
-  // transpose
   if ( nprocs_ == 1 )
   {
-    assert(sbuf.size()==rbuf.size());
-    sbuf.swap(rbuf);
+    // single task
+    for ( int ivec = 0; ivec < nvec_; ivec++ )
+    {
+      int src = zvec_to_val_[ivec];
+      int dest = ivec*np2_;
+      complex<double>* x = const_cast<complex<double>*>(&ct[src]);
+      complex<double>* y = const_cast<complex<double>*>(&zvec[dest]);
+      int incx = np0_*np1_;
+      int incy = 1;
+      int count = np2_;
+      zcopy(&count,x,&incx,y,&incy);
+    }
   }
   else
   {
+    // gather ct into rbuf
+#if USE_GATHER_SCATTER
+    // zgthr: x(i) = y(indx(i))
+    {
+      complex<double>* y = const_cast<complex<double>*>(ct);
+      complex<double>* x = const_cast<complex<double>*>(&rbuf[0]);
+      int n = rbuf.size();
+      zgthr_(&n,y,x,const_cast<int*>(&iunpack_[0]));
+    }
+#else
+    const int rbuf_size = rbuf.size();
+    double* const pr = (double*) &rbuf[0];
+    const double* const pv = (const double*) ct;
+    for ( int i = 0; i < rbuf_size; i++ )
+    {
+      // rbuf[i] = val[iunpack_[i]];
+      const int iu = iunpack_[i];
+      const double a = pv[2*iu];
+      const double b = pv[2*iu+1];
+      pr[2*i]   = a;
+      pr[2*i+1] = b;
+    }
+#endif
+
+    // transpose
     int status =
       MPI_Alltoallv((double*)&rbuf[0],(int*)&rcounts[0],(int*)&rdispl[0],
       MPI_DOUBLE,(double*)&sbuf[0],(int*)&scounts[0],(int*)&sdispl[0],
@@ -525,33 +595,33 @@ void BasisMapping::transpose_fwd(const complex<double> *ct,
       cout << " BasisMapping: status = " << status << endl;
       MPI_Abort(basis_.comm(),2);
     }
-  }
 
-  // segments of z-vectors are now in sbuf
-  // gather sbuf into zvec_
+    // segments of z-vectors are now in sbuf
+    // gather sbuf into zvec_
 
 #if USE_GATHER_SCATTER
-  // zgthr: x(i) = y(indx(i))
-  {
-    complex<double>* y = const_cast<complex<double>*>(&sbuf[0]);
-    complex<double>* x = zvec;
-    int n = zvec_size();
-    zgthr_(&n,y,x,const_cast<int*>(&ipack_[0]));
-  }
+    // zgthr: x(i) = y(indx(i))
+    {
+      complex<double>* y = const_cast<complex<double>*>(&sbuf[0]);
+      complex<double>* x = zvec;
+      int n = zvec_size();
+      zgthr_(&n,y,x,const_cast<int*>(&ipack_[0]));
+    }
 #else
-  const int len = zvec_size();
-  const double* const ps = (double*) &sbuf[0];
-  double* const pz = (double*) zvec;
-  for ( int i = 0; i < len; i++ )
-  {
-    // zvec[i] = sbuf[ipack_[i]];
-    const int ip = ipack_[i];
-    const double a = ps[2*ip];
-    const double b = ps[2*ip+1];
-    pz[2*i]   = a;
-    pz[2*i+1] = b;
-  }
+    const int len = zvec_size();
+    const double* const ps = (double*) &sbuf[0];
+    double* const pz = (double*) zvec;
+    for ( int i = 0; i < len; i++ )
+    {
+      // zvec[i] = sbuf[ipack_[i]];
+      const int ip = ipack_[i];
+      const double a = ps[2*ip];
+      const double b = ps[2*ip+1];
+      pz[2*i]   = a;
+      pz[2*i+1] = b;
+    }
 #endif
+  } // single task
 }
 
 ////////////////////////////////////////////////////////////////////////////////

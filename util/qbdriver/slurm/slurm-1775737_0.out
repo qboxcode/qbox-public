@@ -1,0 +1,58 @@
+Task ID: 0
+Task ID First: 0
+Task ID Last:t 1
+midway2-0589.rcc.local 0
+Launch client program
+Launch server program 0
+<?xml version="1.0" encoding="UTF-8"?>
+<fpmd:simulation xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
+<uuid> e48289c4-9c76-11ea-9b70-40f2e9c9740c </uuid>
+
+                   ============================
+                   I qbox rel1_71_0           I
+                   I                          I
+                   I                          I
+                   I                          I
+                   I                          I
+                   I                          I
+                   I                          I
+                   I                          I
+                   I                          I
+                   I                          I
+                   I                          I
+                   I                          I
+                   I http://qboxcode.org      I
+                   ============================
+
+
+<release> rel1_71_0 midway  </release>
+<user> root </user>
+<sysname> Linux </sysname>
+<nodename> midway2-0589.rcc.local </nodename>
+<start_time> 2020-05-22T21:55:04Z </start_time>
+<mpi_processes count="20">
+<process id="0"> midway2-0589.rcc.local </process>
+<process id="1"> midway2-0589.rcc.local </process>
+<process id="2"> midway2-0589.rcc.local </process>
+<process id="3"> midway2-0589.rcc.local </process>
+<process id="4"> midway2-0589.rcc.local </process>
+<process id="5"> midway2-0589.rcc.local </process>
+<process id="6"> midway2-0589.rcc.local </process>
+<process id="7"> midway2-0589.rcc.local </process>
+<process id="8"> midway2-0589.rcc.local </process>
+<process id="9"> midway2-0589.rcc.local </process>
+<process id="10"> midway2-0589.rcc.local </process>
+<process id="11"> midway2-0589.rcc.local </process>
+<process id="12"> midway2-0589.rcc.local </process>
+<process id="13"> midway2-0589.rcc.local </process>
+<process id="14"> midway2-0589.rcc.local </process>
+<process id="15"> midway2-0589.rcc.local </process>
+<process id="16"> midway2-0589.rcc.local </process>
+<process id="17"> midway2-0589.rcc.local </process>
+<process id="18"> midway2-0589.rcc.local </process>
+<process id="19"> midway2-0589.rcc.local </process>
+</mpi_processes>
+[qbox]  End of command stream 
+<real_time> 0.19389 </real_time>
+<end_time> 2020-05-22T21:55:04Z </end_time>
+</fpmd:simulation>

@@ -41,7 +41,7 @@ class BasisMapping
   mutable std::vector<std::complex<double> > sbuf, rbuf;
 
   std::vector<int> ip_, im_;
-  std::vector<int> ipack_, iunpack_;
+  std::vector<int> ipack_, iunpack_, zvec_to_val_;
 
   public:
 

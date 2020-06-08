@@ -1,0 +1,29 @@
+#!/bin/bash
+# qbox_cs_sge.job: 
+# Client-server operation using one client and multiple servers
+# Using SGE array jobs
+# Example: 2 SGE tasks of 16 slots each
+# submit with: qsub -t 1-2 -pe orte 16 qbox_cs_sge.job
+#
+#$ -S /bin/bash
+#$ -j y
+#$ -cwd
+#$ -V
+
+exe=$HOME/qb/export/rel1_71_0/src_icc/qb
+. compilervars.sh intel64
+. ompi-intel.sh
+
+echo Task ID: $SGE_TASK_ID
+echo Task ID First: $SGE_TASK_FIRST
+echo Task ID Last:t $SGE_TASK_LAST
+echo $(hostname) $SGE_TASK_ID
+
+# Launch the client program on the first SGE task
+if [ $SGE_TASK_ID -eq $SGE_TASK_FIRST ]
+then
+  echo "Launch client program"
+fi
+# Launch a server program on all SGE tasks
+echo "Launch server program" $SGE_TASK_ID
+mpirun $exe

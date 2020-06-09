@@ -15,7 +15,7 @@
 EXEC=dynmat
 LDFLAGS=-llapack
 CXXFLAGS=-g
-$(EXEC): dynmat.C
+$(EXEC): dynmat.cpp
 	$(CXX) -o $@ $^ $(LDFLAGS)
 #------------------------------------------------------------------------------
 #  Cleanup object files

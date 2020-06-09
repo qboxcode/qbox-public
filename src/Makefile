@@ -64,8 +64,6 @@ CXXFLAGS += -DTARGET='"$(TARGET)"'
 CXXFLAGS += -DVERSION='"$(VERSION)"'
  $(EXEC):    $(OBJECTS)
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- lib:   $(OBJECTS)
-	ar cr libqb.a $^
  testLineMinimizer: testLineMinimizer.o LineMinimizer.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testCGOptimizer: testCGOptimizer.o CGOptimizer.o LineMinimizer.o
@@ -176,20 +174,9 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
  clean :
 	rm -f *.o
 	rm -f $(EXEC) $(TESTEXECS)
-	rm -rf ti_files
-	rm -f libqb.a
 #------------------------------------------------------------------------------
  ctags :
 	ctags -o tags *.[Ch]
-#------------------------------------------------------------------------------
- html :
-	enscript -Ecpp --color -Whtml --toc -pqbsrc.html *.h *.C
-#------------------------------------------------------------------------------
- ps :
-	enscript -Ecpp --toc -2rGj -pqb.ps *.h *.C Makefile *.mk
-#------------------------------------------------------------------------------
- tar :
-	tar czf qbsrc.tgz *.[Ch] Makefile *.mk notes
 #------------------------------------------------------------------------------
 # DO NOT DELETE
 

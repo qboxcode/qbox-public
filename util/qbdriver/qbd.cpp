@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// qb_driver.C
+// qb_driver.cpp
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -9,7 +9,7 @@
 // qb_driver sends commands to the server, via the file qb_input_file
 // It checks for the presence of a link named "qb_input_file.lock"
 // before writing additional commands
-// compile with: g++ -o qb_driver qb_driver.C
+// compile with: g++ -o qb_driver qb_driver.cpp
 
 #include <fstream>
 #include <iostream>

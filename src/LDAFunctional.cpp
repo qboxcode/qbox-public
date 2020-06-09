@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// LDAFunctional.C
+// LDAFunctional.cpp
 //
 // LDA Exchange-correlation energy and potential
 // Ceperley & Alder, parametrized by Perdew and Zunger

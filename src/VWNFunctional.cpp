@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// VWNFunctional.C
+// VWNFunctional.cpp
 //
 // LDA Exchange-correlation energy and potential
 // S.H.Vosko, L.Wilk, M.Nusair, Can. J. Phys. 58, 1200 (1980)

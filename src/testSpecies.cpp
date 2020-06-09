@@ -11,7 +11,7 @@
 // or <http://www.gnu.org/licenses/>.
 //
 //
-// testSpecies.C
+// testSpecies.cpp
 //
 // use: testSpecies uri
 //

@@ -11,7 +11,7 @@
 // or <http://www.gnu.org/licenses/>.
 //
 //
-// testFourierTransform.C
+// testFourierTransform.cpp
 //
 // test and timing of the Qbox FourierTransform class
 //

@@ -1,5 +1,5 @@
 //
-// testreassign.C
+// testreassign.cpp
 //
 // test the functionality of:
 // - reassign the streambuf of std::cout to an ostringstream

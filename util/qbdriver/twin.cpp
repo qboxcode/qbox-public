@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// twin.C
+// twin.cpp
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -9,7 +9,7 @@
 // twin sends commands to two Qbox servers, via the files qbin_0, qbin_1
 // It checks for the presence of a link named "qbin_<n>.lock"
 // before writing additional commands
-// compile with: g++ -o twin twin.C
+// compile with: g++ -o twin twin.cpp
 
 #include <fstream>
 #include <iostream>

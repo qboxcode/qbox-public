@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// upf2qso.C: transform a UPF pseudopotential to QSO format
+// upf2qso.cpp: transform a UPF pseudopotential to QSO format
 // the QSO format is defined at http://www.quantum-simulation.org
 // This program accepts both the original UPF format and the "2.0.1" format
 //

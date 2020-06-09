@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// testSampleReader.C
+// testSampleReader.cpp
 //
 // Test functionality of SampleReader
 // use: ./testSampleReader sample.xml

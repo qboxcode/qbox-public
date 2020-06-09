@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// test_vext.C:
+// test_vext.cpp
 //
 // Generate an external potential in XML format for input to the response
 // command.

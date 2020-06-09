@@ -1,5 +1,5 @@
 //
-// testlock.C
+// testlock.cpp
 //
 // test the creation and removal of a lock file using the C library
 //

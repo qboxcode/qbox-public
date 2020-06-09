@@ -15,7 +15,6 @@
 // PeriodicTable.h
 //
 ////////////////////////////////////////////////////////////////////////////////
-// $Id: PeriodicTable.h,v 1.2 2009/02/14 22:47:30 fgygi Exp $
 
 #ifndef PERIODICTABLE_H
 #define PERIODICTABLE_H

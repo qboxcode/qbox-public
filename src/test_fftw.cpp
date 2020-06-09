@@ -16,6 +16,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifdef USE_FFTW2
+
 #include "Timer.h"
 
 #include <iostream>
@@ -192,3 +194,7 @@ int main(int argc, char**argv)
 #endif
   return 0;
 }
+#else
+int main(int argc, char**argv)
+{}
+#endif // USE_FFTW2

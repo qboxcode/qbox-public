@@ -10,13 +10,20 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
-// spline.h
+// isodate.cpp
 //
-///////////////////////////////////////////////////////////////////////////////
-void spline(int n, double *x, double *y, double yp_left, double yp_right,
-            int bcnat_left, int bcnat_right, double *y2);
-void splint (int n, double *xa, double *ya, double *y2a, double x, double *y);
-void splintd (int n, double *xa, double *ya, double *y2a,
-              double x, double *y, double *dy);
+////////////////////////////////////////////////////////////////////////////////
+
+#include "isodate.h"
+#include <ctime>
+std::string isodate(void)
+{
+  const time_t t = time(NULL);
+  struct tm* tms = gmtime(&t);
+  char s[32];
+  const char* fmt = "%Y-%m-%dT%TZ";
+  strftime(s,32,fmt,tms);
+  return std::string(s);
+}

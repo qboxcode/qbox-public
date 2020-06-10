@@ -12,11 +12,17 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 //
-// spline.h
+// readTSC.cpp
 //
 ///////////////////////////////////////////////////////////////////////////////
-void spline(int n, double *x, double *y, double yp_left, double yp_right,
-            int bcnat_left, int bcnat_right, double *y2);
-void splint (int n, double *xa, double *ya, double *y2a, double x, double *y);
-void splintd (int n, double *xa, double *ya, double *y2a,
-              double x, double *y, double *dy);
+
+long long readTSC(void)
+{
+  union { long long complete; unsigned int part[2]; } ticks;
+  __asm__ ("rdtsc; mov %%eax,%0;mov %%edx,%1"
+            : "=mr" (ticks.part[0]),
+              "=mr" (ticks.part[1])
+            : /* no inputs */
+            : "eax", "edx");
+  return ticks.complete;
+}

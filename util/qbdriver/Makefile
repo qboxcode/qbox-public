@@ -1,4 +1,4 @@
-twin: twin.C
+twin: twin.cpp
 	g++ -o $@ $^
-qbd: qbd.C
+qbd: qbd.cpp
 	g++ -o $@ $^

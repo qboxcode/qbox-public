@@ -10,13 +10,28 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
-// spline.h
+// uuid_str.cpp
 //
-///////////////////////////////////////////////////////////////////////////////
-void spline(int n, double *x, double *y, double yp_left, double yp_right,
-            int bcnat_left, int bcnat_right, double *y2);
-void splint (int n, double *xa, double *ya, double *y2a, double x, double *y);
-void splintd (int n, double *xa, double *ya, double *y2a,
-              double x, double *y, double *dy);
+////////////////////////////////////////////////////////////////////////////////
+
+#if USE_UUID
+#include <uuid/uuid.h>
+#include "uuid_str.h"
+using namespace std;
+
+std::string uuid_str(void)
+{
+  unsigned char uuid_c[16];
+  char s[36];
+
+  // generate uuid
+  uuid_generate_time(uuid_c);
+
+  // convert to string
+  uuid_unparse(uuid_c,s);
+
+  return string(s);
+}
+#endif

@@ -10,13 +10,14 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
-// spline.h
+// qbox_xmlns.cpp
 //
-///////////////////////////////////////////////////////////////////////////////
-void spline(int n, double *x, double *y, double yp_left, double yp_right,
-            int bcnat_left, int bcnat_right, double *y2);
-void splint (int n, double *xa, double *ya, double *y2a, double x, double *y);
-void splintd (int n, double *xa, double *ya, double *y2a,
-              double x, double *y, double *dy);
+////////////////////////////////////////////////////////////////////////////////
+
+#include "qbox_xmlns.h"
+std::string qbox_xmlns(void)
+{
+  return std::string("http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0");
+}

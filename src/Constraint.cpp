@@ -10,13 +10,18 @@
 // See the file COPYING in the root directory of this distribution
 // or <http://www.gnu.org/licenses/>.
 //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
-// spline.h
+// Constraint.cpp
 //
-///////////////////////////////////////////////////////////////////////////////
-void spline(int n, double *x, double *y, double yp_left, double yp_right,
-            int bcnat_left, int bcnat_right, double *y2);
-void splint (int n, double *xa, double *ya, double *y2a, double x, double *y);
-void splintd (int n, double *xa, double *ya, double *y2a,
-              double x, double *y, double *dy);
+////////////////////////////////////////////////////////////////////////////////
+
+#include "Constraint.h"
+#include <iostream>
+using namespace std;
+
+ostream& operator << ( ostream &os, Constraint &c )
+{
+  return c.print(os);
+}
+

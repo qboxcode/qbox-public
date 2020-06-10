@@ -1,5 +1,5 @@
 
- upf2qso.C is a program that converts norm-conserving pseudopotentials 
+ upf2qso.cpp is a program that converts norm-conserving pseudopotentials 
  written in the UPF format (see http://www.pwscf.org) to the 
  www.quantum-simulation.org (QSO) format.
 

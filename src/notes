@@ -1,4 +1,13 @@
 --------------------------------------------------------------------------------
+rel1_71_3
+--------------------------------------------------------------------------------
+e7ea41f Make test_fftw no-op if USE_FFTW2 not defined
+85c9d9a Remove Id: strings
+92b4f86 Update Makefile, change .C to .cpp in src files
+a8f7b58 Update Makefiles for .C to .cpp rename
+51e5bf5 Rename .C files to .cpp
+b3e26db update release.C
+--------------------------------------------------------------------------------
 rel1_71_2
 --------------------------------------------------------------------------------
 00ce1b0 Optimize single-task transpose in BasisMapping

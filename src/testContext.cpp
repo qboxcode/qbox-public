@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     c.push_back(new Context(MPI_COMM_WORLD,nr,nc));
     cout << ctxt.mype() << ": " << *c[0];
 
-    if ( *c[0] )
+    if ( c[0]->active() )
       cout << ctxt.mype() << ": c[0] is active" << endl;
 
     // test dgsum2d function

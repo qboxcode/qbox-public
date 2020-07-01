@@ -102,5 +102,6 @@ int main(int argc, char **argv)
 
   } // end Context scope
 
+  MPI_Comm_free(&comm);
   MPI_Finalize();
 }

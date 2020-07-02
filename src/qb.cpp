@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008-2015 The Regents of the University of California
+// Copyright (c) 2008-2020 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -17,12 +17,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
+#include <iomanip>
 #include <string>
 using namespace std;
 
 #include <sys/utsname.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <cassert>
 #include <fstream>
 
 #include "isodate.h"
@@ -35,11 +37,13 @@ using namespace std;
 #include "omp.h"
 #endif
 
-#include "Context.h"
+#include "MPIdata.h"
+
+#include "Timer.h"
 #include "UserInterface.h"
 #include "Sample.h"
-#include "Timer.h"
 
+#if 0
 #include "AngleCmd.h"
 #include "AtomCmd.h"
 #include "ComputeMLWFCmd.h"
@@ -56,7 +60,9 @@ using namespace std;
 #include "PartialChargeCmd.h"
 #include "PlotCmd.h"
 #include "PrintCmd.h"
+#endif
 #include "QuitCmd.h"
+#if 0
 #include "RandomizeRCmd.h"
 #include "RandomizeVCmd.h"
 #include "RandomizeWfCmd.h"
@@ -75,7 +81,9 @@ using namespace std;
 #include "StrainCmd.h"
 #include "TorsionCmd.h"
 #include "BisectionCmd.h"
+#endif
 
+#if 0
 #include "AlphaPBE0.h"
 #include "AlphaRSH.h"
 #include "AtomsDyn.h"
@@ -121,20 +129,83 @@ using namespace std;
 #include "WfDiag.h"
 #include "WfDyn.h"
 #include "Xc.h"
+#endif
 
 int main(int argc, char **argv, char **envp)
 {
   Timer tm;
   tm.start();
 
-#if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
+  MPI_Comm_size(MPI_COMM_WORLD,&MPIdata::size);
+  MPI_Comm_rank(MPI_COMM_WORLD,&MPIdata::rank);
+  MPIdata::onpe0 = ( MPIdata::rank == 0 );
 
-  {
-  Context ctxt(MPI_COMM_WORLD);
+  // create global cart comm
 
-  if ( ctxt.onpe0() )
+  // get numbers of G, states, spin and kpoint blocks
+  const char* pc;
+
+  // ngb: number of G vector blocks
+  int ngb = MPIdata::size;
+  pc = getenv("QBOX_NGB");
+  if ( pc != nullptr ) ngb = atoi(pc);
+
+  // nstb: number of states blocks
+  int nstb = 1;
+  pc = getenv("QBOX_NSTB");
+  if ( pc != nullptr ) nstb = atoi(pc);
+
+  // nspb: number of spin blocks
+  int nspb = 1;
+  pc = getenv("QBOX_NSPB");
+  if ( pc != nullptr ) nspb = atoi(pc);
+
+  // nkpb: number of kpoint blocks
+  int nkpb = 1;
+  pc = getenv("QBOX_NKPB");
+  if ( pc != nullptr ) nkpb = atoi(pc);
+
+  cout << " rank=" << MPIdata::rank << " ngb=" << ngb << " nstb=" << nstb
+       << " nspb=" << nspb << " nkpb=" << nkpb << endl;
+  assert(ngb*nstb*nspb*nkpb == MPIdata::size);
+
+  // check that all numbers of blocks are positive
+  assert(ngb>0);
+  assert(nstb>0);
+  assert(nspb>0);
+  assert(nkpb>0);
+
+  int ndims=4;
+  int dims[4] = { ngb, nstb, nspb, nkpb };
+  // plan for cyclic rotation of states blocks
+  int periods[4] = { 0, 1, 0, 0};
+  int reorder = 0;
+
+  MPI_Cart_create(MPI_COMM_WORLD,ndims,dims,periods,reorder,&MPIdata::comm);
+
+  // create subcommunicators
+  // G vector communicator
+  int g_remain_dims[4] = { 1, 0, 0, 0 };
+  MPI_Cart_sub(MPIdata::comm,g_remain_dims,&MPIdata::g_comm);
+
+  // states communicator
+  int st_remain_dims[4] = { 0, 1, 0, 0 };
+  MPI_Cart_sub(MPIdata::comm,st_remain_dims,&MPIdata::st_comm);
+
+  // spin communicator
+  int sp_remain_dims[4] = { 0, 0, 1, 0 };
+  MPI_Cart_sub(MPIdata::comm,sp_remain_dims,&MPIdata::sp_comm);
+
+  // kpoint communicator
+  int kp_remain_dims[4] = { 0, 0, 0, 1 };
+  MPI_Cart_sub(MPIdata::comm,kp_remain_dims,&MPIdata::kp_comm);
+
+  // Slater determinant communicator
+  int sd_remain_dims[4] = { 1, 1, 0, 0 };
+  MPI_Cart_sub(MPIdata::comm,sd_remain_dims,&MPIdata::sd_comm);
+
+  if ( MPIdata::onpe0 )
   {
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
@@ -159,15 +230,15 @@ int main(int argc, char **argv, char **envp)
   cout << "                   I http://qboxcode.org      I\n";
   cout << "                   ============================\n\n";
   cout << "\n";
-  cout << "<release> " << release() << " " << TARGET;
+  cout << "<release> " << release() << " " << getenv("TARGET");
 #ifdef VERSION
   cout << " " << VERSION;
 #endif
   cout << " </release>" << endl;
 
   // Identify executable name, checksum, size and link date
-  if ( getlogin() != 0 )
-    cout << "<user> " << getlogin() << " </user>" << endl;
+  if ( getenv("LOGNAME") != 0 )
+    cout << "<user> " << getenv("LOGNAME") << " </user>" << endl;
 
   // Identify platform
   {
@@ -178,10 +249,9 @@ int main(int argc, char **argv, char **envp)
   }
 
   cout << "<start_time> " << isodate() << " </start_time>" << endl;
-
+  cout << " comm: " << ngb << "x" << nstb << "x" << nspb << "x" << nkpb << endl;
   }
 
-#if USE_MPI
   // Print list of node names
   char processor_name[MPI_MAX_PROCESSOR_NAME];
   for ( int i = 0; i < MPI_MAX_PROCESSOR_NAME; i++ )
@@ -195,46 +265,64 @@ int main(int argc, char **argv, char **envp)
     if ( processor_name[i] == '<' ) processor_name[i] = '(';
     if ( processor_name[i] == '>' ) processor_name[i] = ')';
   }
-  if ( ctxt.onpe0() )
+
+  int coords[4];
+  MPI_Cart_coords(MPIdata::comm,MPIdata::rank,4,coords);
+
+  if ( MPIdata::onpe0 )
   {
-    cout << "<mpi_processes count=\"" << ctxt.size() << "\">" << endl;
-    cout << "<process id=\"" << ctxt.mype() << "\"> " << processor_name
-         << " </process>" << endl;
+    cout << "<mpi_processes count=\"" << MPIdata::size << "\">" << endl;
+    cout << "<process id=\"" << MPIdata::rank << "\"> " << processor_name
+         << " </process>"
+         << " (" << coords[0] << "," << coords[1]
+         << "," << coords[2] << "," << coords[3] << ")" << endl;
   }
-  for ( int ip = 1; ip < ctxt.size(); ip++ )
+  for ( int ip = 1; ip < MPIdata::size; ip++ )
   {
-    MPI_Barrier(ctxt.comm());
-    if ( ctxt.onpe0() )
+    MPI_Barrier(MPIdata::comm);
+    if ( MPIdata::onpe0 )
     {
       MPI_Status status;
       MPI_Recv(&buf[0],MPI_MAX_PROCESSOR_NAME,MPI_CHAR,
-                   ip,ip,ctxt.comm(),&status);
+                   ip,ip,MPIdata::comm,&status);
     }
-    else if ( ip == ctxt.mype() )
+    else if ( ip == MPIdata::rank )
     {
       // send processor name to pe0
       MPI_Send(&processor_name[0],MPI_MAX_PROCESSOR_NAME,
-        MPI_CHAR,0,ctxt.mype(),ctxt.comm());
+        MPI_CHAR,0,MPIdata::rank,MPIdata::comm);
     }
-    if ( ctxt.onpe0() )
+    if ( MPIdata::onpe0 )
+    {
+      MPI_Status status;
+      MPI_Recv(coords,4,MPI_INT,ip,ip,MPIdata::comm,&status);
+    }
+    else if ( ip == MPIdata::rank )
+    {
+      // send processor name to pe0
+      MPI_Send(coords,4,MPI_INT,0,MPIdata::rank,MPIdata::comm);
+    }
+    if ( MPIdata::onpe0 )
     {
       cout << "<process id=\"" << ip << "\"> " << buf
-           << " </process>" << endl;
+           << " </process>"
+           << " (" << coords[0] << "," << coords[1]
+           << "," << coords[2] << "," << coords[3] << ")" << endl;
     }
   }
-  if ( ctxt.onpe0() )
+  if ( MPIdata::onpe0 )
     cout << "</mpi_processes>" << endl;
-#endif // USE_MPI
 
 #ifdef _OPENMP
-  if ( ctxt.onpe0() )
+  if ( MPIdata::onpe0 )
     cout << "<omp_max_threads> " << omp_get_max_threads()
          << " </omp_max_threads>" << endl;
 #endif
 
   UserInterface ui;
-  Sample* s = new Sample(ctxt, &ui);
+  Sample* s = new Sample(&ui);
 
+#if 0
   ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
   ui.addCmd(new BisectionCmd(s));
@@ -252,7 +340,9 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new PartialChargeCmd(s));
   ui.addCmd(new PlotCmd(s));
   ui.addCmd(new PrintCmd(s));
+#endif
   ui.addCmd(new QuitCmd(s));
+#if 0
   ui.addCmd(new RandomizeRCmd(s));
   ui.addCmd(new RandomizeVCmd(s));
   ui.addCmd(new RandomizeWfCmd(s));
@@ -316,6 +406,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new WfDiag(s));
   ui.addVar(new WfDyn(s));
   ui.addVar(new Xc(s));
+#endif
 
   if ( argc == 2 )
   {
@@ -326,7 +417,7 @@ int main(int argc, char **argv, char **envp)
     string outputfilename("stdout");
     ifstream in;
     int file_ok = 0;
-    if ( ctxt.onpe0() )
+    if ( MPIdata::onpe0 )
     {
       in.open(argv[1],ios::in);
       if ( in )
@@ -343,7 +434,7 @@ int main(int argc, char **argv, char **envp)
     }
     else
     {
-      if ( ctxt.onpe0() )
+      if ( MPIdata::onpe0 )
         cout << " Could not open input file " << argv[1] << endl;
     }
   }
@@ -355,7 +446,7 @@ int main(int argc, char **argv, char **envp)
     {
       // first argument is not "-server"
       cout << " use: qb [infile | -server infile outfile]" << endl;
-      ctxt.abort(1);
+      MPI_Abort(MPI_COMM_WORLD,1);
     }
     // first argument is "-server"
     string inputfilename(argv[2]);
@@ -378,7 +469,7 @@ int main(int argc, char **argv, char **envp)
   Cmd *c = ui.findCmd("quit");
   c->action(1,NULL);
 
-  if ( ctxt.onpe0() )
+  if ( MPIdata::onpe0 )
   {
     cout << "<real_time> " << tm.real() << " </real_time>" << endl;
     cout << "<end_time> " << isodate() << " </end_time>" << endl;
@@ -387,10 +478,7 @@ int main(int argc, char **argv, char **envp)
 
   delete s;
 
-  } // end of Context scope
-#if USE_MPI
   MPI_Finalize();
-#endif
 
   return 0;
 }

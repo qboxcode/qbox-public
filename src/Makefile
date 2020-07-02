@@ -23,43 +23,49 @@ testSpecies testUnitCell testVWN testWavefunction \
 testXCFunctional testXMLGFPreprocessor test_fftw test_vext \
 testjacobi testjade 
 
-OBJECTS=qb.o AtomSet.o Atom.o Species.o \
-        Wavefunction.o SlaterDet.o \
-        EnergyFunctional.o SampleStepper.o \
-        Basis.o BasisMapping.o FourierTransform.o Matrix.o Context.o \
-        sinft.o spline.o UnitCell.o StructureFactor.o \
-        ChargeDensity.o UserInterface.o RunCmd.o \
-        LoadCmd.o SaveCmd.o \
-        SpeciesCmd.o SpeciesReader.o SpeciesHandler.o \
-        XCOperator.o ExchangeOperator.o Bisection.o \
+OBJECTS=MPIdata.o qb.o AtomSet.o Atom.o Species.o \
+#       Wavefunction.o SlaterDet.o \
+#       EnergyFunctional.o SampleStepper.o \
+#       Basis.o BasisMapping.o FourierTransform.o Matrix.o Context.o \
+#       sinft.o spline.o UnitCell.o StructureFactor.o \
+#       ChargeDensity.o UserInterface.o RunCmd.o \
+#       LoadCmd.o SaveCmd.o \
+#       SpeciesCmd.o SpeciesReader.o SpeciesHandler.o \
+#       XCOperator.o ExchangeOperator.o Bisection.o \
 	XCPotential.o LDAFunctional.o VWNFunctional.o \
-        PBEFunctional.o BLYPFunctional.o SCANFunctional.o \
-        B3LYPFunctional.o  BHandHLYPFunctional.o \
+#       PBEFunctional.o BLYPFunctional.o SCANFunctional.o \
+#       B3LYPFunctional.o  BHandHLYPFunctional.o \
 	ExponentialIntegral.o HSEFunctional.o \
-        RSHFunctional.o \
+#       RSHFunctional.o \
 	NonLocalPotential.o SampleReader.o StructuredDocumentHandler.o \
 	SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \
-        XMLGFPreprocessor.o Base64Transcoder.o \
-        CPSampleStepper.o BOSampleStepper.o \
-        SDWavefunctionStepper.o \
-        MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
-        BMDIonicStepper.o \
-        PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
-        JDWavefunctionStepper.o CellStepper.o SDCellStepper.o \
+#       XMLGFPreprocessor.o Base64Transcoder.o \
+#       CPSampleStepper.o BOSampleStepper.o \
+#       SDWavefunctionStepper.o \
+#       MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
+#       BMDIonicStepper.o \
+#       PSDWavefunctionStepper.o PSDAWavefunctionStepper.o \
+#       JDWavefunctionStepper.o CellStepper.o SDCellStepper.o \
 	CGCellStepper.o ConfinementPotential.o Preconditioner.o \
+#       release.o qbox_xmlns.o isodate.o \
+#       AndersonMixer.o SDAIonicStepper.o CGIonicStepper.o \
+#       ConstraintSet.o Constraint.o PositionConstraint.o DistanceConstraint.o \
+#       AngleConstraint.o TorsionConstraint.o jacobi.o \
+#       SampleWriter.o ComputeMLWFCmd.o MLWFTransform.o \
+#       jade.o PlotCmd.o \
+#       ExtForceSet.o ExtForce.o AtomicExtForce.o PairExtForce.o \
+#       GlobalExtForce.o \
+#       uuid_str.o sampling.o CGOptimizer.o LineMinimizer.o \
+#       ElectricEnthalpy.o PartialChargeCmd.o \
+#       ExternalPotential.o ResponseCmd.o \
+#       Function3d.o Function3dHandler.o \
+#       SpectrumCmd.o \
+#       $(PLTOBJECTS)
+OBJECTS=MPIdata.o qb.o AtomSet.o Atom.o Species.o \
+        Basis.o sinft.o spline.o UnitCell.o StructureFactor.o \
+        UserInterface.o \
         release.o qbox_xmlns.o isodate.o \
-        AndersonMixer.o SDAIonicStepper.o CGIonicStepper.o \
-        ConstraintSet.o Constraint.o PositionConstraint.o DistanceConstraint.o \
-        AngleConstraint.o TorsionConstraint.o jacobi.o \
-        SampleWriter.o ComputeMLWFCmd.o MLWFTransform.o \
-        jade.o PlotCmd.o \
-        ExtForceSet.o ExtForce.o AtomicExtForce.o PairExtForce.o \
-        GlobalExtForce.o \
-        uuid_str.o sampling.o CGOptimizer.o LineMinimizer.o \
-        ElectricEnthalpy.o PartialChargeCmd.o \
-        ExternalPotential.o ResponseCmd.o \
-        Function3d.o Function3dHandler.o \
-        SpectrumCmd.o \
+        uuid_str.o sampling.o \
         $(PLTOBJECTS)
 CXXFLAGS += -DTARGET='"$(TARGET)"'
 # to include VERSION info in release string, use:

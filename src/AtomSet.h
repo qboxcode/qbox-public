@@ -19,7 +19,6 @@
 #ifndef ATOMSET_H
 #define ATOMSET_H
 
-#include "Context.h"
 #include "Atom.h"
 #include "UnitCell.h"
 #include "D3tensor.h"
@@ -34,8 +33,6 @@ class AtomSet
 {
   private:
 
-  const Context& ctxt_;
-
   int nel_;
   std::map<std::string,int> na_;  // na_[sp_name]: num. of at. of spec. sp_name
   std::map<std::string,int> isp_; // isp_[sp_name]: index of species sp_name
@@ -47,13 +44,12 @@ class AtomSet
 
   public:
 
-  AtomSet(const Context& ctxt) : ctxt_(ctxt), nel_(0) {}
+  AtomSet(void) : nel_(0) {}
   ~AtomSet(void);
 
   std::vector<std::vector<Atom *> > atom_list; // atom_list[is][ia]
   std::vector<Species *> species_list;    // species_list[is]
 
-  const Context& context(void) const { return ctxt_; }
   bool addAtom(Atom *a);
   bool delAtom(std::string name);
   bool addSpecies(Species *sp, std::string name);

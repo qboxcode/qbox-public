@@ -26,7 +26,7 @@
 #include "blacs.h"
 #include <mpi.h>
 
-struct ContextRep
+class Context
 {
   private:
 
@@ -45,8 +45,8 @@ struct ContextRep
   MPI_Comm comm_;
 
   // keep assignment and copy constructors private
-  ContextRep& operator=(const ContextRep& c);
-  ContextRep(const ContextRep& c);
+  Context& operator=(const Context& c);
+  Context(const Context& c);
 
   public:
 
@@ -70,92 +70,6 @@ struct ContextRep
   void abort(int ierr) const { Cblacs_abort(ictxt_,ierr); }
   void barrier(void) const { Cblacs_barrier(ictxt_,"A"); }
   void barrier(char scope) const { Cblacs_barrier(ictxt_,&scope); }
-
-  void dsend(int m, int n, double* a, int lda, int rdest, int cdest) const;
-  void drecv(int m, int n, double* a, int lda, int rsrc, int csrc) const;
-  void dsum(char scope, char topology, int m, int n, double* a, int lda,
-            int rdest, int cdest) const;
-  void dmax(char scope, char topology, int m, int n, double* a, int lda,
-            int rdest, int cdest) const;
-  void dmax(char scope, char topology, int m, int n, double* a, int lda,
-            int* ra, int* ca, int rcflag, int rdest, int cdest) const;
-  void dmin(char scope, char topology, int m, int n, double* a, int lda,
-            int* ra, int* ca, int rcflag, int rdest, int cdest) const;
-  void dmin(char scope, char topology, int m, int n, double* a, int lda,
-            int rdest, int cdest) const;
-  void dbcast_send(char scope, char topology,
-                   int m, int n, double* a,int lda) const;
-  void dbcast_recv(char scope, char topology, int m, int n, double* a, int lda,
-               int rsrc, int csrc) const;
-  void isend(int m, int n, int* a, int lda, int rdest, int cdest) const;
-  void irecv(int m, int n, int* a, int lda, int rsrc, int csrc) const;
-  void isum(char scope, char topology, int m, int n, int* a, int lda,
-            int rdest, int cdest) const;
-  void imax(char scope, char topology, int m, int n, int* a, int lda,
-            int* ra, int* ca, int rcflag, int rdest, int cdest) const;
-  void imax(char scope, char topology, int m, int n, int* a, int lda,
-            int rdest, int cdest) const;
-  void imin(char scope, char topology, int m, int n, int* a, int lda,
-            int* ra, int* ca, int rcflag, int rdest, int cdest) const;
-  void imin(char scope, char topology, int m, int n, int* a, int lda,
-            int rdest, int cdest) const;
-  void ibcast_send(char scope, char topology,
-                   int m, int n, int* a,int lda) const;
-  void ibcast_recv(char scope, char topology, int m, int n, int* a, int lda,
-               int rsrc, int csrc) const;
-  void string_send(std::string& s, int rdest, int cdest) const;
-  void string_recv(std::string& s, int rsrc, int csrc) const;
-  void string_bcast(std::string& s, int isrc) const;
-
-  bool operator==(const ContextRep& c) const
-  { return (ictxt_==c.ictxt());}
-
-  MPI_Comm comm(void) const { return comm_; }
-
-  // Constructors
-
-  // construct a single-row ContextRep
-  explicit ContextRep(MPI_Comm comm);
-
-  // global ContextRep of size nprow * npcol with column major order
-  explicit ContextRep(MPI_Comm comm, int nprow, int npcol);
-
-  ~ContextRep();
-
-  void print(std::ostream& os) const;
-};
-
-class Context
-{
-  private:
-
-  ContextRep* rep;
-  int* pcount;
-
-  public:
-
-  int ictxt() const;
-  int myrow() const;
-  int mycol() const;
-  int nprow() const;
-  int npcol() const;
-
-  // number of processes in the context
-  // returns -1 if current process is not part of this context
-  int size() const;
-  // position of current process in row-major order
-  // returns -1 if current process is not part of this context
-  int myproc() const;
-  int mype() const;
-  // process id of process (irow,icol)
-  int pmap(int irow, int icol) const;
-
-  bool onpe0(void) const;
-  bool active(void) const;
-  operator bool() const { return active(); }
-  void abort(int ierr) const;
-  void barrier(void) const;
-  void barrier(char scope) const;
 
   // double communications
   void dsend(int m, int n, double* a, int lda, int rdest, int cdest) const;
@@ -228,54 +142,29 @@ class Context
                    int* a, int lda,int rsrc, int csrc) const;
   void ibcast_recv(int m, int n, int* a, int lda,int rsrc, int csrc) const;
 
+  // string communications
   void string_send(std::string& s, int rdest, int cdest) const;
   void string_recv(std::string& s, int rsrc, int csrc) const;
   void string_bcast(std::string& s, int isrc) const;
 
-  bool operator==(const Context& ctxt) const;
+  bool operator==(const Context& c) const
+  { return (ictxt_==c.ictxt());}
 
-  // MPI communicator for this context. Returns MPI_COMM_NULL if
-  // this process is not part of the context
-  MPI_Comm comm(void) const;
-
-  void print(std::ostream& os) const;
+  MPI_Comm comm(void) const { return comm_; }
 
   // Constructors
 
-  // single-row Context
-  explicit Context(MPI_Comm comm) : rep(new ContextRep(comm)),
-    pcount(new int(1)) {}
+  // construct a single-row Context
+  explicit Context(MPI_Comm comm);
 
-  // nprow * npcol Context
-  explicit Context(MPI_Comm comm, int nprow, int npcol):
-    rep(new ContextRep(comm,nprow,npcol)), pcount(new int(1)) {}
+  // global Context of size nprow * npcol with column major order
+  explicit Context(MPI_Comm comm, int nprow, int npcol);
 
-  Context(const Context& c) : rep(c.rep), pcount(c.pcount) { (*pcount)++; }
+  ~Context();
 
-  Context& operator=(const Context& c)
-  {
-    if ( rep == c.rep ) return *this;
-    if ( --(*pcount) == 0 )
-    {
-      delete rep;
-      delete pcount;
-    }
-    rep = c.rep;
-    pcount = c.pcount;
-    (*pcount)++;
-    return *this;
-  }
+  void print(std::ostream& os) const;
 
-  ~Context(void)
-  {
-    if ( --(*pcount) == 0 )
-    {
-      delete rep;
-      delete pcount;
-    }
-  }
 };
 
 std::ostream& operator << ( std::ostream& os, const Context& ctxt );
-
 #endif

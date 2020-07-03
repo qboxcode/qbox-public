@@ -36,7 +36,6 @@ using namespace std;
 #ifdef _OPENMP
 #include "omp.h"
 #endif
-
 #include "MPIdata.h"
 
 #include "Timer.h"
@@ -137,17 +136,16 @@ int main(int argc, char **argv, char **envp)
   tm.start();
 
   MPI_Init(&argc,&argv);
-  MPI_Comm_size(MPI_COMM_WORLD,&MPIdata::size);
-  MPI_Comm_rank(MPI_COMM_WORLD,&MPIdata::rank);
-  MPIdata::onpe0 = ( MPIdata::rank == 0 );
 
-  // create global cart comm
+  // Initialize MPIdata
+  int def_size;
+  MPI_Comm_size(MPI_COMM_WORLD,&def_size);
 
   // get numbers of G, states, spin and kpoint blocks
   const char* pc;
 
   // ngb: number of G vector blocks
-  int ngb = MPIdata::size;
+  int ngb = def_size;
   pc = getenv("QBOX_NGB");
   if ( pc != nullptr ) ngb = atoi(pc);
 
@@ -166,46 +164,12 @@ int main(int argc, char **argv, char **envp)
   pc = getenv("QBOX_NKPB");
   if ( pc != nullptr ) nkpb = atoi(pc);
 
-  cout << " rank=" << MPIdata::rank << " ngb=" << ngb << " nstb=" << nstb
+  cout << " rank=" << MPIdata::rank() << " ngb=" << ngb << " nstb=" << nstb
        << " nspb=" << nspb << " nkpb=" << nkpb << endl;
-  assert(ngb*nstb*nspb*nkpb == MPIdata::size);
 
-  // check that all numbers of blocks are positive
-  assert(ngb>0);
-  assert(nstb>0);
-  assert(nspb>0);
-  assert(nkpb>0);
+  MPIdata::set(ngb,nstb,nspb,nkpb);
 
-  int ndims=4;
-  int dims[4] = { ngb, nstb, nspb, nkpb };
-  // plan for cyclic rotation of states blocks
-  int periods[4] = { 0, 1, 0, 0};
-  int reorder = 0;
-
-  MPI_Cart_create(MPI_COMM_WORLD,ndims,dims,periods,reorder,&MPIdata::comm);
-
-  // create subcommunicators
-  // G vector communicator
-  int g_remain_dims[4] = { 1, 0, 0, 0 };
-  MPI_Cart_sub(MPIdata::comm,g_remain_dims,&MPIdata::g_comm);
-
-  // states communicator
-  int st_remain_dims[4] = { 0, 1, 0, 0 };
-  MPI_Cart_sub(MPIdata::comm,st_remain_dims,&MPIdata::st_comm);
-
-  // spin communicator
-  int sp_remain_dims[4] = { 0, 0, 1, 0 };
-  MPI_Cart_sub(MPIdata::comm,sp_remain_dims,&MPIdata::sp_comm);
-
-  // kpoint communicator
-  int kp_remain_dims[4] = { 0, 0, 0, 1 };
-  MPI_Cart_sub(MPIdata::comm,kp_remain_dims,&MPIdata::kp_comm);
-
-  // Slater determinant communicator
-  int sd_remain_dims[4] = { 1, 1, 0, 0 };
-  MPI_Cart_sub(MPIdata::comm,sd_remain_dims,&MPIdata::sd_comm);
-
-  if ( MPIdata::onpe0 )
+  if ( MPIdata::onpe0() )
   {
   cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
   cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
@@ -267,42 +231,42 @@ int main(int argc, char **argv, char **envp)
   }
 
   int coords[4];
-  MPI_Cart_coords(MPIdata::comm,MPIdata::rank,4,coords);
+  MPI_Cart_coords(MPIdata::comm(),MPIdata::rank(),4,coords);
 
-  if ( MPIdata::onpe0 )
+  if ( MPIdata::onpe0() )
   {
-    cout << "<mpi_processes count=\"" << MPIdata::size << "\">" << endl;
-    cout << "<process id=\"" << MPIdata::rank << "\"> " << processor_name
+    cout << "<mpi_processes count=\"" << MPIdata::size() << "\">" << endl;
+    cout << "<process id=\"" << MPIdata::rank() << "\"> " << processor_name
          << " </process>"
          << " (" << coords[0] << "," << coords[1]
          << "," << coords[2] << "," << coords[3] << ")" << endl;
   }
-  for ( int ip = 1; ip < MPIdata::size; ip++ )
+  for ( int ip = 1; ip < MPIdata::size(); ip++ )
   {
-    MPI_Barrier(MPIdata::comm);
-    if ( MPIdata::onpe0 )
+    MPI_Barrier(MPIdata::comm());
+    if ( MPIdata::onpe0() )
     {
       MPI_Status status;
       MPI_Recv(&buf[0],MPI_MAX_PROCESSOR_NAME,MPI_CHAR,
-                   ip,ip,MPIdata::comm,&status);
+                   ip,ip,MPIdata::comm(),&status);
     }
-    else if ( ip == MPIdata::rank )
+    else if ( ip == MPIdata::rank() )
     {
       // send processor name to pe0
       MPI_Send(&processor_name[0],MPI_MAX_PROCESSOR_NAME,
-        MPI_CHAR,0,MPIdata::rank,MPIdata::comm);
+        MPI_CHAR,0,MPIdata::rank(),MPIdata::comm());
     }
-    if ( MPIdata::onpe0 )
+    if ( MPIdata::onpe0() )
     {
       MPI_Status status;
-      MPI_Recv(coords,4,MPI_INT,ip,ip,MPIdata::comm,&status);
+      MPI_Recv(coords,4,MPI_INT,ip,ip,MPIdata::comm(),&status);
     }
-    else if ( ip == MPIdata::rank )
+    else if ( ip == MPIdata::rank() )
     {
       // send processor name to pe0
-      MPI_Send(coords,4,MPI_INT,0,MPIdata::rank,MPIdata::comm);
+      MPI_Send(coords,4,MPI_INT,0,MPIdata::rank(),MPIdata::comm());
     }
-    if ( MPIdata::onpe0 )
+    if ( MPIdata::onpe0() )
     {
       cout << "<process id=\"" << ip << "\"> " << buf
            << " </process>"
@@ -310,11 +274,11 @@ int main(int argc, char **argv, char **envp)
            << "," << coords[2] << "," << coords[3] << ")" << endl;
     }
   }
-  if ( MPIdata::onpe0 )
+  if ( MPIdata::onpe0() )
     cout << "</mpi_processes>" << endl;
 
 #ifdef _OPENMP
-  if ( MPIdata::onpe0 )
+  if ( MPIdata::onpe0() )
     cout << "<omp_max_threads> " << omp_get_max_threads()
          << " </omp_max_threads>" << endl;
 #endif
@@ -417,7 +381,7 @@ int main(int argc, char **argv, char **envp)
     string outputfilename("stdout");
     ifstream in;
     int file_ok = 0;
-    if ( MPIdata::onpe0 )
+    if ( MPIdata::onpe0() )
     {
       in.open(argv[1],ios::in);
       if ( in )
@@ -434,7 +398,7 @@ int main(int argc, char **argv, char **envp)
     }
     else
     {
-      if ( MPIdata::onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " Could not open input file " << argv[1] << endl;
     }
   }
@@ -469,7 +433,7 @@ int main(int argc, char **argv, char **envp)
   Cmd *c = ui.findCmd("quit");
   c->action(1,NULL);
 
-  if ( MPIdata::onpe0 )
+  if ( MPIdata::onpe0() )
   {
     cout << "<real_time> " << tm.real() << " </real_time>" << endl;
     cout << "<end_time> " << isodate() << " </end_time>" << endl;

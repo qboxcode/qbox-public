@@ -20,16 +20,28 @@
 #define MPIDATA_H
 
 #include <mpi.h>
-namespace MPIdata
+class MPIdata
 {
-  extern MPI_Comm comm;
-  extern MPI_Comm g_comm;
-  extern MPI_Comm st_comm;
-  extern MPI_Comm sp_comm;
-  extern MPI_Comm kp_comm;
-  extern MPI_Comm sd_comm;
-  extern int rank;
-  extern int size;
-  extern bool onpe0;
+  static MPI_Comm comm_;
+  static MPI_Comm g_comm_;
+  static MPI_Comm st_comm_;
+  static MPI_Comm sp_comm_;
+  static MPI_Comm kp_comm_;
+  static MPI_Comm sd_comm_;
+  static int rank_;
+  static int size_;
+  static bool onpe0_;
+
+  public:
+  static const MPI_Comm& comm(void) { return comm_; }
+  static const MPI_Comm& g_comm(void) { return g_comm_; }
+  static const MPI_Comm& st_comm(void) { return st_comm_; }
+  static const MPI_Comm& sp_comm(void) { return sp_comm_; }
+  static const MPI_Comm& kp_comm(void) { return kp_comm_; }
+  static const MPI_Comm& sd_comm(void) { return sd_comm_; }
+  static int rank(void) { return rank_; }
+  static int size(void) { return size_; }
+  static bool onpe0(void) { return onpe0_; }
+  static void set(int ngb, int nstb = 0, int nspb = 0, int nkpb = 0);
 };
 #endif

@@ -42,6 +42,6 @@ class MPIdata
   static int rank(void) { return rank_; }
   static int size(void) { return size_; }
   static bool onpe0(void) { return onpe0_; }
-  static void set(int ngb, int nstb = 0, int nspb = 0, int nkpb = 0);
+  static void set(int ngb, int nstb = 1, int nspb = 1, int nkpb = 1);
 };
 #endif

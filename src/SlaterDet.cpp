@@ -23,6 +23,7 @@
 #include "Base64Transcoder.h"
 #include "SharedFilePtr.h"
 #include "Timer.h"
+#include "MPIdata.h"
 
 #include <cstdlib>
 #include <cstring> // memcpy
@@ -36,51 +37,13 @@ using namespace std;
 SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt),
  c_(ctxt)
 {
-  // create cartesian communicator mapped on ctxt
-  int ndims=2;
-  // Note: MPI_Cart_comm uses row-major ordering. Need to give
-  // transposed dimensions as input arguments
-  int dims[2] = {ctxt.npcol(), ctxt.nprow()};
-  int periods[2] = { 0, 0};
-  int reorder = 0;
-  MPI_Comm comm;
-  MPI_Cart_create(ctxt.comm(),ndims,dims,periods,reorder,&comm);
-
-  int size, myrank;
-  MPI_Comm_size(comm,&size);
-  MPI_Comm_rank(comm,&myrank);
-  int coords[2];
-  MPI_Cart_coords(comm,myrank,2,coords);
-
-#ifdef DEBUG
-  for ( int i = 0; i < size; i++ )
-  {
-    MPI_Barrier(comm);
-    if ( myrank == i )
-      cout << myrank << ": myrow=" << ctxt.myrow() << " mycol=" << ctxt.mycol()
-           << " coords= " << coords[0] << ", " << coords[1] << endl;
-  }
-#endif
-
-  // Split the cartesian communicator comm to define my_col_comm_
-  // MPI_Cart_create uses row-major ordering. Need to keep the second
-  // dimension to get a communicator corresponding to a column of ctxt
-  int remain_dims[2] = { 0, 1 };
-  MPI_Cart_sub(comm, remain_dims, &my_col_comm_);
-
-  // Free the cartesian communicator
-  MPI_Comm_free(&comm);
-
   // define basis on the column subcommunicator
-  basis_ = new Basis(my_col_comm_,kpoint);
+  basis_ = new Basis(MPIdata::g_comm(),kpoint);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const SlaterDet& rhs) : ctxt_(rhs.context()),
-  basis_(new Basis(*(rhs.basis_))), c_(rhs.c_)
-  {
-    MPI_Comm_dup(rhs.my_col_comm_,&my_col_comm_);
-  }
+  basis_(new Basis(*(rhs.basis_))), c_(rhs.c_) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::~SlaterDet()
@@ -105,7 +68,6 @@ SlaterDet::~SlaterDet()
     }
   }
 #endif
-  MPI_Comm_free(&my_col_comm_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -293,7 +255,6 @@ void SlaterDet::compute_density(FourierTransform& ft,
       const int nn = ctxt_.mycol() * c_.nb() + n;
       const double fac1 = weight * omega_inv * occ_[nn];
       const double fac2 = weight * omega_inv * occ_[nn+1];
-
       if ( fac1 + fac2 > 0.0 )
       {
         //tm_ft.start();

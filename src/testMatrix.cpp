@@ -39,10 +39,7 @@ using namespace std;
 
 #include "Timer.h"
 
-#ifdef USE_MPI
 #include <mpi.h>
-#endif
-
 #include "Context.h"
 #include "Matrix.h"
 
@@ -231,12 +228,10 @@ int main(int argc, char **argv)
       cout << "  MFlops: "
            << (2.0e-6*m_c*n_c*kmax) / tm.real() << endl;
     }
-#if 1
     double norma=a.nrm2();
     if(mype == 0)cout<<"Norm(a)="<<norma<<endl;
 
     double norm;
-#if 0
     if(mype == 0)cout<<"DoubleMatrix::matgather..."<<endl;
     double*  aa=new double[a.m()*a.n()];
     a.matgather(aa, a.m());
@@ -246,7 +241,6 @@ int main(int argc, char **argv)
     if ( mype == 0 ) cout << "Norm(b)=" << norm << endl;
     if ( fabs(norm-norma)>0.000001 )
        cout << "DoubleMatrix: problem with matgather/init" << endl;
-#endif
 
     if ( c.n() == b.m() && c.m() == b.n() )
     {
@@ -279,15 +273,12 @@ int main(int argc, char **argv)
     norm=c.nrm2();
     if (mype == 0) cout<<"Norm="<<norm<<endl;
 
-#if 1
     a.identity();
     DoubleMatrix a2(a);
     a -= a2;
     norm = a.nrm2();
     if (mype == 0) cout << "Norm(a)=" << norm << endl;
-#endif
 
-#if 1
     // Inverse of c if c is square
     if ( c.m() == c.n() && c.mb() == c.nb() )
     {
@@ -314,7 +305,6 @@ int main(int argc, char **argv)
       tm.stop();
       if (mype == 0) cout << "Inverse time: " << tm.real() << endl;
     }
-#endif
 
     // Eigenvalues and eigenvectors of c if c is square
     if ( c.m() == c.n() && c.mb() == c.nb() )
@@ -339,7 +329,8 @@ int main(int argc, char **argv)
       if (mype == 0) cout << "Eigenproblem... ";
       DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
       valarray<double> w(c.m());
-      c.syevd('l',w,z);
+      c.syev('l',w,z);
+      //c.syevd('l',w,z);
       //c.syevx('l',w,z,1.e-5);
       if (mype == 0) cout << " done" << endl;
       tm.stop();
@@ -418,7 +409,6 @@ int main(int argc, char **argv)
     a.trsm('r','l','t','n',1.0,s);
     tm.stop();
     if (mype == 0) cout << "Gram triangular solve time: " << tm.real() << endl;
-#endif
   }
 
   MPI_Finalize();

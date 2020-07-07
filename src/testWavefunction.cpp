@@ -59,9 +59,8 @@ int main(int argc, char **argv)
     MPIdata::set(npr,npc);
     cout << MPIdata::rank() << ": npr=" << npr << " npc=" << npc << endl;
 
-    Context sd_ctxt(MPIdata::sd_comm());
+    Context sd_ctxt(MPIdata::sd_comm(),npr,npc);
     Wavefunction wf(sd_ctxt);
-#if 0
     Timer tm;
 
     tm.reset(); tm.start();
@@ -93,21 +92,7 @@ int main(int argc, char **argv)
       wf.add_kpoint(D3vector((0.5*(ikp+1))/(nkp-1),0,0),1.0);
     }
 
-    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-    {
-      for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
-      {
-        if ( wf.sd(ispin,ikp) != 0 )
-        {
-          cout << "wf.sd(ispin=" << ispin << ",ikp=" << ikp << "): "
-               << wf.sd(ispin,ikp)->c().m() << "x"
-               << wf.sd(ispin,ikp)->c().n() << endl;
-          cout << ctxt.mype() << ":"
-               << " sdcontext[" << ispin << "][" << ikp << "]: "
-               << wf.sd(ispin,ikp)->context();
-        }
-      }
-    }
+    wf.info(cout,"wavefunction");
 
     tm.reset();
     tm.start();
@@ -125,17 +110,24 @@ int main(int argc, char **argv)
     cout << " copy constructor...";
     Wavefunction wfm(wf);
     cout << "done" << endl;
-    wfm.gram();
 
+    cout << " wfm gram ...";
+    wfm.gram();
+    cout << "done" << endl;
+
+    cout << " randomize ...";
     wf.randomize(0.1);
-    wf.update_occ(false);
+    cout << "done" << endl;
+
+    cout << " update_occ ...";
+    wf.update_occ(0.0);
+    cout << "done" << endl;
+#if 0
     for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
     {
       if ( wf.sd[ikp] != 0 )
         cout << " ekin[" << ikp << "]: " << wf.sd[ikp]->ekin() << endl;
     }
-
-
 #endif
   }
   MPI_Finalize();

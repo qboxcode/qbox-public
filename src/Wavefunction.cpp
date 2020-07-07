@@ -1017,22 +1017,26 @@ void Wavefunction::info(ostream& os, string tag) const
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
   }
 
-  cout << "Wavefunction::info: not fully implemented" << endl;
-#if 0
-  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
+  for ( int ispb = 0; ispb < MPIdata::nspb(); ++ispb )
   {
-    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
+    for ( int ikpb = 0; ikpb < MPIdata::nkpb(); ++ikpb )
     {
-      if ( MPIdata::onpe0() )
-        cout << " kpoint: " << kpoint_[ikp] << " weight: " << weight_[ikp]
-             << endl;
-      sd_[ispin][ikp]->info(os);
+      MPI_Barrier(MPIdata::comm());
+      if ( (ispb == MPIdata::ispb()) && (ikpb == MPIdata::ikpb()) )
+      {
+        for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
+        {
+          for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
+          {
+            sd_[isp_loc][ikp_loc]->info(os);
+          }
+        }
+      }
     }
   }
 
   if ( MPIdata::onpe0() )
     os << "</" << tag << ">" << endl;
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

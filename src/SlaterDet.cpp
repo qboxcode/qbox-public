@@ -1994,9 +1994,8 @@ void SlaterDet::info(ostream& os) const
     os << " c dimensions: "
        << c_.m() << "x" << c_.n()
        << "   (" << c_.mb() << "x" << c_.nb() << " blocks)" << endl;
-    os << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\">"
+    os << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\"/>"
        << endl;
-    os << " </density_matrix>" << endl;
     os << "</slater_determinant>" << endl;
   }
 }

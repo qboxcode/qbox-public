@@ -113,7 +113,7 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testWavefunction: testWavefunction.o Wavefunction.o SlaterDet.o \
         Basis.o BasisMapping.o FourierTransform.o Matrix.o UnitCell.o \
-        Context.o Base64Transcoder.o
+        Context.o Base64Transcoder.o MPIdata.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testEnergyFunctional: testEnergyFunctional.o EnergyFunctional.o Basis.o \
 	BasisMapping.o SlaterDet.o Matrix.o UnitCell.o Context.o \
@@ -427,8 +427,8 @@ TorsionConstraint.o: Atom.h UnitCell.h D3tensor.h blas.h Species.h
 UnitCell.o: UnitCell.h D3vector.h
 UserInterface.o: UserInterface.h qbox_xmlns.h
 VWNFunctional.o: VWNFunctional.h XCFunctional.h
-Wavefunction.o: Wavefunction.h D3vector.h UnitCell.h SlaterDet.h Context.h
-Wavefunction.o: blacs.h Basis.h Matrix.h Timer.h FourierTransform.h
+Wavefunction.o: MPIdata.h Wavefunction.h D3vector.h UnitCell.h SlaterDet.h
+Wavefunction.o: Context.h blacs.h Basis.h Matrix.h Timer.h FourierTransform.h
 Wavefunction.o: BasisMapping.h jacobi.h SharedFilePtr.h
 WavefunctionHandler.o: WavefunctionHandler.h StructureHandler.h UnitCell.h
 WavefunctionHandler.o: D3vector.h Wavefunction.h SlaterDet.h Context.h
@@ -491,8 +491,8 @@ testSlaterDet.o: Matrix.h Timer.h FourierTransform.h BasisMapping.h MPIdata.h
 testSpecies.o: Species.h SpeciesReader.h
 testUnitCell.o: UnitCell.h D3vector.h
 testVWN.o: VWNFunctional.h XCFunctional.h LDAFunctional.h
-testWavefunction.o: Context.h blacs.h Wavefunction.h D3vector.h UnitCell.h
-testWavefunction.o: SlaterDet.h Basis.h Matrix.h Timer.h
+testWavefunction.o: MPIdata.h Context.h blacs.h Wavefunction.h D3vector.h
+testWavefunction.o: UnitCell.h SlaterDet.h Basis.h Matrix.h Timer.h
 testXCFunctional.o: LDAFunctional.h XCFunctional.h PBEFunctional.h Timer.h
 testXMLGFPreprocessor.o: Context.h blacs.h Matrix.h XMLGFPreprocessor.h
 test_vext.o: Function3d.h D3vector.h

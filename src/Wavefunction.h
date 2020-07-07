@@ -32,7 +32,7 @@ class Wavefunction
 {
   private:
 
-  const Context& ctxt_;
+  const Context& sd_ctxt_;
 
   int nel_;           // number of electrons
   int nempty_;        // number of empty states
@@ -48,13 +48,15 @@ class Wavefunction
   std::vector<double>    weight_;  // weight[ikp]
   std::vector<D3vector>  kpoint_;  // kpoint[ikp]
 
+  std::vector<int> nkp_loc_;    // nkp_loc_[ikpb] local number of kpoints
+  std::vector<int> ikp_global_; // ikp_global[ikp_loc]
+
+  std::vector<int> nsp_loc_;    // nsp_loc_[ispb]
+  std::vector<int> isp_global_; // isp_global[isp_loc]
+
   std::vector<int> nst_;  // nst_[ispin]
-  const Context* spincontext_;   // context used for spin reductions
-  const Context* kpcontext_;     // context used for kp reductions
-  const Context* sdcontext_;     // context of local SlaterDet instances
   std::vector<std::vector<SlaterDet*> > sd_; // local SlaterDets sd_[ispin][ikp]
 
-  void create_contexts();
   void allocate(); // allocate SlaterDet's
   void deallocate();
   void compute_nst();
@@ -62,12 +64,12 @@ class Wavefunction
 
   public:
 
-  Wavefunction(const Context& ctxt);
+  Wavefunction(const Context& sd_ctxt);
   Wavefunction(const Wavefunction& wf);
   ~Wavefunction();
   Wavefunction& operator=(const Wavefunction& wf);
 
-  const Context& context(void) const { return ctxt_; }
+  const Context& sd_context(void) const { return sd_ctxt_; }
   const UnitCell& cell(void) const { return cell_; }
   const UnitCell& refcell(void) const { return refcell_; }
   const D3vector kpoint(int ikp) const { return kpoint_[ikp]; }
@@ -75,9 +77,6 @@ class Wavefunction
   double ecut(void) const { return ecut_; }
   SlaterDet* sd(int ispin, int ikp) const { return sd_[ispin][ikp]; }
 
-  const Context* spincontext(void) const { return spincontext_; }
-  const Context* kpcontext(void) const { return kpcontext_; }
-  const Context* sdcontext(void) const { return sdcontext_; }
   int nkp(void) const;            // number of k points
   int nel(void) const;            // total number of electrons
   int nst(int ispin) const;       // number of states of spin ispin
@@ -98,7 +97,6 @@ class Wavefunction
   void set_nempty(int nempty);
   void set_nspin(int nspin);
   void set_deltaspin(int deltaspin);
-  void set_nrowmax(int n);
   void add_kpoint(D3vector kpoint, double weight);
   void del_kpoint(D3vector kpoint);
   void move_kpoint(D3vector kpoint, D3vector new_kpoint);

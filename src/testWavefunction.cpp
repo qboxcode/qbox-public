@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "Context.h"
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -23,24 +24,22 @@
 
 #include <iostream>
 #include <cassert>
+#include <cstdlib> // atoi
 using namespace std;
 
-#ifdef USE_MPI
 #include <mpi.h>
-#endif
 
 int main(int argc, char **argv)
 {
-#if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
   {
     // use:
-    // testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nempty nspin nkp
-    if ( argc != 15 )
+    // testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2
+    //                  ecut nel nempty nspin nkp npr npc
+    if ( argc != 17 )
     {
-      cout <<
-    "use: testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nempty nspin nkp"
+      cout << "use: testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 "
+           << "ecut nel nempty nspin nkp npr npc"
       << endl;
       return 1;
     }
@@ -54,10 +53,15 @@ int main(int argc, char **argv)
     int nempty = atoi(argv[12]);
     int nspin = atoi(argv[13]);
     int nkp = atoi(argv[14]);
+    int npr = atoi(argv[15]);
+    int npc = atoi(argv[16]);
 
-    Context ctxt(MPI_COMM_WORLD);
+    MPIdata::set(npr,npc);
+    cout << MPIdata::rank() << ": npr=" << npr << " npc=" << npc << endl;
 
-    Wavefunction wf(ctxt);
+    Context sd_ctxt(MPIdata::sd_comm());
+    Wavefunction wf(sd_ctxt);
+#if 0
     Timer tm;
 
     tm.reset(); tm.start();
@@ -123,7 +127,6 @@ int main(int argc, char **argv)
     cout << "done" << endl;
     wfm.gram();
 
-#if 0
     wf.randomize(0.1);
     wf.update_occ(false);
     for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
@@ -135,7 +138,5 @@ int main(int argc, char **argv)
 
 #endif
   }
-#if USE_MPI
   MPI_Finalize();
-#endif
 }

@@ -40,18 +40,14 @@ int main(int argc, char** argv)
   MPIdata::set(ngb,nstb,nspb,nkpb);
 
   int npes;
-  MPI_Comm_size(MPIdata::comm(),&npes);
-  cout << " rank=" << MPIdata::rank() << "    comm size=" << npes << endl;
-  MPI_Comm_size(MPIdata::g_comm(),&npes);
-  cout << " rank=" << MPIdata::rank() << "  g_comm size=" << npes << endl;
-  MPI_Comm_size(MPIdata::st_comm(),&npes);
-  cout << " rank=" << MPIdata::rank() << " st_comm size=" << npes << endl;
-  MPI_Comm_size(MPIdata::sp_comm(),&npes);
-  cout << " rank=" << MPIdata::rank() << " sp_comm size=" << npes << endl;
-  MPI_Comm_size(MPIdata::kp_comm(),&npes);
-  cout << " rank=" << MPIdata::rank() << " kp_comm size=" << npes << endl;
-  MPI_Comm_size(MPIdata::sd_comm(),&npes);
-  cout << " rank=" << MPIdata::rank() << " sd_comm size=" << npes << endl;
+  cout << " rank=" << MPIdata::rank() << " igb / ngb = "
+       << MPIdata::igb() << " / " << MPIdata::ngb() << endl;
+  cout << " rank=" << MPIdata::rank() << " istb / nstb = "
+       << MPIdata::istb() << " / " << MPIdata::nstb() << endl;
+  cout << " rank=" << MPIdata::rank() << " ispb / nspb = "
+       << MPIdata::ispb() << " / " << MPIdata::nspb() << endl;
+  cout << " rank=" << MPIdata::rank() << " ikpb / nkpb = "
+       << MPIdata::ikpb() << " / " << MPIdata::nkpb() << endl;
 
   int coords[2];
   int sd_rank;

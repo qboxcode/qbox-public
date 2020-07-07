@@ -33,6 +33,16 @@ int MPIdata::rank_;     // global rank of this process
 int MPIdata::size_;     // global number of processes
 bool MPIdata::onpe0_;   // task 0 of global comm
 
+int MPIdata::ngb_;      // size of g_comm
+int MPIdata::nstb_;     // size of st_comm
+int MPIdata::nspb_;     // size of sp_comm
+int MPIdata::nkpb_;     // size of kp_comm
+
+int MPIdata::igb_;      // rank in g_comm
+int MPIdata::istb_;     // rank in st_comm
+int MPIdata::ispb_;     // rank in sp_comm
+int MPIdata::ikpb_;     // rank in kp_comm
+
 void MPIdata::set(int ngb, int nstb, int nspb, int nkpb)
 {
   MPI_Comm_size(MPI_COMM_WORLD,&size_);
@@ -61,18 +71,26 @@ void MPIdata::set(int ngb, int nstb, int nspb, int nkpb)
   // G vector communicator
   int g_remain_dims[4] = { 0, 0, 0, 1 };
   MPI_Cart_sub(comm_,g_remain_dims,&g_comm_);
+  MPI_Comm_size(g_comm_,&ngb_);
+  MPI_Comm_rank(g_comm_,&igb_);
 
   // states communicator
   int st_remain_dims[4] = { 0, 0, 1, 0 };
   MPI_Cart_sub(comm_,st_remain_dims,&st_comm_);
+  MPI_Comm_size(st_comm_,&nstb_);
+  MPI_Comm_rank(st_comm_,&istb_);
 
   // spin communicator
   int sp_remain_dims[4] = { 0, 1, 0, 0 };
   MPI_Cart_sub(comm_,sp_remain_dims,&sp_comm_);
+  MPI_Comm_size(sp_comm_,&nspb_);
+  MPI_Comm_rank(sp_comm_,&ispb_);
 
   // kpoint communicator
   int kp_remain_dims[4] = { 1, 0, 0, 0 };
   MPI_Cart_sub(comm_,kp_remain_dims,&kp_comm_);
+  MPI_Comm_size(kp_comm_,&nkpb_);
+  MPI_Comm_rank(kp_comm_,&ikpb_);
 
   // Slater determinant communicator
   int sd_remain_dims[4] = { 0, 0, 1, 1 };

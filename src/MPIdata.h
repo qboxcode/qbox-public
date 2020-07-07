@@ -32,6 +32,16 @@ class MPIdata
   static int size_;
   static bool onpe0_;
 
+  static int ngb_;
+  static int nstb_;
+  static int nspb_;
+  static int nkpb_;
+
+  static int igb_;
+  static int istb_;
+  static int ispb_;
+  static int ikpb_;
+
   public:
   static const MPI_Comm& comm(void) { return comm_; }
   static const MPI_Comm& g_comm(void) { return g_comm_; }
@@ -42,6 +52,17 @@ class MPIdata
   static int rank(void) { return rank_; }
   static int size(void) { return size_; }
   static bool onpe0(void) { return onpe0_; }
+
+  static int ngb(void)  { return ngb_; }
+  static int nstb(void) { return nstb_; }
+  static int nspb(void) { return nspb_; }
+  static int nkpb(void) { return nkpb_; }
+
+  static int igb(void)  { return igb_; }
+  static int istb(void) { return istb_; }
+  static int ispb(void) { return ispb_; }
+  static int ikpb(void) { return ikpb_; }
+
   static void set(int ngb, int nstb = 1, int nspb = 1, int nkpb = 1);
 };
 #endif

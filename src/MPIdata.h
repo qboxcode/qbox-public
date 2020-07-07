@@ -22,6 +22,7 @@
 #include <mpi.h>
 class MPIdata
 {
+  private:
   static MPI_Comm comm_;
   static MPI_Comm g_comm_;
   static MPI_Comm st_comm_;
@@ -41,6 +42,9 @@ class MPIdata
   static int istb_;
   static int ispb_;
   static int ikpb_;
+
+  // private ctor
+  MPIdata(void);
 
   public:
   static const MPI_Comm& comm(void) { return comm_; }

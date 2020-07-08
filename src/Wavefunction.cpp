@@ -166,7 +166,7 @@ int Wavefunction::nempty() const { return nempty_; }
 int Wavefunction::nspin() const { return nspin_; }
 
 ////////////////////////////////////////////////////////////////////////////////
-int Wavefunction::nsp_loc() const { return nsp_loc_[MPIdata::ikpb()]; }
+int Wavefunction::nsp_loc() const { return nsp_loc_[MPIdata::ispb()]; }
 
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::isp_global(int isp) const { return isp_global_[isp]; }
@@ -397,43 +397,15 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
     }
   }
 
+  deallocate();
+
   kpoint_.push_back(kpoint);
   weight_.push_back(weight);
 
-  // determine on which kpoint block the next kpoint should be added
-  const int nkp = kpoint_.size();
-  const int ikpbnew = nkp % MPIdata::nkpb();
-  if ( ikpbnew == MPIdata::ikpb() )
-  {
-    for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
-    {
-      sd_[isp_loc].push_back(new SlaterDet(sd_ctxt_,kpoint_[nkp-1]));
-      int ispin = isp_global_[isp_loc];
-      sd_[isp_loc][nkp-1]->resize(cell_,refcell_,ecut_,nst_[ispin]);
-      if ( nspin_ == 1 )
-      {
-        sd_[isp_loc][nkp-1]->update_occ(nel_,nspin_);
-      }
-      else if ( nspin_ == 2 )
-      {
-        if ( isp_global_[isp_loc] == 0 )
-        {
-          const int nocc_up = (nel_+1)/2+deltaspin_;
-          sd_[isp_loc][nkp-1]->update_occ(nocc_up,nspin_);
-        }
-        else
-        {
-          const int nocc_dn = nel_/2 - deltaspin_;
-          sd_[isp_loc][nkp-1]->update_occ(nocc_dn,nspin_);
-        }
-      }
-      else
-      {
-        // incorrect value of nspin_
-        assert(false);
-      }
-    }
-  }
+  allocate();
+  resize();
+  init();
+  update_occ(0.0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -508,6 +480,10 @@ void Wavefunction::move_kpoint(D3vector kpoint, D3vector newkpoint)
 
   cout << "Wavefunction::move_kpoint: not implemented" << endl;
 #if 0
+  // ikp: global kpoint index
+  // identify kp block holding ikp: ikpb = ikp % nkpb
+  // identify local kp index: ikp_loc = ikp / nkpb
+
   // copy wavefunctions from old SlaterDet at kpoint to new SlaterDet
   // at newkpoint
   for ( int ispin = 0; ispin < nspin_; ispin++ )

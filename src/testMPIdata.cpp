@@ -39,7 +39,6 @@ int main(int argc, char** argv)
 
   MPIdata::set(ngb,nstb,nspb,nkpb);
 
-  int npes;
   cout << " rank=" << MPIdata::rank() << " igb / ngb = "
        << MPIdata::igb() << " / " << MPIdata::ngb() << endl;
   cout << " rank=" << MPIdata::rank() << " istb / nstb = "

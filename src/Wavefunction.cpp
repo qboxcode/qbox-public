@@ -74,10 +74,10 @@ void Wavefunction::allocate(void)
   }
 
   // round robin allocation of kpoints
+  ikp_global_.resize(0);
   for ( int ikpg = MPIdata::ikpb(); ikpg < nkp; ikpg += MPIdata::nkpb() )
   {
     ikp_global_.push_back(ikpg);
-    cout << MPIdata::rank() << ": ikp_global_.push_back(" << ikpg << ")\n";
   }
 
   cout << MPIdata::rank() << ": nkp_loc_[MPIdata::ikpb]="
@@ -97,6 +97,7 @@ void Wavefunction::allocate(void)
   }
 
   // round robin allocation of spins
+  isp_global_.resize(0);
   for ( int ispg = MPIdata::ispb(); ispg < nspin_; ispg += MPIdata::nspb() )
   {
     isp_global_.push_back(ispg);
@@ -389,10 +390,9 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
 
   // determine on which kpoint block the next kpoint should be added
   const int nkp = kpoint_.size();
-  const int ikpbnew = (nkp+1) % MPIdata::nkpb();
+  const int ikpbnew = nkp % MPIdata::nkpb();
   if ( ikpbnew == MPIdata::ikpb() )
   {
-    sd_.resize(nspin_);
     for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
     {
       sd_[isp_loc].push_back(new SlaterDet(sd_ctxt_,kpoint_[nkp-1]));
@@ -400,7 +400,7 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
       sd_[isp_loc][nkp-1]->resize(cell_,refcell_,ecut_,nst_[ispin]);
       if ( nspin_ == 1 )
       {
-        sd_[0][nkp-1]->update_occ(nel_,nspin_);
+        sd_[isp_loc][nkp-1]->update_occ(nel_,nspin_);
       }
       else if ( nspin_ == 2 )
       {
@@ -1032,6 +1032,7 @@ void Wavefunction::info(ostream& os, string tag) const
           }
         }
       }
+      MPI_Barrier(MPIdata::comm());
     }
   }
 

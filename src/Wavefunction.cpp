@@ -63,14 +63,14 @@ void Wavefunction::allocate(void)
   // compute local number of kpoints nkp_loc_[ikpb]
   nkp_loc_.resize(MPIdata::nkpb());
   const int nkp = kpoint_.size();
-  cout << MPIdata::rank() << ": nkp=" << nkp << endl;
-  cout << MPIdata::rank() << ": MPIdata::nkpb()=" << MPIdata::nkpb() << endl;
+  //cout << MPIdata::rank() << ": nkp=" << nkp << endl;
+  //cout << MPIdata::rank() << ": MPIdata::nkpb()=" << MPIdata::nkpb() << endl;
   for ( int ikpb = 0; ikpb < MPIdata::nkpb(); ++ikpb )
   {
     nkp_loc_[ikpb] = nkp / MPIdata::nkpb() +
                      (ikpb < (nkp % MPIdata::nkpb()) ? 1 : 0);
-    cout << MPIdata::rank() << ": nkp_loc_[" << ikpb << "]="
-         << nkp_loc_[ikpb] << endl;
+    //cout << MPIdata::rank() << ": nkp_loc_[" << ikpb << "]="
+    //     << nkp_loc_[ikpb] << endl;
   }
 
   // round robin allocation of kpoints
@@ -80,10 +80,10 @@ void Wavefunction::allocate(void)
     ikp_global_.push_back(ikpg);
   }
 
-  cout << MPIdata::rank() << ": nkp_loc_[MPIdata::ikpb]="
-       << nkp_loc_[MPIdata::ikpb()] << endl;
-  cout << MPIdata::rank() << ": ikp_global_.size()="
-       << ikp_global_.size() << endl;
+  //cout << MPIdata::rank() << ": nkp_loc_[MPIdata::ikpb]="
+  //     << nkp_loc_[MPIdata::ikpb()] << endl;
+  //cout << MPIdata::rank() << ": ikp_global_.size()="
+  //     << ikp_global_.size() << endl;
   assert(nkp_loc_[MPIdata::ikpb()] == ikp_global_.size());
 
   // compute local number of spins nsp_loc_[ispb]
@@ -92,8 +92,8 @@ void Wavefunction::allocate(void)
   {
     nsp_loc_[ispb] = nspin_ / MPIdata::nspb() +
                       (ispb < (nspin_ % MPIdata::nspb()) ? 1 : 0);
-    cout << MPIdata::rank() << ": nsp_loc_[" << ispb << "]="
-         << nsp_loc_[ispb] << endl;
+    //cout << MPIdata::rank() << ": nsp_loc_[" << ispb << "]="
+    //     << nsp_loc_[ispb] << endl;
   }
 
   // round robin allocation of spins
@@ -135,6 +135,12 @@ void Wavefunction::deallocate(void)
 int Wavefunction::nkp(void) const { return kpoint_.size(); }
 
 ////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::nkp_loc() const { return nkp_loc_[MPIdata::ikpb()]; }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::ikp_global(int ikp) const { return ikp_global_[ikp]; }
+
+////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::nel() const { return nel_; } // total number of electrons
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -158,6 +164,12 @@ int Wavefunction::nempty() const { return nempty_; }
 
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::nspin() const { return nspin_; }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::nsp_loc() const { return nsp_loc_[MPIdata::ikpb()]; }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::isp_global(int isp) const { return isp_global_[isp]; }
 
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::deltaspin() const { return deltaspin_; }

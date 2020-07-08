@@ -75,12 +75,16 @@ class Wavefunction
   double ecut(void) const { return ecut_; }
   SlaterDet* sd(int ispin, int ikp) const { return sd_[ispin][ikp]; }
 
-  int nkp(void) const;            // number of k points
+  int nkp(void) const;            // number of kpoints
+  int nkp_loc(void) const;        // number of local kpoints
+  int ikp_global(int ikp) const;  // global index of local kpoint ikp
   int nel(void) const;            // total number of electrons
   int nst(int ispin) const;       // number of states of spin ispin
   int nst(void) const;            // number of states
   int nempty(void) const;         // number of empty states
   int nspin(void) const;          // number of spins
+  int nsp_loc(void) const;        // number of local spins
+  int isp_global(int isp) const;  // global index of local spin isp
   int deltaspin(void) const;      // number of spin excitations
 
   double spin(void) const;        // total spin

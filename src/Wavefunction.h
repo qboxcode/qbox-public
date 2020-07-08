@@ -39,8 +39,6 @@ class Wavefunction
   int nspin_;         // number of spins (1 or 2)
   int deltaspin_;     // number of spin excitations
 
-  int nrowmax_;       // maximum number of rows of a spincontext
-
   UnitCell cell_ ;    // unit cell
   UnitCell refcell_ ; // reference cell
   double   ecut_ ;    // energy cutoff
@@ -48,16 +46,16 @@ class Wavefunction
   std::vector<double>    weight_;  // weight[ikp]
   std::vector<D3vector>  kpoint_;  // kpoint[ikp]
 
-  std::vector<int> nkp_loc_;    // nkp_loc_[ikpb] local number of kpoints
+  std::vector<int> nkp_loc_;    // nkp_loc_[ikpb] number of local kpoints
   std::vector<int> ikp_global_; // ikp_global[ikp_loc]
 
-  std::vector<int> nsp_loc_;    // nsp_loc_[ispb]
+  std::vector<int> nsp_loc_;    // nsp_loc_[ispb] number of local spins
   std::vector<int> isp_global_; // isp_global[isp_loc]
 
   std::vector<int> nst_;  // nst_[ispin]
   std::vector<std::vector<SlaterDet*> > sd_; // local SlaterDets sd_[ispin][ikp]
 
-  void allocate(); // allocate SlaterDet's
+  void allocate(); // allocate SlaterDets
   void deallocate();
   void compute_nst();
   void resize(); // resize SlaterDets if ecut,cell,refcell,or nst have changed
@@ -84,7 +82,6 @@ class Wavefunction
   int nempty(void) const;         // number of empty states
   int nspin(void) const;          // number of spins
   int deltaspin(void) const;      // number of spin excitations
-  int nrowmax(void) const { return nrowmax_; }
 
   double spin(void) const;        // total spin
 

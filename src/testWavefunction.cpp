@@ -35,11 +35,11 @@ int main(int argc, char **argv)
   {
     // use:
     // testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2
-    //                  ecut nel nempty nspin nkp npr npc
-    if ( argc != 17 )
+    //                  ecut nel nempty nspin nkp ngb nstb nspb nkpb
+    if ( argc != 19 )
     {
       cout << "use: testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 "
-           << "ecut nel nempty nspin nkp npr npc"
+           << "ecut nel nempty nspin nkp ngb nstb nspb nkpb"
       << endl;
       return 1;
     }
@@ -53,14 +53,22 @@ int main(int argc, char **argv)
     int nempty = atoi(argv[12]);
     int nspin = atoi(argv[13]);
     int nkp = atoi(argv[14]);
-    int npr = atoi(argv[15]);
-    int npc = atoi(argv[16]);
+    int ngb = atoi(argv[15]);
+    int nstb = atoi(argv[16]);
+    int nspb = atoi(argv[17]);
+    int nkpb = atoi(argv[18]);
 
-    MPIdata::set(npr,npc);
-    cout << MPIdata::rank() << ": npr=" << npr << " npc=" << npc << endl;
+    MPIdata::set(ngb,nstb,nspb,nkpb);
+    cout << MPIdata::rank() << ": ngb=" << ngb << " nstb=" << nstb
+         << " nspb=" << nspb << " nkpb=" << nkpb << endl;
+    cout << MPIdata::rank() << ": igb=" << MPIdata::igb()
+         << " istb=" << MPIdata::istb()
+         << " ispb=" << MPIdata::ispb()
+         << " ikpb=" << MPIdata::ikpb() << endl;
 
-    Context sd_ctxt(MPIdata::sd_comm(),npr,npc);
+    Context sd_ctxt(MPIdata::sd_comm(),ngb,nstb);
     Wavefunction wf(sd_ctxt);
+
     Timer tm;
 
     tm.reset(); tm.start();
@@ -92,8 +100,6 @@ int main(int argc, char **argv)
       wf.add_kpoint(D3vector((0.5*(ikp+1))/(nkp-1),0,0),1.0);
     }
 
-    wf.info(cout,"wavefunction");
-
     tm.reset();
     tm.start();
     wf.randomize(0.1);
@@ -122,13 +128,8 @@ int main(int argc, char **argv)
     cout << " update_occ ...";
     wf.update_occ(0.0);
     cout << "done" << endl;
-#if 0
-    for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
-    {
-      if ( wf.sd[ikp] != 0 )
-        cout << " ekin[" << ikp << "]: " << wf.sd[ikp]->ekin() << endl;
-    }
-#endif
+
+    wf.info(cout,"wavefunction");
   }
   MPI_Finalize();
 }

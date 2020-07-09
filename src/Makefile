@@ -109,7 +109,7 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
  testChargeDensity: testChargeDensity.o ChargeDensity.o \
         Wavefunction.o SlaterDet.o \
         Basis.o BasisMapping.o FourierTransform.o Matrix.o UnitCell.o \
-        Context.o Base64Transcoder.o
+        Context.o Base64Transcoder.o MPIdata.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testWavefunction: testWavefunction.o Wavefunction.o SlaterDet.o \
         Basis.o BasisMapping.o FourierTransform.o Matrix.o UnitCell.o \
@@ -251,9 +251,10 @@ CPSampleStepper.o: Species.h SDCellStepper.h CellStepper.h CGCellStepper.h
 CPSampleStepper.o: CGOptimizer.h LineMinimizer.h
 CellStepper.o: CellStepper.h Sample.h MPIdata.h AtomSet.h Atom.h D3vector.h
 CellStepper.o: UnitCell.h D3tensor.h blas.h Control.h
-ChargeDensity.o: ChargeDensity.h Timer.h Context.h blacs.h D3vector.h Basis.h
-ChargeDensity.o: UnitCell.h Wavefunction.h FourierTransform.h BasisMapping.h
-ChargeDensity.o: SlaterDet.h Matrix.h blas.h
+ChargeDensity.o: MPIdata.h ChargeDensity.h Timer.h Context.h blacs.h
+ChargeDensity.o: D3vector.h Basis.h UnitCell.h Wavefunction.h
+ChargeDensity.o: FourierTransform.h BasisMapping.h SlaterDet.h Matrix.h
+ChargeDensity.o: blas.h
 ComputeMLWFCmd.o: ComputeMLWFCmd.h UserInterface.h Sample.h MPIdata.h
 ComputeMLWFCmd.o: AtomSet.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h
 ComputeMLWFCmd.o: Control.h MLWFTransform.h BasisMapping.h Context.h blacs.h
@@ -464,9 +465,9 @@ testBasis.o: Basis.h D3vector.h UnitCell.h
 testBasisMapping.o: Context.h blacs.h Basis.h D3vector.h UnitCell.h
 testBasisMapping.o: BasisMapping.h Timer.h
 testCGOptimizer.o: CGOptimizer.h LineMinimizer.h
-testChargeDensity.o: Context.h blacs.h Wavefunction.h D3vector.h UnitCell.h
-testChargeDensity.o: ChargeDensity.h Timer.h SlaterDet.h Basis.h Matrix.h
-testChargeDensity.o: FourierTransform.h BasisMapping.h
+testChargeDensity.o: MPIdata.h Context.h blacs.h Wavefunction.h D3vector.h
+testChargeDensity.o: UnitCell.h ChargeDensity.h Timer.h SlaterDet.h Basis.h
+testChargeDensity.o: Matrix.h FourierTransform.h BasisMapping.h
 testContext.o: Context.h blacs.h
 testEnergyFunctional.o: Context.h blacs.h Sample.h MPIdata.h AtomSet.h Atom.h
 testEnergyFunctional.o: D3vector.h UnitCell.h D3tensor.h blas.h Control.h

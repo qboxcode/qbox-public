@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "Context.h"
 #include "Wavefunction.h"
 #include "ChargeDensity.h"
@@ -28,22 +29,19 @@
 #include <cassert>
 using namespace std;
 
-#ifdef USE_MPI
 #include <mpi.h>
-#endif
 
 int main(int argc, char **argv)
 {
-#if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
   {
     // use:
     // testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nspin nkp
-    if ( argc !=14 )
+    //  ngb nstb nspb nkpb
+    if ( argc != 18 )
     {
-      cout <<
-      " use: testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nspin nkp"
+      cout << "use: testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 "
+           << "ecut nel nspin nkp ngb nstb nspb nkpb"
       << endl;
       return 1;
     }
@@ -56,11 +54,23 @@ int main(int argc, char **argv)
     int nel = atoi(argv[11]);
     int nspin = atoi(argv[12]);
     int nkp = atoi(argv[13]);
+    int ngb = atoi(argv[14]);
+    int nstb = atoi(argv[15]);
+    int nspb = atoi(argv[16]);
+    int nkpb = atoi(argv[17]);
+
+    MPIdata::set(ngb,nstb,nspb,nkpb);
+    cout << MPIdata::rank() << ": ngb=" << ngb << " nstb=" << nstb
+         << " nspb=" << nspb << " nkpb=" << nkpb << endl;
+    cout << MPIdata::rank() << ": igb=" << MPIdata::igb()
+         << " istb=" << MPIdata::istb()
+         << " ispb=" << MPIdata::ispb()
+         << " ikpb=" << MPIdata::ikpb() << endl;
+
+    Context sd_ctxt(MPIdata::sd_comm(),ngb,nstb);
+    Wavefunction wf(sd_ctxt);
 
     Timer tm;
-
-    Context ctxt(MPI_COMM_WORLD);
-    Wavefunction wf(ctxt);
 
     tm.reset(); tm.start();
     wf.resize(cell,cell,ecut);
@@ -80,26 +90,12 @@ int main(int argc, char **argv)
     cout << " wf.set_nspin: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
 
-    for ( int ikp = 0; ikp < nkp-1; ikp++ )
+    for ( int ikp = 1; ikp < nkp; ikp++ )
     {
-      wf.add_kpoint(D3vector((0.5*(ikp+1))/(nkp-1),0,0),1.0);
+      wf.add_kpoint(D3vector((0.5*(ikp))/(nkp-1),0,0),1.0);
     }
 
-    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-    {
-      for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
-      {
-        if ( wf.sd(ispin,ikp) != 0 && wf.sd(ispin,ikp)->context().active() )
-        {
-        cout << "wf.sd(ispin=" << ispin << ",ikp=" << ikp << "): "
-             << wf.sd(ispin,ikp)->c().m() << "x"
-             << wf.sd(ispin,ikp)->c().n() << endl;
-        cout << ctxt.mype() << ":"
-             << " sdcontext[" << ispin << "][" << ikp << "]: "
-             << wf.sd(ispin,ikp)->context();
-        }
-      }
-    }
+    wf.info(cout,"wavefunction");
 
     tm.reset();
     tm.start();
@@ -114,7 +110,7 @@ int main(int argc, char **argv)
     cout << " wf.gram: CPU/Real: "
          << tm.cpu() << " / " << tm.real() << endl;
 
-    // wf.update_occ();
+    wf.update_occ(0.0);
 
     // compute charge density in real space
     Timer tmrho;
@@ -122,9 +118,6 @@ int main(int argc, char **argv)
     tmrho.start();
     cout << " ChargeDensity::ctor..." << endl;
     ChargeDensity cd(wf);
-
-    cout << "done" << endl;
-
     tmrho.stop();
     cout << " ChargeDensity::ctor: CPU/Real: "
          << tmrho.cpu() << " / " << tmrho.real() << endl;
@@ -137,6 +130,18 @@ int main(int argc, char **argv)
     cout << " ChargeDensity::update_density: CPU/Real: "
          << tmrho.cpu() << " / " << tmrho.real() << endl;
 
+    cout << cd;
+
+    tmrho.reset();
+    tmrho.start();
+    cout << " ChargeDensity::update_rhor..." << endl;
+    cd.update_rhor();
+    tmrho.stop();
+    cout << " ChargeDensity::update_rhor: CPU/Real: "
+         << tmrho.cpu() << " / " << tmrho.real() << endl;
+
+    cout << cd;
+#if 0
     // print the first few Fourier coefficients of the charge density
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
@@ -149,23 +154,17 @@ int main(int argc, char **argv)
       }
     }
 
-#if 0
     // integral of rho in r space
     double sum = 0.0;
     for ( int i = 0; i < rho.size(); i++ )
       sum += rho[i];
-#if USE_MPI
     double tsum;
     int mycol = sd.context().mycol();
     MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,sd.context().comm());
     sum = tsum;
-#endif
     cout << ctxt.mype() << ": " << " rho: " << sum / ft.np012() << endl;
-
 #endif
 
   }
-#if USE_MPI
   MPI_Finalize();
-#endif
 }

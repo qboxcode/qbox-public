@@ -49,7 +49,6 @@ SlaterDet::SlaterDet(const SlaterDet& rhs) : ctxt_(rhs.context()),
 SlaterDet::~SlaterDet()
 {
   delete basis_;
-  // cout << ctxt_.mype() << ": SlaterDet::dtor: ctxt=" << ctxt_;
 #ifdef TIMING
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
@@ -74,15 +73,6 @@ SlaterDet::~SlaterDet()
 void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
   double ecut, int nst)
 {
-  // Test in next line should be replaced by test on basis min/max indices
-  // to signal change in basis vectors
-  //if ( basis_->refcell().volume() != 0.0 && !refcell.encloses(cell) )
-  //{
-    //cout << " SlaterDet::resize: cell=" << cell;
-    //cout << " SlaterDet::resize: refcell=" << basis_->refcell();
-    //throw SlaterDetException("could not resize: cell not in refcell");
-  //}
-
   try
   {
     // create a temporary copy of the basis
@@ -237,7 +227,6 @@ void SlaterDet::init(void)
 void SlaterDet::compute_density(FourierTransform& ft,
   double weight, double* rho) const
 {
-  //Timer tm_ft, tm_rhosum;
   // compute density of the states residing on my column of ctxt_
   assert(occ_.size() == c_.n());
   vector<complex<double> > tmp(ft.np012loc());
@@ -257,13 +246,10 @@ void SlaterDet::compute_density(FourierTransform& ft,
       const double fac2 = weight * omega_inv * occ_[nn+1];
       if ( fac1 + fac2 > 0.0 )
       {
-        //tm_ft.start();
         ft.backward(c_.cvalptr(n*c_.mloc()),
                     c_.cvalptr((n+1)*c_.mloc()),&tmp[0]);
-        //tm_ft.stop();
         const double* psi = (double*) &tmp[0];
         int ii = 0;
-        //tm_rhosum.start();
         for ( int i = 0; i < np012loc; i++ )
         {
           const double psi1 = psi[ii];
@@ -271,7 +257,6 @@ void SlaterDet::compute_density(FourierTransform& ft,
           rho[i] += fac1 * psi1 * psi1 + fac2 * psi2 * psi2;
           ii++; ii++;
         }
-        //tm_rhosum.start();
       }
     }
     if ( nstloc() % 2 != 0 )
@@ -312,10 +297,6 @@ void SlaterDet::compute_density(FourierTransform& ft,
       }
     }
   }
-  // cout << "SlaterDet: compute_density: ft_bwd time: "
-  //      << tm_ft.real() << endl;
-  // cout << "SlaterDet: compute_density: rhosum time: "
-  //      << tm_rhosum.real() << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

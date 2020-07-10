@@ -356,8 +356,10 @@ void Wavefunction::set_nrowmax(int n)
   if ( n > ctxt_.size() )
   {
     if ( ctxt_.onpe0() )
-      cout << " Wavefunction::set_nrowmax: nrowmax > ctxt_.size()" << endl;
-    return;
+      cout << " Wavefunction::set_nrowmax: nrowmax > number of tasks" << endl
+           << " Wavefunction::set_nrowmax: nrowmax set to "
+           << ctxt_.size() << endl;
+    n = ctxt_.size();
   }
 
   deallocate();

@@ -1362,6 +1362,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         cout << setprecision(3);
         cout << " ExchangeOperator: bisection time: "
            << tmb.real() << " s" << endl;
+        cout << setprecision(10);
       }
     } // if use_bisection_
 

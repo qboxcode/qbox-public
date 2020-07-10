@@ -23,22 +23,17 @@
 #include <cassert>
 using namespace std;
 
-#ifdef USE_MPI
 #include <mpi.h>
-#endif
 
 int main(int argc, char **argv)
 {
   // use: testBasis a0x a0y a0z a1x a1y a1z a2x a2y a2z ecut kx ky kz npr npc
-#if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
   {
     if ( argc !=16 )
     {
-      cout <<
-      " use: testBasis a0x a0y a0z a1x a1y a1z a2x a2y a2z ecut kx ky kz npr npc"
-      << endl;
+      cout << " use: testBasis a0x a0y a0z a1x a1y a1z a2x a2y a2z"
+           << " ecut kx ky kz npr npc" << endl;
       return 1;
     }
     const D3vector a0(atof(argv[1]),atof(argv[2]),atof(argv[3]));
@@ -92,7 +87,5 @@ int main(int argc, char **argv)
     //Basis b2(basis);
     //cout << b2;
   }
-#if USE_MPI
   MPI_Finalize();
-#endif
 }

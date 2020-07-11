@@ -49,11 +49,12 @@ ChargeDensity::ChargeDensity(const Wavefunction& wf) : wf_(wf)
   while (!vb.factorizable(np2v)) np2v += 2;
 #ifdef DEBUG
   cout << MPIdata::rank() << ": ChargeDensity: vbasis: " << endl;
-  cout << MPIdata::rank() << ": idxmin: " << vb.idxmin(0) << "/" << vb.idxmin(1)
-       << "/" << vb.idxmin(2) << endl;
-  cout << MPIdata::rank() << ": idxmax: " << vb.idxmax(0) << "/" << vb.idxmax(1)
-       << "/" << vb.idxmax(2) << endl;
-  cout << MPIdata::rank() << ": vft grid: " << np0v << "/" << np1v << "/" << np2v << endl;
+  cout << MPIdata::rank() << ": idxmin: "
+       << vb.idxmin(0) << "/" << vb.idxmin(1) << "/" << vb.idxmin(2) << endl;
+  cout << MPIdata::rank() << ": idxmax: "
+       << vb.idxmax(0) << "/" << vb.idxmax(1) << "/" << vb.idxmax(2) << endl;
+  cout << MPIdata::rank() << ": vft grid: "
+       << np0v << "/" << np1v << "/" << np2v << endl;
 #endif
   vft_ = new FourierTransform(vb,np0v,np1v,np2v);
   total_charge_.resize(wf.nspin());
@@ -137,13 +138,8 @@ void ChargeDensity::update_density(void)
 {
   assert(rhor.size() == wf_.nspin());
   for ( int ispin = 0; ispin < wf_.nspin(); ++ispin )
-    cout << MPIdata::rank() << ": ChargeDensity::update_density: rhor["
-         << ispin << "].size()=" << rhor[ispin].size() << endl;
-  for ( int ispin = 0; ispin < wf_.nspin(); ++ispin )
     fill(rhor[ispin].begin(),rhor[ispin].end(),0.0);
 
-  cout << MPIdata::rank() << ": ChargeDensity::update_density: nsp_loc()="
-       << wf_.nsp_loc() << " nkp_loc()=" << wf_.nkp_loc() << endl;
   for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
     const int ispg = wf_.isp_global(isp_loc);
@@ -160,22 +156,26 @@ void ChargeDensity::update_density(void)
           wf_.weight(ikpg), &rhor[ispg][0]);
     }
     tmap["charge_compute"].stop();
+  }
+  // rhor now contains local contributions from this task
 
+  for ( int ispin = 0; ispin < wf_.nspin(); ++ispin )
+  {
     // sum over kpoints
     tmap["charge_rowsum"].start();
     vector<double> tmpr(vft_->np012loc());
-    MPI_Allreduce(&rhor[isp_loc][0],&tmpr[0],vft_->np012loc(),
+    MPI_Allreduce(&rhor[ispin][0],&tmpr[0],vft_->np012loc(),
                   MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
-    MPI_Allreduce(&tmpr[0],&rhor[isp_loc][0],vft_->np012loc(),
+    MPI_Allreduce(&tmpr[0],&rhor[ispin][0],vft_->np012loc(),
                   MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
     tmap["charge_rowsum"].stop();
 
     // check integral of charge density
     // compute Fourier coefficients of the charge density
     double sum = 0.0;
-    const double *const prhor = &rhor[ispg][0];
+    const double *const prhor = &rhor[ispin][0];
     tmap["charge_integral"].start();
-    const int rhor_size = rhor[ispg].size();
+    const int rhor_size = rhor[ispin].size();
     const double omega = vbasis_->cell().volume();
     #pragma omp parallel for reduction(+:sum)
     for ( int i = 0; i < rhor_size; i++ )
@@ -186,15 +186,15 @@ void ChargeDensity::update_density(void)
     }
     sum *= omega / vft_->np012();
     double tsum = 0.0;
-    // sum over g_comm
+    // sum over g_comm and sp_comm
     MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::g_comm());
+    MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
     tmap["charge_integral"].stop();
-    total_charge_[ispg] = tsum;
-    cout << MPIdata::rank() << ": update_density: tsum=" << tsum << endl;
+    total_charge_[ispin] = sum;
 
     // compute rhog from rhotmp
     tmap["charge_vft"].start();
-    vft_->forward(&rhotmp[0],&rhog[ispg][0]);
+    vft_->forward(&rhotmp[0],&rhog[ispin][0]);
     tmap["charge_vft"].stop();
   }
 }
@@ -208,15 +208,15 @@ void ChargeDensity::update_rhor(void)
   assert(omega!=0.0);
   const double omega_inv = 1.0 / omega;
 
-  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
+  for ( int ispin = 0; ispin < wf_.nsp_loc(); ++ispin )
   {
-    assert(rhor[isp_loc].size() == vft_->np012loc() );
+    assert(rhor[ispin].size() == vft_->np012loc() );
     assert(rhotmp.size() == vft_->np012loc() );
 
-    vft_->backward(&rhog[isp_loc][0],&rhotmp[0]);
+    vft_->backward(&rhog[ispin][0],&rhotmp[0]);
 
-    const int rhor_size = rhor[isp_loc].size();
-    double *const prhor = &rhor[isp_loc][0];
+    const int rhor_size = rhor[ispin].size();
+    double *const prhor = &rhor[ispin][0];
     #pragma omp parallel for
     for ( int i = 0; i < rhor_size; i++ )
       prhor[i] = rhotmp[i].real() * omega_inv;
@@ -228,12 +228,12 @@ void ChargeDensity::update_rhor(void)
     double sum = dasum(&n,prhor,&ione);
     sum *= omega / vft_->np012();
 
-    // sum over g_comm
+    // sum over g_comm and sp_comm
     double tsum = 0.0;
     MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::g_comm());
+    MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
     tmap["charge_integral"].stop();
-    cout << MPIdata::rank() << ": update_rhor: tsum=" << tsum << endl;
-    total_charge_[wf_.isp_global(isp_loc)] = tsum;
+    total_charge_[ispin] = sum;
   }
 }
 
@@ -327,14 +327,15 @@ void ChargeDensity::update_rhog(void)
 
   for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    const int rhor_size = rhor[isp_loc].size();
-    double *const prhor = &rhor[isp_loc][0];
+    const int ispg = wf_.isp_global(isp_loc);
+    const int rhor_size = rhor[ispg].size();
+    double *const prhor = &rhor[ispg][0];
     #pragma omp parallel for
     for ( int i = 0; i < rhor_size; i++ )
       rhotmp[i] = complex<double> ( omega * prhor[i], 0);
 
     assert(rhotmp.size() == vft_->np012loc() );
 
-    vft_->forward(&rhotmp[0],&rhog[isp_loc][0]);
+    vft_->forward(&rhotmp[0],&rhog[ispg][0]);
   }
 }

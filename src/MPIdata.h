@@ -26,8 +26,8 @@ class MPIdata
   static MPI_Comm comm_;
   static MPI_Comm g_comm_;
   static MPI_Comm st_comm_;
-  static MPI_Comm sp_comm_;
   static MPI_Comm kp_comm_;
+  static MPI_Comm sp_comm_;
   static MPI_Comm sd_comm_;
   static int rank_;
   static int size_;
@@ -35,13 +35,13 @@ class MPIdata
 
   static int ngb_;
   static int nstb_;
-  static int nspb_;
   static int nkpb_;
+  static int nspb_;
 
   static int igb_;
   static int istb_;
-  static int ispb_;
   static int ikpb_;
+  static int ispb_;
 
   // private ctor
   MPIdata(void);
@@ -50,8 +50,8 @@ class MPIdata
   static const MPI_Comm& comm(void) { return comm_; }
   static const MPI_Comm& g_comm(void) { return g_comm_; }
   static const MPI_Comm& st_comm(void) { return st_comm_; }
-  static const MPI_Comm& sp_comm(void) { return sp_comm_; }
   static const MPI_Comm& kp_comm(void) { return kp_comm_; }
+  static const MPI_Comm& sp_comm(void) { return sp_comm_; }
   static const MPI_Comm& sd_comm(void) { return sd_comm_; }
   static int rank(void) { return rank_; }
   static int size(void) { return size_; }
@@ -59,14 +59,14 @@ class MPIdata
 
   static int ngb(void)  { return ngb_; }
   static int nstb(void) { return nstb_; }
-  static int nspb(void) { return nspb_; }
   static int nkpb(void) { return nkpb_; }
+  static int nspb(void) { return nspb_; }
 
   static int igb(void)  { return igb_; }
   static int istb(void) { return istb_; }
-  static int ispb(void) { return ispb_; }
   static int ikpb(void) { return ikpb_; }
+  static int ispb(void) { return ispb_; }
 
-  static void set(int ngb, int nstb = 1, int nspb = 1, int nkpb = 1);
+  static void set(int ngb, int nstb = 1, int nkpb = 1, int nspb = 1);
 };
 #endif

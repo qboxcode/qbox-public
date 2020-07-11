@@ -17,7 +17,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Test of the MPIdata class
-// use: testMPIdata ngb nstb nspb nkpb
+// use: testMPIdata ngb nstb nkpb nspb
 
 #include "MPIdata.h"
 #include<iostream>
@@ -28,25 +28,25 @@ int main(int argc, char** argv)
 {
   if ( argc != 5 )
   {
-    cerr << "use: testMPIdata ngb nstb nspb nkpb" << endl;
+    cerr << "use: testMPIdata ngb nstb nkpb nspb" << endl;
     return 1;
   }
   MPI_Init(&argc,&argv);
   int ngb = atoi(argv[1]);
   int nstb = atoi(argv[2]);
-  int nspb = atoi(argv[3]);
-  int nkpb = atoi(argv[4]);
+  int nkpb = atoi(argv[3]);
+  int nspb = atoi(argv[4]);
 
-  MPIdata::set(ngb,nstb,nspb,nkpb);
+  MPIdata::set(ngb,nstb,nkpb,nspb);
 
   cout << " rank=" << MPIdata::rank() << " igb / ngb = "
        << MPIdata::igb() << " / " << MPIdata::ngb() << endl;
   cout << " rank=" << MPIdata::rank() << " istb / nstb = "
        << MPIdata::istb() << " / " << MPIdata::nstb() << endl;
-  cout << " rank=" << MPIdata::rank() << " ispb / nspb = "
-       << MPIdata::ispb() << " / " << MPIdata::nspb() << endl;
   cout << " rank=" << MPIdata::rank() << " ikpb / nkpb = "
        << MPIdata::ikpb() << " / " << MPIdata::nkpb() << endl;
+  cout << " rank=" << MPIdata::rank() << " ispb / nspb = "
+       << MPIdata::ispb() << " / " << MPIdata::nspb() << endl;
 
   int coords[2];
   int sd_rank;

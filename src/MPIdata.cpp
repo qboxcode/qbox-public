@@ -26,8 +26,8 @@ MPI_Comm MPIdata::comm_;
 // subcommunicators
 MPI_Comm MPIdata::g_comm_;   // G vector comm
 MPI_Comm MPIdata::st_comm_;  // states comm
-MPI_Comm MPIdata::sp_comm_;  // spin comm
 MPI_Comm MPIdata::kp_comm_;  // kpoint comm
+MPI_Comm MPIdata::sp_comm_;  // spin comm
 MPI_Comm MPIdata::sd_comm_;  // Slater det comm
 int MPIdata::rank_;     // global rank of this process
 int MPIdata::size_;     // global number of processes
@@ -35,32 +35,32 @@ bool MPIdata::onpe0_;   // task 0 of global comm
 
 int MPIdata::ngb_;      // size of g_comm
 int MPIdata::nstb_;     // size of st_comm
-int MPIdata::nspb_;     // size of sp_comm
 int MPIdata::nkpb_;     // size of kp_comm
+int MPIdata::nspb_;     // size of sp_comm
 
 int MPIdata::igb_;      // rank in g_comm
 int MPIdata::istb_;     // rank in st_comm
-int MPIdata::ispb_;     // rank in sp_comm
 int MPIdata::ikpb_;     // rank in kp_comm
+int MPIdata::ispb_;     // rank in sp_comm
 
-void MPIdata::set(int ngb, int nstb, int nspb, int nkpb)
+void MPIdata::set(int ngb, int nstb, int nkpb, int nspb)
 {
   MPI_Comm_size(MPI_COMM_WORLD,&size_);
   MPI_Comm_rank(MPI_COMM_WORLD,&rank_);
   onpe0_ = ( rank_ == 0 );
 
-  assert(ngb*nstb*nspb*nkpb == size_);
+  assert(ngb*nstb*nkpb*nspb == size_);
 
   // check that all numbers of blocks are positive
   assert(ngb>0);
   assert(nstb>0);
-  assert(nspb>0);
   assert(nkpb>0);
+  assert(nspb>0);
 
   int ndims=4;
   // Note: order of dimensions for Cart_comm to have contiguous tasks
   // along the ngb dimension
-  int dims[4] = { nkpb, nspb, nstb, ngb };
+  int dims[4] = { nspb, nkpb, nstb, ngb };
   // plan for cyclic rotation of states blocks
   int periods[4] = { 0, 0, 1, 0};
   int reorder = 0;
@@ -80,17 +80,17 @@ void MPIdata::set(int ngb, int nstb, int nspb, int nkpb)
   MPI_Comm_size(st_comm_,&nstb_);
   MPI_Comm_rank(st_comm_,&istb_);
 
-  // spin communicator
-  int sp_remain_dims[4] = { 0, 1, 0, 0 };
-  MPI_Cart_sub(comm_,sp_remain_dims,&sp_comm_);
-  MPI_Comm_size(sp_comm_,&nspb_);
-  MPI_Comm_rank(sp_comm_,&ispb_);
-
   // kpoint communicator
-  int kp_remain_dims[4] = { 1, 0, 0, 0 };
+  int kp_remain_dims[4] = { 0, 1, 0, 0 };
   MPI_Cart_sub(comm_,kp_remain_dims,&kp_comm_);
   MPI_Comm_size(kp_comm_,&nkpb_);
   MPI_Comm_rank(kp_comm_,&ikpb_);
+
+  // spin communicator
+  int sp_remain_dims[4] = { 1, 0, 0, 0 };
+  MPI_Cart_sub(comm_,sp_remain_dims,&sp_comm_);
+  MPI_Comm_size(sp_comm_,&nspb_);
+  MPI_Comm_rank(sp_comm_,&ispb_);
 
   // Slater determinant communicator
   int sd_remain_dims[4] = { 0, 0, 1, 1 };

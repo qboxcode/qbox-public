@@ -36,12 +36,12 @@ int main(int argc, char **argv)
   MPI_Init(&argc,&argv);
   {
     // use:
-    // testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nspin nkp
-    //  ngb nstb nspb nkpb
+    // testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nkp nkspin
+    //  ngb nstb nkpb nspb
     if ( argc != 18 )
     {
       cout << "use: testChargeDensity a0 a1 a2 b0 b1 b2 c0 c1 c2 "
-           << "ecut nel nspin nkp ngb nstb nspb nkpb"
+           << "ecut nel nkp nspin ngb nstb nkpb nspb"
       << endl;
       return 1;
     }
@@ -52,20 +52,20 @@ int main(int argc, char **argv)
     cout << " volume: " << cell.volume() << endl;
     double ecut = atof(argv[10]);
     int nel = atoi(argv[11]);
-    int nspin = atoi(argv[12]);
-    int nkp = atoi(argv[13]);
+    int nkp = atoi(argv[12]);
+    int nspin = atoi(argv[13]);
     int ngb = atoi(argv[14]);
     int nstb = atoi(argv[15]);
-    int nspb = atoi(argv[16]);
-    int nkpb = atoi(argv[17]);
+    int nkpb = atoi(argv[16]);
+    int nspb = atoi(argv[17]);
 
-    MPIdata::set(ngb,nstb,nspb,nkpb);
+    MPIdata::set(ngb,nstb,nkpb,nspb);
     cout << MPIdata::rank() << ": ngb=" << ngb << " nstb=" << nstb
-         << " nspb=" << nspb << " nkpb=" << nkpb << endl;
+         << " nkpb=" << nkpb << " nspb=" << nspb << endl;
     cout << MPIdata::rank() << ": igb=" << MPIdata::igb()
          << " istb=" << MPIdata::istb()
-         << " ispb=" << MPIdata::ispb()
-         << " ikpb=" << MPIdata::ikpb() << endl;
+         << " ikpb=" << MPIdata::ikpb()
+         << " ispb=" << MPIdata::ispb() << endl;
 
     Context sd_ctxt(MPIdata::sd_comm(),ngb,nstb);
     Wavefunction wf(sd_ctxt);
@@ -141,30 +141,6 @@ int main(int argc, char **argv)
          << tmrho.cpu() << " / " << tmrho.real() << endl;
 
     cout << cd;
-#if 0
-    // print the first few Fourier coefficients of the charge density
-    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-    {
-      for ( int i = 0; i < cd.vbasis()->localsize(); i++ )
-      {
-        cout << ctxt.mype() << ": rho(ispin=" << ispin << ",ig=" << i << " ("
-        << cd.vbasis()->idx(3*i) << " "
-        << cd.vbasis()->idx(3*i+1) << " " << cd.vbasis()->idx(3*i+2) << ") "
-        << cd.rhog[ispin][i] << endl;
-      }
-    }
-
-    // integral of rho in r space
-    double sum = 0.0;
-    for ( int i = 0; i < rho.size(); i++ )
-      sum += rho[i];
-    double tsum;
-    int mycol = sd.context().mycol();
-    MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,sd.context().comm());
-    sum = tsum;
-    cout << ctxt.mype() << ": " << " rho: " << sum / ft.np012() << endl;
-#endif
-
   }
   MPI_Finalize();
 }

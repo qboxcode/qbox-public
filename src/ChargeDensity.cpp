@@ -208,7 +208,7 @@ void ChargeDensity::update_rhor(void)
   assert(omega!=0.0);
   const double omega_inv = 1.0 / omega;
 
-  for ( int ispin = 0; ispin < wf_.nsp_loc(); ++ispin )
+  for ( int ispin = 0; ispin < wf_.nspin(); ++ispin )
   {
     assert(rhor[ispin].size() == vft_->np012loc() );
     assert(rhotmp.size() == vft_->np012loc() );

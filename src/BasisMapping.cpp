@@ -208,8 +208,8 @@ BasisMapping::BasisMapping (const Basis &basis, int np0, int np1, int np2) :
         if (hm < 0) hm += np0_;
         if (km < 0) km += np1_;
 
-        zvec_to_val_.push_back(hp+np1_*kp);
-        zvec_to_val_.push_back(hm+np1_*km);
+        zvec_to_val_.push_back(hp+np0_*kp);
+        zvec_to_val_.push_back(hm+np0_*km);
       }
     }
     else
@@ -222,7 +222,7 @@ BasisMapping::BasisMapping (const Basis &basis, int np0, int np1, int np2) :
         k = basis_.rod_k(0,irod);
         if (h < 0) h += np0_;
         if (k < 0) k += np1_;
-        zvec_to_val_.push_back(h+np1_*k);
+        zvec_to_val_.push_back(h+np0_*k);
       }
     }
   }

@@ -753,11 +753,13 @@ complex<double> Wavefunction::dot(const Wavefunction& wf) const
 {
   assert(wf.sd_context() == sd_ctxt_);
   complex<double> sum = 0.0;
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sum += weight_[ikp] * sd_[ispin][ikp]->dot(*wf.sd_[ispin][ikp]);
+      const int ikpg = ikp_global(ikp_loc);
+      sum += weight_[ikpg] *
+        sd_[isp_loc][ikp_loc]->dot(*wf.sd_[isp_loc][ikp_loc]);
     }
   }
   return sum;
@@ -766,110 +768,105 @@ complex<double> Wavefunction::dot(const Wavefunction& wf) const
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
 {
-  cout << "Wavefunction::diag: not implemented" << endl;
-#if 0
   // subspace diagonalization of <*this | dwf>
   // if eigvec==true, eigenvectors are computed and stored in *this, dwf is
   // overwritten
-  for ( int ispin = 0; ispin < nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < nsp_loc(); ++isp_loc )
   {
-    if ( nst_[ispin] > 0 )
+    assert( nst_[isp_global(isp_loc)] > 0 );
+    for ( int ikp_loc = 0; ikp_loc < nkp_loc(); ++ikp_loc )
     {
-      for ( int ikp = 0; ikp < nkp(); ikp++ )
+      // compute eigenvalues
+      if ( sd(isp_loc,ikp_loc)->basis().real() )
       {
-        // compute eigenvalues
-        if ( sd(ispin,ikp)->basis().real() )
-        {
-          // proxy real matrices c, cp
-          DoubleMatrix c(sd(ispin,ikp)->c());
-          DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
+        // proxy real matrices c, cp
+        DoubleMatrix c(sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix cp(dwf.sd(isp_loc,ikp_loc)->c());
 
-          DoubleMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        DoubleMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
 
-          // factor 2.0 in next line: G and -G
-          h.gemm('t','n',2.0,c,cp,0.0);
-          // rank-1 update correction
-          h.ger(-1.0,c,0,cp,0);
+        // factor 2.0 in next line: G and -G
+        h.gemm('t','n',2.0,c,cp,0.0);
+        // rank-1 update correction
+        h.ger(-1.0,c,0,cp,0);
 
-          // cout << " Hamiltonian at k = " << sd(ispin,ikp)->kpoint()
-          //      << endl;
-          // cout << h;
+        // cout << " Hamiltonian at k = " << sd(ispin,ikp)->kpoint()
+        //      << endl;
+        // cout << h;
 
 #if 1
-          valarray<double> w(h.m());
-          if ( eigvec )
-          {
-            DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            h.syev('l',w,z);
-            //h.syevx('l',w,z,1.e-6);
-            cp = c;
-            c.gemm('n','n',1.0,cp,z,0.0);
-          }
-          else
-          {
-            h.syev('l',w);
-          }
-#else
-          vector<double> w(h.m());
+        valarray<double> w(h.m());
+        if ( eigvec )
+        {
           DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
-          const int maxsweep = 30;
-          int nsweep = jacobi(maxsweep,1.e-6,h,z,w);
-          if ( eigvec )
-          {
-            cp = c;
-            c.gemm('n','n',1.0,cp,z,0.0);
-          }
-#endif
-          // set eigenvalues in SlaterDet
-          sd(ispin,ikp)->set_eig(w);
+          h.syev('l',w,z);
+          //h.syevx('l',w,z,1.e-6);
+          cp = c;
+          c.gemm('n','n',1.0,cp,z,0.0);
         }
         else
         {
-          ComplexMatrix& c(sd(ispin,ikp)->c());
-          ComplexMatrix& cp(dwf.sd(ispin,ikp)->c());
-          ComplexMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
-          h.gemm('c','n',1.0,c,cp,0.0);
-          // cout << " Hamiltonian at k = "
-          //      << sd(ispin,ikp)->kpoint() << endl;
-          // cout << h;
-          valarray<double> w(h.m());
-          if ( eigvec )
-          {
-#if DEBUG
-            ComplexMatrix hcopy(h);
-#endif
-            ComplexMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            h.heev('l',w,z);
-            cp = c;
-            c.gemm('n','n',1.0,cp,z,0.0);
-#if DEBUG
-            // check that z contains eigenvectors of h
-            // diagonal matrix with eigenvalues on diagonal
-            ComplexMatrix d(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            // the following test works only on one task
-            assert(ctxt_.size()==1);
-            for ( int i = 0; i < d.m(); i++ )
-              d[i+d.n()*i] = w[i];
-            ComplexMatrix dz(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            dz.gemm('n','c',1.0,d,z,0.0);
-            ComplexMatrix zdz(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            zdz.gemm('n','n',1.0,z,dz,0.0);
-            // zdz should be equal to hcopy
-            zdz -= hcopy;
-            cout << " heev: norm of error: " << zdz.nrm2() << endl;
-#endif
-          }
-          else
-          {
-            h.heev('l',w);
-          }
-          // set eigenvalues in SlaterDet
-          sd(ispin,ikp)->set_eig(w);
+          h.syev('l',w);
         }
+#else
+        vector<double> w(h.m());
+        DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        const int maxsweep = 30;
+        int nsweep = jacobi(maxsweep,1.e-6,h,z,w);
+        if ( eigvec )
+        {
+          cp = c;
+          c.gemm('n','n',1.0,cp,z,0.0);
+        }
+#endif
+        // set eigenvalues in SlaterDet
+        sd(isp_loc,ikp_loc)->set_eig(w);
+      }
+      else
+      {
+        ComplexMatrix& c(sd(isp_loc,ikp_loc)->c());
+        ComplexMatrix& cp(dwf.sd(isp_loc,ikp_loc)->c());
+        ComplexMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        h.gemm('c','n',1.0,c,cp,0.0);
+        // cout << " Hamiltonian at k = "
+        //      << sd(ispin,ikp)->kpoint() << endl;
+        // cout << h;
+        valarray<double> w(h.m());
+        if ( eigvec )
+        {
+#if DEBUG
+          ComplexMatrix hcopy(h);
+#endif
+          ComplexMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          h.heev('l',w,z);
+          cp = c;
+          c.gemm('n','n',1.0,cp,z,0.0);
+#if DEBUG
+          // check that z contains eigenvectors of h
+          // diagonal matrix with eigenvalues on diagonal
+          ComplexMatrix d(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          // the following test works only on one task
+          assert(ctxt_.size()==1);
+          for ( int i = 0; i < d.m(); i++ )
+            d[i+d.n()*i] = w[i];
+          ComplexMatrix dz(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          dz.gemm('n','c',1.0,d,z,0.0);
+          ComplexMatrix zdz(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          zdz.gemm('n','n',1.0,z,dz,0.0);
+          // zdz should be equal to hcopy
+          zdz -= hcopy;
+          cout << " heev: norm of error: " << zdz.nrm2() << endl;
+#endif
+        }
+        else
+        {
+          h.heev('l',w);
+        }
+        // set eigenvalues in SlaterDet
+        sd(isp_loc,ikp_loc)->set_eig(w);
       }
     }
   }
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

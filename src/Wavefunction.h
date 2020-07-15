@@ -73,7 +73,8 @@ class Wavefunction
   const D3vector kpoint(int ikp) const { return kpoint_[ikp]; }
   double weight(int ikp) const { return weight_[ikp]; }
   double ecut(void) const { return ecut_; }
-  SlaterDet* sd(int ispin, int ikp) const { return sd_[ispin][ikp]; }
+  SlaterDet* sd(int isp_loc, int ikp_loc) const
+    { return sd_[isp_loc][ikp_loc]; }
 
   int nkp(void) const;            // number of kpoints
   int nkp_loc(void) const;        // number of local kpoints

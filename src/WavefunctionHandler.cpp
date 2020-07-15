@@ -63,7 +63,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname,
   const Attributes& attributes)
 {
-  bool onpe0 = wf_.context().onpe0();
+  bool onpe0 = wf_.sd_context().onpe0();
   // cout << " WavefunctionHandler::startElement " << StrX(qname) << endl;
   string locname = StrX(localname).localForm();
 
@@ -186,7 +186,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     if ( dmat_form != "diagonal" )
     {
       cout << "WavefunctionHandler: density_matrix must be diagonal" << endl;
-      wf_.context().abort(1);
+      wf_.sd_context().abort(1);
     }
     dmat_.resize(dmat_size);
   }
@@ -336,7 +336,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
 void WavefunctionHandler::endElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname, string& content)
 {
-  const Context& ctxt = wf_.context();
+  const Context& ctxt = wf_.sd_context();
   bool onpe0 = ctxt.onpe0();
   string locname = StrX(localname).localForm();
   //cout << " WavefunctionHandler::endElement " << locname << endl;
@@ -455,7 +455,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
         if ( wf_.sd_[ispin][ikp]->nst() != wf_.sd_[ispin][0]->nst() )
         {
           cout << "nst differs for different kpoints in sample file" << endl;
-          wf_.ctxt_.abort(1);
+          wf_.sd_context().abort(1);
         }
       }
     }

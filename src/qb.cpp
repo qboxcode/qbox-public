@@ -58,31 +58,38 @@ using namespace std;
 #include "MoveCmd.h"
 #include "PartialChargeCmd.h"
 #include "PlotCmd.h"
-#include "PrintCmd.h"
 #endif
+#include "PrintCmd.h"
 #include "QuitCmd.h"
 #if 0
 #include "RandomizeRCmd.h"
 #include "RandomizeVCmd.h"
+#endif
 #include "RandomizeWfCmd.h"
+#if 0
 #include "ResetRotationCmd.h"
 #include "ResetVcmCmd.h"
 #include "RescaleVCmd.h"
 #include "ResponseCmd.h"
 #include "RseedCmd.h"
+#endif
 #include "RunCmd.h"
+#if 0
 #include "SaveCmd.h"
+#endif
 #include "SetCmd.h"
+#if 0
 #include "SetVelocityCmd.h"
 #include "SpeciesCmd.h"
 #include "SpectrumCmd.h"
+#endif
 #include "StatusCmd.h"
+#if 0
 #include "StrainCmd.h"
 #include "TorsionCmd.h"
 #include "BisectionCmd.h"
 #endif
 
-#if 0
 #include "AlphaPBE0.h"
 #include "AlphaRSH.h"
 #include "AtomsDyn.h"
@@ -113,7 +120,6 @@ using namespace std;
 #include "MuRSH.h"
 #include "Nempty.h"
 #include "NetCharge.h"
-#include "Nrowmax.h"
 #include "Nspin.h"
 #include "Occ.h"
 #include "RefCell.h"
@@ -128,7 +134,6 @@ using namespace std;
 #include "WfDiag.h"
 #include "WfDyn.h"
 #include "Xc.h"
-#endif
 
 int main(int argc, char **argv, char **envp)
 {
@@ -147,27 +152,33 @@ int main(int argc, char **argv, char **envp)
   // ngb: number of G vector blocks
   int ngb = def_size;
   pc = getenv("QBOX_NGB");
-  if ( pc != nullptr ) ngb = atoi(pc);
+  if ( pc != 0 ) ngb = atoi(pc);
 
   // nstb: number of states blocks
   int nstb = 1;
   pc = getenv("QBOX_NSTB");
-  if ( pc != nullptr ) nstb = atoi(pc);
+  if ( pc != 0 ) nstb = atoi(pc);
 
   // nspb: number of spin blocks
   int nspb = 1;
   pc = getenv("QBOX_NSPB");
-  if ( pc != nullptr ) nspb = atoi(pc);
+  if ( pc != 0 ) nspb = atoi(pc);
 
   // nkpb: number of kpoint blocks
   int nkpb = 1;
   pc = getenv("QBOX_NKPB");
-  if ( pc != nullptr ) nkpb = atoi(pc);
+  if ( pc != 0 ) nkpb = atoi(pc);
 
   cout << " rank=" << MPIdata::rank() << " ngb=" << ngb << " nstb=" << nstb
        << " nspb=" << nspb << " nkpb=" << nkpb << endl;
 
   MPIdata::set(ngb,nstb,nspb,nkpb);
+  cout << MPIdata::rank() << ": ngb=" << ngb << " nstb=" << nstb
+       << " nspb=" << nspb << " nkpb=" << nkpb << endl;
+  cout << MPIdata::rank() << ": igb=" << MPIdata::igb()
+       << " istb=" << MPIdata::istb()
+       << " ispb=" << MPIdata::ispb()
+       << " ikpb=" << MPIdata::ikpb() << endl;
 
   if ( MPIdata::onpe0() )
   {
@@ -303,27 +314,36 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new MoveCmd(s));
   ui.addCmd(new PartialChargeCmd(s));
   ui.addCmd(new PlotCmd(s));
-  ui.addCmd(new PrintCmd(s));
 #endif
+  ui.addCmd(new PrintCmd(s));
   ui.addCmd(new QuitCmd(s));
 #if 0
   ui.addCmd(new RandomizeRCmd(s));
   ui.addCmd(new RandomizeVCmd(s));
+#endif
   ui.addCmd(new RandomizeWfCmd(s));
+#if 0
   ui.addCmd(new RescaleVCmd(s));
   ui.addCmd(new ResetRotationCmd(s));
   ui.addCmd(new ResetVcmCmd(s));
   ui.addCmd(new ResponseCmd(s));
   ui.addCmd(new RseedCmd(s));
+#endif
   ui.addCmd(new RunCmd(s));
+#if 0
   ui.addCmd(new SaveCmd(s));
+#endif
   ui.addCmd(new SetCmd(s));
+#if 0
   ui.addCmd(new SetVelocityCmd(s));
   ui.addCmd(new SpeciesCmd(s));
   ui.addCmd(new SpectrumCmd(s));
+#endif
   ui.addCmd(new StatusCmd(s));
+#if 0
   ui.addCmd(new StrainCmd(s));
   ui.addCmd(new TorsionCmd(s));
+#endif
 
   ui.addVar(new AlphaPBE0(s));
   ui.addVar(new AlphaRSH(s));
@@ -354,7 +374,6 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new MuRSH(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new NetCharge(s));
-  ui.addVar(new Nrowmax(s));
   ui.addVar(new Nspin(s));
   ui.addVar(new Occ(s));
   ui.addVar(new Dspin(s));
@@ -370,7 +389,6 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new WfDiag(s));
   ui.addVar(new WfDyn(s));
   ui.addVar(new Xc(s));
-#endif
 
   if ( argc == 2 )
   {

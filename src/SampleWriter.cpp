@@ -17,6 +17,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
+#include "MPIdata.h"
 #include "SampleWriter.h"
 #include "Sample.h"
 #include "fstream"
@@ -92,7 +93,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     err = MPI_File_open(ctxt_.comm(),(char*) filename_cstr,
                         MPI_MODE_WRONLY|MPI_MODE_CREATE,info,&fh);
     if ( err != 0 )
-      cout << s.ctxt_.mype() << ": error in MPI_File_open: " << err << endl;
+      cout << MPIdata::rank() << ": error in MPI_File_open: " << err << endl;
 
     MPI_File_set_size(fh,0);
     ctxt_.barrier();

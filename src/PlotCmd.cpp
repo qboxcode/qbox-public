@@ -198,7 +198,7 @@ int PlotCmd::action(int argc, char **argv)
   int np1 = 0;
   int np2 = 0;
 
-  const Context& ctxt = *s->wf.spincontext();
+  const Context& ctxt = s->wf.sd_context();
   if ( plot_density )
   {
     ChargeDensity cd(s->wf);

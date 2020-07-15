@@ -20,12 +20,11 @@
 #define SAMPLE_H
 
 #include "MPIdata.h"
+#include "Context.h"
 #include "AtomSet.h"
-#if 0
 #include "ConstraintSet.h"
 #include "ExtForceSet.h"
 #include "Wavefunction.h"
-#endif
 #include "Control.h"
 
 class UserInterface;
@@ -37,26 +36,27 @@ class Sample
 
   public:
 
+  Context sd_ctxt;
   AtomSet atoms;
-  //ConstraintSet constraints;
-  //ExtForceSet extforces;
+  ConstraintSet constraints;
+  ExtForceSet extforces;
   ExternalPotential* vext;
-  //Wavefunction wf;
-  //Wavefunction* wfv; // wavefunction velocity
+  Wavefunction wf;
+  Wavefunction* wfv; // wavefunction velocity
   Control ctrl;
   UserInterface *ui;
 
-  //Sample(UserInterface *ui_ = 0) : ui(ui_), atoms(ctxt), constraints(ctxt),
-  //  extforces(ctxt), vext(0), wf(ctxt), wfv(0) {}
-  Sample(UserInterface *ui_ = 0) : ui(ui_) {}
-  //~Sample(void) { delete wfv; }
+  Sample(UserInterface *ui_ = 0) : ui(ui_),
+    sd_ctxt(MPIdata::sd_comm(),MPIdata::ngb(),MPIdata::nstb()),
+    wf(sd_ctxt), wfv(0), vext(0) {}
+  ~Sample(void) { delete wfv; }
   void reset(void)
   {
     atoms.reset();
-    //constraints.reset();
-    //extforces.reset();
-    //wf.reset();
-    //delete wfv;
+    constraints.reset();
+    extforces.reset();
+    wf.reset();
+    delete wfv;
   }
 };
 #endif

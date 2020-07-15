@@ -43,6 +43,9 @@ class MPIdata
   static int ikpb_;
   static int ispb_;
 
+  static int sd_rank_;
+  static int sd_size_;
+
   // private ctor
   MPIdata(void);
 
@@ -66,6 +69,9 @@ class MPIdata
   static int istb(void) { return istb_; }
   static int ikpb(void) { return ikpb_; }
   static int ispb(void) { return ispb_; }
+
+  static int sd_rank(void) { return sd_rank_; }
+  static int sd_size(void) { return sd_size_; }
 
   static void set(int ngb, int nstb = 1, int nkpb = 1, int nspb = 1);
 };

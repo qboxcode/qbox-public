@@ -49,10 +49,9 @@ int main(int argc, char** argv)
        << MPIdata::ispb() << " / " << MPIdata::nspb() << endl;
 
   int coords[2];
-  int sd_rank;
-  MPI_Comm_rank(MPIdata::sd_comm(),&sd_rank);
-  MPI_Cart_coords(MPIdata::sd_comm(),sd_rank,2,coords);
-  cout << " rank=" << MPIdata::rank() << " sd_rank=" << sd_rank
+  MPI_Cart_coords(MPIdata::sd_comm(),MPIdata::sd_rank(),2,coords);
+  cout << " rank=" << MPIdata::rank() << " sd_rank = "
+       <<MPIdata::sd_rank()
        << " coords=(" << coords[0] << "," << coords[1] << ")" << endl;
 
   MPI_Barrier(MPIdata::sd_comm());

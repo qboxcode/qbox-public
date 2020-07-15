@@ -43,6 +43,9 @@ int MPIdata::istb_;     // rank in st_comm
 int MPIdata::ikpb_;     // rank in kp_comm
 int MPIdata::ispb_;     // rank in sp_comm
 
+int MPIdata::sd_rank_;  // rank in sd_comm
+int MPIdata::sd_size_;  // size of sd_comm
+
 void MPIdata::set(int ngb, int nstb, int nkpb, int nspb)
 {
   MPI_Comm_size(MPI_COMM_WORLD,&size_);
@@ -95,4 +98,6 @@ void MPIdata::set(int ngb, int nstb, int nkpb, int nspb)
   // Slater determinant communicator
   int sd_remain_dims[4] = { 0, 0, 1, 1 };
   MPI_Cart_sub(comm_,sd_remain_dims,&sd_comm_);
+  MPI_Comm_size(sd_comm_,&sd_size_);
+  MPI_Comm_rank(sd_comm_,&sd_rank_);
 }

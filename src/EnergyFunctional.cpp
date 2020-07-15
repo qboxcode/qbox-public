@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "EnergyFunctional.h"
 #include "Sample.h"
 #include "Species.h"
@@ -67,14 +68,14 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
 
   v_r.resize(wf.nspin());
   vxc_r.resize(wf.nspin());
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+  for ( int ispin = 0; ispin < wf.nspin(); ++ispin )
   {
     v_r[ispin].resize(vft->np012loc());
     vxc_r[ispin].resize(vft->np012loc());
   }
   tmp_r.resize(vft->np012loc());
 
-  if ( s_.ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     cout << " EnergyFunctional: <np0v> " << np0v << " </np0v>  "
          << "<np1v> " << np1v << " </np1v>  "
@@ -106,13 +107,14 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
     rhops[is].resize(ngloc);
   }
 
-  nlp.resize(wf.nspin());
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+  nlp.resize(wf.nsp_loc());
+  for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
   {
-    nlp[ispin].resize(wf.nkp());
-    for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+    nlp[isp_loc].resize(wf.nkp_loc());
+    for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
     {
-      nlp[ispin][ikp] = new NonLocalPotential(s_.atoms, *wf.sd(ispin,ikp));
+      nlp[isp_loc][ikp_loc] =
+        new NonLocalPotential(s_.atoms, *wf.sd(isp_loc,ikp_loc));
     }
   }
 
@@ -161,22 +163,26 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
   }
 
   // FT for interpolation of wavefunctions on the fine grid
-  ft.resize(wf.nkp());
-  for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+  ft.resize(wf.nkp_loc());
+  for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
   {
-    ft[ikp] = cd_.ft(ikp);
+    ft[ikp_loc] = cd_.ft(ikp_loc);
   }
 
   // Confinement potentials
-  cfp.resize(wf.nkp());
-  for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+  if ( wf.nsp_loc() != 0 )
   {
-    cfp[ikp] = 0;
-    const double facs = 2.0;
-    const double sigmas = 0.5;
-    cfp[ikp] =
-      new ConfinementPotential(s_.ctrl.ecuts,facs,sigmas,
-        wf.sd(0,ikp)->basis());
+    int ispg = wf.isp_global(0);
+    cfp.resize(wf.nkp_loc());
+    for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
+    {
+      cfp[ikp_loc] = 0;
+      const double facs = 2.0;
+      const double sigmas = 0.5;
+      cfp[ikp_loc] =
+        new ConfinementPotential(s_.ctrl.ecuts,facs,sigmas,
+          wf.sd(ispg,ikp_loc)->basis());
+    }
   }
 
   // Electric enthalpy
@@ -195,13 +201,14 @@ EnergyFunctional::~EnergyFunctional(void)
 {
   delete el_enth_;
   delete xco;
-  for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+  for ( int ikp_loc = 0; ikp_loc < s_.wf.nkp_loc(); ++ikp_loc )
   {
-    delete cfp[ikp];
-    for ( int ispin = 0; ispin < nlp.size(); ispin++ )
-      delete nlp[ispin][ikp];
+    delete cfp[ikp_loc];
+    for ( int isp_loc = 0; isp_loc < nlp.size(); ++isp_loc )
+      delete nlp[isp_loc][ikp_loc];
   }
 
+#if 0
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
     double time = (*i).second.real();
@@ -218,6 +225,7 @@ EnergyFunctional::~EnergyFunctional(void)
            << endl;
     }
   }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -410,9 +418,9 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
 
   if ( compute_hpsi )
   {
-    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-      for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
-        dwf.sd(ispin,ikp)->c().clear();
+    for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
+      for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
+        dwf.sd(isp_loc,ikp_loc)->c().clear();
   }
 
   // kinetic energy
@@ -428,12 +436,13 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   sigma_ekin = 0.0;
   sigma_econf = 0.0;
   valarray<double> sum(0.0,14), tsum(0.0,14);
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
     {
-      const double weight = wf.weight(ikp);
-      const SlaterDet& sd = *(wf.sd(ispin,ikp));
+      const int ikpg = wf.ikp_global(ikp_loc);
+      const double weight = wf.weight(ikpg);
+      const SlaterDet& sd = *(wf.sd(isp_loc,ikp_loc));
       const Basis& wfbasis = sd.basis();
       // factor fac in next lines: 2.0 for G and -G (if basis is real) and
       // 0.5 from 1/(2m)
@@ -497,8 +506,8 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
 
       if ( use_confinement )
       {
-        const valarray<double>& fstress = cfp[ikp]->fstress();
-        const valarray<double>& dfstress = cfp[ikp]->dfstress();
+        const valarray<double>& fstress = cfp[ikp_loc]->fstress();
+        const valarray<double>& dfstress = cfp[ikp_loc]->dfstress();
         for ( int ig = 0; ig < ngwloc; ig++ )
         {
           const double psi2s = psi2sum[ig];
@@ -525,11 +534,13 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
       }
 
       sum += weight * tsum;
-    } // ikp
-  } // ispin
+    } // ikp_loc
+  } // isp_loc
 
   // sum contains the contributions to ekin, etc.. from this task
-  wf.context().dsum(14,1,&sum[0],14);
+  // sum over all blocks
+  MPI_Allreduce(&sum[0],&tsum[0],14,MPI_DOUBLE,MPI_SUM,MPIdata::comm());
+  sum = tsum;
 
   ekin_  = sum[0];
   sigma_ekin[0] = sum[1];
@@ -666,7 +677,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
 
   // Non local energy and forces
   tmap["nonlocal"].start();
-  // modify next loop to span only local ikp
   enl_ = 0.0;
   vector<vector<double> > fion_enl;
   fion_enl.resize(nsp_);
@@ -674,23 +684,49 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     fion_enl[is].resize(3*na_[is]);
   valarray<double> sigma_enl_kp(6);
   sigma_enl = 0.0;
-  for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+  for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
   {
-    for ( int ispin = 0; ispin < nlp.size(); ispin++ )
+    for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
     {
-      enl_ += wf.weight(ikp) * nlp[ispin][ikp]->energy(compute_hpsi,
-              *dwf.sd(ispin,ikp), compute_forces, fion_enl, compute_stress,
-              sigma_enl_kp);
+      const int ikpg = wf.ikp_global(ikp_loc);
+      enl_ += wf.weight(ikpg) * nlp[isp_loc][ikp_loc]->energy(compute_hpsi,
+              *dwf.sd(isp_loc,ikp_loc), compute_forces, fion_enl,
+              compute_stress, sigma_enl_kp);
 
-      if ( compute_forces )
-        for ( int is = 0; is < nsp_; is++ )
-          for ( int i = 0; i < 3*na_[is]; i++ )
-            fion[is][i] += wf.weight(ikp) * fion_enl[is][i];
+      for ( int is = 0; is < nsp_; is++ )
+        for ( int i = 0; i < 3*na_[is]; i++ )
+          fion_enl[is][i] *= wf.weight(ikpg);
 
       if ( compute_stress )
-        sigma_enl += wf.weight(ikp) * sigma_enl_kp;
+        sigma_enl += wf.weight(ikpg) * sigma_enl_kp;
     }
   }
+
+  if ( compute_forces )
+  {
+    // sum of weighted fion_enl contributions over sp_comm, kp_comm
+    for ( int is = 0; is < nsp_; ++is )
+    {
+      int len = 3*na_[is];
+      valarray<double> tmpfion_enl(len);
+      double* p = &fion_enl[is][0];
+      double* tp = &tmpfion_enl[0];
+      MPI_Allreduce(p,tp,len,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
+      MPI_Allreduce(tp,p,len,MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
+    }
+    for ( int is = 0; is < nsp_; is++ )
+      for ( int i = 0; i < 3*na_[is]; i++ )
+        fion[is][i] += fion_enl[is][i];
+  }
+
+  // sum enl_, sigma_enl_ over kp_comm, sp_comm
+  copy(begin(sigma_enl),end(sigma_enl),begin(sum));
+  sum[6] = enl_;
+  MPI_Allreduce(&sum[0],&tsum[0],7,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
+  MPI_Allreduce(&tsum[0],&sum[0],7,MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
+  enl_ = sum[6];
+  copy(begin(sum),begin(sum)+6,begin(sigma_enl));
+
   tmap["nonlocal"].stop();
 
   ecoul_ = ehart_ + esr_ - eself_;
@@ -741,15 +777,15 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   if ( compute_hpsi )
   {
     tmap["hpsi"].start();
-    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+    for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
     {
-      for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+      for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
       {
-        const SlaterDet& sd = *(wf.sd(ispin,ikp));
-        SlaterDet& sdp = *(dwf.sd(ispin,ikp));
+        const SlaterDet& sd = *(wf.sd(isp_loc,ikp_loc));
+        SlaterDet& sdp = *(dwf.sd(isp_loc,ikp_loc));
         const ComplexMatrix& c = sd.c();
         const Basis& wfbasis = sd.basis();
-        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
+        ComplexMatrix& cp = dwf.sd(isp_loc,ikp_loc)->c();
         const int mloc = cp.mloc();
         const double* kpg2 = wfbasis.kpg2_ptr();
         const int ngwloc = wfbasis.localsize();
@@ -759,7 +795,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
         {
           for ( int n = 0; n < sd.nstloc(); n++ )
           {
-            const valarray<double>& fstress = cfp[ikp]->fstress();
+            const valarray<double>& fstress = cfp[ikp_loc]->fstress();
             for ( int ig = 0; ig < ngwloc; ig++ )
             {
               cp[ig+mloc*n] += 0.5 * ( kpg2[ig] + fstress[ig] ) *
@@ -779,9 +815,10 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
         }
 
         // local potential
-        sd.rs_mul_add(*ft[ikp], &v_r[ispin][0], sdp);
-      } //ikp
-    } //ispin
+        const int ispg = wf.isp_global(isp_loc);
+        sd.rs_mul_add(*ft[ikp_loc], &v_r[ispg][0], sdp);
+      } //ikp_loc
+    } //isp_loc
 
     // apply self-energy operator
     xco->apply_self_energy(dwf);
@@ -887,7 +924,7 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
             sigma_ehart + sigma_exc + sigma_esr;
   }
 
-  if ( debug_stress && s_.ctxt_.onpe0() )
+  if ( debug_stress && MPIdata::onpe0() )
   {
     cout.setf(ios::fixed,ios::floatfield);
     cout.setf(ios::right,ios::adjustfield);
@@ -1182,11 +1219,11 @@ void EnergyFunctional::cell_moved(void)
   }
 
   // Update confinement potentials and non-local potentials
-  for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+  for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
   {
-    cfp[ikp]->update();
-    for ( int ispin = 0; ispin < nlp.size(); ispin++ )
-      nlp[ispin][ikp]->update_twnl();
+    cfp[ikp_loc]->update();
+    for ( int isp_loc = 0; isp_loc < nlp.size(); ++isp_loc )
+      nlp[isp_loc][ikp_loc]->update_twnl();
   }
 
   // Update exchange-correlation operator

@@ -51,6 +51,7 @@ BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) :
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::~BOSampleStepper()
 {
+#if 0
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
     double time = (*i).second.real();
@@ -67,6 +68,7 @@ BOSampleStepper::~BOSampleStepper()
            << endl;
     }
   }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -164,9 +166,6 @@ void BOSampleStepper::initialize_density(void)
 ////////////////////////////////////////////////////////////////////////////////
 void BOSampleStepper::step(int niter)
 {
-  const Context& ctxt = s_.ctxt_;
-  const bool onpe0 = ctxt.onpe0();
-
   const bool anderson_charge_mixing = ( s_.ctrl.charge_mix_ndim > 0 );
 
   // determine whether eigenvectors must be computed
@@ -182,6 +181,9 @@ void BOSampleStepper::step(int niter)
 
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
+  const Context& ctxt = wf.sd_context();
+  const bool onpe0 = ctxt.onpe0();
+
   const int nspin = wf.nspin();
 
   const double dt = s_.ctrl.dt;
@@ -270,7 +272,7 @@ void BOSampleStepper::step(int niter)
     }
   }
 
-  vector<MLWFTransform*> mlwft(nspin);
+  vector<MLWFTransform*> mlwft(wf.nsp_loc());
 
   if ( compute_mlwf || compute_mlwfc )
   {
@@ -287,8 +289,8 @@ void BOSampleStepper::step(int niter)
       return;
     }
 
-    for ( int ispin = 0; ispin < nspin; ispin++ )
-      mlwft[ispin] = new MLWFTransform(*wf.sd(ispin,0));
+    for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
+      mlwft[isp_loc] = new MLWFTransform(*wf.sd(isp_loc,0));
   }
 
   // Charge mixing variables: include both spins in the same vector
@@ -301,7 +303,7 @@ void BOSampleStepper::step(int niter)
 
   // Anderson charge mixer: include both spins in the same vector
   // Factor of 2: complex coeffs stored as double
-  MPI_Comm vcomm = cd_.vcomm();
+  MPI_Comm vcomm = MPIdata::g_comm();
   AndersonMixer mixer(2*nspin*ng,anderson_ndim,&vcomm);
 
   // compute Kerker preconditioning
@@ -562,17 +564,20 @@ void BOSampleStepper::step(int niter)
     // wavefunction extrapolation
     if ( atoms_move && extrapolate_wf )
     {
-      for ( int ispin = 0; ispin < nspin; ispin++ )
+      for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
       {
-        for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+        for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
         {
           if ( ntc_extrapolation )
           {
-            double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
-            double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
-            double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
-            const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
-            const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+            SlaterDet* sd = wf.sd(isp_loc,ikp_loc);
+            SlaterDet* sdv = wfv->sd(isp_loc,ikp_loc);
+            SlaterDet* sdmm = wfmm->sd(isp_loc,ikp_loc);
+            double* c = (double*) sd->c().cvalptr();
+            double* cv = (double*) sdv->c().cvalptr();
+            double* cmm = (double*) sdmm->c().cvalptr();
+            const int mloc = sd->c().mloc();
+            const int nloc = sd->c().nloc();
             const int len = 2*mloc*nloc;
             if ( iter == 0 )
             {
@@ -586,12 +591,12 @@ void BOSampleStepper::step(int niter)
                 cv[i] = x;
               }
               tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
+              sd->gram();
               tmap["gram"].stop();
             }
             else if ( iter == 1 )
             {
-              s_.wfv->sd(ispin,ikp)->align(*s_.wf.sd(ispin,ikp));
+              sdv->align(*sd);
               for ( int i = 0; i < len; i++ )
               {
                 const double x = c[i];
@@ -601,13 +606,13 @@ void BOSampleStepper::step(int niter)
                 cmm[i] = xm;
               }
               tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
+              sd->gram();
               tmap["gram"].stop();
             }
             else
             {
               // align wf with wfmm before extrapolation
-              s_.wf.sd(ispin,ikp)->align(*wfmm->sd(ispin,ikp));
+              sd->align(*sdmm);
 
               // extrapolate
               for ( int i = 0; i < len; i++ )
@@ -622,10 +627,10 @@ void BOSampleStepper::step(int niter)
 
               // orthogonalize the extrapolated value
               tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
+              sd->gram();
               tmap["gram"].stop();
               //tmap["lowdin"].start();
-              //s_.wf.sd(ispin,ikp)->lowdin();
+              //sd->lowdin();
               //tmap["lowdin"].stop();
 
               // c[i] now contains the extrapolated value
@@ -639,11 +644,14 @@ void BOSampleStepper::step(int niter)
           }
           else if ( asp_extrapolation )
           {
-            double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
-            double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
-            double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
-            const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
-            const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+            SlaterDet* sd = wf.sd(isp_loc,ikp_loc);
+            SlaterDet* sdv = wfv->sd(isp_loc,ikp_loc);
+            SlaterDet* sdmm = wfmm->sd(isp_loc,ikp_loc);
+            double* c = (double*) sd->c().cvalptr();
+            double* cv = (double*) sdv->c().cvalptr();
+            double* cmm = (double*) sdmm->c().cvalptr();
+            const int mloc = s_.wf.sd(isp_loc,ikp_loc)->c().mloc();
+            const int nloc = s_.wf.sd(isp_loc,ikp_loc)->c().nloc();
             const int len = 2*mloc*nloc;
             if ( iter == 0 )
             {
@@ -656,12 +664,12 @@ void BOSampleStepper::step(int niter)
                 cv[i] = x;
               }
               tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
+              sd->gram();
               tmap["gram"].stop();
             }
             else if ( iter == 1 )
             {
-              s_.wfv->sd(ispin,ikp)->align(*s_.wf.sd(ispin,ikp));
+              sdv->align(*sd);
               for ( int i = 0; i < len; i++ )
               {
                 const double x = c[i];
@@ -671,13 +679,13 @@ void BOSampleStepper::step(int niter)
                 cmm[i] = xm;
               }
               tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
+              sd->gram();
               tmap["gram"].stop();
             }
             else
             {
               // align wf with wfmm before extrapolation
-              s_.wf.sd(ispin,ikp)->align(*wfmm->sd(ispin,ikp));
+              sd->align(*sdmm);
 
               // extrapolate
               for ( int i = 0; i < len; i++ )
@@ -695,7 +703,7 @@ void BOSampleStepper::step(int niter)
 
               // orthogonalize the extrapolated value
               tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
+              sd->gram();
               tmap["gram"].stop();
               //tmap["lowdin"].start();
               //s_.wf.sd(ispin,ikp)->lowdin();
@@ -707,10 +715,12 @@ void BOSampleStepper::step(int niter)
           }
           else // normal extrapolation
           {
-            double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
-            double* cv = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
-            const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
-            const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+            SlaterDet* sd = wf.sd(isp_loc,ikp_loc);
+            SlaterDet* sdv = wfv->sd(isp_loc,ikp_loc);
+            double* c = (double*) sd->c().cvalptr();
+            double* cv = (double*) sdv->c().cvalptr();
+            const int mloc = s_.wf.sd(isp_loc,ikp_loc)->c().mloc();
+            const int nloc = s_.wf.sd(isp_loc,ikp_loc)->c().nloc();
             const int len = 2*mloc*nloc;
             if ( iter == 0 )
             {
@@ -723,16 +733,16 @@ void BOSampleStepper::step(int niter)
                 cv[i] = x;
               }
               //tmap["lowdin"].start();
-              //s_.wf.sd(ispin,ikp)->lowdin();
+              //sd->lowdin();
               //tmap["lowdin"].stop();
               tmap["gram"].start();
-              s_.wf.sd(ispin,ikp)->gram();
+              sd->gram();
               tmap["gram"].stop();
             }
             else
             {
               tmap["align"].start();
-              s_.wfv->sd(ispin,ikp)->align(*s_.wf.sd(ispin,ikp));
+              sdv->align(*sd);
               tmap["align"].stop();
 
               // linear extrapolation
@@ -744,15 +754,15 @@ void BOSampleStepper::step(int niter)
                 cv[i] = x;
               }
               //tmap["ortho_align"].start();
-              //s_.wf.sd(ispin,ikp)->ortho_align(*s_.wfv->sd(ispin,ikp));
+              //sd->ortho_align(*sdv);
               //tmap["ortho_align"].stop();
 
               //tmap["riccati"].start();
-              //s_.wf.sd(ispin,ikp)->riccati(*s_.wfv->sd(ispin,ikp));
+              //sd->riccati(*sdv);
               //tmap["riccati"].stop();
 
               tmap["lowdin"].start();
-              s_.wf.sd(ispin,ikp)->lowdin();
+              sd->lowdin();
               tmap["lowdin"].stop();
             }
           }
@@ -825,21 +835,21 @@ void BOSampleStepper::step(int niter)
                   drhog[i+ng*ispin] /= wls[i];
               }
 
-              const Context * const kpctxt = s_.wf.kpcontext();
-              if ( kpctxt->mycol() == 0 )
+              const Context& kpctxt = s_.wf.sd_context();
+              if ( kpctxt.mycol() == 0 )
               {
                 // use AndersonMixer on first column only and bcast results
                 mixer.update((double*)&rhog_in[0], (double*)&drhog[0],
                              (double*)&rhobar[0], (double*)&drhobar[0]);
                 const int n = 2*nspin*ng;
-                kpctxt->dbcast_send('r',n,1,(double*)&rhobar[0],n);
-                kpctxt->dbcast_send('r',n,1,(double*)&drhobar[0],n);
+                kpctxt.dbcast_send('r',n,1,(double*)&rhobar[0],n);
+                kpctxt.dbcast_send('r',n,1,(double*)&drhobar[0],n);
               }
               else
               {
                 const int n = 2*nspin*ng;
-                kpctxt->dbcast_recv('r',n,1,(double*)&rhobar[0],n,-1,0);
-                kpctxt->dbcast_recv('r',n,1,(double*)&drhobar[0],n,-1,0);
+                kpctxt.dbcast_recv('r',n,1,(double*)&rhobar[0],n,-1,0);
+                kpctxt.dbcast_recv('r',n,1,(double*)&drhobar[0],n,-1,0);
               }
 
               for ( int ispin = 0; ispin < nspin; ispin++ )
@@ -974,36 +984,50 @@ void BOSampleStepper::step(int niter)
           tmap["wfdiag"].start();
           s_.wf.diag(dwf,compute_eigvec);
           tmap["wfdiag"].stop();
-          if ( onpe0 )
+          // print eigenvalues
+          cout << "<eigenset>" << endl;
+          for ( int ispb = 0; ispb < MPIdata::nspb(); ++ispb )
           {
-            cout << "<eigenset>" << endl;
-            // print eigenvalues
-            for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+            for ( int ikpb = 0; ikpb < MPIdata::nkpb(); ++ikpb )
             {
-              for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+              MPI_Barrier(MPIdata::comm());
+              if ( (ispb == MPIdata::ispb()) && (ikpb == MPIdata::ikpb()) )
               {
-                const int nst = wf.sd(ispin,ikp)->nst();
-                const double eVolt = 2.0 * 13.6058;
-                cout <<    "  <eigenvalues spin=\"" << ispin
-                     << "\" kpoint=\""
-                     << setprecision(8)
-                     << wf.sd(ispin,ikp)->kpoint()
-                     << "\" weight=\""
-                     << setprecision(8)
-                     << wf.weight(ikp)
-                     << "\" n=\"" << nst << "\">" << endl;
-                for ( int i = 0; i < nst; i++ )
+                for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
                 {
-                  cout << setw(12) << setprecision(5)
-                       << wf.sd(ispin,ikp)->eig(i)*eVolt;
-                  if ( i%5 == 4 ) cout << endl;
+                  for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc();
+                        ++ikp_loc )
+                  {
+                    if ( MPIdata::sd_rank() == 0 )
+                    {
+                      const int ikpg = wf.ikp_global(ikp_loc);
+                      const int ispg = wf.isp_global(isp_loc);
+                      const int nst = wf.sd(isp_loc,ikp_loc)->nst();
+                      const double eVolt = 2.0 * 13.6058;
+                      cout <<    "  <eigenvalues spin=\"" << ispg
+                           << "\" kpoint=\""
+                           << setprecision(8)
+                           << wf.sd(isp_loc,ikp_loc)->kpoint()
+                           << "\" weight=\""
+                           << setprecision(8)
+                           << wf.weight(ikpg)
+                           << "\" n=\"" << nst << "\">" << endl;
+                      for ( int i = 0; i < nst; i++ )
+                      {
+                        cout << setw(12) << setprecision(5)
+                             << wf.sd(isp_loc,ikp_loc)->eig(i)*eVolt;
+                        if ( i%5 == 4 ) cout << endl;
+                      }
+                      if ( nst%5 != 0 ) cout << endl;
+                      cout << "  </eigenvalues>" << endl;
+                    }
+                  }
                 }
-                if ( nst%5 != 0 ) cout << endl;
-                cout << "  </eigenvalues>" << endl;
               }
+              MPI_Barrier(MPIdata::comm());
             }
-            cout << "</eigenset>" << endl;
           }
+          cout << "</eigenset>" << endl;
         }
 
         // update occupation numbers if fractionally occupied states
@@ -1024,19 +1048,23 @@ void BOSampleStepper::step(int niter)
           }
 #endif
           w_eigenvalue_sum = 0.0;
-          for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+          for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
           {
-            for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+            for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
             {
-              const int nst = wf.sd(ispin,ikp)->nst();
-              const double wkp = wf.weight(ikp);
+              const int nst = wf.sd(isp_loc,ikp_loc)->nst();
+              const int ikpg = wf.ikp_global(ikp_loc);
+              const double wkp = wf.weight(ikpg);
               for ( int n = 0; n < nst; n++ )
               {
-                const double occ = wf.sd(ispin,ikp)->occ(n);
-                w_eigenvalue_sum += wkp * occ * wf.sd(ispin,ikp)->eig(n);
+                const double occ = wf.sd(isp_loc,ikp_loc)->occ(n);
+                w_eigenvalue_sum += wkp * occ * wf.sd(isp_loc,ikp_loc)->eig(n);
               }
             }
           }
+          double tsum;
+          MPI_Reduce(&w_eigenvalue_sum,&tsum,1,
+            MPI_DOUBLE,MPI_SUM,0,MPIdata::comm());
         }
 
         // Harris-Foulkes estimate of the total energy
@@ -1081,23 +1109,25 @@ void BOSampleStepper::step(int niter)
       if ( compute_mlwf || compute_mlwfc )
       {
         tmap["mlwf"].start();
-        for ( int ispin = 0; ispin < nspin; ispin++ )
+        for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
         {
-          mlwft[ispin]->update();
-          mlwft[ispin]->compute_transform();
+          mlwft[isp_loc]->update();
+          mlwft[isp_loc]->compute_transform();
         }
 
         if ( compute_mlwf )
         {
-          for ( int ispin = 0; ispin < nspin; ispin++ )
+          for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
           {
-            SlaterDet& sd = *(wf.sd(ispin,0));
-            mlwft[ispin]->apply_transform(sd);
+            SlaterDet& sd = *(wf.sd(isp_loc,0));
+            mlwft[isp_loc]->apply_transform(sd);
           }
         }
 
         if ( onpe0 )
         {
+          cout << " BOSampleStepper::step printing mlwfs not implemented\n";
+#if 0
           D3vector edipole_sum;
           cout << "<mlwfs>" << endl;
           for ( int ispin = 0; ispin < nspin; ispin++ )
@@ -1110,11 +1140,11 @@ void BOSampleStepper::step(int niter)
                total_spread[j] = 0.0;
             for ( int i = 0; i < sd.nst(); i++ )
             {
-              D3vector ctr = mlwft[ispin]->center(i);
+              D3vector ctr = mlwft[isp_loc]->center(i);
               double spi[6];
               for (int j=0; j<3; j++)
               {
-                spi[j] = mlwft[ispin]->spread2(i,j);
+                spi[j] = mlwft[isp_loc]->spread2(i,j);
                 total_spread[j] += spi[j];
               }
 
@@ -1135,7 +1165,7 @@ void BOSampleStepper::step(int niter)
             for ( int j = 0; j < 3; j++ )
               cout << setw(10) << total_spread[j];
             cout << " </total_spread>" << endl;
-            D3vector edipole = mlwft[ispin]->dipole();
+            D3vector edipole = mlwft[isp_loc]->dipole();
             cout << " <electronic_dipole spin=\"" << ispin << "\"> " << edipole
                  << " </electronic_dipole>" << endl;
             edipole_sum += edipole;
@@ -1149,6 +1179,7 @@ void BOSampleStepper::step(int niter)
           cout << " <total_dipole_length> " << length(idipole + edipole_sum)
                << " </total_dipole_length>" << endl;
           cout << "</mlwfs>" << endl;
+#endif
         }
         tmap["mlwf"].stop();
       }
@@ -1260,6 +1291,7 @@ void BOSampleStepper::step(int niter)
     }
 
     // print iteration time
+#if 0
     double time = tm_iter.real();
     double tmin = time;
     double tmax = time;
@@ -1274,6 +1306,7 @@ void BOSampleStepper::step(int niter)
            << endl;
       cout << "</iteration>" << endl;
     }
+#endif
 
   } // for iter
 
@@ -1307,19 +1340,19 @@ void BOSampleStepper::step(int niter)
     s_.wfv->align(s_.wf);
     tmap["align"].stop();
 
-    for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+    for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
     {
-      for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+      for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
       {
-        double* c = (double*) s_.wf.sd(ispin,ikp)->c().cvalptr();
-        double* cm = (double*) s_.wfv->sd(ispin,ikp)->c().cvalptr();
-        const int mloc = s_.wf.sd(ispin,ikp)->c().mloc();
-        const int nloc = s_.wf.sd(ispin,ikp)->c().nloc();
+        double* c = (double*) s_.wf.sd(isp_loc,ikp_loc)->c().cvalptr();
+        double* cm = (double*) s_.wfv->sd(isp_loc,ikp_loc)->c().cvalptr();
+        const int mloc = s_.wf.sd(isp_loc,ikp_loc)->c().mloc();
+        const int nloc = s_.wf.sd(isp_loc,ikp_loc)->c().nloc();
         const int len = 2*mloc*nloc;
         const double dt_inv = 1.0 / dt;
         if ( ntc_extrapolation )
         {
-          double* cmm = (double*) wfmm->sd(ispin,ikp)->c().cvalptr();
+          double* cmm = (double*) wfmm->sd(isp_loc,ikp_loc)->c().cvalptr();
           for ( int i = 0; i < len; i++ )
           {
             const double x = c[i];
@@ -1327,7 +1360,7 @@ void BOSampleStepper::step(int niter)
             cm[i] = dt_inv * ( x - xmm );
           }
           tmap["gram"].start();
-          s_.wf.sd(ispin,ikp)->gram();
+          s_.wf.sd(isp_loc,ikp_loc)->gram();
           tmap["gram"].stop();
         }
         else // normal extrapolation or asp_extrapolation
@@ -1339,7 +1372,7 @@ void BOSampleStepper::step(int niter)
             cm[i] = dt_inv * ( x - xm );
           }
           tmap["gram"].start();
-          s_.wf.sd(ispin,ikp)->gram();
+          s_.wf.sd(isp_loc,ikp_loc)->gram();
           tmap["gram"].stop();
         }
       }
@@ -1364,10 +1397,8 @@ void BOSampleStepper::step(int niter)
     // positions r0 and velocities v0 are consistent
   }
 
-  for ( int ispin = 0; ispin < nspin; ispin++ )
-  {
-    delete mlwft[ispin];
-  }
+  for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
+    delete mlwft[isp_loc];
 
   // delete steppers
   delete wf_stepper;

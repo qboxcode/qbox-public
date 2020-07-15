@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "CPSampleStepper.h"
 #include "SlaterDet.h"
 #include "MDWavefunctionStepper.h"
@@ -60,6 +61,7 @@ CPSampleStepper::~CPSampleStepper(void)
 {
   delete mdwf_stepper;
   if ( mdionic_stepper != 0 ) delete mdionic_stepper;
+#if 0
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
     double time = (*i).second.real();
@@ -76,18 +78,19 @@ CPSampleStepper::~CPSampleStepper(void)
            << endl;
     }
   }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void CPSampleStepper::step(int niter)
 {
-  const bool onpe0 = s_.ctxt_.onpe0();
+  const bool onpe0 = MPIdata::onpe0();
 
   // check that there are no fractionally occupied states
   // next line: (3-nspin) = 2 if nspin==1 and 1 if nspin==2
   if ( s_.wf.nel() != (( 3 - s_.wf.nspin() ) * s_.wf.nst()) )
   {
-    if ( s_.ctxt_.onpe0() )
+    if ( onpe0 )
     {
       cout << " CPSampleStepper::step:"
               " fractionally occupied or empty states: cannot run" << endl;
@@ -141,7 +144,7 @@ void CPSampleStepper::step(int niter)
   {
     tm_iter.reset();
     tm_iter.start();
-    if ( s_.ctxt_.mype() == 0 )
+    if ( onpe0 )
       cout << "<iteration count=\"" << iter+1 << "\">\n";
 
     mdwf_stepper->update(dwf);
@@ -255,10 +258,11 @@ void CPSampleStepper::step(int niter)
       ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
     ef_.enthalpy();
 
-    if ( s_.ctxt_.mype() == 0 )
+    if ( onpe0 )
       cout << "</iteration>" << endl;
 
     // print iteration time
+#if 0
     tm_iter.stop();
     double time = tm_iter.real();
     double tmin = time;
@@ -273,6 +277,7 @@ void CPSampleStepper::step(int niter)
            << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
+#endif
     if ( compute_forces )
       s_.constraints.update_constraints(dt);
   } // iter

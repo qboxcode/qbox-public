@@ -36,17 +36,19 @@ PSDWavefunctionStepper::~PSDWavefunctionStepper(void)
 ////////////////////////////////////////////////////////////////////////////////
 void PSDWavefunctionStepper::update(Wavefunction& dwf)
 {
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
       // compute A = V^T H V  and descent direction HV - VA
+      SlaterDet* sd = wf_.sd(isp_loc,ikp_loc);
+      SlaterDet* dsd = dwf.sd(isp_loc,ikp_loc);
       tmap_["psd_residual"].start();
-      if ( wf_.sd(ispin,ikp)->basis().real() )
+      if ( sd->basis().real() )
       {
         // proxy real matrices c, cp
-        DoubleMatrix c(wf_.sd(ispin,ikp)->c());
-        DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
+        DoubleMatrix c(sd->c());
+        DoubleMatrix cp(dsd->c());
 
         DoubleMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
 
@@ -60,8 +62,8 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
       }
       else
       {
-        ComplexMatrix& c = wf_.sd(ispin,ikp)->c();
-        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
+        ComplexMatrix& c = sd->c();
+        ComplexMatrix& cp = dsd->c();
         ComplexMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
         a.gemm('c','n',1.0,c,cp,0.0);
         // cp = cp - c * a
@@ -76,17 +78,18 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
   // update preconditioner
   prec_.update(wf_);
 
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
+      SlaterDet* sd = wf_.sd(isp_loc,ikp_loc);
+      SlaterDet* dsd = dwf.sd(isp_loc,ikp_loc);
       tmap_["psd_update_wf"].start();
-      double* coeff = (double*) wf_.sd(ispin,ikp)->c().valptr();
-      const double* dcoeff =
-        (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
-      const int mloc = wf_.sd(ispin,ikp)->c().mloc();
-      const int ngwl = wf_.sd(ispin,ikp)->basis().localsize();
-      const int nloc = wf_.sd(ispin,ikp)->c().nloc();
+      double* coeff = (double*) sd->c().valptr();
+      const double* dcoeff = (const double*) dsd->c().cvalptr();
+      const int mloc = sd->c().mloc();
+      const int ngwl = sd->basis().localsize();
+      const int nloc = sd->c().nloc();
       for ( int n = 0; n < nloc; n++ )
       {
         // note: double mloc length for complex<double> indices
@@ -95,7 +98,7 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
 
         for ( int i = 0; i < ngwl; i++ )
         {
-          const double fac = prec_.diag(ispin,ikp,n,i);
+          const double fac = prec_.diag(isp_loc,ikp_loc,n,i);
           const double delta_re = fac * dc[2*i];
           const double delta_im = fac * dc[2*i+1];
           c[2*i]   -= delta_re;
@@ -105,7 +108,7 @@ void PSDWavefunctionStepper::update(Wavefunction& dwf)
       tmap_["psd_update_wf"].stop();
 
       tmap_["gram"].start();
-      wf_.sd(ispin,ikp)->gram();
+      sd->gram();
       tmap_["gram"].stop();
     }
   }

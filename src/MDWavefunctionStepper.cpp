@@ -35,9 +35,9 @@ MDWavefunctionStepper::MDWavefunctionStepper(Wavefunction& wf,
 void MDWavefunctionStepper::update(Wavefunction& dwf)
 {
   // Verlet update of wf using force dwf and wfm stored in *wfv
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
       tmap_["md_update_wf"].start();
       // Verlet update of wf
@@ -46,11 +46,12 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
       // cp = 2*c - cm - dt2bye * hpsi
       // cm = c
       // c = cp
-      SlaterDet* sd = wf_.sd(ispin,ikp);
+      SlaterDet* sd = wf_.sd(isp_loc,ikp_loc);
+      SlaterDet* sdv = wfv_->sd(isp_loc,ikp_loc);
       double* cptr = (double*) sd->c().valptr();
-      double* cptrm = (double*) wfv_->sd(ispin,ikp)->c().valptr();
+      double* cptrm = (double*) sdv->c().valptr();
       const double* dcptr =
-        (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
+        (const double*) dwf.sd(isp_loc,ikp_loc)->c().cvalptr();
       const int mloc = sd->c().mloc();
       const int nloc = sd->c().nloc();
       for ( int n = 0; n < nloc; n++ )
@@ -79,7 +80,7 @@ void MDWavefunctionStepper::update(Wavefunction& dwf)
       tmap_["md_update_wf"].stop();
 
       tmap_["riccati"].start();
-      wf_.sd(ispin,ikp)->riccati(*(wfv_->sd(ispin,ikp)));
+      sd->riccati(*sdv);
       tmap_["riccati"].stop();
     }
   }
@@ -97,16 +98,17 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
   // cm = c - dt * v - 0.5 * dt2/m * hpsi
   // replace wfv by wfm
   const double half_dt2bye = 0.5 * dt2bye_;
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
-      SlaterDet* sd = wf_.sd(ispin,ikp);
+      SlaterDet* sd = wf_.sd(isp_loc,ikp_loc);
+      SlaterDet* sdv = wfv_->sd(isp_loc,ikp_loc);
 
       double* cptr = (double*) sd->c().valptr();
-      double* cptrv = (double*) wfv_->sd(ispin,ikp)->c().valptr();
+      double* cptrv = (double*) sdv->c().valptr();
       const double* dcptr =
-        (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
+        (const double*) dwf.sd(isp_loc,ikp_loc)->c().cvalptr();
       const int mloc = sd->c().mloc();
       const int nloc = sd->c().nloc();
       for ( int n = 0; n < nloc; n++ )
@@ -128,7 +130,7 @@ void MDWavefunctionStepper::compute_wfm(Wavefunction& dwf)
         }
       }
       tmap_["riccati"].start();
-      wfv_->sd(ispin,ikp)->riccati(*wf_.sd(ispin,ikp));
+      sdv->riccati(*sd);
       tmap_["riccati"].stop();
     }
   }
@@ -145,9 +147,9 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
   // Compute wfv = (wf - wfm)/dt - 0.5*dtbye*dwf
 
   assert(dt_!=0.0);
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
       // compute final velocity wfv
       // v = ( c - cm ) / dt - 0.5 * dt/m * hpsi
@@ -157,12 +159,12 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
       // hpsi must be orthogonal to the subspace spanned by c
       // compute descent direction H psi - psi (psi^T H psi)
 
-      SlaterDet* sd = wf_.sd(ispin,ikp);
+      SlaterDet* sd = wf_.sd(isp_loc,ikp_loc);
       if ( sd->basis().real() )
       {
         // proxy real matrices c, cp
         DoubleMatrix c(sd->c());
-        DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
+        DoubleMatrix cp(dwf.sd(isp_loc,ikp_loc)->c());
 
         DoubleMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
 
@@ -177,7 +179,7 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
       else
       {
         ComplexMatrix& c = sd->c();
-        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
+        ComplexMatrix& cp = dwf.sd(isp_loc,ikp_loc)->c();
         ComplexMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
         a.gemm('c','n',1.0,c,cp,0.0);
         // cp = cp - c * a
@@ -187,9 +189,9 @@ void MDWavefunctionStepper::compute_wfv(Wavefunction& dwf)
       const double dt_inv = 1.0/dt_;
       const double half_dtbye = 0.5 * dt2bye_ / dt_;
       double* cptr = (double*) sd->c().valptr();
-      double* cptrv = (double*) wfv_->sd(ispin,ikp)->c().valptr();
+      double* cptrv = (double*) wfv_->sd(isp_loc,ikp_loc)->c().valptr();
       const double* dcptr =
-        (const double*) dwf.sd(ispin,ikp)->c().cvalptr();
+        (const double*) dwf.sd(isp_loc,ikp_loc)->c().cvalptr();
       const int mloc = sd->c().mloc();
       const int nloc = sd->c().nloc();
       for ( int n = 0; n < nloc; n++ )
@@ -225,18 +227,19 @@ double MDWavefunctionStepper::ekin_eh(void)
   tmap_["ekin_e"].start();
   double ekin_e = 0.0;
   // assume that wfv contains wfm
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
-      const double weight = wf_.weight(ikp);
-      SlaterDet* sd = wf_.sd(ispin,ikp);
+      const int ikpg = wf_.ikp_global(ikp_loc);
+      const double weight = wf_.weight(ikpg);
+      SlaterDet* sd = wf_.sd(isp_loc,ikp_loc);
       double* cptr = (double*) sd->c().valptr();
-      double* cptrm = (double*) wfv_->sd(ispin,ikp)->c().valptr();
+      double* cptrm = (double*) wfv_->sd(isp_loc,ikp_loc)->c().valptr();
       const int mloc = sd->c().mloc();
       const int nloc = sd->c().nloc();
       // compute electronic kinetic energy at time t-1/2
-      const bool onrow0 = ( wf_.context().myrow() == 0 );
+      const bool onrow0 = ( wf_.sd_context().myrow() == 0 );
       const vector<double>& occ = sd->occ();
       for ( int n = 0; n < nloc; n++ )
       {
@@ -272,7 +275,7 @@ double MDWavefunctionStepper::ekin_eh(void)
       }
     }
   }
-  wf_.context().dsum(1,1,&ekin_e,1);
+  wf_.sd_context().dsum(1,1,&ekin_e,1);
   tmap_["ekin_e"].stop();
   return ekin_e;
 }

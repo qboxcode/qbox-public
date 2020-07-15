@@ -31,9 +31,9 @@ class Preconditioner
 
   EnergyFunctional& ef_;
 
-  // kpg2_[ispin][ikp][ig]
+  // kpg2_[isp_loc][ikp_loc][ig]
   std::vector<std::vector<const double *> > kpg2_;
-  // ekin_[ispin][ikp][n]
+  // ekin_[isp_loc][ikp_loc][n]
   std::vector<std::vector<std::valarray<double> > > ekin_;
 
   double ecutprec_;
@@ -43,9 +43,8 @@ class Preconditioner
   // update values of ekin_
   void update(const Wavefunction& wf);
 
-  double diag(int ispin, int ikp, int n, int ig) const;
+  double diag(int isp_loc, int ikp_loc, int n, int ig) const;
 
   Preconditioner(const Wavefunction& wf, EnergyFunctional& ef, double ecutprec);
-  //~Preconditioner();
 };
 #endif

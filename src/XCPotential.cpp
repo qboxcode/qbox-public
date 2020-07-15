@@ -468,6 +468,9 @@ void XCPotential::update(vector<vector<double> >& vr)
 ////////////////////////////////////////////////////////////////////////////////
 void XCPotential::compute_stress(valarray<double>& sigma_exc)
 {
+  cout << "XC_Potential::compute_stress: not implemented" << endl;
+  MPI_Abort(MPIdata::comm(),1);
+#if 0
   // compute exchange-correlation contributions to the stress tensor
 
   if ( !isGGA() && !isMeta())
@@ -1259,11 +1262,15 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
     sigma_exc[4] = tsum[4];
     sigma_exc[5] = tsum[5];
   }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void XCPotential::apply_meta_operator(Wavefunction& dwf)
 {
+  cout << "XC_Potential::apply_meta_operator: not implemented" << endl;
+  MPI_Abort(MPIdata::comm(),1);
+#if 0
   const Wavefunction& wf0 = s_.wf;
 
   if ( wf0.nspin() == 1 )
@@ -1558,4 +1565,5 @@ void XCPotential::apply_meta_operator(Wavefunction& dwf)
       }
     }
   }
+#endif
 }

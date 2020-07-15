@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "CGIonicStepper.h"
 #include "CGOptimizer.h"
 using namespace std;
@@ -28,7 +29,7 @@ CGIonicStepper::CGIonicStepper(Sample& s) : IonicStepper(s),
   cgopt_.set_alpha_max(50.0);
   cgopt_.set_beta_max(10.0);
 #ifdef DEBUG
-  if ( s.ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
     cgopt_.set_debug_print();
 #endif
 }
@@ -69,7 +70,7 @@ void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
     largest_disp = max(largest_disp,fabs(xp[i]-x[i]));
   if ( largest_disp > max_disp )
   {
-    if ( s_.ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
       cout << "  CGIonicStepper: displacement exceeds limit, rescaling" << endl;
     // rescale displacement and reset the CG optimizer
     double fac = max_disp/largest_disp;
@@ -78,7 +79,7 @@ void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
     cgopt_.reset();
   }
 
-  if ( s_.ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     cout << "  CGIonicStepper: alpha = " << cgopt_.alpha() << endl;
   }

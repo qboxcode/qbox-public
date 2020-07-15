@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "MDIonicStepper.h"
 #include "sampling.h"
 #include <cstdlib> // drand48
@@ -53,6 +54,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
   // adjust velocities with the thermostat
   // compute ekin
 
+  const bool onpe0 = MPIdata::onpe0();
   assert(dt_ != 0.0);
   for ( int is = 0; is < v0_.size(); is++ )
   {
@@ -74,7 +76,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
   if ( thermostat_ == "SCALING" )
   {
     eta_ = tanh ( ( temp() - th_temp_ ) / th_width_ ) / th_time_;
-    if ( s_.ctxt_.onpe0() )
+    if ( onpe0 )
     {
       cout << "  thermostat: temp=" << temp() << endl;
       cout << "  thermostat: tref=" << th_temp_ << endl;
@@ -97,7 +99,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
     const double collision_probability = th_time_ == 0 ? 1.0 :
                  min(fabs(dt_) / th_time_, 1.0);
 
-    if ( s_.ctxt_.onpe0() )
+    if ( onpe0 )
     {
       // compute collision on task 0 and synchronize later
       for ( int is = 0; is < nsp_; is++ )
@@ -141,7 +143,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
 
     // scan all atom pairs in the space (is,ia)
     //int npairs = 0;
-    if ( s_.ctxt_.onpe0() )
+    if ( onpe0 )
     {
       // compute collision only on task 0 and synchronize later
       // since calculation involves drand48
@@ -203,7 +205,7 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
     // J.Chem.Phys. 126, 014101 (2007)
     // Choice of sign of alpha following
     // Bussi, Parrinello, Comput. Phys. Comm. 179, 26 (2008).
-    if ( s_.ctxt_.onpe0() )
+    if ( onpe0 )
     {
       // rescale velocities on task 0 and synchronize later
       // since calculation involves drand48
@@ -238,10 +240,10 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
       // accumulate the change in kinetic energy in ekin_stepper_
       // ekin(t+dt) = alpha2 * ekin(t)
       ekin_stepper_ += ( 1.0 - alpha2 ) * ekin_;
-      s_.ctxt_.dbcast_send(1,1,&ekin_stepper_,1);
+      s_.sd_ctxt.dbcast_send(1,1,&ekin_stepper_,1);
     }
-    if ( !s_.ctxt_.onpe0() )
-      s_.ctxt_.dbcast_recv(1,1,&ekin_stepper_,1,0,0);
+    if ( onpe0 )
+      s_.sd_ctxt.dbcast_recv(1,1,&ekin_stepper_,1,0,0);
 
     atoms_.set_velocities(v0_);
   }

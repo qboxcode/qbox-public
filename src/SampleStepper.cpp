@@ -44,6 +44,7 @@ SampleStepper::SampleStepper(Sample& s) : s_(s)
 SampleStepper::~SampleStepper(void)
 {
   // print timer map
+#if 0
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
     double time = (*i).second.real();
@@ -60,13 +61,14 @@ SampleStepper::~SampleStepper(void)
            << endl;
     }
   }
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void SampleStepper::print_stress(void)
 {
   const double gpa = 29421.5;
-  if ( s_.ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     cout.setf(ios::fixed,ios::floatfield);
     cout.setf(ios::right,ios::adjustfield);

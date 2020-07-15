@@ -25,18 +25,16 @@
 class Atom;
 class AtomSet;
 class ExtForce;
-class Context;
 
 class ExtForceSet
 {
   private:
 
-  const Context& ctxt_;
   std::vector<ExtForce *> extforce_list;
 
   public:
 
-  ExtForceSet(const Context& ctxt) : ctxt_(ctxt) {}
+  ExtForceSet(void) {}
   ~ExtForceSet();
   bool define_extforce(AtomSet &atoms, int argc, char **argv);
   bool set_extforce(int argc, char **argv);

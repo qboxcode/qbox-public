@@ -32,16 +32,16 @@ SDWavefunctionStepper::SDWavefunctionStepper(Wavefunction& wf, double alpha,
 ////////////////////////////////////////////////////////////////////////////////
 void SDWavefunctionStepper::update(Wavefunction& dwf)
 {
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
       // c = c - dt2bye * hpsi
       tmap_["sd_update_wf"].start();
-      wf_.sd(ispin,ikp)->c().axpy(-alpha_,dwf.sd(ispin,ikp)->c());
+      wf_.sd(isp_loc,ikp_loc)->c().axpy(-alpha_,dwf.sd(isp_loc,ikp_loc)->c());
       tmap_["sd_update_wf"].stop();
       tmap_["gram"].start();
-      wf_.sd(ispin,ikp)->gram();
+      wf_.sd(isp_loc,ikp_loc)->gram();
       tmap_["gram"].stop();
     }
   }

@@ -172,7 +172,6 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
   // Confinement potentials
   if ( wf.nsp_loc() != 0 )
   {
-    int ispg = wf.isp_global(0);
     cfp.resize(wf.nkp_loc());
     for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
     {
@@ -181,7 +180,7 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
       const double sigmas = 0.5;
       cfp[ikp_loc] =
         new ConfinementPotential(s_.ctrl.ecuts,facs,sigmas,
-          wf.sd(ispg,ikp_loc)->basis());
+          wf.sd(0,ikp_loc)->basis());
     }
   }
 

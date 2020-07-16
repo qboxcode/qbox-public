@@ -51,7 +51,9 @@ using namespace std;
 #include "ExtForceCmd.h"
 #include "FoldInWsCmd.h"
 #include "HelpCmd.h"
+#endif
 #include "KpointCmd.h"
+#if 0
 #include "ListAtomsCmd.h"
 #include "ListSpeciesCmd.h"
 #include "LoadCmd.h"
@@ -170,61 +172,62 @@ int main(int argc, char **argv, char **envp)
   if ( pc != 0 ) nkpb = atoi(pc);
 
   cout << " rank=" << MPIdata::rank() << " ngb=" << ngb << " nstb=" << nstb
-       << " nspb=" << nspb << " nkpb=" << nkpb << endl;
+       << " nkpb=" << nkpb << " nspb=" << nspb << endl;
 
-  MPIdata::set(ngb,nstb,nspb,nkpb);
+  MPIdata::set(ngb,nstb,nkpb,nspb);
   cout << MPIdata::rank() << ": ngb=" << ngb << " nstb=" << nstb
-       << " nspb=" << nspb << " nkpb=" << nkpb << endl;
+       << " nkpb=" << nkpb << " nspb=" << nspb << endl;
   cout << MPIdata::rank() << ": igb=" << MPIdata::igb()
        << " istb=" << MPIdata::istb()
-       << " ispb=" << MPIdata::ispb()
-       << " ikpb=" << MPIdata::ikpb() << endl;
+       << " ikpb=" << MPIdata::ikpb()
+       << " ispb=" << MPIdata::ispb() << endl;
 
   if ( MPIdata::onpe0() )
   {
-  cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-  cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
+    cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+    cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
 #if USE_UUID
-  cout << "<uuid> " << uuid_str() << " </uuid>" << endl;
+    cout << "<uuid> " << uuid_str() << " </uuid>" << endl;
 #endif
-  cout << "\n";
-  cout << "                   ============================\n";
-  cout << "                   I qbox "
-       << setw(17) << left << release() << "   I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I http://qboxcode.org      I\n";
-  cout << "                   ============================\n\n";
-  cout << "\n";
-  cout << "<release> " << release() << " " << getenv("TARGET");
+    cout << "\n";
+    cout << "                   ============================\n";
+    cout << "                   I qbox "
+         << setw(17) << left << release() << "   I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I http://qboxcode.org      I\n";
+    cout << "                   ============================\n\n";
+    cout << "\n";
+    cout << "<release> " << release() << " " << getenv("TARGET");
 #ifdef VERSION
-  cout << " " << VERSION;
+    cout << " " << VERSION;
 #endif
-  cout << " </release>" << endl;
+    cout << " </release>" << endl;
 
-  // Identify executable name, checksum, size and link date
-  if ( getenv("LOGNAME") != 0 )
-    cout << "<user> " << getenv("LOGNAME") << " </user>" << endl;
+    // Identify executable name, checksum, size and link date
+    if ( getenv("LOGNAME") != 0 )
+      cout << "<user> " << getenv("LOGNAME") << " </user>" << endl;
 
-  // Identify platform
-  {
-    struct utsname un;
-    uname (&un);
-    cout << "<sysname> " << un.sysname << " </sysname>" << endl;
-    cout << "<nodename> " << un.nodename << " </nodename>" << endl;
-  }
+    // Identify platform
+    {
+      struct utsname un;
+      uname (&un);
+      cout << "<sysname> " << un.sysname << " </sysname>" << endl;
+      cout << "<nodename> " << un.nodename << " </nodename>" << endl;
+    }
 
-  cout << "<start_time> " << isodate() << " </start_time>" << endl;
-  cout << " comm: " << ngb << "x" << nstb << "x" << nspb << "x" << nkpb << endl;
+    cout << "<start_time> " << isodate() << " </start_time>" << endl;
+    cout << " comm: " << ngb << "x" << nstb << "x"
+         << nkpb << "x" << nspb << endl;
   }
 
   // Print list of node names
@@ -249,8 +252,8 @@ int main(int argc, char **argv, char **envp)
     cout << "<mpi_processes count=\"" << MPIdata::size() << "\">" << endl;
     cout << "<process id=\"" << MPIdata::rank() << "\"> " << processor_name
          << " </process>"
-         << " (" << coords[0] << "," << coords[1]
-         << "," << coords[2] << "," << coords[3] << ")" << endl;
+         << " (" << coords[3] << "," << coords[2]
+         << "," << coords[1] << "," << coords[0] << ")" << endl;
   }
   for ( int ip = 1; ip < MPIdata::size(); ip++ )
   {
@@ -281,8 +284,8 @@ int main(int argc, char **argv, char **envp)
     {
       cout << "<process id=\"" << ip << "\"> " << buf
            << " </process>"
-           << " (" << coords[0] << "," << coords[1]
-           << "," << coords[2] << "," << coords[3] << ")" << endl;
+           << " (" << coords[3] << "," << coords[2]
+           << "," << coords[1] << "," << coords[0] << ")" << endl;
     }
   }
   if ( MPIdata::onpe0() )
@@ -307,7 +310,9 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new ExtForceCmd(s));
   ui.addCmd(new FoldInWsCmd(s));
   ui.addCmd(new HelpCmd(s));
+#endif
   ui.addCmd(new KpointCmd(s));
+#if 0
   ui.addCmd(new ListAtomsCmd(s));
   ui.addCmd(new ListSpeciesCmd(s));
   ui.addCmd(new LoadCmd(s));

@@ -479,16 +479,16 @@ jade.o: blacs.h Context.h Matrix.h blas.h Timer.h
 qb.o: isodate.h release.h qbox_xmlns.h uuid_str.h MPIdata.h Timer.h
 qb.o: UserInterface.h Sample.h Context.h blacs.h AtomSet.h Atom.h D3vector.h
 qb.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-qb.o: Wavefunction.h Control.h PrintCmd.h QuitCmd.h RandomizeWfCmd.h RunCmd.h
-qb.o: SetCmd.h StatusCmd.h ChargeDensity.h FourierTransform.h BasisMapping.h
-qb.o: AlphaPBE0.h AlphaRSH.h AtomsDyn.h BetaRSH.h BlHF.h BtHF.h Cell.h
-qb.o: CellDyn.h SlaterDet.h Basis.h Matrix.h CellLock.h CellMass.h
-qb.o: ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h Debug.h Dspin.h Ecut.h
-qb.o: Ecutprec.h Ecuts.h Efield.h ForceTol.h Polarization.h Emass.h
-qb.o: ExtStress.h FermiTemp.h IterCmd.h IterCmdPeriod.h Dt.h MuRSH.h Nempty.h
-qb.o: NetCharge.h Nspin.h Occ.h RefCell.h ScfTol.h Stress.h StressTol.h
-qb.o: Thermostat.h ThTemp.h ThTime.h ThWidth.h Vext.h ExternalPotential.h
-qb.o: WfDiag.h WfDyn.h Xc.h
+qb.o: Wavefunction.h Control.h KpointCmd.h PrintCmd.h QuitCmd.h
+qb.o: RandomizeWfCmd.h RunCmd.h SetCmd.h StatusCmd.h ChargeDensity.h
+qb.o: FourierTransform.h BasisMapping.h AlphaPBE0.h AlphaRSH.h AtomsDyn.h
+qb.o: BetaRSH.h BlHF.h BtHF.h Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h
+qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
+qb.o: Debug.h Dspin.h Ecut.h Ecutprec.h Ecuts.h Efield.h ForceTol.h
+qb.o: Polarization.h Emass.h ExtStress.h FermiTemp.h IterCmd.h
+qb.o: IterCmdPeriod.h Dt.h MuRSH.h Nempty.h NetCharge.h Nspin.h Occ.h
+qb.o: RefCell.h ScfTol.h Stress.h StressTol.h Thermostat.h ThTemp.h ThTime.h
+qb.o: ThWidth.h Vext.h ExternalPotential.h WfDiag.h WfDyn.h Xc.h
 qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h

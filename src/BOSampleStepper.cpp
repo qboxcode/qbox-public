@@ -181,8 +181,8 @@ void BOSampleStepper::step(int niter)
 
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
-  const Context& ctxt = wf.sd_context();
   const bool onpe0 = MPIdata::onpe0();
+  const Context& sd_ctxt = wf.sd_context();
 
   const int nspin = wf.nspin();
 
@@ -835,21 +835,20 @@ void BOSampleStepper::step(int niter)
                   drhog[i+ng*ispin] /= wls[i];
               }
 
-              const Context& kpctxt = s_.wf.sd_context();
-              if ( kpctxt.mycol() == 0 )
+              if ( sd_ctxt.mycol() == 0 )
               {
                 // use AndersonMixer on first column only and bcast results
                 mixer.update((double*)&rhog_in[0], (double*)&drhog[0],
                              (double*)&rhobar[0], (double*)&drhobar[0]);
                 const int n = 2*nspin*ng;
-                kpctxt.dbcast_send('r',n,1,(double*)&rhobar[0],n);
-                kpctxt.dbcast_send('r',n,1,(double*)&drhobar[0],n);
+                sd_ctxt.dbcast_send('r',n,1,(double*)&rhobar[0],n);
+                sd_ctxt.dbcast_send('r',n,1,(double*)&drhobar[0],n);
               }
               else
               {
                 const int n = 2*nspin*ng;
-                kpctxt.dbcast_recv('r',n,1,(double*)&rhobar[0],n,-1,0);
-                kpctxt.dbcast_recv('r',n,1,(double*)&drhobar[0],n,-1,0);
+                sd_ctxt.dbcast_recv('r',n,1,(double*)&rhobar[0],n,-1,0);
+                sd_ctxt.dbcast_recv('r',n,1,(double*)&drhobar[0],n,-1,0);
               }
 
               for ( int ispin = 0; ispin < nspin; ispin++ )

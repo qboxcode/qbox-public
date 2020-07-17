@@ -182,7 +182,7 @@ void BOSampleStepper::step(int niter)
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
   const Context& ctxt = wf.sd_context();
-  const bool onpe0 = ctxt.onpe0();
+  const bool onpe0 = MPIdata::onpe0();
 
   const int nspin = wf.nspin();
 
@@ -985,7 +985,8 @@ void BOSampleStepper::step(int niter)
           s_.wf.diag(dwf,compute_eigvec);
           tmap["wfdiag"].stop();
           // print eigenvalues
-          cout << "<eigenset>" << endl;
+          if ( MPIdata::onpe0() )
+            cout << "<eigenset>" << endl;
           for ( int ispb = 0; ispb < MPIdata::nspb(); ++ispb )
           {
             for ( int ikpb = 0; ikpb < MPIdata::nkpb(); ++ikpb )
@@ -995,8 +996,7 @@ void BOSampleStepper::step(int niter)
               {
                 for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
                 {
-                  for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc();
-                        ++ikp_loc )
+                  for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
                   {
                     if ( MPIdata::sd_rank() == 0 )
                     {
@@ -1027,7 +1027,8 @@ void BOSampleStepper::step(int niter)
               MPI_Barrier(MPIdata::comm());
             }
           }
-          cout << "</eigenset>" << endl;
+          if ( MPIdata::onpe0() )
+            cout << "</eigenset>" << endl;
         }
 
         // update occupation numbers if fractionally occupied states
@@ -1065,6 +1066,7 @@ void BOSampleStepper::step(int niter)
           double tsum;
           MPI_Reduce(&w_eigenvalue_sum,&tsum,1,
             MPI_DOUBLE,MPI_SUM,0,MPIdata::comm());
+          w_eigenvalue_sum = tsum;
         }
 
         // Harris-Foulkes estimate of the total energy

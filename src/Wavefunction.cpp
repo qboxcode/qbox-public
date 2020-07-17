@@ -762,6 +762,10 @@ complex<double> Wavefunction::dot(const Wavefunction& wf) const
         sd_[isp_loc][ikp_loc]->dot(*wf.sd_[isp_loc][ikp_loc]);
     }
   }
+  // sum over kpoint and spin comms
+  complex<double> tsum;
+  MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPIdata::kp_comm());
+  MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPIdata::sp_comm());
   return sum;
 }
 

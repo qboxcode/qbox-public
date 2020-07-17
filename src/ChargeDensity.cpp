@@ -161,13 +161,16 @@ void ChargeDensity::update_density(void)
 
   for ( int ispin = 0; ispin < wf_.nspin(); ++ispin )
   {
-    // sum over kpoints
+    // sum over kpoints, states and spins
     tmap["charge_rowsum"].start();
     vector<double> tmpr(vft_->np012loc());
     MPI_Allreduce(&rhor[ispin][0],&tmpr[0],vft_->np012loc(),
-                  MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
-    MPI_Allreduce(&tmpr[0],&rhor[ispin][0],vft_->np012loc(),
                   MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
+    MPI_Allreduce(&tmpr[0],&rhor[ispin][0],vft_->np012loc(),
+                  MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
+    MPI_Allreduce(&rhor[ispin][0],&tmpr[0],vft_->np012loc(),
+                  MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
+    rhor[ispin] = tmpr;
     tmap["charge_rowsum"].stop();
 
     // check integral of charge density
@@ -188,7 +191,7 @@ void ChargeDensity::update_density(void)
     double tsum = 0.0;
     // sum over g_comm and sp_comm
     MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::g_comm());
-    MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
+    sum = tsum;
     tmap["charge_integral"].stop();
     total_charge_[ispin] = sum;
 

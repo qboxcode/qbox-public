@@ -1033,7 +1033,8 @@ void BOSampleStepper::step(int niter)
         // update occupation numbers if fractionally occupied states
         // compute weighted sum of eigenvalues
         // default value if no fractional occupation
-        double w_eigenvalue_sum = 2.0 * eigenvalue_sum;
+        double fac = ( wf.nspin() == 1 ) ? 2.0 : 1.0 ;
+        double w_eigenvalue_sum = fac * eigenvalue_sum;
 
         if ( fractional_occ )
         {

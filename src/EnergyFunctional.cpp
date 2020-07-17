@@ -163,10 +163,11 @@ EnergyFunctional::EnergyFunctional(Sample& s, ChargeDensity& cd)
   }
 
   // FT for interpolation of wavefunctions on the fine grid
-  ft.resize(wf.nkp_loc());
-  for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
+  if ( wf.nsp_loc() != 0 )
   {
-    ft[ikp_loc] = cd_.ft(ikp_loc);
+    ft.resize(wf.nkp_loc());
+    for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
+      ft[ikp_loc] = cd_.ft(ikp_loc);
   }
 
   // Confinement potentials
@@ -200,12 +201,14 @@ EnergyFunctional::~EnergyFunctional(void)
 {
   delete el_enth_;
   delete xco;
-  for ( int ikp_loc = 0; ikp_loc < s_.wf.nkp_loc(); ++ikp_loc )
-  {
-    delete cfp[ikp_loc];
-    for ( int isp_loc = 0; isp_loc < nlp.size(); ++isp_loc )
+
+  if ( s_.wf.nsp_loc() != 0 )
+    for ( int ikp_loc = 0; ikp_loc < s_.wf.nkp_loc(); ++ikp_loc )
+      delete cfp[ikp_loc];
+
+  for ( int isp_loc = 0; isp_loc < nlp.size(); ++isp_loc )
+    for ( int ikp_loc = 0; ikp_loc < s_.wf.nkp_loc(); ++ikp_loc )
       delete nlp[isp_loc][ikp_loc];
-  }
 
 #if 0
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
@@ -1220,11 +1223,14 @@ void EnergyFunctional::cell_moved(void)
   }
 
   // Update confinement potentials and non-local potentials
-  for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
+  if ( wf.nsp_loc() != 0 )
   {
-    cfp[ikp_loc]->update();
-    for ( int isp_loc = 0; isp_loc < nlp.size(); ++isp_loc )
-      nlp[isp_loc][ikp_loc]->update_twnl();
+    for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
+    {
+      cfp[ikp_loc]->update();
+      for ( int isp_loc = 0; isp_loc < nlp.size(); ++isp_loc )
+        nlp[isp_loc][ikp_loc]->update_twnl();
+    }
   }
 
   // Update exchange-correlation operator

@@ -67,8 +67,11 @@ ChargeDensity::ChargeDensity(const Wavefunction& wf) : wf_(wf)
   }
   rhotmp.resize(vft_->np012loc());
 
+#ifdef DEBUG
   cout << MPIdata::rank() << ": ChargeDensity::ctor: wf.nsp_loc()="
        << wf.nsp_loc() << " wf.nkp_loc()=" << wf.nkp_loc() << endl;
+#endif
+
   // FT for interpolation of wavefunctions on the fine grid
   if ( wf.nsp_loc() > 0 )
   {

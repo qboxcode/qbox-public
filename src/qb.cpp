@@ -23,6 +23,7 @@ using namespace std;
 
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <cstdlib>
 #include <cassert>
 #include <fstream>
@@ -137,6 +138,14 @@ using namespace std;
 #include "WfDyn.h"
 #include "Xc.h"
 
+void usage(void)
+{
+  cerr << " use:" << endl;
+  cerr << "   qb [-nstb nstb] [-nkpb nkpb] [-nspb nspb] inputfile" << endl;
+  cerr << "   qb -server [-nstb nstb] [-nkpb nkpb] [-nspb nspb] "
+       << "inputfile outputfile" << endl;
+}
+
 int main(int argc, char **argv, char **envp)
 {
   Timer tm;
@@ -144,43 +153,139 @@ int main(int argc, char **argv, char **envp)
 
   MPI_Init(&argc,&argv);
 
-  // Initialize MPIdata
-  int def_size;
-  MPI_Comm_size(MPI_COMM_WORLD,&def_size);
+  int ntasks;
+  MPI_Comm_size(MPI_COMM_WORLD,&ntasks);
+  int mype;
+  MPI_Comm_rank(MPI_COMM_WORLD,&mype);
 
-  // get numbers of G, states, spin and kpoint blocks
-  const char* pc;
-
+  // default values for number of blocks
   // ngb: number of G vector blocks
-  int ngb = def_size;
-  pc = getenv("QBOX_NGB");
-  if ( pc != 0 ) ngb = atoi(pc);
-
   // nstb: number of states blocks
-  int nstb = 1;
-  pc = getenv("QBOX_NSTB");
-  if ( pc != 0 ) nstb = atoi(pc);
-
-  // nspb: number of spin blocks
-  int nspb = 1;
-  pc = getenv("QBOX_NSPB");
-  if ( pc != 0 ) nspb = atoi(pc);
-
   // nkpb: number of kpoint blocks
-  int nkpb = 1;
-  pc = getenv("QBOX_NKPB");
-  if ( pc != 0 ) nkpb = atoi(pc);
+  // nspb: number of spin blocks
+  int ngb = ntasks, nstb = 1, nkpb = 1, nspb = 1;
 
-  cout << " rank=" << MPIdata::rank() << " ngb=" << ngb << " nstb=" << nstb
-       << " nkpb=" << nkpb << " nspb=" << nspb << endl;
+  // process command line arguments
+  int ch;
+  opterr = 0; // prevent getopt_long from writing on stderr
+  int server_mode = 0;
+  bool do_exit = false;
+
+  // options descriptor
+  static struct option longopts[] =
+  {
+    { "help",       no_argument,            NULL,            0  },
+    { "server",     no_argument,            NULL,            1  },
+    { "nstb",       required_argument,      NULL,            2  },
+    { "nkpb",       required_argument,      NULL,            3  },
+    { "nspb",       required_argument,      NULL,            4  },
+    { NULL,         0,                      NULL,            0  }
+  };
+
+  while ( (ch = getopt_long_only(argc, argv, ":", longopts, NULL )) != -1 )
+  {
+    switch (ch)
+    {
+      case 0:
+        // help
+        do_exit = true;
+      case 1:
+        server_mode = 1;
+        break;
+      case 2:
+        nstb = atoi(optarg);
+        if ( nstb < 1 )
+        {
+          if ( mype == 0 )
+            cerr << " nstb must be positive" << endl;
+          do_exit = true;
+        }
+        break;
+      case 3:
+        nkpb = atoi(optarg);
+        if ( nkpb < 1 )
+        {
+          if ( mype == 0 )
+            cerr << " nkpb must be positive" << endl;
+          do_exit = true;
+        }
+        break;
+      case 4:
+        nspb = atoi(optarg);
+        if ( (nspb < 1) || (nspb > 2) )
+        {
+          if ( mype == 0 )
+            cerr << " nspb must be 1 or 2" << endl;
+          do_exit = true;
+        }
+        break;
+      case ':':
+        if ( mype == 0 )
+          cerr << " missing option argument\n";
+        do_exit = true;
+        break;
+      case '?':
+        if ( mype == 0 )
+          cerr << " unknown or ambiguous option\n";
+        do_exit = true;
+        break;
+      default:
+        if ( mype == 0 )
+          cerr << " unknown option: " << argv[opterr] << endl;
+        do_exit = true;
+    }
+  }
+  argc -= optind;
+  argv += optind;
+
+  if ( do_exit )
+  {
+    if ( mype == 0 )
+      usage();
+    MPI_Finalize();
+    return 0;
+  }
+
+  const int interactive = ( argc == 0 );
+
+#ifdef DEBUG
+  cout << " argc=" << argc << endl;
+  for ( int iarg = 0; iarg < argc; ++iarg )
+    cout << " argv[" << iarg << "]= " << argv[iarg] << endl;
+  cout << " server_mode = " << server_mode << endl;
+  cout << " interactive = " << interactive << endl;
+  cout << " ntasks = " << ntasks << endl;
+  cout << " nstb = " << nstb << endl;
+  cout << " nkpb = " << nkpb << endl;
+  cout << " nspb = " << nspb << endl;
+#endif
+
+  // adjust ngb to satisfy ngb*nstb*nkpb*nspb == ntasks
+
+  if ( ( ntasks % ( nstb * nkpb * nspb ) ) == 0 )
+  {
+    // nstb * nkpb * nspb divides ntasks
+    ngb = ntasks / ( nstb * nkpb * nspb );
+  }
+  else
+  {
+    if ( mype == 0 )
+      cerr << " nstb * nkpb * nspb does not divide ntasks evenly" << endl;
+    MPI_Finalize();
+    return 0;
+  }
 
   MPIdata::set(ngb,nstb,nkpb,nspb);
+
+#ifdef DEBUG
   cout << MPIdata::rank() << ": ngb=" << ngb << " nstb=" << nstb
        << " nkpb=" << nkpb << " nspb=" << nspb << endl;
+
   cout << MPIdata::rank() << ": igb=" << MPIdata::igb()
        << " istb=" << MPIdata::istb()
        << " ikpb=" << MPIdata::ikpb()
        << " ispb=" << MPIdata::ispb() << endl;
+#endif
 
   if ( MPIdata::onpe0() )
   {
@@ -226,7 +331,7 @@ int main(int argc, char **argv, char **envp)
     }
 
     cout << "<start_time> " << isodate() << " </start_time>" << endl;
-    cout << " comm: " << ngb << "x" << nstb << "x"
+    cout << " MPIdata::comm: " << ngb << "x" << nstb << "x"
          << nkpb << "x" << nspb << endl;
   }
 
@@ -395,18 +500,50 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new WfDyn(s));
   ui.addVar(new Xc(s));
 
-  if ( argc == 2 )
+  if ( server_mode )
   {
-    // input file given as a command line argument
-    // cmd line: qb inputfilename
+    // server mode
+    // input and output files expected as arguments
+    if ( argc < 2 )
+    {
+      if ( MPIdata::onpe0() )
+      {
+        cout << " server mode requires two arguments" << endl;
+        usage();
+      }
+      MPI_Finalize();
+      return 0;
+    }
+    string inputfilename(argv[0]);
+    string outputfilename(argv[1]);
+    if ( MPIdata::onpe0() )
+    {
+      cout << " server mode" << endl;
+      cout << " input file:  " << inputfilename << endl;
+      cout << " output file: " << outputfilename << endl;
+    }
     bool echo = true;
-    string inputfilename(argv[1]);
-    string outputfilename("stdout");
+    ui.processCmdsServer(inputfilename, outputfilename, "[qbox]", echo);
+  }
+  else if ( interactive )
+  {
+    // interactive mode
+    assert(argc==0);
+    // use standard input
+    bool echo = !isatty(0);
+    ui.processCmds(cin, "[qbox]", echo);
+  }
+  else
+  {
+    // cmd line: qb inputfilename
+    // input file expected as a command line argument
+    assert(argc >= 1);
+    bool echo = true;
     ifstream in;
     int file_ok = 0;
     if ( MPIdata::onpe0() )
     {
-      in.open(argv[1],ios::in);
+      in.open(argv[0],ios::in);
       if ( in )
       {
         // file was opened on process 0
@@ -422,34 +559,10 @@ int main(int argc, char **argv, char **envp)
     else
     {
       if ( MPIdata::onpe0() )
-        cout << " Could not open input file " << argv[1] << endl;
+        cout << " Could not open input file " << argv[0] << endl;
+      MPI_Finalize();
+      return 0;
     }
-  }
-  else if ( argc == 4 )
-  {
-    // server mode
-    // cmd line: qb -server inputfilename outputfilename
-    if ( strcmp(argv[1],"-server") )
-    {
-      // first argument is not "-server"
-      cout << " use: qb [infile | -server infile outfile]" << endl;
-      MPI_Abort(MPI_COMM_WORLD,1);
-    }
-    // first argument is "-server"
-    string inputfilename(argv[2]);
-    string outputfilename(argv[3]);
-    bool echo = true;
-    ui.processCmdsServer(inputfilename, outputfilename, "[qbox]", echo);
-  }
-  else
-  {
-    // interactive mode
-    assert(argc==1);
-    // use standard input
-    bool echo = !isatty(0);
-    string inputfilename("stdin");
-    string outputfilename("stdout");
-    ui.processCmds(cin, "[qbox]", echo);
   }
 
   // exit using the quit command when processCmds returns

@@ -719,12 +719,14 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   }
 
   // sum enl_, sigma_enl_ over kp_comm, sp_comm
-  copy(begin(sigma_enl),end(sigma_enl),begin(sum));
+  for ( int i = 0; i < 6; ++i )
+    sum[i] = sigma_enl[i];
   sum[6] = enl_;
   MPI_Allreduce(&sum[0],&tsum[0],7,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
   MPI_Allreduce(&tsum[0],&sum[0],7,MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
   enl_ = sum[6];
-  copy(begin(sum),begin(sum)+6,begin(sigma_enl));
+  for ( int i = 0; i < 6; ++i )
+    sigma_enl[i] = sum[i];
 
   tmap["nonlocal"].stop();
 

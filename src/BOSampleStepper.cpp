@@ -624,14 +624,10 @@ void BOSampleStepper::step(int niter)
                 // save extrapolated value at t in cmm
                 cmm[i] = xm;
               }
-
               // orthogonalize the extrapolated value
               tmap["gram"].start();
               sd->gram();
               tmap["gram"].stop();
-              //tmap["lowdin"].start();
-              //sd->lowdin();
-              //tmap["lowdin"].stop();
 
               // c[i] now contains the extrapolated value
               // save a copy in cv[i]
@@ -700,14 +696,10 @@ void BOSampleStepper::step(int niter)
                 cmm[i] = xm;
                 cv[i] = x;
               }
-
               // orthogonalize the extrapolated value
               tmap["gram"].start();
               sd->gram();
               tmap["gram"].stop();
-              //tmap["lowdin"].start();
-              //s_.wf.sd(ispin,ikp)->lowdin();
-              //tmap["lowdin"].stop();
 
               // c[i] now contains the extrapolated value
             }
@@ -732,9 +724,6 @@ void BOSampleStepper::step(int niter)
                 c[i] = x + dt * v;
                 cv[i] = x;
               }
-              //tmap["lowdin"].start();
-              //sd->lowdin();
-              //tmap["lowdin"].stop();
               tmap["gram"].start();
               sd->gram();
               tmap["gram"].stop();
@@ -753,14 +742,6 @@ void BOSampleStepper::step(int niter)
                 c[i] = 2.0 * x - xm;
                 cv[i] = x;
               }
-              //tmap["ortho_align"].start();
-              //sd->ortho_align(*sdv);
-              //tmap["ortho_align"].stop();
-
-              //tmap["riccati"].start();
-              //sd->riccati(*sdv);
-              //tmap["riccati"].stop();
-
               tmap["lowdin"].start();
               sd->lowdin();
               tmap["lowdin"].stop();

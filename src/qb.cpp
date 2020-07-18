@@ -43,7 +43,6 @@ using namespace std;
 #include "UserInterface.h"
 #include "Sample.h"
 
-#if 0
 #include "AngleCmd.h"
 #include "AtomCmd.h"
 #include "ComputeMLWFCmd.h"
@@ -52,46 +51,33 @@ using namespace std;
 #include "ExtForceCmd.h"
 #include "FoldInWsCmd.h"
 #include "HelpCmd.h"
-#endif
 #include "KpointCmd.h"
-#if 0
 #include "ListAtomsCmd.h"
 #include "ListSpeciesCmd.h"
 #include "LoadCmd.h"
 #include "MoveCmd.h"
 #include "PartialChargeCmd.h"
 #include "PlotCmd.h"
-#endif
 #include "PrintCmd.h"
 #include "QuitCmd.h"
-#if 0
 #include "RandomizeRCmd.h"
 #include "RandomizeVCmd.h"
-#endif
 #include "RandomizeWfCmd.h"
-#if 0
 #include "ResetRotationCmd.h"
 #include "ResetVcmCmd.h"
 #include "RescaleVCmd.h"
 #include "ResponseCmd.h"
 #include "RseedCmd.h"
-#endif
 #include "RunCmd.h"
-#if 0
 #include "SaveCmd.h"
-#endif
 #include "SetCmd.h"
-#if 0
 #include "SetVelocityCmd.h"
 #include "SpeciesCmd.h"
 #include "SpectrumCmd.h"
-#endif
 #include "StatusCmd.h"
-#if 0
 #include "StrainCmd.h"
 #include "TorsionCmd.h"
 #include "BisectionCmd.h"
-#endif
 
 #include "AlphaPBE0.h"
 #include "AlphaRSH.h"
@@ -405,7 +391,6 @@ int main(int argc, char **argv, char **envp)
   UserInterface ui;
   Sample* s = new Sample(&ui);
 
-#if 0
   ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
   ui.addCmd(new BisectionCmd(s));
@@ -415,45 +400,32 @@ int main(int argc, char **argv, char **envp)
   ui.addCmd(new ExtForceCmd(s));
   ui.addCmd(new FoldInWsCmd(s));
   ui.addCmd(new HelpCmd(s));
-#endif
   ui.addCmd(new KpointCmd(s));
-#if 0
   ui.addCmd(new ListAtomsCmd(s));
   ui.addCmd(new ListSpeciesCmd(s));
   ui.addCmd(new LoadCmd(s));
   ui.addCmd(new MoveCmd(s));
   ui.addCmd(new PartialChargeCmd(s));
   ui.addCmd(new PlotCmd(s));
-#endif
   ui.addCmd(new PrintCmd(s));
   ui.addCmd(new QuitCmd(s));
-#if 0
   ui.addCmd(new RandomizeRCmd(s));
   ui.addCmd(new RandomizeVCmd(s));
-#endif
   ui.addCmd(new RandomizeWfCmd(s));
-#if 0
   ui.addCmd(new RescaleVCmd(s));
   ui.addCmd(new ResetRotationCmd(s));
   ui.addCmd(new ResetVcmCmd(s));
   ui.addCmd(new ResponseCmd(s));
   ui.addCmd(new RseedCmd(s));
-#endif
   ui.addCmd(new RunCmd(s));
-#if 0
   ui.addCmd(new SaveCmd(s));
-#endif
   ui.addCmd(new SetCmd(s));
-#if 0
   ui.addCmd(new SetVelocityCmd(s));
   ui.addCmd(new SpeciesCmd(s));
   ui.addCmd(new SpectrumCmd(s));
-#endif
   ui.addCmd(new StatusCmd(s));
-#if 0
   ui.addCmd(new StrainCmd(s));
   ui.addCmd(new TorsionCmd(s));
-#endif
 
   ui.addVar(new AlphaPBE0(s));
   ui.addVar(new AlphaRSH(s));

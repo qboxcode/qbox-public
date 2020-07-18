@@ -1299,16 +1299,16 @@ void BOSampleStepper::step(int niter)
     double tmax = time;
     s_.ctxt_.dmin(1,1,&tmin,1);
     s_.ctxt_.dmax(1,1,&tmax,1);
-    if ( onpe0 )
     {
       string s = "name=\"iteration\"";
       cout << "<timing " << left << setw(22) << s
            << " min=\"" << setprecision(3) << tmin << "\""
            << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
-      cout << "</iteration>" << endl;
     }
 #endif
+    if ( onpe0 )
+      cout << "</iteration>" << endl;
 
   } // for iter
 

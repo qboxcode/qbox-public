@@ -141,6 +141,16 @@ int Wavefunction::nkp_loc() const { return nkp_loc_[MPIdata::ikpb()]; }
 int Wavefunction::ikp_global(int ikp) const { return ikp_global_[ikp]; }
 
 ////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::ikp_local(int ikpg) const
+{
+  // return local index of ikpg if hosted on this task, -1 otherwise
+  if ( ( ikpg % MPIdata::nkpb() ) == MPIdata::ikpb() )
+    return ikpg / MPIdata::nkpb();
+  else
+    return -1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::nel() const { return nel_; } // total number of electrons
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -170,6 +180,16 @@ int Wavefunction::nsp_loc() const { return nsp_loc_[MPIdata::ispb()]; }
 
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::isp_global(int isp) const { return isp_global_[isp]; }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::isp_local(int ispg) const
+{
+  // return local index of ispg if hosted on this task, -1 otherwise
+  if ( ( ispg % MPIdata::nspb() ) == MPIdata::ispb() )
+    return ispg / MPIdata::nspb();
+  else
+    return -1;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::deltaspin() const { return deltaspin_; }

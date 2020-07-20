@@ -908,7 +908,7 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
 {
-  cout << "Wavefunction::print: not implemented" << endl;
+  cout << "Wavefunction::write: not implemented" << endl;
 #if 0
   sfp.sync();
 

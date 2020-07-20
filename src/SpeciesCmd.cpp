@@ -44,11 +44,14 @@ int SpeciesCmd::action(int argc, char **argv)
   if ( ui->onpe0() )
     sp_reader.uri_to_string(argv[2], argv[1], xmlstr);
 
-  size_t length = xmlstr.size();
+  int length;
+  if ( MPIdata::onpe0() )
+    length = xmlstr.size();
+  MPI_Bcast(&length,1,MPI_INT,0,MPIdata::comm());
   char* buf = new char[length+1];
   xmlstr.copy(buf,length,0);
   buf[length]='\0';
-  MPI_Bcast(buf,xmlstr.size()+1,MPI_CHAR,0,MPI_COMM_WORLD);
+  MPI_Bcast(buf,length+1,MPI_CHAR,0,MPIdata::comm());
   xmlstr = buf;
   delete [] buf;
 

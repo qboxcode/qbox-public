@@ -680,11 +680,18 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
   // Non local energy and forces
   tmap["nonlocal"].start();
   enl_ = 0.0;
-  vector<vector<double> > fion_enl;
+  vector<vector<double> > fion_enl, fion_enl_loc;
   fion_enl.resize(nsp_);
+  fion_enl_loc.resize(nsp_);
   for ( int is = 0; is < nsp_; is++ )
+  {
     fion_enl[is].resize(3*na_[is]);
-  valarray<double> sigma_enl_kp(6);
+    fion_enl_loc[is].resize(3*na_[is]);
+  }
+  for ( int is = 0; is < nsp_; is++ )
+    for ( int i = 0; i < 3*na_[is]; i++ )
+      fion_enl[is][i] = 0.0;
+  valarray<double> sigma_enl_loc(6);
   sigma_enl = 0.0;
   for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
   {
@@ -692,15 +699,15 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     {
       const int ikpg = wf.ikp_global(ikp_loc);
       enl_ += wf.weight(ikpg) * nlp[isp_loc][ikp_loc]->energy(compute_hpsi,
-              *dwf.sd(isp_loc,ikp_loc), compute_forces, fion_enl,
-              compute_stress, sigma_enl_kp);
+              *dwf.sd(isp_loc,ikp_loc), compute_forces, fion_enl_loc,
+              compute_stress, sigma_enl_loc);
 
       for ( int is = 0; is < nsp_; is++ )
         for ( int i = 0; i < 3*na_[is]; i++ )
-          fion_enl[is][i] *= wf.weight(ikpg);
+          fion_enl[is][i] += wf.weight(ikpg) * fion_enl_loc[is][i];
 
       if ( compute_stress )
-        sigma_enl += wf.weight(ikpg) * sigma_enl_kp;
+        sigma_enl += wf.weight(ikpg) * sigma_enl_loc;
     }
   }
 

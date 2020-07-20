@@ -1046,8 +1046,9 @@ void BOSampleStepper::step(int niter)
           }
           double tsum;
           MPI_Reduce(&w_eigenvalue_sum,&tsum,1,
-            MPI_DOUBLE,MPI_SUM,0,MPIdata::comm());
-          w_eigenvalue_sum = tsum;
+            MPI_DOUBLE,MPI_SUM,0,MPIdata::kp_comm());
+          MPI_Reduce(&tsum,&w_eigenvalue_sum,1,
+            MPI_DOUBLE,MPI_SUM,0,MPIdata::sp_comm());
         }
 
         // Harris-Foulkes estimate of the total energy

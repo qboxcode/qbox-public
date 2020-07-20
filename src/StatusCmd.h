@@ -69,7 +69,8 @@ class StatusCmd : public Cmd
     s->wf.info(cout,"wf");
     if ( s->wfv != 0 )
       s->wfv->info(cout,"wfv");
-    cout << "<vcm> " << s->atoms.vcm() << " </vcm>" << endl;
+    if ( ui->onpe0() )
+      cout << "<vcm> " << s->atoms.vcm() << " </vcm>" << endl;
     return 0;
   }
 };

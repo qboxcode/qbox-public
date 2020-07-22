@@ -21,6 +21,7 @@
 #include "FourierTransform.h"
 #include "Timer.h"
 #include "SampleReader.h"
+#include "MPIdata.h"
 
 #include "StrX.h"
 // XML transcoding for loading grid_functions
@@ -63,7 +64,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname,
   const Attributes& attributes)
 {
-  bool onpe0 = wf_.sd_context().onpe0();
+  const bool onpe0 = MPIdata::onpe0();
   // cout << " WavefunctionHandler::startElement " << StrX(qname) << endl;
   string locname = StrX(localname).localForm();
 
@@ -186,7 +187,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     if ( dmat_form != "diagonal" )
     {
       cout << "WavefunctionHandler: density_matrix must be diagonal" << endl;
-      wf_.sd_context().abort(1);
+      MPI_Abort(MPIdata::comm(),1);
     }
     dmat_.resize(dmat_size);
   }
@@ -258,6 +259,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       }
       else if ( attrname == "size" )
       {
+        last_size = current_size;
         stst >> current_size;
         if ( onpe0 )
           cout << " size=" << current_size;
@@ -266,9 +268,13 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       {
         std::string spin;
         stst >> spin;
-        if (spin == "up" ) current_ispin=0;
+        if (spin == "up" )
+        {
+          current_ispin=0;
+        }
         else if (spin == "down" )
         {
+          assert(wf_.nspin() == 2);
           int last_ispin=current_ispin;
           current_ispin=1;
           // reset kpoint index if necessary
@@ -281,21 +287,35 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
           cout << " read slater_determinant: spin=" << spin;
       }
     }
+
     if ( onpe0 )
       cout << endl;
+
+    // All SlaterDets of a given spin must have the same size
+    // check if current_size differs from previous size
+    if ( ( current_ikp != 0 ) && ( current_size != last_size ) )
+    {
+      cout << "SlaterDet size differs from previous size" << endl;
+      MPI_Abort(MPIdata::comm(),1);
+    }
 
     // add kpoint only if spin is up (if spin is down,
     // the kpoint should be defined already)
     if ( current_ispin == 0 )
       wf_.add_kpoint(D3vector(current_kx,current_ky,current_kz),current_weight);
 
-    // resize sd(current_ispin,current_ikp)->nst() == current_size
-    wf_.sd(current_ispin,current_ikp)->resize(wf_.cell(),
-      wf_.refcell(), wf_.ecut(), current_size);
+    // resize SlaterDet if local
+    int isp_loc = wf_.isp_local(current_ispin);
+    int ikp_loc = wf_.ikp_local(current_ikp);
+    ft = 0;
+    if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
+    {
+      assert(wf_.sd(isp_loc,ikp_loc));
+      wf_.sd(isp_loc,ikp_loc)->resize(wf_.cell(),
+             wf_.refcell(), wf_.ecut(), current_size);
+    }
 
-    const Basis& basis = wf_.sd(current_ispin,current_ikp)->basis();
-    ft = new FourierTransform(basis,nx_,ny_,nz_);
-    wftmp.resize((ft->np012loc()));
+    wf_.nst_[current_ispin] = current_size;
   }
   else if ( locname == "grid_function")
   {
@@ -360,111 +380,124 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
     // transfer data from the gfdata matrix to the SlaterDet object
     if ( onpe0 )
       cout << " WavefunctionHandler::endElement: slater_determinant" << endl;
-    SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
 
-#if DEBUG
-    cout << ctxt.mype() << ": mapping gfdata matrix..."
-         << endl;
-    cout << ctxt.mype() << ": gfdata: (" << gfdata_.m() << "x" << gfdata_.n()
-         << ") (" << gfdata_.mb() << "x" << gfdata_.nb() << ") blocks" << endl;
-    cout << ctxt.mype() << ": gfdata.mloc()=" << gfdata_.mloc()
-         << " gfdata.nloc()=" << gfdata_.nloc() << endl;
-#endif
-
-    sd->set_occ(dmat_);
-    const Basis& basis = sd->basis();
-#if DEBUG
-    cout << ctxt.mype() << ": ft->np012loc()=" << ft->np012loc() << endl;
-    cout << ctxt.mype() << ": ft->context(): " << ft->context();
-#endif
-
-    ComplexMatrix& c = sd->c();
-    // copy wf values
-    // Determine the size of the temporary real matrix wftmpr
-    int wftmpr_size, wftmpr_block_size;
-    if ( basis.real() )
+    // transfer data to SlaterDet if local
+    SlaterDet* sd = 0;
+    int isp_loc = wf_.isp_local(current_ispin);
+    int ikp_loc = wf_.ikp_local(current_ikp);
+    if ( ( isp_loc >= 0 ) && ( ikp_loc ) >= 0 )
     {
-      wftmpr_size = ft->np012();
-      wftmpr_block_size = ft->np012loc(0);
+      assert(wf_.sd(isp_loc,ikp_loc));
+      sd = wf_.sd(isp_loc,ikp_loc);
     }
-    else
+
+#if DEBUG
+    if ( sd )
     {
-      wftmpr_size = 2*ft->np012();
-      wftmpr_block_size = 2*ft->np012loc(0);
+      cout << ctxt.mype() << ": mapping gfdata matrix..." << endl;
+      cout << ctxt.mype() << ": gfdata: (" << gfdata_.m() << "x" << gfdata_.n()
+           << ") (" << gfdata_.mb() << "x" << gfdata_.nb() << ") blocks"
+           << endl;
+      cout << ctxt.mype() << ": gfdata.mloc()=" << gfdata_.mloc()
+           << " gfdata.nloc()=" << gfdata_.nloc() << endl;
     }
-#if DEBUG
-    cout << ctxt.mype() << ": wftmpr_size: " << wftmpr_size << endl;
-    cout << ctxt.mype() << ": wftmpr_block_size: "
-         << wftmpr_block_size << endl;
-#endif
-    DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
-                        wftmpr_block_size,c.nb());
-
-#if DEBUG
-    // parameters of the getsub operation
-    cout << "WavefunctionHandler: current_ikp=  " << current_ikp << endl;
-    cout << "WavefunctionHandler: current_ispin=" << current_ispin << endl;
-    cout << "WavefunctionHandler: sd->nst()=    " << sd->nst() << endl;
-    cout << "WavefunctionHandler: wf_.nkp()=    " << wf_.nkp() << endl;
-    cout << "WavefunctionHandler: current_gfdata_pos= "
-     << current_gfdata_pos_ << endl;
 #endif
 
-    assert(current_gfdata_pos_ < gfdata_.n());
-    wftmpr.getsub(gfdata_,wftmpr_size,sd->nst(),0,current_gfdata_pos_);
-    current_gfdata_pos_ += sd->nst();
-
-#if DEBUG
-    // Check orthogonality by computing overlap matrix
-    DoubleMatrix smat(sd->context(),sd->nst(),sd->nst(),c.nb(),c.nb());
-    smat.syrk('l','t',1.0,wftmpr,0.0);
-    cout << smat;
-#endif
-
-    wftmp.resize(ft->np012loc());
-    for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
+    DoubleMatrix wftmpr(wf_.sd_context());
+    int wftmpr_size = 0, wftmpr_block_size = 0;
+    if ( sd )
     {
-      // copy column of wftmpr to complex array wftmp
-      if ( wftmpr_size == ft->np012() )
+      const Basis& basis = sd->basis();
+      ft = new FourierTransform(basis,nx_,ny_,nz_);
+      wftmp.resize((ft->np012loc()));
+      sd->set_occ(dmat_);
+#if DEBUG
+      cout << ctxt.mype() << ": ft->np012loc()=" << ft->np012loc() << endl;
+#endif
+
+      // copy wf values
+      // Determine the size of the temporary real matrix wftmpr
+      if ( basis.real() )
       {
-        // function is real and must be expanded
-        double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
-        for ( int i = 0; i < ft->np012loc(); i++ )
-          wftmp[i] = p[i];
+        wftmpr_size = ft->np012();
+        wftmpr_block_size = ft->np012loc(0);
       }
       else
       {
-        // function is complex
-        double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
-        for ( int i = 0; i < ft->np012loc(); i++ )
-          wftmp[i] = complex<double>(p[2*i],p[2*i+1]);
+        wftmpr_size = 2*ft->np012();
+        wftmpr_block_size = 2*ft->np012loc(0);
       }
-      ft->forward(&wftmp[0],c.valptr(c.mloc()*nloc));
+#if DEBUG
+      cout << ctxt.mype() << ": wftmpr_size: " << wftmpr_size << endl;
+      cout << ctxt.mype() << ": wftmpr_block_size: "
+           << wftmpr_block_size << endl;
+#endif
+      wftmpr.resize(wftmpr_size,sd->nst(),wftmpr_block_size,sd->c().nb());
+
+#if DEBUG
+      // parameters of the getsub operation
+      cout << "WavefunctionHandler: current_ispin=" << current_ispin << endl;
+      cout << "WavefunctionHandler: current_ikp=  " << current_ikp << endl;
+      cout << "WavefunctionHandler: current_size=" << current_size << endl;
+      cout << "WavefunctionHandler: sd->nst()=    " << sd->nst() << endl;
+      cout << "WavefunctionHandler: wf_.nkp()=    " << wf_.nkp() << endl;
+      cout << "WavefunctionHandler: current_gfdata_pos= "
+           << current_gfdata_pos_ << endl;
+#endif
+
+      assert(current_gfdata_pos_ < gfdata_.n());
     }
 
+    // call to getsub must be global
+    MPI_Barrier(MPI_COMM_WORLD);
+    wftmpr.getsub(gfdata_,wftmpr_size,current_size,0,current_gfdata_pos_);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    current_gfdata_pos_ += current_size;
+
+#if DEBUG
+    if ( sd )
+    {
+      // Check orthogonality by computing overlap matrix
+      DoubleMatrix smat(sd->context(),sd->nst(),sd->nst(),
+        sd->c().nb(),sd->c().nb());
+      smat.syrk('l','t',1.0,wftmpr,0.0);
+      cout << smat;
+    }
+#endif
+
+    // transform from real space to Fourier coeffs if SlaterDet is local
+    if ( sd )
+    {
+      ComplexMatrix& c = sd->c();
+      wftmp.resize(ft->np012loc());
+      for ( int n = 0; n < sd->nstloc(); ++n )
+      {
+        // copy column of wftmpr to complex array wftmp
+        if ( wftmpr_size == ft->np012() )
+        {
+          // function is real and must be expanded
+          double* p = wftmpr.valptr(wftmpr.mloc()*n);
+          for ( int i = 0; i < ft->np012loc(); i++ )
+            wftmp[i] = p[i];
+        }
+        else if ( wftmpr_size == 2 * ft->np012() )
+        {
+          // function is complex
+          double* p = wftmpr.valptr(wftmpr.mloc()*n);
+          for ( int i = 0; i < ft->np012loc(); i++ )
+            wftmp[i] = complex<double>(p[2*i],p[2*i+1]);
+        }
+        else
+          assert(false);
+        ft->forward(&wftmp[0],c.valptr(c.mloc()*n));
+      }
+    }
     current_ikp++;
     delete ft;
   }
   else if ( locname == "wavefunction" || locname == "wavefunction_velocity" )
   {
-    // check that all SlaterDets of a given spin and have same nst
-    for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
-    {
-      for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
-      {
-        if ( wf_.sd_[ispin][ikp]->nst() != wf_.sd_[ispin][0]->nst() )
-        {
-          cout << "nst differs for different kpoints in sample file" << endl;
-          wf_.sd_context().abort(1);
-        }
-      }
-    }
-
-    // set nst_[ispin] to match the values read
-    for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
-      wf_.nst_[ispin] = wf_.sd_[ispin][0]->nst();
-
-#if 1
     // if nspin==2, adjust deltaspin_ to reflect the number of states
     // of each spin that were read
     if ( wf_.nspin() == 2 )
@@ -475,7 +508,6 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
       // even and odd number of electrons
       wf_.deltaspin_ = (wf_.nst(0)-wf_.nst(1))/2;
     }
-#endif
   }
 }
 

@@ -47,7 +47,7 @@ int LoadCmd::action(int argc, char **argv)
   s->reset();
   // cout << "atomset after reset: nsp: " << s->atoms.nsp() << endl;
 
-  SampleReader s_reader(s->sd_ctxt);
+  SampleReader s_reader;
 
   try
   {
@@ -63,7 +63,7 @@ int LoadCmd::action(int argc, char **argv)
     cout << " LoadCmd: cannot load Sample" << endl;
   }
 
-  s->sd_ctxt.barrier();
+  MPI_Barrier(MPIdata::comm());
 
   return 0;
 }

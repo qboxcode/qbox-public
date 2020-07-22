@@ -896,8 +896,6 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::print(ostream& os, string encoding, string tag) const
 {
-  cout << "Wavefunction::print: not implemented" << endl;
-#if 0
   if ( MPIdata::onpe0() )
   {
     os << "<" << tag << " ecut=\"" << ecut_ << "\""
@@ -914,22 +912,33 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
   }
 
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int ispb = 0; ispb < MPIdata::nspb(); ++ispb )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-      sd_[ispin][ikp]->print(os,encoding,weight_[ikp],ispin,nspin_);
+    for ( int ikpb = 0; ikpb < MPIdata::nkpb(); ++ikpb )
+    {
+      MPI_Barrier(MPIdata::comm());
+      if ( (ispb == MPIdata::ispb()) && (ikpb == MPIdata::ikpb()) )
+      {
+        for ( int isp_loc = 0; isp_loc < nsp_loc(); ++isp_loc )
+        {
+          for ( int ikp_loc = 0; ikp_loc < nkp_loc(); ++ikp_loc )
+          {
+            int ispg = isp_global(isp_loc);
+            int ikpg = ikp_global(ikp_loc);
+            sd_[isp_loc][ikp_loc]->print(os,encoding,weight_[ikpg],ispg,nspin_);
+          }
+        }
+      }
+    }
   }
 
   if ( MPIdata::onpe0() )
     os << "</" << tag << ">" << endl;
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
 {
-  cout << "Wavefunction::write: not implemented" << endl;
-#if 0
   sfp.sync();
 
   if ( MPIdata::onpe0() )
@@ -968,11 +977,24 @@ void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
 #endif
   }
 
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int ispb = 0; ispb < MPIdata::nspb(); ++ispb )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikpb = 0; ikpb < MPIdata::nkpb(); ++ikpb )
     {
-      sd_[ispin][ikp]->write(sfp,encoding,weight_[ikp],ispin,nspin_);
+      MPI_Barrier(MPIdata::comm());
+      if ( (ispb == MPIdata::ispb()) && (ikpb == MPIdata::ikpb()) )
+      {
+        for ( int isp_loc = 0; isp_loc < nsp_loc(); ++isp_loc )
+        {
+          for ( int ikp_loc = 0; ikp_loc < nkp_loc(); ++ikp_loc )
+          {
+            int ispg = isp_global(isp_loc);
+            int ikpg = ikp_global(ikp_loc);
+            sd_[isp_loc][ikp_loc]->write(sfp,encoding,
+              weight_[ikpg],ispg,nspin_);
+          }
+        }
+      }
     }
   }
 
@@ -995,7 +1017,6 @@ void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
     sfp.file().write(str.c_str(),len);
 #endif
   }
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

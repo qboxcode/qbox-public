@@ -417,15 +417,46 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
     }
   }
 
-  deallocate();
-
   kpoint_.push_back(kpoint);
   weight_.push_back(weight);
 
-  allocate();
-  resize();
-  init();
-  update_occ(0.0);
+  // Add SlaterDet
+  // determine on which block the SlaterDet should be added
+  const int ikp_new = kpoint_.size() - 1;
+  sd_.resize(nsp_loc());
+  const int ikp_loc = ikp_local(ikp_new);
+  if ( ikp_loc >= 0 )
+  {
+    // new kpoint is local to the current block
+    nkp_loc_[MPIdata::ikpb()]++;
+    ikp_global_.push_back(ikp_new);
+    for ( int isp_loc = 0; isp_loc < nsp_loc(); ++isp_loc )
+    {
+      sd_[isp_loc].push_back(new SlaterDet(sd_ctxt_,kpoint_[ikp_new]));
+      sd_[isp_loc][ikp_loc]->resize(cell_,refcell_,ecut_,
+        nst_[isp_global(isp_loc)]);
+    }
+  }
+
+  if ( nspin_ == 1 )
+  {
+    if ( nsp_loc() > 0 )
+      sd_[0][ikp_loc]->update_occ(nel_,nspin_);
+  }
+  else if ( nspin_ == 2 )
+  {
+    const int nocc_up = (nel_+1)/2+deltaspin_;
+    const int nocc_dn = nel_/2 - deltaspin_;
+    if ( nsp_loc() > 0 )
+      sd_[0][ikp_loc]->update_occ(nocc_up,nspin_);
+    if ( nsp_loc() > 1 )
+      sd_[1][ikp_loc]->update_occ(nocc_dn,nspin_);
+  }
+  else
+  {
+    // incorrect value of nspin_
+    assert(false);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -436,26 +436,26 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
       sd_[isp_loc][ikp_loc]->resize(cell_,refcell_,ecut_,
         nst_[isp_global(isp_loc)]);
     }
-  }
 
-  if ( nspin_ == 1 )
-  {
-    if ( nsp_loc() > 0 )
-      sd_[0][ikp_loc]->update_occ(nel_,nspin_);
-  }
-  else if ( nspin_ == 2 )
-  {
-    const int nocc_up = (nel_+1)/2+deltaspin_;
-    const int nocc_dn = nel_/2 - deltaspin_;
-    if ( nsp_loc() > 0 )
-      sd_[0][ikp_loc]->update_occ(nocc_up,nspin_);
-    if ( nsp_loc() > 1 )
-      sd_[1][ikp_loc]->update_occ(nocc_dn,nspin_);
-  }
-  else
-  {
-    // incorrect value of nspin_
-    assert(false);
+    if ( nspin_ == 1 )
+    {
+      if ( nsp_loc() > 0 )
+        sd_[0][ikp_loc]->update_occ(nel_,nspin_);
+    }
+    else if ( nspin_ == 2 )
+    {
+      const int nocc_up = (nel_+1)/2+deltaspin_;
+      const int nocc_dn = nel_/2 - deltaspin_;
+      if ( nsp_loc() > 0 )
+        sd_[0][ikp_loc]->update_occ(nocc_up,nspin_);
+      if ( nsp_loc() > 1 )
+        sd_[1][ikp_loc]->update_occ(nocc_dn,nspin_);
+    }
+    else
+    {
+      // incorrect value of nspin_
+      assert(false);
+    }
   }
 }
 

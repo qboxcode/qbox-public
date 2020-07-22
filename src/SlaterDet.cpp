@@ -1864,8 +1864,8 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     int idest = (n*nprow+ctxt_.myrow())/nstloc();
     scounts[idest] = seg.size();
 
-    // send sendcounts to all procs
-    MPI_Alltoall(&scounts[0],1,MPI_INT,&rcounts[0],1,MPI_INT,my_col_comm_);
+    // send sendcounts to all procs in g_comm()
+    MPI_Alltoall(&scounts[0],1,MPI_INT,&rcounts[0],1,MPI_INT,MPIdata::g_comm());
 
     // dimension receive buffer
     int rbufsize = rcounts[0];
@@ -1878,7 +1878,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     char* rbuf = new char[rbufsize];
 
     int err = MPI_Alltoallv((void*)seg.data(),&scounts[0],&sdispl[0],
-              MPI_CHAR,rbuf,&rcounts[0],&rdispl[0],MPI_CHAR,my_col_comm_);
+              MPI_CHAR,rbuf,&rcounts[0],&rdispl[0],MPI_CHAR,MPIdata::g_comm());
 
     if ( err != 0 )
        cout << ctxt_.mype()

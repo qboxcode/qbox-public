@@ -1,5 +1,5 @@
 set cell 16 0 0  0 16 0  0 0 16
-set ecut 20
+set ecut 30
 set ecutprec 10
 set wf_dyn JD
 set nempty 32

@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+  xmlns:fpmd="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0"
+  targetNamespace="http://www.quantum-simulation.org/ns/fpmd/fpmd-1.0">
+
+  <annotation>
+    <documentation>
+      function3d.xsd, v1.0 (2020-07-24)
+      http://www.quantum-simulation.org
+      function3d XML Schema specification.
+    </documentation>
+  </annotation>
+
+  <element name="function3d" type="fpmd:function3dType"/>
+
+  <complexType name="function3dType">
+    <sequence minOccurs="0">
+      <element name="domain" type="fpmd:domainType"/>
+      <element name="reference_domain" minOccurs="0" type="fpmd:domainType"/>
+      <element name="grid" type="fpmd:gridType"/>
+      <element name="grid_function" type="fpmd:grid_functionType"/>
+    </sequence>
+    <attribute name="name" type="fpmd:functionNameType" use="optional"/>
+  </complexType>
+
+  <complexType name="grid_functionType">
+    <simpleContent>
+      <extension base="string">
+      <attribute name="type" type="fpmd:numericType" use="required"/>
+      <attribute name="nx" type="positiveInteger" use="required"/>
+      <attribute name="ny" type="positiveInteger" use="required"/>
+      <attribute name="nz" type="positiveInteger" use="required"/>
+      <attribute name="x0" type="nonNegativeInteger" default="0"/>
+      <attribute name="y0" type="nonNegativeInteger" default="0"/>
+      <attribute name="z0" type="nonNegativeInteger" default="0"/>
+      <attribute name="encoding" type="fpmd:encodingType" use="required"/>
+      <attribute name="href" type="anyURI" use="optional"/>
+      </extension>
+    </simpleContent>
+  </complexType>
+
+  <complexType name="domainType">
+    <attribute name="a" type="fpmd:d3vectorType" use="required"/>
+    <attribute name="b" type="fpmd:d3vectorType" use="required"/>
+    <attribute name="c" type="fpmd:d3vectorType" use="required"/>
+  </complexType>
+
+  <complexType name="gridType">
+    <attribute name="nx" type="positiveInteger" use="required"/>
+    <attribute name="ny" type="positiveInteger" use="required"/>
+    <attribute name="nz" type="positiveInteger" use="required"/>
+  </complexType>
+
+  <simpleType name="d3vectorType">
+    <restriction>
+       <simpleType>
+         <list itemType="double"/>
+       </simpleType>
+       <length value="3"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="numericType">
+    <restriction base="string">
+    <enumeration value="double"/>
+    <enumeration value="complex"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="encodingType">
+    <restriction base="string">
+    <enumeration value="text"/>
+    <enumeration value="base64"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="functionNameType">
+    <restriction base="string">
+    </restriction>
+  </simpleType>
+
+</schema>

@@ -387,8 +387,8 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
   {
     // copy data from gfdata_ to locat wftmpr
     vector<double> wftmpr(gfdata_.mloc());
-    // jsrc: column of gfdata_
-    int jsrc = 0;
+    // jsrc: current column index of gfdata_
+    int jsrc = current_gfdata_pos_;
     for ( int ispin = 0; ispin < wf_.nspin(); ++ispin )
     {
       const int nst = wf_.nst(ispin);
@@ -511,6 +511,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
              << " ikp=" << ikp << endl;
 #endif
         delete ft;
+        current_gfdata_pos_ += nst;
       } // ikp
     } // ispin
 

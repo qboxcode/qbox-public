@@ -45,7 +45,7 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 BOSampleStepper::BOSampleStepper(Sample& s, int nitscf, int nite) :
   SampleStepper(s), cd_(s.wf), ef_(s,cd_),
-  dwf(s.wf), wfv(s.wfv), nitscf_(nitscf), nite_(nite),
+  dwf(s.wf), nitscf_(nitscf), nite_(nite),
   update_density_first_(true), update_vh_(true), update_vxc_(true) {}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -181,6 +181,7 @@ void BOSampleStepper::step(int niter)
 
   AtomSet& atoms = s_.atoms;
   Wavefunction& wf = s_.wf;
+  Wavefunction*& wfv = s_.wfv;
   const bool onpe0 = MPIdata::onpe0();
   const Context& sd_ctxt = wf.sd_context();
 
@@ -265,10 +266,10 @@ void BOSampleStepper::step(int niter)
   // Allocate wavefunction velocity if not available
   if ( atoms_move && extrapolate_wf )
   {
-    if ( s_.wfv == 0 )
+    if ( wfv == 0 )
     {
-      s_.wfv = new Wavefunction(wf);
-      s_.wfv->clear();
+      wfv = new Wavefunction(wf);
+      wfv->clear();
     }
   }
 

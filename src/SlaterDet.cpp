@@ -1620,6 +1620,11 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
 
   // serialize all local columns of c and store in segments seg[n]
 
+  // find index of last process holding some data
+  int lastproc = ctxt_.nprow()-1;
+  while ( lastproc >= 0 && ft.np2_loc(lastproc) == 0 ) lastproc--;
+  assert(lastproc>=0);
+
   string seg;
   for ( int n = 0; n < nstloc(); n++ )
   {
@@ -1643,11 +1648,6 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
       memcpy((void*)&wftmpr[0],(void*)&wftmp[0],
              ft.np012loc()*sizeof(complex<double>));
     }
-
-    // find index of last process holding some data
-    int lastproc = ctxt_.nprow()-1;
-    while ( lastproc >= 0 && ft.np2_loc(lastproc) == 0 ) lastproc--;
-    assert(lastproc>=0);
 
     // tmpr contains either a real or a complex array
     const string element_type = real_basis ? "double" : "complex";
@@ -1912,12 +1912,31 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   }
 
 #if USE_MPI
+  if ( ctxt_.myrow() == lastproc )
+  {
+    // append trailer to wbuf
+    string trailer = "</slater_determinant>\n";
+    char* tmp;
+    try
+    {
+      tmp = new char[wbufsize+trailer.size()];
+    }
+    catch ( bad_alloc )
+    {
+      cout << ctxt_.mype() << " bad_alloc in wbuf trailer append "
+          << " trailer size=" << trailer.size()
+          << " wbufsize=" << wbufsize << endl;
+    }
+    memcpy(tmp,wbuf,wbufsize);
+    memcpy(tmp+wbufsize,trailer.c_str(),trailer.size());
+    delete [] wbuf;
+    wbuf = tmp;
+    wbufsize += trailer.size();
+  }
+
   // wbuf now contains the data to be written in the correct order
 
   ctxt_.barrier();
-
-  // compute offsets
-  sfp.sync();
 
   MPI_Offset off;
   long long int local_offset,current_offset;
@@ -1935,17 +1954,16 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
 
   // write wbuf from all tasks using computed offset
   int len = wbufsize;
-  int err = MPI_File_write_at_all(sfp.file(),off,(void*)wbuf,len,
-                               MPI_CHAR,&status);
+  int err = MPI_File_write_at(sfp.file(),off,(void*)wbuf,len,
+                              MPI_CHAR,&status);
   if ( err != 0 )
     cout << ctxt_.mype()
          << " error in MPI_File_write_at_all: err=" << err << endl;
   sfp.set_offset(local_offset+len);
 
-  sfp.sync();
-
   delete [] wbuf;
 
+#if 0
   if ( ctxt_.onpe0() )
   {
     string s("</slater_determinant>\n");
@@ -1957,6 +1975,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
            << " err=" << err << endl;
     sfp.advance(s.size());
   }
+#endif
 #else
   sfp.file() << "</slater_determinant>\n";
 #endif // USE_MPI

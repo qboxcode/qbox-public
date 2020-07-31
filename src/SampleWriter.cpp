@@ -32,9 +32,6 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-SampleWriter::SampleWriter(const Context& ctxt) : ctxt_(ctxt) {}
-
-////////////////////////////////////////////////////////////////////////////////
 void SampleWriter::writeSample(const Sample& s, const string filename,
                               string description, bool base64,
                               bool atomsonly, bool serial, bool save_wfv)
@@ -44,13 +41,13 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
   // set default encoding
   string encoding =  base64 ? "base64" : "text";
   const char* filename_cstr = filename.c_str();
-
   long long file_size;
+  const bool onpe0 = MPIdata::onpe0();
 
   if ( serial )
   {
     ofstream os;
-    if ( ctxt_.onpe0() )
+    if ( onpe0 )
     {
       os.open(filename_cstr);
       cout << "  SaveCmd: saving to file " << filename
@@ -77,7 +74,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
         s.wfv->print(os,encoding,"wavefunction_velocity");
     }
 
-    if ( ctxt_.onpe0() )
+    if ( onpe0 )
       os << "</fpmd:sample>" << endl;
 
     os.close();
@@ -90,20 +87,20 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     MPI_Info_create(&info);
 
     int err;
-    err = MPI_File_open(ctxt_.comm(),(char*) filename_cstr,
+    err = MPI_File_open(MPIdata::comm(),(char*) filename_cstr,
                         MPI_MODE_WRONLY|MPI_MODE_CREATE,info,&fh);
     if ( err != 0 )
       cout << MPIdata::rank() << ": error in MPI_File_open: " << err << endl;
 
     MPI_File_set_size(fh,0);
-    ctxt_.barrier();
+    MPI_Barrier(MPIdata::comm());
 
     MPI_Status status;
 #else
     ofstream fh(filename_cstr);
 #endif
-    SharedFilePtr sfp(ctxt_.comm(),fh);
-    if ( ctxt_.onpe0() )
+    SharedFilePtr sfp(MPIdata::comm(),fh);
+    if ( onpe0 )
     {
       string header("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
       "<fpmd:sample xmlns:fpmd=\"");
@@ -129,7 +126,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
       err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)header.c_str(),
             len,MPI_CHAR,&status);
       if ( err != 0 )
-        cout << ctxt_.mype() << ": error in MPI_File_write: header "
+        cout << MPIdata::rank() << ": error in MPI_File_write: header "
              << err << endl;
       sfp.advance(len);
 #else
@@ -147,7 +144,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
 
     sfp.sync();
 
-    if ( ctxt_.onpe0() )
+    if ( onpe0 )
     {
       const char *trailer = "</fpmd:sample>\n";
       int len = strlen(trailer);
@@ -155,7 +152,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
       err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)trailer,
               len,MPI_CHAR,&status);
       if ( err != 0 )
-        cout << ctxt_.mype() << ": error in MPI_File_write: trailer "
+        cout << MPIdata::rank() << ": error in MPI_File_write: trailer "
              << err << endl;
       sfp.advance(len);
 #else
@@ -169,7 +166,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     file_size = sfp.offset();
     err = MPI_File_close(&fh);
     if ( err != 0 )
-      cout << ctxt_.mype() << ": error in MPI_File_close: " << err << endl;
+      cout << MPIdata::rank() << ": error in MPI_File_close: " << err << endl;
 #else
     fh.close();
     struct stat statbuf;
@@ -179,7 +176,7 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
   }
 
   tm.stop();
-  if ( ctxt_.onpe0() )
+  if ( onpe0 )
   {
     cout << " SampleWriter: write time: "
          << setprecision(3) << tm.real() << " s"

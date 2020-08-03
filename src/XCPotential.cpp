@@ -468,9 +468,6 @@ void XCPotential::update(vector<vector<double> >& vr)
 ////////////////////////////////////////////////////////////////////////////////
 void XCPotential::compute_stress(valarray<double>& sigma_exc)
 {
-  cout << "XC_Potential::compute_stress: not implemented" << endl;
-  MPI_Abort(MPIdata::comm(),1);
-#if 0
   // compute exchange-correlation contributions to the stress tensor
 
   if ( !isGGA() && !isMeta())
@@ -665,25 +662,25 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                                          tmprz(np012loc_);
       std::vector<double> v3txx(np012loc_), v3txy(np012loc_),v3txz(np012loc_),
                           v3tyy(np012loc_), v3tyz(np012loc_),v3tzz(np012loc_);
-      for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
+      for ( int isp_loc = 0; isp_loc < wf0.nsp_loc(); ++isp_loc )
       {
-        for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
+        for ( int ikp_loc = 0; ikp_loc < wf0.nkp_loc(); ++ikp_loc )
         {
-          double omega_inv = 1.0 / wf0.sd(ispin,ikp)->basis().cell().volume();
-          if ( wf0.sd(ispin,ikp)->basis().real() )
+          double omega_inv = 1.0 / wf0.cell().volume();
+          const SlaterDet* sd = wf0.sd(isp_loc,ikp_loc);
+          if ( sd->basis().real() )
           {
-            const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+            const int ngwloc = sd->basis().localsize();
             vector<complex<double> > tmp0(ngwloc);
-            const int mloc = wf0.sd(ispin,ikp)->c().mloc();
-            const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
-            const double *const gxjx = wf0.sd(ispin,ikp)->basis().gx_ptr(0);
-            const double *const gxjy = wf0.sd(ispin,ikp)->basis().gx_ptr(1);
-            const double *const gxjz = wf0.sd(ispin,ikp)->basis().gx_ptr(2);
-            for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc()-1; n++, n++ )
+            const int mloc = sd->c().mloc();
+            const complex<double>* p = sd->c().cvalptr();
+            const double *const gxjx = sd->basis().gx_ptr(0);
+            const double *const gxjy = sd->basis().gx_ptr(1);
+            const double *const gxjz = sd->basis().gx_ptr(2);
+            for ( int n = 0; n < sd->nstloc()-1; n++, n++ )
             {
-              double nn = wf0.sd(ispin,ikp)->context().mycol() *
-                          wf0.sd(ispin,ikp)->c().nb() + n;
-              double occ = wf0.sd(ispin,ikp)->occ(nn);
+              double nn = sd->context().mycol() * sd->c().nb() + n;
+              double occ = sd->occ(nn);
               if (occ > 0.0)
               {
                 // Compute Grad_j psi_n(ikp)
@@ -694,7 +691,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp1[ig] = complex<double>(0.0,gxjx[ig]) * p[ig+(n+1)*mloc];
                 }
                 // Compute Grad_x psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmprx[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmp1[0],&tmprx[0]);
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
                   /* i*G_j1*c(G) */
@@ -702,7 +699,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp1[ig] = complex<double>(0.0,gxjy[ig]) * p[ig+(n+1)*mloc];
                 }
                 // Compute Grad_y psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmpry[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmp1[0],&tmpry[0]);
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
                   /* i*G_j1*c(G) */
@@ -710,38 +707,33 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp1[ig] = complex<double>(0.0,gxjz[ig]) * p[ig+(n+1)*mloc];
                 }
                 // Compute Grad_z psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmprz[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmp1[0],&tmprz[0]);
 
                 // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
+                const double weight = wf0.weight(wf0.ikp_global(ikp_loc)) *
+                                      omega_inv * occ;
                 for ( int i = 0; i < np012loc_; i++ )
                 {
-                  v3txx[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprx[i].real() +
-                               tmprx[i].imag() * tmprx[i].imag());
-                  v3tyy[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmpry[i].real() +
-                               tmpry[i].imag() * tmpry[i].imag());
-                  v3tzz[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprz[i].real() * tmprz[i].real() +
-                               tmprz[i].imag() * tmprz[i].imag());
-                  v3txy[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmpry[i].real() +
-                               tmprx[i].imag() * tmpry[i].imag());
-                  v3txz[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprz[i].real() +
-                               tmprx[i].imag() * tmprz[i].imag());
-                  v3tyz[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmprz[i].real() +
-                               tmpry[i].imag() * tmprz[i].imag());
+                  v3txx[i] += weight * (tmprx[i].real() * tmprx[i].real() +
+                                        tmprx[i].imag() * tmprx[i].imag());
+                  v3tyy[i] += weight * (tmpry[i].real() * tmpry[i].real() +
+                                        tmpry[i].imag() * tmpry[i].imag());
+                  v3tzz[i] += weight * (tmprz[i].real() * tmprz[i].real() +
+                                        tmprz[i].imag() * tmprz[i].imag());
+                  v3txy[i] += weight * (tmprx[i].real() * tmpry[i].real() +
+                                        tmprx[i].imag() * tmpry[i].imag());
+                  v3txz[i] += weight * (tmprx[i].real() * tmprz[i].real() +
+                                        tmprx[i].imag() * tmprz[i].imag());
+                  v3tyz[i] += weight * (tmpry[i].real() * tmprz[i].real() +
+                                        tmpry[i].imag() * tmprz[i].imag());
                 }
               }
             }
-            if ( wf0.sd(ispin,ikp)->nstloc() % 2 != 0 )
+            if ( sd->nstloc() % 2 != 0 )
             {
-              const int n = wf0.sd(ispin,ikp)->nstloc()-1;
-              double nn = wf0.sd(ispin,ikp)->context().mycol() *
-                          wf0.sd(ispin,ikp)->c().nb() + n;
-              double occ = wf0.sd(ispin,ikp)->occ(nn);
+              const int n = sd->nstloc()-1;
+              double nn = sd->context().mycol() * sd->c().nb() + n;
+              double occ = sd->occ(nn);
               if (occ > 0.0)
               {
                 // Compute Grad_j psi_n(ikp)
@@ -751,55 +743,50 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp0[ig] = complex<double>(0.0,gxjx[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_x psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmprx[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmprx[0]);
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
                   /* i*G_j1*c(G) */
                   tmp0[ig] = complex<double>(0.0,gxjy[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_y psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmpry[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmpry[0]);
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
                   /* i*G_j1*c(G) */
                   tmp0[ig] = complex<double>(0.0,gxjz[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_z psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmprz[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmprz[0]);
 
                 // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
+                const double weight = wf0.weight(wf0.ikp_global(ikp_loc)) *
+                                      omega_inv * occ;
                 for ( int i = 0; i < np012loc_; i++ )
                 {
-                  v3txx[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprx[i].real());
-                  v3tyy[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmpry[i].real());
-                  v3tzz[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprz[i].real() * tmprz[i].real());
-                  v3txy[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmpry[i].real());
-                  v3txz[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprz[i].real());
-                  v3tyz[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmprz[i].real());
+                  v3txx[i] += weight * (tmprx[i].real() * tmprx[i].real());
+                  v3tyy[i] += weight * (tmpry[i].real() * tmpry[i].real());
+                  v3tzz[i] += weight * (tmprz[i].real() * tmprz[i].real());
+                  v3txy[i] += weight * (tmprx[i].real() * tmpry[i].real());
+                  v3txz[i] += weight * (tmprx[i].real() * tmprz[i].real());
+                  v3tyz[i] += weight * (tmpry[i].real() * tmprz[i].real());
                 }
               }
             }
           }
           else
           {
-            const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+            const int ngwloc = sd->basis().localsize();
             vector<complex<double> > tmp0(ngwloc);
-            const int mloc = wf0.sd(ispin,ikp)->c().mloc();
-            const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
-            const double *const kpgxjx = wf0.sd(ispin,ikp)->basis().kpgx_ptr(0);
-            const double *const kpgxjy = wf0.sd(ispin,ikp)->basis().kpgx_ptr(1);
-            const double *const kpgxjz = wf0.sd(ispin,ikp)->basis().kpgx_ptr(2);
-            for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc(); n++)
+            const int mloc = sd->c().mloc();
+            const complex<double>* p = sd->c().cvalptr();
+            const double *const kpgxjx = sd->basis().kpgx_ptr(0);
+            const double *const kpgxjy = sd->basis().kpgx_ptr(1);
+            const double *const kpgxjz = sd->basis().kpgx_ptr(2);
+            for ( int n = 0; n < sd->nstloc(); n++)
             {
-              double nn = wf0.sd(ispin,ikp)->context().mycol() *
-                          wf0.sd(ispin,ikp)->c().nb() + n;
-              double occ = wf0.sd(ispin,ikp)->occ(nn);
+              double nn = sd->context().mycol() * sd->c().nb() + n;
+              double occ = sd->occ(nn);
               if (occ > 0.0)
               {
                 // Compute Grad_j psi_n(ikp)
@@ -809,7 +796,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp0[ig] = complex<double>(0.0,kpgxjx[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_x psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmprx[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmprx[0]);
 
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
@@ -817,7 +804,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp0[ig] = complex<double>(0.0,kpgxjy[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_y psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmpry[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmpry[0]);
 
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
@@ -825,35 +812,26 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp0[ig] = complex<double>(0.0,kpgxjz[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_z psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmprz[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmprz[0]);
 
                 // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
+                const double weight = wf0.weight(wf0.ikp_global(ikp_loc)) *
+                                      omega_inv * occ;
                 for ( int i = 0; i < np012loc_; i++ )
                 {
-                  v3txx[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprx[i]) * tmprx[i]);
-                  v3tyy[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmpry[i]) * tmpry[i]);
-                  v3tzz[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprz[i]) * tmprz[i]);
-                  v3txy[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprx[i]) * tmpry[i]);
-                  v3txz[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprx[i]) * tmprz[i]);
-                  v3tyz[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmpry[i]) * tmprz[i]);
+                  v3txx[i] += weight * real(conj(tmprx[i]) * tmprx[i]);
+                  v3tyy[i] += weight * real(conj(tmpry[i]) * tmpry[i]);
+                  v3tzz[i] += weight * real(conj(tmprz[i]) * tmprz[i]);
+                  v3txy[i] += weight * real(conj(tmprx[i]) * tmpry[i]);
+                  v3txz[i] += weight * real(conj(tmprx[i]) * tmprz[i]);
+                  v3tyz[i] += weight * real(conj(tmpry[i]) * tmprz[i]);
                 }
               }
-            }
-          }
-        }
-      }
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txx[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyy[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tzz[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txy[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txz[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyz[0],np012loc_);
+            } // n
+          } // real/complex
+        } // ikp_loc
+      } // isp_loc
+
       for ( int ir = 0; ir < np012loc_; ir++ )
       {
         //V1 Stress rho * (Exc - V1)
@@ -905,25 +883,25 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                           v3txxdn(np012loc_), v3txydn(np012loc_),
                           v3txzdn(np012loc_), v3tyydn(np012loc_),
                           v3tyzdn(np012loc_), v3tzzdn(np012loc_);
-      for ( int ispin = 0; ispin < wf0.nspin(); ispin++ )
+      for ( int isp_loc = 0; isp_loc < wf0.nsp_loc(); ++isp_loc )
       {
-        for ( int ikp = 0; ikp < wf0.nkp(); ikp++ )
+        for ( int ikp_loc = 0; ikp_loc < wf0.nkp_loc(); ++ikp_loc )
         {
-          double omega_inv = 1.0 / wf0.sd(ispin,ikp)->basis().cell().volume();
-          if ( wf0.sd(ispin,ikp)->basis().real() )
+          double omega_inv = 1.0 / wf0.cell().volume();
+          const SlaterDet* sd = wf0.sd(isp_loc,ikp_loc);
+          if ( sd->basis().real() )
           {
-            const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+            const int ngwloc = sd->basis().localsize();
             vector<complex<double> > tmp0(ngwloc);
-            const int mloc = wf0.sd(ispin,ikp)->c().mloc();
-            const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
-            const double *const gxjx = wf0.sd(ispin,ikp)->basis().gx_ptr(0);
-            const double *const gxjy = wf0.sd(ispin,ikp)->basis().gx_ptr(1);
-            const double *const gxjz = wf0.sd(ispin,ikp)->basis().gx_ptr(2);
-            for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc()-1; n++, n++ )
+            const int mloc = sd->c().mloc();
+            const complex<double>* p = sd->c().cvalptr();
+            const double *const gxjx = sd->basis().gx_ptr(0);
+            const double *const gxjy = sd->basis().gx_ptr(1);
+            const double *const gxjz = sd->basis().gx_ptr(2);
+            for ( int n = 0; n < sd->nstloc()-1; n++, n++ )
             {
-              double nn = wf0.sd(ispin,ikp)->context().mycol() *
-                          wf0.sd(ispin,ikp)->c().nb() + n;
-              double occ = wf0.sd(ispin,ikp)->occ(nn);
+              double nn = sd->context().mycol() * sd->c().nb() + n;
+              double occ = sd->occ(nn);
               if (occ > 0.0)
               {
                 // Compute Grad_j psi_n(ikp)
@@ -934,7 +912,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp1[ig] = complex<double>(0.0,gxjx[ig]) * p[ig+(n+1)*mloc];
                 }
                 // Compute Grad_x psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmprx[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmp1[0],&tmprx[0]);
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
                   /* i*G_j1*c(G) */
@@ -942,7 +920,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp1[ig] = complex<double>(0.0,gxjy[ig]) * p[ig+(n+1)*mloc];
                 }
                 // Compute Grad_y psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmpry[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmp1[0],&tmpry[0]);
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
                   /* i*G_j1*c(G) */
@@ -950,65 +928,54 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp1[ig] = complex<double>(0.0,gxjz[ig]) * p[ig+(n+1)*mloc];
                 }
                 // Compute Grad_z psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmp1[0],&tmprz[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmp1[0],&tmprz[0]);
 
                 // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
-                if(ispin==0)
+                const double weight = wf0.weight(wf0.ikp_global(ikp_loc)) *
+                                      omega_inv * occ;
+                if ( wf0.isp_global(isp_loc)==0 )
                 {
-                for ( int i = 0; i < np012loc_; i++ )
-                {
-                  v3txxup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprx[i].real() +
-                               tmprx[i].imag() * tmprx[i].imag());
-                  v3tyyup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmpry[i].real() +
-                               tmpry[i].imag() * tmpry[i].imag());
-                  v3tzzup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprz[i].real() * tmprz[i].real() +
-                               tmprz[i].imag() * tmprz[i].imag());
-                  v3txyup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmpry[i].real() +
-                               tmprx[i].imag() * tmpry[i].imag());
-                  v3txzup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprz[i].real() +
-                               tmprx[i].imag() * tmprz[i].imag());
-                  v3tyzup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmprz[i].real() +
-                               tmpry[i].imag() * tmprz[i].imag());
+                  for ( int i = 0; i < np012loc_; i++ )
+                  {
+                    v3txxup[i] += weight * (tmprx[i].real() * tmprx[i].real() +
+                                            tmprx[i].imag() * tmprx[i].imag());
+                    v3tyyup[i] += weight * (tmpry[i].real() * tmpry[i].real() +
+                                            tmpry[i].imag() * tmpry[i].imag());
+                    v3tzzup[i] += weight * (tmprz[i].real() * tmprz[i].real() +
+                                            tmprz[i].imag() * tmprz[i].imag());
+                    v3txyup[i] += weight * (tmprx[i].real() * tmpry[i].real() +
+                                            tmprx[i].imag() * tmpry[i].imag());
+                    v3txzup[i] += weight * (tmprx[i].real() * tmprz[i].real() +
+                                            tmprx[i].imag() * tmprz[i].imag());
+                    v3tyzup[i] += weight * (tmpry[i].real() * tmprz[i].real() +
+                                            tmpry[i].imag() * tmprz[i].imag());
+                  }
                 }
-                }
-                else if(ispin==1)
+                else
                 {
-                for ( int i = 0; i < np012loc_; i++ )
-                {
-                  v3txxdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprx[i].real() +
-                               tmprx[i].imag() * tmprx[i].imag());
-                  v3tyydn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmpry[i].real() +
-                               tmpry[i].imag() * tmpry[i].imag());
-                  v3tzzdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprz[i].real() * tmprz[i].real() +
-                               tmprz[i].imag() * tmprz[i].imag());
-                  v3txydn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmpry[i].real() +
-                               tmprx[i].imag() * tmpry[i].imag());
-                  v3txzdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprz[i].real() +
-                               tmprx[i].imag() * tmprz[i].imag());
-                  v3tyzdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmprz[i].real() +
-                               tmpry[i].imag() * tmprz[i].imag());
-                }
+                  for ( int i = 0; i < np012loc_; i++ )
+                  {
+                    v3txxdn[i] += weight * (tmprx[i].real() * tmprx[i].real() +
+                                            tmprx[i].imag() * tmprx[i].imag());
+                    v3tyydn[i] += weight * (tmpry[i].real() * tmpry[i].real() +
+                                            tmpry[i].imag() * tmpry[i].imag());
+                    v3tzzdn[i] += weight * (tmprz[i].real() * tmprz[i].real() +
+                                            tmprz[i].imag() * tmprz[i].imag());
+                    v3txydn[i] += weight * (tmprx[i].real() * tmpry[i].real() +
+                                            tmprx[i].imag() * tmpry[i].imag());
+                    v3txzdn[i] += weight * (tmprx[i].real() * tmprz[i].real() +
+                                            tmprx[i].imag() * tmprz[i].imag());
+                    v3tyzdn[i] += weight * (tmpry[i].real() * tmprz[i].real() +
+                                            tmpry[i].imag() * tmprz[i].imag());
+                  }
                 }
               }
             }
-            if ( wf0.sd(ispin,ikp)->nstloc() % 2 != 0 )
+            if ( sd->nstloc() % 2 != 0 )
             {
-              const int n = wf0.sd(ispin,ikp)->nstloc()-1;
-              double nn = wf0.sd(ispin,ikp)->context().mycol() *
-                          wf0.sd(ispin,ikp)->c().nb() + n;
-              double occ = wf0.sd(ispin,ikp)->occ(nn);
+              const int n = sd->nstloc()-1;
+              double nn = sd->context().mycol() * sd->c().nb() + n;
+              double occ = sd->occ(nn);
               if (occ > 0.0)
               {
                 // Compute Grad_j psi_n(ikp)
@@ -1018,76 +985,66 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp0[ig] = complex<double>(0.0,gxjx[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_x psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmprx[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmprx[0]);
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
                   /* i*G_j1*c(G) */
                   tmp0[ig] = complex<double>(0.0,gxjy[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_y psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmpry[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmpry[0]);
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
                   /* i*G_j1*c(G) */
                   tmp0[ig] = complex<double>(0.0,gxjz[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_z psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmprz[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmprz[0]);
 
                 // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
-                if(ispin==0)
+                const double weight = wf0.weight(wf0.ikp_global(ikp_loc)) *
+                                      omega_inv * occ;
+                if ( wf0.isp_global(isp_loc)==0 )
                 {
-                for ( int i = 0; i < np012loc_; i++ )
-                {
-                  v3txxup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprx[i].real());
-                  v3tyyup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmpry[i].real());
-                  v3tzzup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprz[i].real() * tmprz[i].real());
-                  v3txyup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmpry[i].real());
-                  v3txzup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprz[i].real());
-                  v3tyzup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmprz[i].real());
+                  for ( int i = 0; i < np012loc_; i++ )
+                  {
+                    v3txxup[i] += weight * (tmprx[i].real() * tmprx[i].real());
+                    v3tyyup[i] += weight * (tmpry[i].real() * tmpry[i].real());
+                    v3tzzup[i] += weight * (tmprz[i].real() * tmprz[i].real());
+                    v3txyup[i] += weight * (tmprx[i].real() * tmpry[i].real());
+                    v3txzup[i] += weight * (tmprx[i].real() * tmprz[i].real());
+                    v3tyzup[i] += weight * (tmpry[i].real() * tmprz[i].real());
+                  }
                 }
-                }
-                else if(ispin==1)
+                else
                 {
-                for ( int i = 0; i < np012loc_; i++ )
-                {
-                  v3txxdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprx[i].real());
-                  v3tyydn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmpry[i].real());
-                  v3tzzdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprz[i].real() * tmprz[i].real());
-                  v3txydn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmpry[i].real());
-                  v3txzdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmprx[i].real() * tmprz[i].real());
-                  v3tyzdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              (tmpry[i].real() * tmprz[i].real());
-                }
+                  for ( int i = 0; i < np012loc_; i++ )
+                  {
+                    v3txxdn[i] += weight * (tmprx[i].real() * tmprx[i].real());
+                    v3tyydn[i] += weight * (tmpry[i].real() * tmpry[i].real());
+                    v3tzzdn[i] += weight * (tmprz[i].real() * tmprz[i].real());
+                    v3txydn[i] += weight * (tmprx[i].real() * tmpry[i].real());
+                    v3txzdn[i] += weight * (tmprx[i].real() * tmprz[i].real());
+                    v3tyzdn[i] += weight * (tmpry[i].real() * tmprz[i].real());
+                  }
                 }
               }
             }
           }
           else
           {
-            const int ngwloc = wf0.sd(ispin,ikp)->basis().localsize();
+            const int ngwloc = sd->basis().localsize();
             vector<complex<double> > tmp0(ngwloc);
-            const int mloc = wf0.sd(ispin,ikp)->c().mloc();
-            const complex<double>* p = wf0.sd(ispin,ikp)->c().cvalptr();
-            const double *const kpgxjx = wf0.sd(ispin,ikp)->basis().kpgx_ptr(0);
-            const double *const kpgxjy = wf0.sd(ispin,ikp)->basis().kpgx_ptr(1);
-            const double *const kpgxjz = wf0.sd(ispin,ikp)->basis().kpgx_ptr(2);
-            for ( int n = 0; n < wf0.sd(ispin,ikp)->nstloc(); n++)
+            const int mloc = sd->c().mloc();
+            const complex<double>* p = sd->c().cvalptr();
+            const double *const kpgxjx = sd->basis().kpgx_ptr(0);
+            const double *const kpgxjy = sd->basis().kpgx_ptr(1);
+            const double *const kpgxjz = sd->basis().kpgx_ptr(2);
+            for ( int n = 0; n < sd->nstloc(); n++)
             {
-              double nn = wf0.sd(ispin,ikp)->context().mycol() *
-                          wf0.sd(ispin,ikp)->c().nb() + n;
-              double occ = wf0.sd(ispin,ikp)->occ(nn);
+              double nn = sd->context().mycol() *
+                          sd->c().nb() + n;
+              double occ = sd->occ(nn);
               if (occ > 0.0)
               {
                 // Compute Grad_j psi_n(ikp)
@@ -1097,7 +1054,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp0[ig] = complex<double>(0.0,kpgxjx[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_x psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmprx[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmprx[0]);
 
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
@@ -1105,7 +1062,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp0[ig] = complex<double>(0.0,kpgxjy[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_y psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmpry[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmpry[0]);
 
                 for ( int ig = 0; ig < ngwloc; ig++ )
                 {
@@ -1113,62 +1070,40 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   tmp0[ig] = complex<double>(0.0,kpgxjz[ig]) * p[ig+n*mloc];
                 }
                 // Compute Grad_z psi_n(ikp)
-                cd_.ft(ikp)->backward(&tmp0[0],&tmprz[0]);
+                cd_.ft(ikp_loc)->backward(&tmp0[0],&tmprz[0]);
 
                 // Compute V3 * Grad_j1 psi_n(ikp) * Grad_j2 psi_n(ikp)
-                if(ispin==0)
+                const double weight = wf0.weight(wf0.ikp_global(ikp_loc)) *
+                                      omega_inv * occ;
+                if ( wf0.isp_global(isp_loc)==0 )
                 {
-                for ( int i = 0; i < np012loc_; i++ )
-                {
-                  v3txxup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprx[i]) * tmprx[i]);
-                  v3tyyup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmpry[i]) * tmpry[i]);
-                  v3tzzup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprz[i]) * tmprz[i]);
-                  v3txyup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprx[i]) * tmpry[i]);
-                  v3txzup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprx[i]) * tmprz[i]);
-                  v3tyzup[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmpry[i]) * tmprz[i]);
+                  for ( int i = 0; i < np012loc_; i++ )
+                  {
+                    v3txxup[i] += weight * real(conj(tmprx[i]) * tmprx[i]);
+                    v3tyyup[i] += weight * real(conj(tmpry[i]) * tmpry[i]);
+                    v3tzzup[i] += weight * real(conj(tmprz[i]) * tmprz[i]);
+                    v3txyup[i] += weight * real(conj(tmprx[i]) * tmpry[i]);
+                    v3txzup[i] += weight * real(conj(tmprx[i]) * tmprz[i]);
+                    v3tyzup[i] += weight * real(conj(tmpry[i]) * tmprz[i]);
+                  }
                 }
-                }
-                else if(ispin==1)
+                else
                 {
-                for ( int i = 0; i < np012loc_; i++ )
-                {
-                  v3txxdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprx[i]) * tmprx[i]);
-                  v3tyydn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmpry[i]) * tmpry[i]);
-                  v3tzzdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprz[i]) * tmprz[i]);
-                  v3txydn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprx[i]) * tmpry[i]);
-                  v3txzdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmprx[i]) * tmprz[i]);
-                  v3tyzdn[i] += wf0.weight(ikp) * omega_inv * occ *
-                              std::real(std::conj(tmpry[i]) * tmprz[i]);
-                }
+                  for ( int i = 0; i < np012loc_; i++ )
+                  {
+                    v3txxdn[i] += weight * real(conj(tmprx[i]) * tmprx[i]);
+                    v3tyydn[i] += weight * real(conj(tmpry[i]) * tmpry[i]);
+                    v3tzzdn[i] += weight * real(conj(tmprz[i]) * tmprz[i]);
+                    v3txydn[i] += weight * real(conj(tmprx[i]) * tmpry[i]);
+                    v3txzdn[i] += weight * real(conj(tmprx[i]) * tmprz[i]);
+                    v3tyzdn[i] += weight * real(conj(tmpry[i]) * tmprz[i]);
+                  }
                 }
               }
             }
           }
         }
       }
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txxup[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyyup[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tzzup[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txyup[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txzup[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyzup[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txxdn[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyydn[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tzzdn[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txydn[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3txzdn[0],np012loc_);
-      wf0.kpcontext()->dsum('r',np012loc_,1,&v3tyzdn[0],np012loc_);
 
       for ( int ir = 0; ir < np012loc_; ir++ )
       {
@@ -1253,7 +1188,7 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
     sum[3] = - fac * sum3;
     sum[4] = - fac * sum4;
     sum[5] = - fac * sum5;
-    MPI_Allreduce(sum,tsum,6,MPI_DOUBLE,MPI_SUM,vbasis_.comm());
+    MPI_Allreduce(sum,tsum,6,MPI_DOUBLE,MPI_SUM,MPIdata::comm());
 
     sigma_exc[0] = tsum[0];
     sigma_exc[1] = tsum[1];
@@ -1262,7 +1197,6 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
     sigma_exc[4] = tsum[4];
     sigma_exc[5] = tsum[5];
   }
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -458,9 +458,9 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
 
             // local interval [i1,i2]
             int i1 = istart - ip * ma;
-            int i2 = i1 + len - 1;
 
 #ifdef DEBUG
+            int i2 = i1 + len - 1;
             cout << MPIdata::rank() << ": istart=" << istart
             << " send [" << i1 << ":" << i2 << "] len=" << len
             << " to " << iq << endl;

@@ -1963,19 +1963,6 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
 
   delete [] wbuf;
 
-#if 0
-  if ( ctxt_.onpe0() )
-  {
-    string s("</slater_determinant>\n");
-    int err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*) s.data(),
-              s.size(),MPI_CHAR,&status);
-    if ( err != 0 )
-      cout << ctxt_.mype()
-           << " error in MPI_File_write, slater_determinant trailer:"
-           << " err=" << err << endl;
-    sfp.advance(s.size());
-  }
-#endif
 #else
   sfp.file() << "</slater_determinant>\n";
 #endif // USE_MPI

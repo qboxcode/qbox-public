@@ -441,7 +441,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
           // Compute arrays gf_sdispl and gf_scounts used in
           // MPI_Alltoallv call to remap gflocal to wftmpr
           int ma = gfdata_.mb();
-          int mb = ft->np012loc(0);
+          int mb = wftmpr.size();
 #ifdef DEBUG
           cout << MPIdata::rank() << ": ma=" << ma << " mb=" << mb << endl;
 #endif

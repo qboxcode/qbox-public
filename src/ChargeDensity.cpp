@@ -246,53 +246,76 @@ void ChargeDensity::update_rhor(void)
 ////////////////////////////////////////////////////////////////////////////////
 void ChargeDensity::update_taur(double* taur) const
 {
-  cout << "ChargeDensity::update_taur: not implemented" << endl;
-#if 0
   memset( (void*)taur, 0, vft_->np012loc()*sizeof(double) );
   tmap["update_taur"].start();
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
-      wf_.sd(ispin,ikp)->compute_tau(*ft_[ikp], wf_.weight(ikp), taur);
+      assert(ft_[ikp_loc]);
+      const int ikpg = wf_.ikp_global(ikp_loc);
+      wf_.sd(isp_loc,ikp_loc)->compute_tau(*ft_[ikp_loc],
+        wf_.weight(ikpg), taur);
     }
   }
-  // sum along columns of spincontext
-  wf_.kpcontext()->dsum('r',vft_->np012loc(),1,&taur[0],vft_->np012loc());
+
+  vector<double> tmpr(vft_->np012loc());
+  MPI_Allreduce(&taur[0],&tmpr[0],vft_->np012loc(),
+                MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
+  MPI_Allreduce(&tmpr[0],&taur[0],vft_->np012loc(),
+                MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
   tmap["update_taur"].stop();
 
   // stop if computing taur with NLCCs
   if ( !rhocore_r.empty() )
     assert(!"ChargeDensity: Cannot compute taur with NLCCs");
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void ChargeDensity::update_taur(double* taur_up, double* taur_dn) const
 {
-  cout << "ChargeDensity::update_taur: not implemented" << endl;
-#if 0
   memset( (void*)taur_up, 0, vft_->np012loc()*sizeof(double) );
   memset( (void*)taur_dn, 0, vft_->np012loc()*sizeof(double) );
   tmap["update_taur"].start();
 
-  for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    wf_.sd(0,ikp)->compute_tau(*ft_[ikp], wf_.weight(ikp), taur_up);
+    if ( wf_.isp_global(isp_loc) == 0 )
+    {
+      for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
+      {
+        assert(ft_[ikp_loc]);
+        const int ikpg = wf_.ikp_global(ikp_loc);
+        wf_.sd(isp_loc,ikp_loc)->compute_tau(*ft_[ikp_loc],
+          wf_.weight(ikpg), taur_up);
+      }
+    }
+    else
+    {
+      for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
+      {
+        assert(ft_[ikp_loc]);
+        const int ikpg = wf_.ikp_global(ikp_loc);
+        wf_.sd(isp_loc,ikp_loc)->compute_tau(*ft_[ikp_loc],
+          wf_.weight(ikpg), taur_dn);
+      }
+    }
   }
-  for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
-  {
-    wf_.sd(1,ikp)->compute_tau(*ft_[ikp], wf_.weight(ikp), taur_dn);
-  }
-  // sum along columns of spincontext
-  wf_.kpcontext()->dsum('r',vft_->np012loc(),1,&taur_up[0],vft_->np012loc());
-  wf_.kpcontext()->dsum('r',vft_->np012loc(),1,&taur_dn[0],vft_->np012loc());
+
+  vector<double> tmpr(vft_->np012loc());
+  MPI_Allreduce(&taur_up[0],&tmpr[0],vft_->np012loc(),
+                MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
+  MPI_Allreduce(&tmpr[0],&taur_up[0],vft_->np012loc(),
+                MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
+  MPI_Allreduce(&taur_dn[0],&tmpr[0],vft_->np012loc(),
+                MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
+  MPI_Allreduce(&tmpr[0],&taur_dn[0],vft_->np012loc(),
+                MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
   tmap["update_taur"].stop();
 
   // stop if computing taur with NLCCs
   if ( !rhocore_r.empty() )
     assert(!"ChargeDensity: Cannot compute taur with NLCCs");
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

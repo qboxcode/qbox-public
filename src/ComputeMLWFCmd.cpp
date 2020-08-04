@@ -39,25 +39,27 @@ int ComputeMLWFCmd::action(int argc, char **argv)
   }
 
   if ( ui->onpe0() )
-    cout << "ComputeMLWF: not implemented" << endl;
-  return 0;
-#if 0
-  if ( ui->onpe0() )
     cout << "<mlwfs>" << endl;
 
   D3vector edipole_sum;
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
   {
-    SlaterDet& sd = *(wf.sd(ispin,0));
-    MLWFTransform* mlwft = new MLWFTransform(sd);
-
-    mlwft->update();
-    mlwft->compute_transform();
-    mlwft->apply_transform(sd);
-
-    if ( ui->onpe0() )
+    const int ispg = wf.isp_global(isp_loc);
+    // check if kpoint (0,0,0) is hosted on this task
+    const int ikp_loc = wf.ikp_local(0);
+    if ( ikp_loc >= 0 );
     {
-      cout << " <mlwfset spin=\"" << ispin
+      // current task hosts kpoint k=0
+      SlaterDet& sd = *(wf.sd(isp_loc,ikp_loc));
+      MLWFTransform* mlwft = new MLWFTransform(sd);
+
+      mlwft->update();
+      mlwft->compute_transform();
+      mlwft->apply_transform(sd);
+
+      if ( MPIdata::sd_rank() == 0 )
+      {
+      cout << " <mlwfset spin=\"" << ispg
            << "\" size=\"" << sd.nst() << "\">" << endl;
       for ( int i = 0; i < sd.nst(); i++ )
       {
@@ -73,15 +75,16 @@ int ComputeMLWFCmd::action(int argc, char **argv)
              << endl;
       }
       D3vector edipole = mlwft->dipole();
-      cout << " <electronic_dipole spin=\"" << ispin << "\"> " << edipole
+      cout << " <electronic_dipole spin=\"" << ispg << "\"> " << edipole
            << " </electronic_dipole>" << endl;
       cout << " </mlwfset>" << endl;
       edipole_sum += edipole;
     }
     delete mlwft;
-  }
+    } // ikp_loc
+  } // isp_loc
 
-  if ( ui->onpe0() )
+  if ( MPIdata::sd_rank() == 0 )
   {
     D3vector idipole = s->atoms.dipole();
     cout << "   <ionic_dipole> " << idipole
@@ -93,5 +96,4 @@ int ComputeMLWFCmd::action(int argc, char **argv)
     cout << "</mlwfs>" << endl;
   }
   return 0;
-#endif
 }

@@ -210,15 +210,18 @@ EnergyFunctional::~EnergyFunctional(void)
     for ( int ikp_loc = 0; ikp_loc < s_.wf.nkp_loc(); ++ikp_loc )
       delete nlp[isp_loc][ikp_loc];
 
-#if 0
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
     double time = (*i).second.real();
     double tmin = time;
     double tmax = time;
-    s_.ctxt_.dmin(1,1,&tmin,1);
-    s_.ctxt_.dmax(1,1,&tmax,1);
-    if ( s_.ctxt_.myproc()==0 )
+    double sbuf = tmin;
+    double rbuf = 0.0;
+    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
+    sbuf = tmax;
+    rbuf = 0.0;
+    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
+    if ( MPIdata::onpe0() )
     {
       string s = "name=\"" + (*i).first + "\"";
       cout << "<timing " << left << setw(22) << s
@@ -227,7 +230,6 @@ EnergyFunctional::~EnergyFunctional(void)
            << endl;
     }
   }
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

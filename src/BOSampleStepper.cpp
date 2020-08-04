@@ -1278,12 +1278,17 @@ void BOSampleStepper::step(int niter)
     }
 
     // print iteration time
-#if 0
+
     double time = tm_iter.real();
     double tmin = time;
     double tmax = time;
-    s_.ctxt_.dmin(1,1,&tmin,1);
-    s_.ctxt_.dmax(1,1,&tmax,1);
+    double sbuf = tmin;
+    double rbuf = 0.0;
+    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
+    sbuf = tmax;
+    rbuf = 0.0;
+    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
+    if ( onpe0 )
     {
       string s = "name=\"iteration\"";
       cout << "<timing " << left << setw(22) << s
@@ -1291,7 +1296,7 @@ void BOSampleStepper::step(int niter)
            << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
-#endif
+
     if ( onpe0 )
       cout << "</iteration>" << endl;
 

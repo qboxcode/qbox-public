@@ -29,6 +29,7 @@ class MPIdata
   static MPI_Comm kp_comm_;
   static MPI_Comm sp_comm_;
   static MPI_Comm sd_comm_;
+  static MPI_Comm st_kp_sp_comm_;
   static int rank_;
   static int size_;
   static bool onpe0_;
@@ -45,6 +46,8 @@ class MPIdata
 
   static int sd_rank_;
   static int sd_size_;
+  static int st_kp_sp_rank_;
+  static int st_kp_sp_size_;
 
   // private ctor
   MPIdata(void);
@@ -56,6 +59,8 @@ class MPIdata
   static const MPI_Comm& kp_comm(void) { return kp_comm_; }
   static const MPI_Comm& sp_comm(void) { return sp_comm_; }
   static const MPI_Comm& sd_comm(void) { return sd_comm_; }
+  static const MPI_Comm& st_kp_sp_comm(void) { return st_kp_sp_comm_; }
+
   static int rank(void) { return rank_; }
   static int size(void) { return size_; }
   static bool onpe0(void) { return onpe0_; }
@@ -72,6 +77,8 @@ class MPIdata
 
   static int sd_rank(void) { return sd_rank_; }
   static int sd_size(void) { return sd_size_; }
+  static int st_kp_sp_rank(void) { return st_kp_sp_rank_; }
+  static int st_kp_sp_size(void) { return st_kp_sp_size_; }
 
   static void set(int ngb, int nstb = 1, int nkpb = 1, int nspb = 1);
 };

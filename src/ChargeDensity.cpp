@@ -168,11 +168,15 @@ void ChargeDensity::update_density(void)
     tmap["charge_rowsum"].start();
     vector<double> tmpr(vft_->np012loc());
     MPI_Allreduce(&rhor[ispin][0],&tmpr[0],vft_->np012loc(),
+                  MPI_DOUBLE,MPI_SUM,MPIdata::st_kp_sp_comm());
+#if 0
+    MPI_Allreduce(&rhor[ispin][0],&tmpr[0],vft_->np012loc(),
                   MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
     MPI_Allreduce(&tmpr[0],&rhor[ispin][0],vft_->np012loc(),
                   MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
     MPI_Allreduce(&rhor[ispin][0],&tmpr[0],vft_->np012loc(),
                   MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
+#endif
     rhor[ispin] = tmpr;
     tmap["charge_rowsum"].stop();
 

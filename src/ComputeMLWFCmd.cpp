@@ -39,6 +39,10 @@ int ComputeMLWFCmd::action(int argc, char **argv)
   }
 
   if ( ui->onpe0() )
+    cout << "ComputeMLWF: not implemented" << endl;
+  return 0;
+#if 0
+  if ( ui->onpe0() )
     cout << "<mlwfs>" << endl;
 
   D3vector edipole_sum;
@@ -89,4 +93,5 @@ int ComputeMLWFCmd::action(int argc, char **argv)
     cout << "</mlwfs>" << endl;
   }
   return 0;
+#endif
 }

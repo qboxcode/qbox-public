@@ -158,9 +158,13 @@ ElectricEnthalpy::~ElectricEnthalpy(void)
     double time = (*i).second.real();
     double tmin = time;
     double tmax = time;
-    s_.sd_ctxt.dmin(1,1,&tmin,1);
-    s_.sd_ctxt.dmax(1,1,&tmax,1);
-    if ( pol_type_ != off && s_.sd_ctxt.myproc()==0 )
+    double sbuf = tmin;
+    double rbuf = 0.0;
+    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
+    sbuf = tmax;
+    rbuf = 0.0;
+    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
+    if ( MPIdata::onpe0() )
     {
       string s = "name=\"" + (*i).first + "\"";
       cout << "<timing " << left << setw(22) << s

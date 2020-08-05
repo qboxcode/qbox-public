@@ -338,7 +338,7 @@ MPIdata.o: MPIdata.h
 Matrix.o: Context.h blacs.h Matrix.h
 NonLocalPotential.o: NonLocalPotential.h AtomSet.h Atom.h D3vector.h
 NonLocalPotential.o: UnitCell.h D3tensor.h blas.h Basis.h SlaterDet.h
-NonLocalPotential.o: Context.h blacs.h Matrix.h Timer.h Species.h
+NonLocalPotential.o: Context.h blacs.h Matrix.h Timer.h Species.h MPIdata.h
 PBEFunctional.o: PBEFunctional.h XCFunctional.h
 PSDAWavefunctionStepper.o: PSDAWavefunctionStepper.h WavefunctionStepper.h
 PSDAWavefunctionStepper.o: Timer.h Wavefunction.h D3vector.h UnitCell.h
@@ -456,7 +456,7 @@ Wavefunction.o: BasisMapping.h jacobi.h SharedFilePtr.h
 WavefunctionHandler.o: WavefunctionHandler.h StructureHandler.h UnitCell.h
 WavefunctionHandler.o: D3vector.h Wavefunction.h SlaterDet.h Context.h
 WavefunctionHandler.o: blacs.h Basis.h Matrix.h Timer.h FourierTransform.h
-WavefunctionHandler.o: BasisMapping.h SampleReader.h StrX.h
+WavefunctionHandler.o: BasisMapping.h SampleReader.h MPIdata.h StrX.h
 XCOperator.o: XCOperator.h Sample.h MPIdata.h Context.h blacs.h AtomSet.h
 XCOperator.o: Atom.h D3vector.h UnitCell.h D3tensor.h blas.h ConstraintSet.h
 XCOperator.o: ExtForceSet.h Wavefunction.h Control.h ChargeDensity.h Timer.h
@@ -479,10 +479,16 @@ jade.o: blacs.h Context.h Matrix.h blas.h Timer.h
 qb.o: isodate.h release.h qbox_xmlns.h uuid_str.h MPIdata.h Timer.h
 qb.o: UserInterface.h Sample.h Context.h blacs.h AtomSet.h Atom.h D3vector.h
 qb.o: UnitCell.h D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
-qb.o: Wavefunction.h Control.h KpointCmd.h PrintCmd.h QuitCmd.h
-qb.o: RandomizeWfCmd.h RunCmd.h SetCmd.h StatusCmd.h ChargeDensity.h
-qb.o: FourierTransform.h BasisMapping.h AlphaPBE0.h AlphaRSH.h AtomsDyn.h
-qb.o: BetaRSH.h BlHF.h BtHF.h Cell.h CellDyn.h SlaterDet.h Basis.h Matrix.h
+qb.o: Wavefunction.h Control.h AngleCmd.h AtomCmd.h ComputeMLWFCmd.h
+qb.o: MLWFTransform.h BasisMapping.h ConstraintCmd.h DistanceCmd.h
+qb.o: ExtForceCmd.h FoldInWsCmd.h HelpCmd.h KpointCmd.h ListAtomsCmd.h
+qb.o: ListSpeciesCmd.h LoadCmd.h MoveCmd.h PartialChargeCmd.h PlotCmd.h
+qb.o: PrintCmd.h QuitCmd.h RandomizeRCmd.h RandomizeVCmd.h RandomizeWfCmd.h
+qb.o: ResetRotationCmd.h ResetVcmCmd.h RescaleVCmd.h ResponseCmd.h RseedCmd.h
+qb.o: RunCmd.h SaveCmd.h SetCmd.h SetVelocityCmd.h SpeciesCmd.h SpectrumCmd.h
+qb.o: StatusCmd.h ChargeDensity.h FourierTransform.h StrainCmd.h TorsionCmd.h
+qb.o: BisectionCmd.h Bisection.h SlaterDet.h Basis.h Matrix.h AlphaPBE0.h
+qb.o: AlphaRSH.h AtomsDyn.h BetaRSH.h BlHF.h BtHF.h Cell.h CellDyn.h
 qb.o: CellLock.h CellMass.h ChargeMixCoeff.h ChargeMixNdim.h ChargeMixRcut.h
 qb.o: Debug.h Dspin.h Ecut.h Ecutprec.h Ecuts.h Efield.h ForceTol.h
 qb.o: Polarization.h Emass.h ExtStress.h FermiTemp.h IterCmd.h

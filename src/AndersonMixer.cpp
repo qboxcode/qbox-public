@@ -96,13 +96,17 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
       const int kmi = ( k_ - i + nmax_ ) % ( nmax_ + 1 );
       assert(kmi>=0);
       assert(kmi<nmax_+1);
-      // cout << "k=" << k_ << " i=" << i << " kmi=" << kmi << endl;
+#ifdef DEBUG
+      cout << "k=" << k_ << " i=" << i << " kmi=" << kmi << endl;
+#endif
       for ( int j = 0; j <= i; j++ )
       {
         const int kmj = ( k_ - j + nmax_ ) % ( nmax_ + 1 );
         assert(kmj>=0);
         assert(kmj<nmax_+1);
-        // cout << "k=" << k_ << " j=" << j << " kmj=" << kmj << endl;
+#ifdef DEBUG
+        cout << "k=" << k_ << " j=" << j << " kmj=" << kmj << endl;
+#endif
         double sum = 0.0;
         for ( int l = 0; l < m_; l++ )
           sum += (f_[k_][l] - f_[kmi][l]) * (f_[k_][l] - f_[kmj][l]);
@@ -141,10 +145,12 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
         int info;
         dsyev(&jobz,&uplo,&n_,&a[0],&n_,&w[0],&work[0],&lwork,&info);
 
+#ifdef DEBUG
         cout << "AndersonMixer: eigenvalues: ";
         for ( int i = 0; i < n_; i++ )
           cout << w[i] << "  ";
         cout << endl;
+#endif
         if ( info != 0 )
         {
           cerr << " AndersonMixer: Error in dsyev" << endl;
@@ -229,21 +235,25 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
           }
           norm_ok = theta_sum <= 1.0;
 #endif
-          // cout << " tp = " << tikhonov_parameter
-          //      << " AndersonMixer: theta = ";
-          // for ( int i = 0; i < theta.size(); i++ )
-          //   cout << theta[i] << " ";
-          // cout << endl;
+#ifdef DEBUG
+          cout << " tp = " << tikhonov_parameter
+               << " AndersonMixer: theta = ";
+          for ( int i = 0; i < theta.size(); i++ )
+            cout << theta[i] << " ";
+          cout << endl;
+#endif
 
           tikhonov_parameter *= 2.0;
           iter++;
         }
       }
 
+#ifdef DEBUG
       cout << " AndersonMixer: theta = ";
       for ( int i = 0; i < theta.size(); i++ )
         cout << theta[i] << " ";
       cout << endl;
+#endif
 
     }
 

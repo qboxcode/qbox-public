@@ -97,6 +97,8 @@ Bisection::Bisection(const SlaterDet& sd, const int nlevels[3])
   // largest number of levels
   nlevelsmax_=max(nlevels[0],max(nlevels[1],nlevels[2]));
 
+  assert( nlevelsmax_ >0 );
+
   // real-space grid size for wave functions
   np_[0] = sd.basis().np(0);
   np_[1] = sd.basis().np(1);
@@ -240,8 +242,6 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
   for ( int i = 0; i < nmat_; i++ )
     amat_[i]->clear();
 
-  int size=amat_[0]->size();
-
   // allocate matrix for products of projected parts
   DoubleMatrix products(c.context(),c.n(),c.n(),c.nb(),c.nb());
 
@@ -268,6 +268,7 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
             // add product to the matrix
             double *coeff_source=products.valptr(0);
             double *coeff_destination=amat_[imat]->valptr(0);
+            const int size=amat_[imat]->size();
             for ( int i=0; i<size; i++ )
               coeff_destination[i]+=coeff_source[i];
           }
@@ -293,6 +294,7 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
         // normalize coeffs
         double *coeff=amat_[imat]->valptr(0);
         double fac = 1.0 / (np_[0]*np_[1]*np_[2]);
+        const int size=amat_[imat]->size();
         for ( int i = 0; i < size; i++ )
           coeff[i] *= fac;
         imat++;
@@ -432,9 +434,13 @@ void Bisection::compute_transform(const SlaterDet& sd, int maxsweep, double tol)
     double time = (*i).second.real();
     double tmin = time;
     double tmax = time;
-    ctxt_.dmin(1,1,&tmin,1);
-    ctxt_.dmax(1,1,&tmax,1);
-    if ( ctxt_.myproc()==0 )
+    double sbuf = tmin;
+    double rbuf = 0.0;
+    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
+    sbuf = tmax;
+    rbuf = 0.0;
+    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
+    if ( MPIdata::onpe0() )
     {
       string s = "name=\"" + (*i).first + "\"";
       cout << "<timing " << left << setw(22) << s

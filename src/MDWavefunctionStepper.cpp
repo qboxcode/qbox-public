@@ -29,6 +29,11 @@ MDWavefunctionStepper::MDWavefunctionStepper(Wavefunction& wf,
   wfv_(wfv), dt_(dt), dt2bye_(dt2bye), WavefunctionStepper(wf,tmap)
 {
   assert(wfv!=0);
+
+  tmap_["md_update_wf"].reset();
+  tmap_["riccati"].reset();
+  tmap_["riccati"].reset();
+  tmap_["ekin_e"].reset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

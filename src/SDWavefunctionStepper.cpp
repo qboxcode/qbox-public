@@ -27,7 +27,10 @@ using namespace std;
 SDWavefunctionStepper::SDWavefunctionStepper(Wavefunction& wf, double alpha,
   TimerMap& tmap) :
   alpha_(alpha), WavefunctionStepper(wf,tmap)
-{}
+{
+  tmap_["sd_update_wf"].reset();
+  tmap_["gram"].reset();
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 void SDWavefunctionStepper::update(Wavefunction& dwf)

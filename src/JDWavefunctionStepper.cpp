@@ -28,7 +28,16 @@ using namespace std;
 JDWavefunctionStepper::JDWavefunctionStepper(Wavefunction& wf,
   Preconditioner& prec, EnergyFunctional& ef, TimerMap& tmap) :
   WavefunctionStepper(wf,tmap), prec_(prec), wft_(wf), dwft_(wf), ef_(ef)
-{}
+{
+  tmap_["jd_residual"].reset();
+  tmap_["jd_compute_z"].reset();
+  tmap_["jd_hz"].reset();
+  tmap_["jd_blocks"].reset();
+  tmap_["jd_gemm"].reset();
+  tmap_["jd_getsub"].reset();
+  tmap_["jd_syev"].reset();
+  tmap_["jd_heev"].reset();
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 JDWavefunctionStepper::~JDWavefunctionStepper(void)

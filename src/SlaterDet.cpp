@@ -52,16 +52,11 @@ SlaterDet::~SlaterDet()
 #ifdef TIMING
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
-    double time = (*i).second.real();
-    double tmin = time;
-    double tmax = time;
-    double sbuf = tmin;
-    double rbuf = 0.0;
-    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
-    sbuf = tmax;
-    rbuf = 0.0;
-    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
-    if ( MPIdata::onpe0() )
+    double time = i->second.real();
+    double tmin, tmax;
+    MPI_Reduce(&time,&tmin,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
+    MPI_Reduce(&time,&tmax,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
+    if ( MPIdata::onpe0() && (tmax > 0.0) )
     {
       string s = "name=\"" + (*i).first + "\"";
       cout << "<timing " << left << setw(22) << s
@@ -979,24 +974,6 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 #endif
 
   }
-#if TIMING
-  for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
-  {
-    double time = (*i).second.real();
-    double tmin = time;
-    double tmax = time;
-    ctxt_.dmin(1,1,&tmin,1);
-    ctxt_.dmax(1,1,&tmax,1);
-    if ( ctxt_.onpe0() )
-    {
-      cout << "<timing name=\""
-           << (*i).first << "\""
-           << " min=\"" << setprecision(3) << tmin << "\""
-           << " max=\"" << setprecision(3) << tmax << "\"/>"
-           << endl;
-    }
-  }
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

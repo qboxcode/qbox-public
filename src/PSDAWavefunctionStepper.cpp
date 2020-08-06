@@ -28,7 +28,15 @@ PSDAWavefunctionStepper::PSDAWavefunctionStepper(Wavefunction& wf,
   Preconditioner& prec, TimerMap& tmap) : prec_(prec),
   WavefunctionStepper(wf,tmap), wf_last_(wf), dwf_last_(wf),
   extrapolate_(false)
-{}
+{
+  tmap_["psda_residual"].reset();
+  tmap_["psda_prec"].reset();
+  tmap_["psda_update_wf"].reset();
+  tmap_["gram"].reset();
+  tmap_["lowdin"].reset();
+  tmap_["ortho_align"].reset();
+  tmap_["riccati"].reset();
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 PSDAWavefunctionStepper::~PSDAWavefunctionStepper(void)

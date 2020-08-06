@@ -138,6 +138,15 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
   mlwfc_.resize(nst);
   mlwfs_.resize(nst);
   quad_.resize(nst);
+
+  tmap["mlwf_update"].reset();
+  tmap["mlwf_trans"].reset();
+  tmap["correction"].reset();
+  tmap["ft"].reset();
+  tmap["real"].reset();
+  tmap["ft"].reset();
+  tmap["dsum"].reset();
+  tmap["real"].reset();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -155,16 +164,11 @@ ElectricEnthalpy::~ElectricEnthalpy(void)
 
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
-    double time = (*i).second.real();
-    double tmin = time;
-    double tmax = time;
-    double sbuf = tmin;
-    double rbuf = 0.0;
-    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
-    sbuf = tmax;
-    rbuf = 0.0;
-    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
-    if ( MPIdata::onpe0() )
+    double time = i->second.real();
+    double tmin, tmax;
+    MPI_Reduce(&time,&tmin,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
+    MPI_Reduce(&time,&tmax,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
+    if ( MPIdata::onpe0() && (tmax > 0.0) )
     {
       string s = "name=\"" + (*i).first + "\"";
       cout << "<timing " << left << setw(22) << s

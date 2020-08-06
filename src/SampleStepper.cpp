@@ -41,30 +41,7 @@ SampleStepper::SampleStepper(Sample& s) : s_(s)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-SampleStepper::~SampleStepper(void)
-{
-  // print timer map
-  for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
-  {
-    double time = (*i).second.real();
-    double tmin = time;
-    double tmax = time;
-    double sbuf = tmin;
-    double rbuf = 0.0;
-    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
-    sbuf = tmax;
-    rbuf = 0.0;
-    MPI_Reduce(&sbuf,&rbuf,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
-    if ( MPIdata::onpe0() )
-    {
-      string s = "name=\"" + (*i).first + "\"";
-      cout << "<timing " << left << setw(22) << s
-           << " min=\"" << setprecision(3) << tmin << "\""
-           << " max=\"" << setprecision(3) << tmax << "\"/>"
-           << endl;
-    }
-  }
-}
+SampleStepper::~SampleStepper(void) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 void SampleStepper::print_stress(void)

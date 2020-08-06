@@ -27,7 +27,11 @@ using namespace std;
 PSDWavefunctionStepper::PSDWavefunctionStepper(Wavefunction& wf,
   Preconditioner& prec, TimerMap& tmap) : WavefunctionStepper(wf,tmap),
   prec_(prec)
-{}
+{
+  tmap_["psd_residual"].reset();
+  tmap_["psd_update_wf"].reset();
+  tmap_["gram"].reset();
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 PSDWavefunctionStepper::~PSDWavefunctionStepper(void)

@@ -715,25 +715,21 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
     {
       int len = 3*na_[is];
       valarray<double> tmpfion_enl(len);
-      double* p = &fion_enl[is][0];
-      double* tp = &tmpfion_enl[0];
-      MPI_Allreduce(p,tp,len,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
-      MPI_Allreduce(tp,p,len,MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
+      MPI_Allreduce(&fion_enl[is][0],&tmpfion_enl[0],len,
+                    MPI_DOUBLE,MPI_SUM,MPIdata::kp_sp_comm());
+      for ( int i = 0; i < len; i++ )
+        fion[is][i] += tmpfion_enl[i];
     }
-    for ( int is = 0; is < nsp_; is++ )
-      for ( int i = 0; i < 3*na_[is]; i++ )
-        fion[is][i] += fion_enl[is][i];
   }
 
-  // sum enl_, sigma_enl_ over kp_comm, sp_comm
+  // sum enl_, sigma_enl_ over kp_sp_comm
   for ( int i = 0; i < 6; ++i )
     sum[i] = sigma_enl[i];
   sum[6] = enl_;
-  MPI_Allreduce(&sum[0],&tsum[0],7,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
-  MPI_Allreduce(&tsum[0],&sum[0],7,MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
-  enl_ = sum[6];
+  MPI_Allreduce(&sum[0],&tsum[0],7,MPI_DOUBLE,MPI_SUM,MPIdata::kp_sp_comm());
+  enl_ = tsum[6];
   for ( int i = 0; i < 6; ++i )
-    sigma_enl[i] = sum[i];
+    sigma_enl[i] = tsum[i];
 
   tmap["nonlocal"].stop();
 
@@ -903,7 +899,6 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
         fion_nl[3*ia]   = sum0;
         fion_nl[3*ia+1] = sum1;
         fion_nl[3*ia+2] = sum2;
-
       }
 
       MPI_Allreduce(&fion_nl[0],&fion_nl_tmp[0],3*na_[is],

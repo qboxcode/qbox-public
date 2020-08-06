@@ -537,28 +537,6 @@ void BOSampleStepper::step(int niter)
     } // if !gs_only
 
     // Recalculate ground state wavefunctions
-#ifdef DEBUG
-    for ( int ispin = 0; ispin < nspin; ispin++ )
-    {
-      for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
-      {
-        double sum = s_.wf.sd(ispin,ikp)->empty_row_error() ;
-        if ( onpe0 )
-        {
-          cout.setf(ios::scientific,ios::floatfield);
-          cout << " sd empty row error: ispin="
-               << ispin << " ikp=" << ikp << "  " << sum << endl;
-        }
-        sum = s_.wf.sd(ispin,ikp)->g0_imag_error() ;
-        if ( onpe0 )
-        {
-          cout.setf(ios::scientific,ios::floatfield);
-          cout << " sd g0 imag error: ispin="
-               << ispin << " ikp=" << ikp << "  " << sum << endl;
-        }
-      }
-    }
-#endif
     // wavefunction extrapolation
     if ( atoms_move && extrapolate_wf )
     {

@@ -165,14 +165,6 @@ void ChargeDensity::update_density(void)
     vector<double> tmpr(vft_->np012loc());
     MPI_Allreduce(&rhor[ispin][0],&tmpr[0],vft_->np012loc(),
                   MPI_DOUBLE,MPI_SUM,MPIdata::st_kp_sp_comm());
-#if 0
-    MPI_Allreduce(&rhor[ispin][0],&tmpr[0],vft_->np012loc(),
-                  MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
-    MPI_Allreduce(&tmpr[0],&rhor[ispin][0],vft_->np012loc(),
-                  MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
-    MPI_Allreduce(&rhor[ispin][0],&tmpr[0],vft_->np012loc(),
-                  MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
-#endif
     rhor[ispin] = tmpr;
     tmap["charge_rowsum"].stop();
 
@@ -246,7 +238,7 @@ void ChargeDensity::update_rhor(void)
 ////////////////////////////////////////////////////////////////////////////////
 void ChargeDensity::update_taur(double* taur) const
 {
-  memset( (void*)taur, 0, vft_->np012loc()*sizeof(double) );
+  vector<double> tmpr(vft_->np012loc(),0.0);
   tmap["update_taur"].start();
   for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
@@ -255,15 +247,11 @@ void ChargeDensity::update_taur(double* taur) const
       assert(ft_[ikp_loc]);
       const int ikpg = wf_.ikp_global(ikp_loc);
       wf_.sd(isp_loc,ikp_loc)->compute_tau(*ft_[ikp_loc],
-        wf_.weight(ikpg), taur);
+        wf_.weight(ikpg), &tmpr[0]);
     }
   }
-
-  vector<double> tmpr(vft_->np012loc());
-  MPI_Allreduce(&taur[0],&tmpr[0],vft_->np012loc(),
-                MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
-  MPI_Allreduce(&tmpr[0],&taur[0],vft_->np012loc(),
-                MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
+  MPI_Allreduce(&tmpr[0],taur,vft_->np012loc(),
+                MPI_DOUBLE,MPI_SUM,MPIdata::st_kp_sp_comm());
   tmap["update_taur"].stop();
 
   // stop if computing taur with NLCCs
@@ -274,43 +262,36 @@ void ChargeDensity::update_taur(double* taur) const
 ////////////////////////////////////////////////////////////////////////////////
 void ChargeDensity::update_taur(double* taur_up, double* taur_dn) const
 {
-  memset( (void*)taur_up, 0, vft_->np012loc()*sizeof(double) );
-  memset( (void*)taur_dn, 0, vft_->np012loc()*sizeof(double) );
+  assert(wf_.nspin()==2);
+  vector<double> tmpr(vft_->np012loc());
   tmap["update_taur"].start();
-
-  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
+  for ( int ispin = 0; ispin < wf_.nspin(); ++ispin )
   {
-    if ( wf_.isp_global(isp_loc) == 0 )
+    const int isp_loc = wf_.isp_local(ispin);
+    if ( isp_loc >= 0 )
     {
+      memset( (void*)&tmpr[0], 0, vft_->np012loc()*sizeof(double) );
       for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
       {
         assert(ft_[ikp_loc]);
         const int ikpg = wf_.ikp_global(ikp_loc);
         wf_.sd(isp_loc,ikp_loc)->compute_tau(*ft_[ikp_loc],
-          wf_.weight(ikpg), taur_up);
+          wf_.weight(ikpg), &tmpr[0]);
       }
+    }
+    // tmpr now contains local taur contrib
+    // reduce to have both taur_up and taur_dn on all tasks
+    if ( ispin == 0 )
+    {
+      MPI_Allreduce(&tmpr[0],&taur_up[0],vft_->np012loc(),
+                    MPI_DOUBLE,MPI_SUM,MPIdata::st_kp_sp_comm());
     }
     else
     {
-      for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
-      {
-        assert(ft_[ikp_loc]);
-        const int ikpg = wf_.ikp_global(ikp_loc);
-        wf_.sd(isp_loc,ikp_loc)->compute_tau(*ft_[ikp_loc],
-          wf_.weight(ikpg), taur_dn);
-      }
+      MPI_Allreduce(&tmpr[0],&taur_dn[0],vft_->np012loc(),
+                    MPI_DOUBLE,MPI_SUM,MPIdata::st_kp_sp_comm());
     }
   }
-
-  vector<double> tmpr(vft_->np012loc());
-  MPI_Allreduce(&taur_up[0],&tmpr[0],vft_->np012loc(),
-                MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
-  MPI_Allreduce(&tmpr[0],&taur_up[0],vft_->np012loc(),
-                MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
-  MPI_Allreduce(&taur_dn[0],&tmpr[0],vft_->np012loc(),
-                MPI_DOUBLE,MPI_SUM,MPIdata::st_comm());
-  MPI_Allreduce(&tmpr[0],&taur_dn[0],vft_->np012loc(),
-                MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
   tmap["update_taur"].stop();
 
   // stop if computing taur with NLCCs

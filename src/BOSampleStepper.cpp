@@ -1021,10 +1021,9 @@ void BOSampleStepper::step(int niter)
             }
           }
           double tsum;
-          MPI_Reduce(&w_eigenvalue_sum,&tsum,1,
-            MPI_DOUBLE,MPI_SUM,0,MPIdata::kp_comm());
-          MPI_Reduce(&tsum,&w_eigenvalue_sum,1,
-            MPI_DOUBLE,MPI_SUM,0,MPIdata::sp_comm());
+          MPI_Allreduce(&w_eigenvalue_sum,&tsum,1,
+            MPI_DOUBLE,MPI_SUM,MPIdata::kp_sp_comm());
+          w_eigenvalue_sum = tsum;
         }
 
         // Harris-Foulkes estimate of the total energy
@@ -1062,6 +1061,9 @@ void BOSampleStepper::step(int niter)
         double delta_etotal = fabs(etotal - etotal_m);
         delta_etotal = max(delta_etotal,fabs(etotal - etotal_mm));
         delta_etotal = max(delta_etotal,fabs(etotal_m - etotal_mm));
+        // bcast the value of delta_etotal to ensure coherence
+        // of scf_converged
+        MPI_Bcast(&delta_etotal,1,MPI_DOUBLE,0,MPIdata::comm());
         scf_converged |= (delta_etotal < s_.ctrl.scf_tol);
         itscf++;
       } // while scf

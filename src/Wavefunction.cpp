@@ -22,6 +22,7 @@
 #include "FourierTransform.h"
 #include "jacobi.h"
 #include "SharedFilePtr.h"
+#include "cout0.h"
 #include <vector>
 #include <iomanip>
 #include <sstream>
@@ -1074,10 +1075,15 @@ void Wavefunction::info(ostream& os, string tag) const
       for ( int ikp = 0; ikp < nkp(); ++ikp )
       {
         const int ikp_loc = ikp_local(ikp);
+        string s;
+        int isrc = -1;
         if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
         {
-          sd_[isp_loc][ikp_loc]->info(os);
+          s = sd_[isp_loc][ikp_loc]->info();
+          if ( MPIdata::sd_rank() == 0 )
+            isrc = MPIdata::rank();
         }
+        cout0(s,isrc);
         MPI_Barrier(MPIdata::comm());
       }
     }

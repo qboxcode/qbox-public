@@ -63,6 +63,7 @@ OBJECTS=MPIdata.o qb.o AtomSet.o Atom.o Species.o \
         ExternalPotential.o ResponseCmd.o \
         Function3d.o Function3dHandler.o \
         SpectrumCmd.o \
+        cout0.o \
         $(PLTOBJECTS)
 
 CXXFLAGS += -DTARGET='"$(TARGET)"'
@@ -224,7 +225,7 @@ BOSampleStepper.o: SDIonicStepper.h IonicStepper.h Species.h
 BOSampleStepper.o: SDAIonicStepper.h LineMinimizer.h CGIonicStepper.h
 BOSampleStepper.o: CGOptimizer.h MDIonicStepper.h BMDIonicStepper.h
 BOSampleStepper.o: SDCellStepper.h CellStepper.h CGCellStepper.h
-BOSampleStepper.o: AndersonMixer.h MLWFTransform.h BasisMapping.h
+BOSampleStepper.o: AndersonMixer.h MLWFTransform.h BasisMapping.h cout0.h
 Base64Transcoder.o: Base64Transcoder.h
 Basis.o: Basis.h D3vector.h UnitCell.h
 BasisMapping.o: Basis.h D3vector.h UnitCell.h Context.h blacs.h
@@ -452,7 +453,7 @@ UserInterface.o: UserInterface.h qbox_xmlns.h
 VWNFunctional.o: VWNFunctional.h XCFunctional.h
 Wavefunction.o: MPIdata.h Wavefunction.h D3vector.h UnitCell.h SlaterDet.h
 Wavefunction.o: Context.h blacs.h Basis.h Matrix.h Timer.h FourierTransform.h
-Wavefunction.o: BasisMapping.h jacobi.h SharedFilePtr.h
+Wavefunction.o: BasisMapping.h jacobi.h SharedFilePtr.h cout0.h
 WavefunctionHandler.o: WavefunctionHandler.h StructureHandler.h UnitCell.h
 WavefunctionHandler.o: D3vector.h Wavefunction.h SlaterDet.h Context.h
 WavefunctionHandler.o: blacs.h Basis.h Matrix.h Timer.h FourierTransform.h
@@ -473,6 +474,7 @@ XCPotential.o: Wavefunction.h Control.h SlaterDet.h Basis.h Matrix.h
 XCPotential.o: FourierTransform.h BasisMapping.h
 XMLGFPreprocessor.o: Timer.h Context.h blacs.h Base64Transcoder.h Matrix.h
 XMLGFPreprocessor.o: XMLGFPreprocessor.h
+cout0.o: MPIdata.h cout0.h
 isodate.o: isodate.h
 jacobi.o: blacs.h Context.h Matrix.h blas.h
 jade.o: blacs.h Context.h Matrix.h blas.h Timer.h

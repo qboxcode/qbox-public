@@ -105,7 +105,7 @@ class SlaterDet
     int nspin) const;
   void write(SharedFilePtr& fh, std::string encoding, double weight, int ispin,
     int nspin) const;
-  void info(std::ostream& os) const;
+  std::string info(void) const;
   double empty_row_error(void);
   double g0_imag_error(void);
 };

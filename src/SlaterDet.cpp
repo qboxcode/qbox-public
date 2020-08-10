@@ -1950,22 +1950,24 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::info(ostream& os) const
+string SlaterDet::info(void) const
 {
+  ostringstream ostr;
   if ( ctxt_.onpe0() )
   {
-    os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\""
+    ostr.str("");
+    ostr << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\""
        << " size=\"" << nst() << "\">" << endl;
-    os << " sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << endl;
-    //os << " sdcontext: " << ctxt_ << endl;
-    os << " basis size: " << basis_->size() << endl;
-    os << " c dimensions: "
+    ostr << " sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << endl;
+    ostr << " basis size: " << basis_->size() << endl;
+    ostr << " c dimensions: "
        << c_.m() << "x" << c_.n()
        << "   (" << c_.mb() << "x" << c_.nb() << " blocks)" << endl;
-    os << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\"/>"
+    ostr << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\"/>"
        << endl;
-    os << "</slater_determinant>" << endl;
+    ostr << "</slater_determinant>" << endl;
   }
+  return ostr.str();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

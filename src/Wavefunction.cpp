@@ -943,22 +943,18 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
   }
 
-  for ( int ispb = 0; ispb < MPIdata::nspb(); ++ispb )
+  for ( int ispin = 0; ispin < nspin(); ++ispin )
   {
-    for ( int ikpb = 0; ikpb < MPIdata::nkpb(); ++ikpb )
+    const int isp_loc = isp_local(ispin);
     {
-      MPI_Barrier(MPIdata::comm());
-      if ( (ispb == MPIdata::ispb()) && (ikpb == MPIdata::ikpb()) )
+      for ( int ikp = 0; ikp < nkp(); ++ikp )
       {
-        for ( int isp_loc = 0; isp_loc < nsp_loc(); ++isp_loc )
+        const int ikp_loc = ikp_local(ikp);
+        if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
         {
-          for ( int ikp_loc = 0; ikp_loc < nkp_loc(); ++ikp_loc )
-          {
-            int ispg = isp_global(isp_loc);
-            int ikpg = ikp_global(ikp_loc);
-            sd_[isp_loc][ikp_loc]->print(os,encoding,weight_[ikpg],ispg,nspin_);
-          }
+          sd_[isp_loc][ikp_loc]->print(os,encoding,weight_[ikp],ispin,nspin_);
         }
+        MPI_Barrier(MPIdata::comm());
       }
     }
   }

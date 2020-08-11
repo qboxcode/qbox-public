@@ -263,7 +263,7 @@ ComputeMLWFCmd.o: ComputeMLWFCmd.h UserInterface.h Sample.h MPIdata.h
 ComputeMLWFCmd.o: Context.h blacs.h AtomSet.h Atom.h D3vector.h UnitCell.h
 ComputeMLWFCmd.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 ComputeMLWFCmd.o: Wavefunction.h Control.h MLWFTransform.h BasisMapping.h
-ComputeMLWFCmd.o: SlaterDet.h Basis.h Matrix.h Timer.h
+ComputeMLWFCmd.o: SlaterDet.h Basis.h Matrix.h Timer.h cout0.h
 ConfinementPotential.o: ConfinementPotential.h Basis.h D3vector.h UnitCell.h
 Constraint.o: Constraint.h
 ConstraintSet.o: MPIdata.h ConstraintSet.h PositionConstraint.h Constraint.h

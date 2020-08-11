@@ -37,6 +37,7 @@
 #include "AndersonMixer.h"
 #include "MLWFTransform.h"
 #include "D3tensor.h"
+#include "cout0.h"
 
 #include <iostream>
 #include <iomanip>
@@ -288,7 +289,12 @@ void BOSampleStepper::step(int niter)
     }
 
     for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
-      mlwft[isp_loc] = new MLWFTransform(*wf.sd(isp_loc,0));
+    {
+      const int ikp = 0;
+      const int ikp_loc = wf.ikp_local(ikp);
+      if ( ikp_loc >= 0 )
+        mlwft[isp_loc] = new MLWFTransform(*wf.sd(isp_loc,ikp_loc));
+    }
   }
 
   // Charge mixing variables: include both spins in the same vector
@@ -943,48 +949,47 @@ void BOSampleStepper::step(int niter)
           // print eigenvalues
           if ( MPIdata::onpe0() )
             cout << "<eigenset>" << endl;
-          for ( int ispb = 0; ispb < MPIdata::nspb(); ++ispb )
+          for ( int ispin = 0; ispin < wf.nspin(); ++ispin )
           {
-            for ( int ikpb = 0; ikpb < MPIdata::nkpb(); ++ikpb )
+            const int isp_loc = wf.isp_local(ispin);
+            for ( int ikp = 0; ikp < wf.nkp(); ++ikp )
             {
-              MPI_Barrier(MPIdata::comm());
-              if ( (ispb == MPIdata::ispb()) && (ikpb == MPIdata::ikpb()) )
+              const int ikp_loc = wf.ikp_local(ikp);
+              ostringstream ostr;
+              int isrc = -1;
+              if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
               {
-                for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
+                if ( MPIdata::sd_rank() == 0 )
                 {
-                  for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
+                  ostr.str("");
+                  isrc = MPIdata::rank();
+                  const int nst = wf.sd(isp_loc,ikp_loc)->nst();
+                  const double eVolt = 2.0 * 13.6058;
+                  ostr <<    "  <eigenvalues spin=\"" << ispin
+                       << "\" kpoint=\""
+                       << setprecision(8)
+                       << wf.sd(isp_loc,ikp_loc)->kpoint()
+                       << "\" weight=\""
+                       << setprecision(8)
+                       << wf.weight(ikp)
+                       << "\" n=\"" << nst << "\">" << endl;
+                  for ( int i = 0; i < nst; i++ )
                   {
-                    if ( MPIdata::sd_rank() == 0 )
-                    {
-                      const int ikpg = wf.ikp_global(ikp_loc);
-                      const int ispg = wf.isp_global(isp_loc);
-                      const int nst = wf.sd(isp_loc,ikp_loc)->nst();
-                      const double eVolt = 2.0 * 13.6058;
-                      cout <<    "  <eigenvalues spin=\"" << ispg
-                           << "\" kpoint=\""
-                           << setprecision(8)
-                           << wf.sd(isp_loc,ikp_loc)->kpoint()
-                           << "\" weight=\""
-                           << setprecision(8)
-                           << wf.weight(ikpg)
-                           << "\" n=\"" << nst << "\">" << endl;
-                      for ( int i = 0; i < nst; i++ )
-                      {
-                        cout << setw(12) << setprecision(5)
-                             << wf.sd(isp_loc,ikp_loc)->eig(i)*eVolt;
-                        if ( i%5 == 4 ) cout << endl;
-                      }
-                      if ( nst%5 != 0 ) cout << endl;
-                      cout << "  </eigenvalues>" << endl;
-                    }
+                    ostr << setw(12) << setprecision(5)
+                         << wf.sd(isp_loc,ikp_loc)->eig(i)*eVolt;
+                    if ( i%5 == 4 ) ostr << endl;
                   }
+                  if ( nst%5 != 0 ) ostr << endl;
+                  ostr << "  </eigenvalues>" << endl;
                 }
               }
+              cout0(ostr.str(),isrc);
               MPI_Barrier(MPIdata::comm());
             }
           }
           if ( MPIdata::onpe0() )
             cout << "</eigenset>" << endl;
+          MPI_Barrier(MPIdata::comm());
         }
 
         // update occupation numbers if fractionally occupied states
@@ -1071,68 +1076,96 @@ void BOSampleStepper::step(int niter)
       if ( compute_mlwf || compute_mlwfc )
       {
         tmap["mlwf"].start();
-        for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
+        for ( int ispin = 0; ispin < wf.nspin(); ++ispin )
         {
-          mlwft[isp_loc]->update();
-          mlwft[isp_loc]->compute_transform();
+          const int isp_loc = wf.isp_local(ispin);
+          const int ikp = 0;
+          const int ikp_loc = wf.ikp_local(ikp);
+          if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
+          {
+            mlwft[isp_loc]->update();
+            mlwft[isp_loc]->compute_transform();
+
+            if ( compute_mlwf )
+            {
+              SlaterDet& sd = *(wf.sd(isp_loc,ikp_loc));
+              mlwft[isp_loc]->apply_transform(sd);
+            }
+          }
         }
 
-        if ( compute_mlwf )
+        // print mlwf centers
+        D3vector edipole_sum, d3tsum;
+        if ( onpe0 )
+          cout << "<mlwfs>" << endl;
+        for ( int ispin = 0; ispin < wf.nspin(); ++ispin )
         {
-          for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
+          const int isp_loc = wf.isp_local(ispin);
+          const int ikp = 0;
+          const int ikp_loc = wf.ikp_local(ikp);
+          ostringstream ostr;
+          int isrc = -1;
+          if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
           {
-            SlaterDet& sd = *(wf.sd(isp_loc,0));
-            mlwft[isp_loc]->apply_transform(sd);
+            SlaterDet& sd = *(wf.sd(isp_loc,ikp_loc));
+            if ( MPIdata::sd_rank() == 0 )
+            {
+              ostr.str("");
+              isrc = MPIdata::rank();
+              ostr << " <mlwfset spin=\"" << ispin
+                   << "\" size=\"" << sd.nst() << "\">" << endl;
+              double total_spread[6];
+              for ( int j = 0; j < 6; j++ )
+                 total_spread[j] = 0.0;
+              for ( int i = 0; i < sd.nst(); i++ )
+              {
+                D3vector ctr = mlwft[isp_loc]->center(i);
+                double spi[6];
+                for (int j=0; j<3; j++)
+                {
+                  spi[j] = mlwft[isp_loc]->spread2(i,j);
+                  total_spread[j] += spi[j];
+                }
+
+                ostr.setf(ios::fixed, ios::floatfield);
+                ostr.setf(ios::right, ios::adjustfield);
+                ostr << "   <mlwf center=\"" << setprecision(6)
+                     << setw(12) << ctr.x
+                     << setw(12) << ctr.y
+                     << setw(12) << ctr.z
+                     << " \" spread=\" "
+                     << setw(12) << spi[0]
+                     << setw(12) << spi[1]
+                     << setw(12) << spi[2] << " \"/>"
+                     << endl;
+              }
+
+              ostr << " <total_spread> ";
+              for ( int j = 0; j < 3; j++ )
+                ostr << setw(10) << total_spread[j];
+              ostr << " </total_spread>" << endl;
+              D3vector edipole = mlwft[isp_loc]->dipole();
+              ostr << " <electronic_dipole spin=\"" << ispin
+                   << "\"> " << edipole << " </electronic_dipole>" << endl;
+              edipole_sum += edipole;
+              ostr << " </mlwfset>" << endl;
+            } // sd_rank() == 0
           }
+          cout0(ostr.str(),isrc);
+          MPI_Barrier(MPIdata::comm());
+        } // ispin
+        if ( onpe0 )
+          cout << "</mlwfs>" << endl;
+
+        if ( MPIdata::sd_rank() == 0 )
+        {
+          MPI_Reduce(&edipole_sum[0],&d3tsum[0],3,
+                     MPI_DOUBLE,MPI_SUM,0,MPIdata::sp_comm());
+          edipole_sum = d3tsum;
         }
 
         if ( onpe0 )
         {
-          cout << " BOSampleStepper::step printing mlwfs not implemented\n";
-#if 0
-          D3vector edipole_sum;
-          cout << "<mlwfs>" << endl;
-          for ( int ispin = 0; ispin < nspin; ispin++ )
-          {
-            SlaterDet& sd = *(wf.sd(ispin,0));
-            cout << " <mlwfset spin=\"" << ispin
-                 << "\" size=\"" << sd.nst() << "\">" << endl;
-            double total_spread[6];
-            for ( int j = 0; j < 6; j++ )
-               total_spread[j] = 0.0;
-            for ( int i = 0; i < sd.nst(); i++ )
-            {
-              D3vector ctr = mlwft[isp_loc]->center(i);
-              double spi[6];
-              for (int j=0; j<3; j++)
-              {
-                spi[j] = mlwft[isp_loc]->spread2(i,j);
-                total_spread[j] += spi[j];
-              }
-
-              cout.setf(ios::fixed, ios::floatfield);
-              cout.setf(ios::right, ios::adjustfield);
-              cout << "   <mlwf center=\"" << setprecision(6)
-                   << setw(12) << ctr.x
-                   << setw(12) << ctr.y
-                   << setw(12) << ctr.z
-                   << " \" spread=\" "
-                   << setw(12) << spi[0]
-                   << setw(12) << spi[1]
-                   << setw(12) << spi[2] << " \"/>"
-                   << endl;
-            }
-
-            cout << " <total_spread> ";
-            for ( int j = 0; j < 3; j++ )
-              cout << setw(10) << total_spread[j];
-            cout << " </total_spread>" << endl;
-            D3vector edipole = mlwft[isp_loc]->dipole();
-            cout << " <electronic_dipole spin=\"" << ispin << "\"> " << edipole
-                 << " </electronic_dipole>" << endl;
-            edipole_sum += edipole;
-            cout << " </mlwfset>" << endl;
-          }
           D3vector idipole = atoms.dipole();
           cout << " <ionic_dipole> " << idipole
                << " </ionic_dipole>" << endl;
@@ -1141,7 +1174,6 @@ void BOSampleStepper::step(int niter)
           cout << " <total_dipole_length> " << length(idipole + edipole_sum)
                << " </total_dipole_length>" << endl;
           cout << "</mlwfs>" << endl;
-#endif
         }
         tmap["mlwf"].stop();
       }

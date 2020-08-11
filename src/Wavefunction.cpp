@@ -682,8 +682,8 @@ void Wavefunction::update_occ(double temp)
     }
     // sum over spin and kpoints
     double tmpsum = 0.0;
-    MPI_Allreduce(&rhosum,&tmpsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
-    MPI_Allreduce(&tmpsum,&rhosum,1,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
+    MPI_Allreduce(&rhosum,&tmpsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::kp_sp_comm());
+    rhosum = tmpsum;
 
     int niter = 0;
     while ( niter < maxiter && fabs(rhosum - nel_) > 1.e-10 )
@@ -711,8 +711,8 @@ void Wavefunction::update_occ(double temp)
           rhosum += weight_[ikp] * sd_[isp_loc][ikp_loc]->total_charge();
         }
       }
-      MPI_Allreduce(&rhosum,&tmpsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::kp_comm());
-      MPI_Allreduce(&tmpsum,&rhosum,1,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
+      MPI_Allreduce(&rhosum,&tmpsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::kp_sp_comm());
+      rhosum = tmpsum;
     }
 
     if ( niter == maxiter )
@@ -816,9 +816,8 @@ complex<double> Wavefunction::dot(const Wavefunction& wf) const
   }
   // sum over kpoint and spin comms
   complex<double> tsum;
-  MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPIdata::kp_comm());
-  MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPIdata::sp_comm());
-  return sum;
+  MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPIdata::kp_sp_comm());
+  return tsum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

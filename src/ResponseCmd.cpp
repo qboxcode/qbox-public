@@ -504,19 +504,5 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
     } //if ( myrow == 0 && mycol == 0 )
   } // for ispin
 
-#if 0
-  double time, tmin, tmax;
-  time = tm_write_drho.real();
-  tmin = time;
-  tmax = time;
-  s->ctxt_.dmin('C', 1, 1, &tmin, 1);
-  s->ctxt_.dmax('C', 1, 1, &tmax, 1);
-  if (ui->onpe0())
-  {
-    cout << "  drho write time: "
-         << "min: " << tmin << " max: " << tmax << endl;
-  }
-#endif
-
   delete stepper;
 }

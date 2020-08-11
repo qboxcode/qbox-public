@@ -517,90 +517,105 @@ void Wavefunction::move_kpoint(D3vector kpoint, D3vector newkpoint)
          << endl;
     return;
   }
-  // check if newkpoint coincides with existing kpoint
+  // check if new kpoint position coincides with existing kpoint
   for ( int i = 0; i < kpoint_.size(); i++ )
   {
     if ( length(newkpoint - kpoint_[i]) < 1.e-6 )
     {
       if ( MPIdata::onpe0() )
         cout << " Wavefunction::move_kpoint: kpoint already defined "
-             << "at newkpoint position"
+             << "at kpoint new position"
              << endl;
       return;
     }
   }
 
-  cout << "Wavefunction::move_kpoint: not implemented" << endl;
-#if 0
-  // ikp: global kpoint index
-  // identify kp block holding ikp: ikpb = ikp % nkpb
-  // identify local kp index: ikp_loc = ikp / nkpb
+  // ikp: global index of kpoint to be moved
+  const int ikp_loc = ikp_local(ikp);
 
   // copy wavefunctions from old SlaterDet at kpoint to new SlaterDet
   // at newkpoint
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
-    // create new SlaterDet at newkpoint
-    SlaterDet *sd = sd_[ispin][ikp];
-    SlaterDet *sdn = new SlaterDet(*sdcontext_,newkpoint);
-    sdn->resize(cell_,refcell_,ecut_,nst_[ispin]);
-    sdn->init();
-    // copy wave functions from old to new SlaterDet
-    const Basis& basis = sd_[ispin][ikp]->basis();
-    const Basis& newbasis = sdn->basis();
-    // transform all states to real space and interpolate
-    int np0 = max(basis.np(0),newbasis.np(0));
-    int np1 = max(basis.np(1),newbasis.np(1));
-    int np2 = max(basis.np(2),newbasis.np(2));
-    FourierTransform ft1(basis,np0,np1,np2);
-    FourierTransform ft2(newbasis,np0,np1,np2);
-    // allocate real-space grid
-    valarray<complex<double> > tmpr(ft1.np012loc());
-    for ( int n = 0; n < sd->nstloc(); n++ )
+    const int isp_loc = isp_local(ispin);
+    if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
     {
-      for ( int i = 0; i < tmpr.size(); i++ )
-        tmpr[i] = 0.0;
-      ComplexMatrix& c = sd->c();
-      ComplexMatrix& cn = sdn->c();
-      ft1.backward(c.valptr(n*c.mloc()),&tmpr[0]);
-      // if the new kpoint is Gamma, remove the phase of the wavefunction
-      // using the phase of the first element of the array
-      if ( newbasis.real() )
-      {
-        double arg0 = arg(tmpr[0]);
-        // broadcast argument found on task 0
-        MPI_Bcast(&arg0,1,MPI_DOUBLE,0,basis.comm());
-        complex<double> z = polar(1.0,-arg0);
-        for ( int i = 0; i < tmpr.size(); i++ )
-          tmpr[i] *= z;
-      }
-      ft2.forward(&tmpr[0], cn.valptr(n*cn.mloc()));
-    }
+      // this task holds kpoint ikp
 
-    // delete old SlaterDet
-    delete sd_[ispin][ikp];
-    // reassign pointer
-    sd_[ispin][ikp] = sdn;
-  }
+      // create new SlaterDet at newkpoint
+      SlaterDet *sd = sd_[isp_loc][ikp_loc];
+      SlaterDet *sdn = new SlaterDet(sd->context(),newkpoint);
+      sdn->resize(cell_,refcell_,ecut_,nst_[ispin]);
+      sdn->init();
+      // copy wave functions from old to new SlaterDet
+      const Basis& basis = sd_[isp_loc][ikp_loc]->basis();
+      const Basis& newbasis = sdn->basis();
+      // transform all states to real space and interpolate
+      int np0 = max(basis.np(0),newbasis.np(0));
+      int np1 = max(basis.np(1),newbasis.np(1));
+      int np2 = max(basis.np(2),newbasis.np(2));
+      FourierTransform ft1(basis,np0,np1,np2);
+      FourierTransform ft2(newbasis,np0,np1,np2);
+      // allocate real-space grid
+      valarray<complex<double> > tmpr(ft1.np012loc());
+      for ( int n = 0; n < sd->nstloc(); n++ )
+      {
+        for ( int i = 0; i < tmpr.size(); i++ )
+          tmpr[i] = 0.0;
+        ComplexMatrix& c = sd->c();
+        ComplexMatrix& cn = sdn->c();
+        ft1.backward(c.valptr(n*c.mloc()),&tmpr[0]);
+        // if the new kpoint is Gamma, remove the phase of the wavefunction
+        // using the phase of the first element of the array
+        if ( newbasis.real() )
+        {
+          double arg0 = arg(tmpr[0]);
+          // broadcast argument found on task 0
+          MPI_Bcast(&arg0,1,MPI_DOUBLE,0,basis.comm());
+          complex<double> z = polar(1.0,-arg0);
+          for ( int i = 0; i < tmpr.size(); i++ )
+            tmpr[i] *= z;
+        }
+        ft2.forward(&tmpr[0], cn.valptr(n*cn.mloc()));
+      }
+
+      // delete old SlaterDet
+      delete sd_[isp_loc][ikp_loc];
+      // reassign pointer
+      sd_[isp_loc][ikp_loc] = sdn;
+
+      // randomize new SlaterDet to break symmetry
+      sd_[isp_loc][ikp_loc]->randomize(1.e-4);
+
+    } // if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
+  } // for ispin
+
   kpoint_[ikp] = newkpoint;
 
+  // update occupation numbers
   if ( nspin_ == 1 )
   {
-    sd_[0][ikp]->update_occ(nel_,nspin_);
+    if ( ( isp_local(0) >= 0 ) && ( ikp_loc >= 0 ) )
+    {
+      sd_[isp_local(0)][ikp_loc]->update_occ(nel_,nspin_);
+    }
   }
   else if ( nspin_ == 2 )
   {
     const int nocc_up = (nel_+1)/2+deltaspin_;
     const int nocc_dn = nel_/2 - deltaspin_;
-    sd_[0][ikp]->update_occ(nocc_up,nspin_);
-    sd_[1][ikp]->update_occ(nocc_dn,nspin_);
+
+    if ( ( isp_local(0) >= 0 ) && ( ikp_loc >= 0 ) )
+      sd_[isp_local(0)][ikp_loc]->update_occ(nocc_up,nspin_);
+
+    if ( ( isp_local(1) >= 0 ) && ( ikp_loc >= 0 ) )
+      sd_[isp_local(1)][ikp_loc]->update_occ(nocc_dn,nspin_);
   }
   else
   {
     // incorrect value of nspin_
     assert(false);
   }
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

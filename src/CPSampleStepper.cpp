@@ -256,18 +256,13 @@ void CPSampleStepper::step(int niter)
       ef_.energy(compute_hpsi,dwf,compute_forces,fion,compute_stress,sigma_eks);
     ef_.enthalpy();
 
-    if ( onpe0 )
-      cout << "</iteration>" << endl;
-
-    // print iteration time
-#if 0
     tm_iter.stop();
+    // print iteration time
     double time = tm_iter.real();
-    double tmin = time;
-    double tmax = time;
-    s_.ctxt_.dmin(1,1,&tmin,1);
-    s_.ctxt_.dmax(1,1,&tmax,1);
-    if ( s_.ctxt_.myproc()==0 )
+    double tmin, tmax;
+    MPI_Reduce(&time,&tmin,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
+    MPI_Reduce(&time,&tmax,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
+    if ( onpe0 )
     {
       string s = "name=\"iteration\"";
       cout << "<timing " << left << setw(22) << s
@@ -275,7 +270,10 @@ void CPSampleStepper::step(int niter)
            << " max=\"" << setprecision(3) << tmax << "\"/>"
            << endl;
     }
-#endif
+
+    if ( onpe0 )
+      cout << "</iteration>" << endl;
+
     if ( compute_forces )
       s_.constraints.update_constraints(dt);
   } // iter

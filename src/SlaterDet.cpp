@@ -1893,7 +1893,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   }
 
 #if USE_MPI
-  if ( ctxt_.myrow() == lastproc )
+  if ( ( ctxt_.mycol() == ctxt_.npcol()-1 ) && ( ctxt_.myrow() == lastproc ) )
   {
     // append trailer to wbuf
     string trailer = "</slater_determinant>\n";

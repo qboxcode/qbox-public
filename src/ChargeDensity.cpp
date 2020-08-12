@@ -226,12 +226,11 @@ void ChargeDensity::update_rhor(void)
     double sum = dasum(&n,prhor,&ione);
     sum *= omega / vft_->np012();
 
-    // sum over g_comm and sp_comm
+    // sum over g_comm
     double tsum = 0.0;
     MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::g_comm());
-    MPI_Allreduce(&tsum,&sum,1,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
     tmap["charge_integral"].stop();
-    total_charge_[ispin] = sum;
+    total_charge_[ispin] = tsum;
   }
 }
 

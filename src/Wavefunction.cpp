@@ -1019,21 +1019,21 @@ void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
 #endif
   }
 
+  sfp.sync();
+
   for ( int ispin = 0; ispin < nspin(); ++ispin )
   {
     for ( int ikp = 0; ikp < nkp(); ++ikp )
     {
-      sfp.sync();
       const int isp_loc = isp_local(ispin);
       const int ikp_loc = ikp_local(ikp);
       if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
       {
         sd_[isp_loc][ikp_loc]->write(sfp,encoding,weight_[ikp],ispin,nspin_);
       }
+      sfp.sync();
     }
   }
-
-  sfp.sync();
 
   if ( MPIdata::onpe0() )
   {

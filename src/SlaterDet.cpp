@@ -1789,7 +1789,11 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
       }
       xcdr.print(outlen,(char*) b, ostr);
       if ( ctxt_.myrow() == lastproc )
+      {
         ostr << "</grid_function>\n";
+        if ( ( ctxt_.mycol() == (ctxt_.npcol()-1) ) && ( n == (nstloc()-1) ) )
+          ostr << "</slater_determinant>\n";
+      }
       delete [] b;
     }
     else
@@ -1822,7 +1826,11 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
       if ( count%4 != 0 )
         ostr << "\n";
       if ( ctxt_.myrow() == lastproc )
+      {
         ostr << "</grid_function>\n";
+        if ( ( ctxt_.mycol() == (ctxt_.npcol()-1) ) && ( n == (nstloc()-1) ) )
+          ostr << "</slater_determinant>\n";
+      }
     }
     // copy contents of ostr stringstream to segment
     seg += ostr.str();
@@ -1892,29 +1900,6 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
 #endif
   }
 
-#if USE_MPI
-  if ( ( ctxt_.mycol() == ctxt_.npcol()-1 ) && ( ctxt_.myrow() == lastproc ) )
-  {
-    // append trailer to wbuf
-    string trailer = "</slater_determinant>\n";
-    char* tmp;
-    try
-    {
-      tmp = new char[wbufsize+trailer.size()];
-    }
-    catch ( bad_alloc )
-    {
-      cout << ctxt_.mype() << " bad_alloc in wbuf trailer append "
-          << " trailer size=" << trailer.size()
-          << " wbufsize=" << wbufsize << endl;
-    }
-    memcpy(tmp,wbuf,wbufsize);
-    memcpy(tmp+wbufsize,trailer.c_str(),trailer.size());
-    delete [] wbuf;
-    wbuf = tmp;
-    wbufsize += trailer.size();
-  }
-
   // wbuf now contains the data to be written in the correct order
 
   ctxt_.barrier();
@@ -1943,10 +1928,6 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   sfp.set_offset(local_offset+len);
 
   delete [] wbuf;
-
-#else
-  sfp.file() << "</slater_determinant>\n";
-#endif // USE_MPI
 }
 
 ////////////////////////////////////////////////////////////////////////////////

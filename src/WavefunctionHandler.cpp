@@ -423,10 +423,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
 #endif
           const Basis& basis = sd->basis();
           ft = new FourierTransform(basis,nx_,ny_,nz_);
-          if ( basis.real() )
-            wftmpr.resize(ft->np012loc(0));
-          else
-            wftmpr.resize(2*ft->np012loc(0));
+
           wftmp.resize((ft->np012loc()));
 #ifdef DEBUG
           cout << MPIdata::rank() << ": ft->np012loc()="
@@ -440,20 +437,35 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
           // of size ft->np012loc(0)
           // Compute arrays gf_sdispl and gf_scounts used in
           // MPI_Alltoallv call to remap gflocal to wftmpr
-          int ma = gfdata_.mb();
-          int mb = wftmpr.size();
+
+          // compute gf_sdispl, gf_scounts on current task ip = MPIdata::igb()
+          const int ip = MPIdata::igb();
+          const int ma = gflocal.size();
+          int istart = ip * ma;
+          int mb, iend;
+          if ( basis.real() )
+          {
+            wftmpr.resize(ft->np012loc(0));
+            mb = wftmpr.size();
+            // Data to be copied is in first part of gflocal if basis is real
+            iend = min((ip+1)*ma,gfdata_.m()/2);
+          }
+          else
+          {
+            wftmpr.resize(2*ft->np012loc(0));
+            mb = wftmpr.size();
+            iend = (ip+1)*ma;
+          }
+
 #ifdef DEBUG
           cout << MPIdata::rank() << ": ma=" << ma << " mb=" << mb << endl;
 #endif
 
-          // compute gf_sdispl, gf_scounts on current task ip = MPIdata::igb()
-          const int ip = MPIdata::igb();
-          int istart = ip * ma;
-
-          while ( istart < (ip+1)*ma )
+          while ( istart < iend )
           {
             // destination task iq
             int iq = istart / mb;
+            assert(iq < MPIdata::ngb());
             int len = min((ip+1)*ma-istart,(iq+1)*mb-istart);
 
             // local interval [i1,i2]
@@ -465,12 +477,19 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
             << " send [" << i1 << ":" << i2 << "] len=" << len
             << " to " << iq << endl;
 #endif
-
             gf_sdispl[iq] = i1;
             gf_scounts[iq] = len;
 
             istart += len;
           }
+
+          // distribute the index array gf_scounts
+          MPI_Alltoall(&gf_scounts[0],1,MPI_INT,
+                       &gf_rcounts[0],1,MPI_INT,MPIdata::g_comm());
+          // recompute displacements gf_rdispl from gf_rcounts
+          gf_rdispl[0] = 0;
+          for ( int i = 1; i < np; ++i )
+            gf_rdispl[i] = gf_rdispl[i-1] + gf_rcounts[i-1];
 
 #ifdef DEBUG
           cout << MPIdata::rank() << ": sdispl:";
@@ -481,15 +500,15 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
           for ( int iq = 0; iq < MPIdata::ngb(); ++iq )
             cout << " " << gf_scounts[iq];
           cout << endl;
+          cout << MPIdata::rank() << ": rdispl:";
+          for ( int iq = 0; iq < MPIdata::ngb(); ++iq )
+            cout << " " << gf_rdispl[iq];
+          cout << endl;
+          cout << MPIdata::rank() << ": rcounts:";
+          for ( int iq = 0; iq < MPIdata::ngb(); ++iq )
+            cout << " " << gf_rcounts[iq];
+          cout << endl;
 #endif
-
-          // distribute the index array gf_scounts
-          MPI_Alltoall(&gf_scounts[0],1,MPI_INT,
-                       &gf_rcounts[0],1,MPI_INT,MPIdata::g_comm());
-          // recompute displacements gf_rdispl from gf_rcounts
-          gf_rdispl[0] = 0;
-          for ( int i = 1; i < np; ++i )
-            gf_rdispl[i] = gf_rdispl[i-1] + gf_rcounts[i-1];
 
           // index arrays gf_sdispl, gf_scounts, gf_rdispl, gf_rcounts can now
           // be used to remap a gflocal vector to wftmpr

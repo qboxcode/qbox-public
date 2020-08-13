@@ -956,6 +956,8 @@ void BOSampleStepper::step(int niter)
             {
               const int ikp_loc = wf.ikp_local(ikp);
               ostringstream ostr;
+	      ostr.setf(ios::fixed,ios::floatfield);
+	      ostr.setf(ios::right,ios::adjustfield);
               int isrc = -1;
               if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
               {
@@ -1111,6 +1113,8 @@ void BOSampleStepper::step(int niter)
             if ( MPIdata::sd_rank() == 0 )
             {
               ostr.str("");
+	      ostr.setf(ios::fixed,ios::floatfield);
+	      ostr.setf(ios::right,ios::adjustfield);
               isrc = MPIdata::rank();
               ostr << " <mlwfset spin=\"" << ispin
                    << "\" size=\"" << sd.nst() << "\">" << endl;
@@ -1127,8 +1131,6 @@ void BOSampleStepper::step(int niter)
                   total_spread[j] += spi[j];
                 }
 
-                ostr.setf(ios::fixed, ios::floatfield);
-                ostr.setf(ios::right, ios::adjustfield);
                 ostr << "   <mlwf center=\"" << setprecision(6)
                      << setw(12) << ctr.x
                      << setw(12) << ctr.y

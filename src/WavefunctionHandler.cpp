@@ -390,6 +390,9 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
   else if ( locname == "wavefunction" || locname == "wavefunction_velocity" )
   {
     // copy data from gfdata_ to local wftmpr
+#ifdef DEBUG
+    cout << " gfdata_.ctxt(): " << gfdata_.context() << endl;
+#endif
     vector<double> wftmpr, gflocal(gfdata_.mloc());
     // jsrc: current column index of gfdata_
     int jsrc = current_gfdata_pos_;
@@ -533,8 +536,12 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
           int sd_col = n / nb;
           int dest_rank = MPIdata::igb() +
                           MPIdata::ngb()  * ( sd_col +
-                          MPIdata::nstb() * ( ikp % MPIdata::nkpb() +
-                          MPIdata::nkpb() *   ispin % MPIdata::nspb() ) );
+                          MPIdata::nstb() * ( (ikp % MPIdata::nkpb())+
+                          MPIdata::nkpb() * (ispin % MPIdata::nspb()) ) );
+#ifdef DEBUG
+          cout << MPIdata::rank() << ": ispin=" << ispin
+          << " ikp=" << ikp << " n=" << n << " dest_rank=" << dest_rank << endl;
+#endif
           assert(dest_rank >= 0);
           assert(dest_rank < MPIdata::size());
 

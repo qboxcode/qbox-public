@@ -904,29 +904,10 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
         valarray<double> w(h.m());
         if ( eigvec )
         {
-#if DEBUG
-          ComplexMatrix hcopy(h);
-#endif
           ComplexMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
           h.heev('l',w,z);
           cp = c;
           c.gemm('n','n',1.0,cp,z,0.0);
-#if DEBUG
-          // check that z contains eigenvectors of h
-          // diagonal matrix with eigenvalues on diagonal
-          ComplexMatrix d(c.context(),c.n(),c.n(),c.nb(),c.nb());
-          // the following test works only on one task
-          assert(ctxt_.size()==1);
-          for ( int i = 0; i < d.m(); i++ )
-            d[i+d.n()*i] = w[i];
-          ComplexMatrix dz(c.context(),c.n(),c.n(),c.nb(),c.nb());
-          dz.gemm('n','c',1.0,d,z,0.0);
-          ComplexMatrix zdz(c.context(),c.n(),c.n(),c.nb(),c.nb());
-          zdz.gemm('n','n',1.0,z,dz,0.0);
-          // zdz should be equal to hcopy
-          zdz -= hcopy;
-          cout << " heev: norm of error: " << zdz.nrm2() << endl;
-#endif
         }
         else
         {

@@ -44,6 +44,7 @@ class SharedFilePtr
   MPI_Offset mpi_offset(void) const { return (MPI_Offset) offset_; }
   void sync(void)
   {
+    MPI_File_sync(fh_);
     // set all offsets to the largest offset
 #if USE_MPI
     long long int s_off = offset_;

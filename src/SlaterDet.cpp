@@ -1924,7 +1924,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
                               MPI_CHAR,&status);
   if ( err != 0 )
     cout << ctxt_.mype()
-         << " error in MPI_File_write_at_all: err=" << err << endl;
+         << " error in MPI_File_write_at: err=" << err << endl;
   sfp.set_offset(local_offset+len);
 
   delete [] wbuf;

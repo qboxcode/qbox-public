@@ -266,10 +266,10 @@ void ChargeDensity::update_taur(double* taur_up, double* taur_dn) const
   tmap["update_taur"].start();
   for ( int ispin = 0; ispin < wf_.nspin(); ++ispin )
   {
+    memset( (void*)&tmpr[0], 0, vft_->np012loc()*sizeof(double) );
     const int isp_loc = wf_.isp_local(ispin);
     if ( isp_loc >= 0 )
     {
-      memset( (void*)&tmpr[0], 0, vft_->np012loc()*sizeof(double) );
       for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
       {
         assert(ft_[ikp_loc]);

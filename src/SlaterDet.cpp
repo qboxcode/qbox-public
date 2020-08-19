@@ -1562,10 +1562,8 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   // do not write anything if nst==0
   if ( nst() == 0 ) return;
 
-#if USE_MPI
   char* wbuf = 0;
   size_t wbufsize = 0;
-#endif
 
   // Segment n on process iprow is sent to row (n*nprow+iprow)/(nprow)
   const int nprow = ctxt_.nprow();
@@ -1839,7 +1837,6 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
 
     // seg is defined
 
-#if USE_MPI
     // redistribute segments to tasks within each process column
 
     for ( int i = 0; i < nprow; i++ )
@@ -1857,7 +1854,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     MPI_Alltoall(&scounts[0],1,MPI_INT,&rcounts[0],1,MPI_INT,MPIdata::g_comm());
 
     // dimension receive buffer
-    int rbufsize = rcounts[0];
+    size_t rbufsize = rcounts[0];
     rdispl[0] = 0;
     for ( int i = 1; i < ctxt_.nprow(); i++ )
     {
@@ -1895,37 +1892,41 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
       wbufsize += rbufsize;
     }
     delete [] rbuf;
-#else
-    sfp.file().write(seg.data(),seg.size());
-#endif
   }
 
-  // wbuf now contains the data to be written in the correct order
+  // wbuf now contains the data to be written in order of
+  // increasing sd rank
 
   ctxt_.barrier();
 
-  MPI_Offset off;
-  long long int local_offset,current_offset;
-  current_offset = sfp.offset();
+  assert(sizeof(size_t)==sizeof(MPI_Offset));
+  assert(sizeof(long long int)==sizeof(MPI_Offset));
+  MPI_Offset current_offset = sfp.offset();
 
+  long long int local_offset = 0;
   // compute local offset of next write
   long long int local_size = wbufsize;
   MPI_Scan(&local_size, &local_offset, 1,
            MPI_LONG_LONG, MPI_SUM, ctxt_.comm());
-  // add base and correct for inclusive scan by subtracting local_size
-  local_offset += current_offset - local_size;
-  off = local_offset;
+  // correct for inclusive scan by subtracting local_size
+  local_offset -= local_size;
+  MPI_Offset off = current_offset + local_offset;
 
   MPI_Status status;
 
+#ifdef DEBUG
+  cout << MPIdata::rank() << " MPI_File_write_at: "
+       << "off= " << off << " size= " << wbufsize
+       << " off+size-1= " << off+wbufsize-1 << endl;
+#endif
   // write wbuf from all tasks using computed offset
-  int len = wbufsize;
-  int err = MPI_File_write_at(sfp.file(),off,(void*)wbuf,len,
+  int err = MPI_File_write_at(sfp.file(),off,(void*)wbuf,wbufsize,
                               MPI_CHAR,&status);
   if ( err != 0 )
     cout << ctxt_.mype()
          << " error in MPI_File_write_at: err=" << err << endl;
-  sfp.set_offset(local_offset+len);
+
+  sfp.set_offset(off+wbufsize);
 
   delete [] wbuf;
 }

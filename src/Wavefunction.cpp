@@ -958,9 +958,12 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
     os << "</" << tag << ">" << endl;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
 {
+  assert(sizeof(size_t)==sizeof(MPI_Offset));
+  assert(sizeof(long long int)==sizeof(MPI_Offset));
+
   sfp.sync();
 
   if ( MPIdata::onpe0() )
@@ -997,16 +1000,56 @@ void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
 
   sfp.sync();
 
+  vector<vector<string> > sdstr;
+  sdstr.resize(nsp_loc());
+  for ( int isp_loc = 0; isp_loc < nsp_loc(); ++isp_loc )
+  {
+    const int ispin = isp_global(isp_loc);
+    sdstr[isp_loc].resize(nkp_loc());
+    for ( int ikp_loc = 0; ikp_loc < nkp_loc(); ++ikp_loc )
+    {
+      const int ikp = ikp_global(ikp_loc);
+      // serialize sd[isp_loc][ikp_loc] into sdstr[isp_loc][ikp_loc]
+      sd_[isp_loc][ikp_loc]->str(sdstr[isp_loc][ikp_loc],encoding,
+                                 weight_[ikp],ispin,nspin_);
+    }
+  }
+
+  // sdstr now contains all data to be written
+  // write data in order of increasing ispin, ikp
   for ( int ispin = 0; ispin < nspin(); ++ispin )
   {
     for ( int ikp = 0; ikp < nkp(); ++ikp )
     {
+      MPI_Barrier(MPIdata::comm());
       const int isp_loc = isp_local(ispin);
       const int ikp_loc = ikp_local(ikp);
+      const char* wbuf = 0;
+      size_t len = 0;
+      MPI_Offset off = 0;
       if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
       {
-        sd_[isp_loc][ikp_loc]->write(sfp,encoding,weight_[ikp],ispin,nspin_);
+        wbuf = sdstr[isp_loc][ikp_loc].c_str();
+        len = sdstr[isp_loc][ikp_loc].size();
+        // compute offset of data on current task
+        long long int local_offset = 0;
+        long long int local_size = len;
+        MPI_Scan(&local_size, &local_offset, 1,
+                 MPI_LONG_LONG, MPI_SUM, MPIdata::sd_comm());
+        // correct for inclusive scan by subtracting local_size
+        local_offset -= local_size;
+        off = sfp.offset() + local_offset;
       }
+      MPI_Status status;
+      int err = MPI_File_write_at_all(sfp.file(),off,wbuf,len,
+                                      MPI_CHAR,&status);
+      int count;
+      MPI_Get_count(&status,MPI_CHAR,&count);
+      assert(count==len);
+
+      if ( err != 0 )
+        cout << " Wavefunction::write: error in MPI_File_write_at_all" << endl;
+      sfp.set_offset(off+len);
       sfp.sync();
     }
   }

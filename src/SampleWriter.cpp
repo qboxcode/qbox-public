@@ -81,14 +81,11 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
   }
   else
   {
-#if USE_MPI
     MPI_File fh;
-    MPI_Info info;
-    MPI_Info_create(&info);
 
     int err;
     err = MPI_File_open(MPIdata::comm(),(char*) filename_cstr,
-                        MPI_MODE_WRONLY|MPI_MODE_CREATE,info,&fh);
+                        MPI_MODE_WRONLY|MPI_MODE_CREATE,MPI_INFO_NULL,&fh);
     if ( err != 0 )
       cout << MPIdata::rank() << ": error in MPI_File_open: " << err << endl;
 
@@ -96,10 +93,9 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     MPI_Barrier(MPIdata::comm());
 
     MPI_Status status;
-#else
-    ofstream fh(filename_cstr);
-#endif
-    SharedFilePtr sfp(MPIdata::comm(),fh);
+    MPI_Comm sfp_comm;
+    MPI_Comm_dup(MPIdata::comm(),&sfp_comm);
+    SharedFilePtr sfp(sfp_comm,fh);
     if ( onpe0 )
     {
       string header("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -121,17 +117,13 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
       ostringstream ss("");
       ss << s.atoms;
       header += ss.str();
-      int len = header.size();
-#if USE_MPI
-      err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)header.c_str(),
+      size_t len = header.size();
+      err = MPI_File_write_at(sfp.file(),sfp.offset(),(void*)header.c_str(),
             len,MPI_CHAR,&status);
       if ( err != 0 )
         cout << MPIdata::rank() << ": error in MPI_File_write: header "
              << err << endl;
       sfp.advance(len);
-#else
-      fh.write(header.c_str(),len);
-#endif
     }
     sfp.sync();
 
@@ -147,32 +139,23 @@ void SampleWriter::writeSample(const Sample& s, const string filename,
     if ( onpe0 )
     {
       const char *trailer = "</fpmd:sample>\n";
-      int len = strlen(trailer);
-#if USE_MPI
-      err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)trailer,
+      size_t len = strlen(trailer);
+      err = MPI_File_write_at(sfp.file(),sfp.offset(),(void*)trailer,
               len,MPI_CHAR,&status);
       if ( err != 0 )
         cout << MPIdata::rank() << ": error in MPI_File_write: trailer "
              << err << endl;
       sfp.advance(len);
-#else
-      fh.write(trailer,len);
-#endif
     }
 
     sfp.sync();
 
-#if USE_MPI
     file_size = sfp.offset();
     err = MPI_File_close(&fh);
     if ( err != 0 )
       cout << MPIdata::rank() << ": error in MPI_File_close: " << err << endl;
-#else
-    fh.close();
-    struct stat statbuf;
-    stat(filename_cstr,&statbuf);
-    file_size = statbuf.st_size;
-#endif
+
+    MPI_Comm_free(&sfp_comm);
   }
 
   tm.stop();

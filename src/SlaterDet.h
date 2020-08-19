@@ -30,8 +30,6 @@ class FourierTransform;
 #include <string>
 #include <map>
 
-class SharedFilePtr;
-
 typedef std::map<std::string,Timer> TimerMap;
 
 class SlaterDet
@@ -103,7 +101,7 @@ class SlaterDet
   SlaterDet& operator=(SlaterDet& rhs);
   void print(std::ostream& os, std::string encoding, double weight, int ispin,
     int nspin) const;
-  void write(SharedFilePtr& fh, std::string encoding, double weight, int ispin,
+  void str(std::string& sdstr, std::string encoding, double weight, int ispin,
     int nspin) const;
   std::string info(void) const;
   double empty_row_error(void);

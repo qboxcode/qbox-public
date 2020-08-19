@@ -21,7 +21,6 @@
 #include "Context.h"
 #include "blas.h" // daxpy
 #include "Base64Transcoder.h"
-#include "SharedFilePtr.h"
 #include "Timer.h"
 #include "MPIdata.h"
 
@@ -1549,9 +1548,10 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
+void SlaterDet::str(string& sdstr, string encoding, double weight,
   int ispin, int nspin) const
 {
+  // serialize SlaterDet into a string sdstr
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
   const bool real_basis = basis_->real();
@@ -1562,14 +1562,11 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   // do not write anything if nst==0
   if ( nst() == 0 ) return;
 
-  char* wbuf = 0;
-  size_t wbufsize = 0;
-
-  // Segment n on process iprow is sent to row (n*nprow+iprow)/(nprow)
+  // Segment n on process iprow is sent to row (n*nprow+iprow)/(nstloc)
   const int nprow = ctxt_.nprow();
   vector<int> scounts(nprow), sdispl(nprow), rcounts(nprow), rdispl(nprow);
 
-  string header;
+  sdstr.clear();
   if ( ctxt_.onpe0() )
   {
     ostringstream ostr_hdr;
@@ -1594,7 +1591,7 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     if ( nst()%10 != 0 )
       ostr_hdr << endl;
     ostr_hdr << "</density_matrix>" << endl;
-    header = ostr_hdr.str();
+    sdstr.append(ostr_hdr.str());
   }
 
   // serialize all local columns of c and store in segments seg[n]
@@ -1608,9 +1605,6 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   for ( int n = 0; n < nstloc(); n++ )
   {
     seg.clear();
-    if ( n == 0 && ctxt_.myrow() == 0 )
-      seg = header;
-
     ostringstream ostr;
     //cout << " state " << n << " is stored on column "
     //     << ctxt_.mycol() << " local index: " << c_.y(n) << endl;
@@ -1868,67 +1862,18 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
 
     if ( err != 0 )
        cout << ctxt_.mype()
-            << " SlaterDet::write: error in MPI_Alltoallv" << endl;
+            << " SlaterDet::str: error in MPI_Alltoallv" << endl;
 
     if ( rbufsize > 0 )
     {
-      // append rbuf to wbuf
-      char* tmp;
-      try
-      {
-        tmp = new char[wbufsize+rbufsize];
-      }
-      catch ( bad_alloc )
-      {
-        cout << ctxt_.mype() << " bad_alloc in wbuf append "
-             << " n=" << n
-             << " rbufsize=" << rbufsize
-             << " wbufsize=" << wbufsize << endl;
-      }
-      memcpy(tmp,wbuf,wbufsize);
-      memcpy(tmp+wbufsize,rbuf,rbufsize);
-      delete [] wbuf;
-      wbuf = tmp;
-      wbufsize += rbufsize;
+      // append rbuf to sdstr
+      sdstr.append(rbuf,rbufsize);
     }
     delete [] rbuf;
   }
 
-  // wbuf now contains the data to be written in order of
+  // sdstr now contains the data to be written in order of
   // increasing sd rank
-
-  ctxt_.barrier();
-
-  assert(sizeof(size_t)==sizeof(MPI_Offset));
-  assert(sizeof(long long int)==sizeof(MPI_Offset));
-  MPI_Offset current_offset = sfp.offset();
-
-  long long int local_offset = 0;
-  // compute local offset of next write
-  long long int local_size = wbufsize;
-  MPI_Scan(&local_size, &local_offset, 1,
-           MPI_LONG_LONG, MPI_SUM, ctxt_.comm());
-  // correct for inclusive scan by subtracting local_size
-  local_offset -= local_size;
-  MPI_Offset off = current_offset + local_offset;
-
-  MPI_Status status;
-
-#ifdef DEBUG
-  cout << MPIdata::rank() << " MPI_File_write_at: "
-       << "off= " << off << " size= " << wbufsize
-       << " off+size-1= " << off+wbufsize-1 << endl;
-#endif
-  // write wbuf from all tasks using computed offset
-  int err = MPI_File_write_at(sfp.file(),off,(void*)wbuf,wbufsize,
-                              MPI_CHAR,&status);
-  if ( err != 0 )
-    cout << ctxt_.mype()
-         << " error in MPI_File_write_at: err=" << err << endl;
-
-  sfp.set_offset(off+wbufsize);
-
-  delete [] wbuf;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

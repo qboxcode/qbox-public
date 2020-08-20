@@ -1781,11 +1781,7 @@ void SlaterDet::str(string& sdstr, string encoding, double weight,
       }
       xcdr.print(outlen,(char*) b, ostr);
       if ( ctxt_.myrow() == lastproc )
-      {
         ostr << "</grid_function>\n";
-        if ( ( ctxt_.mycol() == (ctxt_.npcol()-1) ) && ( n == (nstloc()-1) ) )
-          ostr << "</slater_determinant>\n";
-      }
       delete [] b;
     }
     else
@@ -1818,11 +1814,7 @@ void SlaterDet::str(string& sdstr, string encoding, double weight,
       if ( count%4 != 0 )
         ostr << "\n";
       if ( ctxt_.myrow() == lastproc )
-      {
         ostr << "</grid_function>\n";
-        if ( ( ctxt_.mycol() == (ctxt_.npcol()-1) ) && ( n == (nstloc()-1) ) )
-          ostr << "</slater_determinant>\n";
-      }
     }
     // copy contents of ostr stringstream to segment
     seg += ostr.str();
@@ -1871,6 +1863,9 @@ void SlaterDet::str(string& sdstr, string encoding, double weight,
     }
     delete [] rbuf;
   }
+
+  if ( ctxt_.mype() ==  ( ctxt_.size() - 1 ) )
+    sdstr += "</slater_determinant>\n";
 
   // sdstr now contains the data to be written in order of
   // increasing sd rank

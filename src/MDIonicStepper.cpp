@@ -240,10 +240,8 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
       // accumulate the change in kinetic energy in ekin_stepper_
       // ekin(t+dt) = alpha2 * ekin(t)
       ekin_stepper_ += ( 1.0 - alpha2 ) * ekin_;
-      s_.sd_ctxt.dbcast_send(1,1,&ekin_stepper_,1);
     }
-    if ( onpe0 )
-      s_.sd_ctxt.dbcast_recv(1,1,&ekin_stepper_,1,0,0);
+    MPI_Bcast(&ekin_stepper_,1,MPI_DOUBLE,0,MPIdata::comm());
 
     atoms_.set_velocities(v0_);
   }

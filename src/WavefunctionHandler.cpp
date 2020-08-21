@@ -629,7 +629,8 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
         cout << MPIdata::rank() << ": end copying ispin=" << ispin
              << " ikp=" << ikp << endl;
 #endif
-        delete ft;
+        if ( ( isp_loc >= 0 ) && ( ikp_loc ) >= 0 )
+          delete ft;
         current_gfdata_pos_ += nst;
       } // ikp
     } // ispin

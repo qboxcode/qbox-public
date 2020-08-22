@@ -298,7 +298,10 @@ int main(int argc, char **argv, char **envp)
     cout << "                   I http://qboxcode.org      I\n";
     cout << "                   ============================\n\n";
     cout << "\n";
-    cout << "<release> " << release() << " " << getenv("TARGET");
+    cout << "<release> " << release();
+#ifdef TARGET
+    cout << " " << TARGET;
+#endif
 #ifdef VERSION
     cout << " " << VERSION;
 #endif

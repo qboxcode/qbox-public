@@ -450,8 +450,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
           {
             wftmpr.resize(ft->np012loc(0));
             mb = wftmpr.size();
-            // Data to be copied is in first part of gflocal if basis is real
-            iend = min((ip+1)*ma,gfdata_.m()/2);
+            iend = min((ip+1)*ma,nx_*ny_*nz_);
           }
           else
           {

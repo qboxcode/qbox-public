@@ -443,7 +443,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
 
           // compute gf_sdispl, gf_scounts on current task ip = MPIdata::igb()
           const int ip = MPIdata::igb();
-          const int ma = gflocal.size();
+          const int ma = gfdata_.mb();
           int istart = ip * ma;
           int mb, iend;
           if ( basis.real() )
@@ -456,7 +456,7 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
           {
             wftmpr.resize(2*ft->np012loc(0));
             mb = wftmpr.size();
-            iend = (ip+1)*ma;
+            iend = min((ip+1)*ma,2*nx_*ny_*nz_);
           }
 
 #ifdef DEBUG

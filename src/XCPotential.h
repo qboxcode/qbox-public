@@ -44,9 +44,8 @@ class XCPotential
   // rhototal_g_: total density (valence+core)
   std::vector<std::vector<std::complex<double> > > rhototal_g_;
 
-  std::vector<std::vector<double> > vxctmp;          // vxctmp[ispin][ir]
-  std::vector<std::complex<double> > tmpr;           // tmpr[ir]
-  std::vector<std::complex<double> > tmp1, tmp2;     // tmp1[ig], tmp2[ig]
+  std::vector<std::vector<double> > vxctmp;    // vxctmp[ispin][ir]
+  std::vector<std::complex<double> > tmpr;     // tmpr[ir]
 
   double exc_, dxc_;
   int nspin_;

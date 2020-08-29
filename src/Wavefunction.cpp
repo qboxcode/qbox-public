@@ -207,7 +207,9 @@ double Wavefunction::entropy(void) const
       sum += weight_[ikp] * sd(isp_loc,ikp_loc)->entropy(nspin_);
     }
   }
-  return sum;
+  double tsum;
+  MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::kp_sp_comm());
+  return tsum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

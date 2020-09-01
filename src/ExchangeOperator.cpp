@@ -38,6 +38,7 @@
 #include "ExchangeOperator.h"
 #include "Bisection.h"
 #include "MPIdata.h"
+#include "cout0.h"
 
 using namespace std;
 
@@ -996,6 +997,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
   const double *const g_y = vbasis_->gx_ptr(1);
   const double *const g_z = vbasis_->gx_ptr(2);
 
+  ostringstream ostr;
   for ( int isp_loc = 0; isp_loc < wfc_.nsp_loc(); ++isp_loc )
   {
     const int ispin = wf.isp_global(isp_loc);
@@ -1064,7 +1066,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 #endif
       if ( MPIdata::sd_rank() == 0 )
       {
-        cout << " ExchangeOperator: bisection size: ispin=" << ispin
+        ostr << setprecision(10);
+        ostr << " ExchangeOperator: bisection size: ispin=" << ispin
              << ": " << bisection_[isp_loc]->total_size() << endl;
       }
 #if TIMING
@@ -1073,8 +1076,9 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 #endif
       if ( MPIdata::sd_rank() == 0 )
       {
-          cout << " ExchangeOperator: pair fraction:  ispin=" << ispin
-               << ": " << bisection_[isp_loc]->pair_fraction() << endl;
+        ostr << setprecision(10);
+        ostr << " ExchangeOperator: pair fraction:  ispin=" << ispin
+             << ": " << bisection_[isp_loc]->pair_fraction() << endl;
       }
 #if TIMING
       tmbpair.stop();
@@ -1356,7 +1360,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 #endif
 
       tmb.stop();
-      if ( MPIdata::onpe0() )
+      if ( MPIdata::sd_rank() == 0 )
       {
 #if TIMING
         cout << setprecision(3);
@@ -1369,10 +1373,10 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         cout << " ExchangeOperator: bisection forward time: "
            << tmbfwd.real() << " s" << endl;
 #endif
-        cout << setprecision(3);
-        cout << " ExchangeOperator: bisection time: "
+        ostr << setprecision(3);
+        ostr << " ExchangeOperator: bisection time: "
            << tmb.real() << " s" << endl;
-        cout << setprecision(10);
+        ostr << setprecision(10);
       }
     } // if use_bisection_
 
@@ -2243,6 +2247,14 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     }
 
   } // for isp_loc
+
+  for ( int ispin = 0; ispin < wfc_.nspin(); ++ispin )
+  {
+    int isrc = -1;
+    if ( MPIdata::sd_rank() == 0 )
+      isrc = MPIdata::rank();
+    cout0(ostr.str(),isrc);
+  }
 
   // sum contributions to the exchange energy
   double tsum = exchange_sum;

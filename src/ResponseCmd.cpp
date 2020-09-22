@@ -46,6 +46,13 @@ int ResponseCmd::action(int argc, char **argv)
       cout << "  ResponseCmd: ecut = 0.0, cannot run" << endl;
     return 1;
   }
+  if ( s->wf.nel() != 2 * s->wf.nst() )
+  {
+    if ( ui->onpe0() )
+      cout << "  ResponseCmd: cannot run with fractionally\n"
+              "  occupied or empty states" << endl;
+    return 1;
+  }
 
   bool rpa = false;
   bool ipa = false;

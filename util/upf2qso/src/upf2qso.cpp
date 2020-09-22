@@ -159,7 +159,7 @@ void skipln(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-const string release="1.9";
+const string release="1.10";
 
 int main(int argc, char** argv)
 {
@@ -352,7 +352,6 @@ int main(int argc, char** argv)
       upf_nlcc.resize(upf_mesh_size);
       seek_str("<PP_NLCC>");
       skipln();
-      vector<double> upf_nlcc(upf_mesh_size);
       for ( int i = 0; i < upf_mesh_size; i++ )
         cin >> upf_nlcc[i];
       seek_str("</PP_NLCC>");
@@ -551,7 +550,7 @@ int main(int argc, char** argv)
     {
       assert(upf_mesh_size==upf_nlcc.size());
       for ( int i = 0; i < upf_nlcc.size(); i++ )
-      f[i] = upf_nlcc[i];
+        f[i] = upf_nlcc[i];
       int n = upf_nlcc.size();
       int bcnat_left = 0;
       double yp_left = 0.0;

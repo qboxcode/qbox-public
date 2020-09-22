@@ -1,6 +1,13 @@
 --------------------------------------------------------------------------------
 rel1_71_4
 --------------------------------------------------------------------------------
+3635f3a Exit response calc if fractionally occ states
+9d34423 Fix ecut in vext test.i file
+0933f63 Add function3d.xsd schema
+06767fe Fix upf2qso nlcc core charge
+--------------------------------------------------------------------------------
+rel1_71_4
+--------------------------------------------------------------------------------
 51217ee Fix BasisMapping single-task map for np0!=np1
 712c6f8 Set nrowmax to ntasks if larger than ntasks
 4c3f1b1 Fix precision in bisection time output

@@ -1,5 +1,11 @@
 --------------------------------------------------------------------------------
-rel1_71_4
+rel1_72_0
+--------------------------------------------------------------------------------
+2396ba7 merged comm branch, implementing new data layout
+New command line parameters: -nstb -nkpb -nspb
+The nrowmax variable is removed
+--------------------------------------------------------------------------------
+rel1_71_5
 --------------------------------------------------------------------------------
 3635f3a Exit response calc if fractionally occ states
 9d34423 Fix ecut in vext test.i file

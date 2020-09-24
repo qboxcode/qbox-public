@@ -41,32 +41,13 @@ SampleStepper::SampleStepper(Sample& s) : s_(s)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-SampleStepper::~SampleStepper(void)
-{
-  // print timer map
-  for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
-  {
-    double time = (*i).second.real();
-    double tmin = time;
-    double tmax = time;
-    s_.ctxt_.dmin(1,1,&tmin,1);
-    s_.ctxt_.dmax(1,1,&tmax,1);
-    if ( s_.ctxt_.myproc()==0 )
-    {
-      string s = "name=\"" + (*i).first + "\"";
-      cout << "<timing " << left << setw(22) << s
-           << " min=\"" << setprecision(3) << tmin << "\""
-           << " max=\"" << setprecision(3) << tmax << "\"/>"
-           << endl;
-    }
-  }
-}
+SampleStepper::~SampleStepper(void) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 void SampleStepper::print_stress(void)
 {
   const double gpa = 29421.5;
-  if ( s_.ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     cout.setf(ios::fixed,ios::floatfield);
     cout.setf(ios::right,ios::adjustfield);

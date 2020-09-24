@@ -28,36 +28,36 @@ using namespace std;
 Preconditioner::Preconditioner(const Wavefunction& wf, EnergyFunctional& ef,
   double ecutprec) : ef_(ef), ecutprec_(ecutprec)
 {
-  kpg2_.resize(wf.nspin());
-  ekin_.resize(wf.nspin());
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+  kpg2_.resize(wf.nsp_loc());
+  ekin_.resize(wf.nsp_loc());
+  for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
   {
-    kpg2_[ispin].resize(wf.nkp());
-    ekin_[ispin].resize(wf.nkp());
-    for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+    kpg2_[isp_loc].resize(wf.nkp_loc());
+    ekin_[isp_loc].resize(wf.nkp_loc());
+    for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
     {
-      const SlaterDet& sd = *(wf.sd(ispin,ikp));
+      const SlaterDet& sd = *(wf.sd(isp_loc,ikp_loc));
       const Basis& wfbasis = sd.basis();
-      kpg2_[ispin][ikp] = wfbasis.kpg2_ptr();
-      ekin_[ispin][ikp].resize(sd.nstloc());
+      kpg2_[isp_loc][ikp_loc] = wfbasis.kpg2_ptr();
+      ekin_[isp_loc][ikp_loc].resize(sd.nstloc());
     }
   }
   update(wf);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double Preconditioner::diag(int ispin, int ikp, int n, int ig) const
+double Preconditioner::diag(int isp_loc, int ikp_loc, int n, int ig) const
 {
-  const valarray<double>& fstress = ef_.confpot(ikp)->fstress();
+  const valarray<double>& fstress = ef_.confpot(ikp_loc)->fstress();
   if ( ecutprec_ == 0.0 )
   {
-    double ekin_n = ekin_[ispin][ikp][n];
+    double ekin_n = ekin_[isp_loc][ikp_loc][n];
     // if ekin_n == 0 (occurs for first wf, G=0, when starting without
     // randomizing wfs) replace ekin_n by fixed value 1.0
     if ( ekin_n == 0.0 )
       ekin_n = 1.0;
 #if 0
-    const double q2 = kpg2_[ispin][ikp][ig] + fstress[ig];
+    const double q2 = kpg2_[isp_loc][ikp_loc][ig] + fstress[ig];
 #if 0
     // Payne Teter Allan adaptive preconditioner
     const double x = 0.5 * q2 / ekin_n;
@@ -73,13 +73,13 @@ double Preconditioner::diag(int ispin, int ikp, int n, int ig) const
 #endif
 #else
     // basic adaptive preconditioner: use ekin_n for the value of ecutprec
-    double e = 0.5 * ( kpg2_[ispin][ikp][ig] + fstress[ig] );
+    double e = 0.5 * ( kpg2_[isp_loc][ikp_loc][ig] + fstress[ig] );
     return ( e < ekin_n ) ? 0.5 / ekin_n : 0.5 / e;
 #endif
   }
   else
   {
-    double e = 0.5 * ( kpg2_[ispin][ikp][ig] + fstress[ig] );
+    double e = 0.5 * ( kpg2_[isp_loc][ikp_loc][ig] + fstress[ig] );
     return ( e < ecutprec_ ) ? 0.5 / ecutprec_ : 0.5 / e;
   }
 }
@@ -87,12 +87,12 @@ double Preconditioner::diag(int ispin, int ikp, int n, int ig) const
 ////////////////////////////////////////////////////////////////////////////////
 void Preconditioner::update(const Wavefunction& wf)
 {
-  // update the kinetic energy ekin_[ispin][ikp][n] of states in wf
-  for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+  // update the kinetic energy ekin_[isp_loc][ikp_loc][n] of states in wf
+  for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf.nkp_loc(); ++ikp_loc )
     {
-      const SlaterDet& sd = *(wf.sd(ispin,ikp));
+      const SlaterDet& sd = *(wf.sd(isp_loc,ikp_loc));
       const Basis& wfbasis = sd.basis();
       // factor fac in next lines: 2.0 for G and -G (if basis is real)
       const double fac = wfbasis.real() ? 2.0 : 1.0;
@@ -106,7 +106,7 @@ void Preconditioner::update(const Wavefunction& wf)
       const int nloc = c.nloc();
 
       valarray<double> buf(2*nloc);
-      const double* pkpg2 = kpg2_[ispin][ikp];
+      const double* pkpg2 = kpg2_[isp_loc][ikp_loc];
       for ( int n = 0; n < nloc; n++ )
       {
         double sum_norm = 0.0;
@@ -127,14 +127,15 @@ void Preconditioner::update(const Wavefunction& wf)
       sdctxt.dsum('C',2*nloc,1,&buf[0],2*nloc);
       // factor 0.5 in next line: 1/(2m)
       for ( int n = 0; n < nloc; n++ )
-        ekin_[ispin][ikp][n] = 0.5*buf[n] > 0.0 ? 0.5*buf[n+nloc]/buf[n] : 0;
+        ekin_[isp_loc][ikp_loc][n] =
+          0.5*buf[n] > 0.0 ? 0.5*buf[n+nloc]/buf[n] : 0;
 
 #ifdef DEBUG
       if ( sdctxt.onpe0() )
       {
         for ( int n = 0; n < nloc; n++ )
           cout << "Preconditioner::update ekin[" << n << "] = "
-               << ekin_[ispin][ikp][n] << endl;
+               << ekin_[isp_loc][ikp_loc][n] << endl;
       }
 #endif
     }

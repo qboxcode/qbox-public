@@ -33,7 +33,6 @@ class BOSampleStepper : public SampleStepper
   private:
 
   Wavefunction dwf;
-  Wavefunction* wfv;
   int nitscf_;
   int nite_;
   ChargeDensity cd_;

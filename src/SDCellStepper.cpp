@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "SDCellStepper.h"
 using namespace std;
 
@@ -43,7 +44,7 @@ void SDCellStepper::compute_new_cell(double e0, const valarray<double>& sigma,
   if ( cell_mass <= 0.0 )
   {
     cellp = cell0;
-    if ( s_.ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
     {
       cout << " SDCellStepper::compute_new_cell: cell mass is zero\n"
            << "     cannot update cell" << endl;

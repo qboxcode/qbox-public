@@ -25,13 +25,8 @@ class Sample;
 
 class SampleWriter
 {
-  private:
-
-  const Context& ctxt_;
-
   public:
 
-  SampleWriter(const Context& ctxt);
   void writeSample(const Sample& s, const std::string filename,
                    std::string description,
                    bool base64, bool atomsonly, bool serial, bool save_wfv);

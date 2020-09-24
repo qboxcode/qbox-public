@@ -26,7 +26,6 @@
 #include <string>
 #include "StructureFactor.h"
 #include "ElectricEnthalpy.h"
-#include "Timer.h"
 
 class D3vector;
 class Sample;
@@ -39,8 +38,6 @@ class FourierTransform;
 class XCOperator;
 class NonLocalPotential;
 class ConfinementPotential;
-
-typedef std::map<std::string,Timer> TimerMap;
 
 class EnergyFunctional
 {

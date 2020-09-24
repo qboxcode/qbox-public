@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "Context.h"
 #include "Wavefunction.h"
 #include "SlaterDet.h"
@@ -23,24 +24,22 @@
 
 #include <iostream>
 #include <cassert>
+#include <cstdlib> // atoi
 using namespace std;
 
-#ifdef USE_MPI
 #include <mpi.h>
-#endif
 
 int main(int argc, char **argv)
 {
-#if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
   {
     // use:
-    // testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nempty nspin nkp
-    if ( argc != 15 )
+    // testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2
+    //                  ecut nel nempty nspin nkp ngb nstb nspb nkpb
+    if ( argc != 19 )
     {
-      cout <<
-    "use: testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 ecut nel nempty nspin nkp"
+      cout << "use: testWavefunction a0 a1 a2 b0 b1 b2 c0 c1 c2 "
+           << "ecut nel nempty nspin nkp ngb nstb nspb nkpb"
       << endl;
       return 1;
     }
@@ -54,10 +53,22 @@ int main(int argc, char **argv)
     int nempty = atoi(argv[12]);
     int nspin = atoi(argv[13]);
     int nkp = atoi(argv[14]);
+    int ngb = atoi(argv[15]);
+    int nstb = atoi(argv[16]);
+    int nspb = atoi(argv[17]);
+    int nkpb = atoi(argv[18]);
 
-    Context ctxt(MPI_COMM_WORLD);
+    MPIdata::set(ngb,nstb,nspb,nkpb);
+    cout << MPIdata::rank() << ": ngb=" << ngb << " nstb=" << nstb
+         << " nspb=" << nspb << " nkpb=" << nkpb << endl;
+    cout << MPIdata::rank() << ": igb=" << MPIdata::igb()
+         << " istb=" << MPIdata::istb()
+         << " ispb=" << MPIdata::ispb()
+         << " ikpb=" << MPIdata::ikpb() << endl;
 
-    Wavefunction wf(ctxt);
+    Context sd_ctxt(MPIdata::sd_comm(),ngb,nstb);
+    Wavefunction wf(sd_ctxt);
+
     Timer tm;
 
     tm.reset(); tm.start();
@@ -89,22 +100,6 @@ int main(int argc, char **argv)
       wf.add_kpoint(D3vector((0.5*(ikp+1))/(nkp-1),0,0),1.0);
     }
 
-    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
-    {
-      for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
-      {
-        if ( wf.sd(ispin,ikp) != 0 )
-        {
-          cout << "wf.sd(ispin=" << ispin << ",ikp=" << ikp << "): "
-               << wf.sd(ispin,ikp)->c().m() << "x"
-               << wf.sd(ispin,ikp)->c().n() << endl;
-          cout << ctxt.mype() << ":"
-               << " sdcontext[" << ispin << "][" << ikp << "]: "
-               << wf.sd(ispin,ikp)->context();
-        }
-      }
-    }
-
     tm.reset();
     tm.start();
     wf.randomize(0.1);
@@ -121,21 +116,20 @@ int main(int argc, char **argv)
     cout << " copy constructor...";
     Wavefunction wfm(wf);
     cout << "done" << endl;
+
+    cout << " wfm gram ...";
     wfm.gram();
+    cout << "done" << endl;
 
-#if 0
+    cout << " randomize ...";
     wf.randomize(0.1);
-    wf.update_occ(false);
-    for ( int ikp = 0; ikp < wf.nkp(); ikp++ )
-    {
-      if ( wf.sd[ikp] != 0 )
-        cout << " ekin[" << ikp << "]: " << wf.sd[ikp]->ekin() << endl;
-    }
+    cout << "done" << endl;
 
+    cout << " update_occ ...";
+    wf.update_occ(0.0);
+    cout << "done" << endl;
 
-#endif
+    wf.info(cout,"wavefunction");
   }
-#if USE_MPI
   MPI_Finalize();
-#endif
 }

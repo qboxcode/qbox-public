@@ -23,14 +23,10 @@
 #include <string>
 using namespace std;
 
-#ifdef USE_MPI
 #include <mpi.h>
-#endif
 int main(int argc, char **argv)
 {
-#if USE_MPI
   MPI_Init(&argc,&argv);
-#endif
   {
 
   if ( argc != 2 )
@@ -161,8 +157,6 @@ int main(int argc, char **argv)
 #endif
 
   }
-#if USE_MPI
   MPI_Finalize();
-#endif
   return 0;
 }

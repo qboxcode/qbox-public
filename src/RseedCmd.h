@@ -53,15 +53,9 @@ class RseedCmd : public Cmd
       seed = atoi(argv[1]);
     else
     {
+      MPI_Bcast(&seed,1,MPI_INT,0,MPIdata::comm());
       if ( ui->onpe0() )
-      {
-        s->ctxt_.ibcast_send(1,1,&seed,1);
         cout << "<seed> " << seed << " </seed>" << endl;
-      }
-      else
-      {
-        s->ctxt_.ibcast_recv(1,1,&seed,1,0,0);
-      }
     }
     srand48((long int)seed);
     return 0;

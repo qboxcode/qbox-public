@@ -19,6 +19,7 @@
 #include "AtomSet.h"
 #include "Species.h"
 #include "NameOf.h"
+#include "MPIdata.h"
 #include "sampling.h"
 #include <iostream>
 #include <algorithm>
@@ -47,7 +48,7 @@ bool AtomSet::addSpecies(Species* sp, string name)
   if ( s != 0 )
   {
     // species is already defined: substitute with new definition
-    if ( ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
     {
       cout << " AtomSet::addSpecies: species " << name
            << " is already defined" << endl;
@@ -75,7 +76,7 @@ bool AtomSet::addSpecies(Species* sp, string name)
     atom_list.resize(atom_list.size()+1);
   }
 
-  if ( ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     cout << endl << " species " << sp->name() << ":" << endl;
     sp->info(cout);
@@ -91,7 +92,7 @@ bool AtomSet::addAtom(Atom *a)
   if ( findAtom(a->name()) )
   {
     // this name is already in the atom list, reject atom definition
-    if ( ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
       cout << " AtomSet:addAtom: atom " << a->name()
            << " is already defined" << endl;
     return false;
@@ -103,7 +104,7 @@ bool AtomSet::addAtom(Atom *a)
   if ( !s )
   {
     // species not found, cannot define atom
-    if ( ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
       cout << " AtomSet:addAtom: species " << spname
            << " is undefined" << endl;
     return false;
@@ -164,7 +165,7 @@ bool AtomSet::delAtom(string name)
   }
 
   // this name was not found in the atom list
-  if ( ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
     cout << " AtomSet:delAtom: no such atom: " << name << endl;
   return false;
 }
@@ -230,7 +231,7 @@ void AtomSet::listAtoms(void) const
   {
     for ( int ia = 0; ia < atom_list[is].size(); ia++ )
     {
-      if ( ctxt_.onpe0() )
+      if ( MPIdata::onpe0() )
         cout << *atom_list[is][ia];
     }
   }
@@ -241,7 +242,7 @@ void AtomSet::listSpecies(void) const
 {
   for ( int is = 0; is < species_list.size(); is++ )
   {
-    if ( ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
     {
       cout << endl << " species " << spname[is] << ":" << endl;
       species_list[is]->info(cout);
@@ -345,14 +346,7 @@ void AtomSet::sync_positions(vector<vector<double> >& tau)
   {
     int m = tau[is].size();
     double* p = &tau[is][0];
-    if ( ctxt_.onpe0() )
-    {
-      ctxt_.dbcast_send(m,1,p,m);
-    }
-    else
-    {
-      ctxt_.dbcast_recv(m,1,p,m,0,0);
-    }
+    MPI_Bcast(p,m,MPI_DOUBLE,0,MPIdata::comm());
   }
 }
 
@@ -400,14 +394,7 @@ void AtomSet::sync_velocities(vector<vector<double> >& vel)
   {
     int m = vel[is].size();
     double* p = &vel[is][0];
-    if ( ctxt_.onpe0() )
-    {
-      ctxt_.dbcast_send(m,1,p,m);
-    }
-    else
-    {
-      ctxt_.dbcast_recv(m,1,p,m,0,0);
-    }
+    MPI_Bcast(p,m,MPI_DOUBLE,0,MPIdata::comm());
   }
 }
 
@@ -764,28 +751,21 @@ void AtomSet::sync_cell(void)
 ////////////////////////////////////////////////////////////////////////////////
 void AtomSet::sync_cell(UnitCell& cell)
 {
-  if ( ctxt_.onpe0() )
-  {
-    double sbuf[9];
-    for ( int i = 0; i < 9; i++ )
-      sbuf[i] = cell.amat(i);
-    ctxt_.dbcast_send(9,1,sbuf,9);
-  }
-  else
-  {
-    double rbuf[9];
-    ctxt_.dbcast_recv(9,1,rbuf,9,0,0);
-    D3vector a0(rbuf[0],rbuf[1],rbuf[2]);
-    D3vector a1(rbuf[3],rbuf[4],rbuf[5]);
-    D3vector a2(rbuf[6],rbuf[7],rbuf[8]);
-    cell.set(a0,a1,a2);
-  }
+  double buf[9];
+  for ( int i = 0; i < 9; i++ )
+    buf[i] = cell.amat(i);
+  MPI_Bcast(buf,9,MPI_DOUBLE,0,MPIdata::comm());
+
+  D3vector a0(buf[0],buf[1],buf[2]);
+  D3vector a1(buf[3],buf[4],buf[5]);
+  D3vector a2(buf[6],buf[7],buf[8]);
+  cell.set(a0,a1,a2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator << ( ostream &os, const AtomSet &as )
 {
-  if ( as.context().onpe0() )
+  if ( MPIdata::onpe0() )
   {
     os << "<atomset>\n";
     os << as.cell();

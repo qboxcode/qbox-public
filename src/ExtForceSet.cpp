@@ -16,13 +16,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "ExtForceSet.h"
 #include "AtomicExtForce.h"
 #include "PairExtForce.h"
 #include "GlobalExtForce.h"
 #include "Atom.h"
 #include "AtomSet.h"
-#include "Context.h"
 #include <iostream>
 #include <iomanip>
 #include <cstdlib> // atof
@@ -40,7 +40,6 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
 {
   enum extforce_type { unknown, atomic_type, pair_type, global_type }
     type = unknown;
-  const bool onpe0 = ctxt_.onpe0();
 
   // argv[0] == "extforce"
   // argv[1] == "define"
@@ -57,7 +56,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
 
   if ( argc < 7 )
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
     {
       cout << " Use: extforce define atomic name atom fx fy fz"
            << endl;
@@ -83,7 +82,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
   }
   else
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
       cout << " Incorrect extforce type " << extforce_type << endl;
     return false;
   }
@@ -94,7 +93,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
 
     if ( argc != 8 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " Incorrect number of arguments for atomic extforce"
              << endl;
       return false;
@@ -111,7 +110,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
 
     if ( a1 == 0 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
       {
         cout << " ExtForceSet: could not find atom " << name1 << endl;
         cout << " ExtForceSet: could not define extforce" << endl;
@@ -133,7 +132,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
 
     if ( found )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ExtForceSet: extforce is already defined:\n"
              << " cannot define extforce" << endl;
       return false;
@@ -150,7 +149,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
     // define pair name A B force_magnitude
     if ( argc != 7 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " Incorrect number of arguments for pair extforce"
              << endl;
       return false;
@@ -167,7 +166,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
 
     if ( a1 == 0 || a2 == 0 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
       {
         if ( a1 == 0 )
           cout << " ExtForceSet: could not find atom " << name1 << endl;
@@ -179,7 +178,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
     }
     if ( name1 == name2 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ExtForceSet: cannot define pair extforce between "
              << name1 << " and " << name2 << endl;
       return false;
@@ -201,7 +200,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
 
     if ( found )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ExtForceSet: extforce is already defined:\n"
              << " cannot define extforce" << endl;
       return false;
@@ -219,7 +218,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
     // define global name fx fy fz
     if ( argc != 7 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " Incorrect number of arguments for global extforce"
              << endl;
       return false;
@@ -244,7 +243,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
 
     if ( found )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ExtForceSet: extforce is already defined:\n"
              << " cannot define extforce" << endl;
       return false;
@@ -257,7 +256,7 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
   }
   else
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
       cout << " ExtForceSet::set_constraint: internal error" << endl;
     return false;
   }
@@ -268,7 +267,6 @@ bool ExtForceSet::define_extforce(AtomSet &atoms, int argc, char **argv)
 ////////////////////////////////////////////////////////////////////////////////
 bool ExtForceSet::set_extforce(int argc, char **argv)
 {
-  const bool onpe0 = ctxt_.onpe0();
   assert(argc==4||argc==6);
   // argv[0] == "extforce"
   // argv[1] == "set"
@@ -298,7 +296,7 @@ bool ExtForceSet::set_extforce(int argc, char **argv)
 
   if ( !found )
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
       cout << " ExtForceSet: no such extforce" << endl;
     return false;
   }
@@ -314,7 +312,6 @@ bool ExtForceSet::delete_extforce(int argc, char **argv)
   // argv[1] == "delete"
   // argv[2] == "extforce_name"
   string name = argv[2];
-  const bool onpe0 = ctxt_.onpe0();
 
   bool found = false;
   // note next loop in reverse: avoid use of invalidated iterators
@@ -345,7 +342,7 @@ bool ExtForceSet::delete_extforce(int argc, char **argv)
 
   if ( !found )
   {
-    if ( onpe0 ) cout << " No such extforce" << endl;
+    if ( MPIdata::onpe0() ) cout << " No such extforce" << endl;
     return false;
   }
   return true;

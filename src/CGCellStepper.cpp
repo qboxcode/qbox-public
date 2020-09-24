@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "CGCellStepper.h"
 #include "CGOptimizer.h"
 using namespace std;
@@ -29,7 +30,7 @@ CGCellStepper::CGCellStepper(Sample& s) : CellStepper(s),
   cgopt_.set_alpha_max(0.5);
   cgopt_.set_beta_max(10.0);
 #ifdef DEBUG
-  if ( s.ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
     cgopt_.set_debug_print();
 #endif
 
@@ -127,7 +128,7 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
 
   cgopt_.compute_xp(x,e,g,xp);
 
-  if ( s_.ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     cout << "  CGCellStepper: alpha = " << cgopt_.alpha() << endl;
   }

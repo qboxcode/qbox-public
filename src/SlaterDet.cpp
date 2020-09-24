@@ -21,8 +21,8 @@
 #include "Context.h"
 #include "blas.h" // daxpy
 #include "Base64Transcoder.h"
-#include "SharedFilePtr.h"
 #include "Timer.h"
+#include "MPIdata.h"
 
 #include <cstdlib>
 #include <cstring> // memcpy
@@ -36,66 +36,26 @@ using namespace std;
 SlaterDet::SlaterDet(const Context& ctxt, D3vector kpoint) : ctxt_(ctxt),
  c_(ctxt)
 {
-  // create cartesian communicator mapped on ctxt
-  int ndims=2;
-  // Note: MPI_Cart_comm uses row-major ordering. Need to give
-  // transposed dimensions as input arguments
-  int dims[2] = {ctxt.npcol(), ctxt.nprow()};
-  int periods[2] = { 0, 0};
-  int reorder = 0;
-  MPI_Comm comm;
-  MPI_Cart_create(ctxt.comm(),ndims,dims,periods,reorder,&comm);
-
-  int size, myrank;
-  MPI_Comm_size(comm,&size);
-  MPI_Comm_rank(comm,&myrank);
-  int coords[2];
-  MPI_Cart_coords(comm,myrank,2,coords);
-
-#ifdef DEBUG
-  for ( int i = 0; i < size; i++ )
-  {
-    MPI_Barrier(comm);
-    if ( myrank == i )
-      cout << myrank << ": myrow=" << ctxt.myrow() << " mycol=" << ctxt.mycol()
-           << " coords= " << coords[0] << ", " << coords[1] << endl;
-  }
-#endif
-
-  // Split the cartesian communicator comm to define my_col_comm_
-  // MPI_Cart_create uses row-major ordering. Need to keep the second
-  // dimension to get a communicator corresponding to a column of ctxt
-  int remain_dims[2] = { 0, 1 };
-  MPI_Cart_sub(comm, remain_dims, &my_col_comm_);
-
-  // Free the cartesian communicator
-  MPI_Comm_free(&comm);
-
   // define basis on the column subcommunicator
-  basis_ = new Basis(my_col_comm_,kpoint);
+  basis_ = new Basis(MPIdata::g_comm(),kpoint);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::SlaterDet(const SlaterDet& rhs) : ctxt_(rhs.context()),
-  basis_(new Basis(*(rhs.basis_))), c_(rhs.c_)
-  {
-    MPI_Comm_dup(rhs.my_col_comm_,&my_col_comm_);
-  }
+  basis_(new Basis(*(rhs.basis_))), c_(rhs.c_) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 SlaterDet::~SlaterDet()
 {
   delete basis_;
-  // cout << ctxt_.mype() << ": SlaterDet::dtor: ctxt=" << ctxt_;
 #ifdef TIMING
   for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
   {
-    double time = (*i).second.real();
-    double tmin = time;
-    double tmax = time;
-    ctxt_.dmin(1,1,&tmin,1);
-    ctxt_.dmax(1,1,&tmax,1);
-    if ( ctxt_.myproc()==0 )
+    double time = i->second.real();
+    double tmin, tmax;
+    MPI_Reduce(&time,&tmin,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
+    MPI_Reduce(&time,&tmax,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
+    if ( MPIdata::onpe0() && (tmax > 0.0) )
     {
       string s = "name=\"" + (*i).first + "\"";
       cout << "<timing " << left << setw(22) << s
@@ -105,22 +65,12 @@ SlaterDet::~SlaterDet()
     }
   }
 #endif
-  MPI_Comm_free(&my_col_comm_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
   double ecut, int nst)
 {
-  // Test in next line should be replaced by test on basis min/max indices
-  // to signal change in basis vectors
-  //if ( basis_->refcell().volume() != 0.0 && !refcell.encloses(cell) )
-  //{
-    //cout << " SlaterDet::resize: cell=" << cell;
-    //cout << " SlaterDet::resize: refcell=" << basis_->refcell();
-    //throw SlaterDetException("could not resize: cell not in refcell");
-  //}
-
   try
   {
     // create a temporary copy of the basis
@@ -275,7 +225,6 @@ void SlaterDet::init(void)
 void SlaterDet::compute_density(FourierTransform& ft,
   double weight, double* rho) const
 {
-  //Timer tm_ft, tm_rhosum;
   // compute density of the states residing on my column of ctxt_
   assert(occ_.size() == c_.n());
   vector<complex<double> > tmp(ft.np012loc());
@@ -293,16 +242,12 @@ void SlaterDet::compute_density(FourierTransform& ft,
       const int nn = ctxt_.mycol() * c_.nb() + n;
       const double fac1 = weight * omega_inv * occ_[nn];
       const double fac2 = weight * omega_inv * occ_[nn+1];
-
       if ( fac1 + fac2 > 0.0 )
       {
-        //tm_ft.start();
         ft.backward(c_.cvalptr(n*c_.mloc()),
                     c_.cvalptr((n+1)*c_.mloc()),&tmp[0]);
-        //tm_ft.stop();
         const double* psi = (double*) &tmp[0];
         int ii = 0;
-        //tm_rhosum.start();
         for ( int i = 0; i < np012loc; i++ )
         {
           const double psi1 = psi[ii];
@@ -310,7 +255,6 @@ void SlaterDet::compute_density(FourierTransform& ft,
           rho[i] += fac1 * psi1 * psi1 + fac2 * psi2 * psi2;
           ii++; ii++;
         }
-        //tm_rhosum.start();
       }
     }
     if ( nstloc() % 2 != 0 )
@@ -351,10 +295,6 @@ void SlaterDet::compute_density(FourierTransform& ft,
       }
     }
   }
-  // cout << "SlaterDet: compute_density: ft_bwd time: "
-  //      << tm_ft.real() << endl;
-  // cout << "SlaterDet: compute_density: rhosum time: "
-  //      << tm_rhosum.real() << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1033,24 +973,6 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
 #endif
 
   }
-#if TIMING
-  for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
-  {
-    double time = (*i).second.real();
-    double tmin = time;
-    double tmax = time;
-    ctxt_.dmin(1,1,&tmin,1);
-    ctxt_.dmax(1,1,&tmax,1);
-    if ( ctxt_.onpe0() )
-    {
-      cout << "<timing name=\""
-           << (*i).first << "\""
-           << " min=\"" << setprecision(3) << tmin << "\""
-           << " max=\"" << setprecision(3) << tmax << "\"/>"
-           << endl;
-    }
-  }
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1626,9 +1548,10 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
+void SlaterDet::str(string& sdstr, string encoding, double weight,
   int ispin, int nspin) const
 {
+  // serialize SlaterDet into a string sdstr
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
   const bool real_basis = basis_->real();
@@ -1639,16 +1562,11 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
   // do not write anything if nst==0
   if ( nst() == 0 ) return;
 
-#if USE_MPI
-  char* wbuf = 0;
-  size_t wbufsize = 0;
-#endif
-
-  // Segment n on process iprow is sent to row (n*nprow+iprow)/(nprow)
+  // Segment n on process iprow is sent to row (n*nprow+iprow)/(nstloc)
   const int nprow = ctxt_.nprow();
   vector<int> scounts(nprow), sdispl(nprow), rcounts(nprow), rdispl(nprow);
 
-  string header;
+  sdstr.clear();
   if ( ctxt_.onpe0() )
   {
     ostringstream ostr_hdr;
@@ -1673,18 +1591,20 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     if ( nst()%10 != 0 )
       ostr_hdr << endl;
     ostr_hdr << "</density_matrix>" << endl;
-    header = ostr_hdr.str();
+    sdstr.append(ostr_hdr.str());
   }
 
   // serialize all local columns of c and store in segments seg[n]
+
+  // find index of last process holding some data
+  int lastproc = ctxt_.nprow()-1;
+  while ( lastproc >= 0 && ft.np2_loc(lastproc) == 0 ) lastproc--;
+  assert(lastproc>=0);
 
   string seg;
   for ( int n = 0; n < nstloc(); n++ )
   {
     seg.clear();
-    if ( n == 0 && ctxt_.myrow() == 0 )
-      seg = header;
-
     ostringstream ostr;
     //cout << " state " << n << " is stored on column "
     //     << ctxt_.mycol() << " local index: " << c_.y(n) << endl;
@@ -1701,11 +1621,6 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
       memcpy((void*)&wftmpr[0],(void*)&wftmp[0],
              ft.np012loc()*sizeof(complex<double>));
     }
-
-    // find index of last process holding some data
-    int lastproc = ctxt_.nprow()-1;
-    while ( lastproc >= 0 && ft.np2_loc(lastproc) == 0 ) lastproc--;
-    assert(lastproc>=0);
 
     // tmpr contains either a real or a complex array
     const string element_type = real_basis ? "double" : "complex";
@@ -1908,7 +1823,6 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
 
     // seg is defined
 
-#if USE_MPI
     // redistribute segments to tasks within each process column
 
     for ( int i = 0; i < nprow; i++ )
@@ -1922,11 +1836,11 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     int idest = (n*nprow+ctxt_.myrow())/nstloc();
     scounts[idest] = seg.size();
 
-    // send sendcounts to all procs
-    MPI_Alltoall(&scounts[0],1,MPI_INT,&rcounts[0],1,MPI_INT,my_col_comm_);
+    // send sendcounts to all procs in g_comm()
+    MPI_Alltoall(&scounts[0],1,MPI_INT,&rcounts[0],1,MPI_INT,MPIdata::g_comm());
 
     // dimension receive buffer
-    int rbufsize = rcounts[0];
+    size_t rbufsize = rcounts[0];
     rdispl[0] = 0;
     for ( int i = 1; i < ctxt_.nprow(); i++ )
     {
@@ -1936,108 +1850,46 @@ void SlaterDet::write(SharedFilePtr& sfp, string encoding, double weight,
     char* rbuf = new char[rbufsize];
 
     int err = MPI_Alltoallv((void*)seg.data(),&scounts[0],&sdispl[0],
-              MPI_CHAR,rbuf,&rcounts[0],&rdispl[0],MPI_CHAR,my_col_comm_);
+              MPI_CHAR,rbuf,&rcounts[0],&rdispl[0],MPI_CHAR,MPIdata::g_comm());
 
     if ( err != 0 )
        cout << ctxt_.mype()
-            << " SlaterDet::write: error in MPI_Alltoallv" << endl;
+            << " SlaterDet::str: error in MPI_Alltoallv" << endl;
 
     if ( rbufsize > 0 )
     {
-      // append rbuf to wbuf
-      char* tmp;
-      try
-      {
-        tmp = new char[wbufsize+rbufsize];
-      }
-      catch ( bad_alloc )
-      {
-        cout << ctxt_.mype() << " bad_alloc in wbuf append "
-             << " n=" << n
-             << " rbufsize=" << rbufsize
-             << " wbufsize=" << wbufsize << endl;
-      }
-      memcpy(tmp,wbuf,wbufsize);
-      memcpy(tmp+wbufsize,rbuf,rbufsize);
-      delete [] wbuf;
-      wbuf = tmp;
-      wbufsize += rbufsize;
+      // append rbuf to sdstr
+      sdstr.append(rbuf,rbufsize);
     }
     delete [] rbuf;
-#else
-    sfp.file().write(seg.data(),seg.size());
-#endif
   }
 
-#if USE_MPI
-  // wbuf now contains the data to be written in the correct order
+  if ( ctxt_.mype() ==  ( ctxt_.size() - 1 ) )
+    sdstr += "</slater_determinant>\n";
 
-  ctxt_.barrier();
-
-  // compute offsets
-  sfp.sync();
-
-  MPI_Offset off;
-  long long int local_offset,current_offset;
-  current_offset = sfp.offset();
-
-  // compute local offset of next write
-  long long int local_size = wbufsize;
-  MPI_Scan(&local_size, &local_offset, 1,
-           MPI_LONG_LONG, MPI_SUM, ctxt_.comm());
-  // add base and correct for inclusive scan by subtracting local_size
-  local_offset += current_offset - local_size;
-  off = local_offset;
-
-  MPI_Status status;
-
-  // write wbuf from all tasks using computed offset
-  int len = wbufsize;
-  int err = MPI_File_write_at_all(sfp.file(),off,(void*)wbuf,len,
-                               MPI_CHAR,&status);
-  if ( err != 0 )
-    cout << ctxt_.mype()
-         << " error in MPI_File_write_at_all: err=" << err << endl;
-  sfp.set_offset(local_offset+len);
-
-  sfp.sync();
-
-  delete [] wbuf;
-
-  if ( ctxt_.onpe0() )
-  {
-    string s("</slater_determinant>\n");
-    int err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*) s.data(),
-              s.size(),MPI_CHAR,&status);
-    if ( err != 0 )
-      cout << ctxt_.mype()
-           << " error in MPI_File_write, slater_determinant trailer:"
-           << " err=" << err << endl;
-    sfp.advance(s.size());
-  }
-#else
-  sfp.file() << "</slater_determinant>\n";
-#endif // USE_MPI
+  // sdstr now contains the data to be written in order of
+  // increasing sd rank
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::info(ostream& os) const
+string SlaterDet::info(void) const
 {
+  ostringstream ostr;
   if ( ctxt_.onpe0() )
   {
-    os << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\""
+    ostr.str("");
+    ostr << "<slater_determinant kpoint=\"" << basis_->kpoint() << "\""
        << " size=\"" << nst() << "\">" << endl;
-    os << " sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << endl;
-    //os << " sdcontext: " << ctxt_ << endl;
-    os << " basis size: " << basis_->size() << endl;
-    os << " c dimensions: "
+    ostr << " sdcontext: " << ctxt_.nprow() << "x" << ctxt_.npcol() << endl;
+    ostr << " basis size: " << basis_->size() << endl;
+    ostr << " c dimensions: "
        << c_.m() << "x" << c_.n()
        << "   (" << c_.mb() << "x" << c_.nb() << " blocks)" << endl;
-    os << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\">"
+    ostr << " <density_matrix form=\"diagonal\" size=\"" << nst() << "\"/>"
        << endl;
-    os << " </density_matrix>" << endl;
-    os << "</slater_determinant>" << endl;
+    ostr << "</slater_determinant>" << endl;
   }
+  return ostr.str();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

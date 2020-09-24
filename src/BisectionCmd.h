@@ -94,51 +94,64 @@ class BisectionCmd : public Cmd
       return 1;
     }
 
-    tm.reset();
-    for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
+    if ( ( nLevels[0]+nLevels[1]+nLevels[2] ) == 0)
     {
-      SlaterDet& sd = *wf.sd(0,0);
-      Bisection bisection(sd,nLevels);
-      const int maxsweep = 20;
-      const double tol = 1.e-8;
-      tm.start();
-      bisection.compute_transform(sd,maxsweep,tol);
-      bisection.compute_localization(epsilon);
-      bisection.forward(sd);
-      tm.stop();
-      vector<long int> localization = bisection.localization();
-
       if ( ui->onpe0() )
       {
-        cout << " BisectionCmd: lx=" << nLevels[0]
-             << " ly=" << nLevels[1]
-             << " lz=" << nLevels[2]
-             << " threshold=" << epsilon << endl;
-
-        // print localization vectors and overlaps
-        int sum = 0;
-        const int nst = localization.size();
-        for ( int i = 0; i < nst; i++ )
-        {
-          int count = 0;
-          for ( int j = 0; j < nst; j++ )
-          {
-            if ( bisection.overlap(i,j) )
-              count++;
-          }
-          cout << "localization[" << i << "]: "
-               << localization[i] << " "
-               << bitset<30>(localization[i])
-               << " size: " << bisection.size(i)
-               << " overlaps: " << count << endl;
-          sum += count;
-        }
-        cout << " Bisection: total size:    ispin=" << ispin
-             << ": " << bisection.total_size() << endl;
-        cout << " Bisection: pair fraction: ispin=" << ispin
-             << ": " << bisection.pair_fraction() << endl;
+        cout << " BisectionCmd: at least one level must be positive" << endl;
       }
+      return 1;
     }
+
+    tm.reset();
+    for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
+    {
+      const int ikp_loc = wf.ikp_local(0);
+      if ( ikp_loc >= 0 )
+        {
+        SlaterDet& sd = *wf.sd(isp_loc,ikp_loc);
+        Bisection bisection(sd,nLevels);
+        const int maxsweep = 20;
+        const double tol = 1.e-8;
+        tm.start();
+        bisection.compute_transform(sd,maxsweep,tol);
+        bisection.compute_localization(epsilon);
+        bisection.forward(sd);
+        tm.stop();
+        vector<long int> localization = bisection.localization();
+
+        if ( ui->onpe0() )
+        {
+          cout << " BisectionCmd: lx=" << nLevels[0]
+               << " ly=" << nLevels[1]
+               << " lz=" << nLevels[2]
+               << " threshold=" << epsilon << endl;
+
+          // print localization vectors and overlaps
+          int sum = 0;
+          const int nst = localization.size();
+          for ( int i = 0; i < nst; i++ )
+          {
+            int count = 0;
+            for ( int j = 0; j < nst; j++ )
+            {
+              if ( bisection.overlap(i,j) )
+                count++;
+            }
+            cout << "localization[" << i << "]: "
+                 << localization[i] << " "
+                 << bitset<30>(localization[i])
+                 << " size: " << bisection.size(i)
+                 << " overlaps: " << count << endl;
+            sum += count;
+          }
+          cout << " Bisection: total size:    ispin=" << wf.isp_global(isp_loc)
+               << ": " << bisection.total_size() << endl;
+          cout << " Bisection: pair fraction: ispin=" << wf.isp_global(isp_loc)
+               << ": " << bisection.pair_fraction() << endl;
+        }
+      } // if ikp_loc
+    } // isp_loc
     if ( ui->onpe0() )
       cout << " Bisection: time=" << tm.real() << endl;
     return 0;

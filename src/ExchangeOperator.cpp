@@ -37,21 +37,18 @@
 
 #include "ExchangeOperator.h"
 #include "Bisection.h"
+#include "MPIdata.h"
+#include "cout0.h"
 
 using namespace std;
 
-#define Tag_NumberOfStates 1
-#define Tag_Occupation 2
-#define Tag_Exchange 3
-#define Tag_Forces 4
-#define Tag_States 5
+enum MessageType { NumberOfStates, Occupation, Exchange, Forces, States };
 
 ////////////////////////////////////////////////////////////////////////////////
 ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
   double beta_sx, double mu_sx ) :
   s_(s), wf0_(s.wf), dwf0_(s.wf), wfc_(s.wf),
-  alpha_sx_(alpha_sx), beta_sx_(beta_sx), mu_sx_(mu_sx),
-  gcontext_(s.wf.sd(0,0)->context())
+  alpha_sx_(alpha_sx), beta_sx_(beta_sx), mu_sx_(mu_sx), wft_(0)
 {
   // check validity of the values of alpha_sx, beta_sx, mu_sx
   // if alpha_sx == beta_sx (Coulomb potential) mu_sx is not used
@@ -63,26 +60,24 @@ ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
 
   sigma_exhf_.resize(6);
 
-  // column communicator
-  vcomm_ = s_.wf.sd(0,0)->basis().comm();
-
   // check if the only kpoint is the gamma point:
-  gamma_only_ = ( s_.wf.nkp()==1 ) && ( s_.wf.sd(0,0)->basis().real() );
+  gamma_only_ = ( s_.wf.nkp()==1 ) && ( norm2(s_.wf.kpoint(0)) == 0.0 );
 
   if ( gamma_only_ )
   {
     // create a real basis for the pair densities
-    vbasis_ = new Basis(vcomm_, D3vector(0.0,0.0,0.0));
+    vbasis_ = new Basis(MPIdata::g_comm(), D3vector(0.0,0.0,0.0));
   }
   else
   {
     // create a complex basis
     //!! should avoid the finite k trick to get a complex basis at gamma
-    vbasis_ = new Basis(vcomm_, D3vector(0.00000001,0.00000001,0.00000001));
+    vbasis_ = new Basis(MPIdata::g_comm(),
+      D3vector(0.00000001,0.00000001,0.00000001));
   }
   // the size of the basis for the pair density should be
   // twice the size of the wave function basis
-  vbasis_->resize( s_.wf.cell(),s_.wf.refcell(),4.0*s_.wf.ecut());
+  vbasis_->resize(s_.wf.cell(),s_.wf.refcell(),4.0*s_.wf.ecut());
 
   // set the size for the r grid to be a product of small primes
   np0v_ = vbasis_->np(0)+2;
@@ -91,12 +86,6 @@ ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
   while (!vbasis_->factorizable(np0v_)) np0v_ += 2;
   while (!vbasis_->factorizable(np1v_)) np1v_ += 2;
   while (!vbasis_->factorizable(np2v_)) np2v_ += 2;
-
-  if ( gamma_only_ )
-  {
-    // create Fourier transform object wavefunctions
-    wft_ = new FourierTransform(  s_.wf.sd(0,0)->basis(),np0v_,np1v_,np2v_);
-  }
 
   const int ngloc = vbasis_->localsize();
   // create Fourier transform object for densities
@@ -119,24 +108,27 @@ ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
     int_pot2_.resize(ngloc);
   }
 
-  // get both local and maximum amount of states on a proc
+  // get maximum number of states on a task
+  if ( s_.wf.nspin()==1 )
   {
-    if ( s_.wf.nspin()==1 )
+    const int isp_loc = s_.wf.isp_local(0);
+    int nLocalStates_ = 0;
+    if ( isp_loc >= 0 )
+      nLocalStates_ = s_.wf.sd(isp_loc,0)->nstloc();
+    MPI_Allreduce(&nLocalStates_,&nMaxLocalStates_,1,
+      MPI_INT,MPI_MAX,MPIdata::comm());
+  }
+  else
+  {
+    int nLocalStates_ = 0;
+    for ( int ispin = 0; ispin < 2; ++ispin )
     {
-      SlaterDet& sd = *(s_.wf.sd(0,0));
-      nLocalStates_=sd.nstloc();
-      MPI_Allreduce(&nLocalStates_,&nMaxLocalStates_,1,
-        MPI_INT,MPI_MAX,gcontext_.comm());
+      const int isp_loc = s_.wf.isp_local(ispin);
+      if ( isp_loc >= 0 )
+        nLocalStates_ = max(nLocalStates_,s_.wf.sd(isp_loc,0)->nstloc());
     }
-    else
-    {
-      SlaterDet& sd_up = *(s_.wf.sd(0,0));
-      SlaterDet& sd_dn = *(s_.wf.sd(1,0));
-      nLocalStates_= sd_up.nstloc() > sd_dn.nstloc() ?
-                     sd_up.nstloc() : sd_dn.nstloc();
-      MPI_Allreduce(&nLocalStates_,&nMaxLocalStates_,1,
-        MPI_INT,MPI_MAX,gcontext_.comm());
-    }
+    MPI_Allreduce(&nLocalStates_,&nMaxLocalStates_,1,
+      MPI_INT,MPI_MAX,MPIdata::comm());
   }
 
   // allocate memory for exchange energies
@@ -153,19 +145,22 @@ ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
     exchange_[iKp].resize(nMaxLocalStates_);
   }
   // get maximum number of g coeff per states
-  int mlocMax=0;
-  for ( int iKpi = 0; iKpi < s_.wf.nkp(); iKpi++ )
+  int mlocMax = 0;
+  for ( int isp_loc = 0; isp_loc < s_.wf.nsp_loc(); ++isp_loc )
   {
-    SlaterDet& sdi = *(s_.wf.sd(0,iKpi));
-    ComplexMatrix& ci = sdi.c();
-    if (mlocMax<ci.mloc()) mlocMax=ci.mloc();
+    for ( int ikp_loc = 0; ikp_loc < s_.wf.nkp_loc(); ++ikp_loc )
+    {
+      SlaterDet* sd = s_.wf.sd(isp_loc,ikp_loc);
+      ComplexMatrix& c = sd->c();
+      if ( mlocMax < c.mloc() ) mlocMax = c.mloc();
+    }
   }
+  int mlocMax_tmp = mlocMax;
+  MPI_Allreduce(&mlocMax_tmp,&mlocMax,1,MPI_INT,MPI_MAX,MPIdata::comm());
 
   // allocate memory for the copy of states of kpoint iKpi
-  {
-    state_kpi_.resize( nMaxLocalStates_ * mlocMax );
-    send_buf_states_.resize( nMaxLocalStates_ * mlocMax );
-  }
+  state_kpi_.resize( nMaxLocalStates_ * mlocMax );
+  send_buf_states_.resize( nMaxLocalStates_ * mlocMax );
 
   // allocate buffers ( different if only at gamma or not )
   if ( gamma_only_ )
@@ -197,13 +192,13 @@ ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
     // allocate bisection object
     if ( use_bisection_ )
     {
-      bisection_.resize(s_.wf.nspin());
-      uc_.resize(s_.wf.nspin());
-      for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+      bisection_.resize(s_.wf.nsp_loc());
+      uc_.resize(s_.wf.nsp_loc());
+      for ( int isp_loc = 0; isp_loc < s_.wf.nsp_loc(); ++isp_loc )
       {
-        bisection_[ispin] = new Bisection(*s_.wf.sd(ispin,0),s_.ctrl.blHF);
-        const ComplexMatrix& c = s_.wf.sd(ispin,0)->c();
-        uc_[ispin] = new DoubleMatrix(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        bisection_[isp_loc] = new Bisection(*s_.wf.sd(isp_loc,0),s_.ctrl.blHF);
+        const ComplexMatrix& c = s_.wf.sd(isp_loc,0)->c();
+        uc_[isp_loc] = new DoubleMatrix(c.context(),c.n(),c.n(),c.nb(),c.nb());
       }
     }
   }
@@ -231,19 +226,16 @@ ExchangeOperator::ExchangeOperator( Sample& s, double alpha_sx,
 ////////////////////////////////////////////////////////////////////////////////
 ExchangeOperator::~ExchangeOperator()
 {
-  if ( ( s_.wf.nkp()==1 ) && ( s_.wf.sd(0,0)->basis().real() ) )
-  {
-    // delete Fourier transform objects on states and forces
-    delete wft_;
-  }
+  // delete Fourier transform objects on states and forces
+  delete wft_;
   // delete Fourier transform and basis for pair densities
   delete vft_;
   delete vbasis_;
   if ( use_bisection_ )
-    for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+    for ( int isp_loc = 0; isp_loc < s_.wf.nsp_loc(); ++isp_loc )
     {
-      delete bisection_[ispin];
-      delete uc_[ispin];
+      delete bisection_[isp_loc];
+      delete uc_[isp_loc];
     }
 }
 
@@ -280,18 +272,19 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
 {
   // dwf += mix * ( |dwf_ref> <wf_ref|s_.wf> + |wf_ref><dwf_ref|s_.wf>
   // - |wf_ref><wf_ref|sigma_HF|wf_ref><wf_ref|s_.wf> )
-  for ( int ispin = 0; ispin < s_.wf.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < s_.wf.nsp_loc(); ++isp_loc )
   {
+    const int ispin = s_.wf.isp_global(isp_loc);
     const int nst = s_.wf.nst(ispin);
-    for ( int ikp = 0; ikp < s_.wf.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < s_.wf.nkp_loc(); ++ikp_loc )
     {
-      const Context &ctxt = s_.wf.sd(ispin,ikp)->c().context();
-      if ( s_.wf.sd(ispin,ikp)->basis().real() )
+      const Context &ctxt = s_.wf.sd(isp_loc,ikp_loc)->c().context();
+      if ( s_.wf.sd(isp_loc,ikp_loc)->basis().real() )
       {
-        DoubleMatrix c_proxy(s_.wf.sd(ispin,ikp)->c());
-        DoubleMatrix dc_proxy(dwf.sd(ispin,ikp)->c());
-        DoubleMatrix cref_proxy(wf_ref.sd(ispin,ikp)->c());
-        DoubleMatrix dcref_proxy(dwf_ref.sd(ispin,ikp)->c());
+        DoubleMatrix c_proxy(s_.wf.sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix dc_proxy(dwf.sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix cref_proxy(wf_ref.sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix dcref_proxy(dwf_ref.sd(isp_loc,ikp_loc)->c());
 
         int nb = c_proxy.nb();
         DoubleMatrix matproj1(ctxt,nst,nst,nb,nb);
@@ -321,10 +314,10 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
       }
       else // complex wave functions
       {
-        ComplexMatrix &c(s_.wf.sd(ispin,ikp)->c());
-        ComplexMatrix &dc(dwf.sd(ispin,ikp)->c());
-        ComplexMatrix &cref(wf_ref.sd(ispin,ikp)->c());
-        ComplexMatrix &dcref(dwf_ref.sd(ispin,ikp)->c());
+        ComplexMatrix &c(s_.wf.sd(isp_loc,ikp_loc)->c());
+        ComplexMatrix &dc(dwf.sd(isp_loc,ikp_loc)->c());
+        ComplexMatrix &cref(wf_ref.sd(isp_loc,ikp_loc)->c());
+        ComplexMatrix &dcref(dwf_ref.sd(isp_loc,ikp_loc)->c());
 
         int nb = c.nb();
         ComplexMatrix matproj1(ctxt,nst,nst,nb,nb);
@@ -349,8 +342,8 @@ void ExchangeOperator::apply_VXC_(double mix, Wavefunction& wf_ref,
         // |dpsi> += mix * |psi_ref> * matproj2
         dc.gemm('n','n',mix,cref,matproj2,1.0);
       }
-    } // ikp
-  } // ispin
+    } // ikp_loc
+  } // isp_loc
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -382,6 +375,10 @@ void ExchangeOperator::cell_moved(void)
 double ExchangeOperator::compute_exchange_for_general_case_
   (const Wavefunction& wf, Wavefunction* dwf, bool compute_stress)
 {
+
+  cout << "ExchangeOperator:: general kpoints not implemented" << endl;
+  assert(false);
+
   Timer tm;
   tm.start();
 
@@ -397,6 +394,7 @@ double ExchangeOperator::compute_exchange_for_general_case_
   // initialize total exchange energy
   double exchange_sum = 0.0;
 
+#if 0
   // initialize stress
   sigma_exhf_ = 0.0;
 
@@ -442,7 +440,7 @@ double ExchangeOperator::compute_exchange_for_general_case_
       InitPermutation();
 
       //  Start rotation of the states of kpoint i from this point
-      for ( int iRotationStep=0; iRotationStep<gcontext_.npcol();
+      for ( int iRotationStep=0; iRotationStep<sdi.context().npcol();
             iRotationStep++ )
       {
         CompleteReceivingStates(iRotationStep);
@@ -971,6 +969,7 @@ double ExchangeOperator::compute_exchange_for_general_case_
     gcontext_.dsum(6,1,&sigma_exhf_[0],6);
 
   tm.stop();
+#endif
   return exchange_sum;
 }
 
@@ -998,11 +997,23 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
   const double *const g_y = vbasis_->gx_ptr(1);
   const double *const g_z = vbasis_->gx_ptr(2);
 
-  for ( int ispin = 0; ispin < wfc_.nspin(); ispin++ )
+  ostringstream ostr;
+  for ( int isp_loc = 0; isp_loc < wfc_.nsp_loc(); ++isp_loc )
   {
-    SlaterDet& sd = *(wfc_.sd(ispin,0));
+    const int ispin = wf.isp_global(isp_loc);
+
+    SlaterDet& sd = *(wfc_.sd(isp_loc,0));
     ComplexMatrix& c = sd.c();
     const int nst = sd.nst();
+
+    assert(wf.sd(isp_loc,0));
+    // create Fourier transform object for wave functions
+    if ( !wft_ )
+    {
+      if ( isp_loc >= 0 )
+        wft_ = new FourierTransform(wf.sd(isp_loc,0)->basis(),
+               np0v_,np1v_,np2v_);
+    }
 
     // if using bisection, localize the wave functions
     if ( use_bisection_ )
@@ -1016,7 +1027,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         istringstream is(s_.ctrl.debug);
         string s;
         is >> s >> maxsweep;
-        if ( gcontext_.onpe0() )
+        if ( MPIdata::onpe0() )
           cout << " override bisection maxsweep value: maxsweep = "
                << maxsweep << endl;
         assert(maxsweep >= 0);
@@ -1028,7 +1039,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         istringstream is(s_.ctrl.debug);
         string s;
         is >> s >> tol;
-        if ( gcontext_.onpe0() )
+        if ( MPIdata::onpe0() )
           cout << " override bisection tol value: tol = " << tol << endl;
         assert(tol > 0.0);
       }
@@ -1036,43 +1047,45 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       Timer tmbtransf;
       tmbtransf.start();
 #endif
-      bisection_[ispin]->compute_transform(*wfc_.sd(ispin,0),maxsweep,tol);
+      bisection_[isp_loc]->compute_transform(*wfc_.sd(isp_loc,0),maxsweep,tol);
 #if TIMING
       tmbtransf.stop();
       Timer tmbcomploc;
       tmbcomploc.start();
 #endif
-      bisection_[ispin]->compute_localization(s_.ctrl.btHF);
+      bisection_[isp_loc]->compute_localization(s_.ctrl.btHF);
 #if TIMING
       tmbcomploc.stop();
 #endif
       // copy of localization vector from Bisection object
-      localization_ = bisection_[ispin]->localization();
+      localization_ = bisection_[isp_loc]->localization();
 
 #if TIMING
       Timer tmbsize, tmbpair;
       tmbsize.start();
 #endif
-      if ( gcontext_.onpe0() )
+      if ( MPIdata::sd_rank() == 0 )
       {
-          cout << " ExchangeOperator: bisection size: ispin=" << ispin
-               << ": " << bisection_[ispin]->total_size() << endl;
+        ostr << setprecision(10);
+        ostr << " ExchangeOperator: bisection size: ispin=" << ispin
+             << ": " << bisection_[isp_loc]->total_size() << endl;
       }
 #if TIMING
       tmbsize.stop();
       tmbpair.start();
 #endif
-      if ( gcontext_.onpe0() )
+      if ( MPIdata::sd_rank() == 0 )
       {
-          cout << " ExchangeOperator: pair fraction:  ispin=" << ispin
-               << ": " << bisection_[ispin]->pair_fraction() << endl;
+        ostr << setprecision(10);
+        ostr << " ExchangeOperator: pair fraction:  ispin=" << ispin
+             << ": " << bisection_[isp_loc]->pair_fraction() << endl;
       }
 #if TIMING
       tmbpair.stop();
 #endif
 
-      // copy the orthogonal transformation u to uc_[ispin]
-      *uc_[ispin] = bisection_[ispin]->u();
+      // copy the orthogonal transformation u to uc_[isp_loc]
+      *uc_[isp_loc] = bisection_[isp_loc]->u();
 
       bool distribute = s_.ctrl.debug.find("BISECTION_NODIST") == string::npos;
       if ( distribute )
@@ -1093,14 +1106,14 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           int count = 0;
           for ( int j = 0; j < nst; j++ )
           {
-            if ( bisection_[ispin]->overlap(localization_,i,j) )
+            if ( bisection_[isp_loc]->overlap(localization_,i,j) )
               count++;
           }
           degree[i] = count;
         }
 #if TIMING
         tmb_ov.stop();
-        if ( gcontext_.onpe0() )
+        if ( MPIdatat::onpe0() )
         {
           cout << setprecision(3);
           cout << " ExchangeOperator: bisection overlap time: "
@@ -1121,7 +1134,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           assert(degree[index[i]] <= degree[index[i+1]]);
 
 #if DEBUG
-        if ( gcontext_.onpe0() )
+        if ( MPIdata::onpe0() )
         {
           cout << "degree order after sort:" << endl;
           for ( int j = 0; j < index.size(); j++ )
@@ -1135,7 +1148,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         // Assume that the states are initially ordered by increasing degree
         // i.e. degree(index_[i]) < degree(index_[j]) if i < j
 
-        const int nb = uc_[ispin]->nb();
+        const int nb = uc_[isp_loc]->nb();
 
         vector<int> distrib_index(nst);
         int ibase = 0;
@@ -1160,7 +1173,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         index = itmp;
 
 #if DEBUG
-        if ( gcontext_.onpe0() )
+        if ( MPIdata::onpe0() )
         {
           cout << "index after round robin distrib:" << endl;
           for ( int j = 0; j < index.size(); j++ )
@@ -1204,7 +1217,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         }
         assert(pivot.size()==index.size());
 #if DEBUG
-        if ( gcontext_.onpe0() )
+        if ( MPIdata::onpe0() )
         {
           cout << "pivot:" << endl;
           for ( int j = 0; j < pivot.size(); j++ )
@@ -1215,13 +1228,13 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         // create a local pivot vector on this process (size uc->nloc())
         // this vector must be replicated on all tasks of the
         // process grid columns
-        const int nloc = uc_[ispin]->nloc();
+        const int nloc = uc_[isp_loc]->nloc();
         vector<int> locpivot(nloc);
         // fill the local pivot vector on all tasks
         // add 1 to index values for lapack fortran index convention
         for ( int j=0; j < nloc; j++ )
         {
-          int jglobal = uc_[ispin]->jglobal(j);
+          int jglobal = uc_[isp_loc]->jglobal(j);
           locpivot[j] = pivot[jglobal]+1;
         }
 #if 0
@@ -1268,10 +1281,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         tmblapiv.start();
 #endif
         // apply the permutation to the columns of uc
-        uc_[ispin]->lapiv('B','C',&locpivot[0]);
+        uc_[isp_loc]->lapiv('B','C',&locpivot[0]);
 #if TIMING
         tmblapiv.stop();
-        if ( gcontext_.onpe0() )
+
+        if ( MPIdata::sd_rank() == 0 )
         {
           cout << setprecision(3);
           cout << " ExchangeOperator: bisection size time: "
@@ -1292,13 +1306,13 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
           int count = 0;
           for ( int j = 0; j < nst; j++ )
           {
-            if ( bisection_[ispin]->overlap(localization_,i,j) )
+            if ( bisection_[isp_loc]->overlap(localization_,i,j) )
               count++;
           }
           degree[i] = count;
         }
 
-        if ( gcontext_.onpe0() )
+        if ( MPIdata::sd_rank() == 0 )
         {
           cout << "degree after permutation:" << endl;
           for ( int j = 0; j < degree.size(); j++ )
@@ -1306,7 +1320,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         }
 
         // print localization vectors and overlaps after distribution
-        if ( gcontext_.onpe0() )
+        if ( MPIdata::sd_rank() == 0 )
         {
           int sum = 0;
           for ( int i = 0; i < nst; i++ )
@@ -1314,7 +1328,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
             int count = 0;
             for ( int j = 0; j < nst; j++ )
             {
-              if ( bisection_[ispin]->overlap(localization_,i,j) )
+              if ( bisection_[isp_loc]->overlap(localization_,i,j) )
                 count++;
             }
             cout << "localization[" << i << "]: "
@@ -1332,7 +1346,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       }
       else
       {
-        if ( gcontext_.onpe0() )
+        if ( MPIdata::onpe0() )
           cout << " ExchangeOperator: bisection distribution disabled" << endl;
       } // if distribute
 
@@ -1340,13 +1354,13 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       Timer tmbfwd;
       tmbfwd.start();
 #endif
-      bisection_[ispin]->forward(*uc_[ispin], *wfc_.sd(ispin,0));
+      bisection_[isp_loc]->forward(*uc_[isp_loc], *wfc_.sd(isp_loc,0));
 #if TIMING
       tmbfwd.stop();
 #endif
 
       tmb.stop();
-      if ( gcontext_.onpe0() )
+      if ( MPIdata::sd_rank() == 0 )
       {
 #if TIMING
         cout << setprecision(3);
@@ -1359,10 +1373,10 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         cout << " ExchangeOperator: bisection forward time: "
            << tmbfwd.real() << " s" << endl;
 #endif
-        cout << setprecision(3);
-        cout << " ExchangeOperator: bisection time: "
+        ostr << setprecision(3);
+        ostr << " ExchangeOperator: bisection time: "
            << tmb.real() << " s" << endl;
-        cout << setprecision(10);
+        ostr << setprecision(10);
       }
     } // if use_bisection_
 
@@ -1374,8 +1388,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     // loop over states 2 by 2
     for ( int i = 0; i < sd.nstloc()-1; i+=2 )
     {
-      wft_->backward(c.cvalptr(i*c.mloc()), c.cvalptr((i+1)*c.mloc()),
-                     &tmp_[0]);
+      wft_->backward(c.cvalptr(i*c.mloc()), c.cvalptr((i+1)*c.mloc()),&tmp_[0]);
       double *p = (double *)&tmp_[0];
 #pragma omp parallel for
       for ( int ir = 0; ir < np012loc_; ir++ )
@@ -1391,7 +1404,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       wft_->backward(c.cvalptr(i*c.mloc()), &(statej_[i])[0]);
     }
 
-    SlaterDet& dsd = *(dwf->sd(ispin,0));
+    SlaterDet& dsd = *(dwf->sd(isp_loc,0));
     ComplexMatrix& dc = dsd.c();
 
     if (dwf)
@@ -1471,11 +1484,11 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
 #if LOAD_MATRIX
     // collect number of processed pairs in array load_matrix
-    vector<int> load_matrix(gcontext_.npcol()*gcontext_.npcol(),0);
+    vector<int> load_matrix(MPIdata::sd_size(),0);
 #endif
 
     // Start rotation of circulating states
-    for ( int iRotationStep = 0; iRotationStep<gcontext_.npcol();
+    for ( int iRotationStep = 0; iRotationStep < MPIdata::nstb();
           iRotationStep++ )
     {
       // generate a list of pairs of overlapping states
@@ -1493,8 +1506,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       for ( int i = 0; i < nStatesKpi_; i++ )
       {
         // original column index of circulating state i
-        int iColI = gcontext_.mycol() - iRotationStep;
-        iColI = ( iColI < 0 ) ? iColI + gcontext_.npcol() : iColI;
+        int iColI = MPIdata::istb() - iRotationStep;
+        iColI = ( iColI < 0 ) ? iColI + MPIdata::nstb() : iColI;
 
         // global index of circulating state i
         int iGlobI = c.jglobal(iColI,i);
@@ -1510,7 +1523,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
             // determine the overlap between those two states
             bool overlap_ij = ( !use_bisection_ ||
-              bisection_[ispin]->overlap(localization_,iGlobI,iGlobJ) );
+              bisection_[isp_loc]->overlap(localization_,iGlobI,iGlobJ) );
 
             // use the chess board condition to
             // optimize the distribution of work on
@@ -1553,8 +1566,9 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
 #if LOAD_MATRIX
       // collect nPair statistics if on row 0
-      if ( gcontext_.myrow() == 0 )
-        load_matrix[iRotationStep*gcontext_.npcol()+gcontext_.mycol()] = nPair;
+      if ( MPIdata::g_rank() == 0 )
+        load_matrix[iRotationStep*MPIdata::sd_size()+MPIdata::istb()] =
+          nPair;
 #endif
 
       // complete receiving states
@@ -2054,21 +2068,22 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
 #if LOAD_MATRIX
     // collect load_matrix
-    gcontext_.isum('R', load_matrix.size(), 1, &load_matrix[0],
-                   load_matrix.size());
-    if ( gcontext_.onpe0() )
+    vector<int> tmp_matrix(load_matrix);
+    MPI_Allreduce(&tmp_matrix,&load_matrix,load_matrix.size(),MPI_INT,
+      MPIdata::st_comm());
+    if ( MPIdata::sd_rank() == 0 )
     {
       cout << " ExchangeOperator: load_matrix" << endl;
-      const int nst = s_.wfc_.nst(ispin);
+      const int nst = s_.wfc_.nst(isp_loc);
       int spreadsum = 0;
-      for ( int irot = 0; irot < gcontext_.npcol(); irot++ )
+      for ( int irot = 0; irot < MPIdata::nstb(); irot++ )
       {
         int rowsum = 0;
         int wmin = nst*nst;
         int wmax = 0;
-        for ( int icol = 0; icol < gcontext_.npcol(); icol++ )
+        for ( int icol = 0; icol < MPIdata::nstb(); icol++ )
         {
-          int w = load_matrix[irot*gcontext_.npcol()+icol];
+          int w = load_matrix[irot*MPIdata::nstb()+icol];
           cout << " " << setw(5) << w;
           rowsum += w;
           wmin = min(wmin,w);
@@ -2082,12 +2097,12 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       cout << endl;
       // print sums of columns
       int rowcolsum = 0;
-      for ( int icol = 0; icol < gcontext_.npcol(); icol++ )
+      for ( int icol = 0; icol < MPIdata::nstb(); icol++ )
       {
         int colsum = 0;
-        for ( int irot = 0; irot < gcontext_.npcol(); irot++ )
+        for ( int irot = 0; irot < MPIdata::nstb(); irot++ )
         {
-          int w = load_matrix[irot*gcontext_.npcol()+icol];
+          int w = load_matrix[irot*MPIdata::nstb()+icol];
           colsum += w;
         }
         cout << " " << setw(5) << colsum;
@@ -2212,7 +2227,8 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
         if (dwf)
         {
           // sum the partial contributions to the correction for state i
-          gcontext_.dsum('C', 1, 1, &div_corr, 1);
+          double tsum = div_corr;
+          MPI_Allreduce(&tsum,&div_corr,1,MPI_DOUBLE,MPI_SUM,MPIdata::g_comm());
 
           // add correction to the derivatives of state i
           complex<double> *ps=c.valptr(i*c.mloc());
@@ -2227,17 +2243,31 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 
     if ( use_bisection_ )
     {
-      bisection_[ispin]->backward(*uc_[ispin], *dwf->sd(ispin,0));
+      bisection_[isp_loc]->backward(*uc_[isp_loc], *dwf->sd(isp_loc,0));
     }
 
-  } // for ispin
+  } // for isp_loc
+
+  for ( int ispin = 0; ispin < wfc_.nspin(); ++ispin )
+  {
+    int isrc = -1;
+    if ( MPIdata::sd_rank() == 0 )
+      isrc = MPIdata::rank();
+    cout0(ostr.str(),isrc);
+  }
 
   // sum contributions to the exchange energy
-  gcontext_.dsum(1, 1, &exchange_sum, 1);
+  double tsum = exchange_sum;
+  MPI_Allreduce(&tsum,&exchange_sum,1,MPI_DOUBLE,MPI_SUM,MPIdata::comm());
 
   // accumulate stress tensor contributions
   if ( compute_stress )
-    gcontext_.dsum(6,1,&sigma_exhf_[0],6);
+  {
+    double tsum[6];
+    for ( int i = 0; i < 6; ++i )
+      tsum[i] = sigma_exhf_[i];
+    MPI_Allreduce(&tsum,&sigma_exhf_,1,MPI_DOUBLE,MPI_SUM,MPIdata::comm());
+  }
 
   tm.stop();
   return exchange_sum;
@@ -2249,21 +2279,17 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
 void ExchangeOperator::InitPermutation(void)
 {
   // determine to whom we send and from whom we receive
-  colSendTo_ = ( gcontext_.mycol() < gcontext_.npcol() - 1 ) ?
-               gcontext_.mycol() + 1 : 0;
-  colRecvFr_ = ( gcontext_.mycol() > 0 ) ?
-               gcontext_.mycol() - 1 : gcontext_.npcol() - 1;
-  iSendTo_ = gcontext_.pmap( vbasis_->mype(), colSendTo_);
-  iRecvFr_ = gcontext_.pmap( vbasis_->mype(), colRecvFr_);
+  const int mycol = MPIdata::istb();
+  const int npcol = MPIdata::nstb();
 
-  // Get communicator for this context
-  comm_ = gcontext_.comm();
+  colSendTo_ = ( mycol + 1 ) % npcol;
+  colRecvFr_ = ( mycol - 1 + npcol ) % npcol;
 
   // Init communication for the number of states
-  MPI_Send_init((void *) &nStatesKpi_, 1, MPI_INT,
-    iSendTo_, Tag_NumberOfStates, comm_, &send_request_NumberOfStates_ );
-  MPI_Recv_init((void *) &nNextStatesKpi_, 1, MPI_INT,
-    iRecvFr_, Tag_NumberOfStates, comm_, &recv_request_NumberOfStates_ );
+  MPI_Send_init((void *) &nStatesKpi_, 1, MPI_INT, colSendTo_,
+     NumberOfStates, MPIdata::st_comm(), &send_request_NumberOfStates_ );
+  MPI_Recv_init((void *) &nNextStatesKpi_, 1, MPI_INT, colRecvFr_,
+     NumberOfStates, MPIdata::st_comm(), &recv_request_NumberOfStates_ );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2301,8 +2327,8 @@ void ExchangeOperator::StartStatesPermutation(int mloc)
   if ( nStatesKpi_>0 )
   {
     wait_send_states_=1;
-    MPI_Isend((void *) &send_buf_states_[0], 2*nStatesKpi_*mloc,
-      MPI_DOUBLE, iSendTo_, Tag_States, comm_, &send_request_States_ );
+    MPI_Isend((void *) &send_buf_states_[0], 2*nStatesKpi_*mloc, MPI_DOUBLE,
+      colSendTo_, States, MPIdata::st_comm(), &send_request_States_ );
   }
   else
   {
@@ -2313,8 +2339,8 @@ void ExchangeOperator::StartStatesPermutation(int mloc)
   if ( nNextStatesKpi_>0 )
   {
     wait_recv_states_=1;
-    MPI_Irecv((void *) &state_kpi_[0], 2*nNextStatesKpi_*mloc,
-      MPI_DOUBLE, iRecvFr_, Tag_States, comm_, &recv_request_States_ );
+    MPI_Irecv((void *) &state_kpi_[0], 2*nNextStatesKpi_*mloc, MPI_DOUBLE,
+      colRecvFr_, States, MPIdata::st_comm(), &recv_request_States_ );
   }
   else
   {
@@ -2362,8 +2388,8 @@ void ExchangeOperator::StartForcesPermutation(int mloc)
   if ( nStatesKpi_>0 )
   {
     wait_send_forces_=1;
-    MPI_Isend((void *) &send_buf_forces_[0], 2*nStatesKpi_*mloc,
-      MPI_DOUBLE, iSendTo_, Tag_Forces, comm_, &send_request_Forces_ );
+    MPI_Isend((void *) &send_buf_forces_[0], 2*nStatesKpi_*mloc, MPI_DOUBLE,
+      colSendTo_, Forces, MPIdata::st_comm(), &send_request_Forces_ );
   }
   else
   {
@@ -2374,8 +2400,8 @@ void ExchangeOperator::StartForcesPermutation(int mloc)
   if ( nNextStatesKpi_>0 )
   {
     wait_recv_forces_=1;
-    MPI_Irecv((void *) &force_kpi_[0], 2*nNextStatesKpi_*mloc,
-      MPI_DOUBLE, iRecvFr_, Tag_Forces, comm_, &recv_request_Forces_ );
+    MPI_Irecv((void *) &force_kpi_[0], 2*nNextStatesKpi_*mloc, MPI_DOUBLE,
+      colRecvFr_, Forces, MPIdata::st_comm(), &recv_request_Forces_ );
   }
   else
   {
@@ -2427,8 +2453,8 @@ void ExchangeOperator::StartOccupationsPermutation(void)
   if ( nStatesKpi_>0 )
   {
     wait_send_occupations_=1;
-    MPI_Isend((void *) &send_buf_occupation_[0], nStatesKpi_,
-      MPI_DOUBLE, iSendTo_, Tag_Occupation, comm_, &send_request_Occupation_ );
+    MPI_Isend((void *) &send_buf_occupation_[0], nStatesKpi_, MPI_DOUBLE,
+      colSendTo_, Occupation, MPIdata::st_comm(), &send_request_Occupation_ );
   }
   else
   {
@@ -2439,8 +2465,8 @@ void ExchangeOperator::StartOccupationsPermutation(void)
   if ( nNextStatesKpi_>0 )
   {
     wait_recv_occupations_=1;
-    MPI_Irecv((void *) &occ_ki_[0], nNextStatesKpi_,
-      MPI_DOUBLE, iRecvFr_, Tag_Occupation, comm_, &recv_request_Occupation_ );
+    MPI_Irecv((void *) &occ_ki_[0], nNextStatesKpi_, MPI_DOUBLE,
+      colRecvFr_, Occupation, MPIdata::st_comm(), &recv_request_Occupation_ );
   }
   else
   {

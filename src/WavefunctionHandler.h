@@ -24,8 +24,6 @@
 #include "Wavefunction.h"
 #include "SlaterDet.h"
 
-class FourierTransform;
-
 class WavefunctionHandler : public StructureHandler
 {
   private:
@@ -42,10 +40,7 @@ class WavefunctionHandler : public StructureHandler
   int& current_gfdata_pos_;
   std::vector<double> dmat_;
   double current_kx, current_ky, current_kz, current_weight;
-  int current_size;
-  int read_from_gfdata;
-  FourierTransform* ft;
-  std::vector<std::complex<double> > wftmp;
+  int current_size, last_size;
 
   void byteswap_double(size_t n, double* x);
 

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2008-2020 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -12,30 +12,15 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// SampleReader.h
+// cout0.h
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SAMPLEREADER_H
-#define SAMPLEREADER_H
+#ifndef COUT0_H
+#define COUT0_H
 
-enum event_type { unit_cell, species, atom, wavefunction, wavefunction_velocity,
-                  slater_determinant, end, invalid };
+#include <string>
+using namespace std;
 
-class Sample;
-
-class SampleReader
-{
-  public:
-
-  void readSample(Sample& s, const std::string uri, bool serial);
-};
-
-class SampleReaderException
-{
-  public:
-  std::string msg;
-  SampleReaderException(std::string s) : msg(s) {}
-};
-
+void cout0(std::string s, int isrc);
 #endif

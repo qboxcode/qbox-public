@@ -16,12 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include<cassert>
-#include<vector>
-#include<string>
-#include<fstream>
-using namespace std;
-
+#include "MPIdata.h"
 #include "BOSampleStepper.h"
 #include "ExternalPotential.h"
 #include "FourierTransform.h"
@@ -30,6 +25,11 @@ using namespace std;
 #include "isodate.h"
 #include "Species.h"
 #include "Function3d.h"
+#include<cassert>
+#include<vector>
+#include<string>
+#include<fstream>
+using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 int ResponseCmd::action(int argc, char **argv)
@@ -334,7 +334,7 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
   wf0 = s->wf;
 
   ChargeDensity &cd = stepper->cd();
-  MPI_Comm vcomm = cd.vcomm();
+  MPI_Comm vcomm = MPIdata::g_comm();
 
   stepper->step(0);
   vector<vector<double> > rhor1; // density with +Vext
@@ -411,10 +411,10 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
   // at this point, drho_r has been computed and distributed on column context
 
   // now write drho_r to disk
-  const Context* ctxt = s->wf.spincontext();
-  int nprow = ctxt->nprow();
-  int myrow = ctxt->myrow();
-  int mycol = ctxt->mycol();
+  const Context& ctxt = s->wf.sd_context();
+  int nprow = ctxt.nprow();
+  int myrow = ctxt.myrow();
+  int mycol = ctxt.mycol();
   Timer tm_write_drho;
 
   // serial write xml file or cube file
@@ -510,18 +510,6 @@ void ResponseCmd::responseVext(bool rpa, bool ipa, int nitscf, int nite,
       } // if fmt
     } //if ( myrow == 0 && mycol == 0 )
   } // for ispin
-
-  double time, tmin, tmax;
-  time = tm_write_drho.real();
-  tmin = time;
-  tmax = time;
-  s->ctxt_.dmin('C', 1, 1, &tmin, 1);
-  s->ctxt_.dmax('C', 1, 1, &tmax, 1);
-  if (ui->onpe0())
-  {
-    cout << "  drho write time: "
-         << "min: " << tmin << " max: " << tmax << endl;
-  }
 
   delete stepper;
 }

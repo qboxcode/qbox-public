@@ -32,14 +32,12 @@ class Wavefunction
 {
   private:
 
-  const Context& ctxt_;
+  const Context& sd_ctxt_;
 
   int nel_;           // number of electrons
   int nempty_;        // number of empty states
   int nspin_;         // number of spins (1 or 2)
   int deltaspin_;     // number of spin excitations
-
-  int nrowmax_;       // maximum number of rows of a spincontext
 
   UnitCell cell_ ;    // unit cell
   UnitCell refcell_ ; // reference cell
@@ -48,44 +46,49 @@ class Wavefunction
   std::vector<double>    weight_;  // weight[ikp]
   std::vector<D3vector>  kpoint_;  // kpoint[ikp]
 
+  std::vector<int> nkp_loc_;    // nkp_loc_[ikpb] number of local kpoints
+  std::vector<int> ikp_global_; // ikp_global[ikp_loc]
+
+  std::vector<int> nsp_loc_;    // nsp_loc_[ispb] number of local spins
+  std::vector<int> isp_global_; // isp_global[isp_loc]
+
   std::vector<int> nst_;  // nst_[ispin]
-  const Context* spincontext_;   // context used for spin reductions
-  const Context* kpcontext_;     // context used for kp reductions
-  const Context* sdcontext_;     // context of local SlaterDet instances
   std::vector<std::vector<SlaterDet*> > sd_; // local SlaterDets sd_[ispin][ikp]
 
-  void create_contexts();
-  void allocate(); // allocate SlaterDet's
+  void allocate(); // allocate SlaterDets
   void deallocate();
   void compute_nst();
   void resize(); // resize SlaterDets if ecut,cell,refcell,or nst have changed
 
   public:
 
-  Wavefunction(const Context& ctxt);
+  Wavefunction(const Context& sd_ctxt);
   Wavefunction(const Wavefunction& wf);
   ~Wavefunction();
   Wavefunction& operator=(const Wavefunction& wf);
 
-  const Context& context(void) const { return ctxt_; }
+  const Context& sd_context(void) const { return sd_ctxt_; }
   const UnitCell& cell(void) const { return cell_; }
   const UnitCell& refcell(void) const { return refcell_; }
   const D3vector kpoint(int ikp) const { return kpoint_[ikp]; }
   double weight(int ikp) const { return weight_[ikp]; }
   double ecut(void) const { return ecut_; }
-  SlaterDet* sd(int ispin, int ikp) const { return sd_[ispin][ikp]; }
+  SlaterDet* sd(int isp_loc, int ikp_loc) const
+    { return sd_[isp_loc][ikp_loc]; }
 
-  const Context* spincontext(void) const { return spincontext_; }
-  const Context* kpcontext(void) const { return kpcontext_; }
-  const Context* sdcontext(void) const { return sdcontext_; }
-  int nkp(void) const;            // number of k points
+  int nkp(void) const;            // number of kpoints
+  int nkp_loc(void) const;        // number of local kpoints
+  int ikp_global(int ikp) const;  // global index of local kpoint ikp
+  int ikp_local(int ikpg) const;  // local index of global kpoint ikp
   int nel(void) const;            // total number of electrons
   int nst(int ispin) const;       // number of states of spin ispin
   int nst(void) const;            // number of states
   int nempty(void) const;         // number of empty states
   int nspin(void) const;          // number of spins
+  int nsp_loc(void) const;        // number of local spins
+  int isp_global(int isp) const;  // global index of local spin isp
+  int isp_local(int ispg) const;  // local index of global spin ispg
   int deltaspin(void) const;      // number of spin excitations
-  int nrowmax(void) const { return nrowmax_; }
 
   double spin(void) const;        // total spin
 
@@ -98,7 +101,6 @@ class Wavefunction
   void set_nempty(int nempty);
   void set_nspin(int nspin);
   void set_deltaspin(int deltaspin);
-  void set_nrowmax(int n);
   void add_kpoint(D3vector kpoint, double weight);
   void del_kpoint(D3vector kpoint);
   void move_kpoint(D3vector kpoint, D3vector new_kpoint);

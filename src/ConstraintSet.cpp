@@ -16,6 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "ConstraintSet.h"
 #include "PositionConstraint.h"
 #include "DistanceConstraint.h"
@@ -24,7 +25,6 @@
 #include "Atom.h"
 #include "AtomSet.h"
 #include <cstring>
-#include "Context.h"
 #include <iostream>
 #include <iomanip>
 #include <cstdlib> // atof
@@ -49,7 +49,6 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   const double position_tolerance = 1.0e-7;
   const double distance_tolerance = 1.0e-7;
   const double angle_tolerance = 1.0e-4;
-  const bool onpe0 = ctxt_.onpe0();
 
   // argv[0] == "constraint"
   // argv[1] == "define"
@@ -61,7 +60,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
   if ( argc < 2 )
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
     {
       cout << " Use: constraint define position constraint_name atom_name"
            << endl;
@@ -97,7 +96,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   }
   else
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
       cout << " Incorrect constraint type " << constraint_type << endl;
     return false;
   }
@@ -108,7 +107,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( argc != 5 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " Incorrect number of arguments for position constraint"
              << endl;
       return false;
@@ -120,7 +119,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( a1 == 0 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
       {
         cout << " ConstraintSet: could not find atom " << name1 << endl;
         cout << " ConstraintSet: could not define constraint" << endl;
@@ -142,7 +141,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( found )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ConstraintSet: constraint is already defined:\n"
              << " cannot define constraint" << endl;
       return false;
@@ -161,7 +160,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( argc < 7 || argc > 8 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " Incorrect number of arguments for distance constraint"
              << endl;
       return false;
@@ -176,7 +175,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( a1 == 0 || a2 == 0 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
       {
         if ( a1 == 0 )
           cout << " ConstraintSet: could not find atom " << name1 << endl;
@@ -188,7 +187,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     }
     if ( name1 == name2 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ConstraintSet: cannot define distance constraint between "
              << name1 << " and " << name2 << endl;
       return false;
@@ -199,7 +198,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     {
       // use current distance
       distance = length(a1->position()-a2->position());
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << "ConstraintSet::define_constraint: using current distance "
              << distance << endl;
     }
@@ -213,7 +212,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( distance <= 0.0 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ConstraintSet: distance must be positive" << endl
              << " ConstraintSet: could not define constraint" << endl;
       return false;
@@ -235,7 +234,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( found )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ConstraintSet: a distance constraint named " << name << endl
              << " or involving atoms " << name1 << " " << name2 << endl
              << " is already defined" << endl
@@ -258,7 +257,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( argc < 8  || argc > 9 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " Incorrect number of arguments for angle constraint"
              << endl;
       return false;
@@ -274,7 +273,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( a1 == 0 || a2 == 0 || a3 == 0 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
       {
         if ( a1 == 0 )
           cout << " ConstraintSet: could not find atom " << name1 << endl;
@@ -289,7 +288,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( name1 == name2 || name1 == name3 || name2 == name3)
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ConstraintSet: cannot define angle constraint between "
              << name1 << " " << name2 << " and " << name3 << endl;
       return false;
@@ -304,7 +303,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       D3vector r32(a3->position()-a2->position());
       if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 )
       {
-        if ( onpe0 )
+        if ( MPIdata::onpe0() )
         {
           cout << " ConstraintSet: cannot define angle constraint." << endl;
           cout << " ConstraintSet: atoms are too close" << endl;
@@ -315,7 +314,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       const double c = max(-1.0,min(1.0,sp));
       angle = (180.0/M_PI)*acos(c);
 
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << "ConstraintSet::define_constraint: using current angle "
              << angle << endl;
     }
@@ -330,7 +329,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( angle < 0.0 || angle > 180.0 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ConstraintSet: angle must be in [0,180]" << endl
              << " ConstraintSet: could not define constraint" << endl;
       return false;
@@ -357,7 +356,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( found )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ConstraintSet: an angle constraint named " << name << endl
              << " or involving atoms "
              << name1 << " " << name2 << " " << name3 << endl
@@ -380,7 +379,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( argc < 9  || argc > 10 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " Incorrect number of arguments for torsion constraint"
              << endl;
       return false;
@@ -398,7 +397,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( a1 == 0 || a2 == 0 || a3 == 0 || a4 == 0 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
       {
         if ( a1 == 0 )
           cout << " ConstraintSet: could not find atom " << name1 << endl;
@@ -415,7 +414,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     if ( name1 == name2 || name1 == name3 || name1 == name4 ||
          name2 == name3 || name2 == name4 || name3 == name4 )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ConstraintSet: cannot define torsion constraint using "
              << name1 << " " << name2 << " " << name3 << " " << name4
              << endl;
@@ -432,7 +431,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
       D3vector r43(a4->position()-a3->position());
       if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 || norm2(r43) == 0.0 )
       {
-        if ( onpe0 )
+        if ( MPIdata::onpe0() )
         {
           cout << " ConstraintSet: cannot define torsion constraint." << endl;
           cout << " ConstraintSet: atoms are too close" << endl;
@@ -457,7 +456,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
         angle = (180.0/M_PI) * atan2(ss,cc);
       }
 
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << "ConstraintSet::define_constraint: using current angle "
              << angle << endl;
     }
@@ -498,7 +497,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 
     if ( found )
     {
-      if ( onpe0 )
+      if ( MPIdata::onpe0() )
         cout << " ConstraintSet: a torsion constraint named " << name << endl
              << " or involving atoms "
              << name1 << " " << name2 << " " << name3 << " " << name4 << endl
@@ -516,7 +515,7 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   }
   else
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
       cout << " ConstraintSet::set_constraint: internal error" << endl;
     return false;
   }
@@ -530,7 +529,6 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 ////////////////////////////////////////////////////////////////////////////////
 bool ConstraintSet::set_constraint(int argc, char **argv)
 {
-  const bool onpe0 = ctxt_.onpe0();
   assert(argc==4||argc==5);
   // argv[0] == "constraint"
   // argv[1] == "set"
@@ -562,7 +560,7 @@ bool ConstraintSet::set_constraint(int argc, char **argv)
 
   if ( !found )
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
       cout << " ConstraintSet: no such constraint" << endl;
     return false;
   }
@@ -577,7 +575,6 @@ bool ConstraintSet::delete_constraint(int argc, char **argv)
   // argv[1] == "delete"
   // argv[2] == constraint_name
   string name = argv[2];
-  const bool onpe0 = ctxt_.onpe0();
 
   bool found = false;
   // note next loop in reverse: avoid use of invalidated iterators
@@ -612,7 +609,7 @@ bool ConstraintSet::delete_constraint(int argc, char **argv)
 
   if ( !found )
   {
-    if ( onpe0 ) cout << " No such constraint" << endl;
+    if ( MPIdata::onpe0() ) cout << " No such constraint" << endl;
     return false;
   }
   return true;
@@ -650,7 +647,6 @@ void ConstraintSet::enforce(AtomSet& atoms)
 void ConstraintSet::enforce_r(const vector<vector<double> > &r0,
                               vector<vector<double> > &rp)
 {
-  const bool onpe0 = ctxt_.onpe0();
   int iter = 0;
   bool done = false;
   while ( !done && (iter < constraints_maxiter) )
@@ -667,7 +663,7 @@ void ConstraintSet::enforce_r(const vector<vector<double> > &r0,
 
   if ( !done )
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
       cout << " ConstraintSet: could not enforce position constraints in "
            << constraints_maxiter << " iterations" << endl;
   }
@@ -677,7 +673,6 @@ void ConstraintSet::enforce_r(const vector<vector<double> > &r0,
 void ConstraintSet::enforce_v(const vector<vector<double> > &r0,
                               vector<vector<double> > &v0)
 {
-  const bool onpe0 = ctxt_.onpe0();
   int iter = 0;
   bool done = false;
   while ( !done && (iter < constraints_maxiter) )
@@ -693,7 +688,7 @@ void ConstraintSet::enforce_v(const vector<vector<double> > &r0,
 
   if ( !done )
   {
-    if ( onpe0 )
+    if ( MPIdata::onpe0() )
       cout << " ConstraintSet: could not enforce velocity constraints in "
            << constraints_maxiter << " iterations" << endl;
   }

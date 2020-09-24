@@ -21,6 +21,7 @@
 #include "FourierTransform.h"
 #include "Timer.h"
 #include "SampleReader.h"
+#include "MPIdata.h"
 
 #include "StrX.h"
 // XML transcoding for loading grid_functions
@@ -63,7 +64,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname,
   const Attributes& attributes)
 {
-  bool onpe0 = wf_.context().onpe0();
+  const bool onpe0 = MPIdata::onpe0();
   // cout << " WavefunctionHandler::startElement " << StrX(qname) << endl;
   string locname = StrX(localname).localForm();
 
@@ -186,7 +187,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
     if ( dmat_form != "diagonal" )
     {
       cout << "WavefunctionHandler: density_matrix must be diagonal" << endl;
-      wf_.context().abort(1);
+      MPI_Abort(MPIdata::comm(),1);
     }
     dmat_.resize(dmat_size);
   }
@@ -228,8 +229,12 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       double ecut2 = 0.125 * g2_max * g2_max;
 
       ecut = max(max(ecut0,ecut1),ecut2);
-      cout << " ecut=" << 2*ecut << " Ry" << endl;
+      if ( onpe0 )
+        cout << " ecut=" << 2*ecut << " Ry" << endl;
     }
+
+    if ( onpe0 )
+      cout << " grid: " << nx_ << " " << ny_ << " " << nz_ << endl;
 
     wf_.resize(uc,ruc,ecut);
   }
@@ -258,6 +263,7 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       }
       else if ( attrname == "size" )
       {
+        last_size = current_size;
         stst >> current_size;
         if ( onpe0 )
           cout << " size=" << current_size;
@@ -266,9 +272,13 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
       {
         std::string spin;
         stst >> spin;
-        if (spin == "up" ) current_ispin=0;
+        if (spin == "up" )
+        {
+          current_ispin=0;
+        }
         else if (spin == "down" )
         {
+          assert(wf_.nspin() == 2);
           int last_ispin=current_ispin;
           current_ispin=1;
           // reset kpoint index if necessary
@@ -281,21 +291,34 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
           cout << " read slater_determinant: spin=" << spin;
       }
     }
+
     if ( onpe0 )
       cout << endl;
+
+    // All SlaterDets of a given spin must have the same size
+    // check if current_size differs from previous size
+    if ( ( current_ikp != 0 ) && ( current_size != last_size ) )
+    {
+      cout << "SlaterDet size differs from previous size" << endl;
+      MPI_Abort(MPIdata::comm(),1);
+    }
 
     // add kpoint only if spin is up (if spin is down,
     // the kpoint should be defined already)
     if ( current_ispin == 0 )
       wf_.add_kpoint(D3vector(current_kx,current_ky,current_kz),current_weight);
 
-    // resize sd(current_ispin,current_ikp)->nst() == current_size
-    wf_.sd(current_ispin,current_ikp)->resize(wf_.cell(),
-      wf_.refcell(), wf_.ecut(), current_size);
+    // resize SlaterDet if local
+    int isp_loc = wf_.isp_local(current_ispin);
+    int ikp_loc = wf_.ikp_local(current_ikp);
+    if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
+    {
+      assert(wf_.sd(isp_loc,ikp_loc));
+      wf_.sd(isp_loc,ikp_loc)->resize(wf_.cell(),
+             wf_.refcell(), wf_.ecut(), current_size);
+    }
 
-    const Basis& basis = wf_.sd(current_ispin,current_ikp)->basis();
-    ft = new FourierTransform(basis,nx_,ny_,nz_);
-    wftmp.resize((ft->np012loc()));
+    wf_.nst_[current_ispin] = current_size;
   }
   else if ( locname == "grid_function")
   {
@@ -336,8 +359,8 @@ void WavefunctionHandler::startElement(const XMLCh* const uri,
 void WavefunctionHandler::endElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname, string& content)
 {
-  const Context& ctxt = wf_.context();
-  bool onpe0 = ctxt.onpe0();
+  const Context& sd_ctxt = wf_.sd_context();
+  bool onpe0 = MPIdata::onpe0();
   string locname = StrX(localname).localForm();
   //cout << " WavefunctionHandler::endElement " << locname << endl;
   if ( locname == "density_matrix")
@@ -356,115 +379,262 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
   }
   else if ( locname == "slater_determinant")
   {
-    // data was read into the gfdata matrix
-    // transfer data from the gfdata matrix to the SlaterDet object
+    int isp_loc = wf_.isp_local(current_ispin);
+    int ikp_loc = wf_.ikp_local(current_ikp);
+    if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
+      wf_.sd(isp_loc,ikp_loc)->set_occ(dmat_);
     if ( onpe0 )
       cout << " WavefunctionHandler::endElement: slater_determinant" << endl;
-    SlaterDet* sd = wf_.sd(current_ispin,current_ikp);
-
-#if DEBUG
-    cout << ctxt.mype() << ": mapping gfdata matrix..."
-         << endl;
-    cout << ctxt.mype() << ": gfdata: (" << gfdata_.m() << "x" << gfdata_.n()
-         << ") (" << gfdata_.mb() << "x" << gfdata_.nb() << ") blocks" << endl;
-    cout << ctxt.mype() << ": gfdata.mloc()=" << gfdata_.mloc()
-         << " gfdata.nloc()=" << gfdata_.nloc() << endl;
-#endif
-
-    sd->set_occ(dmat_);
-    const Basis& basis = sd->basis();
-#if DEBUG
-    cout << ctxt.mype() << ": ft->np012loc()=" << ft->np012loc() << endl;
-    cout << ctxt.mype() << ": ft->context(): " << ft->context();
-#endif
-
-    ComplexMatrix& c = sd->c();
-    // copy wf values
-    // Determine the size of the temporary real matrix wftmpr
-    int wftmpr_size, wftmpr_block_size;
-    if ( basis.real() )
-    {
-      wftmpr_size = ft->np012();
-      wftmpr_block_size = ft->np012loc(0);
-    }
-    else
-    {
-      wftmpr_size = 2*ft->np012();
-      wftmpr_block_size = 2*ft->np012loc(0);
-    }
-#if DEBUG
-    cout << ctxt.mype() << ": wftmpr_size: " << wftmpr_size << endl;
-    cout << ctxt.mype() << ": wftmpr_block_size: "
-         << wftmpr_block_size << endl;
-#endif
-    DoubleMatrix wftmpr(sd->context(),wftmpr_size,sd->nst(),
-                        wftmpr_block_size,c.nb());
-
-#if DEBUG
-    // parameters of the getsub operation
-    cout << "WavefunctionHandler: current_ikp=  " << current_ikp << endl;
-    cout << "WavefunctionHandler: current_ispin=" << current_ispin << endl;
-    cout << "WavefunctionHandler: sd->nst()=    " << sd->nst() << endl;
-    cout << "WavefunctionHandler: wf_.nkp()=    " << wf_.nkp() << endl;
-    cout << "WavefunctionHandler: current_gfdata_pos= "
-     << current_gfdata_pos_ << endl;
-#endif
-
-    assert(current_gfdata_pos_ < gfdata_.n());
-    wftmpr.getsub(gfdata_,wftmpr_size,sd->nst(),0,current_gfdata_pos_);
-    current_gfdata_pos_ += sd->nst();
-
-#if DEBUG
-    // Check orthogonality by computing overlap matrix
-    DoubleMatrix smat(sd->context(),sd->nst(),sd->nst(),c.nb(),c.nb());
-    smat.syrk('l','t',1.0,wftmpr,0.0);
-    cout << smat;
-#endif
-
-    wftmp.resize(ft->np012loc());
-    for ( int nloc = 0; nloc < sd->nstloc(); nloc++ )
-    {
-      // copy column of wftmpr to complex array wftmp
-      if ( wftmpr_size == ft->np012() )
-      {
-        // function is real and must be expanded
-        double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
-        for ( int i = 0; i < ft->np012loc(); i++ )
-          wftmp[i] = p[i];
-      }
-      else
-      {
-        // function is complex
-        double* p = wftmpr.valptr(wftmpr.mloc()*nloc);
-        for ( int i = 0; i < ft->np012loc(); i++ )
-          wftmp[i] = complex<double>(p[2*i],p[2*i+1]);
-      }
-      ft->forward(&wftmp[0],c.valptr(c.mloc()*nloc));
-    }
-
     current_ikp++;
-    delete ft;
   }
   else if ( locname == "wavefunction" || locname == "wavefunction_velocity" )
   {
-    // check that all SlaterDets of a given spin and have same nst
-    for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+    // copy data from gfdata_ to local wftmpr
+#ifdef DEBUG
+    cout << " gfdata_.ctxt(): " << gfdata_.context() << endl;
+#endif
+    vector<double> wftmpr, gflocal(gfdata_.mloc());
+    // jsrc: current column index of gfdata_
+    int jsrc = current_gfdata_pos_;
+    for ( int ispin = 0; ispin < wf_.nspin(); ++ispin )
     {
-      for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+      const int nst = wf_.nst(ispin);
+      // nb: size of blocks in sd
+      const int nb = nst/MPIdata::nstb() + (nst%MPIdata::nstb() > 0 ? 1 : 0);
+      int isp_loc = wf_.isp_local(ispin);
+      for ( int ikp = 0; ikp < wf_.nkp(); ++ikp )
       {
-        if ( wf_.sd_[ispin][ikp]->nst() != wf_.sd_[ispin][0]->nst() )
+        MPI_Barrier(MPI_COMM_WORLD);
+        int ikp_loc = wf_.ikp_local(ikp);
+
+        SlaterDet* sd = 0;
+        FourierTransform* ft = 0;
+        vector<complex<double> > wftmp;
+        // np: number of processes in g_comm() == MPIdata::ngb()
+        const int np = MPIdata::ngb();
+        vector<int> gf_sdispl(np,0),gf_scounts(np,0);
+        vector<int> gf_rdispl(np),gf_rcounts(np);
+        if ( ( isp_loc >= 0 ) && ( ikp_loc ) >= 0 )
         {
-          cout << "nst differs for different kpoints in sample file" << endl;
-          wf_.ctxt_.abort(1);
+          assert(wf_.sd(isp_loc,ikp_loc));
+          sd = wf_.sd(isp_loc,ikp_loc);
+#ifdef DEBUG
+          cout << " sd->c().size() " << sd->c().size() << endl;
+          cout << " sd->c().mb()=" << sd->c().mb()
+               << " gfdata_.mloc()=" << gfdata_.mloc()
+               << " gfdata_.mb()=" << gfdata_.mb() << endl;
+#endif
+          const Basis& basis = sd->basis();
+          ft = new FourierTransform(basis,nx_,ny_,nz_);
+
+          wftmp.resize((ft->np012loc()));
+#ifdef DEBUG
+          cout << MPIdata::rank() << ": ft->np012loc()="
+               << ft->np012loc() << endl;
+#endif
+          // compute index arrays for redistribution of the gflocal
+          // distributed array to the wftmpr distributed array
+          // gflocal is distributed over np=MPIdata::g_size() processes
+          // with each process holding a block of size ma=gfdata_.mb()
+          // wftmpr is distributed with each process holding a block
+          // of size ft->np012loc(0)
+          // Compute arrays gf_sdispl and gf_scounts used in
+          // MPI_Alltoallv call to remap gflocal to wftmpr
+
+          // compute gf_sdispl, gf_scounts on current task ip = MPIdata::igb()
+          const int ip = MPIdata::igb();
+          const int ma = gfdata_.mb();
+          int istart = ip * ma;
+          int mb, iend;
+          if ( basis.real() )
+          {
+            wftmpr.resize(ft->np012loc(0));
+            mb = wftmpr.size();
+            iend = min((ip+1)*ma,nx_*ny_*nz_);
+          }
+          else
+          {
+            wftmpr.resize(2*ft->np012loc(0));
+            mb = wftmpr.size();
+            iend = min((ip+1)*ma,2*nx_*ny_*nz_);
+          }
+
+#ifdef DEBUG
+          cout << MPIdata::rank() << ": ma=" << ma << " mb=" << mb << endl;
+#endif
+
+          while ( istart < iend )
+          {
+            // destination task iq
+            int iq = istart / mb;
+            assert(iq < MPIdata::ngb());
+            int len = min((ip+1)*ma-istart,(iq+1)*mb-istart);
+
+            // local interval [i1,i2]
+            int i1 = istart - ip * ma;
+
+#ifdef DEBUG
+            int i2 = i1 + len - 1;
+            cout << MPIdata::rank() << ": istart=" << istart
+            << " send [" << i1 << ":" << i2 << "] len=" << len
+            << " to " << iq << endl;
+#endif
+            gf_sdispl[iq] = i1;
+            gf_scounts[iq] = len;
+
+            istart += len;
+          }
+
+          // distribute the index array gf_scounts
+          MPI_Alltoall(&gf_scounts[0],1,MPI_INT,
+                       &gf_rcounts[0],1,MPI_INT,MPIdata::g_comm());
+          // recompute displacements gf_rdispl from gf_rcounts
+          gf_rdispl[0] = 0;
+          for ( int i = 1; i < np; ++i )
+            gf_rdispl[i] = gf_rdispl[i-1] + gf_rcounts[i-1];
+
+#ifdef DEBUG
+          cout << MPIdata::rank() << ": sdispl:";
+          for ( int iq = 0; iq < MPIdata::ngb(); ++iq )
+            cout << " " << gf_sdispl[iq];
+          cout << endl;
+          cout << MPIdata::rank() << ": scounts:";
+          for ( int iq = 0; iq < MPIdata::ngb(); ++iq )
+            cout << " " << gf_scounts[iq];
+          cout << endl;
+          cout << MPIdata::rank() << ": rdispl:";
+          for ( int iq = 0; iq < MPIdata::ngb(); ++iq )
+            cout << " " << gf_rdispl[iq];
+          cout << endl;
+          cout << MPIdata::rank() << ": rcounts:";
+          for ( int iq = 0; iq < MPIdata::ngb(); ++iq )
+            cout << " " << gf_rcounts[iq];
+          cout << endl;
+#endif
+
+          // index arrays gf_sdispl, gf_scounts, gf_rdispl, gf_rcounts can now
+          // be used to remap a gflocal vector to wftmpr
         }
-      }
-    }
 
-    // set nst_[ispin] to match the values read
-    for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
-      wf_.nst_[ispin] = wf_.sd_[ispin][0]->nst();
+        for ( int n = 0; n < wf_.nst(ispin); ++n )
+        {
+          MPI_Barrier(MPI_COMM_WORLD);
 
-#if 1
+          // compute MPI rank of sender
+          // process column holding column jsrc on the gfdata context
+          int csrc = gfdata_.pc(jsrc);
+          // n_loc: local column index of jsrc on gfdata
+          int n_loc = gfdata_.y(jsrc);
+          // src_rank: MPI rank in MPIdata::comm()
+          int src_rank = MPIdata::igb() + csrc * MPIdata::ngb();
+          assert(src_rank >= 0);
+          assert(src_rank < MPIdata::size());
+
+          // compute MPI rank of receiver
+          // sd_col: process col of the proc holding state n in the sd context
+          int sd_col = n / nb;
+          int dest_rank = MPIdata::igb() +
+                          MPIdata::ngb()  * ( sd_col +
+                          MPIdata::nstb() * ( (ikp % MPIdata::nkpb())+
+                          MPIdata::nkpb() * (ispin % MPIdata::nspb()) ) );
+#ifdef DEBUG
+          cout << MPIdata::rank() << ": ispin=" << ispin
+          << " ikp=" << ikp << " n=" << n << " dest_rank=" << dest_rank << endl;
+#endif
+          assert(dest_rank >= 0);
+          assert(dest_rank < MPIdata::size());
+
+          int len = gfdata_.mloc();
+          bool iamsending = ( src_rank == MPIdata::rank() );
+          bool iamreceiving = ( dest_rank == MPIdata::rank() );
+          if ( iamsending && iamreceiving )
+          {
+#ifdef DEBUG
+            cout << MPIdata::rank() << ": n=" << n << " len=" << len
+                 << " jsrc=" << jsrc << " local copy" << endl;
+#endif
+            memcpy(&gflocal[0],gfdata_.valptr(n_loc*len),len*sizeof(double));
+          }
+          else
+          {
+            if ( iamreceiving )
+            {
+#ifdef DEBUG
+              cout << MPIdata::rank() << ": n=" << n << " len=" << len
+                   << " jsrc=" << jsrc
+                   << " receiving from " << src_rank << endl;
+#endif
+              MPI_Status stat;
+              MPI_Recv(&gflocal[0],len,MPI_DOUBLE,src_rank,src_rank,
+                       MPIdata::comm(),&stat);
+            }
+            if ( iamsending )
+            {
+#ifdef DEBUG
+              cout << MPIdata::rank() << ": n=" << n << " len=" << len
+                   << " jsrc=" << jsrc
+                   << " sending to " << dest_rank << endl;
+#endif
+              assert(n_loc < gfdata_.nloc());
+              MPI_Send(gfdata_.valptr(n_loc*len),len,MPI_DOUBLE,dest_rank,
+                 src_rank,MPIdata::comm());
+            }
+          }
+
+          // transform state in wftmpr to Fourier coefficients
+          if ( sd )
+          {
+            const Basis& basis = sd->basis();
+
+            // check if n is local to this task
+            if ( ( n / nb ) == sd_ctxt.mycol() )
+            {
+              // remap distributed gflocal vector to distributed vector wftmpr
+              int err = MPI_Alltoallv(&gflocal[0],&gf_scounts[0],&gf_sdispl[0],
+                        MPI_DOUBLE,&wftmpr[0],&gf_rcounts[0],&gf_rdispl[0],
+                        MPI_DOUBLE,MPIdata::g_comm());
+
+              if ( err != 0 )
+              {
+                cout << "WavefunctionHandler: error in MPI_Alltoallv" << endl;
+                MPI_Abort(MPI_COMM_WORLD,2);
+              }
+
+              // wftmpr now contains the real space values of state n
+
+              // copy column of wftmpr to complex array wftmp
+              if ( basis.real() )
+              {
+                // function is real and must be expanded
+                for ( int i = 0; i < ft->np012loc(); i++ )
+                  wftmp[i] = wftmpr[i];
+              }
+              else
+              {
+                // function is complex
+                double* p = &wftmpr[0];
+                for ( int i = 0; i < ft->np012loc(); i++ )
+                  wftmp[i] = complex<double>(p[2*i],p[2*i+1]);
+              }
+              ComplexMatrix& c = sd->c();
+              int nloc = c.y(n);
+              ft->forward(&wftmp[0],c.valptr(c.mloc()*nloc));
+            }
+          }
+          jsrc++;
+        } // n
+        MPI_Barrier(MPI_COMM_WORLD);
+#ifdef DEBUG
+        cout << MPIdata::rank() << ": end copying ispin=" << ispin
+             << " ikp=" << ikp << endl;
+#endif
+        if ( ( isp_loc >= 0 ) && ( ikp_loc ) >= 0 )
+          delete ft;
+        current_gfdata_pos_ += nst;
+      } // ikp
+    } // ispin
+
+
     // if nspin==2, adjust deltaspin_ to reflect the number of states
     // of each spin that were read
     if ( wf_.nspin() == 2 )
@@ -475,7 +645,6 @@ void WavefunctionHandler::endElement(const XMLCh* const uri,
       // even and odd number of electrons
       wf_.deltaspin_ = (wf_.nst(0)-wf_.nst(1))/2;
     }
-#endif
   }
 }
 

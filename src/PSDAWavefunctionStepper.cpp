@@ -28,7 +28,15 @@ PSDAWavefunctionStepper::PSDAWavefunctionStepper(Wavefunction& wf,
   Preconditioner& prec, TimerMap& tmap) : prec_(prec),
   WavefunctionStepper(wf,tmap), wf_last_(wf), dwf_last_(wf),
   extrapolate_(false)
-{}
+{
+  tmap_["psda_residual"].reset();
+  tmap_["psda_prec"].reset();
+  tmap_["psda_update_wf"].reset();
+  tmap_["gram"].reset();
+  tmap_["lowdin"].reset();
+  tmap_["ortho_align"].reset();
+  tmap_["riccati"].reset();
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 PSDAWavefunctionStepper::~PSDAWavefunctionStepper(void)
@@ -38,17 +46,18 @@ PSDAWavefunctionStepper::~PSDAWavefunctionStepper(void)
 void PSDAWavefunctionStepper::update(Wavefunction& dwf)
 {
   tmap_["psda_residual"].start();
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
       // compute A = V^T H V  and descent direction HV - VA
-
-      if ( wf_.sd(ispin,ikp)->basis().real() )
+      SlaterDet* sd = wf_.sd(isp_loc,ikp_loc);
+      SlaterDet* dsd = dwf.sd(isp_loc,ikp_loc);
+      if ( sd->basis().real() )
       {
         // proxy real matrices c, cp
-        DoubleMatrix c_proxy(wf_.sd(ispin,ikp)->c());
-        DoubleMatrix cp_proxy(dwf.sd(ispin,ikp)->c());
+        DoubleMatrix c_proxy(sd->c());
+        DoubleMatrix cp_proxy(dsd->c());
         DoubleMatrix a(c_proxy.context(),c_proxy.n(),c_proxy.n(),
           c_proxy.nb(),c_proxy.nb());
 
@@ -62,8 +71,8 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
       }
       else
       {
-        ComplexMatrix& c = wf_.sd(ispin,ikp)->c();
-        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
+        ComplexMatrix& c = sd->c();
+        ComplexMatrix& cp = dsd->c();
         ComplexMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
         a.gemm('c','n',1.0,c,cp,0.0);
         // cp = cp - c * a
@@ -77,19 +86,23 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
   // update the preconditioner
   prec_.update(wf_);
 
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
       tmap_["psda_prec"].start();
+      SlaterDet* sd = wf_.sd(isp_loc,ikp_loc);
+      SlaterDet* dsd = dwf.sd(isp_loc,ikp_loc);
+      SlaterDet* sd_last = wf_last_.sd(isp_loc,ikp_loc);
+      SlaterDet* dsd_last = dwf_last_.sd(isp_loc,ikp_loc);
       // Apply preconditioner K and store -K(HV-VA) in dwf
-      double* c = (double*) wf_.sd(ispin,ikp)->c().valptr();
-      double* c_last = (double*) wf_last_.sd(ispin,ikp)->c().valptr();
-      double* dc = (double*) dwf.sd(ispin,ikp)->c().valptr();
-      double* dc_last = (double*) dwf_last_.sd(ispin,ikp)->c().valptr();
-      const int mloc = wf_.sd(ispin,ikp)->c().mloc();
-      const int ngwl = wf_.sd(ispin,ikp)->basis().localsize();
-      const int nloc = wf_.sd(ispin,ikp)->c().nloc();
+      double* c = (double*) sd->c().valptr();
+      double* c_last = (double*) sd_last->c().valptr();
+      double* dc = (double*) dsd->c().valptr();
+      double* dc_last = (double*) dsd_last->c().valptr();
+      const int mloc = sd->c().mloc();
+      const int ngwl = sd->basis().localsize();
+      const int nloc = sd->c().nloc();
 
       for ( int n = 0; n < nloc; n++ )
       {
@@ -97,7 +110,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
         double* dcn = &dc[2*mloc*n];
         for ( int i = 0; i < ngwl; i++ )
         {
-          const double fac = prec_.diag(ispin,ikp,n,i);
+          const double fac = prec_.diag(isp_loc,ikp_loc,n,i);
           const double f0 = -fac * dcn[2*i];
           const double f1 = -fac * dcn[2*i+1];
           dcn[2*i] = f0;
@@ -127,13 +140,13 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
           b += delta_f * delta_f;
         }
 
-        if ( wf_.sd(ispin,ikp)->basis().real() )
+        if ( sd->basis().real() )
         {
           // correct for double counting of asum and bsum on first row
           // factor 2.0: G and -G
           a *= 2.0;
           b *= 2.0;
-          if ( wf_.sdcontext()->myrow() == 0 )
+          if ( wf_.sd_context().myrow() == 0 )
           {
             for ( int n = 0; n < nloc; n++ )
             {
@@ -150,7 +163,7 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
 
         // a and b contain the partial sums of a and b
         double tmpvec[2] = { a, b };
-        wf_.sdcontext()->dsum(2,1,&tmpvec[0],2);
+        wf_.sd_context().dsum(2,1,&tmpvec[0],2);
         a = tmpvec[0];
         b = tmpvec[1];
 
@@ -208,29 +221,29 @@ void PSDAWavefunctionStepper::update(Wavefunction& dwf)
       {
         case GRAM:
           tmap_["gram"].start();
-          wf_.sd(ispin,ikp)->gram();
+          sd->gram();
           tmap_["gram"].stop();
           break;
 
         case LOWDIN:
           tmap_["lowdin"].start();
-          wf_.sd(ispin,ikp)->lowdin();
+          sd->lowdin();
           tmap_["lowdin"].stop();
           break;
 
         case ORTHO_ALIGN:
           tmap_["ortho_align"].start();
-          wf_.sd(ispin,ikp)->ortho_align(*wf_last_.sd(ispin,ikp));
+          sd->ortho_align(*sd_last);
           tmap_["ortho_align"].stop();
           break;
 
         case RICCATI:
           tmap_["riccati"].start();
-          wf_.sd(ispin,ikp)->riccati(*wf_last_.sd(ispin,ikp));
+          sd->riccati(*sd_last);
           tmap_["riccati"].stop();
           break;
       }
-    } // ikp
-  } // ispin
+    } // ikp_loc
+  } // isp_loc
   extrapolate_ = true;
 }

@@ -46,9 +46,10 @@ class SetCmd : public Cmd
 
   int action(int argc, char **argv)
   {
-    if ( argc < 3 && ui->onpe0() )
+    if ( argc < 3 )
     {
-      cout << " use: set variable value[s]" << endl;
+      if ( ui->onpe0() )
+        cout << " use: set variable value[s]" << endl;
       return 1;
     }
 

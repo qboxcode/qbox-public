@@ -28,7 +28,16 @@ using namespace std;
 JDWavefunctionStepper::JDWavefunctionStepper(Wavefunction& wf,
   Preconditioner& prec, EnergyFunctional& ef, TimerMap& tmap) :
   WavefunctionStepper(wf,tmap), prec_(prec), wft_(wf), dwft_(wf), ef_(ef)
-{}
+{
+  tmap_["jd_residual"].reset();
+  tmap_["jd_compute_z"].reset();
+  tmap_["jd_hz"].reset();
+  tmap_["jd_blocks"].reset();
+  tmap_["jd_gemm"].reset();
+  tmap_["jd_getsub"].reset();
+  tmap_["jd_syev"].reset();
+  tmap_["jd_heev"].reset();
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 JDWavefunctionStepper::~JDWavefunctionStepper(void)
@@ -41,16 +50,16 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
   wft_ = wf_;
   dwft_ = dwf;
   tmap_["jd_residual"].start();
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
-      if ( wf_.sd(ispin,ikp)->basis().real() )
+      if ( wf_.sd(isp_loc,ikp_loc)->basis().real() )
       {
         // compute A = Y^T H Y  and descent direction HY - YA
         // proxy real matrices c, cp
-        DoubleMatrix c_proxy(wf_.sd(ispin,ikp)->c());
-        DoubleMatrix cp_proxy(dwf.sd(ispin,ikp)->c());
+        DoubleMatrix c_proxy(wf_.sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix cp_proxy(dwf.sd(isp_loc,ikp_loc)->c());
         DoubleMatrix a(c_proxy.context(),c_proxy.n(),c_proxy.n(),
                        c_proxy.nb(),c_proxy.nb());
 
@@ -65,8 +74,8 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
       else // real
       {
         // compute A = Y^T H Y  and descent direction HY - YA
-        ComplexMatrix& c = wf_.sd(ispin,ikp)->c();
-        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
+        ComplexMatrix& c = wf_.sd(isp_loc,ikp_loc)->c();
+        ComplexMatrix& cp = dwf.sd(isp_loc,ikp_loc)->c();
         ComplexMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
 
         // (Y,HY)
@@ -77,7 +86,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
         // dwf.sd->c() now contains the descent direction (HV-VA)
       }
     } // ikp
-  } // ispin
+  } // isp_loc
   tmap_["jd_residual"].stop();
 
   // dwf.sd->c() now contains the descent direction (HV-VA)
@@ -86,23 +95,23 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
   prec_.update(wf_);
 
   tmap_["jd_compute_z"].start();
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
-      if ( wf_.sd(ispin,ikp)->basis().real() )
+      if ( wf_.sd(isp_loc,ikp_loc)->basis().real() )
       {
         // Apply preconditioner K and store -K(HV-VA) in wf
 
-        double* c = (double*) wf_.sd(ispin,ikp)->c().valptr();
-        double* dc = (double*) dwf.sd(ispin,ikp)->c().valptr();
-        DoubleMatrix c_proxy(wf_.sd(ispin,ikp)->c());
+        double* c = (double*) wf_.sd(isp_loc,ikp_loc)->c().valptr();
+        double* dc = (double*) dwf.sd(isp_loc,ikp_loc)->c().valptr();
+        DoubleMatrix c_proxy(wf_.sd(isp_loc,ikp_loc)->c());
         DoubleMatrix a(c_proxy.context(),c_proxy.n(),c_proxy.n(),
                        c_proxy.nb(),c_proxy.nb());
-        DoubleMatrix c_proxy_t(wft_.sd(ispin,ikp)->c());
-        const int mloc = wf_.sd(ispin,ikp)->c().mloc();
-        const int ngwl = wf_.sd(ispin,ikp)->basis().localsize();
-        const int nloc = wf_.sd(ispin,ikp)->c().nloc();
+        DoubleMatrix c_proxy_t(wft_.sd(isp_loc,ikp_loc)->c());
+        const int mloc = wf_.sd(isp_loc,ikp_loc)->c().mloc();
+        const int ngwl = wf_.sd(isp_loc,ikp_loc)->basis().localsize();
+        const int nloc = wf_.sd(isp_loc,ikp_loc)->c().nloc();
 
         for ( int n = 0; n < nloc; n++ )
         {
@@ -112,7 +121,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
 
           for ( int i = 0; i < ngwl; i++ )
           {
-            const double fac = prec_.diag(ispin,ikp,n,i);
+            const double fac = prec_.diag(isp_loc,ikp_loc,n,i);
             const double f0 = -fac * dcn[2*i];
             const double f1 = -fac * dcn[2*i+1];
             cn[2*i] = f0;
@@ -134,20 +143,20 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
         c_proxy.gemm('n','n',-1.0,c_proxy_t,a,1.0);
 
         // orthogonalize Z: gram(Z)
-        wf_.sd(ispin,ikp)->gram();
+        wf_.sd(isp_loc,ikp_loc)->gram();
 
         // wf now contains Z, orthonormal
       } // if real
       else
       {
         // Apply preconditioner K and store -K(HV-VA) in wf
-        ComplexMatrix& c = wf_.sd(ispin,ikp)->c();
+        ComplexMatrix& c = wf_.sd(isp_loc,ikp_loc)->c();
         complex<double>* cv = c.valptr();
-        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
+        ComplexMatrix& cp = dwf.sd(isp_loc,ikp_loc)->c();
         complex<double>* cpv = cp.valptr();
-        ComplexMatrix& ct = wft_.sd(ispin,ikp)->c();
+        ComplexMatrix& ct = wft_.sd(isp_loc,ikp_loc)->c();
         ComplexMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
-        const int ngwl = wf_.sd(ispin,ikp)->basis().localsize();
+        const int ngwl = wf_.sd(isp_loc,ikp_loc)->basis().localsize();
         const int mloc = c.mloc();
         const int nloc = c.nloc();
 
@@ -158,7 +167,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
 
           for ( int i = 0; i < ngwl; i++ )
           {
-            const double fac = prec_.diag(ispin,ikp,n,i);
+            const double fac = prec_.diag(isp_loc,ikp_loc,n,i);
             cn[i] = -fac * cpn[i];
           }
         }
@@ -174,12 +183,12 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
         c.gemm('n','n',-1.0,ct,a,1.0);
 
         // orthogonalize Z: gram(Z)
-        wf_.sd(ispin,ikp)->gram();
+        wf_.sd(isp_loc,ikp_loc)->gram();
 
         // wf now contains Z, orthonormal
       }
-    } // ikp
-  } // ispin
+    } // ikp_loc
+  } // isp_loc
   tmap_["jd_compute_z"].stop();
 
   tmap_["jd_hz"].start();
@@ -194,21 +203,21 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
   tmap_["jd_hz"].stop();
 
   tmap_["jd_blocks"].start();
-  for ( int ispin = 0; ispin < wf_.nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < wf_.nsp_loc(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < wf_.nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
-      if ( wf_.sd(ispin,ikp)->basis().real() )
+      if ( wf_.sd(isp_loc,ikp_loc)->basis().real() )
       {
         // wf now contains Z
         // dwf now contains HZ
         // compute blocks (Y,HY), (Y,HZ), (Z,HZ)
 
         // proxy real matrices c, cp
-        DoubleMatrix c_proxy(wf_.sd(ispin,ikp)->c());
-        DoubleMatrix c_proxy_t(wft_.sd(ispin,ikp)->c());
-        DoubleMatrix cp_proxy(dwf.sd(ispin,ikp)->c());
-        DoubleMatrix cp_proxy_t(dwft_.sd(ispin,ikp)->c());
+        DoubleMatrix c_proxy(wf_.sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix c_proxy_t(wft_.sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix cp_proxy(dwf.sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix cp_proxy_t(dwft_.sd(isp_loc,ikp_loc)->c());
 
         DoubleMatrix a(c_proxy.context(),c_proxy.n(),c_proxy.n(),
                        c_proxy.nb(),c_proxy.nb());
@@ -290,10 +299,10 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
         // dwf now contains HZ
         // compute blocks (Y,HY), (Y,HZ), (Z,HZ)
 
-        ComplexMatrix& c = wf_.sd(ispin,ikp)->c();
-        ComplexMatrix& ct = wft_.sd(ispin,ikp)->c();
-        ComplexMatrix& cp = dwf.sd(ispin,ikp)->c();
-        ComplexMatrix& cpt = dwft_.sd(ispin,ikp)->c();
+        ComplexMatrix& c = wf_.sd(isp_loc,ikp_loc)->c();
+        ComplexMatrix& ct = wft_.sd(isp_loc,ikp_loc)->c();
+        ComplexMatrix& cp = dwf.sd(isp_loc,ikp_loc)->c();
+        ComplexMatrix& cpt = dwft_.sd(isp_loc,ikp_loc)->c();
 
         ComplexMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
         ComplexMatrix h(c.context(),2*c.n(),2*c.n(),c.nb(),c.nb());
@@ -359,7 +368,7 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
 
         // wf now contains the corrected eigenvectors
       } // if real
-    } // ikp
-  } // ispin
+    } // ikp_loc
+  } // isp_loc
   tmap_["jd_blocks"].stop();
 }

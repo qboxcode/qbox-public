@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008-2015 The Regents of the University of California
+// Copyright (c) 2008-2020 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -17,12 +17,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
+#include <iomanip>
 #include <string>
 using namespace std;
 
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <cstdlib>
+#include <cassert>
 #include <fstream>
 
 #include "isodate.h"
@@ -34,11 +37,11 @@ using namespace std;
 #ifdef _OPENMP
 #include "omp.h"
 #endif
+#include "MPIdata.h"
 
-#include "Context.h"
+#include "Timer.h"
 #include "UserInterface.h"
 #include "Sample.h"
-#include "Timer.h"
 
 #include "AngleCmd.h"
 #include "AtomCmd.h"
@@ -106,7 +109,6 @@ using namespace std;
 #include "MuRSH.h"
 #include "Nempty.h"
 #include "NetCharge.h"
-#include "Nrowmax.h"
 #include "Nspin.h"
 #include "Occ.h"
 #include "RefCell.h"
@@ -122,66 +124,206 @@ using namespace std;
 #include "WfDyn.h"
 #include "Xc.h"
 
+void usage(void)
+{
+  cerr << " use:" << endl;
+  cerr << "   qb [-nstb nstb] [-nkpb nkpb] [-nspb nspb] inputfile" << endl;
+  cerr << "   qb -server [-nstb nstb] [-nkpb nkpb] [-nspb nspb] "
+       << "inputfile outputfile" << endl;
+}
+
 int main(int argc, char **argv, char **envp)
 {
   Timer tm;
   tm.start();
 
-#if USE_MPI
   MPI_Init(&argc,&argv);
+
+  int ntasks;
+  MPI_Comm_size(MPI_COMM_WORLD,&ntasks);
+  int mype;
+  MPI_Comm_rank(MPI_COMM_WORLD,&mype);
+
+  // default values for number of blocks
+  // ngb: number of G vector blocks
+  // nstb: number of states blocks
+  // nkpb: number of kpoint blocks
+  // nspb: number of spin blocks
+  int ngb = ntasks, nstb = 1, nkpb = 1, nspb = 1;
+
+  // process command line arguments
+  int ch;
+  opterr = 0; // prevent getopt_long from writing on stderr
+  int server_mode = 0;
+  bool do_exit = false;
+
+  // options descriptor
+  static struct option longopts[] =
+  {
+    { "help",       no_argument,            NULL,            0  },
+    { "server",     no_argument,            NULL,            1  },
+    { "nstb",       required_argument,      NULL,            2  },
+    { "nkpb",       required_argument,      NULL,            3  },
+    { "nspb",       required_argument,      NULL,            4  },
+    { NULL,         0,                      NULL,            0  }
+  };
+
+  while ( (ch = getopt_long_only(argc, argv, ":", longopts, NULL )) != -1 )
+  {
+    switch (ch)
+    {
+      case 0:
+        // help
+        do_exit = true;
+      case 1:
+        server_mode = 1;
+        break;
+      case 2:
+        nstb = atoi(optarg);
+        if ( nstb < 1 )
+        {
+          if ( mype == 0 )
+            cerr << " nstb must be positive" << endl;
+          do_exit = true;
+        }
+        break;
+      case 3:
+        nkpb = atoi(optarg);
+        if ( nkpb < 1 )
+        {
+          if ( mype == 0 )
+            cerr << " nkpb must be positive" << endl;
+          do_exit = true;
+        }
+        break;
+      case 4:
+        nspb = atoi(optarg);
+        if ( (nspb < 1) || (nspb > 2) )
+        {
+          if ( mype == 0 )
+            cerr << " nspb must be 1 or 2" << endl;
+          do_exit = true;
+        }
+        break;
+      case ':':
+        if ( mype == 0 )
+          cerr << " missing option argument\n";
+        do_exit = true;
+        break;
+      case '?':
+        if ( mype == 0 )
+          cerr << " unknown or ambiguous option\n";
+        do_exit = true;
+        break;
+      default:
+        if ( mype == 0 )
+          cerr << " unknown option: " << argv[opterr] << endl;
+        do_exit = true;
+    }
+  }
+  argc -= optind;
+  argv += optind;
+
+  if ( do_exit )
+  {
+    if ( mype == 0 )
+      usage();
+    MPI_Finalize();
+    return 0;
+  }
+
+  const int interactive = ( argc == 0 );
+
+#ifdef DEBUG
+  cout << " argc=" << argc << endl;
+  for ( int iarg = 0; iarg < argc; ++iarg )
+    cout << " argv[" << iarg << "]= " << argv[iarg] << endl;
+  cout << " server_mode = " << server_mode << endl;
+  cout << " interactive = " << interactive << endl;
+  cout << " ntasks = " << ntasks << endl;
+  cout << " nstb = " << nstb << endl;
+  cout << " nkpb = " << nkpb << endl;
+  cout << " nspb = " << nspb << endl;
 #endif
 
-  {
-  Context ctxt(MPI_COMM_WORLD);
+  // adjust ngb to satisfy ngb*nstb*nkpb*nspb == ntasks
 
-  if ( ctxt.onpe0() )
+  if ( ( ntasks % ( nstb * nkpb * nspb ) ) == 0 )
   {
-  cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-  cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
+    // nstb * nkpb * nspb divides ntasks
+    ngb = ntasks / ( nstb * nkpb * nspb );
+  }
+  else
+  {
+    if ( mype == 0 )
+      cerr << " nstb * nkpb * nspb does not divide ntasks evenly" << endl;
+    MPI_Finalize();
+    return 0;
+  }
+
+  MPIdata::set(ngb,nstb,nkpb,nspb);
+
+#ifdef DEBUG
+  cout << MPIdata::rank() << ": ngb=" << ngb << " nstb=" << nstb
+       << " nkpb=" << nkpb << " nspb=" << nspb << endl;
+
+  cout << MPIdata::rank() << ": igb=" << MPIdata::igb()
+       << " istb=" << MPIdata::istb()
+       << " ikpb=" << MPIdata::ikpb()
+       << " ispb=" << MPIdata::ispb() << endl;
+#endif
+
+  if ( MPIdata::onpe0() )
+  {
+    cout << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+    cout << "<fpmd:simulation xmlns:fpmd=\"" << qbox_xmlns() << "\">" << endl;
 #if USE_UUID
-  cout << "<uuid> " << uuid_str() << " </uuid>" << endl;
+    cout << "<uuid> " << uuid_str() << " </uuid>" << endl;
 #endif
-  cout << "\n";
-  cout << "                   ============================\n";
-  cout << "                   I qbox "
-       << setw(17) << left << release() << "   I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I                          I\n";
-  cout << "                   I http://qboxcode.org      I\n";
-  cout << "                   ============================\n\n";
-  cout << "\n";
-  cout << "<release> " << release() << " " << TARGET;
+    cout << "\n";
+    cout << "                   ============================\n";
+    cout << "                   I qbox "
+         << setw(17) << left << release() << "   I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I                          I\n";
+    cout << "                   I http://qboxcode.org      I\n";
+    cout << "                   ============================\n\n";
+    cout << "\n";
+    cout << "<release> " << release();
+#ifdef TARGET
+    cout << " " << TARGET;
+#endif
 #ifdef VERSION
-  cout << " " << VERSION;
+    cout << " " << VERSION;
 #endif
-  cout << " </release>" << endl;
+    cout << " </release>" << endl;
 
-  // Identify executable name, checksum, size and link date
-  if ( getlogin() != 0 )
-    cout << "<user> " << getlogin() << " </user>" << endl;
+    // Identify executable name, checksum, size and link date
+    if ( getenv("LOGNAME") != 0 )
+      cout << "<user> " << getenv("LOGNAME") << " </user>" << endl;
 
-  // Identify platform
-  {
-    struct utsname un;
-    uname (&un);
-    cout << "<sysname> " << un.sysname << " </sysname>" << endl;
-    cout << "<nodename> " << un.nodename << " </nodename>" << endl;
+    // Identify platform
+    {
+      struct utsname un;
+      uname (&un);
+      cout << "<sysname> " << un.sysname << " </sysname>" << endl;
+      cout << "<nodename> " << un.nodename << " </nodename>" << endl;
+    }
+
+    cout << "<start_time> " << isodate() << " </start_time>" << endl;
+    cout << " MPIdata::comm: " << ngb << "x" << nstb << "x"
+         << nkpb << "x" << nspb << endl;
   }
 
-  cout << "<start_time> " << isodate() << " </start_time>" << endl;
-
-  }
-
-#if USE_MPI
   // Print list of node names
   char processor_name[MPI_MAX_PROCESSOR_NAME];
   for ( int i = 0; i < MPI_MAX_PROCESSOR_NAME; i++ )
@@ -195,45 +337,62 @@ int main(int argc, char **argv, char **envp)
     if ( processor_name[i] == '<' ) processor_name[i] = '(';
     if ( processor_name[i] == '>' ) processor_name[i] = ')';
   }
-  if ( ctxt.onpe0() )
+
+  int coords[4];
+  MPI_Cart_coords(MPIdata::comm(),MPIdata::rank(),4,coords);
+
+  if ( MPIdata::onpe0() )
   {
-    cout << "<mpi_processes count=\"" << ctxt.size() << "\">" << endl;
-    cout << "<process id=\"" << ctxt.mype() << "\"> " << processor_name
-         << " </process>" << endl;
+    cout << "<mpi_processes count=\"" << MPIdata::size() << "\">" << endl;
+    cout << "<process id=\"" << MPIdata::rank() << "\"> " << processor_name
+         << " </process>"
+         << " (" << coords[3] << "," << coords[2]
+         << "," << coords[1] << "," << coords[0] << ")" << endl;
   }
-  for ( int ip = 1; ip < ctxt.size(); ip++ )
+  for ( int ip = 1; ip < MPIdata::size(); ip++ )
   {
-    MPI_Barrier(ctxt.comm());
-    if ( ctxt.onpe0() )
+    MPI_Barrier(MPIdata::comm());
+    if ( MPIdata::onpe0() )
     {
       MPI_Status status;
       MPI_Recv(&buf[0],MPI_MAX_PROCESSOR_NAME,MPI_CHAR,
-                   ip,ip,ctxt.comm(),&status);
+                   ip,ip,MPIdata::comm(),&status);
     }
-    else if ( ip == ctxt.mype() )
+    else if ( ip == MPIdata::rank() )
     {
       // send processor name to pe0
       MPI_Send(&processor_name[0],MPI_MAX_PROCESSOR_NAME,
-        MPI_CHAR,0,ctxt.mype(),ctxt.comm());
+        MPI_CHAR,0,MPIdata::rank(),MPIdata::comm());
     }
-    if ( ctxt.onpe0() )
+    if ( MPIdata::onpe0() )
+    {
+      MPI_Status status;
+      MPI_Recv(coords,4,MPI_INT,ip,ip,MPIdata::comm(),&status);
+    }
+    else if ( ip == MPIdata::rank() )
+    {
+      // send processor name to pe0
+      MPI_Send(coords,4,MPI_INT,0,MPIdata::rank(),MPIdata::comm());
+    }
+    if ( MPIdata::onpe0() )
     {
       cout << "<process id=\"" << ip << "\"> " << buf
-           << " </process>" << endl;
+           << " </process>"
+           << " (" << coords[3] << "," << coords[2]
+           << "," << coords[1] << "," << coords[0] << ")" << endl;
     }
   }
-  if ( ctxt.onpe0() )
+  if ( MPIdata::onpe0() )
     cout << "</mpi_processes>" << endl;
-#endif // USE_MPI
 
 #ifdef _OPENMP
-  if ( ctxt.onpe0() )
+  if ( MPIdata::onpe0() )
     cout << "<omp_max_threads> " << omp_get_max_threads()
          << " </omp_max_threads>" << endl;
 #endif
 
   UserInterface ui;
-  Sample* s = new Sample(ctxt, &ui);
+  Sample* s = new Sample(&ui);
 
   ui.addCmd(new AngleCmd(s));
   ui.addCmd(new AtomCmd(s));
@@ -300,7 +459,6 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new MuRSH(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new NetCharge(s));
-  ui.addVar(new Nrowmax(s));
   ui.addVar(new Nspin(s));
   ui.addVar(new Occ(s));
   ui.addVar(new Dspin(s));
@@ -317,18 +475,50 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new WfDyn(s));
   ui.addVar(new Xc(s));
 
-  if ( argc == 2 )
+  if ( server_mode )
   {
-    // input file given as a command line argument
-    // cmd line: qb inputfilename
+    // server mode
+    // input and output files expected as arguments
+    if ( argc < 2 )
+    {
+      if ( MPIdata::onpe0() )
+      {
+        cout << " server mode requires two arguments" << endl;
+        usage();
+      }
+      MPI_Finalize();
+      return 0;
+    }
+    string inputfilename(argv[0]);
+    string outputfilename(argv[1]);
+    if ( MPIdata::onpe0() )
+    {
+      cout << " server mode" << endl;
+      cout << " input file:  " << inputfilename << endl;
+      cout << " output file: " << outputfilename << endl;
+    }
     bool echo = true;
-    string inputfilename(argv[1]);
-    string outputfilename("stdout");
+    ui.processCmdsServer(inputfilename, outputfilename, "[qbox]", echo);
+  }
+  else if ( interactive )
+  {
+    // interactive mode
+    assert(argc==0);
+    // use standard input
+    bool echo = !isatty(0);
+    ui.processCmds(cin, "[qbox]", echo);
+  }
+  else
+  {
+    // cmd line: qb inputfilename
+    // input file expected as a command line argument
+    assert(argc >= 1);
+    bool echo = true;
     ifstream in;
     int file_ok = 0;
-    if ( ctxt.onpe0() )
+    if ( MPIdata::onpe0() )
     {
-      in.open(argv[1],ios::in);
+      in.open(argv[0],ios::in);
       if ( in )
       {
         // file was opened on process 0
@@ -343,42 +533,18 @@ int main(int argc, char **argv, char **envp)
     }
     else
     {
-      if ( ctxt.onpe0() )
-        cout << " Could not open input file " << argv[1] << endl;
+      if ( MPIdata::onpe0() )
+        cout << " Could not open input file " << argv[0] << endl;
+      MPI_Finalize();
+      return 0;
     }
-  }
-  else if ( argc == 4 )
-  {
-    // server mode
-    // cmd line: qb -server inputfilename outputfilename
-    if ( strcmp(argv[1],"-server") )
-    {
-      // first argument is not "-server"
-      cout << " use: qb [infile | -server infile outfile]" << endl;
-      ctxt.abort(1);
-    }
-    // first argument is "-server"
-    string inputfilename(argv[2]);
-    string outputfilename(argv[3]);
-    bool echo = true;
-    ui.processCmdsServer(inputfilename, outputfilename, "[qbox]", echo);
-  }
-  else
-  {
-    // interactive mode
-    assert(argc==1);
-    // use standard input
-    bool echo = !isatty(0);
-    string inputfilename("stdin");
-    string outputfilename("stdout");
-    ui.processCmds(cin, "[qbox]", echo);
   }
 
   // exit using the quit command when processCmds returns
   Cmd *c = ui.findCmd("quit");
   c->action(1,NULL);
 
-  if ( ctxt.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     cout << "<real_time> " << tm.real() << " </real_time>" << endl;
     cout << "<end_time> " << isodate() << " </end_time>" << endl;
@@ -387,10 +553,7 @@ int main(int argc, char **argv, char **envp)
 
   delete s;
 
-  } // end of Context scope
-#if USE_MPI
   MPI_Finalize();
-#endif
 
   return 0;
 }

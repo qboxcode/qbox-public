@@ -43,14 +43,13 @@ using namespace xercesc;
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-SampleReader::SampleReader(const Context& ctxt) : ctxt_(ctxt) {}
-
-////////////////////////////////////////////////////////////////////////////////
 void SampleReader::readSample (Sample& s, const string uri, bool serial)
 {
   Timer tm;
   tm.start();
-  const bool onpe0 = ctxt_.onpe0();
+  // create a global Context with MPIdata::ngb() rows
+  Context gctxt(MPI_COMM_WORLD,MPIdata::ngb(),MPIdata::size()/MPIdata::ngb());
+  const bool onpe0 = gctxt.onpe0();
 
   SAX2XMLReader::ValSchemes valScheme;
   valScheme = SAX2XMLReader::Val_Auto;
@@ -81,7 +80,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   }
 
   string xmlcontent;
-  DoubleMatrix gfdata(ctxt_);
+  DoubleMatrix gfdata(gctxt);
 
   XMLGFPreprocessor xmlgfp;
   if ( xmlgfp.process(uri.c_str(),gfdata,xmlcontent,serial) )
@@ -97,7 +96,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   {
     cout << " xmlcontent.size(): " << xmlcontent.size() << endl;
 #if DEBUG
-    cout << ctxt_.mype() << ": xmlcontent: " << xmlcontent << endl;
+    cout << MPIdata::rank() << ": xmlcontent: " << xmlcontent << endl;
 #endif
   }
   memBufIS = new MemBufInputSource
@@ -135,7 +134,7 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
     parser->setContentHandler(&handler);
     parser->setErrorHandler(&handler);
 
-    ctxt_.barrier();
+    gctxt.barrier();
     if ( onpe0 ) cout << " Starting XML parsing" << endl;
       parser->parse(*memBufIS);
     if ( onpe0 ) cout << " XML parsing done" << endl;

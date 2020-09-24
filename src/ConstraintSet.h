@@ -25,20 +25,18 @@
 class Atom;
 class AtomSet;
 class Constraint;
-class Context;
 
 class ConstraintSet
 {
   private:
 
-  const Context& ctxt_;
   std::vector<Constraint *> constraint_list;
   // ndofs_: total number of degrees of freedom blocked by the constraints
   int ndofs_;
 
   public:
 
-  ConstraintSet(const Context& ctxt) : ctxt_(ctxt), ndofs_(0) {}
+  ConstraintSet(void) : ndofs_(0) {}
   ~ConstraintSet();
   bool define_constraint(AtomSet &atoms, int argc, char **argv);
   bool set_constraint(int argc, char **argv);

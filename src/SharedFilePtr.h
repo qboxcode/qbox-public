@@ -20,14 +20,7 @@
 #define SHAREDFILEPTR_H
 
 #include<fstream>
-
-#if USE_MPI
 #include "mpi.h"
-#else
-  typedef int MPI_Comm;
-  typedef std::ofstream MPI_File;
-  typedef long long int  MPI_Offset;
-#endif
 
 class SharedFilePtr
 {
@@ -35,26 +28,23 @@ class SharedFilePtr
 
   MPI_Comm comm_;
   MPI_File& fh_;
-  long long int offset_;
+  MPI_Offset offset_;
 
   public:
 
   MPI_File& file(void) { return fh_; }
-  long long int offset(void) const { return offset_; }
-  MPI_Offset mpi_offset(void) const { return (MPI_Offset) offset_; }
+  MPI_Offset offset(void) const { return offset_; }
   void sync(void)
   {
     // set all offsets to the largest offset
-#if USE_MPI
-    long long int s_off = offset_;
+    MPI_Offset s_off = offset_;
     MPI_Allreduce(&s_off,&offset_,1,MPI_LONG_LONG,MPI_MAX,comm_);
-#endif
   }
-  void set_offset(long long int off)
+  void set_offset(MPI_Offset off)
   {
     offset_ = off;
   }
-  void advance(long long int dist)
+  void advance(MPI_Offset dist)
   {
     offset_ += dist;
   }

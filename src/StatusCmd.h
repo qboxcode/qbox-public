@@ -65,13 +65,13 @@ class StatusCmd : public Cmd
       cout << "<np0v> " << np0v << " </np0v>  "
            << "<np1v> " << np1v << " </np1v>  "
            << "<np2v> " << np2v << " </np2v>" << endl;
-      s->wf.info(cout,"wf");
-      if ( s->wfv != 0 )
-        s->wfv->info(cout,"wfv");
-      cout << "<vcm> " << s->atoms.vcm() << " </vcm>" << endl;
     }
+    s->wf.info(cout,"wf");
+    if ( s->wfv != 0 )
+      s->wfv->info(cout,"wfv");
+    if ( ui->onpe0() )
+      cout << "<vcm> " << s->atoms.vcm() << " </vcm>" << endl;
     return 0;
   }
-
 };
 #endif

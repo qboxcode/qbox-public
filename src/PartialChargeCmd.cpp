@@ -119,7 +119,7 @@ int PartialChargeCmd::action(int argc, char **argv)
     cout << " radius = " << radius << endl;
   }
 
-  const Context& ctxt = *s->wf.spincontext();
+  const Context& ctxt = s->wf.sd_context();
   ChargeDensity cd(s->wf);
   Basis *vbasis = cd.vbasis();
   cd.update_density();

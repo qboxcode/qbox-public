@@ -107,6 +107,7 @@ using namespace std;
 #define ztrtri     ztrtri_
 #define ztrsm      ztrsm_
 #define dtrtrs     dtrtrs_
+#define ztrtrs     ztrtrs_
 #define dpotrf     dpotrf_
 #define zpotrf     zpotrf_
 #define dpotri     dpotri_
@@ -370,6 +371,10 @@ extern "C"
              complex<double>* a, const int *lda, double* w,
              complex<double>* work, int *lwork, double* rwork, int *info);
   void dtrtri(const char*, const char*, const int*, double*, const int*, int* );
+  void ztrtri(const char*, const char*, const int*, complex<double>*,
+              const int*, int* );
+  void ztrtrs(const char*, const char*, char*, const int*, const int*,
+              complex<double>*, const int*, complex<double>*, int*, int* );
   void dgetrf(const int* m, const int* n, double* a, const int* lda,
               int* ipiv, int*info);
   void zgetrf(const int* m, const int* n, complex<double>* a, const int* lda,
@@ -1579,16 +1584,19 @@ void DoubleMatrix::gemm(char transa, char transb,
       assert(k==b.n());
     }
 
-#ifdef SCALAPACK
-    int ione=1;
-    pdgemm(&transa, &transb, &m, &n, &k, &alpha,
-         a.val, &ione, &ione, a.desc_,
-         b.val, &ione, &ione, b.desc_,
-         &beta, val, &ione, &ione, desc_);
-#else
-    dgemm(&transa, &transb, &m, &n, &k, &alpha, a.val, &a.lld_,
-          b.val, &b.lld_, &beta, val, &lld_);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dgemm(&transa, &transb, &m, &n, &k, &alpha, a.val, &a.lld_,
+            b.val, &b.lld_, &beta, val, &lld_);
+    }
+    else
+    {
+      int ione=1;
+      pdgemm(&transa, &transb, &m, &n, &k, &alpha,
+           a.val, &ione, &ione, a.desc_,
+           b.val, &ione, &ione, b.desc_,
+           &beta, val, &ione, &ione, desc_);
+    }
   }
 }
 
@@ -1629,16 +1637,19 @@ void ComplexMatrix::gemm(char transa, char transb,
       assert(k==b.n());
     }
 
-#ifdef SCALAPACK
-    int ione=1;
-    pzgemm(&transa, &transb, &m, &n, &k, &alpha,
-         a.val, &ione, &ione, a.desc_,
-         b.val, &ione, &ione, b.desc_,
-         &beta, val, &ione, &ione, desc_);
-#else
-    zgemm(&transa, &transb, &m, &n, &k, &alpha, a.val, &a.lld_,
-          b.val, &b.lld_, &beta, val, &lld_);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      zgemm(&transa, &transb, &m, &n, &k, &alpha, a.val, &a.lld_,
+            b.val, &b.lld_, &beta, val, &lld_);
+    }
+    else
+    {
+      int ione=1;
+      pzgemm(&transa, &transb, &m, &n, &k, &alpha,
+           a.val, &ione, &ione, a.desc_,
+           b.val, &ione, &ione, b.desc_,
+           &beta, val, &ione, &ione, desc_);
+    }
   }
 }
 
@@ -1666,16 +1677,19 @@ void DoubleMatrix::symm(char side, char uplo,
       assert(a.m()==b.n());
     }
 
-#ifdef SCALAPACK
-    int ione=1;
-    pdsymm(&side, &uplo, &m_, &n_, &alpha,
-         a.val, &ione, &ione, a.desc_,
-         b.val, &ione, &ione, b.desc_,
-         &beta, val, &ione, &ione, desc_);
-#else
-    dsymm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_,
-          b.val, &b.lld_, &beta, val, &lld_);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dsymm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_,
+            b.val, &b.lld_, &beta, val, &lld_);
+    }
+    else
+    {
+      int ione=1;
+      pdsymm(&side, &uplo, &m_, &n_, &alpha,
+           a.val, &ione, &ione, a.desc_,
+           b.val, &ione, &ione, b.desc_,
+           &beta, val, &ione, &ione, desc_);
+    }
   }
 }
 
@@ -1703,16 +1717,19 @@ void ComplexMatrix::hemm(char side, char uplo,
       assert(a.m()==b.n());
     }
 
-#ifdef SCALAPACK
-    int ione=1;
-    pzhemm(&side, &uplo, &m_, &n_, &alpha,
-         a.val, &ione, &ione, a.desc_,
-         b.val, &ione, &ione, b.desc_,
-         &beta, val, &ione, &ione, desc_);
-#else
-    zhemm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_,
-          b.val, &b.lld_, &beta, val, &lld_);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      zhemm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_,
+            b.val, &b.lld_, &beta, val, &lld_);
+    }
+    else
+    {
+      int ione=1;
+      pzhemm(&side, &uplo, &m_, &n_, &alpha,
+           a.val, &ione, &ione, a.desc_,
+           b.val, &ione, &ione, b.desc_,
+           &beta, val, &ione, &ione, desc_);
+    }
   }
 }
 
@@ -1740,16 +1757,19 @@ void ComplexMatrix::symm(char side, char uplo,
       assert(a.m()==b.n());
     }
 
-#ifdef SCALAPACK
-    int ione=1;
-    pzsymm(&side, &uplo, &m_, &n_, &alpha,
-         a.val, &ione, &ione, a.desc_,
-         b.val, &ione, &ione, b.desc_,
-         &beta, val, &ione, &ione, desc_);
-#else
-    zsymm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_,
-          b.val, &b.lld_, &beta, val, &lld_);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      zsymm(&side, &uplo, &m_, &n_, &alpha, a.val, &a.lld_,
+            b.val, &b.lld_, &beta, val, &lld_);
+    }
+    else
+    {
+      int ione=1;
+      pzsymm(&side, &uplo, &m_, &n_, &alpha,
+           a.val, &ione, &ione, a.desc_,
+           b.val, &ione, &ione, b.desc_,
+           &beta, val, &ione, &ione, desc_);
+    }
   }
 }
 
@@ -1776,15 +1796,18 @@ void DoubleMatrix::trmm(char side, char uplo, char trans, char diag,
     {
       assert(a.n_==n_);
     }
-#ifdef SCALAPACK
-    int ione=1;
-    pdtrmm(&side, &uplo, &trans, &diag, &m_, &n_,
-           &alpha, a.val, &ione, &ione, a.desc_,
-           val, &ione, &ione, desc_);
-#else
-    dtrmm(&side, &uplo, &trans, &diag,
-          &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dtrmm(&side, &uplo, &trans, &diag,
+            &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
+    }
+    else
+    {
+      int ione=1;
+      pdtrmm(&side, &uplo, &trans, &diag, &m_, &n_,
+             &alpha, a.val, &ione, &ione, a.desc_,
+             val, &ione, &ione, desc_);
+    }
   }
 }
 
@@ -1809,15 +1832,18 @@ void DoubleMatrix::trsm(char side, char uplo, char trans, char diag,
     {
       assert(a.n_==n_);
     }
-#ifdef SCALAPACK
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dtrsm(&side, &uplo, &trans, &diag,
+            &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
+    }
+    else
+    {
     int ione=1;
     pdtrsm(&side, &uplo, &trans, &diag, &m_, &n_,
            &alpha, a.val, &ione, &ione, a.desc_,
            val, &ione, &ione, desc_);
-#else
-    dtrsm(&side, &uplo, &trans, &diag,
-          &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
-#endif
+    }
   }
 }
 
@@ -1842,15 +1868,18 @@ void ComplexMatrix::trsm(char side, char uplo, char trans,
     {
       assert(a.n_==n_);
     }
-#ifdef SCALAPACK
-    int ione=1;
-    pztrsm(&side, &uplo, &trans, &diag, &m_, &n_,
-           &alpha, a.val, &ione, &ione, a.desc_,
-           val, &ione, &ione, desc_);
-#else
-    ztrsm(&side, &uplo, &trans, &diag,
-          &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      ztrsm(&side, &uplo, &trans, &diag,
+            &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
+    }
+    else
+    {
+      int ione=1;
+      pztrsm(&side, &uplo, &trans, &diag, &m_, &n_,
+             &alpha, a.val, &ione, &ione, a.desc_,
+             val, &ione, &ione, desc_);
+    }
   }
 }
 
@@ -1868,15 +1897,18 @@ void DoubleMatrix::trtrs(char uplo, char trans, char diag,
   {
     assert(m_==n_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    pdtrtrs(&uplo, &trans, &diag, &m_, &b.n_,
-    val, &ione, &ione, desc_,
-    b.val, &ione, &ione, b.desc_, &info);
-#else
-    dtrtrs(&uplo, &trans, &diag, &m_, &b.n_, val, &m_,
-           b.val, &b.m_, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dtrtrs(&uplo, &trans, &diag, &m_, &b.n_, val, &m_,
+             b.val, &b.m_, &info);
+    }
+    else
+    {
+      int ione=1;
+      pdtrtrs(&uplo, &trans, &diag, &m_, &b.n_,
+      val, &ione, &ione, desc_,
+      b.val, &ione, &ione, b.desc_, &info);
+    }
     if(info!=0)
     {
       cout <<" Matrix::trtrs, info=" << info << endl;
@@ -1903,15 +1935,18 @@ void ComplexMatrix::trtrs(char uplo, char trans, char diag,
   {
     assert(m_==n_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    pztrtrs(&uplo, &trans, &diag, &m_, &b.n_,
-    val, &ione, &ione, desc_,
-    b.val, &ione, &ione, b.desc_, &info);
-#else
-    ztrtrs(&uplo, &trans, &diag, &m_, &b.n_, val, &m_,
-           b.val, &b.m_, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      ztrtrs(&uplo, &trans, &diag, &m_, &b.n_, val, &m_,
+             b.val, &b.m_, &info);
+    }
+    else
+    {
+      int ione=1;
+      pztrtrs(&uplo, &trans, &diag, &m_, &b.n_,
+      val, &ione, &ione, desc_,
+      b.val, &ione, &ione, b.desc_, &info);
+    }
     if(info!=0)
     {
       cout <<" ComplexMatrix::trtrs, info=" << info << endl;
@@ -1935,20 +1970,19 @@ void DoubleMatrix::lu(valarray<int>& ipiv)
     assert(m_==n_);
     ipiv.resize(mloc_+mb_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    pdgetrf(&m_, &n_, val, &ione, &ione, desc_, &ipiv[0], &info);
-#else
-    dgetrf(&m_, &n_, val, &m_, &ipiv[0], &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dgetrf(&m_, &n_, val, &m_, &ipiv[0], &info);
+    }
+    else
+    {
+      int ione=1;
+      pdgetrf(&m_, &n_, val, &ione, &ione, desc_, &ipiv[0], &info);
+    }
     if(info!=0)
     {
       cout << " DoubleMatrix::lu, info=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
 }
@@ -1964,12 +1998,15 @@ void ComplexMatrix::lu(valarray<int>& ipiv)
     assert(m_==n_);
     ipiv.resize(mloc_+mb_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    pzgetrf(&m_, &n_, val, &ione, &ione, desc_, &ipiv[0], &info);
-#else
-    zgetrf(&m_, &n_, val, &m_, &ipiv[0], &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      zgetrf(&m_, &n_, val, &m_, &ipiv[0], &info);
+    }
+    else
+    {
+      int ione=1;
+      pzgetrf(&m_, &n_, val, &ione, &ione, desc_, &ipiv[0], &info);
+    }
     if(info!=0)
     {
       cout << " ComplexMatrix::lu, info=" << info << endl;
@@ -2056,41 +2093,40 @@ void DoubleMatrix::inverse_from_lu(valarray<int>& ipiv)
     assert(m_==n_);
 
     // Compute inverse using LU decomposition and array ipiv
-#ifdef SCALAPACK
-    valarray<double> work(1);
-    valarray<int> iwork(1);
-    int lwork = -1;
-    int liwork = -1;
-    int ione = 1;
-    // First call to compute dimensions of work arrays lwork and liwork
-    // dimensions are returned in work[0] and iwork[0];
-    pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
-            &work[0], &lwork, &iwork[0], &liwork, &info);
-    lwork = (int) work[0] + 1;
-    liwork = iwork[0];
-    work.resize(lwork);
-    iwork.resize(liwork);
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      valarray<double> work(1);
+      int lwork = -1;
+      // First call to compute optimal size of work array, returned in work[0]
+      dgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
+      lwork = (int) work[0] + 1;
+      work.resize(lwork);
+      dgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
+    }
+    else
+    {
+      valarray<double> work(1);
+      valarray<int> iwork(1);
+      int lwork = -1;
+      int liwork = -1;
+      int ione = 1;
+      // First call to compute dimensions of work arrays lwork and liwork
+      // dimensions are returned in work[0] and iwork[0];
+      pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
+              &work[0], &lwork, &iwork[0], &liwork, &info);
+      lwork = (int) work[0] + 1;
+      liwork = iwork[0];
+      work.resize(lwork);
+      iwork.resize(liwork);
 
-    // Compute inverse
-    pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
-            &work[0], &lwork, &iwork[0], &liwork, &info);
-#else
-    valarray<double> work(1);
-    int lwork = -1;
-    // First call to compute optimal size of work array, returned in work[0]
-    dgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
-    lwork = (int) work[0] + 1;
-    work.resize(lwork);
-    dgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
-#endif
+      // Compute inverse
+      pdgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
+              &work[0], &lwork, &iwork[0], &liwork, &info);
+    }
     if(info!=0)
     {
       cout << " DoubleMatrix::inverse_from_lu, info(getri)=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
 }
@@ -2120,8 +2156,7 @@ complex<double> ComplexMatrix::det_from_lu(valarray<int> ipiv)
     {
       int iii = l(ii) * mb_ + x(ii);
       int jjj = m(ii) * nb_ + y(ii);
-      if ( pr(ii) == ctxt_.myrow()
-          && pc(ii) == ctxt_.mycol() )
+      if ( pr(ii) == ctxt_.myrow() && pc(ii) == ctxt_.mycol() )
         diag[ii] = val[iii+mloc_*jjj];
     }
     ctxt_.dsum(n_*2,1,(double*)&diag[0],n_*2);
@@ -2163,39 +2198,38 @@ void ComplexMatrix::inverse_from_lu(valarray<int>& ipiv)
   {
     assert(m_==n_);
     // Compute inverse using LU decomposition and array ipiv computed in lu()
-#ifdef SCALAPACK
-    valarray< complex<double> > work(1);
-    valarray<int> iwork(1);
-    int lwork = -1;
-    int liwork = -1;
-    int ione = 1;
-    pzgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
-            &work[0], &lwork, &iwork[0], &liwork, &info);
-    lwork = (int) work[0].real() + 1;
-    liwork = iwork[0];
-    work.resize(lwork);
-    iwork.resize(liwork);
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      valarray< complex<double> > work(1);
+      int lwork = -1;
+      // First call to compute optimal size of work array, returned in work[0]
+      zgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
+      lwork = (int) work[0].real() + 1;
+      work.resize(lwork);
+      zgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
+    }
+    else
+    {
+      valarray< complex<double> > work(1);
+      valarray<int> iwork(1);
+      int lwork = -1;
+      int liwork = -1;
+      int ione = 1;
+      pzgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
+              &work[0], &lwork, &iwork[0], &liwork, &info);
+      lwork = (int) work[0].real() + 1;
+      liwork = iwork[0];
+      work.resize(lwork);
+      iwork.resize(liwork);
 
-    // Compute inverse
-    pzgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
-            &work[0], &lwork, &iwork[0], &liwork, &info);
-#else
-    valarray< complex<double> > work(1);
-    int lwork = -1;
-    // First call to compute optimal size of work array, returned in work[0]
-    zgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
-    lwork = (int) work[0] + 1;
-    work.resize(lwork);
-    zgetri(&m_, val, &m_, &ipiv[0], &work[0], &lwork, &info);
-#endif
+      // Compute inverse
+      pzgetri(&n_, val, &ione, &ione, desc_, &ipiv[0],
+              &work[0], &lwork, &iwork[0], &liwork, &info);
+    }
     if(info!=0)
     {
       cout << " ComplexMatrix::inverse, info(getri)=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
 }
@@ -2211,20 +2245,19 @@ void DoubleMatrix::potrf(char uplo)
   {
     assert(m_==n_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    pdpotrf(&uplo, &m_, val, &ione, &ione, desc_, &info);
-#else
-    dpotrf(&uplo, &m_, val, &m_, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dpotrf(&uplo, &m_, val, &m_, &info);
+    }
+    else
+    {
+      int ione=1;
+      pdpotrf(&uplo, &m_, val, &ione, &ione, desc_, &info);
+    }
     if(info!=0)
     {
       cout << " DoubleMatrix::potrf, info=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
 }
@@ -2240,20 +2273,19 @@ void ComplexMatrix::potrf(char uplo)
   {
     assert(m_==n_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    pzpotrf(&uplo, &m_, val, &ione, &ione, desc_, &info);
-#else
-    zpotrf(&uplo, &m_, val, &m_, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      zpotrf(&uplo, &m_, val, &m_, &info);
+    }
+    else
+    {
+      int ione=1;
+      pzpotrf(&uplo, &m_, val, &ione, &ione, desc_, &info);
+    }
     if(info!=0)
     {
       cout << " ComplexMatrix::potrf, info=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
 }
@@ -2270,20 +2302,19 @@ void DoubleMatrix::potri(char uplo)
   {
     assert(m_==n_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    pdpotri(&uplo, &m_, val, &ione, &ione, desc_, &info);
-#else
-    dpotri(&uplo, &m_, val, &m_, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dpotri(&uplo, &m_, val, &m_, &info);
+    }
+    else
+    {
+      int ione=1;
+      pdpotri(&uplo, &m_, val, &ione, &ione, desc_, &info);
+    }
     if(info!=0)
     {
       cout << " Matrix::potri, info=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
 }
@@ -2298,24 +2329,24 @@ void DoubleMatrix::trtri(char uplo, char diag)
   {
     assert(m_==n_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    pdtrtri(&uplo, &diag, &m_, val, &ione, &ione, desc_, &info);
-#else
-    dtrtri(&uplo, &diag, &m_, val, &m_, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dtrtri(&uplo, &diag, &m_, val, &m_, &info);
+    }
+    else
+    {
+      int ione=1;
+      pdtrtri(&uplo, &diag, &m_, val, &ione, &ione, desc_, &info);
+    }
     if(info!=0)
     {
       cout << " Matrix::trtri, info=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
 }
 
+////////////////////////////////////////////////////////////////////////////////
 void ComplexMatrix::trtri(char uplo, char diag)
 {
   int info;
@@ -2323,20 +2354,19 @@ void ComplexMatrix::trtri(char uplo, char diag)
   {
     assert(m_==n_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    pztrtri(&uplo, &diag, &m_, val, &ione, &ione, desc_, &info);
-#else
-    ztrtri(&uplo, &diag, &m_, val, &m_, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      ztrtri(&uplo, &diag, &m_, val, &m_, &info);
+    }
+    else
+    {
+      int ione=1;
+      pztrtri(&uplo, &diag, &m_, val, &ione, &ione, desc_, &info);
+    }
     if(info!=0)
     {
       cout << " Matrix::trtri, info=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
 }
@@ -2355,7 +2385,6 @@ void DoubleMatrix::polar(double tol, int maxiter)
   DoubleMatrix qt(ctxt_,n_,n_,nb_,nb_);
   DoubleMatrix t(ctxt_,n_,n_,nb_,nb_);
 
-#ifdef SCALAPACK
   double qnrm2 = numeric_limits<double>::max();
   int iter = 0;
   x = *this;
@@ -2418,9 +2447,6 @@ void DoubleMatrix::polar(double tol, int maxiter)
     iter++;
   }
   *this = x;
-#else
-#error "DoubleMatrix::polar only implemented with SCALAPACK"
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2437,7 +2463,6 @@ void ComplexMatrix::polar(double tol, int maxiter)
   ComplexMatrix qt(ctxt_,n_,n_,nb_,nb_);
   ComplexMatrix t(ctxt_,n_,n_,nb_,nb_);
 
-#ifdef SCALAPACK
   double qnrm2 = numeric_limits<double>::max();
   int iter = 0;
   x = *this;
@@ -2500,9 +2525,6 @@ void ComplexMatrix::polar(double tol, int maxiter)
     iter++;
   }
   *this = x;
-#else
-#error "ComplexMatrix::polar only implemented with SCALAPACK"
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2519,38 +2541,37 @@ double DoubleMatrix::pocon(char uplo) const
   {
     assert(m_==n_);
 
-#ifdef SCALAPACK
-    int     ione=1;
-    int     lwork=2*mloc_+3*nloc_+nb_;
-    int     liwork=mloc_;
-    double* work=new double[lwork];
-    int*    iwork=new int[liwork];
-    pdpocon(&uplo, &m_, val, &ione, &ione, desc_,
-            &anorm, &rcond, work, &lwork, iwork, &liwork, &info);
-    if (info!=0)
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
     {
-        cout << "DoubleMatrix::pocon: lwork=" << lwork
-             << ", but should be at least " << work[0] << endl;
-        cout << "DoubleMatrix::pocon: liwork=" << liwork
-             << ", but should be at least " << iwork[0] << endl;
+      double* work=new double[3*m_];
+      int*    iwork=new int[m_];
+      dpocon(&uplo, &m_, val, &m_, &anorm, &rcond, work, iwork, &info);
+      delete[] iwork;
+      delete[] work;
     }
-    delete[] iwork;
-    delete[] work;
-#else
-    double* work=new double[3*m_];
-    int*    iwork=new int[m_];
-    dpocon(&uplo, &m_, val, &m_, &anorm, &rcond, work, iwork, &info);
-    delete[] iwork;
-    delete[] work;
-#endif
+    else
+    {
+      int     ione=1;
+      int     lwork=2*mloc_+3*nloc_+nb_;
+      int     liwork=mloc_;
+      double* work=new double[lwork];
+      int*    iwork=new int[liwork];
+      pdpocon(&uplo, &m_, val, &ione, &ione, desc_,
+              &anorm, &rcond, work, &lwork, iwork, &liwork, &info);
+      if (info!=0)
+      {
+          cout << "DoubleMatrix::pocon: lwork=" << lwork
+               << ", but should be at least " << work[0] << endl;
+          cout << "DoubleMatrix::pocon: liwork=" << liwork
+               << ", but should be at least " << iwork[0] << endl;
+      }
+      delete[] iwork;
+      delete[] work;
+    }
     if(info!=0)
     {
       cout << " Matrix::pocon, info=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
   return rcond;
@@ -2581,14 +2602,17 @@ void DoubleMatrix::syrk(char uplo, char trans,
       k = a.m();
     }
 
-#ifdef SCALAPACK
-    int ione = 1;
-    pdsyrk(&uplo, &trans, &n, &k, &alpha,
-         a.val, &ione, &ione, a.desc_,
-         &beta, val, &ione, &ione, desc_);
-#else
-    dsyrk(&uplo, &trans, &n, &k, &alpha, a.val, &a.m_, &beta, val, &m_);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dsyrk(&uplo, &trans, &n, &k, &alpha, a.val, &a.m_, &beta, val, &m_);
+    }
+    else
+    {
+      int ione = 1;
+      pdsyrk(&uplo, &trans, &n, &k, &alpha,
+           a.val, &ione, &ione, a.desc_,
+           &beta, val, &ione, &ione, desc_);
+    }
   }
 }
 
@@ -2619,22 +2643,21 @@ void ComplexMatrix::herk(char uplo, char trans,
     else
     {
       cout << " Matrix::herk: invalid parameter trans" << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD,2);
-#else
-      exit(2);
-#endif
     }
 
-#ifdef SCALAPACK
-    int ione = 1;
-    pzherk(&uplo, &trans, &n, &k, &alpha,
-         a.val, &ione, &ione, a.desc_,
-         &beta, val, &ione, &ione, desc_);
-#else
-    zherk(&uplo, &trans, &n, &k, &alpha, a.val, &a.m_,
-          &beta, val, &m_);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      zherk(&uplo, &trans, &n, &k, &alpha, a.val, &a.m_,
+            &beta, val, &m_);
+    }
+    else
+    {
+      int ione = 1;
+      pzherk(&uplo, &trans, &n, &k, &alpha,
+           a.val, &ione, &ione, a.desc_,
+           &beta, val, &ione, &ione, desc_);
+    }
   }
 }
 
@@ -2670,7 +2693,6 @@ void DoubleMatrix::matgather(double *a, int lda) const
       }
     }
 
-#ifdef SCALAPACK
     int     max_size=200000;
     int     size    = lda*n_;
     int     ione=1;
@@ -2692,7 +2714,6 @@ void DoubleMatrix::matgather(double *a, int lda) const
     }
 
     delete[] work;
-#endif
   }
 }
 
@@ -2752,15 +2773,18 @@ double DoubleMatrix::trace(void) const
 {
   assert(m_==n_);
 
-#ifdef SCALAPACK
-  int ione=1;
-  return pdlatra(&n_,val,&ione,&ione,desc_);
-#else
-  double trace = 0.0;
-  for ( int i = 0; i < n_; i++ )
-    trace += val[i*m_];
-  return trace;
-#endif
+  if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+  {
+    double trace = 0.0;
+    for ( int i = 0; i < n_; i++ )
+      trace += val[i*m_];
+    return trace;
+  }
+  else
+  {
+    int ione=1;
+    return pdlatra(&n_,val,&ione,&ione,desc_);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2779,22 +2803,21 @@ void DoubleMatrix::sygst(int itype, char uplo, const DoubleMatrix& b)
   {
     assert(m_==n_);
 
-#ifdef SCALAPACK
-    int ione=1;
-    double  scale;
-    pdsygst(&itype, &uplo, &m_, val, &ione, &ione, desc_,
-    b.val, &ione, &ione, b.desc_, &scale, &info);
-#else
-    dsygst(&itype, &uplo, &m_, val, &m_, b.val, &b.m_, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      dsygst(&itype, &uplo, &m_, val, &m_, b.val, &b.m_, &info);
+    }
+    else
+    {
+      int ione=1;
+      double  scale;
+      pdsygst(&itype, &uplo, &m_, val, &ione, &ione, desc_,
+      b.val, &ione, &ione, b.desc_, &scale, &info);
+    }
     if ( info != 0 )
     {
       cout << " Matrix::sygst, info=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
   }
 }
@@ -2809,46 +2832,41 @@ void DoubleMatrix::syev(char uplo, valarray<double>& w, DoubleMatrix& z)
   {
     assert(m_==n_);
     char jobz = 'V';
-#ifdef SCALAPACK
-    int ione=1;
-    int lwork=-1;
-    double tmpwork;
-
-    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
-            z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
-            &info);
-
-    lwork = (int) (tmpwork + 1);
-    // set lwork to max value among all tasks
-    ctxt_.imax(1,1,&lwork,1);
-    double* work=new double[lwork];
-    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
-            z.val, &ione, &ione, z.desc_, work, &lwork,
-            &info);
-
-    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
-#else
-    int lwork=-1;
-    double tmplwork;
-
-    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
-
-    lwork = (int) tmplwork + 1;
-    double* work = new double[lwork];
-
-    z = *this;
-    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
-#endif
+    double* work;
+    int lwork;
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      lwork=-1;
+      double tmplwork;
+      dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
+      lwork = (int) tmplwork + 1;
+      work = new double[lwork];
+      z = *this;
+      dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
+    }
+    else
+    {
+      int ione=1;
+      lwork=-1;
+      double tmpwork;
+      pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+              z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
+              &info);
+      lwork = (int) (tmpwork + 1);
+      // set lwork to max value among all tasks
+      ctxt_.imax(1,1,&lwork,1);
+      work=new double[lwork];
+      pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+              z.val, &ione, &ione, z.desc_, work, &lwork,
+              &info);
+      MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+    }
     if ( info != 0 )
     {
       cout << " Matrix::syev requires lwork>=" << work[0] << endl;
       cout << " Matrix::syev, lwork>=" << lwork << endl;
       cout << " Matrix::syev, info=" << info<< endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
     delete[] work;
   }
@@ -2865,52 +2883,45 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w, DoubleMatrix& z)
   {
     assert(m_==n_);
     char jobz = 'V';
-#ifdef SCALAPACK
-    int ione=1;
-    int lwork=-1;
-    double tmpwork;
-
-    int liwork=-1;
-    int tmpiwork;
-
-    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
-            z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
-            &tmpiwork, &liwork, &info);
-
-    lwork = (int) (tmpwork + 1);
-    // set lwork to max value among all tasks
-    ctxt_.imax(1,1,&lwork,1);
-    double* work=new double[lwork];
-
-    liwork = tmpiwork;
-    int* iwork = new int[liwork];
-    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+    int lwork;
+    double* work;
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      lwork=-1;
+      double tmplwork;
+      dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
+      lwork = (int) tmplwork + 1;
+      work = new double[lwork];
+      z = *this;
+      dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
+    }
+    else
+    {
+      int ione=1;
+      lwork=-1;
+      double tmpwork;
+      int liwork=-1;
+      int tmpiwork;
+      pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+              z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
+              &tmpiwork, &liwork, &info);
+      lwork = (int) (tmpwork + 1);
+      // set lwork to max value among all tasks
+      ctxt_.imax(1,1,&lwork,1);
+      work=new double[lwork];
+      liwork = tmpiwork;
+      int* iwork = new int[liwork];
+      pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
             z.val, &ione, &ione, z.desc_, work, &lwork, iwork, &liwork, &info);
-
-    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
-    delete[] iwork;
-#else
-    int lwork=-1;
-    double tmplwork;
-
-    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
-
-    lwork = (int) tmplwork + 1;
-    double* work = new double[lwork];
-
-    z = *this;
-    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
-#endif
+      MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+      delete[] iwork;
+    }
     if ( info != 0 )
     {
       cout << " Matrix::syev requires lwork>=" << work[0] << endl;
       cout << " Matrix::syev, lwork>=" << lwork << endl;
       cout << " Matrix::syev, info=" << info<< endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
     delete[] work;
   }
@@ -2928,63 +2939,56 @@ void DoubleMatrix::syevx(char uplo, valarray<double>& w, DoubleMatrix& z,
   {
     assert(m_==n_);
     char jobz = 'V';
-#ifdef SCALAPACK
-    char range = 'A';
-    int ione=1;
-    int lwork=-1;
-    double tmpwork;
-
-    int liwork=-1;
-    int tmpiwork;
-    valarray<int> ifail(n_);
-    int nfound=-1;
-    int nz=-1;
-    int il=1, iu=n_;
-    double vl=0, vu=0;
-    double orfac=-1.0;
-    valarray<int> icluster(2*ctxt_.size());
-    valarray<double> gap(ctxt_.size());
-
-    pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_,
-            &vl, &vu, &il, &iu, &abstol, &nfound, &nz, &w[0],
-            &orfac, z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
-            &tmpiwork, &liwork, &ifail[0], &icluster[0], &gap[0], &info);
-
-    assert(info==0);
-
-    lwork = (int) (tmpwork + 1);
-    double* work=new double[lwork];
-    liwork = tmpiwork;
-    int* iwork = new int[liwork];
-    pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_,
-            &vl, &vu, &il, &iu, &abstol, &nfound, &nz, &w[0],
-            &orfac, z.val, &ione, &ione, z.desc_, work, &lwork,
-            iwork, &liwork, &ifail[0], &icluster[0], &gap[0], &info);
-
-    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
-    delete[] iwork;
-#else
-    int lwork=-1;
-    double tmplwork;
-
-    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
-
-    lwork = (int) tmplwork + 1;
-    double* work = new double[lwork];
-
-    z = *this;
-    dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
-#endif
+    int lwork;
+    double* work;
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      lwork=-1;
+      double tmplwork;
+      dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork, &info);
+      lwork = (int) tmplwork + 1;
+      work = new double[lwork];
+      z = *this;
+      dsyev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork, &info);
+    }
+    else
+    {
+      char range = 'A';
+      int ione=1;
+      lwork=-1;
+      double tmpwork;
+      int liwork=-1;
+      int tmpiwork;
+      valarray<int> ifail(n_);
+      int nfound=-1;
+      int nz=-1;
+      int il=1, iu=n_;
+      double vl=0, vu=0;
+      double orfac=-1.0;
+      valarray<int> icluster(2*ctxt_.size());
+      valarray<double> gap(ctxt_.size());
+      pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_,
+              &vl, &vu, &il, &iu, &abstol, &nfound, &nz, &w[0],
+              &orfac, z.val, &ione, &ione, z.desc_, &tmpwork, &lwork,
+              &tmpiwork, &liwork, &ifail[0], &icluster[0], &gap[0], &info);
+      assert(info==0);
+      lwork = (int) (tmpwork + 1);
+      work=new double[lwork];
+      liwork = tmpiwork;
+      int* iwork = new int[liwork];
+      pdsyevx(&jobz, &range, &uplo, &m_, val, &ione, &ione, desc_,
+              &vl, &vu, &il, &iu, &abstol, &nfound, &nz, &w[0],
+              &orfac, z.val, &ione, &ione, z.desc_, work, &lwork,
+              iwork, &liwork, &ifail[0], &icluster[0], &gap[0], &info);
+      MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+      delete[] iwork;
+    }
     if ( info != 0 )
     {
       cout << " Matrix::syev requires lwork>=" << work[0] << endl;
       cout << " Matrix::syev, lwork>=" << lwork << endl;
       cout << " Matrix::syev, info=" << info<< endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
     delete[] work;
   }
@@ -3000,45 +3004,39 @@ void DoubleMatrix::syev(char uplo, valarray<double>& w)
   {
     assert(m_==n_);
     char jobz = 'N';
+    int lwork;
+    double* work;
 
-#ifdef SCALAPACK
-    int ione=1;
-    int lwork=-1;
-    double tmplwork;
-    double *zval = 0; // zval is not referenced since jobz == 'N'
-    int * descz = 0;
-
-    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
-           zval, &ione, &ione, descz, &tmplwork, &lwork, &info);
-
-    lwork = (int) tmplwork + 1;
-    double* work=new double[lwork];
-
-    pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
-           zval, &ione, &ione, descz, work, &lwork, &info);
-
-    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
-#else
-    int lwork=-1;
-    double tmplwork;
-
-    dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork, &info);
-
-    lwork = (int) tmplwork + 1;
-    double* work = new double[lwork];
-
-    dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      lwork=-1;
+      double tmplwork;
+      dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork, &info);
+      lwork = (int) tmplwork + 1;
+      work = new double[lwork];
+      dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork, &info);
+    }
+    else
+    {
+      int ione=1;
+      lwork=-1;
+      double tmplwork;
+      double *zval = 0; // zval is not referenced since jobz == 'N'
+      int * descz = 0;
+      pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+             zval, &ione, &ione, descz, &tmplwork, &lwork, &info);
+      lwork = (int) tmplwork + 1;
+      work=new double[lwork];
+      pdsyev(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+             zval, &ione, &ione, descz, work, &lwork, &info);
+      MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+    }
     if ( info != 0 )
     {
       cout << " Matrix::syev requires lwork>=" << work[0] << endl;
       cout << " Matrix::syev, lwork>=" << lwork << endl;
       cout << " Matrix::syev, info=" << info<< endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
     delete[] work;
   }
@@ -3055,51 +3053,45 @@ void DoubleMatrix::syevd(char uplo, valarray<double>& w)
   {
     assert(m_==n_);
     char jobz = 'N';
+    int lwork,liwork;
+    double* work;
 
-#ifdef SCALAPACK
-    int ione=1;
-    int lwork=-1;
-    double tmpwork;
-
-    int liwork=-1;
-    int tmpiwork;
-    double *zval = 0; // zval is not referenced since jobz == 'N'
-    int * descz = 0;
-
-    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
-            zval, &ione, &ione, descz, &tmpwork, &lwork,
-            &tmpiwork, &liwork, &info);
-
-    lwork = (int) (tmpwork + 1);
-    double* work=new double[lwork];
-    liwork = tmpiwork;
-    int* iwork = new int[liwork];
-    pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
-            zval, &ione, &ione, descz, work, &lwork, iwork, &liwork, &info);
-
-    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
-    delete[] iwork;
-#else
-    int lwork=-1;
-    double tmplwork;
-
-    dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork, &info);
-
-    lwork = (int) tmplwork + 1;
-    double* work = new double[lwork];
-
-    dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      lwork=-1;
+      double tmplwork;
+      dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork, &info);
+      lwork = (int) tmplwork + 1;
+      work = new double[lwork];
+      dsyev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork, &info);
+    }
+    else
+    {
+      int ione=1;
+      lwork=-1;
+      double tmpwork;
+      liwork=-1;
+      int tmpiwork;
+      double *zval = 0; // zval is not referenced since jobz == 'N'
+      int * descz = 0;
+      pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+              zval, &ione, &ione, descz, &tmpwork, &lwork,
+              &tmpiwork, &liwork, &info);
+      lwork = (int) (tmpwork + 1);
+      work=new double[lwork];
+      liwork = tmpiwork;
+      int* iwork = new int[liwork];
+      pdsyevd(&jobz, &uplo, &m_, val, &ione, &ione, desc_, &w[0],
+              zval, &ione, &ione, descz, work, &lwork, iwork, &liwork, &info);
+      MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+      delete[] iwork;
+    }
     if ( info != 0 )
     {
       cout << " Matrix::syev requires lwork>=" << work[0] << endl;
       cout << " Matrix::syev, lwork>=" << lwork << endl;
       cout << " Matrix::syev, info=" << info<< endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
     delete[] work;
   }
@@ -3113,58 +3105,53 @@ void ComplexMatrix::heev(char uplo, valarray<double>& w, ComplexMatrix& z)
   {
     assert(m_==n_);
     char jobz = 'V';
+    int lwork;
+    complex<double>* work;
+    double* rwork;
 
-#ifdef SCALAPACK
-    int ione=1;
-    int lwork=-1;
-    int lrwork=-1;
-    complex<double> tmplwork;
-    double tmplrwork;
-
-    // first call to get optimal lwork and lrwork sizes
-    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-            z.val, &ione, &ione, z.desc_, &tmplwork, &lwork,
-            &tmplrwork, &lrwork, &info);
-
-    lwork = (int) real(tmplwork) + 1;
-    complex<double>* work=new complex<double>[lwork];
-    lrwork = (int) tmplrwork + 1;
-    // direct calculation of lrwork to avoid bug in pzheev
-    lrwork = 1 + 9*n_ + 3*mloc_*nloc_;
-    double* rwork = new double[lrwork];
-
-    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-            z.val, &ione, &ione, z.desc_, work, &lwork,
-            rwork, &lrwork, &info);
-
-    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
-#else
-    // request optimal lwork size
-    int lwork=-1;
-    complex<double> tmplwork;
-    int lrwork = max(1,3*n_-2);
-    double* rwork = new double[lrwork];
-
-    zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork,
-          rwork, &info);
-
-    lwork = (int) real(tmplwork) + 1;
-    complex<double>* work = new complex<double>[lwork];
-
-    z=*this;
-    zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork,
-          rwork, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      // request optimal lwork size
+      int lwork=-1;
+      complex<double> tmplwork;
+      int lrwork = max(1,3*n_-2);
+      rwork = new double[lrwork];
+      zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork,
+            rwork, &info);
+      lwork = (int) real(tmplwork) + 1;
+      work = new complex<double>[lwork];
+      z=*this;
+      zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork,
+            rwork, &info);
+    }
+    else
+    {
+      int ione=1;
+      lwork=-1;
+      int lrwork=-1;
+      complex<double> tmplwork;
+      double tmplrwork;
+      // first call to get optimal lwork and lrwork sizes
+      pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+              z.val, &ione, &ione, z.desc_, &tmplwork, &lwork,
+              &tmplrwork, &lrwork, &info);
+      lwork = (int) real(tmplwork) + 1;
+      work = new complex<double>[lwork];
+      lrwork = (int) tmplrwork + 1;
+      // direct calculation of lrwork to avoid bug in pzheev
+      lrwork = 1 + 9*n_ + 3*mloc_*nloc_;
+      rwork = new double[lrwork];
+      pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+              z.val, &ione, &ione, z.desc_, work, &lwork,
+              rwork, &lrwork, &info);
+      MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+    }
     if ( info != 0 )
     {
       cout << " Matrix::heev requires lwork>=" << work[0] << endl;
       cout << " Matrix::heev, lwork>=" << lwork << endl;
       cout << " Matrix::heev, info=" << info<< endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
     delete[] work;
     delete[] rwork;
@@ -3179,74 +3166,66 @@ void ComplexMatrix::heevd(char uplo, valarray<double>& w, ComplexMatrix& z)
   {
     assert(m_==n_);
     char jobz = 'V';
+    int lwork,liwork;
+    complex<double>* work;
+    double* rwork;
 
-#ifdef SCALAPACK
-    int ione=1;
-    int lwork=-1;
-    int lrwork=-1;
-    int liwork=-1;
-    complex<double> tmplwork;
-    double tmplrwork;
-    int tmpliwork;
-
-    // first call to get optimal lwork and lrwork sizes
-    pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-            z.val, &ione, &ione, z.desc_, &tmplwork, &lwork,
-            &tmplrwork, &lrwork, &tmpliwork, &liwork, &info);
-
-    lwork = (int) real(tmplwork) + 1;
-    complex<double>* work=new complex<double>[lwork];
-    lrwork = (int) tmplrwork + 1;
-    double* rwork = new double[lrwork];
-    liwork = tmpliwork;
-    int* iwork = new int[liwork];
-
-    pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-            z.val, &ione, &ione, z.desc_, work, &lwork,
-            rwork, &lrwork, iwork, &liwork, &info);
-
-    //MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
-    if ( info != 0 )
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
     {
-      cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
-      cout << " Matrix::heevd, lwork>=" << lwork << endl;
-      cout << " Matrix::heevd, liwork>=" << liwork << endl;
-      cout << " Matrix::heevd, info=" << info<< endl;
-#ifdef USE_MPI
-      MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
-    delete[] work;
-    delete[] rwork;
-    delete[] iwork;
-#else
-    // request optimal lwork size
-    int lwork=-1;
-    complex<double> tmplwork;
-    int lrwork = max(1,3*n_-2);
-    double* rwork = new double[lrwork];
-
-    zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork,
-          rwork, &info);
-
-    lwork = (int) real(tmplwork) + 1;
-    complex<double>* work = new complex<double>[lwork];
-
-    z=*this;
-    zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork,
-          rwork, &info);
-    if ( info != 0 )
+      // request optimal lwork size
+      lwork=-1;
+      complex<double> tmplwork;
+      int lrwork = max(1,3*n_-2);
+      rwork = new double[lrwork];
+      zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], &tmplwork, &lwork,
+            rwork, &info);
+      lwork = (int) real(tmplwork) + 1;
+      work = new complex<double>[lwork];
+      z=*this;
+      zheev(&jobz, &uplo, &m_, z.val, &m_, &w[0], work, &lwork,
+            rwork, &info);
+      if ( info != 0 )
+      {
+        cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
+        cout << " Matrix::heevd, lwork>=" << lwork << endl;
+        cout << " Matrix::heevd, info=" << info<< endl;
+        MPI_Abort(MPI_COMM_WORLD, 2);
+      }
+    }
+    else
     {
-      cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
-      cout << " Matrix::heevd, lwork>=" << lwork << endl;
-      cout << " Matrix::heevd, info=" << info<< endl;
-#ifdef USE_MPI
-      MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
-#endif
+      int ione=1;
+      lwork=-1;
+      int lrwork=-1;
+      liwork=-1;
+      complex<double> tmplwork;
+      double tmplrwork;
+      int tmpliwork;
+      // first call to get optimal lwork and lrwork sizes
+      pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+              z.val, &ione, &ione, z.desc_, &tmplwork, &lwork,
+              &tmplrwork, &lrwork, &tmpliwork, &liwork, &info);
+      lwork = (int) real(tmplwork) + 1;
+      work = new complex<double>[lwork];
+      lrwork = (int) tmplrwork + 1;
+      rwork = new double[lrwork];
+      liwork = tmpliwork;
+      int* iwork = new int[liwork];
+      pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+              z.val, &ione, &ione, z.desc_, work, &lwork,
+              rwork, &lrwork, iwork, &liwork, &info);
+      //MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+      if ( info != 0 )
+      {
+        cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
+        cout << " Matrix::heevd, lwork>=" << lwork << endl;
+        cout << " Matrix::heevd, liwork>=" << liwork << endl;
+        cout << " Matrix::heevd, info=" << info<< endl;
+        MPI_Abort(MPI_COMM_WORLD, 2);
+        delete[] work;
+        delete[] rwork;
+        delete[] iwork;
+      }
     }
     delete[] work;
     delete[] rwork;
@@ -3262,60 +3241,55 @@ void ComplexMatrix::heev(char uplo, valarray<double>& w)
   {
     assert(m_==n_);
     char jobz = 'N';
+    int lwork;
+    complex<double>* work;
 
-#ifdef SCALAPACK
-    int ione=1;
-    int lwork=-1;
-    int lrwork=-1;
-    complex<double> tmplwork;
-    double tmplrwork;
-    complex<double> *zval = 0;
-    int *descz = 0;
-
-    // first call to get optimal lwork and lrwork sizes
-    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-           zval, &ione, &ione, descz, &tmplwork, &lwork,
-           &tmplrwork, &lrwork, &info);
-    lwork = (int) real(tmplwork) + 1;
-    complex<double>* work = new complex<double>[lwork];
-    lrwork = (int) tmplrwork + 1;
-    double* rwork = new double[lrwork];
-
-    pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-           zval, &ione, &ione, descz, work, &lwork,
-           rwork, &lrwork, &info);
-
-    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
-#else
-    // request optimal lwork size
-    int lwork=-1;
-    complex<double> tmplwork;
-
-    int lrwork = max(1,3*n_-2);
-    double* rwork = new double[lrwork];
-
-    zheev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork,
-          rwork, &info);
-
-    lwork = (int) real(tmplwork);
-    complex<double>* work = new complex<double>[lwork];
-
-    zheev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork,
-          rwork, &info);
-#endif
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
+    {
+      // request optimal lwork size
+      lwork=-1;
+      complex<double> tmplwork;
+      int lrwork = max(1,3*n_-2);
+      double* rwork = new double[lrwork];
+      zheev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork,
+            rwork, &info);
+      lwork = (int) real(tmplwork);
+      work = new complex<double>[lwork];
+      zheev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork,
+            rwork, &info);
+      delete[] rwork;
+    }
+    else
+    {
+      int ione=1;
+      lwork=-1;
+      int lrwork=-1;
+      complex<double> tmplwork;
+      double tmplrwork;
+      complex<double> *zval = 0;
+      int *descz = 0;
+      // first call to get optimal lwork and lrwork sizes
+      pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+             zval, &ione, &ione, descz, &tmplwork, &lwork,
+             &tmplrwork, &lrwork, &info);
+      lwork = (int) real(tmplwork) + 1;
+      work = new complex<double>[lwork];
+      lrwork = (int) tmplrwork + 1;
+      double* rwork = new double[lrwork];
+      pzheev(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+             zval, &ione, &ione, descz, work, &lwork,
+             rwork, &lrwork, &info);
+      MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+      delete[] rwork;
+    }
     if ( info != 0 )
     {
       cout << " Matrix::heev requires lwork>=" << work[0] << endl;
       cout << " Matrix::heev, lwork>=" << lwork << endl;
       cout << " Matrix::heev, info=" << info << endl;
-#ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
     }
     delete[] work;
-    delete[] rwork;
   }
 }
 
@@ -3329,84 +3303,71 @@ void ComplexMatrix::heevd(char uplo, valarray<double>& w)
     assert(m_==n_);
     char jobz = 'N';
 
-#ifdef SCALAPACK
-    int ione=1;
-    int lwork=-1;
-    int lrwork=-1;
-    int liwork=-1;
-    complex<double> tmplwork;
-    double tmplrwork;
-    int tmpliwork;
-    complex<double> *zval = 0;
-    int *descz = 0;
-
-    // first call to get optimal lwork and lrwork sizes
-    pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-           zval, &ione, &ione, descz, &tmplwork, &lwork,
-           &tmplrwork, &lrwork, &tmpliwork, &liwork, &info);
-    lwork = (int) real(tmplwork) + 1;
-    complex<double>* work = new complex<double>[lwork];
-    lrwork = (int) tmplrwork + 1;
-    liwork = tmpliwork;
-    double* rwork = new double[lrwork];
-    int* iwork = new int[liwork];
-
-    pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
-           zval, &ione, &ione, descz, work, &lwork,
-           rwork, &lrwork, iwork, &liwork, &info);
-
-    MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
-    if ( info != 0 )
+    if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
     {
-      cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
-      cout << " Matrix::heevd, lwork>=" << lwork << endl;
-      cout << " Matrix::heevd, lrwork>=" << lrwork << endl;
-      cout << " Matrix::heevd, liwork>=" << liwork << endl;
-      cout << " Matrix::heevd, info=" << info << endl;
-#ifdef USE_MPI
-      MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
+      // request optimal lwork size
+      int lwork=-1;
+      complex<double> tmplwork;
+      int lrwork = max(1,3*n_-2);
+      double* rwork = new double[lrwork];
+      zheev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork,
+            rwork, &info);
+      lwork = (int) real(tmplwork);
+      complex<double>* work = new complex<double>[lwork];
+      zheev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork,
+            rwork, &info);
+      if ( info != 0 )
+      {
+        cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
+        cout << " Matrix::heevd, lwork>=" << lwork << endl;
+        cout << " Matrix::heevd, lrwork>=" << lrwork << endl;
+        cout << " Matrix::heevd, info=" << info << endl;
+        MPI_Abort(MPI_COMM_WORLD, 2);
+      }
+      delete[] work;
+      delete[] rwork;
     }
-    delete[] work;
-    delete[] rwork;
-    delete[] iwork;
-#else
-    // request optimal lwork size
-    int lwork=-1;
-    complex<double> tmplwork;
-
-    int lrwork = max(1,3*n_-2);
-    double* rwork = new double[lrwork];
-
-    zheev(&jobz, &uplo, &m_, val, &m_, &w[0], &tmplwork, &lwork,
-          rwork, &info);
-
-    lwork = (int) real(tmplwork);
-    complex<double>* work = new complex<double>[lwork];
-
-    zheev(&jobz, &uplo, &m_, val, &m_, &w[0], work, &lwork,
-          rwork, &info);
-#endif
-    if ( info != 0 )
+    else
     {
-      cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
-      cout << " Matrix::heevd, lwork>=" << lwork << endl;
-      cout << " Matrix::heevd, lrwork>=" << lrwork << endl;
-      cout << " Matrix::heevd, info=" << info << endl;
-#ifdef USE_MPI
-      MPI_Abort(MPI_COMM_WORLD, 2);
-#else
-      exit(2);
-#endif
+      int ione=1;
+      int lwork=-1;
+      int lrwork=-1;
+      int liwork=-1;
+      complex<double> tmplwork;
+      double tmplrwork;
+      int tmpliwork;
+      complex<double> *zval = 0;
+      int *descz = 0;
+      // first call to get optimal lwork and lrwork sizes
+      pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+             zval, &ione, &ione, descz, &tmplwork, &lwork,
+             &tmplrwork, &lrwork, &tmpliwork, &liwork, &info);
+      lwork = (int) real(tmplwork) + 1;
+      complex<double>* work = new complex<double>[lwork];
+      lrwork = (int) tmplrwork + 1;
+      liwork = tmpliwork;
+      double* rwork = new double[lrwork];
+      int* iwork = new int[liwork];
+      pzheevd(&jobz, &uplo, &n_, val, &ione, &ione, desc_, &w[0],
+             zval, &ione, &ione, descz, work, &lwork,
+             rwork, &lrwork, iwork, &liwork, &info);
+      MPI_Bcast(&w[0], m_, MPI_DOUBLE, 0, ctxt_.comm());
+      if ( info != 0 )
+      {
+        cout << " Matrix::heevd requires lwork>=" << work[0] << endl;
+        cout << " Matrix::heevd, lwork>=" << lwork << endl;
+        cout << " Matrix::heevd, lrwork>=" << lrwork << endl;
+        cout << " Matrix::heevd, liwork>=" << liwork << endl;
+        cout << " Matrix::heevd, info=" << info << endl;
+        MPI_Abort(MPI_COMM_WORLD, 2);
+      }
+      delete[] work;
+      delete[] rwork;
+      delete[] iwork;
     }
-    delete[] work;
-    delete[] rwork;
   }
 }
 
-#if SCALAPACK
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::lapiv(char direc, char rowcol, const int *ipiv)
 {
@@ -3534,7 +3495,6 @@ void ComplexMatrix::lapiv(char direc, char rowcol, const int *ipiv)
   pzlapv2(&direc, &rowcol, &m_, &n_, val, &one, &one, desc_,
           &ipivtmp[0], &one, &one, desc_ip);
 }
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::print(ostream& os) const

@@ -61,7 +61,6 @@ class ExchangeOperator
 
   // Fourier transform for states and forces at gamma
   FourierTransform*  wft_;
-  FourierTransform* dwft_;
 
   // pair densities
   vector<complex<double> > rhog1_;
@@ -76,8 +75,11 @@ class ExchangeOperator
   valarray<double> int_pot2_;
 
   // numbers of states
-  int nLocalStates_;
   int nMaxLocalStates_;
+
+  // address of neighboring task for permutations
+  int colSendTo_;
+  int colRecvFr_;
 
   // exchange energies
   vector<double> exchange_ki_;
@@ -108,21 +110,8 @@ class ExchangeOperator
   vector<complex<double> > buffer_forces_1_;
   vector<complex<double> > buffer_forces_2_;
 
-  // contexts and communicators
-  const Context &gcontext_;
-  MPI_Comm vcomm_;
-
-  // Communications
-  int colSendTo_;
-  int colRecvFr_;
-  int iSendTo_;
-  int iRecvFr_;
-
   int nStatesKpi_;
   int nNextStatesKpi_;
-
-  // communicator
-  MPI_Comm comm_;
 
   // MPI communications request
   MPI_Request send_request_NumberOfStates_;

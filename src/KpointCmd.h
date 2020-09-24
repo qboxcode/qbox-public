@@ -19,6 +19,7 @@
 #ifndef KPOINTCMD_H
 #define KPOINTCMD_H
 
+#include "MPIdata.h"
 #include "UserInterface.h"
 #include "D3vector.h"
 #include "Sample.h"
@@ -45,7 +46,7 @@ class KpointCmd : public Cmd
 
   int action(int argc, char **argv)
   {
-    const bool onpe0 = s->ctxt_.onpe0();
+    const bool onpe0 = MPIdata::onpe0();
     if ( argc < 2 )
     {
       if ( onpe0 )
@@ -106,22 +107,25 @@ class KpointCmd : public Cmd
       }
       if ( onpe0 )
       {
-        cout << " <!-- kpoint list: reciprocal lattice coordinates" << endl;
+        cout << " kpoint list: reciprocal lattice coordinates" << endl;
         for ( int ikp = 0; ikp < s->wf.nkp(); ikp++ )
         {
           cout << " "
                << s->wf.kpoint(ikp) << "    " << s->wf.weight(ikp) << endl;
         }
-        cout << "    kpoint list: cartesian coordinates" << endl;
-        UnitCell u = s->wf.cell();
+        cout << " kpoint list: cartesian coordinates" << endl;
+        const UnitCell& u = s->wf.cell();
+        double wsum = 0.0;
         for ( int ikp = 0; ikp < s->wf.nkp(); ikp++ )
         {
           D3vector kp = s->wf.kpoint(ikp);
+          double w = s->wf.weight(ikp);
           cout << " "
                << kp * u.b(0) << " " << kp * u.b(1) << " " << kp * u.b(2)
-               << "    " << s->wf.weight(ikp) << endl;
+               << "    " << w << endl;
+          wsum += w;
         }
-        cout << " -->" << endl;
+        cout << " total weight: " << wsum << endl;
       }
     }
     else

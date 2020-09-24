@@ -44,7 +44,18 @@ int SpeciesCmd::action(int argc, char **argv)
   if ( ui->onpe0() )
     sp_reader.uri_to_string(argv[2], argv[1], xmlstr);
 
-  s->ctxt_.string_bcast(xmlstr,0);
+  int length;
+  if ( MPIdata::onpe0() )
+    length = xmlstr.size();
+  MPI_Bcast(&length,1,MPI_INT,0,MPIdata::comm());
+  char* buf = new char[length+1];
+  xmlstr.copy(buf,length,0);
+  buf[length]='\0';
+  MPI_Bcast(buf,length+1,MPI_CHAR,0,MPIdata::comm());
+  xmlstr = buf;
+  delete [] buf;
+
+  //s->ctxt_.string_bcast(xmlstr,0);
   Species* sp = new Species("argv[1]");
   sp_reader.string_to_species(xmlstr,*sp);
   s->atoms.addSpecies(sp,argv[1]);

@@ -26,36 +26,64 @@ using namespace std;
 int main(int argc, char **argv)
 {
   int mype;
-  int npes;
+  int size;
 
   MPI_Init(&argc,&argv);
-  MPI_Comm_size(MPI_COMM_WORLD, &npes);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 
-  if ( argc != 3 )
+  if ( argc != 5 )
   {
-    cout << "use: testContext nrow ncol" << endl;
+    cout << "use: testContext ngb nstb nspb nkpb" << endl;
     return 1;
   }
-  int nr = atoi(argv[1]);
-  int nc = atoi(argv[2]);
+  // read number of G-vector blocks, states blocks, spin blocks, kp blocks
+  int ngb = atoi(argv[1]);
+  int nstb = atoi(argv[2]);
+  int nspb = atoi(argv[3]);
+  int nkpb = atoi(argv[4]);
+  // check that all numbers of blocks are positive
+  assert(ngb>0);
+  assert(nstb>0);
+  assert(nspb>0);
+  assert(nkpb>0);
+
+  // create 4-dim Cart_comm
+  assert(ngb*nstb*nspb*nkpb == size);
+
+  int ndims=4;
+  int dims[4] = { ngb, nstb, nspb, nkpb };
+  // plan for cyclic rotation of states blocks
+  int periods[4] = { 0, 1, 0, 0};
+  int reorder = 0;
+
+  MPI_Comm comm;
+  MPI_Cart_create(MPI_COMM_WORLD,ndims,dims,periods,reorder,&comm);
+
+  // print 4-dim coordinates of each task
+  int coords[4];
+  MPI_Cart_coords(comm,mype,4,coords);
+
+  cout << mype << ": coords: "
+       << coords[0] << " " << coords[1] << " "
+       << coords[2] << " " << coords[3] << endl;
 
   { // start Context scope
 
-    Context ctxt(MPI_COMM_WORLD);
-    for ( int i = 0; i < npes; i++ )
+    Context ctxt(comm);
+    for ( int i = 0; i < size; i++ )
     {
-      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(comm);
       if ( i == mype )
         cout << mype << ":" << ctxt.mype() << ":" << ctxt.myproc()
          << " base: " << ctxt;
     }
     vector<Context*> c;
 
-    c.push_back(new Context(MPI_COMM_WORLD,nr,nc));
+    c.push_back(new Context(comm,ngb,nstb));
     cout << ctxt.mype() << ": " << *c[0];
 
-    if ( *c[0] )
+    if ( c[0]->active() )
       cout << ctxt.mype() << ": c[0] is active" << endl;
 
     // test dgsum2d function
@@ -74,5 +102,6 @@ int main(int argc, char **argv)
 
   } // end Context scope
 
+  MPI_Comm_free(&comm);
   MPI_Finalize();
 }

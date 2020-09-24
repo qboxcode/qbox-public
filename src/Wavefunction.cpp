@@ -16,19 +16,21 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "MPIdata.h"
 #include "Wavefunction.h"
 #include "SlaterDet.h"
 #include "FourierTransform.h"
 #include "jacobi.h"
 #include "SharedFilePtr.h"
+#include "cout0.h"
 #include <vector>
 #include <iomanip>
 #include <sstream>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
-Wavefunction::Wavefunction(const Context& ctxt) : ctxt_(ctxt), nel_(0),
-nempty_(0), nspin_(1), deltaspin_(0), ecut_(0.0), nrowmax_(32)
+Wavefunction::Wavefunction(const Context& sd_ctxt) : sd_ctxt_(sd_ctxt), nel_(0),
+nempty_(0), nspin_(1), deltaspin_(0), ecut_(0.0)
 {
   // create a default wavefunction: one k point, k=0
   kpoint_.resize(1);
@@ -36,24 +38,15 @@ nempty_(0), nspin_(1), deltaspin_(0), ecut_(0.0), nrowmax_(32)
   weight_.resize(1);
   weight_[0] = 1.0;
   compute_nst();
-  create_contexts();
   allocate();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-Wavefunction::Wavefunction(const Wavefunction& wf) : ctxt_(wf.ctxt_),
+Wavefunction::Wavefunction(const Wavefunction& wf) : sd_ctxt_(wf.sd_ctxt_),
 nel_(wf.nel_), nempty_(wf.nempty_), nspin_(wf.nspin_), nst_(wf.nst_),
-deltaspin_(wf.deltaspin_), nrowmax_(wf.nrowmax_),
-cell_(wf.cell_), refcell_(wf.refcell_),
+deltaspin_(wf.deltaspin_), cell_(wf.cell_), refcell_(wf.refcell_),
 ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
 {
-  // Create a Wavefunction using the dimensions of the argument
-  // Next lines: do special allocation of contexts to ensure that
-  // contexts are same as those of wf
-  spincontext_ = new Context(*wf.spincontext_);
-  kpcontext_ = new Context(*wf.kpcontext_);
-  sdcontext_ = new Context(*wf.sdcontext_);
-
   allocate();
   resize();
   init();
@@ -63,23 +56,65 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
 Wavefunction::~Wavefunction()
 {
   deallocate();
-  delete spincontext_;
-  delete kpcontext_;
-  delete sdcontext_;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::allocate(void)
 {
-  // create SlaterDets using kpoint list
+  // compute local number of kpoints nkp_loc_[ikpb]
+  nkp_loc_.resize(MPIdata::nkpb());
   const int nkp = kpoint_.size();
-  sd_.resize(nspin_);
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  //cout << MPIdata::rank() << ": nkp=" << nkp << endl;
+  //cout << MPIdata::rank() << ": MPIdata::nkpb()=" << MPIdata::nkpb() << endl;
+  for ( int ikpb = 0; ikpb < MPIdata::nkpb(); ++ikpb )
   {
-    sd_[ispin].resize(nkp);
-    for ( int ikp = 0; ikp < nkp; ikp++ )
+    nkp_loc_[ikpb] = nkp / MPIdata::nkpb() +
+                     (ikpb < (nkp % MPIdata::nkpb()) ? 1 : 0);
+    //cout << MPIdata::rank() << ": nkp_loc_[" << ikpb << "]="
+    //     << nkp_loc_[ikpb] << endl;
+  }
+
+  // round robin allocation of kpoints
+  ikp_global_.resize(0);
+  for ( int ikpg = MPIdata::ikpb(); ikpg < nkp; ikpg += MPIdata::nkpb() )
+  {
+    ikp_global_.push_back(ikpg);
+  }
+
+  //cout << MPIdata::rank() << ": nkp_loc_[MPIdata::ikpb]="
+  //     << nkp_loc_[MPIdata::ikpb()] << endl;
+  //cout << MPIdata::rank() << ": ikp_global_.size()="
+  //     << ikp_global_.size() << endl;
+  assert(nkp_loc_[MPIdata::ikpb()] == ikp_global_.size());
+
+  // compute local number of spins nsp_loc_[ispb]
+  nsp_loc_.resize(MPIdata::nspb());
+  for ( int ispb = 0; ispb < MPIdata::nspb(); ++ispb)
+  {
+    nsp_loc_[ispb] = nspin_ / MPIdata::nspb() +
+                      (ispb < (nspin_ % MPIdata::nspb()) ? 1 : 0);
+    //cout << MPIdata::rank() << ": nsp_loc_[" << ispb << "]="
+    //     << nsp_loc_[ispb] << endl;
+  }
+
+  // round robin allocation of spins
+  isp_global_.resize(0);
+  for ( int ispg = MPIdata::ispb(); ispg < nspin_; ispg += MPIdata::nspb() )
+  {
+    isp_global_.push_back(ispg);
+  }
+
+  assert(nsp_loc_[MPIdata::ispb()] == isp_global_.size());
+
+  // create local SlaterDets
+  sd_.resize(nsp_loc_[MPIdata::ispb()]);
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
+  {
+    sd_[isp_loc].resize(nkp_loc_[MPIdata::ikpb()]);
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sd_[ispin][ikp] = new SlaterDet(*sdcontext_,kpoint_[ikp]);
+      int ikp = ikp_global_[ikp_loc];
+      sd_[isp_loc][ikp_loc] = new SlaterDet(sd_ctxt_,kpoint_[ikp]);
     }
   }
 }
@@ -87,18 +122,34 @@ void Wavefunction::allocate(void)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::deallocate(void)
 {
-  for ( int ispin = 0; ispin < sd_.size(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < sd_[ispin].size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      delete sd_[ispin][ikp];
+      delete sd_[isp_loc][ikp_loc];
     }
-    sd_[ispin].resize(0);
+    sd_[isp_loc].resize(0);
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::nkp(void) const { return kpoint_.size(); }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::nkp_loc() const { return nkp_loc_[MPIdata::ikpb()]; }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::ikp_global(int ikp) const { return ikp_global_[ikp]; }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::ikp_local(int ikpg) const
+{
+  // return local index of ikpg if hosted on this task, -1 otherwise
+  if ( ( ikpg % MPIdata::nkpb() ) == MPIdata::ikpb() )
+    return ikpg / MPIdata::nkpb();
+  else
+    return -1;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::nel() const { return nel_; } // total number of electrons
@@ -126,20 +177,39 @@ int Wavefunction::nempty() const { return nempty_; }
 int Wavefunction::nspin() const { return nspin_; }
 
 ////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::nsp_loc() const { return nsp_loc_[MPIdata::ispb()]; }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::isp_global(int isp) const { return isp_global_[isp]; }
+
+////////////////////////////////////////////////////////////////////////////////
+int Wavefunction::isp_local(int ispg) const
+{
+  // return local index of ispg if hosted on this task, -1 otherwise
+  if ( ( ispg % MPIdata::nspb() ) == MPIdata::ispb() )
+    return ispg / MPIdata::nspb();
+  else
+    return -1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 int Wavefunction::deltaspin() const { return deltaspin_; }
 
 ////////////////////////////////////////////////////////////////////////////////
 double Wavefunction::entropy(void) const
 {
   double sum = 0.0;
-  for ( int ispin = 0; ispin < nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < nkp(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sum += weight_[ikp] * sd(ispin,ikp)->entropy(nspin_);
+      int ikp = ikp_global_[ikp_loc];
+      sum += weight_[ikp] * sd(isp_loc,ikp_loc)->entropy(nspin_);
     }
   }
-  return sum;
+  double tsum;
+  MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::kp_sp_comm());
+  return tsum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -148,11 +218,12 @@ void Wavefunction::resize(void)
   try
   {
     // resize all SlaterDets using current cell_, refcell_, ecut_, nst_[ispin]
-    for ( int ispin = 0; ispin < nspin_; ispin++ )
+    for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
     {
-      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+      for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
       {
-        sd_[ispin][ikp]->resize(cell_,refcell_,ecut_,nst_[ispin]);
+        int isp = isp_global_[isp_loc];
+        sd_[isp_loc][ikp_loc]->resize(cell_,refcell_,ecut_,nst_[isp]);
       }
     }
   }
@@ -177,11 +248,12 @@ void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell,
   try
   {
     // resize all SlaterDets using cell, refcell, ecut and nst_[ispin]
-    for ( int ispin = 0; ispin < nspin_; ispin++ )
+    for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
     {
-      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+      for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
       {
-        sd_[ispin][ikp]->resize(cell,refcell,ecut,nst_[ispin]);
+        int isp = isp_global_[isp_loc];
+        sd_[isp_loc][ikp_loc]->resize(cell,refcell,ecut,nst_[isp]);
       }
     }
     cell_ = cell;
@@ -206,11 +278,11 @@ void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell,
 void Wavefunction::init(void)
 {
   // initialize all SlaterDets with lowest energy plane waves
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sd_[ispin][ikp]->init();
+      sd_[isp_loc][ikp_loc]->init();
     }
   }
 }
@@ -219,11 +291,11 @@ void Wavefunction::init(void)
 void Wavefunction::clear(void)
 {
   // initialize all SlaterDets with zero
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sd_[ispin][ikp]->c().clear();
+      sd_[isp_loc][ikp_loc]->c().clear();
     }
   }
 }
@@ -318,7 +390,7 @@ void Wavefunction::set_deltaspin(int deltaspin)
   // nst_[1] = nel_ / 2 - deltaspin_ + nempty_;
   if ( nel_ / 2 - deltaspin + nempty_ < 0 )
   {
-    if ( ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
     {
       cout << " Wavefunction::set_deltaspin: nel+nempty too small" << endl;
       cout << " Wavefunction::set_deltaspin: cannot set deltaspin" << endl;
@@ -335,53 +407,13 @@ void Wavefunction::set_deltaspin(int deltaspin)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::create_contexts(void)
-{
-  // determine dimensions of sdcontext
-  assert(nrowmax_>0);
-  const int size = ctxt_.size();
-  int npr = nrowmax_;
-  while ( size%npr != 0 ) npr--;
-  // npr now divides size
-  int npc = size/npr;
-
-  spincontext_ = new Context(ctxt_.comm(),npr,npc);
-  kpcontext_ = new Context(*spincontext_);
-  sdcontext_ = new Context(*kpcontext_);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::set_nrowmax(int n)
-{
-  if ( n > ctxt_.size() )
-  {
-    if ( ctxt_.onpe0() )
-      cout << " Wavefunction::set_nrowmax: nrowmax > number of tasks" << endl
-           << " Wavefunction::set_nrowmax: nrowmax set to "
-           << ctxt_.size() << endl;
-    n = ctxt_.size();
-  }
-
-  deallocate();
-  delete spincontext_;
-  delete kpcontext_;
-  delete sdcontext_;
-  nrowmax_ = n;
-  create_contexts();
-  compute_nst();
-  allocate();
-  resize();
-  init();
-}
-
-////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::add_kpoint(D3vector kpoint, double weight)
 {
   for ( int i = 0; i < kpoint_.size(); i++ )
   {
     if ( length(kpoint - kpoint_[i]) < 1.e-6 )
     {
-      if ( ctxt_.onpe0() )
+      if ( MPIdata::onpe0() )
         cout << " Wavefunction::add_kpoint: kpoint already defined"
              << endl;
       return;
@@ -391,29 +423,42 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
   kpoint_.push_back(kpoint);
   weight_.push_back(weight);
 
-  const int nkp = kpoint_.size();
-  sd_.resize(nspin_);
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  // Add SlaterDet
+  // determine on which block the SlaterDet should be added
+  const int ikp_new = kpoint_.size() - 1;
+  sd_.resize(nsp_loc());
+  const int ikp_loc = ikp_local(ikp_new);
+  if ( ikp_loc >= 0 )
   {
-    sd_[ispin].push_back(new SlaterDet(*sdcontext_,kpoint_[nkp-1]));
-    sd_[ispin][nkp-1]->resize(cell_,refcell_,ecut_,nst_[ispin]);
-  }
+    // new kpoint is local to the current block
+    nkp_loc_[MPIdata::ikpb()]++;
+    ikp_global_.push_back(ikp_new);
+    for ( int isp_loc = 0; isp_loc < nsp_loc(); ++isp_loc )
+    {
+      sd_[isp_loc].push_back(new SlaterDet(sd_ctxt_,kpoint_[ikp_new]));
+      sd_[isp_loc][ikp_loc]->resize(cell_,refcell_,ecut_,
+        nst_[isp_global(isp_loc)]);
+    }
 
-  if ( nspin_ == 1 )
-  {
-    sd_[0][nkp-1]->update_occ(nel_,nspin_);
-  }
-  else if ( nspin_ == 2 )
-  {
-    const int nocc_up = (nel_+1)/2+deltaspin_;
-    const int nocc_dn = nel_/2 - deltaspin_;
-    sd_[0][nkp-1]->update_occ(nocc_up,nspin_);
-    sd_[1][nkp-1]->update_occ(nocc_dn,nspin_);
-  }
-  else
-  {
-    // incorrect value of nspin_
-    assert(false);
+    if ( nspin_ == 1 )
+    {
+      if ( nsp_loc() > 0 )
+        sd_[0][ikp_loc]->update_occ(nel_,nspin_);
+    }
+    else if ( nspin_ == 2 )
+    {
+      const int nocc_up = (nel_+1)/2+deltaspin_;
+      const int nocc_dn = nel_/2 - deltaspin_;
+      if ( nsp_loc() > 0 )
+        sd_[0][ikp_loc]->update_occ(nocc_up,nspin_);
+      if ( nsp_loc() > 1 )
+        sd_[1][ikp_loc]->update_occ(nocc_dn,nspin_);
+    }
+    else
+    {
+      // incorrect value of nspin_
+      assert(false);
+    }
   }
 }
 
@@ -437,7 +482,7 @@ void Wavefunction::del_kpoint(D3vector kpoint)
   }
   if ( !found )
   {
-    if ( ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
       cout << " Wavefunction::del_kpoint: no such kpoint"
          << endl;
     return;
@@ -469,82 +514,104 @@ void Wavefunction::move_kpoint(D3vector kpoint, D3vector newkpoint)
   }
   if ( !found )
   {
-    if ( ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
       cout << " Wavefunction::move_kpoint: no such kpoint"
          << endl;
     return;
   }
-  // check if newkpoint coincides with existing kpoint
+  // check if new kpoint position coincides with existing kpoint
   for ( int i = 0; i < kpoint_.size(); i++ )
   {
     if ( length(newkpoint - kpoint_[i]) < 1.e-6 )
     {
-      if ( ctxt_.onpe0() )
+      if ( MPIdata::onpe0() )
         cout << " Wavefunction::move_kpoint: kpoint already defined "
-             << "at newkpoint position"
+             << "at kpoint new position"
              << endl;
       return;
     }
   }
 
+  // ikp: global index of kpoint to be moved
+  const int ikp_loc = ikp_local(ikp);
+
   // copy wavefunctions from old SlaterDet at kpoint to new SlaterDet
   // at newkpoint
   for ( int ispin = 0; ispin < nspin_; ispin++ )
   {
-    // create new SlaterDet at newkpoint
-    SlaterDet *sd = sd_[ispin][ikp];
-    SlaterDet *sdn = new SlaterDet(*sdcontext_,newkpoint);
-    sdn->resize(cell_,refcell_,ecut_,nst_[ispin]);
-    sdn->init();
-    // copy wave functions from old to new SlaterDet
-    const Basis& basis = sd_[ispin][ikp]->basis();
-    const Basis& newbasis = sdn->basis();
-    // transform all states to real space and interpolate
-    int np0 = max(basis.np(0),newbasis.np(0));
-    int np1 = max(basis.np(1),newbasis.np(1));
-    int np2 = max(basis.np(2),newbasis.np(2));
-    FourierTransform ft1(basis,np0,np1,np2);
-    FourierTransform ft2(newbasis,np0,np1,np2);
-    // allocate real-space grid
-    valarray<complex<double> > tmpr(ft1.np012loc());
-    for ( int n = 0; n < sd->nstloc(); n++ )
+    const int isp_loc = isp_local(ispin);
+    if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
     {
-      for ( int i = 0; i < tmpr.size(); i++ )
-        tmpr[i] = 0.0;
-      ComplexMatrix& c = sd->c();
-      ComplexMatrix& cn = sdn->c();
-      ft1.backward(c.valptr(n*c.mloc()),&tmpr[0]);
-      // if the new kpoint is Gamma, remove the phase of the wavefunction
-      // using the phase of the first element of the array
-      if ( newbasis.real() )
-      {
-        double arg0 = arg(tmpr[0]);
-        // broadcast argument found on task 0
-        MPI_Bcast(&arg0,1,MPI_DOUBLE,0,basis.comm());
-        complex<double> z = polar(1.0,-arg0);
-        for ( int i = 0; i < tmpr.size(); i++ )
-          tmpr[i] *= z;
-      }
-      ft2.forward(&tmpr[0], cn.valptr(n*cn.mloc()));
-    }
+      // this task holds kpoint ikp
 
-    // delete old SlaterDet
-    delete sd_[ispin][ikp];
-    // reassign pointer
-    sd_[ispin][ikp] = sdn;
-  }
+      // create new SlaterDet at newkpoint
+      SlaterDet *sd = sd_[isp_loc][ikp_loc];
+      SlaterDet *sdn = new SlaterDet(sd->context(),newkpoint);
+      sdn->resize(cell_,refcell_,ecut_,nst_[ispin]);
+      sdn->init();
+      // copy wave functions from old to new SlaterDet
+      const Basis& basis = sd_[isp_loc][ikp_loc]->basis();
+      const Basis& newbasis = sdn->basis();
+      // transform all states to real space and interpolate
+      int np0 = max(basis.np(0),newbasis.np(0));
+      int np1 = max(basis.np(1),newbasis.np(1));
+      int np2 = max(basis.np(2),newbasis.np(2));
+      FourierTransform ft1(basis,np0,np1,np2);
+      FourierTransform ft2(newbasis,np0,np1,np2);
+      // allocate real-space grid
+      valarray<complex<double> > tmpr(ft1.np012loc());
+      for ( int n = 0; n < sd->nstloc(); n++ )
+      {
+        for ( int i = 0; i < tmpr.size(); i++ )
+          tmpr[i] = 0.0;
+        ComplexMatrix& c = sd->c();
+        ComplexMatrix& cn = sdn->c();
+        ft1.backward(c.valptr(n*c.mloc()),&tmpr[0]);
+        // if the new kpoint is Gamma, remove the phase of the wavefunction
+        // using the phase of the first element of the array
+        if ( newbasis.real() )
+        {
+          double arg0 = arg(tmpr[0]);
+          // broadcast argument found on task 0
+          MPI_Bcast(&arg0,1,MPI_DOUBLE,0,basis.comm());
+          complex<double> z = polar(1.0,-arg0);
+          for ( int i = 0; i < tmpr.size(); i++ )
+            tmpr[i] *= z;
+        }
+        ft2.forward(&tmpr[0], cn.valptr(n*cn.mloc()));
+      }
+
+      // delete old SlaterDet
+      delete sd_[isp_loc][ikp_loc];
+      // reassign pointer
+      sd_[isp_loc][ikp_loc] = sdn;
+
+      // randomize new SlaterDet to break symmetry
+      sd_[isp_loc][ikp_loc]->randomize(1.e-4);
+
+    } // if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
+  } // for ispin
+
   kpoint_[ikp] = newkpoint;
 
+  // update occupation numbers
   if ( nspin_ == 1 )
   {
-    sd_[0][ikp]->update_occ(nel_,nspin_);
+    if ( ( isp_local(0) >= 0 ) && ( ikp_loc >= 0 ) )
+    {
+      sd_[isp_local(0)][ikp_loc]->update_occ(nel_,nspin_);
+    }
   }
   else if ( nspin_ == 2 )
   {
     const int nocc_up = (nel_+1)/2+deltaspin_;
     const int nocc_dn = nel_/2 - deltaspin_;
-    sd_[0][ikp]->update_occ(nocc_up,nspin_);
-    sd_[1][ikp]->update_occ(nocc_dn,nspin_);
+
+    if ( ( isp_local(0) >= 0 ) && ( ikp_loc >= 0 ) )
+      sd_[isp_local(0)][ikp_loc]->update_occ(nocc_up,nspin_);
+
+    if ( ( isp_local(1) >= 0 ) && ( ikp_loc >= 0 ) )
+      sd_[isp_local(1)][ikp_loc]->update_occ(nocc_dn,nspin_);
   }
   else
   {
@@ -556,11 +623,11 @@ void Wavefunction::move_kpoint(D3vector kpoint, D3vector newkpoint)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::randomize(double amplitude)
 {
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sd_[ispin][ikp]->randomize(amplitude);
+      sd_[isp_loc][ikp_loc]->randomize(amplitude);
     }
   }
 }
@@ -574,19 +641,31 @@ void Wavefunction::update_occ(double temp)
     // zero temperature
     if ( nspin_ == 1 )
     {
-      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+      for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
       {
-        sd_[0][ikp]->update_occ(nel_,nspin_);
+        for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
+        {
+          sd_[isp_loc][ikp_loc]->update_occ(nel_,nspin_);
+        }
       }
     }
     else if ( nspin_ == 2 )
     {
-      const int nocc_up = (nel_+1)/2+deltaspin_;
-      const int nocc_dn = nel_/2 - deltaspin_;
-      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+      for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
       {
-        sd_[0][ikp]->update_occ(nocc_up,nspin_);
-        sd_[1][ikp]->update_occ(nocc_dn,nspin_);
+        for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
+        {
+          if ( isp_global_[isp_loc] == 0 )
+          {
+            const int nocc_up = (nel_+1)/2+deltaspin_;
+            sd_[isp_loc][ikp_loc]->update_occ(nocc_up,nspin_);
+          }
+          else
+          {
+            const int nocc_dn = nel_/2 - deltaspin_;
+            sd_[isp_loc][ikp_loc]->update_occ(nocc_dn,nspin_);
+          }
+        }
       }
     }
     else
@@ -609,14 +688,19 @@ void Wavefunction::update_occ(double temp)
     direction dir = up;
 
     double rhosum = 0.0;
-    for ( int ispin = 0; ispin < nspin_; ispin++ )
+    for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
     {
-      for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+      for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
       {
-        sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
-        rhosum += weight_[ikp] * sd_[ispin][ikp]->total_charge();
+        sd_[isp_loc][ikp_loc]->update_occ(nspin_,mu,temp);
+        const int ikpg = ikp_global_[ikp_loc];
+        rhosum += weight_[ikpg] * sd_[isp_loc][ikp_loc]->total_charge();
       }
     }
+    // sum over spin and kpoints
+    double tmpsum = 0.0;
+    MPI_Allreduce(&rhosum,&tmpsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::kp_sp_comm());
+    rhosum = tmpsum;
 
     int niter = 0;
     while ( niter < maxiter && fabs(rhosum - nel_) > 1.e-10 )
@@ -635,24 +719,27 @@ void Wavefunction::update_occ(double temp)
         dir = down;
       }
       rhosum = 0.0;
-      for ( int ispin = 0; ispin < nspin_; ispin++ )
+      for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
       {
-        for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+        for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
         {
-          sd_[ispin][ikp]->update_occ(nspin_,mu,temp);
-          rhosum += weight_[ikp] * sd_[ispin][ikp]->total_charge();
+          sd_[isp_loc][ikp_loc]->update_occ(nspin_,mu,temp);
+          int ikp = ikp_global_[ikp_loc];
+          rhosum += weight_[ikp] * sd_[isp_loc][ikp_loc]->total_charge();
         }
       }
+      MPI_Allreduce(&rhosum,&tmpsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::kp_sp_comm());
+      rhosum = tmpsum;
     }
 
     if ( niter == maxiter )
     {
       cout << "Wavefunction::update_occ: mu did not converge in "
            << maxiter << " iterations" << endl;
-      ctxt_.abort(1);
+      MPI_Abort(MPIdata::comm(),1);
     }
 
-    if ( ctxt_.onpe0() )
+    if ( MPIdata::onpe0() )
     {
       cout << " Wavefunction::update_occ: sum = "
            << rhosum << endl;
@@ -665,16 +752,27 @@ void Wavefunction::update_occ(double temp)
       cout << " Wavefunction::update_occ: occupation numbers" << endl;
       for ( int ispin = 0; ispin < nspin_; ispin++ )
       {
-        for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+        const int isp_loc = ispin / MPIdata::nspb();
+        const int ispb = ispin % MPIdata::nspb();
+        if ( ispb == MPIdata::ispb() )
         {
-          cout << " k = " << kpoint_[ikp] << endl;
-          for ( int n = 0; n < sd_[ispin][ikp]->nst(); n++ )
+          for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
           {
-            cout << setw(7) << setprecision(4) << sd_[ispin][ikp]->occ(n);
-            if ( ( n%10 ) == 9 ) cout << endl;
+            const int ikp_loc = ikp / MPIdata::nkpb();
+            const int ikpb = ikp % MPIdata::nkpb();
+            if ( ikpb == MPIdata::ikpb() )
+            {
+              cout << " k = " << kpoint_[ikp] << endl;
+              for ( int n = 0; n < sd_[isp_loc][ikp_loc]->nst(); n++ )
+              {
+                cout << setw(7) << setprecision(4)
+                     << sd_[isp_loc][ikp_loc]->occ(n);
+                if ( ( n%10 ) == 9 ) cout << endl;
+              }
+              if ( sd_[ispin][ikp]->nst() % 10 != 0 )
+                cout << endl;
+            }
           }
-          if ( sd_[ispin][ikp]->nst() % 10 != 0 )
-            cout << endl;
         }
       }
     }
@@ -684,11 +782,11 @@ void Wavefunction::update_occ(double temp)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::gram(void)
 {
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sd_[ispin][ikp]->gram();
+      sd_[isp_loc][ikp_loc]->gram();
     }
   }
 }
@@ -696,12 +794,12 @@ void Wavefunction::gram(void)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::riccati(Wavefunction& wf)
 {
-  assert(wf.context() == ctxt_);
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  assert(wf.sd_context() == sd_ctxt_);
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sd_[ispin][ikp]->riccati(*wf.sd_[ispin][ikp]);
+      sd_[isp_loc][ikp_loc]->riccati(*wf.sd_[isp_loc][ikp_loc]);
     }
   }
 }
@@ -709,12 +807,12 @@ void Wavefunction::riccati(Wavefunction& wf)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::align(Wavefunction& wf)
 {
-  assert(wf.context() == ctxt_);
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  assert(wf.sd_context() == sd_ctxt_);
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sd_[ispin][ikp]->align(*wf.sd_[ispin][ikp]);
+      sd_[isp_loc][ikp_loc]->align(*wf.sd_[isp_loc][ikp_loc]);
     }
   }
 }
@@ -722,16 +820,21 @@ void Wavefunction::align(Wavefunction& wf)
 ////////////////////////////////////////////////////////////////////////////////
 complex<double> Wavefunction::dot(const Wavefunction& wf) const
 {
-  assert(wf.context() == ctxt_);
+  assert(wf.sd_context() == sd_ctxt_);
   complex<double> sum = 0.0;
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sum += weight_[ikp] * sd_[ispin][ikp]->dot(*wf.sd_[ispin][ikp]);
+      const int ikpg = ikp_global(ikp_loc);
+      sum += weight_[ikpg] *
+        sd_[isp_loc][ikp_loc]->dot(*wf.sd_[isp_loc][ikp_loc]);
     }
   }
-  return sum;
+  // sum over kpoint and spin comms
+  complex<double> tsum;
+  MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE_COMPLEX,MPI_SUM,MPIdata::kp_sp_comm());
+  return tsum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -740,101 +843,80 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
   // subspace diagonalization of <*this | dwf>
   // if eigvec==true, eigenvectors are computed and stored in *this, dwf is
   // overwritten
-  for ( int ispin = 0; ispin < nspin(); ispin++ )
+  for ( int isp_loc = 0; isp_loc < nsp_loc(); ++isp_loc )
   {
-    if ( nst_[ispin] > 0 )
+    assert( nst_[isp_global(isp_loc)] > 0 );
+    for ( int ikp_loc = 0; ikp_loc < nkp_loc(); ++ikp_loc )
     {
-      for ( int ikp = 0; ikp < nkp(); ikp++ )
+      // compute eigenvalues
+      if ( sd(isp_loc,ikp_loc)->basis().real() )
       {
-        // compute eigenvalues
-        if ( sd(ispin,ikp)->basis().real() )
-        {
-          // proxy real matrices c, cp
-          DoubleMatrix c(sd(ispin,ikp)->c());
-          DoubleMatrix cp(dwf.sd(ispin,ikp)->c());
+        // proxy real matrices c, cp
+        DoubleMatrix c(sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix cp(dwf.sd(isp_loc,ikp_loc)->c());
 
-          DoubleMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        DoubleMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
 
-          // factor 2.0 in next line: G and -G
-          h.gemm('t','n',2.0,c,cp,0.0);
-          // rank-1 update correction
-          h.ger(-1.0,c,0,cp,0);
+        // factor 2.0 in next line: G and -G
+        h.gemm('t','n',2.0,c,cp,0.0);
+        // rank-1 update correction
+        h.ger(-1.0,c,0,cp,0);
 
-          // cout << " Hamiltonian at k = " << sd(ispin,ikp)->kpoint()
-          //      << endl;
-          // cout << h;
+        // cout << " Hamiltonian at k = " << sd(ispin,ikp)->kpoint()
+        //      << endl;
+        // cout << h;
 
 #if 1
-          valarray<double> w(h.m());
-          if ( eigvec )
-          {
-            DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            h.syev('l',w,z);
-            //h.syevx('l',w,z,1.e-6);
-            cp = c;
-            c.gemm('n','n',1.0,cp,z,0.0);
-          }
-          else
-          {
-            h.syev('l',w);
-          }
-#else
-          vector<double> w(h.m());
+        valarray<double> w(h.m());
+        if ( eigvec )
+        {
           DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
-          const int maxsweep = 30;
-          int nsweep = jacobi(maxsweep,1.e-6,h,z,w);
-          if ( eigvec )
-          {
-            cp = c;
-            c.gemm('n','n',1.0,cp,z,0.0);
-          }
-#endif
-          // set eigenvalues in SlaterDet
-          sd(ispin,ikp)->set_eig(w);
+          h.syev('l',w,z);
+          //h.syevx('l',w,z,1.e-6);
+          cp = c;
+          c.gemm('n','n',1.0,cp,z,0.0);
         }
         else
         {
-          ComplexMatrix& c(sd(ispin,ikp)->c());
-          ComplexMatrix& cp(dwf.sd(ispin,ikp)->c());
-          ComplexMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
-          h.gemm('c','n',1.0,c,cp,0.0);
-          // cout << " Hamiltonian at k = "
-          //      << sd(ispin,ikp)->kpoint() << endl;
-          // cout << h;
-          valarray<double> w(h.m());
-          if ( eigvec )
-          {
-#if DEBUG
-            ComplexMatrix hcopy(h);
-#endif
-            ComplexMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            h.heev('l',w,z);
-            cp = c;
-            c.gemm('n','n',1.0,cp,z,0.0);
-#if DEBUG
-            // check that z contains eigenvectors of h
-            // diagonal matrix with eigenvalues on diagonal
-            ComplexMatrix d(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            // the following test works only on one task
-            assert(ctxt_.size()==1);
-            for ( int i = 0; i < d.m(); i++ )
-              d[i+d.n()*i] = w[i];
-            ComplexMatrix dz(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            dz.gemm('n','c',1.0,d,z,0.0);
-            ComplexMatrix zdz(c.context(),c.n(),c.n(),c.nb(),c.nb());
-            zdz.gemm('n','n',1.0,z,dz,0.0);
-            // zdz should be equal to hcopy
-            zdz -= hcopy;
-            cout << " heev: norm of error: " << zdz.nrm2() << endl;
-#endif
-          }
-          else
-          {
-            h.heev('l',w);
-          }
-          // set eigenvalues in SlaterDet
-          sd(ispin,ikp)->set_eig(w);
+          h.syev('l',w);
         }
+#else
+        vector<double> w(h.m());
+        DoubleMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        const int maxsweep = 30;
+        int nsweep = jacobi(maxsweep,1.e-6,h,z,w);
+        if ( eigvec )
+        {
+          cp = c;
+          c.gemm('n','n',1.0,cp,z,0.0);
+        }
+#endif
+        // set eigenvalues in SlaterDet
+        sd(isp_loc,ikp_loc)->set_eig(w);
+      }
+      else
+      {
+        ComplexMatrix& c(sd(isp_loc,ikp_loc)->c());
+        ComplexMatrix& cp(dwf.sd(isp_loc,ikp_loc)->c());
+        ComplexMatrix h(c.context(),c.n(),c.n(),c.nb(),c.nb());
+        h.gemm('c','n',1.0,c,cp,0.0);
+        // cout << " Hamiltonian at k = "
+        //      << sd(ispin,ikp)->kpoint() << endl;
+        // cout << h;
+        valarray<double> w(h.m());
+        if ( eigvec )
+        {
+          ComplexMatrix z(c.context(),c.n(),c.n(),c.nb(),c.nb());
+          h.heev('l',w,z);
+          cp = c;
+          c.gemm('n','n',1.0,cp,z,0.0);
+        }
+        else
+        {
+          h.heev('l',w);
+        }
+        // set eigenvalues in SlaterDet
+        sd(isp_loc,ikp_loc)->set_eig(w);
       }
     }
   }
@@ -843,7 +925,7 @@ void Wavefunction::diag(Wavefunction& dwf, bool eigvec)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::print(ostream& os, string encoding, string tag) const
 {
-  if ( ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     os << "<" << tag << " ecut=\"" << ecut_ << "\""
        << " nspin=\"" << nspin_ << "\""
@@ -859,22 +941,34 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
   }
 
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int ispin = 0; ispin < nspin(); ++ispin )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-      sd_[ispin][ikp]->print(os,encoding,weight_[ikp],ispin,nspin_);
+    const int isp_loc = isp_local(ispin);
+    for ( int ikp = 0; ikp < nkp(); ++ikp )
+    {
+      const int ikp_loc = ikp_local(ikp);
+      MPI_Barrier(MPIdata::comm());
+      if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
+      {
+        sd_[isp_loc][ikp_loc]->print(os,encoding,weight_[ikp],ispin,nspin_);
+      }
+    }
   }
+  MPI_Barrier(MPIdata::comm());
 
-  if ( ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
     os << "</" << tag << ">" << endl;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
 {
+  assert(sizeof(size_t)==sizeof(MPI_Offset));
+  assert(sizeof(long long int)==sizeof(MPI_Offset));
+
   sfp.sync();
 
-  if ( ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     ostringstream os;
     os << "<" << tag << " ecut=\"" << ecut_ << "\""
@@ -897,52 +991,90 @@ void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
        <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
     string str(os.str());
-    int len = str.size();
-#if USE_MPI
+    size_t len = str.size();
     MPI_Status status;
-    int err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)str.c_str(),
+    int err = MPI_File_write_at(sfp.file(),sfp.offset(),(void*)str.c_str(),
               len,MPI_CHAR,&status);
     if ( err != 0 )
       cout << " Wavefunction::write: error in MPI_File_write" << endl;
     sfp.advance(len);
-#else
-    sfp.file().write(str.c_str(),len);
-#endif
-  }
-
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
-  {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
-    {
-      sd_[ispin][ikp]->write(sfp,encoding,weight_[ikp],ispin,nspin_);
-    }
   }
 
   sfp.sync();
 
-  if ( ctxt_.onpe0() )
+  vector<vector<string> > sdstr;
+  sdstr.resize(nsp_loc());
+  for ( int isp_loc = 0; isp_loc < nsp_loc(); ++isp_loc )
+  {
+    const int ispin = isp_global(isp_loc);
+    sdstr[isp_loc].resize(nkp_loc());
+    for ( int ikp_loc = 0; ikp_loc < nkp_loc(); ++ikp_loc )
+    {
+      const int ikp = ikp_global(ikp_loc);
+      // serialize sd[isp_loc][ikp_loc] into sdstr[isp_loc][ikp_loc]
+      sd_[isp_loc][ikp_loc]->str(sdstr[isp_loc][ikp_loc],encoding,
+                                 weight_[ikp],ispin,nspin_);
+    }
+  }
+
+  // sdstr now contains all data to be written
+  // write data in order of increasing ispin, ikp
+  for ( int ispin = 0; ispin < nspin(); ++ispin )
+  {
+    for ( int ikp = 0; ikp < nkp(); ++ikp )
+    {
+      MPI_Barrier(MPIdata::comm());
+      const int isp_loc = isp_local(ispin);
+      const int ikp_loc = ikp_local(ikp);
+      const char* wbuf = 0;
+      size_t len = 0;
+      MPI_Offset off = 0;
+      if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
+      {
+        wbuf = sdstr[isp_loc][ikp_loc].c_str();
+        len = sdstr[isp_loc][ikp_loc].size();
+        // compute offset of data on current task
+        long long int local_offset = 0;
+        long long int local_size = len;
+        MPI_Scan(&local_size, &local_offset, 1,
+                 MPI_LONG_LONG, MPI_SUM, MPIdata::sd_comm());
+        // correct for inclusive scan by subtracting local_size
+        local_offset -= local_size;
+        off = sfp.offset() + local_offset;
+      }
+      MPI_Status status;
+      int err = MPI_File_write_at_all(sfp.file(),off,wbuf,len,
+                                      MPI_CHAR,&status);
+      int count;
+      MPI_Get_count(&status,MPI_CHAR,&count);
+      assert(count==len);
+
+      if ( err != 0 )
+        cout << " Wavefunction::write: error in MPI_File_write_at_all" << endl;
+      sfp.set_offset(off+len);
+      sfp.sync();
+    }
+  }
+
+  if ( MPIdata::onpe0() )
   {
     ostringstream os;
     os << "</" << tag << ">" << endl;
     string str(os.str());
-    int len = str.size();
-#if USE_MPI
+    size_t len = str.size();
     MPI_Status status;
-    int err = MPI_File_write_at(sfp.file(),sfp.mpi_offset(),(void*)str.c_str(),
+    int err = MPI_File_write_at(sfp.file(),sfp.offset(),(void*)str.c_str(),
               len,MPI_CHAR,&status);
     if ( err != 0 )
       cout << " Wavefunction::write: error in MPI_File_write" << endl;
     sfp.advance(len);
-#else
-    sfp.file().write(str.c_str(),len);
-#endif
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::info(ostream& os, string tag) const
 {
-  if ( ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
   {
     os << "<" << tag << " ecut=\"" << ecut_ << "\""
        << " nspin=\"" << nspin_ << "\""
@@ -967,18 +1099,28 @@ void Wavefunction::info(ostream& os, string tag) const
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;
   }
 
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int ispin = 0; ispin < nspin(); ++ispin )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    const int isp_loc = isp_local(ispin);
     {
-      if ( ctxt_.onpe0() )
-        cout << " kpoint: " << kpoint_[ikp] << " weight: " << weight_[ikp]
-             << endl;
-      sd_[ispin][ikp]->info(os);
+      for ( int ikp = 0; ikp < nkp(); ++ikp )
+      {
+        const int ikp_loc = ikp_local(ikp);
+        string s;
+        int isrc = -1;
+        if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
+        {
+          s = sd_[isp_loc][ikp_loc]->info();
+          if ( MPIdata::sd_rank() == 0 )
+            isrc = MPIdata::rank();
+        }
+        cout0(s,isrc);
+        MPI_Barrier(MPIdata::comm());
+      }
     }
   }
 
-  if ( ctxt_.onpe0() )
+  if ( MPIdata::onpe0() )
     os << "</" << tag << ">" << endl;
 }
 
@@ -993,11 +1135,10 @@ ostream& operator<<(ostream& os, const Wavefunction& wf)
 Wavefunction& Wavefunction::operator=(const Wavefunction& wf)
 {
   if ( this == &wf ) return *this;
-  assert(ctxt_ == wf.ctxt_);
+  assert(sd_ctxt_ == wf.sd_ctxt_);
   assert(nel_ == wf.nel_);
   assert(nempty_== wf.nempty_);
   assert(nspin_ == wf.nspin_);
-  assert(nrowmax_ == wf.nrowmax_);
   assert(deltaspin_ == wf.deltaspin_);
   assert(refcell_ == wf.refcell_);
   assert(ecut_ == wf.ecut_);
@@ -1006,15 +1147,11 @@ Wavefunction& Wavefunction::operator=(const Wavefunction& wf)
   weight_ = wf.weight_;
   kpoint_ = wf.kpoint_;
 
-  assert(*spincontext_ == *wf.spincontext_);
-  assert(*kpcontext_   == *wf.kpcontext_);
-  assert(*sdcontext_   == *wf.sdcontext_);
-
-  for ( int ispin = 0; ispin < nspin_; ispin++ )
+  for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
-    for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+    for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      *sd_[ispin][ikp] = *wf.sd_[ispin][ikp];
+      *sd_[isp_loc][ikp_loc] = *wf.sd_[isp_loc][ikp_loc];
     }
   }
   return *this;

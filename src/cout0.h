@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2008 The Regents of the University of California
+// Copyright (c) 2008-2020 The Regents of the University of California
 //
 // This file is part of Qbox
 //
@@ -12,12 +12,15 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// release.cpp
+// cout0.h
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "release.h"
-std::string release(void)
-{
-  return std::string("rel1_71_5dev");
-}
+#ifndef COUT0_H
+#define COUT0_H
+
+#include <string>
+using namespace std;
+
+void cout0(std::string s, int isrc);
+#endif

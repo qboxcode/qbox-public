@@ -82,7 +82,7 @@ int SaveCmd::action(int argc, char **argv)
       cout << usage << endl;
     return 1;
   }
-  SampleWriter swriter(s->ctxt_);
+  SampleWriter swriter;
   string description = string(" Created ") + isodate() +
                        string(" by qbox-") + release() + string(" ");
   swriter.writeSample(*s, filename, description, base64, atomsonly, serial,

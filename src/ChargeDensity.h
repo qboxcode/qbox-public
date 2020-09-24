@@ -38,8 +38,6 @@ class ChargeDensity
 {
   private:
 
-  const Context& ctxt_;
-  MPI_Comm vcomm_;
   const Wavefunction& wf_;
   Basis* vbasis_;
   FourierTransform* vft_;
@@ -63,8 +61,6 @@ class ChargeDensity
   void update_taur(double* taur_up, double* taur_dn) const;
   void update_rhog(void);
 
-  const Context& context(void) const { return ctxt_; }
-  MPI_Comm vcomm(void) const { return vcomm_; }
   Basis* vbasis(void) const { return vbasis_; }
   FourierTransform* vft(void) const { return vft_; }
   FourierTransform* ft(int ikp) const { return ft_[ikp]; }

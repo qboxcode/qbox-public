@@ -19,13 +19,14 @@
 #ifndef SAMPLE_H
 #define SAMPLE_H
 
+#include "MPIdata.h"
+#include "Context.h"
 #include "AtomSet.h"
 #include "ConstraintSet.h"
 #include "ExtForceSet.h"
 #include "Wavefunction.h"
 #include "Control.h"
 
-class Context;
 class UserInterface;
 class ExternalPotential;
 
@@ -35,8 +36,7 @@ class Sample
 
   public:
 
-  const Context& ctxt_;
-
+  Context sd_ctxt;
   AtomSet atoms;
   ConstraintSet constraints;
   ExtForceSet extforces;
@@ -46,9 +46,9 @@ class Sample
   Control ctrl;
   UserInterface *ui;
 
-  Sample(const Context& ctxt, UserInterface *ui_ = 0) : ctxt_(ctxt), ui(ui_),
-    atoms(ctxt), constraints(ctxt),
-    extforces(ctxt), vext(0), wf(ctxt), wfv(0) {}
+  Sample(UserInterface *ui_ = 0) : ui(ui_),
+    sd_ctxt(MPIdata::sd_comm(),MPIdata::ngb(),MPIdata::nstb()),
+    wf(sd_ctxt), wfv(0), vext(0) {}
   ~Sample(void) { delete wfv; }
   void reset(void)
   {

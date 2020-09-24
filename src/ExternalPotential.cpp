@@ -36,12 +36,12 @@ bool abs_compare(const double &a, const double &b)
 ////////////////////////////////////////////////////////////////////////////////
 void ExternalPotential::update(const ChargeDensity& cd)
 {
-  const Context* ctxt = s_.wf.spincontext();
-  bool onpe0 = ctxt->onpe0();
-  int nprow = ctxt->nprow();
-  int myrow = ctxt->myrow();
-  int mycol = ctxt->mycol();
-  MPI_Comm vcomm = cd.vcomm();
+  const Context& ctxt = s_.wf.sd_context();
+  bool onpe0 = ctxt.onpe0();
+  int nprow = ctxt.nprow();
+  int myrow = ctxt.myrow();
+  int mycol = ctxt.mycol();
+  MPI_Comm vcomm = cd.vbasis()->comm();
 
   Timer tm_read_vext;
   double time, tmin, tmax;
@@ -62,7 +62,7 @@ void ExternalPotential::update(const ChargeDensity& cd)
         if (mycol == 0)
           cout << "  ExternalPotential::update: file not found: "
                << filename_ << endl;
-        ctxt->abort(1);
+        ctxt.abort(1);
       }
       string tmpstr;
       for (int i = 0; i < 2; i++)
@@ -180,7 +180,7 @@ void ExternalPotential::update(const ChargeDensity& cd)
     if (vext_read_loc.size() > 0)
       magnitude_ = abs(*max_element(vext_read_loc.begin(),
                        vext_read_loc.end(), abs_compare));
-    ctxt->dmax('C',1,1,&magnitude_,1);
+    ctxt.dmax('C',1,1,&magnitude_,1);
     MPI_Bcast(&magnitude_,1,MPI_DOUBLE,0,vcomm);
     amplitude_ = 1.0E-3 / magnitude_;
     if ( onpe0 )
@@ -192,8 +192,8 @@ void ExternalPotential::update(const ChargeDensity& cd)
   time = tm_read_vext.real();
   tmin = time;
   tmax = time;
-  ctxt->dmin(1,1,&tmin,1);
-  ctxt->dmax(1,1,&tmax,1);
+  ctxt.dmin(1,1,&tmin,1);
+  ctxt.dmax(1,1,&tmax,1);
   if ( onpe0 )
   {
     cout << "  ExternalPotential::update: vext read time "

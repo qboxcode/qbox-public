@@ -33,7 +33,7 @@ class DoubleMatrix
 {
   private:
 
-    Context ctxt_;
+    const Context& ctxt_;
     int ictxt_;
     int lld_;  // leading dimension of local matrix
     int m_, n_;   // size of global matrix
@@ -66,7 +66,7 @@ class DoubleMatrix
     int nloc(void) const { return nloc_; } // size of local array
     int size(void) const { return size_; } // size of local array
     int localsize(void) const { return mloc_*nloc_; } // local size of val
-    double memsize(void) const { return (double)m_ * (double)n_ * sizeof(double); }
+    double memsize(void) const { return (double)m_*(double)n_*sizeof(double); }
     double localmemsize(void) const
     { return (double) mloc_ * (double) nloc_ * sizeof(double); }
     const int* desc(void) const { return &desc_[0]; }
@@ -306,7 +306,7 @@ class ComplexMatrix
 {
   private:
 
-    Context ctxt_;
+    const Context& ctxt_;
     int ictxt_;
     int lld_;  // leading dimension of local matrix
     int m_, n_;   // size of global matrix

@@ -90,8 +90,6 @@ class Occ : public Var
         sum += sd.occ(i);
       if ( ui->onpe0() )
         cout << " total electronic charge: " << sum << endl;
-      // adjust total number of electrons
-      //wf.set_nel((int)sum);
     }
 
     if ( argc == 4 )
@@ -131,19 +129,25 @@ class Occ : public Var
       Wavefunction& wf = s->wf;
       // ispin-1 in next line: spins are numbered starting from 1 in
       // the set occ command
-      SlaterDet& sd = *wf.sd(ispin-1,0);
-      // n-1 in next line: states are numbered starting from 1 in
-      // the set occ command
-      sd.set_occ(n-1,f);
-      // recompute total electronic charge
       double sum = 0.0;
-      for ( int isp = 0; isp < wf.nspin(); isp++ )
-        for ( int i = 0; i < wf.nst(isp); i++ )
-          sum += wf.sd(isp,0)->occ(i);
+      for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
+      {
+        SlaterDet& sd = *wf.sd(isp_loc,0);
+        if ( (ispin-1) == wf.isp_global(isp_loc) )
+        {
+          // n-1 in next line: states are numbered starting from 1 in
+          // the set occ command
+          sd.set_occ(n-1,f);
+        }
+        // recompute total electronic charge
+        for ( int i = 0; i < sd.nst(); i++ )
+          sum += sd.occ(i);
+      }
+      double tsum;
+      MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
+      sum = tsum;
       if ( ui->onpe0() )
         cout << " total electronic charge: " << sum << endl;
-      // adjust total number of electrons
-      //wf.set_nel((int)sum);
     }
     return 0;
   }
@@ -156,13 +160,36 @@ class Occ : public Var
 
     const Wavefunction& wf = s->wf;
     st << " occupation numbers" << endl;
+
+    // collect occupation numbers for all spins in occtmp[ispin][n]
+    std::vector<vector<double> > occtmp;
+    occtmp.resize(wf.nspin());
     for ( int ispin = 0; ispin < wf.nspin(); ispin++ )
     {
-      const SlaterDet& sd = *wf.sd(ispin,0);
-      const int nst = sd.nst();
+      const int nst = wf.nst(ispin);
+      occtmp[ispin].resize(nst,0.0);
+
+      int isp_loc = wf.isp_local(ispin);
+      if ( isp_loc >= 0 )
+      {
+        const SlaterDet& sd = *wf.sd(isp_loc,0);
+        for ( int n = 0; n < nst; n++ )
+        {
+          occtmp[ispin][n] = sd.occ(n);
+        }
+      }
+      vector<double> tmp(nst);
+      MPI_Allreduce(&occtmp[ispin][0],&tmp[0],nst,
+                    MPI_DOUBLE,MPI_SUM,MPIdata::sp_comm());
+      occtmp[ispin] = tmp;
+    }
+
+    for ( int ispin = 0; ispin < wf.nspin(); ++ispin )
+    {
+      const int nst = wf.nst(ispin);
       for ( int n = 0; n < nst; n++ )
       {
-        st << setw(7) << setprecision(4) << sd.occ(n);
+        st << setw(7) << setprecision(4) << occtmp[ispin][n];
         if ( ( n%10 ) == 9 ) st << endl;
       }
       if ( nst % 10 != 0 )
@@ -171,6 +198,7 @@ class Occ : public Var
         st << endl;
     }
     st << " total electronic charge: " << wf.nel();
+
     return st.str();
  }
 

@@ -45,25 +45,28 @@ class PrintCmd : public Cmd
 
   int action(int argc, char **argv)
   {
-    if ( ui->onpe0() )
+    if ( argc != 2 )
     {
-      if ( argc != 2 )
-      {
+      if ( ui->onpe0() )
         cout << " use: print variable" << endl;
-        return 1;
-      }
+      return 1;
+    }
 
-      Var *varptr = ui->findVar(argv[1]);
-      if ( varptr )
+    Var *varptr = ui->findVar(argv[1]);
+    if ( varptr )
+    {
+      string s = varptr->print();
+      if ( ui->onpe0() )
+        cout << s << endl;
+    }
+    else
+    {
+      // variable is not in the variable list
+      if ( ui->onpe0() )
       {
-        cout << varptr->print() << endl;
-      }
-      else
-      {
-        // variable is not in the variable list
         cout << " no such variable: " << argv[1] << endl;
-        return 1;
       }
+      return 1;
     }
     return 0;
   }

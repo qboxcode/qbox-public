@@ -623,6 +623,7 @@ void Wavefunction::move_kpoint(D3vector kpoint, D3vector newkpoint)
 ////////////////////////////////////////////////////////////////////////////////
 void Wavefunction::randomize(double amplitude)
 {
+  srand48((long int) MPIdata::rank());
   for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
   {
     for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )

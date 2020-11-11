@@ -743,39 +743,52 @@ void Wavefunction::update_occ(double temp)
     {
       cout << " Wavefunction::update_occ: sum = "
            << rhosum << endl;
-      cout << " Wavefunction::update_occ: mu = "
-           << setprecision(4) << mu / eVolt << " eV" << endl;
+      cout << "<mu> " << setprecision(6) << mu / eVolt << " </mu>" << endl;
+      cout << "<occ_set>" << endl;
+    }
 
-      cout.setf(ios::right,ios::adjustfield);
-      cout.setf(ios::fixed,ios::floatfield);
-
-      cout << " Wavefunction::update_occ: occupation numbers" << endl;
-      for ( int ispin = 0; ispin < nspin_; ispin++ )
+    for ( int ispin = 0; ispin < nspin(); ++ispin )
+    {
+      const int isp_loc = isp_local(ispin);
+      for ( int ikp = 0; ikp < nkp(); ++ikp )
       {
-        const int isp_loc = ispin / MPIdata::nspb();
-        const int ispb = ispin % MPIdata::nspb();
-        if ( ispb == MPIdata::ispb() )
+        const int ikp_loc = ikp_local(ikp);
+        ostringstream ostr;
+	      ostr.setf(ios::fixed,ios::floatfield);
+	      ostr.setf(ios::right,ios::adjustfield);
+        int isrc = -1;
+        if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
         {
-          for ( int ikp = 0; ikp < kpoint_.size(); ikp++ )
+          if ( MPIdata::sd_rank() == 0 )
           {
-            const int ikp_loc = ikp / MPIdata::nkpb();
-            const int ikpb = ikp % MPIdata::nkpb();
-            if ( ikpb == MPIdata::ikpb() )
+            ostr.str("");
+            isrc = MPIdata::rank();
+            const int nst = sd(isp_loc,ikp_loc)->nst();
+            ostr <<    "  <occ spin=\"" << ispin
+                 << "\" kpoint=\""
+                 << setprecision(8)
+                 << sd(isp_loc,ikp_loc)->kpoint()
+                 << "\" weight=\""
+                 << setprecision(8)
+                 << weight(ikp)
+                 << "\" n=\"" << nst << "\">" << endl;
+            for ( int i = 0; i < nst; i++ )
             {
-              cout << " k = " << kpoint_[ikp] << endl;
-              for ( int n = 0; n < sd_[isp_loc][ikp_loc]->nst(); n++ )
-              {
-                cout << setw(7) << setprecision(4)
-                     << sd_[isp_loc][ikp_loc]->occ(n);
-                if ( ( n%10 ) == 9 ) cout << endl;
-              }
-              if ( sd_[ispin][ikp]->nst() % 10 != 0 )
-                cout << endl;
+              ostr << setw(7) << setprecision(4)
+                   << sd(isp_loc,ikp_loc)->occ(i);
+              if ( i%10 == 9 ) ostr << endl;
             }
+            if ( nst%10 != 0 ) ostr << endl;
+            ostr << "  </occ>" << endl;
           }
         }
+        cout0(ostr.str(),isrc);
+        MPI_Barrier(MPIdata::comm());
       }
     }
+    if ( MPIdata::onpe0() )
+       cout << "</occ_set>" << endl;
+    MPI_Barrier(MPIdata::comm());
   }
 }
 

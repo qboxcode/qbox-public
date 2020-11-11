@@ -352,7 +352,12 @@ void BOSampleStepper::step(int niter)
     const double q0_kerker = 2 * M_PI / rc_Kerker;
     const double q0_kerker2 = q0_kerker * q0_kerker;
     for ( int i = 0; i < wkerker.size(); i++ )
-      wkerker[i] = g2[i] / ( g2[i] + q0_kerker2 );
+    {
+      if ( g2[i] != 0.0 )
+        wkerker[i] = g2[i] / ( g2[i] + q0_kerker2 );
+      else
+        wkerker[i] = 1.0;
+    }
   }
   else
   {

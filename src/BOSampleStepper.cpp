@@ -1149,7 +1149,7 @@ void BOSampleStepper::step(int niter)
 
               ostr << " <total_spread> ";
               for ( int j = 0; j < 3; j++ )
-                ostr << setw(10) << total_spread[j];
+                ostr << setprecision(6) << setw(15) << total_spread[j];
               ostr << " </total_spread>" << endl;
               D3vector edipole = mlwft[isp_loc]->dipole();
               ostr << " <electronic_dipole spin=\"" << ispin
@@ -1174,13 +1174,13 @@ void BOSampleStepper::step(int niter)
         if ( onpe0 )
         {
           D3vector idipole = atoms.dipole();
+          cout << setprecision(6);
           cout << " <ionic_dipole> " << idipole
                << " </ionic_dipole>" << endl;
           cout << " <total_dipole> " << idipole + edipole_sum
                << " </total_dipole>" << endl;
           cout << " <total_dipole_length> " << length(idipole + edipole_sum)
                << " </total_dipole_length>" << endl;
-          cout << "</mlwfs>" << endl;
         }
         tmap["mlwf"].stop();
       }

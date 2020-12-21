@@ -36,14 +36,35 @@ class Debug : public Var
 
   int set ( int argc, char **argv )
   {
-    string v;
-    for ( int iarg = 1; iarg < argc; iarg++ )
+    // use: set debug key [val ..]
+    // use: set debug key
+    if ( argc < 2 )
+    {
+      if ( ui->onpe0() )
+      cout << " use: set debug key val [val ...]" << endl;
+      cout << " use: set debug key" << endl;
+      return 1;
+    }
+    string key(argv[1]);
+    // if ( ui->onpe0() ) cout << "Debug: key = " << key << endl;
+    string val;
+    for ( int iarg = 2; iarg < argc; iarg++ )
     {
       string vt = argv[iarg];
-      v += " " + vt;
+      val += " " + vt;
     }
+    // if ( ui->onpe0() ) cout << "Debug: val = " << val << endl;
 
-    s->ctrl.debug = v;
+    if ( val.empty() )
+    {
+      if ( ui->onpe0() ) cout << "Debug: reset key " << key << endl;
+      s->ctrl.debug.erase(key);
+    }
+    else
+    {
+      // add key,value pair to debug map
+      s->ctrl.debug[key] = val;
+    }
 
     return 0;
   }
@@ -52,12 +73,16 @@ class Debug : public Var
   {
      ostringstream st;
      st.setf(ios::left,ios::adjustfield);
-     st << setw(10) << name() << " = ";
+     st << setw(10) << name() << " = " << endl;
      st.setf(ios::right,ios::adjustfield);
-     st << setw(10) << s->ctrl.debug;
+     for ( std::map<std::string,std::string>::iterator i =
+           s->ctrl.debug.begin(); i != s->ctrl.debug.end(); ++i )
+     {
+       st << setw(12) << i->first << " " << i->second << endl;
+     }
      return st.str();
   }
 
-  Debug(Sample *sample) : s(sample) { s->ctrl.debug = "OFF"; }
+  Debug(Sample *sample) : s(sample) {}
 };
 #endif

@@ -1019,28 +1019,36 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     {
       tmb.reset();
       tmb.start();
+
       int maxsweep = 50;
-      if ( s_.ctrl.debug.find("BISECTION_MAXSWEEP") != string::npos )
+      const map<string,string>& debug_map = s_.ctrl.debug;
+
+      map<string,string>::const_iterator imap =
+        debug_map.find("BISECTION_MAXSWEEP");
+      if ( imap != debug_map.end() )
       {
+        const string val = imap->second;
         // override tolerance for bisection
-        istringstream is(s_.ctrl.debug);
-        string s;
-        is >> s >> maxsweep;
+        istringstream is(val);
+        is >> maxsweep;
         if ( MPIdata::onpe0() )
           cout << " override bisection maxsweep value: maxsweep = "
                << maxsweep << endl;
         assert(maxsweep >= 0);
       }
+
       double tol = 0.001;
-      if ( s_.ctrl.debug.find("BISECTION_TOL") != string::npos )
+      imap = debug_map.find("BISECTION_TOL");
+      if ( imap != debug_map.end() )
       {
+        const string val = imap->second;
         // override tolerance for bisection
-        istringstream is(s_.ctrl.debug);
-        string s;
-        is >> s >> tol;
+        istringstream is(val);
+        is >> tol;
         if ( MPIdata::onpe0() )
-          cout << " override bisection tol value: tol = " << tol << endl;
-        assert(tol > 0.0);
+          cout << " override bisection tol value: tol = "
+               << tol << endl;
+        assert(tol >= 0.0);
       }
 #if TIMING
       Timer tmbtransf;
@@ -1062,7 +1070,17 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
       // copy the orthogonal transformation u to uc_[isp_loc]
       *uc_[isp_loc] = bisection_[isp_loc]->u();
 
-      bool distribute = s_.ctrl.debug.find("BISECTION_NODIST") == string::npos;
+      bool distribute = true;
+      imap = debug_map.find("BISECTION_NODIST");
+      if ( imap != debug_map.end() )
+      {
+        const string val = imap->second;
+        distribute &= ( val == "ON" );
+        if ( !distribute )
+          if ( MPIdata::onpe0() )
+            cout << " bisection dist disabled" << endl;
+      }
+
       if ( distribute )
       {
         // define a permutation ordering states by increasing degree

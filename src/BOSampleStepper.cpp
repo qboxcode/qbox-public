@@ -340,6 +340,18 @@ void BOSampleStepper::step(int niter)
     assert(rc1 >= 0.0);
   }
 
+  double delta_ratio = 0.01;
+  imap = debug_map.find("DELTA_RATIO");
+  if ( imap != debug_map.end() )
+  {
+    const string val = imap->second;
+    istringstream is(val);
+    is >> delta_ratio;
+    if ( onpe0 )
+      cout << " override delta_ratio value = " << delta_ratio << endl;
+    assert(delta_ratio >= 0.0);
+  }
+
   if ( rc1 != 0.0 )
   {
     const double q1 = 2.0 * M_PI / rc1;
@@ -938,7 +950,6 @@ void BOSampleStepper::step(int niter)
           // compare delta_eig_sum only after first iteration
           if ( ite > 0 )
           {
-            const double delta_ratio = 0.1;
             double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
             nonscf_converged |= (delta_eig_sum < delta_ratio * delta_ehart);
 #if DEBUG

@@ -30,6 +30,7 @@
 #include "SDIonicStepper.h"
 #include "SDAIonicStepper.h"
 #include "CGIonicStepper.h"
+#include "ANDIonicStepper.h"
 #include "MDIonicStepper.h"
 #include "BMDIonicStepper.h"
 #include "SDCellStepper.h"
@@ -256,6 +257,8 @@ void BOSampleStepper::step(int niter)
     ionic_stepper = new SDAIonicStepper(s_);
   else if ( atoms_dyn == "CG" )
     ionic_stepper = new CGIonicStepper(s_);
+  else if ( atoms_dyn == "AND" )
+    ionic_stepper = new ANDIonicStepper(s_);
   else if ( atoms_dyn == "MD" )
     ionic_stepper = new MDIonicStepper(s_);
   else if ( atoms_dyn == "BMD" )

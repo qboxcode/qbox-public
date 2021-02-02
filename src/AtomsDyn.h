@@ -48,11 +48,13 @@ class AtomsDyn : public Var
             v == "SD" ||
             v == "SDA" ||
             v == "CG" ||
+            v == "AND" ||
             v == "MD" ||
             v == "BMD" ) )
     {
       if ( ui->onpe0() )
-        cout << " atoms_dyn must be LOCKED, SD, SDA, CG, MD or BMD" << endl;
+        cout << " atoms_dyn must be LOCKED, SD, SDA, CG, AND, MD or BMD"
+             << endl;
       return 1;
     }
 

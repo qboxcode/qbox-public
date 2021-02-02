@@ -28,7 +28,8 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 AndersonMixer::AndersonMixer(const int m, const int nmax,
-  const MPI_Comm* const pcomm) : m_(m), nmax_(nmax), pcomm_(pcomm)
+  const MPI_Comm* const pcomm) : m_(m), nmax_(nmax), pcomm_(pcomm), diag_(true),
+  eig_ratio_(0.01)
 {
 #if USE_MPI
   if ( pcomm_ != 0 )
@@ -132,8 +133,7 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
     // solve on task 0 and bcast result
     if ( pcomm_ == 0 || mype_ == 0 )
     {
-      const bool diag = false;
-      if ( diag )
+      if ( diag_ )
       {
         // solve the linear system using eigenvalues and eigenvectors
         // compute eigenvalues of a
@@ -164,8 +164,7 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
         {
           // correct only if eigenvalue w[k] is large enough compared to the
           // largest eigenvalue
-          const double eig_ratio = 1.e-14;
-          if ( w[k] > eig_ratio * w[n_-1] )
+          if ( w[k] > eig_ratio_ * w[n_-1] )
           {
             const double fac = 1.0 / w[k];
             for ( int i = 0; i < n_; i++ )
@@ -226,7 +225,7 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
           for ( int i = 0; i < theta.size(); i++ )
             norm_ok &= fabs(theta[i]) <  3.0;
 #endif
-#if 1
+#if 0
           // 2-norm criterion
           double theta_sum = 0.0;
           for ( int i = 0; i < theta.size(); i++ )

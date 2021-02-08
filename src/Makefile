@@ -91,7 +91,7 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
         Base64Transcoder.o Constraint.o ConstraintSet.o DistanceConstraint.o \
         AngleConstraint.o TorsionConstraint.o PositionConstraint.o \
         ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
-        GlobalExtForce.o sampling.o
+        GlobalExtForce.o sampling.o MPIdata.o cout0.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSampleReader: testSampleReader.o AtomSet.o Atom.o Species.o \
         Wavefunction.o SlaterDet.o \
@@ -104,16 +104,16 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
         SampleReader.o StructuredDocumentHandler.o \
         SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \
         SpeciesReader.o SpeciesHandler.o \
-        XMLGFPreprocessor.o Base64Transcoder.o
+        XMLGFPreprocessor.o Base64Transcoder.o MPIdata.o cout0.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testChargeDensity: testChargeDensity.o ChargeDensity.o \
         Wavefunction.o SlaterDet.o \
         Basis.o BasisMapping.o FourierTransform.o Matrix.o UnitCell.o \
-        Context.o Base64Transcoder.o MPIdata.o
+        Context.o Base64Transcoder.o MPIdata.o cout0.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testWavefunction: testWavefunction.o Wavefunction.o SlaterDet.o \
         Basis.o BasisMapping.o FourierTransform.o Matrix.o UnitCell.o \
-        Context.o Base64Transcoder.o MPIdata.o
+        Context.o Base64Transcoder.o MPIdata.o cout0.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testEnergyFunctional: testEnergyFunctional.o EnergyFunctional.o Basis.o \
 	BasisMapping.o SlaterDet.o Matrix.o UnitCell.o Context.o \
@@ -132,7 +132,7 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
 	ExponentialIntegral.o HSEFunctional.o RSHFunctional.o \
         ConfinementPotential.o ElectricEnthalpy.o MLWFTransform.o \
         ExternalPotential.o Function3d.o Function3dHandler.o qbox_xmlns.o \
-        jade.o MPIdata.o
+        jade.o MPIdata.o cout0.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSlaterDet: testSlaterDet.o SlaterDet.o FourierTransform.o \
         Basis.o BasisMapping.o UnitCell.o Matrix.o Context.o \

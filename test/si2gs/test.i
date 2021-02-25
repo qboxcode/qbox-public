@@ -21,7 +21,7 @@ kpoint add  0.14765 -0.31115 -0.16350   0.0833333333333333
 kpoint add  0.31115  0.14765  0.45880   0.0833333333333333
 kpoint add  0.31115 -0.14765  0.16350   0.0833333333333333
 set stress ON
-set debug STRESS
+set debug STRESS ON
 set ecut 15 
 set ecuts 10
 set wf_dyn PSD

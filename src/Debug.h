@@ -51,7 +51,9 @@ class Debug : public Var
     for ( int iarg = 2; iarg < argc; iarg++ )
     {
       string vt = argv[iarg];
-      val += " " + vt;
+      if ( iarg > 2 )
+        val += " ";
+      val += vt;
     }
     // if ( ui->onpe0() ) cout << "Debug: val = " << val << endl;
 

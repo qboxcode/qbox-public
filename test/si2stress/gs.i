@@ -24,7 +24,7 @@ strain 0.02 0.04 0.06 0.050 0.070 -0.030
 params.i
 set wf_dyn PSDA
 set stress ON
-set debug STRESS
+set debug STRESS ON
 randomize_wf
 set scf_tol 1.e-9
 run 30 10

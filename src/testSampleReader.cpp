@@ -21,6 +21,7 @@
 #include <iostream>
 using namespace std;
 
+#include "MPIdata.h"
 #include "Context.h"
 #include "SlaterDet.h"
 #include "UnitCell.h"
@@ -33,17 +34,22 @@ int main(int argc, char** argv)
   MPI_Init(&argc,&argv);
   // extra scope to ensure that BlacsContext objects get destructed before
   // the MPI_Finalize call
+  int size;
+  MPI_Comm_size(MPI_COMM_WORLD,&size);
+  int ngb = size;
+  int nstb = 1;
+  int nkpb = 1;
+  int nspb = 1;
+  MPIdata::set(ngb,nstb,nkpb,nspb);
   {
-    Context ctxt(MPI_COMM_WORLD);
-
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     int namelen;
     PMPI_Get_processor_name(processor_name,&namelen);
-    cout << " Process " << ctxt.mype() << " on " << processor_name << endl;
+    cout << " Process " << MPIdata::rank() << " on " << processor_name << endl;
 
-    Sample* s = new Sample(ctxt);
+    Sample* s = new Sample;
 
-    SampleReader s_reader(s->ctxt_);
+    SampleReader s_reader;
     bool serial = false;
     if ( argc != 2 )
     {
@@ -66,9 +72,7 @@ int main(int argc, char** argv)
       cout << " testSampleReader: cannot load Sample" << endl;
     }
 
-    //s->ctxt_.barrier();
-
-    if ( ctxt.onpe0() )
+    if ( MPIdata::onpe0() )
     {
       cout << filename << endl;
       cout << s->atoms.size() << " atoms" << endl;

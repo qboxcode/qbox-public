@@ -12,12 +12,27 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// release.cpp
+// ANDIonicStepper.h:
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "release.h"
-std::string release(void)
+#ifndef ANDIONICSTEPPER_H
+#define ANDIONICSTEPPER_H
+
+#include "IonicStepper.h"
+#include "AndersonMixer.h"
+
+class ANDIonicStepper : public IonicStepper
 {
-  return std::string("rel1_72_3dev");
-}
+  private:
+
+  AndersonMixer mixer_;
+  double em_;
+
+  public:
+
+  ANDIonicStepper(Sample& s);
+  void compute_r(double e0, const std::vector<std::vector< double> >& f0);
+  void compute_v(double e0, const std::vector<std::vector< double> >& f0) {}
+};
+#endif

@@ -73,7 +73,7 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
   sd_(*(s.wf.sd(0,0))), ctxt_(s.wf.sd(0,0)->context()),
   basis_(s.wf.sd(0,0)->basis())
 {
-  onpe0_ = ctxt_.onpe0();
+  onpe0_ = MPIdata::onpe0();
   e_field_ = s.ctrl.e_field;
   finite_field_ = norm2(e_field_) != 0.0;
   compute_quadrupole_ = false;
@@ -462,16 +462,18 @@ void ElectricEnthalpy::compute_correction(void)
 
   int niter = 1;
   // check if override from the debug variable
-  // use: set debug MLWF_REF_NITER <value>
-  if ( s_.ctrl.debug.find("MLWF_REF_NITER") != string::npos )
+  // use: set debug mlwf_ref_niter <value>
+  const map<string,string>& debug_map = s_.ctrl.debug;
+
+  map<string,string>::const_iterator imap =
+    debug_map.find("MLWF_REF_NITER");
+  if ( imap != debug_map.end() )
   {
-    istringstream is(s_.ctrl.debug);
-    string s;
-    is >> s >> niter;
-    assert(s=="MLWF_REF_NITER");
-    if ( onpe0_ )
-      cout << " ElectricEnthalpy: override niter value: niter= "
-           << niter << endl;
+    const string val = imap->second;
+    istringstream is(val);
+    is >> niter;
+    if ( MPIdata::onpe0() )
+      cout << " override mlwf_ref_niter value: niter = " << niter << endl;
     assert(niter > 0);
   }
   for ( int iter = 0; iter < niter; iter++ )

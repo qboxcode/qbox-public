@@ -40,6 +40,8 @@ class AndersonMixer
   const   MPI_Comm* const pcomm_;// pointer to relevant Context, null if local
   int     mype_;
   int     npes_;
+  bool    diag_; // use diagonalization (default true)
+  double  eig_ratio_; // eigenvalue ratio for regularization
 
   std::vector<std::valarray<double> > x_,f_;
 
@@ -48,5 +50,7 @@ class AndersonMixer
   AndersonMixer(const int m, const int nmax, const MPI_Comm* const pcomm);
   void update(double* x, double* f, double* xbar, double* fbar);
   void restart(void);
+  void set_diag(bool b) { diag_ = b; }
+  void set_eig_ratio(double x) { eig_ratio_ = x; }
 };
 #endif

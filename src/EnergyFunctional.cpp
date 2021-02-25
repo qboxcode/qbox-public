@@ -398,8 +398,16 @@ double EnergyFunctional::energy(bool compute_hpsi, Wavefunction& dwf,
               bool compute_forces, vector<vector<double> >& fion,
               bool compute_stress, valarray<double>& sigma)
 {
-  const bool debug_stress = compute_stress &&
-    s_.ctrl.debug.find("STRESS") != string::npos;
+  bool debug_stress = false;
+  const map<string,string>& debug_map = s_.ctrl.debug;
+  map<string,string>::const_iterator imap =
+    debug_map.find("STRESS");
+  if ( imap != debug_map.end() )
+  {
+    const string val = imap->second;
+    if ( val == "ON" )
+      debug_stress = compute_stress;
+  }
   const double fpi = 4.0 * M_PI;
 
   const Wavefunction& wf = s_.wf;

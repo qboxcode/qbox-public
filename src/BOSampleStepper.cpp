@@ -30,6 +30,7 @@
 #include "SDIonicStepper.h"
 #include "SDAIonicStepper.h"
 #include "CGIonicStepper.h"
+#include "ANDIonicStepper.h"
 #include "MDIonicStepper.h"
 #include "BMDIonicStepper.h"
 #include "SDCellStepper.h"
@@ -193,10 +194,19 @@ void BOSampleStepper::step(int niter)
 
   const bool extrapolate_wf = ( atoms_dyn == "MD" );
 
-  const bool ntc_extrapolation =
-    s_.ctrl.debug.find("NTC_EXTRAPOLATION") != string::npos;
-  const bool asp_extrapolation =
-    s_.ctrl.debug.find("ASP_EXTRAPOLATION") != string::npos;
+  bool ntc_extrapolation = false;
+  bool asp_extrapolation = false;
+
+  const map<string,string>& debug_map = s_.ctrl.debug;
+
+  map<string,string>::const_iterator imap =
+    debug_map.find("EXTRAPOLATION");
+  if ( imap != debug_map.end() )
+  {
+    const string val = imap->second;
+    if ( val == "NTC" ) ntc_extrapolation = true;
+    if ( val == "ASP" ) asp_extrapolation = true;
+  }
 
   Wavefunction* wfmm;
   if ( extrapolate_wf && ( ntc_extrapolation || asp_extrapolation ) )
@@ -247,6 +257,8 @@ void BOSampleStepper::step(int niter)
     ionic_stepper = new SDAIonicStepper(s_);
   else if ( atoms_dyn == "CG" )
     ionic_stepper = new CGIonicStepper(s_);
+  else if ( atoms_dyn == "AND" )
+    ionic_stepper = new ANDIonicStepper(s_);
   else if ( atoms_dyn == "MD" )
     ionic_stepper = new MDIonicStepper(s_);
   else if ( atoms_dyn == "BMD" )
@@ -318,16 +330,29 @@ void BOSampleStepper::step(int niter)
   // define q1 cutoff for row weighting of LS charge mixing
   // Use rc1 = 3 a.u. default cutoff
   double rc1 = 3.0;
-  // check if override from the debug variable
+  // check if override from the debug map
   // use: set debug RC1 <value>
-  if ( s_.ctrl.debug.find("RC1") != string::npos )
+  imap = debug_map.find("RC1");
+  if ( imap != debug_map.end() )
   {
-    istringstream is(s_.ctrl.debug);
-    string s;
-    is >> s >> rc1;
+    const string val = imap->second;
+    istringstream is(val);
+    is >> rc1;
     if ( onpe0 )
       cout << " override rc1 value: rc1 = " << rc1 << endl;
     assert(rc1 >= 0.0);
+  }
+
+  double delta_ratio = 0.01;
+  imap = debug_map.find("DELTA_RATIO");
+  if ( imap != debug_map.end() )
+  {
+    const string val = imap->second;
+    istringstream is(val);
+    is >> delta_ratio;
+    if ( onpe0 )
+      cout << " override delta_ratio value = " << delta_ratio << endl;
+    assert(delta_ratio >= 0.0);
   }
 
   if ( rc1 != 0.0 )
@@ -928,7 +953,6 @@ void BOSampleStepper::step(int niter)
           // compare delta_eig_sum only after first iteration
           if ( ite > 0 )
           {
-            const double delta_ratio = 0.1;
             double delta_eig_sum = fabs(eigenvalue_sum - eigenvalue_sum_m);
             nonscf_converged |= (delta_eig_sum < delta_ratio * delta_ehart);
 #if DEBUG

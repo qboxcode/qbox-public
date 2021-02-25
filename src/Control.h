@@ -21,12 +21,14 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include "D3vector.h"
 
 struct Control
 {
   // control variables
-  std::string debug, timing;
+  std::map<std::string,std::string> debug;
+  std::string timing;
   std::string wf_dyn, atoms_dyn; // dynamics string flags
   int nite;
   double emass;       // electron mass

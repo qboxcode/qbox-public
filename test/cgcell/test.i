@@ -3,7 +3,7 @@
 
 load ../si2gs/test.xml
 set stress ON
-set debug STRESS
+set debug STRESS ON
 set ecut 15 
 set ecuts 10
 set wf_dyn PSD

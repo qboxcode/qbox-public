@@ -170,7 +170,6 @@ int main(int argc, char **argv)
     c.gemm(ta,tb,1.0,a,b,0.0);
     tm.stop();
 
-
     if ( tcheck )
     {
     cout << " checking results..." << endl;
@@ -215,19 +214,42 @@ int main(int argc, char **argv)
               exit(1);
             }
           }
-
-
        cout << " results checked" << endl;
     }
 
-    cout << " CPU/Real: " << setw(8) << tm.cpu()
-         << " / " << setw(8) << tm.real();
-    if ( tm.real() > 0.0 )
+    // print dgemm timing
+    const int kmax = ( ta == 'n' ) ? a.n() : a.m();
+    double buf[2];
+    buf[0] = tm.cpu();
+    buf[1] = tm.real();
+    double cpu, real;
+    for ( int irow = 0; irow < nprow; irow++ )
     {
-      int kmax = ( ta == 'n' ) ? a.n() : a.m();
-      cout << "  MFlops: "
-           << (2.0e-6*m_c*n_c*kmax) / tm.real() << endl;
+      for ( int icol = 0; icol < npcol; icol++ )
+      {
+        ctxt.barrier();
+        if ( irow != 0 && icol != 0 )
+        {
+          if ( ctxt.onpe0() )
+            ctxt.drecv(1,1,buf,2,irow,icol);
+          else
+            if ( irow == ctxt.myrow() && icol == ctxt.mycol() )
+              ctxt.dsend(1,1,buf,2,0,0);
+        }
+
+        if ( ctxt.onpe0() )
+        {
+          double tcpu = buf[0];
+          double treal = buf[1];
+          cout << "(" << setw(3) << irow << "," << setw(3) << icol << ") "
+               << "CPU/Real: " << setw(8) << tcpu << " / " << setw(8) << treal;
+          if ( treal > 0.0 )
+            cout << "  MFlops: " << (2.0e-6*m_c*n_c*kmax) / treal;
+          cout << endl;
+        }
+      }
     }
+
     double norma=a.nrm2();
     if(mype == 0)cout<<"Norm(a)="<<norma<<endl;
 

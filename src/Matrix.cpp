@@ -86,6 +86,8 @@ using namespace std;
 #define zdscal     zdscal_
 #define dcopy      dcopy_
 #define ddot       ddot_
+#define dnrm2      dnrm2_
+#define dznrm2     dznrm2_
 #define zdotu      zdotu_
 #define zdotc      zdotc_
 #define daxpy      daxpy_
@@ -298,6 +300,8 @@ extern "C"
   void dcopy(const int *, const double*, const int *, double*, const int*);
   double ddot(const int *, const double *, const int *,
               const double *, const int *);
+  double dnrm2(const int *, const double *, const int *);
+  double dznrm2(const int *, const complex<double> *, const int *);
   complex<double> zdotc(const int *, const complex<double>*, const int *,
                         const complex<double>*, const int *);
   complex<double> zdotu(const int *, const complex<double>*, const int *,
@@ -1244,13 +1248,43 @@ void ComplexMatrix::symmetrize(char uplo)
 ////////////////////////////////////////////////////////////////////////////////
 double DoubleMatrix::nrm2(void) const
 {
-  return sqrt(dot(*this));
+  double  sum=0.;
+  double  tsum=0.;
+  if ( active_ )
+  {
+    int ione=1;
+    // dnrm2 returns sqrt(sum_i x[i]*x[i])
+    tsum = dnrm2(&size_,val,&ione);
+    tsum = tsum*tsum;
+  }
+#ifdef SCALAPACK
+  if ( active_ )
+    MPI_Allreduce(&tsum, &sum, 1, MPI_DOUBLE, MPI_SUM, ctxt_.comm() );
+#else
+  sum=tsum;
+#endif
+  return sqrt(sum);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 double ComplexMatrix::nrm2(void) const
 {
-  return sqrt(abs(dot(*this)));
+  double  sum=0.;
+  double  tsum=0.;
+  if ( active_ )
+  {
+    int ione=1;
+    // dznrm2 returns sqrt(sum_i conjg(x[i])*x[i])
+    tsum = dznrm2(&size_,val,&ione);
+    tsum = tsum*tsum;
+  }
+#ifdef SCALAPACK
+  if ( active_ )
+    MPI_Allreduce(&tsum, &sum, 1, MPI_DOUBLE, MPI_SUM, ctxt_.comm() );
+#else
+  sum=tsum;
+#endif
+  return sqrt(sum);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

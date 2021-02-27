@@ -32,6 +32,7 @@
 #define daxpy  daxpy_
 #define ddot   ddot_
 #define dnrm2  dnrm2_
+#define dznrm2 dznrm2_
 #define drot   drot_
 #define dasum  dasum_
 #define dsbmv  dsbmv_
@@ -63,6 +64,7 @@ void daxpy(int *n, double *alpha, double *x, int *incx,
 double ddot(const int *n, const double *a, const int *inca,
   const double *b, const int *incb);
 double dnrm2(const int *n, const double *a, const int *inca);
+double dznrm2(const int *n, const std::complex<double> *a, const int *inca);
 void drot(int*, double*, int*, double*, int*, double*, double*);
 void dgemm(char *ta, char *tb, int *m, int *n, int *k,
   double *alpha, double *a, int *lda, double *b, int *ldb,

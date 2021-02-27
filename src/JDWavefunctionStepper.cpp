@@ -54,12 +54,14 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
   {
     for ( int ikp_loc = 0; ikp_loc < wf_.nkp_loc(); ++ikp_loc )
     {
-      if ( wf_.sd(isp_loc,ikp_loc)->basis().real() )
+      SlaterDet* sd = wf_.sd(isp_loc,ikp_loc);
+      SlaterDet* dsd = dwf.sd(isp_loc,ikp_loc);
+      if ( sd->basis().real() )
       {
         // compute A = Y^T H Y  and descent direction HY - YA
         // proxy real matrices c, cp
-        DoubleMatrix c_proxy(wf_.sd(isp_loc,ikp_loc)->c());
-        DoubleMatrix cp_proxy(dwf.sd(isp_loc,ikp_loc)->c());
+        DoubleMatrix c_proxy(sd->c());
+        DoubleMatrix cp_proxy(dsd->c());
         DoubleMatrix a(c_proxy.context(),c_proxy.n(),c_proxy.n(),
                        c_proxy.nb(),c_proxy.nb());
 
@@ -74,8 +76,8 @@ void JDWavefunctionStepper::update(Wavefunction& dwf)
       else // real
       {
         // compute A = Y^T H Y  and descent direction HY - YA
-        ComplexMatrix& c = wf_.sd(isp_loc,ikp_loc)->c();
-        ComplexMatrix& cp = dwf.sd(isp_loc,ikp_loc)->c();
+        ComplexMatrix& c = sd->c();
+        ComplexMatrix& cp = dsd->c();
         ComplexMatrix a(c.context(),c.n(),c.n(),c.nb(),c.nb());
 
         // (Y,HY)

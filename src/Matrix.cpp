@@ -22,10 +22,10 @@
 #include <limits>
 #include <iostream>
 using namespace std;
-
 #ifdef USE_MPI
 #include <mpi.h>
 #endif
+#include "MPIdata.h"
 
 #include "Context.h"
 #ifdef SCALAPACK
@@ -126,7 +126,7 @@ using namespace std;
 
 extern "C"
 {
-  int numroc(int*, int*, int*, int*, int*);
+  int numroc(const int*, const int*, const int*, const int*, const int*);
 #ifdef SCALAPACK
   // PBLAS
   void pdsymm(const char*, const char*, const int*, const int*, const double*,
@@ -389,13 +389,46 @@ extern "C"
               complex<double>* work, int* lwork, int* info);
 }
 
-
-#ifndef SCALAPACK
-int numroc(int* a, int* b, int* c, int* d, int* e)
+////////////////////////////////////////////////////////////////////////////////
+// numroc0: ScaLAPACK numroc function specialized for the case isrcproc=0
+// i.e. the process holding the first row/col of the matrix is proc 0
+int numroc0(int n, int nb, int iproc, int nprocs)
 {
-  return *a;
+  // n       number of rows/cols of the distributed matrix
+  // nb      block size
+  // iproc   coordinate of the process whose local array size is being computed
+  //         iproc = 0..nprocs
+  // nprocs  number of processes over which the matrix is distributed
+
+  // nblocks = total number of whole nb blocks
+  int n_whole_blocks = n / nb;
+
+  // minimum number of rows or cols a process can have
+  int nroc = ( n_whole_blocks / nprocs ) * nb;
+
+  // number of extra blocks needed
+  int n_extra_blocks = n_whole_blocks % nprocs;
+
+  // adjust numroc depending on iproc
+  if ( iproc < n_extra_blocks )
+    nroc += nb;
+  else if ( iproc == n_extra_blocks )
+    nroc += n % nb;
+
+  return nroc;
 }
-#endif
+
+////////////////////////////////////////////////////////////////////////////////
+int DoubleMatrix::mloc(int irow) const
+{
+  return numroc0(m_,mb_,irow,nprow_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+int DoubleMatrix::nloc(int icol) const
+{
+  return numroc0(n_,nb_,icol,npcol_);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // reference constructor create a proxy for a ComplexMatrix rhs

@@ -150,7 +150,7 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testVWN: testVWN.o VWNFunctional.o LDAFunctional.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testMatrix: testMatrix.o Matrix.o Context.o
+ testMatrix: testMatrix.o Matrix.o Context.o MPIdata.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testjacobi: testjacobi.o jacobi.o Matrix.o Context.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)

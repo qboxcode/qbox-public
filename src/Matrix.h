@@ -27,6 +27,8 @@
 #include <complex>
 #include <cstring> // memcpy
 
+int numroc0(int n, int nb, int iproc, int nprocs);
+
 class ComplexMatrix;
 
 class DoubleMatrix
@@ -63,7 +65,9 @@ class DoubleMatrix
     int mb(void) const { return mb_; } // size of blocks
     int nb(void) const { return nb_; } // size of blocks
     int mloc(void) const { return mloc_; } // size of local array
+    int mloc(int irow) const; // size of local array on row irow
     int nloc(void) const { return nloc_; } // size of local array
+    int nloc(int icol) const; // size of local array on column icol
     int size(void) const { return size_; } // size of local array
     int localsize(void) const { return mloc_*nloc_; } // local size of val
     double memsize(void) const { return (double)m_*(double)n_*sizeof(double); }

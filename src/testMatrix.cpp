@@ -37,6 +37,7 @@
 #include <valarray>
 using namespace std;
 
+#include "MPIdata.h"
 #include "Timer.h"
 
 #include <mpi.h>
@@ -107,6 +108,9 @@ int main(int argc, char **argv)
   MPI_Bcast(&nb_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&ta, 1, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Bcast(&tb, 1, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+  MPIdata::set(nprow,npcol,1,1);
+
   {
     if ( ta == 'N' ) ta = 'n';
     if ( tb == 'N' ) tb = 'n';
@@ -167,8 +171,20 @@ int main(int argc, char **argv)
           }
 
     tm.start();
+    double gemm_time = MPI_Wtime();
     c.gemm(ta,tb,1.0,a,b,0.0);
+    gemm_time = MPI_Wtime() - gemm_time;
+    if ( ctxt.onpe0() )
+      cout << "gemm_time: " << gemm_time << endl;
     tm.stop();
+
+    Context csq(MPI_COMM_WORLD,1,1);
+    DoubleMatrix ssq(csq,c.n(),c.n(),c.nb(),c.nb());
+    double getsub_time = MPI_Wtime();
+    ssq.getsub(c,c.m(),c.n(),0,0);
+    getsub_time = MPI_Wtime() - getsub_time;
+    if ( ctxt.onpe0() )
+      cout << "getsub_time: " << getsub_time << endl;
 
     if ( tcheck )
     {

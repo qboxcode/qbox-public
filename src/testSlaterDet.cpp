@@ -136,16 +136,15 @@ int main(int argc, char **argv)
   vector<complex<double> > f(ft.np012loc());
   vector<double> rho(ft.np012loc());
 
-  tmap["density"].reset();
-  tmap["density"].start();
-
   if ( ctxt.myproc() == 0 )
     cout << " compute_density" << endl;
 
   sd.update_occ(2*nst,1);
   double weight = 1.0;
-  sd.compute_density(ft,weight,&rho[0]);
 
+  tmap["density"].reset();
+  tmap["density"].start();
+  sd.compute_density(ft,weight,&rho[0]);
   tmap["density"].stop();
 
   // integral of rho in r space

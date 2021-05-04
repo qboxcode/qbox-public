@@ -68,7 +68,6 @@ int main(int argc, char **argv)
     cout << " npr=" << npr << " npc=" << npc << endl;
 
   SlaterDet sd(ctxt,kpoint);
-  cout << sd.context();
 
   sd.resize(cell,cell,ecut,nst);
   if ( ctxt.myproc() == 0 )

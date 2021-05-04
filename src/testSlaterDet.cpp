@@ -57,8 +57,15 @@ int main(int argc, char **argv)
 
   int npr = atoi(argv[15]);
   int npc = atoi(argv[16]);
-
   MPIdata::set(npr,npc);
+
+  if ( MPIdata::onpe0() )
+  {
+    cout << " testSlaterDet" << endl;
+    cout << " args: " << a << " " << b << " " << c << " "
+         << ecut << " " << nst << " "
+         << kpoint << " " << npr << " " << npc << endl;
+  }
 
   std::map<std::string,Timer> tmap;
 

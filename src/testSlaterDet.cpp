@@ -59,11 +59,13 @@ int main(int argc, char **argv)
   int npc = atoi(argv[16]);
 
   MPIdata::set(npr,npc);
-  cout << MPIdata::rank() << ": npr=" << npr << " npc=" << npc << endl;
-  Timer tm;
+
+  std::map<std::string,Timer> tmap;
 
   { // Context scope
   Context ctxt(MPIdata::sd_comm(),npr,npc);
+  if ( ctxt.myproc() == 0 )
+    cout << " npr=" << npr << " npc=" << npc << endl;
 
   SlaterDet sd(ctxt,kpoint);
   cout << sd.context();
@@ -87,11 +89,11 @@ int main(int argc, char **argv)
   if ( ctxt.myproc() == 0 )
     cout << " Orthogonality error after rand " << err << endl;
 
-  tm.reset();
-  tm.start();
+  tmap["gram"].reset();
+  tmap["gram"].start();
   sd.gram();
-  tm.stop();
-  cout << " Gram: CPU/Real: " << tm.cpu() << " / " << tm.real() << endl;
+  tmap["gram"].stop();
+
   err = sd.ortho_error();
   if ( ctxt.myproc() == 0 )
     cout << " Gram orthogonality error " << err << endl;
@@ -102,11 +104,10 @@ int main(int argc, char **argv)
   sdm.c() = sd.c();
   sd.randomize(0.1/sd.basis().size());
 
-  tm.reset();
-  tm.start();
+  tmap["riccati"].reset();
+  tmap["riccati"].start();
   sd.riccati(sdm);
-  tm.stop();
-  cout << " riccati: CPU/Real: " << tm.cpu() << " / " << tm.real() << endl;
+  tmap["riccati"].stop();
   err = sd.ortho_error();
   if ( ctxt.myproc() == 0 )
     cout << " Riccati orthogonality error " << err << endl;
@@ -122,8 +123,6 @@ int main(int argc, char **argv)
          << sd.localmemsize() / 1048576.0 << endl;
   }
 
-  //cout << " ekin: " << setprecision(8) << sd.ekin(occ) << endl;
-
   // compute charge density in real space
   FourierTransform ft(sd.basis(),
     2*sd.basis().np(0), 2*sd.basis().np(1), 2*sd.basis().np(2));
@@ -131,20 +130,17 @@ int main(int argc, char **argv)
   vector<complex<double> > f(ft.np012loc());
   vector<double> rho(ft.np012loc());
 
-  Timer tmrho;
-  tmrho.reset();
-  tmrho.start();
+  tmap["density"].reset();
+  tmap["density"].start();
 
-  cout << MPIdata::rank() << ": compute_density..." << endl;
-  // update_occ(nel,nspin)
+  if ( ctxt.myproc() == 0 )
+    cout << " compute_density" << endl;
+
   sd.update_occ(2*nst,1);
   double weight = 1.0;
-  cout << MPIdata::rank() << ": sd.nstloc()=" << sd.nstloc() << endl;
   sd.compute_density(ft,weight,&rho[0]);
 
-  tmrho.stop();
-  cout << MPIdata::rank() << ": compute_density: CPU/Real: "
-       << tmrho.cpu() << " / " << tmrho.real() << endl;
+  tmap["density"].start();
 
   // integral of rho in r space
   double sum = 0.0;
@@ -154,8 +150,8 @@ int main(int argc, char **argv)
   double tsum;
   MPI_Allreduce(&sum,&tsum,1,MPI_DOUBLE,MPI_SUM,sd.context().comm());
   sum = tsum;
-  cout << ctxt.mype() << ": "
-       << " rho: " << sum * cell.volume() / ft.np012() << endl;
+  if ( ctxt.myproc() == 0 )
+    cout << " density sum: " << sum * cell.volume() / ft.np012() << endl;
 
   SlaterDet sdp(sd);
   //SlaterDet sdp(ctxt,kpoint);
@@ -168,12 +164,10 @@ int main(int argc, char **argv)
     cout << " Gram orthogonality error " << err << endl;
 
   Timer tmv;
-  tmv.reset();
-  tmv.start();
+  tmap["rs_mul_add"].reset();
+  tmap["rs_mul_add"].start();
   sd.rs_mul_add(ft,&rho[0],sdp);
-  tmv.stop();
-  cout << " rs_mul_add: CPU/Real: "
-       << tmv.cpu() << " / " << tmv.real() << endl;
+  tmap["rs_mul_add"].stop();
 
   //cout << sd;
 #if 0
@@ -186,12 +180,26 @@ int main(int argc, char **argv)
        << tm.cpu() << " / " << tm.real() << endl;
 #endif
 
-  for ( TimerMap::iterator i = sd.tmap.begin(); i != sd.tmap.end(); i++ )
-    cout << ctxt.mype() << ": "
-         << setw(15) << (*i).first
-         << " : " << setprecision(3) << (*i).second.real() << endl;
-
   ctxt.barrier();
   } // Context scope
+
+  if ( MPIdata::onpe0() )
+  {
+    printf("\n");
+    printf(" %-22s %12s %12s\n","timer name","min","max");
+    printf(" %-22s %12s %12s\n","----------","---","---");
+  }
+  for ( TimerMap::iterator i = tmap.begin(); i != tmap.end(); i++ )
+  {
+    double time = i->second.real();
+    double tmin, tmax;
+    MPI_Reduce(&time,&tmin,1,MPI_DOUBLE,MPI_MIN,0,MPIdata::comm());
+    MPI_Reduce(&time,&tmax,1,MPI_DOUBLE,MPI_MAX,0,MPIdata::comm());
+    if ( MPIdata::onpe0() )
+    {
+      string s = (*i).first;
+      printf(" %-22s %12.6f %12.6f\n",s.c_str(), tmin, tmax);
+    }
+  }
   MPI_Finalize();
 }

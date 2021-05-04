@@ -146,7 +146,7 @@ int main(int argc, char **argv)
   double weight = 1.0;
   sd.compute_density(ft,weight,&rho[0]);
 
-  tmap["density"].start();
+  tmap["density"].stop();
 
   // integral of rho in r space
   double sum = 0.0;

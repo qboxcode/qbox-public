@@ -1,4 +1,14 @@
 --------------------------------------------------------------------------------
+rel1_73_2
+--------------------------------------------------------------------------------
+Fix testSlaterDet output
+f87029e Add numroc0 function in Matrix
+d1d39b5 Use MPIdata in testMatrix.cpp
+1ccde59 Rewrite Matrix::nrm2() implementations
+7d1079e Clean up syntax in JDWavefunctionStepper.cpp
+90d6d8c Fix nrm2() of ComplexMatrix
+db88c3f Fix print format in testMatrix.cpp
+--------------------------------------------------------------------------------
 rel1_73_1
 --------------------------------------------------------------------------------
 148f560 Fix debug variable. Fix debug STRESS in tests.

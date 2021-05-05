@@ -37,6 +37,7 @@
 #include <valarray>
 using namespace std;
 
+#include "MPIdata.h"
 #include "Timer.h"
 
 #include <mpi.h>
@@ -107,6 +108,9 @@ int main(int argc, char **argv)
   MPI_Bcast(&nb_c, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&ta, 1, MPI_CHAR, 0, MPI_COMM_WORLD);
   MPI_Bcast(&tb, 1, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+  MPIdata::set(nprow,npcol,1,1);
+
   {
     if ( ta == 'N' ) ta = 'n';
     if ( tb == 'N' ) tb = 'n';
@@ -167,9 +171,20 @@ int main(int argc, char **argv)
           }
 
     tm.start();
+    double gemm_time = MPI_Wtime();
     c.gemm(ta,tb,1.0,a,b,0.0);
+    gemm_time = MPI_Wtime() - gemm_time;
+    if ( ctxt.onpe0() )
+      cout << "gemm_time: " << gemm_time << endl;
     tm.stop();
 
+    Context csq(MPI_COMM_WORLD,1,1);
+    DoubleMatrix ssq(csq,c.n(),c.n(),c.nb(),c.nb());
+    double getsub_time = MPI_Wtime();
+    ssq.getsub(c,c.m(),c.n(),0,0);
+    getsub_time = MPI_Wtime() - getsub_time;
+    if ( ctxt.onpe0() )
+      cout << "getsub_time: " << getsub_time << endl;
 
     if ( tcheck )
     {
@@ -215,19 +230,42 @@ int main(int argc, char **argv)
               exit(1);
             }
           }
-
-
        cout << " results checked" << endl;
     }
 
-    cout << " CPU/Real: " << setw(8) << tm.cpu()
-         << " / " << setw(8) << tm.real();
-    if ( tm.real() > 0.0 )
+    // print dgemm timing
+    const int kmax = ( ta == 'n' ) ? a.n() : a.m();
+    double buf[2];
+    buf[0] = tm.cpu();
+    buf[1] = tm.real();
+    double cpu, real;
+    for ( int irow = 0; irow < nprow; irow++ )
     {
-      int kmax = ( ta == 'n' ) ? a.n() : a.m();
-      cout << "  MFlops: "
-           << (2.0e-6*m_c*n_c*kmax) / tm.real() << endl;
+      for ( int icol = 0; icol < npcol; icol++ )
+      {
+        ctxt.barrier();
+        if ( irow != 0 && icol != 0 )
+        {
+          if ( ctxt.onpe0() )
+            ctxt.drecv(1,1,buf,2,irow,icol);
+          else
+            if ( irow == ctxt.myrow() && icol == ctxt.mycol() )
+              ctxt.dsend(1,1,buf,2,0,0);
+        }
+
+        if ( ctxt.onpe0() )
+        {
+          double tcpu = buf[0];
+          double treal = buf[1];
+          cout << "(" << setw(3) << irow << "," << setw(3) << icol << ") "
+               << "CPU/Real: " << setw(8) << tcpu << " / " << setw(8) << treal;
+          if ( treal > 0.0 )
+            cout << "  MFlops: " << (2.0e-6*m_c*n_c*kmax) / treal;
+          cout << endl;
+        }
+      }
     }
+
     double norma=a.nrm2();
     if(mype == 0)cout<<"Norm(a)="<<norma<<endl;
 

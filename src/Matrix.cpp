@@ -22,10 +22,10 @@
 #include <limits>
 #include <iostream>
 using namespace std;
-
 #ifdef USE_MPI
 #include <mpi.h>
 #endif
+#include "MPIdata.h"
 
 #include "Context.h"
 #ifdef SCALAPACK
@@ -86,6 +86,8 @@ using namespace std;
 #define zdscal     zdscal_
 #define dcopy      dcopy_
 #define ddot       ddot_
+#define dnrm2      dnrm2_
+#define dznrm2     dznrm2_
 #define zdotu      zdotu_
 #define zdotc      zdotc_
 #define daxpy      daxpy_
@@ -124,7 +126,7 @@ using namespace std;
 
 extern "C"
 {
-  int numroc(int*, int*, int*, int*, int*);
+  int numroc(const int*, const int*, const int*, const int*, const int*);
 #ifdef SCALAPACK
   // PBLAS
   void pdsymm(const char*, const char*, const int*, const int*, const double*,
@@ -298,6 +300,8 @@ extern "C"
   void dcopy(const int *, const double*, const int *, double*, const int*);
   double ddot(const int *, const double *, const int *,
               const double *, const int *);
+  double dnrm2(const int *, const double *, const int *);
+  double dznrm2(const int *, const complex<double> *, const int *);
   complex<double> zdotc(const int *, const complex<double>*, const int *,
                         const complex<double>*, const int *);
   complex<double> zdotu(const int *, const complex<double>*, const int *,
@@ -385,13 +389,46 @@ extern "C"
               complex<double>* work, int* lwork, int* info);
 }
 
-
-#ifndef SCALAPACK
-int numroc(int* a, int* b, int* c, int* d, int* e)
+////////////////////////////////////////////////////////////////////////////////
+// numroc0: ScaLAPACK numroc function specialized for the case isrcproc=0
+// i.e. the process holding the first row/col of the matrix is proc 0
+int numroc0(int n, int nb, int iproc, int nprocs)
 {
-  return *a;
+  // n       number of rows/cols of the distributed matrix
+  // nb      block size
+  // iproc   coordinate of the process whose local array size is being computed
+  //         iproc = 0..nprocs
+  // nprocs  number of processes over which the matrix is distributed
+
+  // nblocks = total number of whole nb blocks
+  int n_whole_blocks = n / nb;
+
+  // minimum number of rows or cols a process can have
+  int nroc = ( n_whole_blocks / nprocs ) * nb;
+
+  // number of extra blocks needed
+  int n_extra_blocks = n_whole_blocks % nprocs;
+
+  // adjust numroc depending on iproc
+  if ( iproc < n_extra_blocks )
+    nroc += nb;
+  else if ( iproc == n_extra_blocks )
+    nroc += n % nb;
+
+  return nroc;
 }
-#endif
+
+////////////////////////////////////////////////////////////////////////////////
+int DoubleMatrix::mloc(int irow) const
+{
+  return numroc0(m_,mb_,irow,nprow_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+int DoubleMatrix::nloc(int icol) const
+{
+  return numroc0(n_,nb_,icol,npcol_);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // reference constructor create a proxy for a ComplexMatrix rhs
@@ -1244,13 +1281,43 @@ void ComplexMatrix::symmetrize(char uplo)
 ////////////////////////////////////////////////////////////////////////////////
 double DoubleMatrix::nrm2(void) const
 {
-  return sqrt(dot(*this));
+  double  sum=0.;
+  double  tsum=0.;
+  if ( active_ )
+  {
+    int ione=1;
+    // dnrm2 returns sqrt(sum_i x[i]*x[i])
+    tsum = dnrm2(&size_,val,&ione);
+    tsum = tsum*tsum;
+  }
+#ifdef SCALAPACK
+  if ( active_ )
+    MPI_Allreduce(&tsum, &sum, 1, MPI_DOUBLE, MPI_SUM, ctxt_.comm() );
+#else
+  sum=tsum;
+#endif
+  return sqrt(sum);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 double ComplexMatrix::nrm2(void) const
 {
-  return abs(dot(*this));
+  double  sum=0.;
+  double  tsum=0.;
+  if ( active_ )
+  {
+    int ione=1;
+    // dznrm2 returns sqrt(sum_i conjg(x[i])*x[i])
+    tsum = dznrm2(&size_,val,&ione);
+    tsum = tsum*tsum;
+  }
+#ifdef SCALAPACK
+  if ( active_ )
+    MPI_Allreduce(&tsum, &sum, 1, MPI_DOUBLE, MPI_SUM, ctxt_.comm() );
+#else
+  sum=tsum;
+#endif
+  return sqrt(sum);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

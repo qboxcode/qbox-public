@@ -280,7 +280,9 @@ double MDWavefunctionStepper::ekin_eh(void)
       }
     }
   }
-  wf_.sd_context().dsum(1,1,&ekin_e,1);
+  double tsum;
+  MPI_Allreduce(&ekin_e,&tsum,1,MPI_DOUBLE,MPI_SUM,MPIdata::comm());
+  ekin_e = tsum;
   tmap_["ekin_e"].stop();
   return ekin_e;
 }

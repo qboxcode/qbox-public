@@ -655,10 +655,8 @@ void RSHFunctional::RSH_exchange(const double rho, const double grad,
   RSH_enhance(s,kF,w,&fxhse,&dfx_ds,&dfx_dkf);
 
   // calculate exchange energy
-  // ex = (1 - a) ex,SR + ex,LR
-  //    = (1 - a) ex,SR + ex,PBE - ex,SR
-  //    = ex,PBE - a ex,SR
-  *ex = exLDA * ( fxpbe - a_ex * fxhse );
+  *ex = exLDA * ( ( 1.0 - alpha_RSH_ ) * fxpbe +
+                  ( alpha_RSH_ - beta_RSH_ ) * fxhse );
 
   // calculate potential
   *vx1 = third4 * exLDA * ( fxpbe - s2 * fs - a_ex * ( fxhse - s * dfx_ds

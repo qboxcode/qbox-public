@@ -179,8 +179,7 @@ double LineMinimizer::next_alpha(double alpha, double f, double fp)
     if ( debug_print )
       cout << "LineMinimizer: U2, increase alpha" << endl;
 
-    const double delta = 1.1;
-    double new_alpha = std::min(alpha+delta*(alpha-alpha_low), alpha_max_);
+    double new_alpha = std::min(alpha+delta_*(alpha-alpha_low), alpha_max_);
     if ( new_alpha == alpha_max_ )
       done_ = true;
     return new_alpha;

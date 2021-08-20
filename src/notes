@@ -1,4 +1,12 @@
 --------------------------------------------------------------------------------
+rel1_73_3
+--------------------------------------------------------------------------------
+dff558a Make delta_ member of LineMinimizer, set to 1.1
+641deae Fix RSHFunctional Fx enhancement factor
+550005c Fix ekin_e for nspin=2 CP dynamics
+493bdb0 Change delta to 0.3 in LineMinimizer.cpp (undone later)
+9bd517d Add util/qbox_vavg.py for average potential calcs
+--------------------------------------------------------------------------------
 rel1_73_2
 --------------------------------------------------------------------------------
 Fix testSlaterDet output

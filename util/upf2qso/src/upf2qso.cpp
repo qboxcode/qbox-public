@@ -159,7 +159,7 @@ void skipln(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-const string release="1.10";
+const string release="1.11";
 
 int main(int argc, char** argv)
 {
@@ -1599,7 +1599,7 @@ int main(int argc, char** argv)
       ofstream vlin("vlin.dat");
       vlin << "# vlocal" << endl;
       for ( int i = 0; i < nplin; i++ )
-        vlin << vloc_lin[i] << endl;
+        vlin << i*mesh_spacing << " " << vloc_lin[i] << endl;
       vlin << endl << endl;
       for ( int iproj = 0; iproj < vnl_lin.size(); iproj++ )
       {

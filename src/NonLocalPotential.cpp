@@ -1319,9 +1319,11 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
 
         // next line: const cast is ok since dgemm_ does not modify argument
         double* kpgx = const_cast<double*>(basis_.kpgx_ptr(0));
+        int lda = max(1,ngwl);
+        int ldc = lda;
         dgemm(&cn,&cn,(int*)&ngwl,(int*)&ia_block_size,&k,&mone,
-              kpgx,(int*)&ngwl, &tau[is][3*iastart],&k,
-              &zero,&gr[0],(int*)&ngwl);
+              kpgx,&lda,&tau[is][3*iastart],&k,
+              &zero,&gr[0],&ldc);
 
         int len = ia_block_size * ngwl;
 #if USE_MASSV
@@ -1401,12 +1403,14 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
           double one=1.0;
           char ct='t';
           int twongwl = 2 * ngwl;
-          int c_lda = 2*sd_.c().mloc();
+          int lda = max(1,twongwl);
+          int ldb = max(1,2*sd_.c().mloc());
+          int ldc = max(1,nprnaloc);
           const complex<double>* c = sd_.c().cvalptr();
           tmap["fnl_gemm"].start();
           dgemm(&ct,&cn,&nprnaloc,(int*)&nstloc,&twongwl,&one,
-                &anl_loc[0],&twongwl, (double*)c, &c_lda,
-                &zero,&fnl_loc[0],&nprnaloc);
+                &anl_loc[0],&lda,(double*)c,&ldb,
+                &zero,&fnl_loc[0],&ldc);
           tmap["fnl_gemm"].stop();
 
           // correct for double counting if ctxt_.myrow() == 0
@@ -1418,8 +1422,8 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
             // x = first row of anl_loc
             // y^T = first row of c
             double alpha = -0.5;
-            dger(&nprnaloc,(int*)&nstloc,&alpha,&anl_loc[0],&twongwl,
-                 (double*)c,&c_lda,&fnl_loc[0],&nprnaloc);
+            dger(&nprnaloc,(int*)&nstloc,&alpha,&anl_loc[0],&lda,
+                 (double*)c,&ldb,&fnl_loc[0],&ldc);
           }
         }
         else
@@ -1428,13 +1432,15 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
           complex<double> cone=1.0;
           complex<double> czero=0.0;
           char cc='c';
-          int c_lda = sd_.c().mloc();
+          int lda = max(1,ngwl);
+          int ldb = max(1,sd_.c().mloc());
+          int ldc = max(1,nprnaloc);
           const complex<double>* c = sd_.c().cvalptr();
           tmap["fnl_zemm"].start();
           zgemm(&cc,&cn,&nprnaloc,(int*)&nstloc,(int*)&ngwl,&cone,
-                (complex<double>*) &anl_loc[0],(int*)&ngwl,
-                (complex<double>*) c, &c_lda,&czero,
-                (complex<double>*)&fnl_loc[0],&nprnaloc);
+                (complex<double>*) &anl_loc[0],&lda,
+                (complex<double>*) c,&ldb,&czero,
+                (complex<double>*) &fnl_loc[0],&ldc);
           tmap["fnl_zemm"].stop();
         }
 
@@ -1493,8 +1499,11 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               }
             }
             // multiply F'_In = D_IJ F_Jn
+            int lda = max(1,nprnaloc);
+            int ldb = lda;
+            int ldc = lda;
             dgemm(&cn,&cn,&nprnaloc,(int*) &nstloc,&nprnaloc,&one,&dmatrix[0],
-              &nprnaloc,&fnl_loc[0],&nprnaloc,&zero,&fnl_buf[0],&nprnaloc);
+              &lda,&fnl_loc[0],&ldb,&zero,&fnl_buf[0],&ldc);
           }
           else
           {
@@ -1527,9 +1536,12 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               }
             }
             // multiply F'_In = D_IJ F_Jn
+            int lda = max(1,nprnaloc);
+            int ldb = lda;
+            int ldc = lda;
             zgemm(&cn,&cn,&nprnaloc,(int*) &nstloc,&nprnaloc,&one,&dmatrix[0],
-              &nprnaloc,(complex<double>*) &fnl_loc[0],&nprnaloc,&zero,
-              (complex<double>*) &fnl_buf[0],&nprnaloc);
+              &lda,(complex<double>*) &fnl_loc[0],&ldb,&zero,
+              (complex<double>*) &fnl_buf[0],&ldc);
           }
         }
         else
@@ -1591,12 +1603,14 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
             tmap["enl_hpsi"].start();
             // compute cp += anl * fnl
             complex<double>* cp = dsd.c().valptr();
-            int cp_lda = 2*dsd.c().mloc();
             int twongwl = 2 * ngwl;
+            int lda = max(1,twongwl);
+            int ldb = max(1,nprnaloc);
+            int ldc = max(1,2*dsd.c().mloc());
             double one = 1.0;
             dgemm(&cn,&cn,&twongwl,(int*)&nstloc,&nprnaloc,&one,
-                  &anl_loc[0],&twongwl, &fnl_loc[0],&nprnaloc,
-                  &one,(double*)cp, &cp_lda);
+                  &anl_loc[0],&lda,&fnl_loc[0],&ldb,
+                  &one,(double*)cp,&ldc);
             tmap["enl_hpsi"].stop();
           }
           else
@@ -1604,12 +1618,14 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
             tmap["enl_hpsi"].start();
             // compute cp += anl * fnl
             complex<double>* cp = dsd.c().valptr();
+            int lda = max(1,ngwl);
+            int ldb = max(1,nprnaloc);
+            int ldc = max(1,dsd.c().mloc());
             complex<double> cone = 1.0;
-            int cp_lda = dsd.c().mloc();
             zgemm(&cn,&cn,(int*)&ngwl,(int*)&nstloc,&nprnaloc,&cone,
-                  (complex<double>*) &anl_loc[0],(int*)&ngwl,
-                  (complex<double>*) &fnl_loc[0],&nprnaloc,
-                  &cone,cp, &cp_lda);
+                  (complex<double>*) &anl_loc[0],&lda,
+                  (complex<double>*) &fnl_loc[0],&ldb,
+                  &cone,cp,&ldc);
             tmap["enl_hpsi"].stop();
           }
         }
@@ -1693,11 +1709,13 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               char ct='t';
               const int twongwl = 2 * ngwl;
               const int nprnaloc = ia_block_size * npr[is];
-              int c_lda = 2*sd_.c().mloc();
+              int lda = max(1,twongwl);
+              int ldb = max(1,2*sd_.c().mloc());
+              int ldc = max(1,nprnaloc);
               const complex<double>* c = sd_.c().cvalptr();
               dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&two,
-                    &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,
-                    &zero,&dfnl_loc[0],(int*)&nprnaloc);
+                    &anl_loc[0],&lda, (double*)c,&ldb,
+                    &zero,&dfnl_loc[0],&ldc);
             }
             else
             {
@@ -1705,12 +1723,14 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               complex<double> czero=0.0;
               char cc='c';
               const int nprnaloc = ia_block_size * npr[is];
-              int c_lda = sd_.c().mloc();
+              int lda = max(1,ngwl);
+              int ldb = max(1,sd_.c().mloc());
+              int ldc = max(1,nprnaloc);
               const complex<double>* c = sd_.c().cvalptr();
               zgemm(&cc,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&ngwl,&cone,
-                    (complex<double>*) &anl_loc[0],(int*)&ngwl,
-                    (complex<double>*) c,(int*)&c_lda,
-                    &czero,(complex<double>*)&dfnl_loc[0],(int*)&nprnaloc);
+                    (complex<double>*) &anl_loc[0],&lda,
+                    (complex<double>*) c,&ldb,
+                    &czero,(complex<double>*) &dfnl_loc[0],&ldc);
             }
 
             // accumulate non-local contributions to forces
@@ -1957,11 +1977,13 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               char ct='t';
               const int twongwl = 2 * ngwl;
               const int nprnaloc = ia_block_size * npr[is];
-              int c_lda = 2*sd_.c().mloc();
+              int lda = max(1,twongwl);
+              int ldb = max(1,2*sd_.c().mloc());
+              int ldc = max(1,nprnaloc);
               const complex<double>* c = sd_.c().cvalptr();
               dgemm(&ct,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&twongwl,&two,
-                    &anl_loc[0],(int*)&twongwl, (double*)c,(int*)&c_lda,
-                    &zero,&dfnl_loc[0],(int*)&nprnaloc);
+                    &anl_loc[0],&lda, (double*)c,&ldb,
+                    &zero,&dfnl_loc[0],&ldc);
             }
             else
             {
@@ -1969,12 +1991,14 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
               complex<double> czero=0.0;
               char cc='c';
               const int nprnaloc = ia_block_size * npr[is];
-              int c_lda = sd_.c().mloc();
+              int lda = max(1,ngwl);
+              int ldb = max(1,sd_.c().mloc());
+              int ldc = max(1,nprnaloc);
               const complex<double>* c = sd_.c().cvalptr();
               zgemm(&cc,&cn,(int*)&nprnaloc,(int*)&nstloc,(int*)&ngwl,&cone,
-                    (complex<double>*)&anl_loc[0],(int*)&ngwl,
-                    (complex<double>*)c,(int*)&c_lda,
-                    &czero,(complex<double>*)&dfnl_loc[0],(int*)&nprnaloc);
+                    (complex<double>*)&anl_loc[0],&lda,
+                    (complex<double>*)c,&ldb,
+                    &czero,(complex<double>*)&dfnl_loc[0],&ldc);
             }
 
             // accumulate non-local contributions to sigma_ij

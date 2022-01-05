@@ -755,8 +755,8 @@ void Wavefunction::update_occ(double temp)
       {
         const int ikp_loc = ikp_local(ikp);
         ostringstream ostr;
-	      ostr.setf(ios::fixed,ios::floatfield);
-	      ostr.setf(ios::right,ios::adjustfield);
+        ostr.setf(ios::fixed,ios::floatfield);
+        ostr.setf(ios::right,ios::adjustfield);
         int isrc = -1;
         if ( ( isp_loc >= 0 ) && ( ikp_loc >= 0 ) )
         {

@@ -248,6 +248,10 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
 
     atoms_.set_velocities(v0_);
   }
+
+  if ( s_.ctrl.lock_cm )
+    reset_vcm(v0_);
+
   constraints_.enforce_v(r0_,v0_);
   // recompute ekin as velocities may be affected by constraints
   compute_ekin();

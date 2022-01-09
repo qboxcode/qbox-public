@@ -74,6 +74,10 @@ void BMDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
       for ( int i = 0; i < r0_[is].size(); i++ )
         v0_[is][i] *= 1.05;
   }
+
+  if ( s_.ctrl.lock_cm )
+    reset_vcm(v0_);
+
   constraints_.enforce_v(r0_,v0_);
   compute_ekin();
 }

@@ -117,6 +117,41 @@ class IonicStepper
     }
   }
 
+  // center of mass velocity
+  D3vector vcm(const std::vector<std::vector<double> >& v)
+  {
+    D3vector mvsum;
+    double msum = 0.0;
+    for ( int is = 0; is < nsp_; is++ )
+    {
+      int nais = na_[is];
+      double mass = pmass_[is];
+      for ( int ia = 0; ia < nais; ia++ )
+      {
+        mvsum += mass * D3vector(v[is][3*ia],v[is][3*ia+1],v[is][3*ia+2]);
+        msum += mass;
+      }
+    }
+    if ( msum == 0.0 ) return D3vector(0,0,0);
+    return mvsum / msum;
+  }
+
+  // reset center of mass velocity to zero
+  void reset_vcm(std::vector<std::vector<double> >& v)
+  {
+    D3vector dvcm = vcm(v);
+    for ( int is = 0; is < nsp_; is++ )
+    {
+      int nais = na_[is];
+      for ( int ia = 0; ia < nais; ia++ )
+      {
+        v[is][3*ia]   -= dvcm.x;
+        v[is][3*ia+1] -= dvcm.y;
+        v[is][3*ia+2] -= dvcm.z;
+      }
+    }
+  }
+
   void setup_constraints(void)
   {
     constraints_.setup(atoms_);

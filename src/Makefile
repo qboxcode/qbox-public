@@ -50,8 +50,8 @@ OBJECTS=MPIdata.o qb.o AtomSet.o Atom.o Species.o \
         SampleHandler.o AtomSetHandler.o WavefunctionHandler.o \
         XMLGFPreprocessor.o Base64Transcoder.o \
         CPSampleStepper.o BOSampleStepper.o \
-        MDWavefunctionStepper.o SDIonicStepper.o MDIonicStepper.o \
-        BMDIonicStepper.o \
+        MDWavefunctionStepper.o IonicStepper.o \
+        SDIonicStepper.o MDIonicStepper.o BMDIonicStepper.o \
         CellStepper.o SDCellStepper.o \
         CGCellStepper.o ConfinementPotential.o Preconditioner.o \
         AndersonMixer.o SDAIonicStepper.o CGIonicStepper.o \

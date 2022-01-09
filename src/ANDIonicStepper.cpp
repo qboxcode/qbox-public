@@ -83,6 +83,9 @@ void ANDIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
       i++;
     }
 
+  if ( s_.ctrl.lock_cm )
+    reset_rcm(r0_,rp_);
+
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   r0_ = rp_;

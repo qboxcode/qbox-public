@@ -47,6 +47,8 @@ struct Control
   std::string thermostat;
   double th_temp,th_time, th_width; // thermostat control
 
+  bool lock_cm; // lock center of mass
+
   std::string stress;
   std::string cell_dyn;
   std::string cell_lock;

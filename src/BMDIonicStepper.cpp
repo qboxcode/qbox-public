@@ -31,6 +31,10 @@ void BMDIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
   for ( int is = 0; is < r0_.size(); is++ )
     for ( int i = 0; i < r0_[is].size(); i++ )
       rp_[is][i] = r0_[is][i] + v0_[is][i] + bmd_fac_ * f0[is][i];
+
+  if ( s_.ctrl.lock_cm )
+    reset_rcm(r0_,rp_);
+
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   fm_ = f0;

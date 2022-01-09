@@ -105,6 +105,7 @@ using namespace std;
 #include "FermiTemp.h"
 #include "IterCmd.h"
 #include "IterCmdPeriod.h"
+#include "LockCm.h"
 #include "Dt.h"
 #include "MuRSH.h"
 #include "Nempty.h"
@@ -456,6 +457,7 @@ int main(int argc, char **argv, char **envp)
   ui.addVar(new FermiTemp(s));
   ui.addVar(new IterCmd(s));
   ui.addVar(new IterCmdPeriod(s));
+  ui.addVar(new LockCm(s));
   ui.addVar(new MuRSH(s));
   ui.addVar(new Nempty(s));
   ui.addVar(new NetCharge(s));

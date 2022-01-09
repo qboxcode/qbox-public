@@ -31,6 +31,10 @@ void SDIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
       rp_[is][i] = r0_[is][i] + dt2bym * f0[is][i];
     }
   }
+
+  if ( s_.ctrl.lock_cm )
+    reset_rcm(r0_,rp_);
+
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   r0_ = rp_;

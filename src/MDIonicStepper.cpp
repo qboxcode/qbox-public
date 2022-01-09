@@ -40,6 +40,9 @@ void MDIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
     }
   }
 
+  if ( s_.ctrl.lock_cm )
+    reset_rcm(r0_,rp_);
+
   constraints_.enforce_r(r0_,rp_);
   rm_ = r0_;
   r0_ = rp_;
@@ -245,6 +248,10 @@ void MDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
 
     atoms_.set_velocities(v0_);
   }
+
+  if ( s_.ctrl.lock_cm )
+    reset_vcm(v0_);
+
   constraints_.enforce_v(r0_,v0_);
   // recompute ekin as velocities may be affected by constraints
   compute_ekin();

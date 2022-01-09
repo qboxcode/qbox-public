@@ -510,6 +510,7 @@ void BOSampleStepper::step(int niter)
           }
         }
         cout << "</atomset>" << endl;
+        cout << "<rcm> " << atoms.rcm() << "</rcm>" << endl;
         cout << setprecision(6);
         cout << "<unit_cell_a_norm> " << atoms.cell().a_norm(0)
              << " </unit_cell_a_norm>" << endl;

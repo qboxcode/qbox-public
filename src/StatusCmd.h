@@ -71,8 +71,11 @@ class StatusCmd : public Cmd
       s->wfv->info(cout,"wfv");
     if ( ui->onpe0() )
     {
-      cout << "<rcm> " << s->atoms.rcm() << " </rcm>" << endl;
-      cout << "<vcm> " << s->atoms.vcm() << " </vcm>" << endl;
+      setprecision(8);
+      cout << "<rcm> " << setprecision(8) << s->atoms.rcm()
+           << " </rcm>" << endl;
+      cout << "<vcm> " << setprecision(8) << s->atoms.vcm()
+           << " </vcm>" << endl;
     }
     return 0;
   }

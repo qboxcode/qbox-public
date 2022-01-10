@@ -196,7 +196,6 @@ void CPSampleStepper::step(int niter)
           }
         }
         cout << "</atomset>" << endl;
-        cout << "<rcm> " << atoms.rcm() << "</rcm>" << endl;
       }
 
       if ( s_.constraints.size() > 0 )

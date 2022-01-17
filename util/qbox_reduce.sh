@@ -1,14 +1,12 @@
 #!/bin/bash
-# Reduce a qbox restart file to an atomset file
-# The original file is removed
+# qbox_reduce.sh: Remove wave functions from a restart file
+# The original file is modified and contains the <atomset> element only
 # use: qbox_reduce.sh file.xml [file.xml ..]
 for f in ${*}
 do
-  name=${f%.xml}
-  atomset_name=${name}_atomset
-  echo $name.xml "->" $atomset_name.xml
+  tmpfile=qbox_reduce$$
   nlines=$(grep /atomset -m 1 -n $f | cut -f1 -d: - )
-  head -$nlines $f > $atomset_name.xml
-  echo "</fpmd:sample>" >> $atomset_name.xml
-  rm $f
+  head -$nlines $f > $tmpfile
+  echo "</fpmd:sample>" >> $tmpfile
+  mv $tmpfile $f
 done

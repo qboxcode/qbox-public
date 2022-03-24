@@ -43,23 +43,6 @@ WavefunctionHandler::WavefunctionHandler(Wavefunction& wf,
 WavefunctionHandler::~WavefunctionHandler() {}
 
 ////////////////////////////////////////////////////////////////////////////////
-void WavefunctionHandler::byteswap_double(size_t n, double* x)
-{
-  if (n==0) return;
-  unsigned char* c = (unsigned char*) x;
-  while ( n-- > 0 )
-  {
-    unsigned char tmp;
-    tmp = c[7]; c[7] = c[0]; c[0] = tmp;
-    tmp = c[6]; c[6] = c[1]; c[1] = tmp;
-    tmp = c[5]; c[5] = c[2]; c[2] = tmp;
-    tmp = c[4]; c[4] = c[3]; c[3] = tmp;
-
-    c+=8;
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////
 void WavefunctionHandler::startElement(const XMLCh* const uri,
   const XMLCh* const localname, const XMLCh* const qname,
   const Attributes& attributes)

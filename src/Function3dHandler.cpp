@@ -202,7 +202,7 @@ void Function3dHandler::endElement(const XMLCh* const uri,
     Timer tm;
     tm.start();
     Base64Transcoder xcdr;
-    size_t nbytes = xcdr.decode(buf_.size(),buf_.data(),(byte*)&f_.val[0]);
+    size_t nbytes = xcdr.decode(buf_.size(),buf_.data(),(byte_t*)&f_.val[0]);
     assert(nbytes==f_.val.size()*sizeof(double));
     buf_.clear();
     #if PLT_BIG_ENDIAN

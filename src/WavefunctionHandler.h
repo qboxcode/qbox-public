@@ -42,8 +42,6 @@ class WavefunctionHandler : public StructureHandler
   double current_kx, current_ky, current_kz, current_weight;
   int current_size, last_size;
 
-  void byteswap_double(size_t n, double* x);
-
   public:
 
   // Start of the root element in the structure being handled

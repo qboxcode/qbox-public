@@ -187,10 +187,10 @@ void Function3d::print(ostream& os) const
   vector<double> tmpval(val);
   xcdr.byteswap_double(tmpval.size(),&tmpval[0]);
   // transform tmpval to base64 encoding
-  xcdr.encode(nbytes, (byte *) &tmpval[0], wbuf);
+  xcdr.encode(nbytes, (byte_t *) &tmpval[0], wbuf);
 #else
   // transform val to base64 encoding
-  xcdr.encode(nbytes, (byte *) &val[0], wbuf);
+  xcdr.encode(nbytes, (byte_t *) &val[0], wbuf);
 #endif
 
   os <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"

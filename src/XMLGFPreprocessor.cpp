@@ -1038,7 +1038,7 @@ int XMLGFPreprocessor::process(const char* const uri,
            << endl;
 #endif
       int nbytes = xcdr.decode(nchars,buf.data()+seg_start[iseg],
-                               (byte*)&dbuf[iseg][0]);
+                               (byte_t*)&dbuf[iseg][0]);
 #if DEBUG
       cout << rctxt.mype() << ": iseg=" << iseg << " nbytes=" << nbytes
            << endl;

@@ -63,18 +63,19 @@ Base64Transcoder::Base64Transcoder()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int Base64Transcoder::encode(int nbytes, const byte* const from, char* const to)
+int Base64Transcoder::encode(int nbytes, const byte_t* const from,
+  char* const to)
 {
-  const byte* fptr = from;
+  const byte_t* fptr = from;
   char* tptr = to;
 
   int n3 = nbytes / 3; // number of groups of three bytes
 
   while ( n3-- > 0 )
   {
-    byte ig0 = *fptr++;
-    byte ig1 = *fptr++;
-    byte ig2 = *fptr++;
+    byte_t ig0 = *fptr++;
+    byte_t ig1 = *fptr++;
+    byte_t ig2 = *fptr++;
 
     *tptr++ = etable[ig0 >> 2];
     *tptr++ = etable[((ig0 & 3) << 4) | (ig1 >> 4)];
@@ -86,9 +87,9 @@ int Base64Transcoder::encode(int nbytes, const byte* const from, char* const to)
 
   if ( nr == 2 )
   {
-    byte ig0 = *fptr++;
-    byte ig1 = *fptr++;
-    byte ig2 = 0;
+    byte_t ig0 = *fptr++;
+    byte_t ig1 = *fptr++;
+    byte_t ig2 = 0;
 
     *tptr++ = etable[ig0 >> 2];
     *tptr++ = etable[((ig0 & 3) << 4) | (ig1 >> 4)];
@@ -97,8 +98,8 @@ int Base64Transcoder::encode(int nbytes, const byte* const from, char* const to)
   }
   else if ( nr == 1 )
   {
-    byte ig0 = *fptr++;
-    byte ig1 = 0;
+    byte_t ig0 = *fptr++;
+    byte_t ig1 = 0;
 
     *tptr++ = etable[ig0 >> 2];
     *tptr++ = etable[((ig0 & 3) << 4) | (ig1 >> 4)];
@@ -111,7 +112,7 @@ int Base64Transcoder::encode(int nbytes, const byte* const from, char* const to)
 
 ////////////////////////////////////////////////////////////////////////////////
 int Base64Transcoder::decode(const int nchars, const char* const from,
-  byte* const to)
+  byte_t* const to)
 {
   // Decode Base64 chars in array "from" into bytes in array "to"
   // White space and new lines are skipped
@@ -120,11 +121,11 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
   // nchars: number of chars in array "from"
   // the number of bytes successfully translated is returned
 
-  byte a2,a3,b0,b1,b2,b3;
+  byte_t a2,a3,b0,b1,b2,b3;
   int c;
   const char* fptr = from;
   const char* const fptr_end = from+nchars+1;
-  byte* tptr = to;
+  byte_t* tptr = to;
 
   while ( fptr < fptr_end-4 )
   {
@@ -142,8 +143,8 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
 #endif
       break;
     }
-    // a0 = (byte) c;
-    b0 = (byte) dtable[c];
+    // a0 = (byte_t) c;
+    b0 = (byte_t) dtable[c];
 
     do
     {
@@ -158,8 +159,8 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
 #endif
       break;
     }
-    // a1 = (byte) c;
-    b1 = (byte) dtable[c];
+    // a1 = (byte_t) c;
+    b1 = (byte_t) dtable[c];
 
     do
     {
@@ -174,8 +175,8 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
 #endif
       break;
     }
-    a2 = (byte) c;
-    b2 = (byte) dtable[c];
+    a2 = (byte_t) c;
+    b2 = (byte_t) dtable[c];
 
     do
     {
@@ -190,8 +191,8 @@ int Base64Transcoder::decode(const int nchars, const char* const from,
 #endif
       break;
     }
-    a3 = (byte) c;
-    b3 = (byte) dtable[c];
+    a3 = (byte_t) c;
+    b3 = (byte_t) dtable[c];
 
     if ((b0|b1|b2|b3) & 0x80)
     {

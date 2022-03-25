@@ -1,5 +1,6 @@
+#-------------------------------------------------------------------------------
 #
-# Copyright (c) 2014 The Regents of the University of California
+# Copyright (c) 2014-2022 The Regents of the University of California
 #
 # This file is part of Qbox
 #
@@ -17,9 +18,11 @@
 #
  PLT=MacOSX_x86_64
 #-------------------------------------------------------------------------------
- SCALAPACKDIR=$(HOME)/software/scalapack/scalapack-2.0.2
- LAPACKDIR=$(HOME)/software/lapack/lapack-3.5.0
- BLASDIR=$(HOME)/software/blas/BLAS
+FFTWDIR=$(HOME)/software/fftw/fftw-3.3.4
+XERCESCDIR=$(HOME)/software/xerces/xerces-c-3.1.4
+SCALAPACKDIR=$(HOME)/software/scalapack/scalapack-2.2.0
+LAPACKDIR=$(HOME)/software/lapack/lapack-3.10.0
+BLASDIR=$(HOME)/software/blas/BLAS
 
  PLTOBJECTS = readTSC.o
 
@@ -28,16 +31,18 @@
 
  PLTFLAGS += -DIA32 -DUSE_MPI -DUSE_FFTW3 -D_LARGEFILE_SOURCE \
              -D_FILE_OFFSET_BITS=64 -DADD_ \
-             -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES -DXERCESC_3 \
+             -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES \
              -DSCALAPACK -DUSE_UUID
 
- INCLUDE = -I$(FFTWDIR)
+
+ INCLUDE = -I$(FFTWDIR)/api -I$(XERCESCDIR)/src
 
  CXXFLAGS= -g -O3 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
- LIBPATH = -L$(SCALAPACKDIR) -L$(LAPACKDIR) -L$(BLASDIR)
+LIBPATH = -L$(FFTWDIR)/.libs -L$(SCALAPACKDIR) \
+          -L$(LAPACKDIR) -L$(BLASDIR) -L$(XERCESCDIR)/src/.libs
 
- LIBS =  -lfftw3 -lscalapack -llapack -lblas -lm -lgfortran \
+ LIBS =  -lfftw3 -lscalapack -llapack -lblas -lgfortran -lm \
          -lxerces-c -lpthread -lstdc++
 
  LDFLAGS = $(LIBPATH) $(LIBS)

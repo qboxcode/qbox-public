@@ -1,4 +1,13 @@
 --------------------------------------------------------------------------------
+rel1_74_2
+--------------------------------------------------------------------------------
+f435ead Define byte_t type, avoid conflict with std::byte
+6122459 Update macosx_openmpi arch file for gcc-11
+40f9a89 Remove unused byteswap_double from wf handler
+7e7fa4d Update qbox_dos.py use optional mu instead of ef
+2a6b99f Update qbox_dos.py, add ef parameter
+12b8adb Update qbox_reduce.sh to replace orig xml file
+--------------------------------------------------------------------------------
 rel1_74_1
 --------------------------------------------------------------------------------
 b06d3a3 Print rcm in status command only

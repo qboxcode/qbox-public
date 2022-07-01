@@ -659,11 +659,11 @@ void RSHFunctional::RSH_exchange(const double rho, const double grad,
                   ( alpha_RSH_ - beta_RSH_ ) * fxhse );
 
   // calculate potential
-  *vx1 = third4 * exLDA * ( fxpbe - s2 * fs - a_ex * ( fxhse - s * dfx_ds
-    + 0.25 * kF * dfx_dkf ) );
-  *vx2 = -exLDA * ( fs / ( rho * 4.0 * kF * kF ) - a_ex * dfx_ds / ( 2.0 * kF
-    * grad ) );
-
+  *vx1 = third4 * exLDA * ( ( 1.0 - alpha_RSH_ ) * ( fxpbe - s2 * fs )
+         + ( alpha_RSH_ - beta_RSH_ )
+         * ( fxhse - s * dfx_ds + 0.25 * kF * dfx_dkf ) );
+  *vx2 = -exLDA * ( ( 1.0 - alpha_RSH_ ) * fs / ( rho * 4.0 * kF * kF )
+         + ( alpha_RSH_ - beta_RSH_ ) * dfx_ds / ( 2.0 * kF * grad ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////

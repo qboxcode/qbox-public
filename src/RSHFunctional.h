@@ -49,7 +49,7 @@ class RSHFunctional : public XCFunctional
   std::vector<double> _grad_rho[3], _grad_rho_up[3], _grad_rho_dn[3];
 
   void RSH_exchange(const double rho, const double grad,
-  const double a_ex, const double w, double *ex, double *vx1, double *vx2);
+  double *ex, double *vx1, double *vx2);
 
   void gcor2(double a, double a1, double b1, double b2,
   double b3, double b4, double rtrs, double *gg, double *ggrs);

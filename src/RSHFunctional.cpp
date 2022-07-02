@@ -716,10 +716,7 @@ void RSHFunctional::PBE_correlation(const double rho, const double grad,
   *vc1 = 0.0;
   *vc2 = 0.0;
 
-  if ( rho < 1.e-18  )
-  {
-    return;
-  }
+  if ( rho < 1.e-18  ) return;
 
   const double third = 1.0 / 3.0;
   const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
@@ -791,6 +788,8 @@ void RSHFunctional::PBE_correlation_sp(const double rho_up, const double rho_dn,
   *vc1_up = 0.0;
   *vc1_dn = 0.0;
   *vc2 = 0.0;
+
+  if ( rho_up < 1.e-18 && rho_dn < 1.e-18  ) return;
 
   const double rh_up = ( rho_up < 1.e-18 ) ? 0.0 : rho_up;
   const double rh_dn = ( rho_dn < 1.e-18 ) ? 0.0 : rho_dn;

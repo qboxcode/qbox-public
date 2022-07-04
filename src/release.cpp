@@ -19,5 +19,5 @@
 #include "release.h"
 std::string release(void)
 {
-  return std::string("rel1_74_2dev");
+  return std::string("rel1_74_3");
 }

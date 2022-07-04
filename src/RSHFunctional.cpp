@@ -609,13 +609,11 @@ void RSHFunctional::RSH_enhance(const double s_inp, const double kF,
 // input:
 // rho  - charge density
 // grad - absolute value of gradient
-// a_ex - amount of HF exchange
-// w    - screening
 // output:
 // ex       - exchange energy
 // vx1, vx2 - exchange potential such that vx = vx1 + div( vx2 * grad(n) )
 void RSHFunctional::RSH_exchange(const double rho, const double grad,
-  const double a_ex, const double w, double *ex, double *vx1, double *vx2)
+  double *ex, double *vx1, double *vx2)
 {
 
   // constants employed in the PBE/HSE exchange
@@ -652,18 +650,18 @@ void RSHFunctional::RSH_exchange(const double rho, const double grad,
   const double fs = 2.0 * uk * ul / ( p0 * p0 );
   // calculate HSE enhancement factor and derivatives w.r.t. s and kF
   double fxhse, dfx_ds, dfx_dkf;
-  RSH_enhance(s,kF,w,&fxhse,&dfx_ds,&dfx_dkf);
+  RSH_enhance(s,kF,mu_RSH_,&fxhse,&dfx_ds,&dfx_dkf);
 
   // calculate exchange energy
   *ex = exLDA * ( ( 1.0 - alpha_RSH_ ) * fxpbe +
                   ( alpha_RSH_ - beta_RSH_ ) * fxhse );
 
   // calculate potential
-  *vx1 = third4 * exLDA * ( fxpbe - s2 * fs - a_ex * ( fxhse - s * dfx_ds
-    + 0.25 * kF * dfx_dkf ) );
-  *vx2 = -exLDA * ( fs / ( rho * 4.0 * kF * kF ) - a_ex * dfx_ds / ( 2.0 * kF
-    * grad ) );
-
+  *vx1 = third4 * exLDA * ( ( 1.0 - alpha_RSH_ ) * ( fxpbe - s2 * fs )
+         + ( alpha_RSH_ - beta_RSH_ )
+         * ( fxhse - s * dfx_ds + 0.25 * kF * dfx_dkf ) );
+  *vx2 = -exLDA * ( ( 1.0 - alpha_RSH_ ) * fs / ( rho * 4.0 * kF * kF )
+         + ( alpha_RSH_ - beta_RSH_ ) * dfx_ds / ( 2.0 * kF * grad ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -718,10 +716,7 @@ void RSHFunctional::PBE_correlation(const double rho, const double grad,
   *vc1 = 0.0;
   *vc2 = 0.0;
 
-  if ( rho < 1.e-18  )
-  {
-    return;
-  }
+  if ( rho < 1.e-18  ) return;
 
   const double third = 1.0 / 3.0;
   const double pi32third = 3.09366772628014; /* (3*pi^2 ) ^(1/3) */
@@ -793,6 +788,8 @@ void RSHFunctional::PBE_correlation_sp(const double rho_up, const double rho_dn,
   *vc1_up = 0.0;
   *vc1_dn = 0.0;
   *vc2 = 0.0;
+
+  if ( rho_up < 1.e-18 && rho_dn < 1.e-18  ) return;
 
   const double rh_up = ( rho_up < 1.e-18 ) ? 0.0 : rho_up;
   const double rh_dn = ( rho_dn < 1.e-18 ) ? 0.0 : rho_dn;
@@ -921,7 +918,7 @@ void RSHFunctional::setxc(void)
 
       // calculate HSE exchange and PBE correlation
       double ex, vx1, vx2, ec, vc1, vc2;
-      RSH_exchange(rho[i],grad,1 - x_coeff_,omega,&ex,&vx1,&vx2);
+      RSH_exchange(rho[i],grad,&ex,&vx1,&vx2);
       PBE_correlation(rho[i],grad,&ec,&vc1,&vc2);
 
       // combine exchange and correlation energy
@@ -968,10 +965,8 @@ void RSHFunctional::setxc(void)
       // calculate HSE exchange and PBE correlation
       double ex_up, vx1_up, vx2_up, ex_dn, vx1_dn, vx2_dn;
       double ec, vc1_up, vc1_dn, vc2;
-      RSH_exchange(2.0 * rho_up[i],2.0 * grad_up,1 - x_coeff_,omega,&ex_up,
-        &vx1_up,&vx2_up);
-      RSH_exchange(2.0 * rho_dn[i],2.0 * grad_dn,1 - x_coeff_,omega,&ex_dn,
-        &vx1_dn,&vx2_dn);
+      RSH_exchange(2.0 * rho_up[i],2.0 * grad_up,&ex_up,&vx1_up,&vx2_up);
+      RSH_exchange(2.0 * rho_dn[i],2.0 * grad_dn,&ex_dn,&vx1_dn,&vx2_dn);
       PBE_correlation_sp(rho_up[i],rho_dn[i],grad_up,grad_dn,grad,&ec,&vc1_up,
         &vc1_dn,&vc2);
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # Copyright 2016 The Regents of the University of California
 # This file is part of Qbox
 #

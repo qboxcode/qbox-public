@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # Convert from quantum-simulation.org format to QuantumEspresso input format
 # use: env ECUT=ecut qso2qe.py [-last] {file|URL}
 

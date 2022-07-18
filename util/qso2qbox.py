@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # Convert <atomset> elements from quantum-simulation.org (QSO) format
 # to Qbox input file
 # use: qso2qbox.py [-last] {file|URL}

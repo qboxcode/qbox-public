@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_angle.py
 # extract angle defined by three atoms from Qbox output
 # use: qbox_angle.py name1 name2 name3 file.r

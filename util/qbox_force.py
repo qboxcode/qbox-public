@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_force.py
 # extract force of an atom from Qbox output
 # use: qbox_force.py atom_name file.r

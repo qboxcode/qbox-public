@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_torsion.py
 # extract torsion angle defined by four atoms from Qbox output
 # use: qbox_torsion.py name1 name2 name3 name4 file.r

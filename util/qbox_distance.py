@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_distance.py
 # extract distance between two atoms from Qbox output
 # use: qbox_distance.py name1 name2 file.r

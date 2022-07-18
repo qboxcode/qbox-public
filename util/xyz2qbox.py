@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # generate a Qbox input file from an xyz file
 # use: xyz2qbox.py xyzfile
 import sys

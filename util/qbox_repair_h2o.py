@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_repair_h2o.py: repair broken h2o molecules in a Qbox sys file
 # move hydrogen atoms across periodic boundaries to repair molecules
 # use: qbox_repair_h2o.py file.sys

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_msd.py: compute mean-square displacement in an MD simulation
 # generate plot of <r^2>(t) in gnuplot format
 # use: qbox_msd.py species file.r [file.r ...]

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_eig.py: extract eigenvalues from Qbox output
 # use: qbox_eig.py kpoint n ispin file.r
 # extracts eigenvalue n at (ispin,kpoint)

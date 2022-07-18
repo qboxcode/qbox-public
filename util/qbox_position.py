@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_position.py
 # extract position of an atom from Qbox output
 # use: qbox_position.py atom_name file.r

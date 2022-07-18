@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_dos.py: extract electronic DOS from Qbox output
 # generate DOS plot in gnuplot format
 # use: qbox_dos.py [-last] [mu] emin emax [mu] width file.r

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # qbox_velocity.py
 # extract velocity of an atom from Qbox output
 # use: qbox_velocity.py atom_name file.r

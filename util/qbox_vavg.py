@@ -61,9 +61,9 @@ for line in lines[6+nat:]:
 # fastest increasing index in cube file is z
 v = v.reshape(np0,np1,np2)
 
-vx = np.sum(v,(1,2))/np0
-vy = np.sum(v,(0,2))/np1
-vz = np.sum(v,(0,1))/np2
+vx = np.sum(v,(1,2))/(np1*np2)
+vy = np.sum(v,(0,2))/(np0*np2)
+vz = np.sum(v,(0,1))/(np0*np1)
 
 #print("Vavg(x) min/max = ", '%8f %8f' %(min(vx), max(vx)))
 #print("Vavg(y) min/max = ", '%8f %8f' %(min(vy), max(vy)))

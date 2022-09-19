@@ -50,10 +50,13 @@ assert da1[0] == 0.0 and da1[2] == 0
 assert da2[0] == 0.0 and da2[1] == 0
 
 # read vlocal data starting at line 6+nat
-v = np.empty(0)
+v = np.zeros(np0*np1*np2)
+pos = 0
 for line in lines[6+nat:]:
   vals = ([float(val) for val in line.split()])
-  v = np.append(v,vals)
+  length = len(vals)
+  v[pos:pos+length] = vals[:]
+  pos = pos + length
 
 # fastest increasing index in cube file is z
 v = v.reshape(np0,np1,np2)

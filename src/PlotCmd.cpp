@@ -283,7 +283,6 @@ int PlotCmd::action(int argc, char **argv)
     ChargeDensity cd(s->wf);
     EnergyFunctional ef(*s,cd);
     cd.update_density();
-    cd.update_rhor();
     bool compute_stress = false;
     ef.update_vhxc(compute_stress);
 

@@ -284,7 +284,10 @@ int PlotCmd::action(int argc, char **argv)
     EnergyFunctional ef(*s,cd);
     cd.update_density();
     bool compute_stress = false;
-    ef.update_vhxc(compute_stress);
+    // include local + Hartree potential only
+    bool update_vh = true;
+    bool update_vxc = false;
+    ef.update_vhxc(compute_stress,update_vh,update_vxc);
 
     tmpr.resize(cd.vft()->np012());
     np0 = cd.vft()->np0();

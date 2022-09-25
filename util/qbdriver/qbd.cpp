@@ -16,6 +16,7 @@
 #include <sstream>
 #include <string>
 #include <cstdlib>
+#include <unistd.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>

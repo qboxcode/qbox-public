@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Convert <atomset> elements from quantum-simulation.org (QSO) format
 # to Qbox input file
 # use: qso2qbox.py [-last] {file|URL}
@@ -9,11 +9,12 @@ from qso import *
 import os.path
 import xml.sax
 import sys
-import urllib2
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 import datetime
 
 def usage():
-  print "use: ",sys.argv[0]," [-last] {file|URL}"
+  print("use: ",sys.argv[0]," [-last] {file|URL}")
   sys.exit()
 
 argc=len(sys.argv)
@@ -47,24 +48,31 @@ if ( os.path.isfile(input_source) ):
 else:
   # attempt to open as a URL
   try:
-    f = urllib2.urlopen(input_source)
-    str = f.read(8192)
-    while ( str !="" and not (first_only and handler.done_first) ):
-      parser.feed(str)
-      str = f.read(8192)
-    f.close()
-  except (ValueError,urllib2.HTTPError) as e:
-    print e
-    sys.exit()
+     with urlopen(input_source, timeout=10) as f:
+        s = f.read(8192)
+        while ( s !="" and not (first_only and handler.done_first) ):
+           parser.feed(s)
+           s = f.read(8192)
+        f.close()
+  except HTTPError as error:
+      print(error.status, error.reason)
+      sys.exit()
+  except URLError as error:
+      print(error.reason)
+      sys.exit()
+  except TimeoutError:
+      print("Request timed out")
+      sys.exit()
+
 
 parser.reset()
 
 # write Qbox input file
 datestr=datetime.datetime.utcnow().isoformat()+'Z'
-print "# converted",datestr,"from",input_source
-print "set cell ",s.atoms.cell.a,s.atoms.cell.b,s.atoms.cell.c
+print("# converted",datestr,"from",input_source)
+print("set cell ",s.atoms.cell.a,s.atoms.cell.b,s.atoms.cell.c)
 for sp in s.atoms.species_list:
-  print "species",sp.name,sp.href
+  print("species",sp.name,sp.href)
 for a in s.atoms.atom_list:
-  print "atom",a.name,a.species,a.position[0],a.position[1],a.position[2],a.velocity[0],a.velocity[1],a.velocity[2]
+  print("atom",a.name,a.species,a.position[0],a.position[1],a.position[2],a.velocity[0],a.velocity[1],a.velocity[2])
 

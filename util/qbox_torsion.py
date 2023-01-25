@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # qbox_torsion.py
 # extract torsion angle defined by four atoms from Qbox output
 # use: qbox_torsion.py name1 name2 name3 name4 file.r
@@ -7,7 +7,7 @@ import sys
 import math
 
 if len(sys.argv) != 6:
-  print "use: ",sys.argv[0]," name1 name2 name3 name4 file.r"
+  print("use: ",sys.argv[0]," name1 name2 name3 name4 file.r")
   sys.exit()
 
 name1 = ""
@@ -117,7 +117,7 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
         ss = max(min(we32,1.0),-1.0)
         a = (180.0/math.pi) * math.atan2(ss,cc)
 
-      print '%.4f' % a
+      print('%.4f' % a)
     elif name == "position":
       self.readPos1 = 0
       self.readPos2 = 0

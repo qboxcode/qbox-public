@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 The Regents of the University of California
 # This file is part of Qbox
 #
@@ -9,10 +9,11 @@
 import os.path
 import xml.sax
 import sys
-import urllib2
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 
 def usage():
-  print "use: ",sys.argv[0]," [-iter i] {file|URL}"
+  print("use: ",sys.argv[0]," [-iter i] {file|URL}")
   sys.exit()
 
 argc=len(sys.argv)
@@ -72,18 +73,18 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.step += 1
       if ( self.step == iter ):
         if ( iter_option ):
-          print "#",input_source,"iteration",iter
+          print("#",input_source,"iteration",iter)
         else:
-          print "#",input_source
+          print("#",input_source)
         avec = self.cell_a.split()
         bvec = self.cell_b.split()
         cvec = self.cell_c.split()
-        print "set cell ",avec[0],avec[1],avec[2],\
+        print("set cell ",avec[0],avec[1],avec[2],\
           bvec[0],bvec[1],bvec[2],\
-          cvec[0],cvec[1],cvec[2]
+          cvec[0],cvec[1],cvec[2])
         for i in range(len(self.tau)):
-          print "move ",self.atomname[i]," to ",\
-            self.tau[i][0],self.tau[i][1],self.tau[i][2]
+          print("move ",self.atomname[i]," to ",\
+            self.tau[i][0],self.tau[i][1],self.tau[i][2])
       self.inAtomset = 0
       self.done = ( self.step >= iter )
 
@@ -102,14 +103,20 @@ if ( os.path.isfile(input_source) ):
 else:
   # attempt to open as a URL
   try:
-    f = urllib2.urlopen(input_source)
-    s = f.read(8192)
-    while ( s !="" and not handler.done ):
-      parser.feed(s)
-      s = f.read(8192)
-    f.close()
-  except (ValueError,urllib2.HTTPError) as e:
-    print e
-    sys.exit()
+     with urlopen(input_source, timeout=10) as f:
+        s = f.read(8192)
+        while ( s !="" and not handler.done ):
+           parser.feed(s)
+           s = f.read(8192)
+        f.close()
+  except HTTPError as error:
+      print(error.status, error.reason)
+      sys.exit() 
+  except URLError as error:
+      print(error.reason) 
+      sys.exit() 
+  except TimeoutError:
+      print("Request timed out")
+      sys.exit() 
 
 parser.reset()

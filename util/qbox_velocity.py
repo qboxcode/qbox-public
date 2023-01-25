@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # qbox_velocity.py
 # extract velocity of an atom from Qbox output
 # use: qbox_velocity.py atom_name file.r
@@ -7,7 +7,7 @@ import sys
 import math
 
 if len(sys.argv) != 3:
-  print "use: ",sys.argv[0]," atom_name file.r"
+  print("use: ",sys.argv[0]," atom_name file.r")
   sys.exit()
 
 # Qbox output handler to extract and process <atomset>
@@ -36,7 +36,7 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
         vx = float(velocity[0])
         vy = float(velocity[1])
         vz = float(velocity[2])
-        print '%.8f'%vx,'%.8f'%vy,'%.8f'%vz
+        print('%.8f'%vx,'%.8f'%vy,'%.8f'%vz)
         self.readVelocity = 0
 
 atom_name = sys.argv[1]

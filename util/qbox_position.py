@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # qbox_position.py
 # extract position of an atom from Qbox output
 # use: qbox_position.py atom_name file.r
@@ -7,7 +7,7 @@ import sys
 import math
 
 if len(sys.argv) != 3:
-  print "use: ",sys.argv[0]," atom_name file.r"
+  print("use: ",sys.argv[0]," atom_name file.r")
   sys.exit()
 
 # Qbox output handler to extract and process <atomset>
@@ -36,7 +36,7 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
         rx = float(pos[0])
         ry = float(pos[1])
         rz = float(pos[2])
-        print '%.8f'%rx,'%.8f'%ry,'%.8f'%rz
+        print('%.8f'%rx,'%.8f'%ry,'%.8f'%rz)
         self.readPos = 0
 
 atom_name = sys.argv[1]

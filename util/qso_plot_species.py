@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 The Regents of the University of California
 # This file is part of Qbox
 #
@@ -9,10 +9,11 @@
 import os.path
 import xml.sax
 import sys
-import urllib2
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 
 def usage():
-  print "use: ",sys.argv[0]," {file|URL}"
+  print("use: ",sys.argv[0]," {file|URL}")
   sys.exit()
 
 argc=len(sys.argv)
@@ -65,24 +66,24 @@ class QSOSpeciesHandler(xml.sax.handler.ContentHandler):
       self.buffer = ""
     elif (name == "norm_conserving_semilocal_pseudopotential"):
       self.inNCSLP = True
-      print "# Norm-conserving semilocal pseudopotential"
+      print("# Norm-conserving semilocal pseudopotential")
     elif (name == "norm_conserving_pseudopotential"):
       self.inNCP = True
-      print "# Norm-conserving pseudopotential"
+      print("# Norm-conserving pseudopotential")
     elif (name == "projector"):
       if self.inNCP:
         self.l = int(attributes["l"])
         self.size = int(attributes["size"])
-        print "# projector l=",self.l," size=",self.size
+        print("# projector l=",self.l," size=",self.size)
       if self.inNCSLP:
         self.l = int(attributes["l"])
         self.i = int(attributes["i"])
         self.size = int(attributes["size"])
-        print "# projector l=",self.l," i=",self.i," size=",self.size
+        print("# projector l=",self.l," i=",self.i," size=",self.size)
       self.buffer = ""
     elif (name == "local_potential"):
       self.size = int(attributes["size"])
-      print "# local potential, size=",self.size
+      print("# local potential, size=",self.size)
       self.buffer = ""
     elif (name == "radial_potential"):
       self.buffer = ""
@@ -92,21 +93,21 @@ class QSOSpeciesHandler(xml.sax.handler.ContentHandler):
 
   def endElement(self, name):
     if (name == "symbol"):
-      print "# symbol:",self.buffer
+      print("# symbol:",self.buffer)
       self.buffer = ""
     elif name == "atomic_number":
-      print "# Z:",self.buffer
+      print("# Z:",self.buffer)
       self.buffer = ""
     elif name == "valence_charge":
       self.valence_charge=int(self.buffer)
-      print "# valence charge:",self.valence_charge
+      print("# valence charge:",self.valence_charge)
       self.buffer = ""
     elif (name == "mass"):
-      print "# mass:",self.buffer
+      print("# mass:",self.buffer)
       self.buffer = ""
     elif (name == "mesh_spacing"):
       self.mesh_spacing = float(self.buffer)
-      print "# mesh spacing:",self.mesh_spacing
+      print("# mesh spacing:",self.mesh_spacing)
       self.buffer = ""
     elif (name == "norm_conserving_semilocal_pseudopotential"):
       self.inNCSLP = False
@@ -117,9 +118,9 @@ class QSOSpeciesHandler(xml.sax.handler.ContentHandler):
       for i in range(len(self.p)):
         r = i * self.mesh_spacing
         val = float(self.p[i])
-        print '%.6f'%r, '%.10e'%val
-      print
-      print
+        print('%.6f'%r, '%.10e'%val)
+      print()
+      print()
       self.buffer = ""
     elif (name == "projector"):
       if self.inNCSLP:
@@ -127,19 +128,19 @@ class QSOSpeciesHandler(xml.sax.handler.ContentHandler):
         for i in range(len(self.p)):
           r = i * self.mesh_spacing
           val = float(self.p[i])
-          print '%.6f'%r, '%.10e'%val
-        print
-        print
+          print('%.6f'%r, '%.10e'%val)
+        print()
+        print()
         self.buffer = ""
     elif (name == "radial_potential"):
-      print "# radial potential"
+      print("# radial potential")
       self.p = self.buffer.split()
       for i in range(len(self.p)):
         r = i * self.mesh_spacing
         val = float(self.p[i])
-        print '%.6f'%r, '%.10e'%val
-      print
-      print
+        print('%.6f'%r, '%.10e'%val)
+      print()
+      print()
       self.buffer = ""
 
 parser = xml.sax.make_parser()
@@ -157,14 +158,20 @@ if ( os.path.isfile(input_source) ):
 else:
   # attempt to open as a URL
   try:
-    f = urllib2.urlopen(input_source)
-    s = f.read(8192)
-    while ( s !="" ):
-      parser.feed(s)
-      s = f.read(8192)
-    f.close()
-  except (ValueError,urllib2.HTTPError) as e:
-    print e
-    sys.exit()
+     with urlopen(input_source, timeout=10) as f:
+        s = f.read(8192)
+        while ( s !="" ):
+           parser.feed(s)
+           s = f.read(8192)
+        f.close()
+  except HTTPError as error:
+      print(error.status, error.reason)
+      sys.exit()
+  except URLError as error:
+      print(error.reason)
+      sys.exit()
+  except TimeoutError:
+      print("Request timed out")
+      sys.exit()
 
 parser.reset()

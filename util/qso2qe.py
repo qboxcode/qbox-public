@@ -1,17 +1,18 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Convert from quantum-simulation.org format to QuantumEspresso input format
 # use: env ECUT=ecut qso2qe.py [-last] {file|URL}
 
 from qso import *
 import sys
 import os.path
-import urllib2
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 
 # Get Ecut from environment variable, default=25
 ecut = os.getenv("ECUT",25.0)
 
 def usage():
-  print "use: ",sys.argv[0]," [-last] {file|URL}"
+  print("use: ",sys.argv[0]," [-last] {file|URL}")
   sys.exit()
 
 argc=len(sys.argv)
@@ -45,39 +46,45 @@ if ( os.path.isfile(input_source) ):
 else:
   # attempt to open as a URL
   try:
-    f = urllib2.urlopen(input_source)
-    str = f.read(8192)
-    while ( str !="" and not (first_only and handler.done_first) ):
-      parser.feed(str)
-      str = f.read(8192)
-    f.close()
-  except (ValueError,urllib2.HTTPError) as e:
-    print e
-    sys.exit()
+     with urlopen(input_source, timeout=10) as f:
+        s = f.read(8192)
+        while ( s !="" and not (first_only and handler.done_first) ):
+           parser.feed(s)
+           s = f.read(8192)
+        f.close()
+  except HTTPError as error:
+      print(error.status, error.reason)
+      sys.exit()
+  except URLError as error:
+      print(error.reason)
+      sys.exit()
+  except TimeoutError:
+      print("Request timed out")
+      sys.exit()
 
 parser.reset()
 
 # write QE input file
 
-print "&control"
-print "  calculation = 'scf'"
-print "  pseudo_dir = './'"
-print "/"
-print "&system"
-print "  ibrav=0"
-print "  nat=",len(s.atoms.atom_list),", ntyp=",len(s.atoms.species_list),","
-print "  ecutwfc=",ecut
-print "/"
-print "&electrons"
-print "/"
-print "ATOMIC_SPECIES"
+print("&control")
+print("  calculation = 'scf'")
+print("  pseudo_dir = './'")
+print("/")
+print("&system")
+print("  ibrav=0")
+print("  nat=",len(s.atoms.atom_list),", ntyp=",len(s.atoms.species_list),",")
+print("  ecutwfc=",ecut)
+print("/")
+print("&electrons")
+print("/")
+print("ATOMIC_SPECIES")
 for sp in s.atoms.species_list:
-  print sp.name,sp.mass,sp.href
-print "ATOMIC_POSITIONS {bohr}"
+  print(sp.name,sp.mass,sp.href)
+print("ATOMIC_POSITIONS {bohr}")
 for a in s.atoms.atom_list:
-  print a.species,a.position[0],a.position[1],a.position[2]
-print "CELL_PARAMETERS bohr"
-print s.atoms.cell.a
-print s.atoms.cell.b
-print s.atoms.cell.c
-print "K_POINTS {gamma}"
+  print(a.species,a.position[0],a.position[1],a.position[2])
+print("CELL_PARAMETERS bohr")
+print(s.atoms.cell.a)
+print(s.atoms.cell.b)
+print(s.atoms.cell.c)
+print("K_POINTS {gamma}")

@@ -1024,7 +1024,7 @@ int XMLGFPreprocessor::process(const char* const uri,
   dbuf.resize(seg_start.size());
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
   {
-    int nchars = seg_end[iseg]-seg_start[iseg];
+    size_t nchars = seg_end[iseg]-seg_start[iseg];
     if ( encoding[iseg] == "base64" )
     {
       // Base64 case:
@@ -1037,14 +1037,14 @@ int XMLGFPreprocessor::process(const char* const uri,
            << " dbufsize=" << dbuf[iseg].size()
            << endl;
 #endif
-      int nbytes = xcdr.decode(nchars,buf.data()+seg_start[iseg],
-                               (byte_t*)&dbuf[iseg][0]);
+      size_t nbytes = xcdr.decode(nchars,buf.data()+seg_start[iseg],
+                                  (byte_t*)&dbuf[iseg][0]);
 #if DEBUG
       cout << rctxt.mype() << ": iseg=" << iseg << " nbytes=" << nbytes
            << endl;
 #endif
       assert(nbytes % 8 == 0 );
-      int ndoubles = nbytes / 8;
+      size_t ndoubles = nbytes / 8;
       assert(ndoubles <= dbuf[iseg].size());
       // adjust size of double array
       dbuf[iseg].resize(ndoubles);

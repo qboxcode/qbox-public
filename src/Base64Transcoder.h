@@ -33,19 +33,19 @@ class Base64Transcoder
   public:
 
   Base64Transcoder();
-  int encode(int nbytes, const byte_t* const from, char* const to);
-  int decode(int nchars, const char* const from, byte_t* const to);
+  void encode(size_t nbytes, const byte_t* const from, char* const to);
+  size_t decode(size_t nchars, const char* const from, byte_t* const to);
   void byteswap_double(size_t n, double* const x);
   void byteswap_int(size_t n, int* const x);
-  int print(int nchars, const char* const buf, std::ostream& o);
-  int print(const std::string buf, std::ostream& o);
-  int print(int nchars, const char* const buf, FILE* outfile);
-  int print(const std::string buf, FILE* outfile);
+  void print(size_t nchars, const char* const buf, std::ostream& o);
+  void print(const std::string buf, std::ostream& o);
+  void print(size_t nchars, const char* const buf, FILE* outfile);
+  void print(const std::string buf, FILE* outfile);
 
   // number of chars needed to encode nbytes bytes
-  int nchars(int nbytes) { return 4 * ( ( nbytes + 2 ) / 3 ); }
+  size_t nchars(size_t nbytes) { return 4 * ( ( nbytes + 2 ) / 3 ); }
   // number of bytes needed to decode nchars chars
-  int nbytes(int nchars) { return 3 * ( nchars / 4 ); }
+  size_t nbytes(size_t nchars) { return 3 * ( nchars / 4 ); }
 };
 
 #endif

@@ -889,10 +889,10 @@ int XMLGFPreprocessor::process(const char* const uri,
     // count valid base64 chars in last segment
     // count = number of chars in "A-z,a-z,0-9,+,/,=" in last segment
     // Note: the last segment may also be the first, if only one segment
-    int count = 0;
+    size_t count = 0;
     int last_seg = seg_start.size()-1;
     // count number of valid base64 chars in segment last_seg
-    for ( int i = seg_start[last_seg]; i < seg_end[last_seg]; i++ )
+    for ( size_t i = seg_start[last_seg]; i < seg_end[last_seg]; i++ )
     {
       int ch = buf[i];
       if ( isalnum(ch) || ch == '+' || ch == '/' || ch == '=' )
@@ -1362,7 +1362,7 @@ int XMLGFPreprocessor::process(const char* const uri,
   cout << ctxt.mype() << ": "
        << " igfminloc: " << igfminloc << " igfmaxloc: " << igfmaxloc << endl;
 #endif
-  int rbuf_pos = 0;
+  size_t rbuf_pos = 0;
   int igfloc = 0;
   for ( int igf = igfminloc; igf < igfmaxloc; igf++ )
   {

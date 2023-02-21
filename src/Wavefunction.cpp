@@ -26,6 +26,7 @@
 #include <vector>
 #include <iomanip>
 #include <sstream>
+#include <limits>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1063,15 +1064,44 @@ void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
         local_offset -= local_size;
         off = sfp.offset() + local_offset;
       }
+      // write len characters from wbuf
+      // write data in multiple blocks if needed to work around the
+      // MPI limit of the count being of int type
       MPI_Status status;
-      int err = MPI_File_write_at_all(sfp.file(),off,wbuf,len,
-                                      MPI_CHAR,&status);
+      int err;
       int count;
-      MPI_Get_count(&status,MPI_CHAR,&count);
-      assert(count==len);
+      //const int block_size = numeric_limits<int>::max();
+      const int block_size = 2000000000;
+      size_t nremain = len;
+      const char *pwbuf = wbuf;
+      MPI_Offset curr_off = off;
 
-      if ( err != 0 )
-        cout << " Wavefunction::write: error in MPI_File_write_at_all" << endl;
+      // The number of calls to MPI_File_write_at_all must be the
+      // same on all processes in MPIdata::comm(), even where len=0
+      size_t maxlen; // max len on all MPIdata::comm
+      MPI_Allreduce(&len,&maxlen,1,MPI_LONG_LONG,MPI_MAX,MPIdata::comm());
+
+      // Call MPI_File_write_at_all niter_write times on all MPIdata::comm()
+      const int niter_write = ( maxlen + block_size - 1 ) / block_size;
+      for ( int iter_write = 0; iter_write < niter_write; ++iter_write)
+      {
+        int curr_len = min(nremain,static_cast<size_t>(block_size));
+        //cout << " nremain: " << nremain << " pwbuf: " << (int*) pwbuf
+        //     << " curr_len: " << curr_len << endl;
+        err = MPI_File_write_at_all(sfp.file(),curr_off,pwbuf,curr_len,
+                                        MPI_CHAR,&status);
+        if ( err != 0 )
+          cout << " Wavefunction::write: error in MPI_File_write_at_all"
+               << endl;
+        assert(err==0);
+        MPI_Get_count(&status,MPI_CHAR,&count);
+        assert(count==curr_len);
+
+        pwbuf += curr_len;
+        nremain -= curr_len;
+        curr_off += curr_len;
+        MPI_Barrier(MPIdata::comm());
+      }
       sfp.set_offset(off+len);
       sfp.sync();
     }
@@ -1082,7 +1112,7 @@ void Wavefunction::write(SharedFilePtr& sfp, string encoding, string tag) const
     ostringstream os;
     os << "</" << tag << ">" << endl;
     string str(os.str());
-    size_t len = str.size();
+    int len = str.size();
     MPI_Status status;
     int err = MPI_File_write_at(sfp.file(),sfp.offset(),(void*)str.c_str(),
               len,MPI_CHAR,&status);

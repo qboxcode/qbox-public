@@ -1,4 +1,12 @@
 --------------------------------------------------------------------------------
+rel1_75_1
+--------------------------------------------------------------------------------
+32b2173 Fix size_t type for large sizes
+c7530ed Work around MPI size limits in Wavefunction.cpp
+8c9152b Fix reading of large files with few tasks
+29bd756 Use size_t in XML processing of restart file
+2288ea8 Increase precision in qbox_replicate.sh
+--------------------------------------------------------------------------------
 rel1_75_0
 --------------------------------------------------------------------------------
 1072728 Remove vxc from vlocal in PlotCmd.cpp

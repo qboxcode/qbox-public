@@ -889,10 +889,10 @@ int XMLGFPreprocessor::process(const char* const uri,
     // count valid base64 chars in last segment
     // count = number of chars in "A-z,a-z,0-9,+,/,=" in last segment
     // Note: the last segment may also be the first, if only one segment
-    int count = 0;
+    size_t count = 0;
     int last_seg = seg_start.size()-1;
     // count number of valid base64 chars in segment last_seg
-    for ( int i = seg_start[last_seg]; i < seg_end[last_seg]; i++ )
+    for ( size_t i = seg_start[last_seg]; i < seg_end[last_seg]; i++ )
     {
       int ch = buf[i];
       if ( isalnum(ch) || ch == '+' || ch == '/' || ch == '=' )
@@ -1024,7 +1024,7 @@ int XMLGFPreprocessor::process(const char* const uri,
   dbuf.resize(seg_start.size());
   for ( int iseg = 0; iseg < seg_start.size(); iseg++ )
   {
-    int nchars = seg_end[iseg]-seg_start[iseg];
+    size_t nchars = seg_end[iseg]-seg_start[iseg];
     if ( encoding[iseg] == "base64" )
     {
       // Base64 case:
@@ -1037,14 +1037,14 @@ int XMLGFPreprocessor::process(const char* const uri,
            << " dbufsize=" << dbuf[iseg].size()
            << endl;
 #endif
-      int nbytes = xcdr.decode(nchars,buf.data()+seg_start[iseg],
-                               (byte_t*)&dbuf[iseg][0]);
+      size_t nbytes = xcdr.decode(nchars,buf.data()+seg_start[iseg],
+                                  (byte_t*)&dbuf[iseg][0]);
 #if DEBUG
       cout << rctxt.mype() << ": iseg=" << iseg << " nbytes=" << nbytes
            << endl;
 #endif
       assert(nbytes % 8 == 0 );
-      int ndoubles = nbytes / 8;
+      size_t ndoubles = nbytes / 8;
       assert(ndoubles <= dbuf[iseg].size());
       // adjust size of double array
       dbuf[iseg].resize(ndoubles);
@@ -1362,7 +1362,7 @@ int XMLGFPreprocessor::process(const char* const uri,
   cout << ctxt.mype() << ": "
        << " igfminloc: " << igfminloc << " igfmaxloc: " << igfmaxloc << endl;
 #endif
-  int rbuf_pos = 0;
+  size_t rbuf_pos = 0;
   int igfloc = 0;
   for ( int igf = igfminloc; igf < igfmaxloc; igf++ )
   {

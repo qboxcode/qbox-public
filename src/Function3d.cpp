@@ -1,4 +1,5 @@
-//////////////////////////////////////////////////////////////////////////////// //
+////////////////////////////////////////////////////////////////////////////////
+//
 // Copyright (c) 2018 The Regents of the University of California
 //
 // This file is part of Qbox
@@ -179,8 +180,8 @@ void Function3d::write(string filename) const
 void Function3d::print(ostream& os) const
 {
   Base64Transcoder xcdr;
-  int nbytes = val.size() * sizeof(double);
-  int nchars = xcdr.nchars(nbytes);
+  size_t nbytes = val.size() * sizeof(double);
+  size_t nchars = xcdr.nchars(nbytes);
   char *wbuf = new char[nchars];
 #if PLT_BIG_ENDIAN
   // make copy of val for byte swapping without affecting original array

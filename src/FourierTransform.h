@@ -127,14 +127,14 @@ class FourierTransform
   int np2_loc(int iproc) const { return bm_.np2_loc(iproc); }
   int np2_first(void) const { return bm_.np2_first(); }
   int np2_first(int iproc) const { return bm_.np2_first(iproc); }
-  long int np012() const { return ((long int)np0_) * np1_ * np2_; }
-  int np012loc(int iproc) const { return np0_ * np1_ * np2_loc(iproc); }
-  int np012loc(void) const { return np0_ * np1_ * np2_loc(); }
-  int index(int i, int j, int k) const
+  size_t np012() const { return ((long int)np0_) * np1_ * np2_; }
+  size_t np012loc(int iproc) const { return np0_ * np1_ * np2_loc(iproc); }
+  size_t np012loc(void) const { return np0_ * np1_ * np2_loc(); }
+  size_t index(int i, int j, int k) const
   { return i + np0_ * ( j +  np1_ * k ); }
-  int i(int ind) const { return ind % np0_; }
-  int j(int ind) const { return (ind / np0_) % np1_; }
-  int k(int ind) const { return (ind / np0_) / np1_ + np2_first(); }
+  int i(size_t ind) const { return ind % np0_; }
+  int j(size_t ind) const { return (ind / np0_) % np1_; }
+  int k(size_t ind) const { return (ind / np0_) / np1_ + np2_first(); }
 
   void reset_timers(void);
   Timer tm_fwd, tm_bwd, tm_map_fwd, tm_map_bwd, tm_trans_fwd, tm_trans_bwd,

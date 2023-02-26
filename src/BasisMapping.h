@@ -31,7 +31,8 @@ class BasisMapping
   const Basis& basis_;
   int nprocs_, myproc_;
 
-  int np0_, np1_, np2_, np012loc_;
+  int np0_, np1_, np2_;
+  size_t np012loc_;
   int nvec_;
 
   std::vector<int> np2_loc_;   // np2_loc_[iproc], iproc=0, nprocs_-1
@@ -53,7 +54,7 @@ class BasisMapping
   int np2_loc(int iproc) const { return np2_loc_[iproc]; }
   int np2_first(void) const { return np2_first_[myproc_]; }
   int np2_first(int iproc) const { return np2_first_[iproc]; }
-  int np012loc(void) const { return np012loc_; }
+  size_t np012loc(void) const { return np012loc_; }
   int nvec(void) const { return nvec_; }
   int zvec_size(void) const { return nvec_ * np2_; }
 

@@ -1381,7 +1381,7 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
   FourierTransform ft(*basis_,basis_->np(0),basis_->np(1),basis_->np(2));
   vector<complex<double> > wftmp(ft.np012loc());
   const bool real_basis = basis_->real();
-  const int wftmpr_size = real_basis ? ft.np012() : 2*ft.np012();
+  const size_t wftmpr_size = real_basis ? ft.np012() : 2*ft.np012();
   const int wftmpr_loc_size = real_basis ? ft.np012loc() : 2*ft.np012loc();
   vector<double> wftmpr(wftmpr_size);
   Base64Transcoder xcdr;
@@ -1500,8 +1500,8 @@ void SlaterDet::print(ostream& os, string encoding, double weight, int ispin,
         #if PLT_BIG_ENDIAN
         xcdr.byteswap_double(wftmpr_size,&wftmpr[0]);
         #endif
-        int nbytes = wftmpr_size*sizeof(double);
-        int outlen = xcdr.nchars(nbytes);
+        size_t nbytes = wftmpr_size*sizeof(double);
+        size_t outlen = xcdr.nchars(nbytes);
         char* b = new char[outlen];
         assert(b!=0);
         xcdr.encode(nbytes,(byte_t*) &wftmpr[0],b);
@@ -1765,8 +1765,8 @@ void SlaterDet::str(string& sdstr, string encoding, double weight,
       #if PLT_BIG_ENDIAN
       xcdr.byteswap_double(tmpr_size,&tmpr[0]);
       #endif
-      int nbytes = tmpr_size*sizeof(double);
-      int outlen = xcdr.nchars(nbytes);
+      size_t nbytes = tmpr_size*sizeof(double);
+      size_t outlen = xcdr.nchars(nbytes);
       char* b = new char[outlen];
       assert(b!=0);
       xcdr.encode(nbytes,(byte_t*) &tmpr[0],b);
@@ -1798,12 +1798,12 @@ void SlaterDet::str(string& sdstr, string encoding, double weight,
       }
       ostr.setf(ios::scientific,ios::floatfield);
       ostr.precision(std::numeric_limits<double>::digits10 + 1);
-      int count = 0;
+      size_t count = 0;
       for ( int k = 0; k < ft.np2_loc(); k++ )
         for ( int j = 0; j < ft.np1(); j++ )
           for ( int i = 0; i < ft.np0(); i++ )
           {
-            int index = ft.index(i,j,k);
+            size_t index = ft.index(i,j,k);
             if ( real_basis )
               ostr << " " << wftmpr[index];
             else

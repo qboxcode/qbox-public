@@ -23,6 +23,7 @@
 #include "UserInterface.h"
 #include "Sample.h"
 #include <cstdlib>
+#include <stdexcept>
 
 class AngleCmd : public Cmd
 {

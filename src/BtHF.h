@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,19 +38,11 @@ class BtHF : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " btHF takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("BtHF takes one value");
 
     double v = atof(argv[1]);
     if ( v >= 1.0 || v < 0.0 )
-    {
-      if ( ui->onpe0() )
-        cout << " btHF value must be in [0,1)" << endl;
-      return 1;
-    }
+      throw invalid_argument("BtHF must be in [0,1)");
 
     s->ctrl.btHF = v;
 

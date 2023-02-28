@@ -46,13 +46,7 @@ class AngleCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( ! ( argc == 4 || argc == 5 ) )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " use: angle [-pbc] name1 name2 name3" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument(" use: angle [-pbc] name1 name2 name3");
 
     string name1, name2, name3;
     bool use_pbc = false;
@@ -66,13 +60,7 @@ class AngleCmd : public Cmd
     if ( argc == 5 )
     {
       if ( strcmp(argv[1],"-pbc") )
-      {
-        if ( ui->onpe0() )
-        {
-          cout << " use: angle [-pbc] name1 name2 name3" << endl;
-        }
-        return 1;
-      }
+        throw invalid_argument(" use: angle [-pbc] name1 name2 name3");
       use_pbc = true;
       name1 = argv[2];
       name2 = argv[3];
@@ -82,39 +70,23 @@ class AngleCmd : public Cmd
     Atom* a1 = s->atoms.findAtom(name1);
     Atom* a2 = s->atoms.findAtom(name2);
     Atom* a3 = s->atoms.findAtom(name3);
-    if ( a1 == 0 || a2 == 0 || a3 == 0 )
-    {
-      if ( ui->onpe0() )
-      {
-        if ( a1 == 0 )
-          cout << " AngleCmd: atom " << name1 << " not defined" << endl;
-        if ( a2 == 0 )
-          cout << " AngleCmd: atom " << name2 << " not defined" << endl;
-        if ( a3 == 0 )
-          cout << " AngleCmd: atom " << name3 << " not defined" << endl;
-      }
-      return 1;
-    }
+    if ( a1 == 0 )
+      throw invalid_argument(" AngleCmd: atom "+name1+" not defined");
+    if ( a2 == 0 )
+      throw invalid_argument(" AngleCmd: atom "+name2+" not defined");
+    if ( a3 == 0 )
+      throw invalid_argument(" AngleCmd: atom "+name3+" not defined");
 
     if ( a1 == a2 || a2 == a3 || a3 == a1 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " AngleCmd: replicated atoms in " << name1
-             << " " << name2 << " " << name3 << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument(" AngleCmd: replicated atoms in " +
+        name1 + " " + name2 + " " + name3);
 
     if ( ui->onpe0() )
     {
       D3vector r12(a1->position()-a2->position());
       D3vector r32(a3->position()-a2->position());
       if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 )
-      {
-        cout << " AngleCmd: atoms are too close" << endl;
-        return 1;
-      }
+        throw invalid_argument(" AngleCmd: atoms are too close");
 
       if ( use_pbc )
       {

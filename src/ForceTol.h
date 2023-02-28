@@ -21,7 +21,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -36,19 +37,11 @@ class ForceTol : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " force_tol takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("force_tol takes one value");
 
     double v = atof(argv[1]);
     if ( v < 0.0 )
-    {
-      if ( ui->onpe0() )
-        cout << " force_tol must be non-negative" << endl;
-      return 1;
-    }
+      throw invalid_argument("force_tol must be non-negative");
 
     s->ctrl.force_tol = v;
     return 0;

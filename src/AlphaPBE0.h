@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,19 +38,11 @@ class AlphaPBE0 : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " alpha_PBE0 takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("alpha_PBE0 takes one value");
 
     double v = atof(argv[1]);
     if ( v < 0.0 )
-    {
-      if ( ui->onpe0() )
-        cout << " alpha_PBE0 must be non-negative" << endl;
-      return 1;
-    }
+      throw invalid_argument("alpha_PBE0 must be non-negative");
 
     s->ctrl.alpha_PBE0 = v;
 

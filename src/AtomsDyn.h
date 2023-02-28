@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,11 +38,7 @@ class AtomsDyn : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " atoms_dyn takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("atoms_dyn takes one value");
 
     string v = argv[1];
     if ( !( v == "LOCKED" ||
@@ -51,13 +48,8 @@ class AtomsDyn : public Var
             v == "AND" ||
             v == "MD" ||
             v == "BMD" ) )
-    {
-      if ( ui->onpe0() )
-        cout << " atoms_dyn must be LOCKED, SD, SDA, CG, AND, MD or BMD"
-             << endl;
-      return 1;
-    }
-
+    throw invalid_argument("atoms_dyn must be "
+                           "LOCKED, SD, SDA, CG, AND, MD or BMD]");
     s->ctrl.atoms_dyn = v;
 
     return 0;

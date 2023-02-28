@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,11 +38,7 @@ class NetCharge : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " net_charge takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("net_charge takes one value");
 
     const int v = atoi(argv[1]);
 
@@ -54,12 +51,8 @@ class NetCharge : public Var
 
     // set new netcharge to v
     if ( s->atoms.nel() - v < 0 )
-    {
-      if ( ui->onpe0() )
-        cout << " net_charge: cannot remove more than "
-             << s->atoms.nel() << " electrons" << endl;
-      return 1;
-    }
+      throw invalid_argument("net_charge: cannot remove more than " +
+                              to_string(s->atoms.nel()) + " electrons");
 
     s->wf.set_nel(s->atoms.nel() - v);
     s->wf.update_occ(0.0);

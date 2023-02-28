@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,47 +38,25 @@ class Occ : public Var
   int set ( int argc, char **argv )
   {
     if ( (argc!=3) && (argc!=4) )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " use: set occ [ispin] n f" << endl;
-        cout << " ispin = {1|2}" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("occ: invalid arguments");
 
     if ( s->wf.nkp() != 1 )
-    {
-      if ( ui->onpe0() )
-        cout << " set occ: not implemented for multiple k-points" << endl;
-      return 1;
-    }
+      throw invalid_argument("occ: not implemented for multiple k-points");
 
     if ( argc == 3 )
     {
       // set occ n f
       if ( s->wf.nspin() != 1 )
-      {
-        if ( ui->onpe0() )
-          cout << "nspin must be 1" << endl;
-        return 1;
-      }
+        throw invalid_argument("occ: nspin must be 1");
 
       const int n = atoi(argv[1]);
       if ( (n < 1) || n > s->wf.nst() )
-      {
-        if ( ui->onpe0() )
-          cout << " n must be in [1," << s->wf.nst() << "]" << endl;
-        return 1;
-      }
+        throw invalid_argument("occ: n must be in [1," +
+                                to_string(s->wf.nst()) + "]");
 
       const double f = atof(argv[2]);
       if ( (f < 0.0) || (f > 2.0) )
-      {
-        if ( ui->onpe0() )
-          cout << " f must be in [0,2]" << endl;
-        return 1;
-      }
+        throw invalid_argument("occ: f must be in [0,2]");
 
       Wavefunction& wf = s->wf;
       SlaterDet& sd = *wf.sd(0,0);
@@ -96,35 +75,20 @@ class Occ : public Var
     {
       // set occ ispin n f
       if ( s->wf.nspin() != 2 )
-      {
-        if ( ui->onpe0() )
-          cout << "nspin must be 2 when using ispin" << endl;
-        return 1;
-      }
+        throw invalid_argument("occ: nspin must be 2 when using ispin");
 
       const int ispin  = atoi(argv[1]);
       if ( (ispin < 1) || (ispin > 2) )
-      {
-        if ( ui->onpe0() )
-          cout << " ispin must be 1 or 2" << endl;
-        return 1;
-      }
+        throw invalid_argument("occ: ispin must be 1 or 2");
 
       const int n = atoi(argv[2]);
       if ( (n < 1) || n > s->wf.nst(ispin-1) )
-      {
-        if ( ui->onpe0() )
-          cout << " n must be in [1," << s->wf.nst(ispin-1) << "]" << endl;
-        return 1;
-      }
+        throw invalid_argument("occ: n must be in [1," +
+                                to_string(s->wf.nst(ispin-1)) + "]");
 
       const double f = atof(argv[3]);
       if ( (f < 0.0) || (f > 1.0) )
-      {
-        if ( ui->onpe0() )
-          cout << " f must be in [0,1] when using ispin" << endl;
-        return 1;
-      }
+        throw invalid_argument("occ: f must be in [0,1] when using ispin");
 
       Wavefunction& wf = s->wf;
       // ispin-1 in next line: spins are numbered starting from 1 in

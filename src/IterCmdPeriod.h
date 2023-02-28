@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,19 +38,12 @@ class IterCmdPeriod : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " iter_cmd_period must be a positive integer" << endl;
-      return 1;
-    }
+      throw invalid_argument("iter_cmd_period takes one value");
 
     int v = atoi(argv[1]);
     if ( v <= 0 )
-    {
-      if ( ui->onpe0() )
-        cout << " iter_cmd_period must be a positive integer" << endl;
-      return 1;
-    }
+      throw invalid_argument("iter_cmd_period must be positive");
+
     s->ctrl.iter_cmd_period = v;
     return 0;
   }

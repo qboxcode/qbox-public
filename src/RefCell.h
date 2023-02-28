@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,11 +38,8 @@ class RefCell : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 10 )
-    {
-      if ( ui->onpe0() )
-      cout << " ref_cell must be specified with 3 vectors (9 values)" << endl;
-      return 1;
-    }
+      throw invalid_argument("ref_cell must be specified with 3 vectors "
+                              "(9 values)");
 
     D3vector a0(atof(argv[1]),atof(argv[2]),atof(argv[3]));
     D3vector a1(atof(argv[4]),atof(argv[5]),atof(argv[6]));
@@ -49,11 +47,7 @@ class RefCell : public Var
     UnitCell ref_cell(a0,a1,a2);
 
     if ( ref_cell.volume() < 0.0 )
-    {
-      if ( ui->onpe0() )
-        cout << " ref_cell volume must be positive" << endl;
-      return 1;
-    }
+      throw invalid_argument("ref_cell volume must be positive");
 
     s->wf.resize(s->wf.cell(), ref_cell,s->wf.ecut());
     if ( s->wfv != 0 )

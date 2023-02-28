@@ -20,7 +20,7 @@
 #define COMPUTEMLWFCMD_H
 
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
 
 #include "UserInterface.h"

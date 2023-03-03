@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # qbox_eig.py: extract eigenvalues from Qbox output
 # use: qbox_eig.py kpoint n ispin file.r
 # extracts eigenvalue n at (ispin,kpoint)
@@ -10,8 +10,8 @@ import math
 
 argc=len(sys.argv)
 if ( not ( argc in [3,4,6,7] ) ):
-  print "use: ",sys.argv[0]," [ispin] [kx ky kz] n file.r"
-  print " ispin = 0..1, n = 1..neig"
+  print("use: ",sys.argv[0]," [ispin] [kx ky kz] n file.r")
+  print(" ispin = 0..1, n = 1..neig")
   sys.exit()
 
 if argc == 7:
@@ -46,7 +46,7 @@ elif argc == 3:
   n = int(sys.argv[1])
   infile = sys.argv[2]
 
-print "# ",infile," ispin=",ispin, " n=", n, " k=", kx, ky, kz
+print("# ",infile," ispin=",ispin, " n=", n, " k=", kx, ky, kz)
 
 # Qbox output handler to extract and process data
 class QboxOutputHandler(xml.sax.handler.ContentHandler):
@@ -81,9 +81,9 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
   def print_eig(self):
     self.e = self.buffer.split()
     if n > int(self.n):
-      print "n>neig: neig=", self.n
+      print("n>neig: neig=", self.n)
     else:
-      print self.e[n-1]
+      print(self.e[n-1])
 
 parser = xml.sax.make_parser()
 handler = QboxOutputHandler()

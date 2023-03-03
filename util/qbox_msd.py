@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # qbox_msd.py: compute mean-square displacement in an MD simulation
 # generate plot of <r^2>(t) in gnuplot format
 # use: qbox_msd.py species file.r [file.r ...]
@@ -8,7 +8,7 @@ import sys
 import math
 
 if len(sys.argv) < 3:
-  print "use: ",sys.argv[0]," species file [file ...]"
+  print("use: ",sys.argv[0]," species file [file ...]")
   sys.exit()
 
 species = sys.argv[1]
@@ -53,10 +53,10 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
         dy = self.tau[i][1]-self.tau0[i][1]
         dz = self.tau[i][2]-self.tau0[i][2]
         disp2sum += dx*dx + dy*dy + dz*dz
-      print '%12.6f'%(disp2sum/len(self.tau))
+      print('%12.6f'%(disp2sum/len(self.tau)))
       self.step += 1
 
-print "# ",species
+print("# ",species)
 parser = xml.sax.make_parser()
 handler = QboxOutputHandler()
 parser.setContentHandler(handler)
@@ -64,5 +64,5 @@ for i in range(len(sys.argv)-2):
   infile = sys.argv[i+2]
   parser.parse(infile)
 
-print
-print
+print()
+print()

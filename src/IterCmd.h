@@ -23,8 +23,6 @@
 #include<iomanip>
 #include<sstream>
 #include<cstdlib>
-#include<stdexcept>
-
 #include "Sample.h"
 
 class IterCmd : public Var

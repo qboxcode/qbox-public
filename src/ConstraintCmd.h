@@ -82,7 +82,7 @@ class ConstraintCmd : public Cmd
         s->constraints.list_constraints(cout);
     }
     else
-      throw invalid_argument("ConstraintCmd: incorrect arguments");
+      throw invalid_argument("ConstraintCmd: invalid arguments");
 
     return 0;
   }

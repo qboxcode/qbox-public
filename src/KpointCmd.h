@@ -24,6 +24,8 @@
 #include "D3vector.h"
 #include "Sample.h"
 
+#include <stdexcept>
+
 class KpointCmd : public Cmd
 {
   public:
@@ -48,20 +50,14 @@ class KpointCmd : public Cmd
   {
     const bool onpe0 = MPIdata::onpe0();
     if ( argc < 2 )
-    {
-      if ( onpe0 )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument("KpointCmd: invalid arguments");
+
     string subcmd(argv[1]);
     if ( subcmd == "add" )
     {
       if ( argc != 6 )
-      {
-        if ( onpe0 )
-          cout << help_msg();
-        return 1;
-      }
+        throw invalid_argument("KpointCmd: invalid arguments");
+
       double kx = atof(argv[2]);
       double ky = atof(argv[3]);
       double kz = atof(argv[4]);
@@ -71,11 +67,8 @@ class KpointCmd : public Cmd
     else if ( subcmd == "delete" )
     {
       if ( argc != 5 )
-      {
-        if ( onpe0 )
-          cout << help_msg();
-        return 1;
-      }
+        throw invalid_argument("KpointCmd: invalid arguments");
+
       double kx = atof(argv[2]);
       double ky = atof(argv[3]);
       double kz = atof(argv[4]);
@@ -84,11 +77,8 @@ class KpointCmd : public Cmd
     else if ( subcmd == "move" )
     {
       if ( argc != 8 )
-      {
-        if ( onpe0 )
-          cout << help_msg();
-        return 1;
-      }
+        throw invalid_argument("KpointCmd: invalid arguments");
+
       double kx = atof(argv[2]);
       double ky = atof(argv[3]);
       double kz = atof(argv[4]);
@@ -100,11 +90,8 @@ class KpointCmd : public Cmd
     else if ( subcmd == "list" )
     {
       if ( argc != 2 )
-      {
-        if ( onpe0 )
-          cout << help_msg();
-        return 1;
-      }
+        throw invalid_argument("KpointCmd: invalid arguments");
+
       if ( onpe0 )
       {
         cout << " kpoint list: reciprocal lattice coordinates" << endl;
@@ -129,10 +116,7 @@ class KpointCmd : public Cmd
       }
     }
     else
-    {
-      if ( onpe0 )
-        cout << help_msg();
-    }
+      throw invalid_argument("KpointCmd: invalid arguments");
 
     return 0;
   }

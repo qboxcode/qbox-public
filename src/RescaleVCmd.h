@@ -24,6 +24,7 @@
 #include <string>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 using namespace std;
 
 class RescaleVCmd : public Cmd
@@ -41,19 +42,16 @@ class RescaleVCmd : public Cmd
   {
     return
     "\n rescale_v\n\n"
-    " syntax: rescale_v f\n\n"
+    " syntax: rescale_v fac\n\n"
     "   The rescale_v command multiplies the velocity of all atoms \n"
-    "   by the factor f.\n\n";
+    "   by the factor fac.\n\n";
   }
 
   int action(int argc, char **argv)
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-        cout << " use: rescale_v fac" << endl;
-      return 1;
-    }
+      throw invalid_argument("use: rescale_v fac");
+
     const double fac = atof(argv[1]);
     s->atoms.rescale_velocities(fac);
     return 0;

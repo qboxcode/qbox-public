@@ -23,6 +23,7 @@
 #include "UserInterface.h"
 #include "Sample.h"
 #include <cstdlib>
+#include <stdexcept>
 
 class TorsionCmd : public Cmd
 {
@@ -46,13 +47,7 @@ class TorsionCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( ! ( argc == 5 || argc == 6 ) )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " use: torsion [-pbc] name1 name2 name3 name4" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("use: torsion [-pbc] name1 name2 name3 name4");
 
     string name1, name2, name3, name4;
     bool use_pbc = false;
@@ -67,13 +62,8 @@ class TorsionCmd : public Cmd
     if ( argc == 6 )
     {
       if ( strcmp(argv[1],"-pbc") )
-      {
-        if ( ui->onpe0() )
-        {
-          cout << " use: torsion [-pbc] name1 name2 name3 name4" << endl;
-        }
-        return 1;
-      }
+        throw invalid_argument("use: torsion [-pbc] name1 name2 name3 name4");
+
       use_pbc = true;
       name1 = argv[2];
       name2 = argv[3];
@@ -98,32 +88,21 @@ class TorsionCmd : public Cmd
         if ( a4 == 0 )
           cout << " TorsionCmd: atom " << name4 << " not defined" << endl;
       }
-      return 1;
+      throw invalid_argument("TorsionCmd: atom(s) not defined");
     }
 
     if ( a1 == a2 || a1 == a3 || a1 == a4 ||
          a2 == a3 || a2 == a4 || a3 == a4 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " TorsionCmd: replicated atoms in "
-             << name1 << " " << name2 << " "
-             << name3 << " " << name4 << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("TorsionCmd: replicated atoms");
+
+    D3vector r12(a1->position()-a2->position());
+    D3vector r32(a3->position()-a2->position());
+    D3vector r43(a4->position()-a3->position());
+    if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 || norm2(r43) == 0.0 )
+      throw invalid_argument("TorsionCmd: atoms too close");
 
     if ( ui->onpe0() )
     {
-      D3vector r12(a1->position()-a2->position());
-      D3vector r32(a3->position()-a2->position());
-      D3vector r43(a4->position()-a3->position());
-      if ( norm2(r12) == 0.0 || norm2(r32) == 0.0 || norm2(r43) == 0.0 )
-      {
-        cout << " TorsionCmd: atoms are too close" << endl;
-        return 1;
-      }
-
       if ( use_pbc )
       {
         const UnitCell& cell = s->wf.cell();

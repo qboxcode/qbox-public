@@ -23,6 +23,7 @@
 #include "UserInterface.h"
 #include "Sample.h"
 #include <cstdlib>
+#include <stdexcept>
 
 class RandomizeWfCmd : public Cmd
 {
@@ -45,13 +46,8 @@ class RandomizeWfCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( argc > 2 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " use: randomize_wf [amplitude]" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("use: randomize_wf [amplitude]");
+
     double amp = 0.02;
     if ( argc == 2 )
       amp = atof(argv[1]);

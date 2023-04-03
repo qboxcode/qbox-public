@@ -20,6 +20,7 @@
 #define BISECTIONCMD_H
 
 #include <iostream>
+#include <stdexcept>
 #include "UserInterface.h"
 #include "Sample.h"
 #include <cstdlib>

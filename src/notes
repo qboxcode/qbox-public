@@ -1,4 +1,14 @@
 --------------------------------------------------------------------------------
+rel1_76_0
+--------------------------------------------------------------------------------
+Requires C++11
+f8ec91a Add util scripts
+49df568 Add exceptions to Cmd cpp files
+ea14057 Add exceptions to Cmd header files
+e72a424 Use exceptions in variables, remove nrowmax
+a4a10c5 Add exceptions for invalid arguments
+60c5b5b Remove deprecated Nrowmax.h
+--------------------------------------------------------------------------------
 rel1_75_1
 --------------------------------------------------------------------------------
 32b2173 Fix size_t type for large sizes

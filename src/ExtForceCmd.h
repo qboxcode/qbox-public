@@ -22,6 +22,8 @@
 #include "UserInterface.h"
 #include "Sample.h"
 
+#include <stdexcept>
+
 class ExtForceCmd : public Cmd
 {
   public:
@@ -49,11 +51,8 @@ class ExtForceCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( argc < 2 )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument("extforce takes one or more arguments");
+
     string subcmd(argv[1]);
     if ( subcmd == "define" )
     {
@@ -73,10 +72,7 @@ class ExtForceCmd : public Cmd
         s->extforces.list_extforces(cout);
     }
     else
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-    }
+      throw invalid_argument("ExtForceCmd: invalid arguments");
 
     return 0;
   }

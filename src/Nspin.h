@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,19 +38,11 @@ class Nspin : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " nspin takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("nspin takes one value");
 
     int v = atoi(argv[1]);
     if ( v != 1 && v!=2 )
-    {
-      if ( ui->onpe0() )
-        cout << " nspin must be 1 or 2" << endl;
-      return 1;
-    }
+      throw invalid_argument("nspin must be 1 or 2");
 
     if ( s->wf.nspin() == v )
       return 0;

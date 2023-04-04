@@ -26,6 +26,7 @@ using namespace std;
 
 #include "UserInterface.h"
 #include "Sample.h"
+#include <stdexcept>
 
 class SetCmd : public Cmd
 {
@@ -47,11 +48,7 @@ class SetCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( argc < 3 )
-    {
-      if ( ui->onpe0() )
-        cout << " use: set variable value[s]" << endl;
-      return 1;
-    }
+      throw invalid_argument("use: set variable value[s]");
 
     Var* varptr = ui->findVar(argv[1]);
 
@@ -60,12 +57,8 @@ class SetCmd : public Cmd
       varptr->set(argc-1,&argv[1]);
     }
     else
-    {
-      // variable is not in the variable list
-      if ( ui->onpe0() )
-        cout << " no such variable: " << argv[1] << endl;
-      return 1;
-    }
+      throw invalid_argument("SetCmd: no such variable");
+
     return 0;
   }
 };

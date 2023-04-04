@@ -24,38 +24,22 @@ using namespace std;
 
 #include<ctime>
 #include<cassert>
+#include<string>
+#include<stdexcept>
 
 int RunCmd::action(int argc, char **argv)
 {
+  string usage(" use: run [-atomic_density] niter"
+               "      run [-atomic_density] niter nitscf"
+               "      run [-atomic_density] niter nitscf nite");
   if ( argc < 2 || argc > 5)
-  {
-    if ( ui->onpe0() )
-    {
-      cout << " use: run [-atomic_density] niter" << endl;
-      cout << "      run [-atomic_density] niter nitscf" << endl;
-      cout << "      run [-atomic_density] niter nitscf nite" << endl;
-    }
-    return 1;
-  }
-
+    throw invalid_argument(usage);
   if ( s->wf.nst() == 0 )
-  {
-    if ( ui->onpe0() )
-      cout << " RunCmd: no states, cannot run" << endl;
-    return 1;
-  }
+    throw runtime_error("RunCmd: no states, cannot run");
   if ( s->wf.ecut() == 0.0 )
-  {
-    if ( ui->onpe0() )
-      cout << " RunCmd: ecut = 0.0, cannot run" << endl;
-    return 1;
-  }
+    throw runtime_error("RunCmd: ecut = 0, cannot run");
   if ( s->wf.cell().volume() == 0.0 )
-  {
-    if ( ui->onpe0() )
-      cout << " RunCmd: volume = 0.0, cannot run" << endl;
-    return 1;
-  }
+    throw runtime_error("RunCmd: volume = 0, cannot run");
 
   SampleStepper* stepper;
 

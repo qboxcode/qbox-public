@@ -21,7 +21,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -36,19 +37,11 @@ class StressTol : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " stress_tol takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("stress_tol takes one value");
 
     double v = atof(argv[1]);
     if ( v < 0.0 )
-    {
-      if ( ui->onpe0() )
-        cout << " stress_tol must be non-negative" << endl;
-      return 1;
-    }
+      throw invalid_argument("stress_tol must be non-negative");
 
     s->ctrl.stress_tol = v;
     return 0;

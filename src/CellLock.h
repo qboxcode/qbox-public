@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,23 +38,15 @@ class CellLock : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " cell_lock takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("cell_lock takes one value");
 
     string v = argv[1];
     if ( !( v == "OFF" || v == "A" || v == "B" || v == "C" ||
             v == "AB" || v == "AC" || v == "BC" || v == "ABC" ||
             v == "S"  || v == "AS" || v == "BS" || v == "CS" ||
             v == "ABS" || v == "ACS" || v == "BCS" || v == "R") )
-    {
-      if ( ui->onpe0() )
-        cout << " cell_lock must be in "
-             << "[OFF,A,B,C,AB,AC,BC,S,AS,BS,CS,ABS,ACS,BCS,R]" << endl;
-      return 1;
-    }
+      throw invalid_argument("cell_lock must be in OFF, A, B, C, AB, AC, BC, "
+                              "S,AS,BS,CS,ABS,ACS,BCS or R");
 
     s->ctrl.cell_lock = v;
 

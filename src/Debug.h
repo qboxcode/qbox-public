@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -39,12 +40,8 @@ class Debug : public Var
     // use: set debug key [val ..]
     // use: set debug key
     if ( argc < 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " use: set debug key val [val ...]" << endl;
-      cout << " use: set debug key" << endl;
-      return 1;
-    }
+      throw invalid_argument("debug takes one or more arguments");
+
     string key(argv[1]);
     // if ( ui->onpe0() ) cout << "Debug: key = " << key << endl;
     string val;

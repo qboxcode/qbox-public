@@ -22,6 +22,8 @@
 #include "UserInterface.h"
 #include "Sample.h"
 
+#include <stdexcept>
+
 class ConstraintCmd : public Cmd
 {
   public:
@@ -52,11 +54,8 @@ class ConstraintCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( argc < 2 )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument("constraint takes one or more arguments");
+
     string subcmd(argv[1]);
     if ( subcmd == "define" )
     {
@@ -83,10 +82,7 @@ class ConstraintCmd : public Cmd
         s->constraints.list_constraints(cout);
     }
     else
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-    }
+      throw invalid_argument("ConstraintCmd: invalid arguments");
 
     return 0;
   }

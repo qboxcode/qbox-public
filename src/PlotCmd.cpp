@@ -24,6 +24,7 @@
 #include <fstream>
 #include <sstream>
 #include <complex>
+#include <stdexcept>
 
 #include "Context.h"
 #include "Sample.h"
@@ -56,11 +57,7 @@ int PlotCmd::action(int argc, char **argv)
   // plot -wf <n1> <n2> filename : plot atoms and wfs <n1> to <n2> in cube fmt
   // spin: 1 = first spin (up), 2 = second spin (down)
   if ( (argc < 2) || (argc > 7) )
-  {
-    if ( ui->onpe0() )
-      cout << usage << endl;
-    return 1;
-  }
+    throw invalid_argument(usage);
 
   bool plot_atoms = true;
   bool xyz = true;
@@ -97,21 +94,12 @@ int PlotCmd::action(int argc, char **argv)
       // process argument: n
       iarg++;
       if ( iarg == argc )
-      {
-        if ( ui->onpe0() )
-        cout << usage << endl;
-        return 1;
-      }
+        throw invalid_argument(usage);
       nmin = atoi(argv[iarg]) - 1;
       nmax = nmin;
       nwf = 1;
       if ( nmin < 0 || nmax >= s->wf.nst() || nmin > nmax )
-      {
-        if ( ui->onpe0() )
-          cout << " nmin or nmax incompatible with nst="
-               << s->wf.nst() << endl;
-        return 1;
-      }
+        throw invalid_argument("PlotCmd: nmin or nmax incompatible with nst");
     }
     else if ( !strcmp(argv[iarg],"-wfs") )
     {
@@ -120,59 +108,30 @@ int PlotCmd::action(int argc, char **argv)
       // process argument: nmin
       iarg++;
       if ( iarg==argc )
-      {
-        if ( ui->onpe0() )
-        cout << usage << endl;
-        return 1;
-      }
+        throw invalid_argument(usage);
       nmin = atoi(argv[iarg]) - 1;
       // process argument: nmax
       iarg++;
       if ( iarg==argc )
-      {
-        if ( ui->onpe0() )
-        cout << usage << endl;
-        return 1;
-      }
+        throw invalid_argument(usage);
       nmax = atoi(argv[iarg]) - 1;
       nwf = nmax-nmin+1;
       if ( nmin < 0 || nmax >= s->wf.nst() || nmin > nmax )
-      {
-        if ( ui->onpe0() )
-          cout << " nmin or nmax incompatible with nst="
-               << s->wf.nst() << endl;
-        return 1;
-      }
+        throw invalid_argument("PlotCmd: nmin or nmax incompatible with nst");
     }
     else if ( !strcmp(argv[iarg],"-spin") )
     {
       if ( !(plot_density || plot_wf || plot_wfs || plot_vlocal) )
-      {
-        if ( ui->onpe0() )
-          cout << usage << endl;
-        return 1;
-      }
+        throw invalid_argument(usage);
       if ( s->wf.nspin() != 2 )
-      {
-        if ( ui->onpe0() )
-          cout << "nspin = 1, cannot select spin" << endl;
-        return 1;
-      }
+        throw invalid_argument("PlotCmd: nspin=1, cannot select spin");
       // process argument: ispin
       iarg++;
       if ( iarg==argc )
-      {
-        if ( ui->onpe0() )
-          cout << usage << endl;
-        return 1;
-      }
+        throw invalid_argument(usage);
       ispin = atoi(argv[iarg]);
       if ( ispin < 1 || ispin > 2 )
-      {
-        if ( ui->onpe0() )
-          cout << " spin must be 1 or 2" <<  endl;
-        return 1;
-      }
+        throw invalid_argument("PlotCmd: spin must be 1 or 2");
     }
     else
     {
@@ -186,11 +145,7 @@ int PlotCmd::action(int argc, char **argv)
 
   // Must specify spin if plotting wave functions when nspin==2
   if ( s->wf.nspin()==2 && (plot_vlocal||plot_wf||plot_wfs) && ispin==0 )
-  {
-    if ( ui->onpe0() )
-      cout << " must use -spin if nspin==2" <<  endl;
-    return 1;
-  }
+    throw invalid_argument("PlotCmd: must use -spin if nspin==2");
 
   ofstream os;
   vector<double> tmpr;
@@ -304,9 +259,7 @@ int PlotCmd::action(int argc, char **argv)
       {
         // should not get here
         // ispin must be set if nspin==2
-        if ( ui->onpe0() )
-          cout << usage << endl;
-        return 1;
+        throw invalid_argument(usage);
       }
       else
       {
@@ -383,10 +336,7 @@ int PlotCmd::action(int argc, char **argv)
     }
 
     if ( nwf > 0 && s->wf.nst() == 0 )
-    {
-      cout << " no states in sample" << endl;
-      return 1;
-    }
+      throw invalid_argument("PlotCmd: no states in sample");
 
     int isp_min, isp_max;
     SlaterDet *sdp;
@@ -426,12 +376,7 @@ int PlotCmd::action(int argc, char **argv)
       for ( int n = nmin; n <= nmax; n++ )
       {
         if ( n >= s->wf.nst(isp) )
-        {
-          if ( ui->onpe0() )
-            cout << "invalid wave function index: " << n+1
-                 << " > nst(ispin)" << endl;
-          return 1;
-        }
+          throw invalid_argument("PlotCmd: invalid wave function index");
 
         // compute real-space wavefunction
 

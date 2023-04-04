@@ -22,6 +22,7 @@
 #include <string>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 using namespace std;
 
 #include "UserInterface.h"
@@ -52,11 +53,7 @@ class MoveCmd : public Cmd
   {
     // move must have 6 arguments including the command name
     if ( argc != 6 )
-    {
-      if ( ui->onpe0() )
-        cout << " use: move atom_name {to|by} x y z " << endl;
-      return 1;
-    }
+      throw invalid_argument("use: move atom_name {to|by} x y z");
 
     const string atom_name = argv[1];
     const string mode = argv[2];
@@ -66,11 +63,7 @@ class MoveCmd : public Cmd
 
     Atom* pa = s->atoms.findAtom(atom_name);
     if ( !pa )
-    {
-      if ( ui->onpe0() )
-        cout << " MoveCmd: could not find atom " << atom_name << endl;
-      return 1;
-    }
+      throw invalid_argument("MoveCmd: could not find atom "+atom_name);
 
     D3vector pos = pa->position();
 
@@ -96,11 +89,7 @@ class MoveCmd : public Cmd
       pos = D3vector(x,y,z);
     }
     else
-    {
-      if ( ui->onpe0() )
-        cout << " MoveCmd: unknown mode" << endl;
-      return 1;
-    }
+      throw invalid_argument("MoveCmd: unknown mode");
 
     pa->set_position(pos);
     if ( ui->onpe0() )

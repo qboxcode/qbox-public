@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 #include "Wavefunction.h"
@@ -39,19 +40,11 @@ class CellDyn : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " cell_dyn takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("cell_dyn takes one value");
 
     string v = argv[1];
     if ( !( v == "LOCKED" || v == "SD" || v == "CG" ) )
-    {
-      if ( ui->onpe0() )
-        cout << " cell_dyn must be LOCKED, SD or CG" << endl;
-      return 1;
-    }
+      throw invalid_argument("cell_dyn must be LOCKED, SD or CG");
 
     s->ctrl.cell_dyn = v;
 

@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,19 +38,11 @@ class Stress : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " stress takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("stress takes one value");
 
     string v = argv[1];
     if ( !( v == "ON" || v == "OFF" ) )
-    {
-      if ( ui->onpe0() )
-        cout << " stress must be ON or OFF" << endl;
-      return 1;
-    }
+      throw invalid_argument("stress must be ON or OFF");
 
     s->ctrl.stress = v;
 

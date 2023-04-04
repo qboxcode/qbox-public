@@ -22,6 +22,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <stdexcept>
 
 #include "UserInterface.h"
 #include "Sample.h"
@@ -46,11 +47,7 @@ class PrintCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-        cout << " use: print variable" << endl;
-      return 1;
-    }
+      throw invalid_argument("use: print variable");
 
     Var *varptr = ui->findVar(argv[1]);
     if ( varptr )
@@ -62,11 +59,7 @@ class PrintCmd : public Cmd
     else
     {
       // variable is not in the variable list
-      if ( ui->onpe0() )
-      {
-        cout << " no such variable: " << argv[1] << endl;
-      }
-      return 1;
+      throw invalid_argument("PrintCmd: no such variable");
     }
     return 0;
   }

@@ -22,6 +22,7 @@
 #include <string>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 using namespace std;
 
 #include "UserInterface.h"
@@ -54,11 +55,7 @@ class StrainCmd : public Cmd
     " use: strain [-atomsonly] [-inverse] uxx uyy uzz uxy uyz uxz";
     // strain must have 7, 8 or 9 arguments including the command name
     if ( argc < 7 || argc > 9 )
-    {
-      if ( ui->onpe0() )
-        cout << usage << endl;
-      return 1;
-    }
+      throw invalid_argument("StrainCmd: invalid arguments");
 
     bool atomsonly = false;
     bool inverse = false;
@@ -78,11 +75,7 @@ class StrainCmd : public Cmd
       }
     }
     if ( argc != iu+6 )
-    {
-      if ( ui->onpe0() )
-        cout << usage << endl;
-      return 1;
-    }
+      throw invalid_argument("StrainCmd: invalid arguments");
 
     vector<double> u(6);
     for ( int i = 0; i < 6; i++ )
@@ -110,13 +103,8 @@ class StrainCmd : public Cmd
 
       const double det = a0*(a1*a2-a4*a4)-a3*(a3*a2-a5*a4)+a5*(a3*a4-a5*a1);
       if ( fabs(det) < 1.e-8 )
-      {
-        if ( ui->onpe0() )
-        {
-          cout << " transformation is near-singular: det(I+u) < 1.e-8" << endl;
-        }
-        return 1;
-      }
+        throw invalid_argument("StrainCmd: transformation near singular");
+
       const double detinv = 1.0 / det;
       // replace u with (a^-1 - I)
       u[0] = detinv * ( a1*a2-a4*a4 ) - 1.0;

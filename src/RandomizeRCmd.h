@@ -23,6 +23,7 @@
 #include "UserInterface.h"
 #include "Sample.h"
 #include <cstdlib>
+#include <stdexcept>
 
 class RandomizeRCmd : public Cmd
 {
@@ -46,20 +47,11 @@ class RandomizeRCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " use: randomize_r amplitude" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("use: randomize_r amplitude");
+
     const double amplitude = atof(argv[1]);
     if ( amplitude < 0.0 )
-    {
-      if ( ui->onpe0() )
-        cout << " randomize_r: amplitude must be non-negative" << endl;
-      return 1;
-    }
+      throw invalid_argument("RandomizeRCmd: amplitude must be non-negative");
 
     s->atoms.randomize_positions(amplitude);
     return 0;

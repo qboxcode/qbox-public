@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <complex>
+#include <stdexcept>
 
 #include "Context.h"
 #include "Sample.h"
@@ -45,11 +46,7 @@ int PartialChargeCmd::action(int argc, char **argv)
   string atom_name;
 
   if ( !(argc==3 || argc==5) )
-  {
-    if ( ui->onpe0() )
-      cout << usage << endl;
-    return 1;
-  }
+    throw invalid_argument("use: partial_charge [-spin {1|2}] name radius");
 
   const int nspin = s->wf.nspin();
   // process arguments
@@ -57,60 +54,32 @@ int PartialChargeCmd::action(int argc, char **argv)
   if ( !strcmp(argv[iarg],"-spin") )
   {
     if ( nspin != 2 )
-    {
-      if ( ui->onpe0() )
-        cout << "nspin = 1, cannot select spin" << endl;
-      return 1;
-    }
+      throw invalid_argument("PartialChargeCmd: cannot use -spin for nspin==1");
     iarg++;
     // process argument: ispin
     if ( iarg==argc )
-    {
-      if ( ui->onpe0() )
-        cout << usage << endl;
-      return 1;
-    }
+      throw invalid_argument("use: partial_charge [-spin {1|2}] name radius");
     ispin = atoi(argv[iarg]);
     if ( ispin < 1 || ispin > 2 )
-    {
-      if ( ui->onpe0() )
-        cout << " spin must be 1 or 2" <<  endl;
-      return 1;
-    }
+      throw invalid_argument("PartialChargeCmd: spin must be 1 or 2");
     iarg++;
   }
 
   // argument must be the atom name followed by the radius
   if ( iarg==argc )
-  {
-    if ( ui->onpe0() )
-      cout << usage << endl;
-    return 1;
-  }
+    throw invalid_argument("use: partial_charge [-spin {1|2}] name radius");
   atom_name = argv[iarg];
   iarg++;
   if ( iarg==argc )
-  {
-    if ( ui->onpe0() )
-      cout << usage << endl;
-    return 1;
-  }
+    throw invalid_argument("use: partial_charge [-spin {1|2}] name radius");
   radius = atof(argv[iarg]);
 
   // find atom and check validity of radius argument
   Atom* a = s->atoms.findAtom(atom_name);
   if ( a == 0 )
-  {
-    if ( ui->onpe0() )
-      cout << " PartialChargeCmd: atom " << atom_name << " not defined" << endl;
-    return 1;
-  }
+    throw invalid_argument("PartialChargeCmd: atom not defined: "+atom_name);
   if ( radius <= 0.0 )
-  {
-    if ( ui->onpe0() )
-      cout << " PartialChargeCmd: radius must be positive" << endl;
-    return 1;
-  }
+    throw invalid_argument("PartialChargeCmd: radius must be positive");
 
   D3vector pos = a->position();
   if ( ui->onpe0() )

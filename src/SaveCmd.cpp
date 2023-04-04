@@ -21,6 +21,7 @@
 #include "SampleWriter.h"
 #include "isodate.h"
 #include "release.h"
+#include <stdexcept>
 
 using namespace std;
 
@@ -30,11 +31,7 @@ int SaveCmd::action(int argc, char **argv)
   string usage("  Use: save [-text] [-atomsonly]");
   usage += string(" [-serial] [-no_wfv] filename");
   if ( !(argc>=2 && argc<=4 ) )
-  {
-    if ( ui->onpe0() )
-      cout << usage << endl;
-    return 1;
-  }
+    throw invalid_argument(usage);
 
   // set default encoding and flags
   bool base64 = true;
@@ -69,19 +66,11 @@ int SaveCmd::action(int argc, char **argv)
       filename = argv[i];
     }
     else
-    {
-      if ( ui->onpe0() )
-        cout << usage << endl;
-      return 1;
-    }
+      throw invalid_argument(usage);
   }
 
   if ( filename == 0 )
-  {
-    if ( ui->onpe0() )
-      cout << usage << endl;
-    return 1;
-  }
+    throw invalid_argument(usage);
   SampleWriter swriter;
   string description = string(" Created ") + isodate() +
                        string(" by qbox-") + release() + string(" ");

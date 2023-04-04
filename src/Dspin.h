@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,26 +38,14 @@ class Dspin : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-        cout << " delta_spin takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("delta_spin takes one value");
 
     int v = atoi(argv[1]);
     if ( v < 0 )
-    {
-      if ( ui->onpe0() )
-        cout << " delta_spin must >= 0" << endl;
-      return 1;
-    }
+      throw invalid_argument("delta_spin must be non-negative");
 
     if ( s->wf.nspin() < 2 )
-    {
-      if ( ui->onpe0() )
-        cout << " Cannot set delta_spin: nspin == 1" << endl;
-      return 1;
-    }
+      throw invalid_argument("Cannot set delta_spin, nspin==1");
 
     s->wf.set_deltaspin(v);
 

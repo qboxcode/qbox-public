@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,21 +38,13 @@ class BlHF : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 4 )
-    {
-      if ( ui->onpe0() )
-      cout << " blHF takes 3 integer values" << endl;
-      return 1;
-    }
+      throw invalid_argument("BlHF takes three integer values");
 
     int v0 = atoi(argv[1]);
     int v1 = atoi(argv[2]);
     int v2 = atoi(argv[3]);
     if ( v0 < 0 || v1 < 0 || v2 < 0 || v0 > 5 || v1 > 5 || v2 > 5 )
-    {
-      if ( ui->onpe0() )
-        cout << " blHF values must be in [0,5]" << endl;
-      return 1;
-    }
+      throw invalid_argument("BlHF values must be integers in [0,5]");
 
     s->ctrl.blHF[0] = v0;
     s->ctrl.blHF[1] = v1;

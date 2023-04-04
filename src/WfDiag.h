@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,20 +38,12 @@ class WfDiag : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " wf_diag takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("wf_diag takes one value");
 
     string v = argv[1];
     if ( !( v == "T" || v == "F" || v == "EIGVAL" ||
             v == "MLWF" || v == "MLWFC" ) )
-    {
-      if ( ui->onpe0() )
-        cout << " wf_diag must be in T, F, EIGVAL, MLWF, MLWFC" << endl;
-      return 1;
-    }
+      throw invalid_argument("wf_diag must be T, F, EIGVAL, MLWF, or MLWFC");
 
     s->ctrl.wf_diag = v;
 

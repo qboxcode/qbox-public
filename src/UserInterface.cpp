@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h> // stat()
 #include <mpi.h>
+#include <stdexcept>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -154,7 +155,20 @@ void UserInterface::processCmds(istream &cmdstream, const string prompt,
       cmdline = string(buf,n);
       delete [] buf;
 
-      execCmd(cmdline,prompt);
+      try
+      {
+        execCmd(cmdline,prompt);
+      }
+      catch ( invalid_argument const& e )
+      {
+        if ( onpe0_ )
+        {
+          cout << "<error> " << e.what() << " </error>" << endl;
+          cout << prompt << " ";
+        }
+        if ( echo )
+          terminate();
+      }
     }
 
     if ( onpe0_ )
@@ -237,7 +251,20 @@ void UserInterface::processCmdsServer ( string inputfilename,
         cmdline = string(buf,n);
         delete [] buf;
 
-        execCmd(cmdline,prompt);
+        try
+        {
+          execCmd(cmdline,prompt);
+        }
+        catch ( invalid_argument const& e )
+        {
+          if ( onpe0_ )
+          {
+            cout << "<error> " << e.what() << " </error>" << endl;
+            cout << prompt << " ";
+          }
+          if ( echo )
+            terminate();
+        }
       }
 
       if ( onpe0_ )

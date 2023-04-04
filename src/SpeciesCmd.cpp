@@ -19,6 +19,7 @@
 #include "SpeciesCmd.h"
 #include "SpeciesReader.h"
 #include "Species.h"
+#include <stdexcept>
 using namespace std;
 
 class Species;
@@ -27,11 +28,7 @@ class Species;
 int SpeciesCmd::action(int argc, char **argv)
 {
   if ( argc != 3 )
-  {
-    if ( ui->onpe0() )
-      cout << "  Use: species name uri" << endl;
-    return 1;
-  }
+    throw invalid_argument("use: species name uri");
 
   if ( ui->onpe0() )
   {

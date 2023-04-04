@@ -22,8 +22,7 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
-
+#include<cstdlib>
 #include "Sample.h"
 
 class IterCmd : public Var

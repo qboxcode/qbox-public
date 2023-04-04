@@ -20,6 +20,7 @@
 #define BISECTIONCMD_H
 
 #include <iostream>
+#include <stdexcept>
 #include "UserInterface.h"
 #include "Sample.h"
 #include <cstdlib>
@@ -48,13 +49,7 @@ class BisectionCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( argc != 5 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " use: bisection lx ly lz threshold" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("use: bisection lx ly lz threshold");
 
     Timer tm;
 
@@ -66,42 +61,20 @@ class BisectionCmd : public Cmd
     nLevels[2]=atoi(argv[3]);
 
     if ( epsilon < 0.0 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " BisectionCmd: threshold must be non-negative" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("BisectionCmd: threshold must be non-negative");
 
     if ( wf.nkp() > 1 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " BisectionCmd: only implemented for k=0" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("BisectionCmd: only implemented for k=0");
 
     if ( nLevels[0] < 0 || nLevels[0] > 5 ||
          nLevels[1] < 0 || nLevels[1] > 5 ||
          nLevels[2] < 0 || nLevels[2] > 5 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " BisectionCmd: levels must be in [0,5]" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("BisectionCmd: levels must be "
+                              "integers in [0,5]");
 
     if ( ( nLevels[0]+nLevels[1]+nLevels[2] ) == 0)
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " BisectionCmd: at least one level must be positive" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("BisectionCmd: at least one level "
+                              "must be positive");
 
     tm.reset();
     for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )

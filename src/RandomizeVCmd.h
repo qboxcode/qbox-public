@@ -23,6 +23,7 @@
 #include "UserInterface.h"
 #include "Sample.h"
 #include <cstdlib>
+#include <stdexcept>
 
 class RandomizeVCmd : public Cmd
 {
@@ -46,20 +47,11 @@ class RandomizeVCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " use: randomize_v temp" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("use: randomize_v temp");
+
     const double temp = atof(argv[1]);
     if ( temp <= 0.0 )
-    {
-      if ( ui->onpe0() )
-        cout << " randomize_v: temperature must be positive" << endl;
-      return 1;
-    }
+      throw invalid_argument("RandomizeVCmd: temp must be positive");
 
     s->atoms.randomize_velocities(temp);
     return 0;

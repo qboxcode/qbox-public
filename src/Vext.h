@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 #include "ExternalPotential.h"
@@ -38,11 +39,7 @@ class Vext : public Var
   int set ( int argc, char **argv )
   {
     if ( argc > 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " vext takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("vext takes one value");
 
     if ( !strcmp(argv[1],"NULL") )
     {

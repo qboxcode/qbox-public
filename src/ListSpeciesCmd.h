@@ -23,6 +23,7 @@
 #include "UserInterface.h"
 #include "Sample.h"
 #include <cstdlib>
+#include <stdexcept>
 
 class ListSpeciesCmd : public Cmd
 {
@@ -44,13 +45,8 @@ class ListSpeciesCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( argc != 1 )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " use: list_species" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("ListSpeciesCmd: invalid argument");
+
     s->atoms.listSpecies();
     return 0;
   }

@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,12 +38,8 @@ class ExtStress : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 7 )
-    {
-      if ( ui->onpe0() )
-      cout << " ext_stress must be specified as s_xx,s_yy,s_zz,s_xy,s_yz,s_xz"
-           << endl;
-      return 1;
-    }
+      throw invalid_argument("ext_stress takes 6 arguments: "
+                              "s_xx s_yy s_zz s_xy s_yz s_xz");
 
     for ( int i = 0; i < 6; i++ )
       s->ctrl.ext_stress[i] = atof(argv[i+1]);

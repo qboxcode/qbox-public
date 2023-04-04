@@ -29,30 +29,18 @@
 #include<vector>
 #include<string>
 #include<fstream>
+#include<stdexcept>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 int ResponseCmd::action(int argc, char **argv)
 {
   if ( s->wf.nst() == 0 )
-  {
-    if ( ui->onpe0() )
-      cout << "  ResponseCmd: no states, cannot run" << endl;
-    return 1;
-  }
+    throw runtime_error("ResponseCmd: no states, cannot run");
   if ( s->wf.ecut() == 0.0 )
-  {
-    if ( ui->onpe0() )
-      cout << "  ResponseCmd: ecut = 0.0, cannot run" << endl;
-    return 1;
-  }
+    throw runtime_error("ResponseCmd: ecut = 0, cannot run");
   if ( s->wf.nel() != 2 * s->wf.nst() )
-  {
-    if ( ui->onpe0() )
-      cout << "  ResponseCmd: cannot run with fractionally\n"
-              "  occupied or empty states" << endl;
-    return 1;
-  }
+    throw runtime_error("ResponseCmd: cannot run with fractional occ");
 
   bool rpa = false;
   bool ipa = false;
@@ -63,86 +51,51 @@ int ResponseCmd::action(int argc, char **argv)
   {
     // response to vext
     if ( s->vext )
-    {
-      if ( ui->onpe0() )
-        cout << "  ResponseCmd: cannot run when vext is already set" << endl;
-      return 1;
-    }
+      throw invalid_argument("ResponseCmd: cannot run when vext already set");
     iarg++;
     if ( iarg >= argc )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument(help_msg());
     string filename = argv[iarg];
     iarg++;
     string fmt = "xml";
     if ( iarg >= argc )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument(help_msg());
     if ( !strcmp(argv[iarg],"-cube") )
     {
       fmt = "cube";
       iarg++;
     }
     if ( iarg >= argc )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument(help_msg());
     if ( !strcmp(argv[iarg],"-RPA") )
     {
       rpa = true;
       iarg++;
     }
     if ( iarg >= argc )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument(help_msg());
     if ( !strcmp(argv[iarg],"-IPA") )
     {
       ipa = true;
       iarg++;
     }
     if ( rpa && ipa )
-    {
-      if ( ui->onpe0() )
-        cout << " Only one of -RPA or -IPA can be specified" << endl;
-      return 1;
-    }
+      throw invalid_argument("ResponseCmd: only one of -RPA or"
+                             " -IPA can be used");
     if ( iarg >= argc )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument(help_msg());
     if ( !strcmp(argv[iarg],"-amplitude") )
     {
       iarg++;
       if ( iarg >= argc )
-      {
-        if ( ui->onpe0() )
-          cout << help_msg();
-        return 1;
-      }
+        throw invalid_argument(help_msg());
       amplitude = atof(argv[iarg]);
       iarg++;
     }
 
     int nitscf = 0;
     if ( iarg >= argc )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument(help_msg());
     nitscf = atoi(argv[iarg]);
     iarg++;
     int nite = 0;
@@ -150,11 +103,7 @@ int ResponseCmd::action(int argc, char **argv)
       nite = atoi(argv[iarg]);
 
     if ( nitscf == 0 )
-    {
-      if ( ui->onpe0() )
-        cout << "  ResponseCmd: nitscf = 0, cannot run" << endl;
-      return 1;
-    }
+      throw runtime_error("ResponseCmd: nitscf = 0, cannot run");
 
     s->vext = new ExternalPotential(*s, filename, fmt);
     s->vext->set_amplitude(amplitude);
@@ -167,11 +116,7 @@ int ResponseCmd::action(int argc, char **argv)
     // polarizability calculation in constant field
     // response amplitude [-RPA|-IPA] nitscf [nite]
     if ( argc < 3 || argc > 5 )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument(help_msg());
     amplitude = atof(argv[iarg]);
     iarg++;
     if ( !strcmp(argv[iarg],"-RPA") )
@@ -180,28 +125,17 @@ int ResponseCmd::action(int argc, char **argv)
       iarg++;
     }
     if ( iarg >= argc )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument(help_msg());
     if ( !strcmp(argv[iarg],"-IPA") )
     {
       ipa = true;
       iarg++;
     }
     if ( rpa && ipa )
-    {
-      if ( ui->onpe0() )
-        cout << " Only one of -RPA or -IPA can be specified" << endl;
-      return 1;
-    }
+      throw invalid_argument("ResponseCmd: only one of -RPA or"
+                             " -IPA can be used");
     if ( iarg >= argc )
-    {
-      if ( ui->onpe0() )
-        cout << help_msg();
-      return 1;
-    }
+      throw invalid_argument(help_msg());
     int nitscf = atoi(argv[iarg]);
     iarg++;
     int nite = 0;

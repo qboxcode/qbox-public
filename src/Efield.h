@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 #include"D3vector.h"
 
 #include "Sample.h"
@@ -38,11 +39,7 @@ class Efield : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 4 )
-    {
-      if ( ui->onpe0() )
-      cout << " e_field takes 3 values" << endl;
-      return 1;
-    }
+      throw invalid_argument("e_field takes three values");
 
     double v0 = atof(argv[1]);
     double v1 = atof(argv[2]);

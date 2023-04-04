@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,21 +38,13 @@ class Thermostat : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " thermostat takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("thermostat takes one value");
 
     string v = argv[1];
     if ( !( v == "SCALING" || v == "ANDERSEN" || v == "LOWE" ||
          v == "BDP" || v == "OFF" ) )
-    {
-      if ( ui->onpe0() )
-        cout << " thermostat must be SCALING or ANDERSEN or LOWE or BDP or OFF"
-             << endl;
-      return 1;
-    }
+      throw invalid_argument("thermostat must be "
+             "SCALING or ANDERSEN or LOWE or BDP or OFF" );
 
     s->ctrl.thermostat = v;
 

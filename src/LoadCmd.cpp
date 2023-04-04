@@ -19,16 +19,14 @@
 #include "LoadCmd.h"
 #include "SampleReader.h"
 #include "Sample.h"
+#include <stdexcept>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 int LoadCmd::action(int argc, char **argv)
 {
-  if ( (argc != 2 && argc !=3) && ui->onpe0() )
-  {
-    cout << "  use: load [-serial] uri" << endl;
-    return 1;
-  }
+  if ( argc != 2 && argc !=3 )
+    throw invalid_argument("use: load [-serial] uri");
 
   int iarg = 1;
   bool serial = false;

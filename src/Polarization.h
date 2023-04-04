@@ -22,6 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -36,11 +38,7 @@ class Polarization: public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " polarization takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("polarization takes one value");
 
     string v = argv[1];
 
@@ -48,12 +46,8 @@ class Polarization: public Var
          v == "BERRY" )
       s->ctrl.polarization = v;
     else
-    {
-      if ( ui->onpe0() )
-      cout <<
-      " polarization must be OFF, MLWF, MLWF_REF, MLWF_REF_Q or BERRY" << endl;
-      return 1;
-    }
+      throw invalid_argument("polarization must be "
+                              "OFF, MLWF, MLWF_REF, MLWF_REF_Q or BERRY");
     return 0;
   }
 

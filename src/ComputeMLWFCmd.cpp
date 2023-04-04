@@ -21,6 +21,7 @@
 #include "Context.h"
 #include "SlaterDet.h"
 #include "cout0.h"
+#include <stdexcept>
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -32,14 +33,7 @@ int ComputeMLWFCmd::action(int argc, char **argv)
 
   // Check that only the k=0 point is used
   if ( wf.nkp()>1 || length(wf.kpoint(0)) != 0.0 )
-  {
-    if ( onpe0 )
-    {
-      cout << " ComputeMLWFCmd::action: compute_mlwf can only be used at\n"
-           << " the Gamma point (k=0)" << endl;
-    }
-    return 1;
-  }
+    throw runtime_error("ComputeMLWFCmd: can only be used with 1 k-point");
 
   if ( onpe0 )
     cout << "<mlwfs>" << endl;

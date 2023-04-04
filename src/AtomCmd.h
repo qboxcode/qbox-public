@@ -22,6 +22,7 @@
 #include <string>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 #include "UserInterface.h"
 #include "Sample.h"
 
@@ -55,11 +56,7 @@ class AtomCmd : public Cmd
 
     // atom must be defined with either 3 or 6 arguments
     if ( argc != 6 && argc != 9 )
-    {
-      if ( ui->onpe0() )
-        cout << " use: atom name species x y z [vx vy vz]" << endl;
-      return 1;
-    }
+      throw invalid_argument(" use: atom name species x y z [vx vy vz]");
 
     name = argv[1];
     species = argv[2];
@@ -77,12 +74,8 @@ class AtomCmd : public Cmd
 
     const int atoms_nel_before = s->atoms.nel();
     if ( !(s->atoms.addAtom( a ) ) )
-    {
-      if ( ui->onpe0() )
-        cout << " AtomCmd: could not add atom " << name << endl;
-      delete a;
-      return 1;
-    }
+      throw invalid_argument("AtomCmd: could not add atom");
+
     const int atoms_nel_after = s->atoms.nel();
     const int delta_nel = atoms_nel_after - atoms_nel_before;
     const int wf_nel = s->wf.nel();

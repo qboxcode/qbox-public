@@ -23,6 +23,7 @@
 #include "UserInterface.h"
 #include "Sample.h"
 #include <cstdlib>
+#include <stdexcept>
 
 class DistanceCmd : public Cmd
 {
@@ -46,13 +47,7 @@ class DistanceCmd : public Cmd
   int action(int argc, char **argv)
   {
     if ( ! ( argc == 3 || argc == 4 ) )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " use: distance [-pbc] name1 name2" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("DistanceCmd: invalid number of arguments");
 
     string name1, name2;
     bool use_pbc = false;
@@ -65,13 +60,7 @@ class DistanceCmd : public Cmd
     if ( argc == 4 )
     {
       if ( strcmp(argv[1],"-pbc") )
-      {
-        if ( ui->onpe0() )
-        {
-          cout << " use: distance [-pbc] name1 name2" << endl;
-        }
-        return 1;
-      }
+        throw invalid_argument("DistanceCmd: invalid argument");
       use_pbc = true;
       name1 = argv[2];
       name2 = argv[3];
@@ -79,20 +68,10 @@ class DistanceCmd : public Cmd
 
     Atom* a1 = s->atoms.findAtom(name1);
     Atom* a2 = s->atoms.findAtom(name2);
-    if ( a1 == 0 || a2 == 0 )
-    {
-      // either a1 or a2 was not found
-      if ( ui->onpe0() )
-      {
-        if ( a1 == 0 )
-          cout << " DistanceCmd: atom " << name1 << " not defined"
-               << endl;
-        if ( a2 == 0 )
-          cout << " DistanceCmd: atom " << name2 << " not defined"
-               << endl;
-      }
-      return 1;
-    }
+    if ( a1 == 0 )
+      throw invalid_argument("DistanceCmd: atom "+name1+" not defined");
+    if ( a2 == 0 )
+      throw invalid_argument("DistanceCmd: atom "+name2+" not defined");
 
     if ( ui->onpe0() )
     {

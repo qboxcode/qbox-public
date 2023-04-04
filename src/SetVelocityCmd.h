@@ -22,6 +22,7 @@
 #include <string>
 #include <cstdlib>
 #include <iostream>
+#include <stdexcept>
 using namespace std;
 
 #include "UserInterface.h"
@@ -52,11 +53,7 @@ class SetVelocityCmd : public Cmd
   {
     // set_velocity must have 5 arguments including the command name
     if ( argc != 5 )
-    {
-      if ( ui->onpe0() )
-        cout << " use: set_velocity atom_name vx vy vz " << endl;
-      return 1;
-    }
+      throw invalid_argument("use: set_velocity atom_name vx vy vz");
 
     const string atom_name = argv[1];
     const string vxs = argv[2];
@@ -65,11 +62,7 @@ class SetVelocityCmd : public Cmd
 
     Atom* pa = s->atoms.findAtom(atom_name);
     if ( !pa )
-    {
-      if ( ui->onpe0() )
-        cout << " SetVelocityCmd: could not find atom " << atom_name << endl;
-      return 1;
-    }
+      throw invalid_argument("SetVelocityCmd: could not find atom"+atom_name);
 
     D3vector vel = pa->velocity();
 

@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 #include "Wavefunction.h"
@@ -39,20 +40,13 @@ class WfDyn : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " wf_dyn takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("wf_dyn takes one value");
 
     string v = argv[1];
     if ( !( v == "LOCKED" || v == "SD" || v == "PSD" ||
             v == "PSDA" || v == "JD" || v == "MD" ) )
-    {
-      if ( ui->onpe0() )
-        cout << " wf_dyn must be in [LOCKED,SD,PSD,PSDA,JD,MD]" << endl;
-      return 1;
-    }
+      throw invalid_argument("wf_dyn must be LOCKED, SD, PSD, "
+                              "PSDA, JD or MD]");
 
     s->ctrl.wf_dyn = v;
 

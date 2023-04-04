@@ -22,7 +22,8 @@
 #include<iostream>
 #include<iomanip>
 #include<sstream>
-#include<stdlib.h>
+#include<cstdlib>
+#include<stdexcept>
 
 #include "Sample.h"
 
@@ -37,11 +38,7 @@ class Xc : public Var
   int set ( int argc, char **argv )
   {
     if ( argc != 2 )
-    {
-      if ( ui->onpe0() )
-      cout << " xc takes only one value" << endl;
-      return 1;
-    }
+      throw invalid_argument("xc takes one value");
 
     string v = argv[1];
     if ( !( v == "LDA" ||
@@ -55,12 +52,8 @@ class Xc : public Var
             v == "RSH" ||
             v == "B3LYP" ||
             v == "BHandHLYP" ) )
-    {
-      if ( ui->onpe0() )
-        cout << " xc must be LDA, VWN, PBE, BLYP, SCAN,\n"
-             << " HF, PBE0, HSE, RSH, B3LYP or BHandHLYP" << endl;
-      return 1;
-    }
+      throw invalid_argument("xc must be LDA, VWN, PBE, BLYP, SCAN "
+                              "HF, PBE0, HSE, RSH, B3LYP or BHandHLYP");
 
     s->ctrl.xc= v;
 

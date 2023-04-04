@@ -20,6 +20,7 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <stdexcept>
 #include "Context.h"
 #include "ChargeDensity.h"
 #include "EnergyFunctional.h"
@@ -34,23 +35,10 @@ int SpectrumCmd::action(int argc, char **argv)
 
   // Check that only the k=0 point is used
   if ( wf.nkp()>1 || length(wf.kpoint(0)) != 0.0 )
-  {
-    if ( ui->onpe0() )
-    {
-      cout << " SpectrumCmd::action: spectrum only implemented at\n"
-           << " the Gamma point (k=0)" << endl;
-    }
-    return 1;
-  }
+    throw runtime_error("SpectrumCmd: only implemented for 1 k-point");
 
   if ( !( argc == 2 || argc == 3 || argc == 5 ) )
-  {
-    if ( ui->onpe0() )
-    {
-      cout << " use: spectrum [emin emax] [width] filename" << endl;
-    }
-    return 1;
-  }
+    throw invalid_argument("use: spectrum [emin emax] [width] filename");
 
   // Compute eigenvalues using the current wave function wf
   Wavefunction dwf(wf);
@@ -100,13 +88,7 @@ int SpectrumCmd::action(int argc, char **argv)
     erange = emax - emin + 3 * width;
     erange_set = true;
     if ( emax <= emin )
-    {
-      if ( ui->onpe0() )
-      {
-        cout << " SpectrumCmd::action: emax must be larger than emin" << endl;
-      }
-      return 1;
-    }
+      throw invalid_argument("SpectrumCmd: emax must be larger than emin");
   }
 
   const int nspin = wf.nspin();

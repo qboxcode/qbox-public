@@ -2462,7 +2462,7 @@ void DoubleMatrix::polar(double tol, int maxiter)
     q.syrk('l','t',-1.0,x,1.0);
     q.symmetrize('l');
 
-    double qnrm2 = q.nrm2();
+    qnrm2 = q.nrm2();
 #ifdef DEBUG
     if ( ctxt_.onpe0() )
       cout << " DoubleMatrix::polar: qnrm2 = " << qnrm2 << endl;
@@ -2540,7 +2540,7 @@ void ComplexMatrix::polar(double tol, int maxiter)
     q.herk('l','c',-1.0,x,1.0);
     q.symmetrize('l');
 
-    double qnrm2 = q.nrm2();
+    qnrm2 = q.nrm2();
 #ifdef DEBUG
     if ( ctxt_.onpe0() )
       cout << " ComplexMatrix::polar: qnrm2 = " << qnrm2 << endl;

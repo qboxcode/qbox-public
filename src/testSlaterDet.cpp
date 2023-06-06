@@ -194,7 +194,7 @@ int main(int argc, char **argv)
   // Compute the dot product before alignment
   complex<double> tdot = sd.dot(sdm);
   if (MPIdata::onpe0())
-    cout << " SlaterDet::align: dot before: " << tdot << endl;
+    cout << " align: dot before: " << tdot << endl;
   tmap["align"].reset();
   tmap["align"].start();
   sd.align(sdm);
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
   // Compute the dot product after alignment
   tdot = sd.dot(sdm);
   if (MPIdata::onpe0())
-    cout << " SlaterDet::align: dot after: " << tdot << endl;
+    cout << " align: dot after: " << tdot << endl;
 
   if ( MPIdata::onpe0() )
     cout << "ortho_align:" << endl;

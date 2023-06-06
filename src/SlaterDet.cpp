@@ -701,7 +701,7 @@ void SlaterDet::lowdin(void)
     // x now contains R
 
     const double tol = 1.e-6;
-    const int maxiter = 3;
+    const int maxiter = 20;
     x.polar(tol,maxiter);
 
     // x now contains the orthogonal polar factor U of the
@@ -744,7 +744,7 @@ void SlaterDet::lowdin(void)
     // x now contains R
 
     const double tol = 1.e-6;
-    const int maxiter = 3;
+    const int maxiter = 20;
     x.polar(tol,maxiter);
 
     // x now contains the unitary polar factor U of the
@@ -839,7 +839,7 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     tmap["polar"].start();
 #endif
     const double tol = 1.e-6;
-    const int maxiter = 2;
+    const int maxiter = 20;
     x.polar(tol,maxiter);
 #if TIMING
     tmap["polar"].stop();
@@ -937,7 +937,7 @@ void SlaterDet::ortho_align(const SlaterDet& sd)
     tmap["polar"].start();
 #endif
     const double tol = 1.e-6;
-    const int maxiter = 2;
+    const int maxiter = 20;
     x.polar(tol,maxiter);
 #if TIMING
     tmap["polar"].stop();
@@ -1008,15 +1008,18 @@ void SlaterDet::align(const SlaterDet& sd)
 
     //cout << "SlaterDet::align: B=\n" << x << endl;
 
+#if DEBUG
     // Compute the distance | c - sdc | before alignment
-    //for ( int i = 0; i < c_proxy.size(); i++ )
-    //  c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
-    //cout << " SlaterDet::align: distance before: "
-    //     << c_tmp_proxy.nrm2() << endl;
+    c_tmp_proxy = c_proxy;
+    c_tmp_proxy -= sdc_proxy;
+    double tnrm2 = c_tmp_proxy.nrm2();
+    if (MPIdata::onpe0())
+      cout << " SlaterDet::align: distance before: " << tnrm2 << endl;
+#endif
 
     // compute the polar decomposition of B
     double tol = 1.e-6;
-    const int maxiter = 3;
+    const int maxiter = 20;
 #if TIMING
     tmap["align_polar"].start();
 #endif
@@ -1040,11 +1043,14 @@ void SlaterDet::align(const SlaterDet& sd)
     tmap["align_gemm2"].stop();
 #endif
 
+#if DEBUG
     // Compute the distance | c - sdc | after alignment
-    //for ( int i = 0; i < c_proxy.size(); i++ )
-    //  c_tmp_proxy[i] = c_proxy[i] - sdc_proxy[i];
-    //cout << " SlaterDet::align: distance after:  "
-    //     << c_tmp_proxy.nrm2() << endl;
+    c_tmp_proxy = c_proxy;
+    c_tmp_proxy -= sdc_proxy;
+    tnrm2 = c_tmp_proxy.nrm2();
+    if (MPIdata::onpe0())
+      cout << " SlaterDet::align: distance after: " << tnrm2 << endl;
+#endif
 
   }
   else
@@ -1080,7 +1086,7 @@ void SlaterDet::align(const SlaterDet& sd)
 
     // compute the polar decomposition of B
     double tol = 1.e-6;
-    const int maxiter = 3;
+    const int maxiter = 20;
 #if TIMING
     tmap["align_polar"].start();
 #endif
@@ -1323,8 +1329,6 @@ void SlaterDet::randomize(double amplitude)
       p[i] += amplitude * complex<double>(re,im);
     }
   }
-  // gram does an initial cleanup
-  gram();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

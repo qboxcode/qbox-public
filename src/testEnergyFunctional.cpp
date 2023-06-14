@@ -106,6 +106,11 @@ int main(int argc, char **argv)
 
   s.ctrl.xc = "LDA";
   s.ctrl.polarization = "OFF";
+  s.ctrl.ecuts = 0.0;
+  if ( MPIdata::onpe0() )
+    cout << "s.wf.init()" << endl;
+  s.wf.init();
+  s.wf.gram();
   tm.reset();
   tm.start();
   EnergyFunctional ef(s,cd);

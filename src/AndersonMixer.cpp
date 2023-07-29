@@ -19,26 +19,13 @@
 #include "AndersonMixer.h"
 #include "blas.h"
 #include <iostream>
-#if USE_MPI
-#include <mpi.h>
-#else
-typedef int MPI_Comm;
-#endif
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 AndersonMixer::AndersonMixer(const int m, const int nmax,
-  const MPI_Comm* const pcomm) : m_(m), nmax_(nmax), pcomm_(pcomm), diag_(true),
-  eig_ratio_(0.01)
+  bool distributed) : m_(m), nmax_(nmax), diag_(true),
+  eig_ratio_(0.01), distributed_(distributed)
 {
-#if USE_MPI
-  if ( pcomm_ != 0 )
-  {
-    MPI_Comm_rank(*pcomm_,&mype_);
-    MPI_Comm_size(*pcomm_,&npes_);
-  }
-#endif
-
   assert( nmax >= 0 );
   x_.resize(nmax_+1);
   f_.resize(nmax_+1);
@@ -97,17 +84,11 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
       const int kmi = ( k_ - i + nmax_ ) % ( nmax_ + 1 );
       assert(kmi>=0);
       assert(kmi<nmax_+1);
-#ifdef DEBUG
-      cout << "k=" << k_ << " i=" << i << " kmi=" << kmi << endl;
-#endif
       for ( int j = 0; j <= i; j++ )
       {
         const int kmj = ( k_ - j + nmax_ ) % ( nmax_ + 1 );
         assert(kmj>=0);
         assert(kmj<nmax_+1);
-#ifdef DEBUG
-        cout << "k=" << k_ << " j=" << j << " kmj=" << kmj << endl;
-#endif
         double sum = 0.0;
         for ( int l = 0; l < m_; l++ )
           sum += (f_[k_][l] - f_[kmi][l]) * (f_[k_][l] - f_[kmj][l]);
@@ -119,19 +100,17 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
       b[i] = bsum;
     }
 
-#if USE_MPI
-    if ( pcomm_ != 0 )
+    if ( distributed_ )
     {
-      MPI_Allreduce(&a[0],&atmp[0],n_*n_,MPI_DOUBLE,MPI_SUM,*pcomm_);
+      MPI_Allreduce(&a[0],&atmp[0],n_*n_,MPI_DOUBLE,MPI_SUM,MPIdata::g_comm());
       a = atmp;
-      MPI_Allreduce(&b[0],&btmp[0],n_,MPI_DOUBLE,MPI_SUM,*pcomm_);
+      MPI_Allreduce(&b[0],&btmp[0],n_,MPI_DOUBLE,MPI_SUM,MPIdata::g_comm());
       b = btmp;
     }
-#endif
 
     // solve the linear system a * theta = b
     // solve on task 0 and bcast result
-    if ( pcomm_ == 0 || mype_ == 0 )
+    if ( !distributed_ || MPIdata::rank() == 0 )
     {
       if ( diag_ )
       {
@@ -256,13 +235,11 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
 
     }
 
-#if USE_MPI
     // broadcast theta from task 0
-    if ( pcomm_ != 0 )
+    if ( distributed_ )
     {
-      MPI_Bcast(&theta[0],n_,MPI_DOUBLE,0,*pcomm_);
+      MPI_Bcast(&theta[0],n_,MPI_DOUBLE,0,MPIdata::comm());
     }
-#endif
 
   } // if n_ > 0
 

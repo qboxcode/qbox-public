@@ -192,7 +192,7 @@ void BOSampleStepper::step(int niter)
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
 
-  const bool extrapolate_wf = ( atoms_dyn == "MD" );
+  bool extrapolate_wf = ( atoms_dyn == "MD" );
 
   bool ntc_extrapolation = false;
   bool asp_extrapolation = false;
@@ -204,6 +204,7 @@ void BOSampleStepper::step(int niter)
   if ( imap != debug_map.end() )
   {
     const string val = imap->second;
+    if ( val == "OFF" ) extrapolate_wf = false;
     if ( val == "NTC" ) ntc_extrapolation = true;
     if ( val == "ASP" ) asp_extrapolation = true;
   }
@@ -319,8 +320,7 @@ void BOSampleStepper::step(int niter)
 
   // Anderson charge mixer: include both spins in the same vector
   // Factor of 2: complex coeffs stored as double
-  MPI_Comm vcomm = MPIdata::g_comm();
-  AndersonMixer mixer(2*nspin*ng,anderson_ndim,&vcomm);
+  AndersonMixer mixer(2*nspin*ng,anderson_ndim,true);
 
   // compute Kerker preconditioning
   // real space Kerker cutoff in a.u.
@@ -828,21 +828,14 @@ void BOSampleStepper::step(int niter)
                   drhog[i+ng*ispin] /= wls[i];
               }
 
-              if ( sd_ctxt.mycol() == 0 )
-              {
-                // use AndersonMixer on first column only and bcast results
-                mixer.update((double*)&rhog_in[0], (double*)&drhog[0],
-                             (double*)&rhobar[0], (double*)&drhobar[0]);
-                const int n = 2*nspin*ng;
-                sd_ctxt.dbcast_send('r',n,1,(double*)&rhobar[0],n);
-                sd_ctxt.dbcast_send('r',n,1,(double*)&drhobar[0],n);
-              }
-              else
-              {
-                const int n = 2*nspin*ng;
-                sd_ctxt.dbcast_recv('r',n,1,(double*)&rhobar[0],n,-1,0);
-                sd_ctxt.dbcast_recv('r',n,1,(double*)&drhobar[0],n,-1,0);
-              }
+              mixer.update((double*)&rhog_in[0], (double*)&drhog[0],
+                           (double*)&rhobar[0], (double*)&drhobar[0]);
+              // broadcast results from first column
+              const int n = 2*nspin*ng;
+              MPI_Bcast(&rhobar[0], n, MPI_DOUBLE, 0,
+                        MPIdata::st_kp_sp_comm());
+              MPI_Bcast(&drhobar[0], n, MPI_DOUBLE, 0,
+                        MPIdata::st_kp_sp_comm());
 
               for ( int ispin = 0; ispin < nspin; ispin++ )
               {

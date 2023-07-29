@@ -23,7 +23,7 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 ANDIonicStepper::ANDIonicStepper(Sample& s) : IonicStepper(s),
-  mixer_(3*natoms_,6,0)
+  mixer_(3*natoms_,10,false)
 {
   mixer_.restart();
 }

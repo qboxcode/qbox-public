@@ -37,7 +37,7 @@ class LineMinimizer
   public:
 
   LineMinimizer(void) : sigma1_(0.1), sigma2_(0.5), alpha_start_(0.1),
-   alpha_max_(1.0), delta_(1.1), first_use(true), done_(false), fail_(false),
+   alpha_max_(1.0), delta_(0.2), first_use(true), done_(false), fail_(false),
    bracketing(false), use_psi(true), nstep_(0), nstep_max_(5),
    debug_print(false) {}
   void reset(void) { first_use = true; done_ = false; fail_ = false;

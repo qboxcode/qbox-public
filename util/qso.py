@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 import xml.sax
 # quantum-simulation.org (QSO) definitions
 class Atom:

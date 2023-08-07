@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # qbox_angle.py
 # extract angle defined by three atoms from Qbox output
 # use: qbox_angle.py name1 name2 name3 file.r
@@ -7,7 +7,7 @@ import sys
 import math
 
 if len(sys.argv) != 5:
-  print "use: ",sys.argv[0]," name1 name2 name3 file.r"
+  print ("use: ",sys.argv[0]," name1 name2 name3 file.r")
   sys.exit()
 
 name1 = ""
@@ -77,7 +77,7 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       c = sp
       c = max(-1.0,min(1.0,sp))
       a = (180.0/math.pi)*math.acos(c)
-      print '%.4f' % a
+      print ('%.4f' % a)
     elif name == "position":
       self.readPos1 = 0
       self.readPos2 = 0

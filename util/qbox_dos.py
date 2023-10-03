@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # qbox_dos.py: extract electronic DOS from Qbox output
 # generate DOS plot in gnuplot format
 # use: qbox_dos.py [-last] [mu] emin emax [mu] width file.r
@@ -16,7 +16,7 @@ import math
 
 argc=len(sys.argv)
 if (argc < 5) or (argc > 7) :
-  print "use: ",sys.argv[0]," [-last] [mu] emin emax width file.r"
+  print ("use: ",sys.argv[0]," [-last] [mu] emin emax width file.r")
   sys.exit()
 
 # default chemical potential mu=0.0
@@ -29,7 +29,7 @@ if (sys.argv[iarg] == "-last") :
   lastonly = True
   iarg += 1
   if (argc < 6):
-    print "use: ",sys.argv[0]," [-last] [mu] emin emax width file.r"
+    print ("use: ",sys.argv[0]," [-last] [mu] emin emax width file.r")
     sys.exit()
 
 # check for mu argument
@@ -37,7 +37,7 @@ if ((lastonly and (argc == 7)) or ((not lastonly) and (argc == 6))):
   mu = float(sys.argv[iarg])
   iarg += 1
   if (argc < 6):
-    print "use: ",sys.argv[0]," [-last] [mu] emin emax width file.r"
+    print ("use: ",sys.argv[0]," [-last] [mu] emin emax width file.r")
     sys.exit()
 
 emin = float(sys.argv[iarg])
@@ -108,17 +108,17 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
           self.dos_dn[j] += gauss(float(self.e[i])-self.mu-ej, width ) * self.weight
 
   def print_dos(self):
-    print "# ",infile," mu=",self.mu," spin=0 width=",width
+    print ("# ",infile," mu=",self.mu," spin=0 width=",width)
     for j in range(ndos):
       ej = emin + j * de
-      print ej, self.dos_up[j]
+      print (ej, self.dos_up[j])
     if self.nspin == 2:
-      print
-      print
-      print "# ",infile," mu=",mu," spin=1 width=",width
+      print ()
+      print ()
+      print ("# ",infile," mu=",mu," spin=1 width=",width)
       for j in range(ndos):
         ej = emin + j * de
-        print ej, self.dos_dn[j]
+        print (ej, self.dos_dn[j])
 
 parser = xml.sax.make_parser()
 handler = QboxOutputHandler()

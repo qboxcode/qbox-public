@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2016 The Regents of the University of California
 # This file is part of Qbox
 #
@@ -10,10 +10,10 @@
 import os.path
 import xml.sax
 import sys
-import urllib2
+import urllib
 
 def usage():
-  print "use: ",sys.argv[0]," [-first] {file|URL}"
+  print ("use: ",sys.argv[0]," [-first] {file|URL}")
   sys.exit()
 
 argc=len(sys.argv)
@@ -75,11 +75,11 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.inPosition = 0
     elif name == "atomset":
       self.step += 1
-      print len(self.tau)
+      print (len(self.tau))
       avec = self.cell_a.split()
       bvec = self.cell_b.split()
       cvec = self.cell_c.split()
-      print self.step,\
+      print (self.step,\
       '%.6f'%(a0*float(avec[0])),\
       '%.6f'%(a0*float(avec[1])),\
       '%.6f'%(a0*float(avec[2])),\
@@ -88,11 +88,11 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       '%.6f'%(a0*float(bvec[2])),\
       '%.6f'%(a0*float(cvec[0])),\
       '%.6f'%(a0*float(cvec[1])),\
-      '%.6f'%(a0*float(cvec[2]))
+      '%.6f'%(a0*float(cvec[2])))
       for i in range(len(self.tau)):
-        print self.atomname[i],'%.6f'%self.tau[i][0],\
-                               '%.6f'%self.tau[i][1],\
-                               '%.6f'%self.tau[i][2]
+        print (self.atomname[i],'%.6f'%self.tau[i][0],\
+                                '%.6f'%self.tau[i][1],\
+                                '%.6f'%self.tau[i][2])
       self.inAtomset = 0
       self.done_first = True
 
@@ -111,14 +111,14 @@ if ( os.path.isfile(input_source) ):
 else:
   # attempt to open as a URL
   try:
-    f = urllib2.urlopen(input_source)
+    f = urllib.request.urlopen(input_source)
     s = f.read(8192)
     while ( s !="" and not (first_only and handler.done_first) ):
       parser.feed(s)
       s = f.read(8192)
     f.close()
-  except (ValueError,urllib2.HTTPError) as e:
-    print e
+  except (ValueError,urllib.error.HTTPError) as e:
+    print (e)
     sys.exit()
 
 parser.reset()

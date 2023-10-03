@@ -168,6 +168,60 @@ int main(int argc, char **argv)
   if ( ctxt.myproc() == 0 )
     cout << " Gram orthogonality error " << err << endl;
 
+  if ( MPIdata::onpe0() )
+    cout << "lowdin:" << endl;
+  sd.init();
+  sd.randomize(1.0/sd.basis().size());
+  tmap["lowdin"].reset();
+  tmap["lowdin"].start();
+  sd.lowdin();
+  tmap["lowdin"].stop();
+  err = sd.ortho_error();
+  if ( MPIdata::onpe0() )
+  {
+    cout << "lowdin orthogonality error: " << err << endl;
+  }
+
+  if ( MPIdata::onpe0() )
+    cout << "align:" << endl;
+  sdm.init();
+  sdm.randomize(100.0/sd.basis().size());
+  sdm.gram();
+  sd.init();
+  sd.randomize(100.0/sd.basis().size());
+  sd.randomize(100.0/sd.basis().size());
+  sd.gram();
+  // Compute the dot product before alignment
+  complex<double> tdot = sd.dot(sdm);
+  if (MPIdata::onpe0())
+    cout << " align: dot before: " << tdot << endl;
+  tmap["align"].reset();
+  tmap["align"].start();
+  sd.align(sdm);
+  tmap["align"].stop();
+  // Compute the dot product after alignment
+  tdot = sd.dot(sdm);
+  if (MPIdata::onpe0())
+    cout << " align: dot after: " << tdot << endl;
+
+  if ( MPIdata::onpe0() )
+    cout << "ortho_align:" << endl;
+  sdm.init();
+  sdm.randomize(100.0/sd.basis().size());
+  sdm.gram();
+  sd.init();
+  sd.randomize(10.0/sd.basis().size());
+  sd.randomize(10.0/sd.basis().size());
+  tmap["ortho_align"].reset();
+  tmap["ortho_align"].start();
+  sd.ortho_align(sdm);
+  tmap["ortho_align"].stop();
+  err = sd.ortho_error();
+  if ( MPIdata::onpe0() )
+  {
+    cout << "ortho_align orthogonality error: " << err << endl;
+  }
+
   Timer tmv;
   tmap["rs_mul_add"].reset();
   tmap["rs_mul_add"].start();

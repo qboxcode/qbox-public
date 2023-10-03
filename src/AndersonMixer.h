@@ -22,32 +22,26 @@
 #include <vector>
 #include <valarray>
 #include <cassert>
-#ifdef USE_MPI
-#include <mpi.h>
-#else
-typedef int MPI_Comm;
-#endif
+#include "MPIdata.h"
 
 class AndersonMixer
 {
   // nmax is the dimension of the subspace of previous search directions
   // nmax=0: use simple mixing (no acceleration)
   // nmax=1: use one previous direction
-  int     m_;                    // dimension of vectors
-  int     nmax_;                 // maximum number of vectors (without current)
-  int     n_;                    // number of vectors
-  int     k_;                    // index of current vector
-  const   MPI_Comm* const pcomm_;// pointer to relevant Context, null if local
-  int     mype_;
-  int     npes_;
-  bool    diag_; // use diagonalization (default true)
-  double  eig_ratio_; // eigenvalue ratio for regularization
+  int     m_;           // dimension of vectors
+  int     nmax_;        // maximum number of vectors (without current)
+  int     n_;           // number of vectors
+  int     k_;           // index of current vector
+  bool    diag_;        // use diagonalization (default true)
+  double  eig_ratio_;   // eigenvalue ratio for regularization
+  bool    distributed_; // true if data is distributed over MPIdata::g_comm()
 
   std::vector<std::valarray<double> > x_,f_;
 
   public:
 
-  AndersonMixer(const int m, const int nmax, const MPI_Comm* const pcomm);
+  AndersonMixer(const int m, const int nmax, bool distributed);
   void update(double* x, double* f, double* xbar, double* fbar);
   void restart(void);
   void set_diag(bool b) { diag_ = b; }

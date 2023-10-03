@@ -50,8 +50,8 @@ class RandomizeVCmd : public Cmd
       throw invalid_argument("use: randomize_v temp");
 
     const double temp = atof(argv[1]);
-    if ( temp <= 0.0 )
-      throw invalid_argument("RandomizeVCmd: temp must be positive");
+    if ( temp < 0.0 )
+      throw invalid_argument("RandomizeVCmd: temp must be non-negative");
 
     s->atoms.randomize_velocities(temp);
     return 0;

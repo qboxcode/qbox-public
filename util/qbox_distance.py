@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # qbox_distance.py
 # extract distance between two atoms from Qbox output
 # use: qbox_distance.py name1 name2 file.r
@@ -7,7 +7,7 @@ import sys
 import math
 
 if len(sys.argv) != 4:
-  print "use: ",sys.argv[0]," name1 name2 file.r"
+  print ("use: ",sys.argv[0]," name1 name2 file.r")
   sys.exit()
 
 name1 = ""
@@ -54,9 +54,9 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       r2z = float(pos2[2])
       #print "r1: ",self.r1x,self.r1y,self.r1z
       #print "r2: ",self.r2x,self.r2y,self.r2z
-      print '%.4f' % math.sqrt((r1x-r2x)**2+
-                               (r1y-r2y)**2+
-                               (r1z-r2z)**2)
+      print ('%.4f' % math.sqrt((r1x-r2x)**2+
+                                (r1y-r2y)**2+
+                                (r1z-r2z)**2))
     elif name == "position":
       self.readPos1 = 0
       self.readPos2 = 0

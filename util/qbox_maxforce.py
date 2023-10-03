@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2016 The Regents of the University of California
 # This file is part of Qbox
 #
@@ -9,10 +9,10 @@
 import os.path
 import xml.sax
 import sys
-import urllib2
+import urllib
 
 def usage():
-  print "use: ",sys.argv[0]," {file|URL}"
+  print ("use: ",sys.argv[0]," {file|URL}")
   sys.exit()
 
 argc=len(sys.argv)
@@ -76,9 +76,9 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
         if ( fz*fz > fzmax*fzmax ):
           fzmax = fz
           z_name = self.atomname[i]
-      print '%10.3e'%fxmax,'%-8s'%x_name,\
-            '%10.3e'%fymax,'%-8s'%y_name,\
-            '%10.3e'%fzmax,'%-8s'%z_name
+      print ('%10.3e'%fxmax,'%-8s'%x_name,\
+             '%10.3e'%fymax,'%-8s'%y_name,\
+             '%10.3e'%fzmax,'%-8s'%z_name)
       self.inAtomset = 0
 
 parser = xml.sax.make_parser()
@@ -96,14 +96,14 @@ if ( os.path.isfile(input_source) ):
 else:
   # attempt to open as a URL
   try:
-    f = urllib2.urlopen(input_source)
+    f = urllib.request.urlopen(input_source)
     s = f.read(8192)
     while ( s !="" ):
       parser.feed(s)
       s = f.read(8192)
     f.close()
-  except (ValueError,urllib2.HTTPError) as e:
-    print e
+  except (ValueError,urllib.error.HTTPError) as e:
+    print (e)
     sys.exit()
 
 parser.reset()

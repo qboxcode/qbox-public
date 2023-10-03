@@ -637,6 +637,7 @@ void Wavefunction::randomize(double amplitude)
     for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
       sd_[isp_loc][ikp_loc]->randomize(amplitude);
+      sd_[isp_loc][ikp_loc]->gram();
     }
   }
 }

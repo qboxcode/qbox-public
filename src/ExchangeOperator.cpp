@@ -2275,7 +2275,7 @@ double ExchangeOperator::compute_exchange_at_gamma_(const Wavefunction &wf,
     double tsum[6];
     for ( int i = 0; i < 6; ++i )
       tsum[i] = sigma_exhf_[i];
-    MPI_Allreduce(&tsum,&sigma_exhf_,1,MPI_DOUBLE,MPI_SUM,MPIdata::comm());
+    MPI_Allreduce(tsum,&sigma_exhf_[0],6,MPI_DOUBLE,MPI_SUM,MPIdata::comm());
   }
 
   tm.stop();

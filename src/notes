@@ -1,4 +1,20 @@
 --------------------------------------------------------------------------------
+rel1_76_1
+--------------------------------------------------------------------------------
+bf8870c Fix sigma_exhf_ in ExchangeOperator
+01cd4cd Upgrade python scripts to python3
+0460736 Change LineMinimizer, CG and SDA stepper parameters
+c7ebdb5 Cleanup AndersonMixer, add no extrapolation option
+115735b Allow zero temperature in randomize_v
+40c1c8b Add unit cell vector rotation in qbox_rotate.sh
+0fcaff4 Add qbox_rotate.sh utility script
+9831ea4 Modify test in testEnegyFunctional
+8a03463 Update dependencies in Makefile
+806db06 Fix output msg in testSlaterDet
+d1d45c0 Add tests in testSlaterDet
+bb92e21 Separate gram from randomize, increase polar maxiter
+eb7bd6b Fix hidden qnrm2 var in Matrix::polar
+--------------------------------------------------------------------------------
 rel1_76_0
 --------------------------------------------------------------------------------
 Requires C++11

@@ -1810,7 +1810,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
                   for ( int ig = 0; ig < ngwl; ig++ )
                   {
                     const double d0 = dt0[ig];
-                    // Next lines: -i * ( a + ib ) = b - ia
+                    // Next lines: (-i)^0 * ( a + ib ) = a + ib
                     a0[2*ig]   =  d0 * c[ig];
                     a0[2*ig+1] =  d0 * s[ig];
                   }

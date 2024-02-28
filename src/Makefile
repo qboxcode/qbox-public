@@ -21,7 +21,7 @@ testFourierTransform testFunction3d testLDAFunctional testLineMinimizer \
 testMatrix testSample testSampleReader testSlaterDet \
 testSpecies testUnitCell testVWN testWavefunction \
 testXCFunctional testXMLGFPreprocessor test_fftw test_vext \
-testjacobi testjade 
+testjacobi testjade
 
 OBJECTS=MPIdata.o qb.o AtomSet.o Atom.o Species.o \
         Wavefunction.o SlaterDet.o \
@@ -82,7 +82,7 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testCGOptimizer: testCGOptimizer.o CGOptimizer.o LineMinimizer.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
- testAndersonMixer: testAndersonMixer.o AndersonMixer.o Context.o
+ testAndersonMixer: testAndersonMixer.o AndersonMixer.o Context.o MPIdata.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)
  testSample: testSample.o AtomSet.o Atom.o Species.o \
         Wavefunction.o SlaterDet.o \

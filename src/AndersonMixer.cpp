@@ -23,8 +23,8 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 AndersonMixer::AndersonMixer(const int m, const int nmax,
-  bool distributed) : m_(m), nmax_(nmax), diag_(true),
-  eig_ratio_(0.01), distributed_(distributed)
+  bool distributed) : m_(m), nmax_(nmax), diag_(false),
+  eig_ratio_(0.00), distributed_(distributed)
 {
   assert( nmax >= 0 );
   x_.resize(nmax_+1);
@@ -138,17 +138,23 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
         }
 
         // solve for theta
-        // theta_i = sum_j
+        // inverse(a) = sum_k (1/w[k]) * u_k * u_k^T
+        // the eigenvector u_k is the k_th column of the matrix a
+        // theta = inverse(a) * b = sum_k (1/w[k]) * u_k * ( u_k^T * b )
+        // set all elements of theta to 0.0
+        theta = 0.0;
         for ( int k = 0; k < n_; k++ )
         {
-          // correct only if eigenvalue w[k] is large enough compared to the
+          // use u_k only if eigenvalue w[k] is large enough compared to the
           // largest eigenvalue
           if ( w[k] > eig_ratio_ * w[n_-1] )
           {
-            const double fac = 1.0 / w[k];
+            // compute dot product u_k^T * b
+            double uktb = 0.0;
+            for ( int j = 0; j < n_; j++ )
+              uktb += a[j+k*n_] * b[j];
             for ( int i = 0; i < n_; i++ )
-              for ( int j = 0; j < n_; j++ )
-                theta[i] += fac * a[i+k*n_] * a[j+k*n_] * b[j];
+              theta[i] += ( uktb / w[k] ) * a[i+k*n_];
           }
         }
       }

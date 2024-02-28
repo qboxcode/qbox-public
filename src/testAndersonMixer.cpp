@@ -21,31 +21,34 @@
 using namespace std;
 #include "AndersonMixer.h"
 
-// use: testAndersonMixer ndim nmax niter
+// use: testAndersonMixer ndim nmax niter alpha
 int main(int argc, char** argv)
 {
-  int mype;
-  MPI_Comm comm = MPI_COMM_WORLD;
   MPI_Init(&argc,&argv);
-  MPI_Comm_rank(MPI_COMM_WORLD,&mype);
-  if ( argc != 4 )
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int npes;
+  MPI_Comm_size(MPI_COMM_WORLD,&npes);
+  MPIdata::set(npes);
+  if ( argc != 5 )
   {
-    cout << " use: testAndersonMixer ndim nmax niter" << endl;
+    cout << " use: testAndersonMixer ndim nmax niter alpha" << endl;
     return 1;
   }
+
   // ndim: dimension of vector x
   const int ndim = atoi(argv[1]);
   // nmax: maximum dimension of subspace used for acceleration
   const int nmax = atoi(argv[2]);
   // niter: number of iterations
   const int niter = atoi(argv[3]);
+  // alpha: amplitude of update
+  const double alpha = atof(argv[4]);
 
   char processor_name[MPI_MAX_PROCESSOR_NAME];
   int namelen;
   PMPI_Get_processor_name(processor_name,&namelen);
   // cout << " Process " << ctxt.mype() << " on " << processor_name << endl;
 
-  const double alpha = 0.1;
   vector<double> x,f,xbar,fbar;
   x.resize(ndim);
   f.resize(ndim);
@@ -53,6 +56,12 @@ int main(int argc, char** argv)
   fbar.resize(ndim);
 
   AndersonMixer mixer(ndim,nmax,&comm);
+#ifdef ANDERSON_EIG_RATIO
+  mixer.set_eig_ratio(ANDERSON_EIG_RATIO);
+#endif
+#ifdef ANDERSON_DIAG_FALSE
+  mixer.set_diag(false);
+#endif
 
   for ( int i = 0; i < ndim; i++ )
     x[i] = (i+5);
@@ -87,9 +96,9 @@ int main(int argc, char** argv)
     for ( int i = 0; i < ndim; i++ )
       resnorm += f[i]*f[i];
     double rbuf;
-    MPI_Allreduce(&resnorm,&rbuf,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    MPI_Allreduce(&resnorm,&rbuf,1,MPI_DOUBLE,MPI_SUM,MPIdata::comm());
     resnorm = rbuf;
-    if ( mype == 0 )
+    if ( MPIdata::onpe0() )
       cout << " resnorm: " << sqrt(resnorm) << endl;
     mixer.update(&x[0],&f[0],&xbar[0],&fbar[0]);
 

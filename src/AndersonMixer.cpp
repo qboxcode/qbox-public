@@ -24,7 +24,7 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 AndersonMixer::AndersonMixer(const int m, const int nmax,
   bool distributed) : m_(m), nmax_(nmax), diag_(true),
-  eig_ratio_(0.01), distributed_(distributed)
+  eig_ratio_(0.0), distributed_(distributed)
 {
   assert( nmax >= 0 );
   x_.resize(nmax_+1);

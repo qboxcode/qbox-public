@@ -321,6 +321,12 @@ void BOSampleStepper::step(int niter)
   // Anderson charge mixer: include both spins in the same vector
   // Factor of 2: complex coeffs stored as double
   AndersonMixer mixer(2*nspin*ng,anderson_ndim,true);
+#ifdef ANDERSON_EIG_RATIO
+  mixer.set_eig_ratio(ANDERSON_EIG_RATIO);
+#endif
+#ifdef ANDERSON_DIAG
+  mixer.set_diag(ANDERSON_DIAG);
+#endif
 
   // compute Kerker preconditioning
   // real space Kerker cutoff in a.u.

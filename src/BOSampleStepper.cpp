@@ -323,9 +323,15 @@ void BOSampleStepper::step(int niter)
   AndersonMixer mixer(2*nspin*ng,anderson_ndim,true);
 #ifdef ANDERSON_EIG_RATIO
   mixer.set_eig_ratio(ANDERSON_EIG_RATIO);
+  if ( onpe0 )
+    cout << " BOSampleStepper: ANDERSON_EIG_RATIO = "
+         << ANDERSON_EIG_RATIO << endl;
 #endif
 #ifdef ANDERSON_DIAG
   mixer.set_diag(ANDERSON_DIAG);
+  if ( onpe0 )
+    cout << " BOSampleStepper: ANDERSON_DIAG = "
+         << boolalpha << ANDERSON_DIAG << endl;
 #endif
 
   // compute Kerker preconditioning

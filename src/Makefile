@@ -182,7 +182,7 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
 # generate dependencies in makefile: use -Y to avoid library header files
 # that are likely to be different on other platforms.
  depend :
-	makedepend -Y -D$(PLT) $(PLTFLAGS) *.cpp
+	makedepend -Y -- -D$(PLT) $(PLTFLAGS) -- *.cpp
 #------------------------------------------------------------------------------
 #  Cleanup object files
  clean :
@@ -198,7 +198,7 @@ ANDIonicStepper.o: MPIdata.h ANDIonicStepper.h IonicStepper.h Sample.h
 ANDIonicStepper.o: Context.h blacs.h AtomSet.h Atom.h D3vector.h UnitCell.h
 ANDIonicStepper.o: D3tensor.h blas.h ConstraintSet.h ExtForceSet.h
 ANDIonicStepper.o: Wavefunction.h Control.h Species.h AndersonMixer.h
-AndersonMixer.o: AndersonMixer.h blas.h
+AndersonMixer.o: AndersonMixer.h MPIdata.h blas.h
 AngleConstraint.o: AngleConstraint.h Constraint.h D3vector.h AtomSet.h Atom.h
 AngleConstraint.o: UnitCell.h D3tensor.h blas.h Species.h
 Atom.o: Atom.h D3vector.h
@@ -512,7 +512,7 @@ qbox_xmlns.o: qbox_xmlns.h
 release.o: release.h
 sinft.o: sinft.h
 spline.o: spline.h
-testAndersonMixer.o: AndersonMixer.h
+testAndersonMixer.o: AndersonMixer.h MPIdata.h
 testBase64Transcoder.o: Base64Transcoder.h
 testBasis.o: Basis.h D3vector.h UnitCell.h
 testBasisMapping.o: Context.h blacs.h Basis.h D3vector.h UnitCell.h

@@ -195,7 +195,7 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
 
           // check condition on the norm of theta
           norm_ok = true;
-#if 0
+#ifdef ANDERSON_SIMPLEX
           // unit simplex criterion
           double theta_sum = 0.0;
           for ( int i = 0; i < theta.size(); i++ )
@@ -205,12 +205,12 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
           }
           norm_ok &= fabs(theta_sum) <= 1.0;
 #endif
-#if 0
+#ifdef ANDERSON_INF_NORM
           // infinity norm criterion
           for ( int i = 0; i < theta.size(); i++ )
             norm_ok &= fabs(theta[i]) <  3.0;
 #endif
-#if 0
+#ifdef ANDERSON_2_NORM
           // 2-norm criterion
           double theta_sum = 0.0;
           for ( int i = 0; i < theta.size(); i++ )

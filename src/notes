@@ -1,4 +1,14 @@
 --------------------------------------------------------------------------------
+rel1_76_3
+--------------------------------------------------------------------------------
+07cb72e Add parameter options in AndersonMixer
+8fe1538 Print optional AndersonMixer parameters in BOSampleStepper
+98f778e Add ANDERSON_EIG_RATIO and ANDERSON_DIAG options to BOSampleStepper.cpp
+8ceaeb0 Reset default eig_ratio to 0.0 in AndersonMixer.cpp
+f8cbde8 Restore AndersonMixer default to diag(true), eig_ratio(0.01)
+d41cdff Fix AndersonMixer and testAndersonMixer (part 2)
+13d9638 Fix AndersonMixer and testAndersonMixer
+--------------------------------------------------------------------------------
 rel1_76_2
 --------------------------------------------------------------------------------
 cb70c50 Remove calc of sigma_exc from scf loop

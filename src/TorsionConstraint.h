@@ -37,6 +37,7 @@ class TorsionConstraint : public Constraint
                     D3vector &g1, D3vector &g2,D3vector &g3,D3vector &g4) const;
   double torsion_angle(D3vector a, D3vector b,
                        D3vector c, D3vector d) const;
+  double fold(double x) const;
 
   public:
 
@@ -67,9 +68,7 @@ class TorsionConstraint : public Constraint
   double tolerance(void) const { return tol_; }
   void set_value(double value)
   {
-    angle_ = value;
-    if ( angle_ < -180.0 ) angle_ = 180.0;
-    if ( angle_ >  180.0 ) angle_ = 180.0;
+    angle_ = fold(value);
     sin_angle_ = sin((M_PI/180.0)*angle_);
     cos_angle_ = cos((M_PI/180.0)*angle_);
   }

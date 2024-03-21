@@ -229,7 +229,7 @@ ostream& DistanceConstraint::print( ostream &os )
   os << " <atoms> " << name1_ << " " << name2_ << " </atoms>\n";
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
-  os << "  <velocity> " << setprecision(8) << 0 << " </velocity>";
+  os << "  <velocity> " << setprecision(8) << velocity_ << " </velocity>";
   os << " <weight> " << setprecision(8) << weight_ << " </weight>\n";
   os << "  <value> " << setprecision(8) << distance_ << " </value>";
   os << " <force> " << setprecision(8) << force_ << " </force>\n";

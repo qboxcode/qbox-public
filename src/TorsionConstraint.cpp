@@ -27,6 +27,16 @@
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
+double TorsionConstraint::fold(double x) const
+{
+  // fold x into the range (-180,180]
+  while ( x > 180.0 ) x -= 360.0;
+  while ( x <= -180.0 ) x += 360.0;
+  assert( ( x > -180.0 ) && ( x <= 180.0 ) );
+  return x;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 void TorsionConstraint::setup(const AtomSet& atoms)
 {
   // find position in tau array corresponding to atom name1
@@ -113,7 +123,7 @@ vector<vector<double> > &rp) const
   const double ngp = g1p*g1p + g2p*g2p + g3p*g3p + g4p*g4p;
   assert(ngp>=0.0);
 
-  const double err = fabs(ap-angle_);
+  const double err = fabs(fold(ap-angle_));
 
   if ( ng == 0.0 )
   {
@@ -400,7 +410,7 @@ ostream& TorsionConstraint::print( ostream &os )
      << " " << name3_ << " " << name4_ << " </atoms>\n";
   os.setf(ios::fixed,ios::floatfield);
   os.setf(ios::right,ios::adjustfield);
-  os << "  <velocity> " << setprecision(8) << 0 << " </velocity>";
+  os << "  <velocity> " << setprecision(8) << velocity_ << " </velocity>";
   os << " <weight> " << setprecision(8) << weight_ << " </weight>\n";
   os << "  <value> " << setprecision(8) << angle_ << " </value>";
   os << " <force> " << setprecision(8) << force_ << " </force>\n";

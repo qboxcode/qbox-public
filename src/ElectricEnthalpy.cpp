@@ -100,8 +100,17 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
   // do not allocate further objects if polarization is off
   if ( pol_type_ == off ) return;
 
-  assert(wf_.nkp()==1);
-  assert(wf_.nspin()==1);
+  if ( wf_.nkp() != 1 )
+    throw invalid_argument("ElectricEnthalpy: nkp != 1");
+  if ( wf_.nspin() != 1 )
+    throw invalid_argument("ElectricEnthalpy: nspin != 1");
+  // check that there are no fractionally occupied states
+  // next line: (3-nspin) = 2 if nspin==1 and 1 if nspin==2
+  if ( wf_.nel() != ( 2 * wf_.nst() ) )
+  {
+    throw invalid_argument("ElectricEnthalpy: fractionally occupied"
+      " or empty states");
+  }
 
   dwf_ = new Wavefunction(s.wf);
   mlwft_ = new MLWFTransform(sd_);

@@ -39,6 +39,7 @@ class ConstraintCmd : public Cmd
     "\n constraint\n\n"
     " syntax:\n\n"
     "   constraint define position name atom\n"
+    "   constraint define plane name atom px py pz distance [velocity]\n"
     "   constraint define distance name atom1 atom2 distance [velocity]\n"
     "   constraint define angle name atom1 atom2 atom3 angle [velocity]\n"
     "   constraint define torsion name atom1 atom2 atom3 atom4 angle [velocity]\n"

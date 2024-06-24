@@ -39,7 +39,7 @@ OBJECTS=MPIdata.o qb.o AtomSet.o Atom.o Species.o \
         PSDAWavefunctionStepper.o JDWavefunctionStepper.o \
         release.o qbox_xmlns.o isodate.o \
         ConstraintSet.o Constraint.o PositionConstraint.o DistanceConstraint.o \
-        AngleConstraint.o TorsionConstraint.o \
+        AngleConstraint.o TorsionConstraint.o PlaneConstraint.o \
         ExtForceSet.o ExtForce.o AtomicExtForce.o PairExtForce.o \
         GlobalExtForce.o \
         uuid_str.o sampling.o \

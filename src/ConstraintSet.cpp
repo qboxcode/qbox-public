@@ -19,6 +19,7 @@
 #include "MPIdata.h"
 #include "ConstraintSet.h"
 #include "PositionConstraint.h"
+#include "PlaneConstraint.h"
 #include "DistanceConstraint.h"
 #include "AngleConstraint.h"
 #include "TorsionConstraint.h"
@@ -43,16 +44,17 @@ ConstraintSet::~ConstraintSet(void)
 ////////////////////////////////////////////////////////////////////////////////
 bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
 {
-  enum constraint_type { unknown, position_type, distance_type,
+  enum constraint_type { unknown, position_type, plane_type, distance_type,
                          angle_type, torsion_type }
     type = unknown;
   const double position_tolerance = 1.0e-7;
+  const double plane_tolerance = 1.0e-7;
   const double distance_tolerance = 1.0e-7;
   const double angle_tolerance = 1.0e-4;
 
   // argv[0] == "constraint"
   // argv[1] == "define"
-  // argv[2] == {"position", "distance", "angle", "torsion"}
+  // argv[2] == {"position", "plane", "distance", "angle", "torsion"}
   // argv[3] == constraint name
   // argv[4-(5,6,7)] == atom names
   // argv[{5,6,7}] == {distance,angle,angle}
@@ -64,7 +66,10 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     {
       cout << " Use: constraint define position constraint_name atom_name"
            << endl;
-      cout << " Use: constraint define distance constraint_name "
+      cout << "      constraint define plane constraint_name "
+           << "atom_name px py pz distance_value [velocity]"
+           << endl;
+      cout << "      constraint define distance constraint_name "
            << "atom_name1 atom_name2 distance_value [velocity]"
            << endl;
       cout << "      constraint define angle constraint_name "
@@ -81,6 +86,10 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
   if ( constraint_type == "position" )
   {
     type = position_type;
+  }
+  else if ( constraint_type == "plane" )
+  {
+    type = plane_type;
   }
   else if ( constraint_type == "distance" )
   {
@@ -150,6 +159,66 @@ bool ConstraintSet::define_constraint(AtomSet &atoms, int argc, char **argv)
     {
       PositionConstraint *c =
         new PositionConstraint(name,name1,position_tolerance);
+      constraint_list.push_back(c);
+    }
+  }
+  else if ( type == plane_type )
+  {
+    // define plane name A px py pz distance [velocity]
+
+    if ( argc < 9 || argc > 10 )
+    {
+      if ( MPIdata::onpe0() )
+        cout << " Incorrect number of arguments for plane constraint"
+             << endl;
+      return false;
+    }
+    string name = argv[3];
+    string name1 = argv[4];
+    const double px = atof(argv[5]);
+    const double py = atof(argv[6]);
+    const double pz = atof(argv[7]);
+    D3vector p(px,py,pz);
+    const double distance = atof(argv[8]);
+    double velocity = 0;
+    if ( argc == 10 )
+      velocity = atof(argv[9]);
+
+    Atom *a1 = atoms.findAtom(name1);
+
+    if ( a1 == 0 )
+    {
+      if ( MPIdata::onpe0() )
+      {
+        cout << " ConstraintSet: could not find atom " << name1 << endl;
+        cout << " ConstraintSet: could not define constraint" << endl;
+      }
+      return false;
+    }
+
+    // check if constraint is already defined
+    bool found = false;
+    Constraint *pc = 0;
+    for ( int i = 0; i < constraint_list.size(); i++ )
+    {
+      pc = constraint_list[i];
+      assert(pc != 0);
+      // check if a constraint with same name or with same atom is defined
+      if ( pc->type() == "plane" )
+        found = ( pc->name() == name ) || ( pc->names(0) == name1 );
+    }
+
+    if ( found )
+    {
+      if ( MPIdata::onpe0() )
+        cout << " ConstraintSet: constraint is already defined:\n"
+             << " cannot define constraint" << endl;
+      return false;
+    }
+    else
+    {
+      PlaneConstraint *c =
+        new PlaneConstraint(name,name1,p,distance,velocity,plane_tolerance);
       constraint_list.push_back(c);
     }
   }

@@ -88,7 +88,7 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
     pol_type_ = mlwf_ref;
   else if ( s.ctrl.polarization == "MLWF_REF_Q" )
   {
-    pol_type_ = mlwf_ref;
+    pol_type_ = mlwf_ref_q;
     compute_quadrupole_ = true;
   }
   else
@@ -649,28 +649,26 @@ void ElectricEnthalpy::print(ostream& os) const
     os << " <mlwfset spin=\"0\" size=\"" << nst << "\">" << endl;
     for ( int i = 0; i < nst; i++ )
     {
-      os << "   <mlwf>\n"
-         << "     <center>  " << setprecision(6)
-         << setw(12) << mlwfc_[i].x << " "
-         << setw(12) << mlwfc_[i].y << " "
-         << setw(12) << mlwfc_[i].z
-         << " </center>\n"
-         << "   </mlwf>"
-         << endl;
-
-      if ( pol_type_ == mlwf_ref )
+      if ( pol_type_ == mlwf )
       {
-        os << "   <mlwf_ref>\n"
-           << "     <center>  " << setprecision(6)
+        os << "   <mlwf> <center> " << setprecision(6)
+           << setw(12) << mlwfc_[i].x << " "
+           << setw(12) << mlwfc_[i].y << " "
+           << setw(12) << mlwfc_[i].z
+           << " </center> </mlwf>"
+           << endl;
+      }
+      else
+      {
+        os << "   <mlwf> <center> " << setprecision(6)
            << setw(12) << mlwfc_[i].x + correction_[i].x << " "
            << setw(12) << mlwfc_[i].y + correction_[i].y << " "
            << setw(12) << mlwfc_[i].z + correction_[i].z
-           << " </center>\n"
-           << "   </mlwf_ref>"
+           << " </center> </mlwf>"
            << endl;
 
         if ( compute_quadrupole_ )
-          os << "    <quad>"
+          os << "   <quad>"
              << setw(12) << quad_[i][0] << " "
              << setw(12) << quad_[i][4] << " "
              << setw(12) << quad_[i][8] << " "

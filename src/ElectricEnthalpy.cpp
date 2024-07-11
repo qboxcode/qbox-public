@@ -646,26 +646,28 @@ void ElectricEnthalpy::print(ostream& os) const
   if ( pol_type_ == mlwf || pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
   {
     int nst = sd_.nst();
-    os << " <mlwf_set size=\"" << nst << "\">" << endl;
+    os << " <mlwfset spin=\"0\" size=\"" << nst << "\">" << endl;
     for ( int i = 0; i < nst; i++ )
     {
-      os << " <mlwf center=\"" << setprecision(8)
+      os << "   <mlwf>\n"
+         << "     <center>  " << setprecision(6)
          << setw(12) << mlwfc_[i].x << " "
          << setw(12) << mlwfc_[i].y << " "
-         << setw(12) << mlwfc_[i].z << " \"\n"
-         << "       spread=\" " << mlwfs_[i] << " \"/>" << endl;
+         << setw(12) << mlwfc_[i].z
+         << " </center>\n"
+         << "   </mlwf>"
+         << endl;
+
       if ( pol_type_ == mlwf_ref )
       {
-        os << " <mlwf_ref center=\"" << setprecision(8)
+        os << "   <mlwf_ref>\n"
+           << "     <center>  " << setprecision(6)
            << setw(12) << mlwfc_[i].x + correction_[i].x << " "
            << setw(12) << mlwfc_[i].y + correction_[i].y << " "
-           << setw(12) << mlwfc_[i].z + correction_[i].z << " \"";
-        if ( compute_quadrupole_ )
-        {
-          // add spread attribute
-          os << " \n     spread=\" " << sqrt(quad_[i].trace()) << " \"";
-        }
-        os << "/>" << endl;
+           << setw(12) << mlwfc_[i].z + correction_[i].z
+           << " </center>\n"
+           << "   </mlwf_ref>"
+           << endl;
 
         if ( compute_quadrupole_ )
           os << "    <quad>"
@@ -678,7 +680,7 @@ void ElectricEnthalpy::print(ostream& os) const
              << " </quad>" << endl;
       }
     }
-    os << " </mlwf_set>" << endl;
+    os << " </mlwfset>" << endl;
   }
 
   // print dipole

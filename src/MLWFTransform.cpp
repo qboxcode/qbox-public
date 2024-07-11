@@ -276,7 +276,7 @@ void MLWFTransform::compute_sincos(const int n, const complex<double>* f,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-D3vector MLWFTransform::center(int i)
+D3vector MLWFTransform::center(int i) const
 {
   assert(i>=0 && i<sd_.nst());
   // c,s = B^T * adiag
@@ -314,7 +314,7 @@ D3vector MLWFTransform::center(int i)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread2(int i, int j)
+double MLWFTransform::spread2(int i, int j) const
 {
   // squared spread of state i in the direction of
   // the reciprocal lattice vector b_j
@@ -358,20 +358,20 @@ double MLWFTransform::spread2(int i, int j)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread2(int i)
+double MLWFTransform::spread2(int i) const
 {
   assert(i>=0 & i<sd_.nst());
   return spread2(i,0) + spread2(i,1) + spread2(i,2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread(int i)
+double MLWFTransform::spread(int i) const
 {
   return sqrt(spread2(i));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread2(void)
+double MLWFTransform::spread2(void) const
 {
   double sum = 0.0;
   for ( int i = 0; i < sd_.nst(); i++ )
@@ -380,13 +380,13 @@ double MLWFTransform::spread2(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread(void)
+double MLWFTransform::spread(void) const
 {
   return sqrt(spread2());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-D3vector MLWFTransform::dipole(void)
+D3vector MLWFTransform::dipole(void) const
 {
   // total electronic dipole
   D3vector sum(0.0,0.0,0.0);
@@ -402,4 +402,47 @@ void MLWFTransform::apply_transform(SlaterDet& sd)
   DoubleMatrix c(sd.c());
   DoubleMatrix cp(c);
   c.gemm('n','n',1.0,cp,*u_,0.0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void MLWFTransform::print(ostream& os) const
+{
+  double total_spread[3] = { 0.0, 0.0, 0.0 };
+  for ( int i = 0; i < sd_.nst(); i++ )
+  {
+    D3vector ctr = center(i);
+    double spi[3];
+    for (int j=0; j<3; j++)
+    {
+      spi[j] = spread2(i,j);
+      total_spread[j] += spi[j];
+    }
+
+    os.setf(ios::fixed, ios::floatfield);
+    os.setf(ios::right, ios::adjustfield);
+    os << "   <mlwf>\n"
+       << "     <center>  " << setprecision(6)
+       << setw(12) << ctr.x
+       << setw(12) << ctr.y
+       << setw(12) << ctr.z
+       << " </center>\n"
+       << "     <spread2> "
+       << setw(12) << spi[0]
+       << setw(12) << spi[1]
+       << setw(12) << spi[2]
+       << " </spread2>\n"
+       << "   </mlwf>"
+       << endl;
+  }
+  D3vector edipole = dipole();
+  os << "   <e_dipole>  ";
+  for ( int j = 0; j < 3; j++ )
+    os << setprecision(6) << setw(12) << edipole[j];
+  os << " </e_dipole>" << endl;
+}
+////////////////////////////////////////////////////////////////////////////////
+ostream& operator<<(ostream& os, MLWFTransform& mlwft)
+{
+  mlwft.print(os);
+  return os;
 }

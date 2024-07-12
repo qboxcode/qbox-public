@@ -37,12 +37,14 @@ MLWFTransform::MLWFTransform(const SlaterDet& sd) : sd_(sd),
  sd.basis().np(2))), maxsweep_(50), tol_(1.e-8)
 {
   a_.resize(6);
+  b_.resize(6);
   adiag_.resize(6);
   const int n = sd.c().n();
   const int nb = sd.c().nb();
   for ( int k = 0; k < 6; k++ )
   {
     a_[k] = new DoubleMatrix(ctxt_,n,n,nb,nb);
+    b_[k] = new DoubleMatrix(ctxt_,n,n,nb,nb);
     adiag_[k].resize(n);
   }
   u_ = new DoubleMatrix(ctxt_,n,n,nb,nb);
@@ -60,7 +62,10 @@ MLWFTransform::MLWFTransform(const SlaterDet& sd) : sd_(sd),
 MLWFTransform::~MLWFTransform(void)
 {
   for ( int k = 0; k < 6; k++ )
+  {
     delete a_[k];
+    delete b_[k];
+  }
   delete u_;
 
   delete sdcosx_;
@@ -97,6 +102,7 @@ void MLWFTransform::update(void)
   for ( int i = 0; i < 6; i++ )
   {
     a_[i]->resize(c.n(), c.n(), c.nb(), c.nb());
+    b_[i]->resize(c.n(), c.n(), c.nb(), c.nb());
     adiag_[i].resize(c.n());
   }
   u_->resize(c.n(), c.n(), c.nb(), c.nb());
@@ -178,28 +184,65 @@ void MLWFTransform::update(void)
     bm_.zvec_to_vector(&zvec_sin[0],&fsy[0]);
   }
 
-  // dot products a_[0] = <cos x>, a_[1] = <sin x>
-  a_[0]->gemm('t','n',2.0,cr,ccx,0.0);
-  a_[0]->ger(-1.0,cr,0,ccx,0);
-  a_[1]->gemm('t','n',2.0,cr,csx,0.0);
-  a_[1]->ger(-1.0,cr,0,csx,0);
+  // dot products b_[0] = <cos x>, b_[1] = <sin x>
+  b_[0]->gemm('t','n',2.0,cr,ccx,0.0);
+  b_[0]->ger(-1.0,cr,0,ccx,0);
+  b_[1]->gemm('t','n',2.0,cr,csx,0.0);
+  b_[1]->ger(-1.0,cr,0,csx,0);
 
-  // dot products a_[2] = <cos y>, a_[3] = <sin y>
-  a_[2]->gemm('t','n',2.0,cr,ccy,0.0);
-  a_[2]->ger(-1.0,cr,0,ccy,0);
-  a_[3]->gemm('t','n',2.0,cr,csy,0.0);
-  a_[3]->ger(-1.0,cr,0,csy,0);
+  // dot products b_[2] = <cos y>, b_[3] = <sin y>
+  b_[2]->gemm('t','n',2.0,cr,ccy,0.0);
+  b_[2]->ger(-1.0,cr,0,ccy,0);
+  b_[3]->gemm('t','n',2.0,cr,csy,0.0);
+  b_[3]->ger(-1.0,cr,0,csy,0);
 
-  // dot products a_[4] = <cos z>, a_[5] = <sin z>
-  a_[4]->gemm('t','n',2.0,cr,ccz,0.0);
-  a_[4]->ger(-1.0,cr,0,ccz,0);
-  a_[5]->gemm('t','n',2.0,cr,csz,0.0);
-  a_[5]->ger(-1.0,cr,0,csz,0);
+  // dot products b_[4] = <cos z>, b_[5] = <sin z>
+  b_[4]->gemm('t','n',2.0,cr,ccz,0.0);
+  b_[4]->ger(-1.0,cr,0,ccz,0);
+  b_[5]->gemm('t','n',2.0,cr,csz,0.0);
+  b_[5]->ger(-1.0,cr,0,csz,0);
+
+  // a_ = A * b_
+  const double *amat = cell_.amat();
+  // a_[0]
+  a_[0]->clear();
+  a_[0]->axpy(amat[0], *b_[0]);
+  a_[0]->axpy(amat[3], *b_[2]);
+  a_[0]->axpy(amat[6], *b_[4]);
+
+  // a_[1]
+  a_[1]->clear();
+  a_[1]->axpy(amat[0], *b_[1]);
+  a_[1]->axpy(amat[3], *b_[3]);
+  a_[1]->axpy(amat[6], *b_[5]);
+
+  // a_[2]
+  a_[2]->clear();
+  a_[2]->axpy(amat[1], *b_[0]);
+  a_[2]->axpy(amat[4], *b_[2]);
+  a_[2]->axpy(amat[7], *b_[4]);
+
+  // a_[3]
+  a_[3]->clear();
+  a_[3]->axpy(amat[1], *b_[1]);
+  a_[3]->axpy(amat[4], *b_[3]);
+  a_[3]->axpy(amat[7], *b_[5]);
+
+  // a_[4]
+  a_[4]->clear();
+  a_[4]->axpy(amat[2], *b_[0]);
+  a_[4]->axpy(amat[5], *b_[2]);
+  a_[4]->axpy(amat[8], *b_[4]);
+
+  // a_[5]
+  a_[5]->clear();
+  a_[5]->axpy(amat[2], *b_[1]);
+  a_[5]->axpy(amat[5], *b_[3]);
+  a_[5]->axpy(amat[8], *b_[5]);
 }
 ////////////////////////////////////////////////////////////////////////////////
 void MLWFTransform::compute_transform(void)
 {
-  // int nsweep = jade(maxsweep_,tol_,a_,*u_,adiag_);
   jade(maxsweep_,tol_,a_,*u_,adiag_);
 }
 
@@ -233,54 +276,102 @@ void MLWFTransform::compute_sincos(const int n, const complex<double>* f,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-D3vector MLWFTransform::center(int i)
+D3vector MLWFTransform::center(int i) const
 {
   assert(i>=0 && i<sd_.nst());
-  const double cx = adiag_[0][i];
-  const double sx = adiag_[1][i];
-  const double cy = adiag_[2][i];
-  const double sy = adiag_[3][i];
-  const double cz = adiag_[4][i];
-  const double sz = adiag_[5][i];
-  // Next lines: M_1_PI = 1.0/pi
-  const double itwopi = 1.0 / ( 2.0 * M_PI );
-  const double t0 = itwopi * atan2(sx,cx);
-  const double t1 = itwopi * atan2(sy,cy);
-  const double t2 = itwopi * atan2(sz,cz);
-  const double x = t0*cell_.a(0).x + t1*cell_.a(1).x + t2*cell_.a(2).x;
-  const double y = t0*cell_.a(0).y + t1*cell_.a(1).y + t2*cell_.a(2).y;
-  const double z = t0*cell_.a(0).z + t1*cell_.a(1).z + t2*cell_.a(2).z;
+  // c,s = B^T * adiag
+  const double *bmat = cell_.bmat();
+  const double c0 = bmat[0] * adiag_[0][i] +
+                    bmat[1] * adiag_[2][i] +
+                    bmat[2] * adiag_[4][i];
+  const double s0 = bmat[0] * adiag_[1][i] +
+                    bmat[1] * adiag_[3][i] +
+                    bmat[2] * adiag_[5][i];
 
+  const double c1 = bmat[3] * adiag_[0][i] +
+                    bmat[4] * adiag_[2][i] +
+                    bmat[5] * adiag_[4][i];
+  const double s1 = bmat[3] * adiag_[1][i] +
+                    bmat[4] * adiag_[3][i] +
+                    bmat[5] * adiag_[5][i];
+
+  const double c2 = bmat[6] * adiag_[0][i] +
+                    bmat[7] * adiag_[2][i] +
+                    bmat[8] * adiag_[4][i];
+  const double s2 = bmat[6] * adiag_[1][i] +
+                    bmat[7] * adiag_[3][i] +
+                    bmat[8] * adiag_[5][i];
+
+  const double itwopi = 1.0 / ( 2.0 * M_PI );
+  const double t0 = itwopi * atan2(s0,c0);
+  const double t1 = itwopi * atan2(s1,c1);
+  const double t2 = itwopi * atan2(s2,c2);
+  const double *amat = cell_.amat();
+  const double x = t0 * amat[0] + t1 * amat[3] + t2 * amat[6];
+  const double y = t0 * amat[1] + t1 * amat[4] + t2 * amat[7];
+  const double z = t0 * amat[2] + t1 * amat[5] + t2 * amat[8];
   return D3vector(x,y,z);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread2(int i, int j)
+double MLWFTransform::spread2(int i, int j) const
 {
+  // squared spread of state i in the direction of
+  // the reciprocal lattice vector b_j
   assert(i>=0 && i<sd_.nst());
   assert(j>=0 && j<3);
-  const double c = adiag_[2*j][i];
-  const double s = adiag_[2*j+1][i];
-  // Next line: M_1_PI = 1.0/pi
+
+  const double itwopi = 1.0 / ( 2.0 * M_PI );
+  const double *bmat = cell_.bmat();
+  // c,s = B^T * adiag
+  double c,s;
+  if ( j == 0 )
+  {
+    c = itwopi * ( bmat[0] * adiag_[0][i] +
+                   bmat[1] * adiag_[2][i] +
+                   bmat[2] * adiag_[4][i] );
+    s = itwopi * ( bmat[0] * adiag_[1][i] +
+                   bmat[1] * adiag_[3][i] +
+                   bmat[2] * adiag_[5][i] );
+  }
+  else if ( j == 1 )
+  {
+    c = itwopi * ( bmat[3] * adiag_[0][i] +
+                   bmat[4] * adiag_[2][i] +
+                   bmat[5] * adiag_[4][i] );
+    s = itwopi * ( bmat[3] * adiag_[1][i] +
+                   bmat[4] * adiag_[3][i] +
+                   bmat[5] * adiag_[5][i] );
+  }
+  else
+  {
+    c = itwopi * ( bmat[6] * adiag_[0][i] +
+                   bmat[7] * adiag_[2][i] +
+                   bmat[8] * adiag_[4][i] );
+    s = itwopi * ( bmat[6] * adiag_[1][i] +
+                   bmat[7] * adiag_[3][i] +
+                   bmat[8] * adiag_[5][i] );
+  }
+
   const double fac = 1.0 / length(cell_.b(j));
   return fac*fac * ( 1.0 - c*c - s*s );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread2(int i)
+double MLWFTransform::spread2(int i) const
 {
   assert(i>=0 & i<sd_.nst());
   return spread2(i,0) + spread2(i,1) + spread2(i,2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread(int i)
+double MLWFTransform::spread(int i) const
 {
   return sqrt(spread2(i));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread2(void)
+double MLWFTransform::spread2(void) const
 {
   double sum = 0.0;
   for ( int i = 0; i < sd_.nst(); i++ )
@@ -289,13 +380,13 @@ double MLWFTransform::spread2(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-double MLWFTransform::spread(void)
+double MLWFTransform::spread(void) const
 {
   return sqrt(spread2());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-D3vector MLWFTransform::dipole(void)
+D3vector MLWFTransform::dipole(void) const
 {
   // total electronic dipole
   D3vector sum(0.0,0.0,0.0);
@@ -311,4 +402,47 @@ void MLWFTransform::apply_transform(SlaterDet& sd)
   DoubleMatrix c(sd.c());
   DoubleMatrix cp(c);
   c.gemm('n','n',1.0,cp,*u_,0.0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void MLWFTransform::print(ostream& os) const
+{
+  double total_spread[3] = { 0.0, 0.0, 0.0 };
+  for ( int i = 0; i < sd_.nst(); i++ )
+  {
+    D3vector ctr = center(i);
+    double spi[3];
+    for (int j=0; j<3; j++)
+    {
+      spi[j] = spread2(i,j);
+      total_spread[j] += spi[j];
+    }
+
+    os.setf(ios::fixed, ios::floatfield);
+    os.setf(ios::right, ios::adjustfield);
+    os << "   <mlwf>\n"
+       << "     <center>  " << setprecision(6)
+       << setw(12) << ctr.x
+       << setw(12) << ctr.y
+       << setw(12) << ctr.z
+       << " </center>\n"
+       << "     <spread2> "
+       << setw(12) << spi[0]
+       << setw(12) << spi[1]
+       << setw(12) << spi[2]
+       << " </spread2>\n"
+       << "   </mlwf>"
+       << endl;
+  }
+  D3vector edipole = dipole();
+  os << "   <e_dipole>  ";
+  for ( int j = 0; j < 3; j++ )
+    os << setprecision(6) << setw(12) << edipole[j];
+  os << " </e_dipole>" << endl;
+}
+////////////////////////////////////////////////////////////////////////////////
+ostream& operator<<(ostream& os, MLWFTransform& mlwft)
+{
+  mlwft.print(os);
+  return os;
 }

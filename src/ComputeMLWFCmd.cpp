@@ -61,40 +61,8 @@ int ComputeMLWFCmd::action(int argc, char **argv)
         isrc = MPIdata::rank();
         ostr << " <mlwfset spin=\"" << ispin
              << "\" size=\"" << sd.nst() << "\">" << endl;
-        double total_spread[6];
-        for ( int j = 0; j < 6; j++ )
-           total_spread[j] = 0.0;
-        for ( int i = 0; i < sd.nst(); i++ )
-        {
-          D3vector ctr = mlwft->center(i);
-          double spi[6];
-          for (int j=0; j<3; j++)
-          {
-            spi[j] = mlwft->spread2(i,j);
-            total_spread[j] += spi[j];
-          }
-
-          ostr.setf(ios::fixed, ios::floatfield);
-          ostr.setf(ios::right, ios::adjustfield);
-          ostr << "   <mlwf center=\"" << setprecision(6)
-               << setw(12) << ctr.x
-               << setw(12) << ctr.y
-               << setw(12) << ctr.z
-               << " \" spread=\" "
-               << setw(12) << spi[0]
-               << setw(12) << spi[1]
-               << setw(12) << spi[2] << " \"/>"
-               << endl;
-        }
-
-        ostr << " <total_spread> ";
-        for ( int j = 0; j < 3; j++ )
-          ostr << setprecision(6) << setw(15) << total_spread[j];
-        ostr << " </total_spread>" << endl;
-        D3vector edipole = mlwft->dipole();
-        ostr << " <electronic_dipole spin=\"" << ispin
-             << "\"> " << edipole << " </electronic_dipole>" << endl;
-        edipole_sum += edipole;
+        edipole_sum += mlwft->dipole();
+        ostr << *mlwft;
         ostr << " </mlwfset>" << endl;
       } // sd_rank() == 0
       delete mlwft;

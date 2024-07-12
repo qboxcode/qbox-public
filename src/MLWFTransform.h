@@ -38,8 +38,9 @@ class MLWFTransform
   const Context& ctxt_;
 
   BasisMapping bm_;
-  std::vector<DoubleMatrix*> a_;  // cosine and sine matrices
-  DoubleMatrix* u_;               // orthogonal transformation
+  std::vector<DoubleMatrix*> a_; // cosine and sine matrices
+  std::vector<DoubleMatrix*> b_; // cos(b*x) and sin(b*x) matrices
+  DoubleMatrix* u_;          // orthogonal transformation
   std::vector<std::vector<double> > adiag_; // diagonal elements adiag_[k][i]
 
   SlaterDet *sdcosx_, *sdsinx_,
@@ -72,15 +73,17 @@ class MLWFTransform
   void set_tol(double t) { tol_ = t; }
   void set_maxsweep(int n) { maxsweep_ = n; }
 
-  double spread2(int i, int j);
-  double spread2(int i);
-  double spread2(void);
-  double spread(int i);
-  double spread(void);
-  D3vector center(int i);
-  D3vector dipole(void);
+  double spread2(int i, int j) const;
+  double spread2(int i) const;
+  double spread2(void) const;
+  double spread(int i) const;
+  double spread(void) const;
+  D3vector center(int i) const;
+  D3vector dipole(void) const;
+  void print(std::ostream& os) const;
 
   MLWFTransform(const SlaterDet& sd);
   ~MLWFTransform(void);
 };
+std::ostream& operator << ( std::ostream& os, MLWFTransform& mlwft );
 #endif

@@ -1153,38 +1153,8 @@ void BOSampleStepper::step(int niter)
               isrc = MPIdata::rank();
               ostr << " <mlwfset spin=\"" << ispin
                    << "\" size=\"" << sd.nst() << "\">" << endl;
-              double total_spread[6];
-              for ( int j = 0; j < 6; j++ )
-                 total_spread[j] = 0.0;
-              for ( int i = 0; i < sd.nst(); i++ )
-              {
-                D3vector ctr = mlwft[isp_loc]->center(i);
-                double spi[6];
-                for (int j=0; j<3; j++)
-                {
-                  spi[j] = mlwft[isp_loc]->spread2(i,j);
-                  total_spread[j] += spi[j];
-                }
-
-                ostr << "   <mlwf center=\"" << setprecision(6)
-                     << setw(12) << ctr.x
-                     << setw(12) << ctr.y
-                     << setw(12) << ctr.z
-                     << " \" spread=\" "
-                     << setw(12) << spi[0]
-                     << setw(12) << spi[1]
-                     << setw(12) << spi[2] << " \"/>"
-                     << endl;
-              }
-
-              ostr << " <total_spread> ";
-              for ( int j = 0; j < 3; j++ )
-                ostr << setprecision(6) << setw(15) << total_spread[j];
-              ostr << " </total_spread>" << endl;
-              D3vector edipole = mlwft[isp_loc]->dipole();
-              ostr << " <electronic_dipole spin=\"" << ispin
-                   << "\"> " << edipole << " </electronic_dipole>" << endl;
-              edipole_sum += edipole;
+              ostr << *mlwft[isp_loc];
+              edipole_sum += mlwft[isp_loc]->dipole();
               ostr << " </mlwfset>" << endl;
             } // sd_rank() == 0
           }

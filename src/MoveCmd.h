@@ -41,8 +41,10 @@ class MoveCmd : public Cmd
   {
     return
     "\n move\n\n"
-    " syntax: move atom_name {to|by} x y z \n\n"
-    "   The move command displaces an atom to a new position.\n"
+    " syntax: move atom_name to x y z [vx vy vz]\n"
+    "         move atom_name by x y z\n\n"
+    "   The move command displaces an atom to a new position\n"
+    "   and optionally sets its velocity.\n"
     "   The new position is defined by absolute coordinates (to) or\n"
     "   by a relative displacement (by).\n"
     "   When using 'to', if one or more of the arguments is '*',\n"
@@ -51,9 +53,9 @@ class MoveCmd : public Cmd
 
   int action(int argc, char **argv)
   {
-    // move must have 6 arguments including the command name
-    if ( argc != 6 )
-      throw invalid_argument("use: move atom_name {to|by} x y z");
+    // move must have 6 or 9 arguments including the command name
+    if ( (argc != 6) && (argc != 9) )
+      throw invalid_argument("use: move atom_name {to|by} x y z [vx vy vz]");
 
     const string atom_name = argv[1];
     const string mode = argv[2];
@@ -80,18 +82,30 @@ class MoveCmd : public Cmd
       if ( zs != "*" )
         z = atof(argv[5]);
       pos = D3vector(x,y,z);
+      pa->set_position(pos);
+      // optionally set velocity
+      if ( argc == 9 )
+      {
+        double vx = atof(argv[6]);
+        double vy = atof(argv[7]);
+        double vz = atof(argv[8]);
+        D3vector vel = D3vector(vx,vy,vz);
+        pa->set_velocity(vel);
+      }
     }
     else if ( mode == "by" )
     {
+      if ( argc ==9 )
+        throw invalid_argument("cannot set velocity with move by");
       x += atof(argv[3]);
       y += atof(argv[4]);
       z += atof(argv[5]);
       pos = D3vector(x,y,z);
+      pa->set_position(pos);
     }
     else
       throw invalid_argument("MoveCmd: unknown mode");
 
-    pa->set_position(pos);
     if ( ui->onpe0() )
       cout << " MoveCmd: atom " << atom_name << " moved to "
            << pos << endl;

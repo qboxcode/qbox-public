@@ -203,7 +203,7 @@ AngleConstraint.o: AngleConstraint.h Constraint.h D3vector.h AtomSet.h Atom.h
 AngleConstraint.o: UnitCell.h D3tensor.h blas.h Species.h
 Atom.o: Atom.h D3vector.h
 AtomSet.o: AtomSet.h Atom.h D3vector.h UnitCell.h D3tensor.h blas.h Species.h
-AtomSet.o: NameOf.h MPIdata.h sampling.h
+AtomSet.o: MPIdata.h sampling.h
 AtomSetHandler.o: AtomSetHandler.h StructureHandler.h D3vector.h AtomSet.h
 AtomSetHandler.o: Atom.h UnitCell.h D3tensor.h blas.h Species.h
 AtomSetHandler.o: SpeciesHandler.h SpeciesReader.h StrX.h SampleReader.h

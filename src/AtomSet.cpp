@@ -18,7 +18,6 @@
 
 #include "AtomSet.h"
 #include "Species.h"
-#include "NameOf.h"
 #include "MPIdata.h"
 #include "sampling.h"
 #include <iostream>

@@ -645,58 +645,60 @@ void ElectricEnthalpy::print(ostream& os) const
   // print MLWF centers if pol_type_ == MLWF or MLWF_REF or MLWF_REF_Q
   if ( pol_type_ == mlwf || pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
   {
+    os << "<mlwfs>" << endl;
     int nst = sd_.nst();
     os << " <mlwfset spin=\"0\" size=\"" << nst << "\">" << endl;
     for ( int i = 0; i < nst; i++ )
     {
       if ( pol_type_ == mlwf )
       {
-        os << "   <mlwf> <center> " << setprecision(6)
-           << setw(12) << mlwfc_[i].x << " "
-           << setw(12) << mlwfc_[i].y << " "
-           << setw(12) << mlwfc_[i].z
+        os << " <mlwf> <center> " << setprecision(8)
+           << setw(14) << mlwfc_[i].x << " "
+           << setw(14) << mlwfc_[i].y << " "
+           << setw(14) << mlwfc_[i].z
            << " </center> </mlwf>"
            << endl;
       }
       else
       {
-        os << "   <mlwf> <center> " << setprecision(6)
-           << setw(12) << mlwfc_[i].x + correction_[i].x << " "
-           << setw(12) << mlwfc_[i].y + correction_[i].y << " "
-           << setw(12) << mlwfc_[i].z + correction_[i].z
+        os << " <mlwf> <center> " << setprecision(8)
+           << setw(14) << mlwfc_[i].x + correction_[i].x << " "
+           << setw(14) << mlwfc_[i].y + correction_[i].y << " "
+           << setw(14) << mlwfc_[i].z + correction_[i].z
            << " </center> </mlwf>"
            << endl;
 
         if ( compute_quadrupole_ )
-          os << "   <quad>"
-             << setw(12) << quad_[i][0] << " "
-             << setw(12) << quad_[i][4] << " "
-             << setw(12) << quad_[i][8] << " "
-             << setw(12) << quad_[i][1] << " "
-             << setw(12) << quad_[i][2] << " "
-             << setw(12) << quad_[i][5]
+          os << " <quad>"
+             << setw(14) << quad_[i][0] << " "
+             << setw(14) << quad_[i][4] << " "
+             << setw(14) << quad_[i][8] << " "
+             << setw(14) << quad_[i][1] << " "
+             << setw(14) << quad_[i][2] << " "
+             << setw(14) << quad_[i][5]
              << " </quad>" << endl;
       }
     }
     os << " </mlwfset>" << endl;
+    os << "</mlwfs>" << endl;
   }
 
   // print dipole
-  os << setprecision(10) << fixed << right;
-  os << " <dipole>\n";
-  os << "   <dipole_ion>   "
+  os << setprecision(8) << fixed << right;
+  os << "<dipole>\n";
+  os << " <dipole_ion>   "
      << setw(14) << dipole_ion_.x << " "
      << setw(14) << dipole_ion_.y << " "
      << setw(14) << dipole_ion_.z << " </dipole_ion>\n";
-  os << "   <dipole_el>    "
+  os << " <dipole_el>    "
      << setw(14) << dipole_el_.x << " "
      << setw(14) << dipole_el_.y << " "
      << setw(14) << dipole_el_.z << " </dipole_el>\n";
-  os << "   <dipole_total> "
+  os << " <dipole_total> "
      << setw(14) << dipole_total_.x << " "
      << setw(14) << dipole_total_.y << " "
      << setw(14) << dipole_total_.z << " </dipole_total>\n";
-  os << " </dipole>\n";
+  os << "</dipole>\n";
 
   if ( compute_quadrupole_ )
   {
@@ -721,30 +723,30 @@ void ElectricEnthalpy::print(ostream& os) const
     D3tensor q_traceless = q_total;
     q_traceless.traceless();
 
-    os << " <quadrupole> " << endl;
-    os << "   <quadrupole_ion> " << endl
+    os << "<quadrupole> " << endl;
+    os << " <quadrupole_ion> " << endl
        << q_ion
-       << "   </quadrupole_ion>" << endl;
-    os << "   <quadrupole_el> " << endl
+       << " </quadrupole_ion>" << endl;
+    os << " <quadrupole_el> " << endl
        << q_mlwf
-       << "   </quadrupole_el>" << endl;
-    os << "   <quadrupole_total> " << endl
+       << " </quadrupole_el>" << endl;
+    os << " <quadrupole_total> " << endl
        << q_total
-       << "   </quadrupole_total>" << endl;
-    os << "   <traceless_quadrupole> " << endl
+       << " </quadrupole_total>" << endl;
+    os << " <traceless_quadrupole> " << endl
        << q_traceless
-       << "   </traceless_quadrupole>" << endl;
+       << " </traceless_quadrupole>" << endl;
     char uplo = 'u';
     D3vector eigval;
     D3tensor eigvec;
     q_traceless.syev(uplo, eigval, eigvec);
-    os << "   <traceless_quadrupole_eigval> " << endl
-       << "    " << eigval << endl
-       << "   </traceless_quadrupole_eigval>" << endl;
-    os << "   <traceless_quadrupole_eigvec> " << endl
+    os << " <traceless_quadrupole_eigval> " << endl
+       << "  " << eigval << endl
+       << " </traceless_quadrupole_eigval>" << endl;
+    os << " <traceless_quadrupole_eigvec> " << endl
        << eigvec
-       << "   </traceless_quadrupole_eigvec>" << endl;
-    os << " </quadrupole> " << endl;
+       << " </traceless_quadrupole_eigvec>" << endl;
+    os << "</quadrupole> " << endl;
   }
 
 }

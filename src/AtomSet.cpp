@@ -18,7 +18,6 @@
 
 #include "AtomSet.h"
 #include "Species.h"
-#include "NameOf.h"
 #include "MPIdata.h"
 #include "sampling.h"
 #include <iostream>
@@ -57,9 +56,8 @@ bool AtomSet::addSpecies(Species* sp, string name)
     // Check if s and sp are compatible: zval must be equal
     if ( s->zval() != sp->zval() )
     {
-      cout << " AtomSet::addSpecies: species do not have the same"
-           << " number of valence electrons. Cannot redefine species" << endl;
-      return false;
+      throw runtime_error("AtomSet::addSpecies: species do not have the same"
+           " number of valence electrons. Cannot redefine species");
     }
 
     int is = isp_[s->name()];
@@ -92,10 +90,7 @@ bool AtomSet::addAtom(Atom *a)
   if ( findAtom(a->name()) )
   {
     // this name is already in the atom list, reject atom definition
-    if ( MPIdata::onpe0() )
-      cout << " AtomSet:addAtom: atom " << a->name()
-           << " is already defined" << endl;
-    return false;
+    throw runtime_error("AtomSet::addAtom: atom already defined");
   }
 
   // check if species is defined
@@ -104,10 +99,7 @@ bool AtomSet::addAtom(Atom *a)
   if ( !s )
   {
     // species not found, cannot define atom
-    if ( MPIdata::onpe0() )
-      cout << " AtomSet:addAtom: species " << spname
-           << " is undefined" << endl;
-    return false;
+    throw runtime_error("AtomSet::addAtom: species is undefined");
   }
 
   // add an atom to the atom_list
@@ -165,9 +157,7 @@ bool AtomSet::delAtom(string name)
   }
 
   // this name was not found in the atom list
-  if ( MPIdata::onpe0() )
-    cout << " AtomSet:delAtom: no such atom: " << name << endl;
-  return false;
+  throw runtime_error("AtomSet::delAtom: no such atom");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -181,7 +171,7 @@ Atom *AtomSet::findAtom(string name) const
         return atom_list[is][ia];
     }
   }
-  return 0;
+  return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -191,7 +181,7 @@ Species *AtomSet::findSpecies(string name) const
   if ( is >= 0 )
     return species_list[is];
   else
-    return 0;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -295,25 +285,17 @@ bool AtomSet::reset(void)
   atom_list.resize(0);
   species_list.resize(0);
   spname.resize(0);
-  for ( map<string,int>::iterator i = na_.begin();
-        i != na_.end();
-        i++ )
-        na_.erase(i);
+  for ( map<string,int>::iterator i = na_.begin(); i != na_.end(); ++i )
+    na_.erase(i);
 
-  for ( map<string,int>::iterator i = isp_.begin();
-        i != isp_.end();
-        i++ )
-        isp_.erase(i);
+  for ( map<string,int>::iterator i = isp_.begin(); i != isp_.end(); ++i )
+    isp_.erase(i);
 
-  for ( map<string,int>::iterator i = is_.begin();
-        i != is_.end();
-        i++ )
-        is_.erase(i);
+  for ( map<string,int>::iterator i = is_.begin(); i != is_.end(); ++i )
+    is_.erase(i);
 
-  for ( map<string,int>::iterator i = ia_.begin();
-        i != ia_.end();
-        i++ )
-        ia_.erase(i);
+  for ( map<string,int>::iterator i = ia_.begin(); i != ia_.end(); ++i )
+    ia_.erase(i);
   nel_ = 0;
 
   return true;

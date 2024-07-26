@@ -39,11 +39,13 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     self.inAtomset = 0
     self.inAtom = 0
     self.inPosition = 0
+    self.inVelocity = 0
     self.done = False
 
   def startElement(self, name, attributes):
     if name == "atomset":
       self.tau=[]
+      self.vel=[]
       self.atomname=[]
       self.inAtomset = 1
     elif (name == "unit_cell") & self.inAtomset:
@@ -56,9 +58,12 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     elif (name == "position") & self.inAtom:
         self.buffer = ""
         self.inPosition = 1
+    elif (name == "velocity") & self.inAtom:
+        self.buffer = ""
+        self.inVelocity = 1
 
   def characters(self, data):
-    if self.inPosition:
+    if (self.inPosition) or (self.inVelocity):
       self.buffer += data
 
   def endElement(self, name):
@@ -68,6 +73,10 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       pos = self.buffer.split()
       self.tau.append([pos[0],pos[1],pos[2]])
       self.inPosition = 0
+    if (name == "velocity") & self.inAtom:
+      v = self.buffer.split()
+      self.vel.append([v[0],v[1],v[2]])
+      self.inVelocity = 0
     elif name == "atomset":
       self.step += 1
       if ( self.step == iter ):
@@ -83,7 +92,8 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
           cvec[0],cvec[1],cvec[2])
         for i in range(len(self.tau)):
           print ("move ",self.atomname[i]," to ",\
-            self.tau[i][0],self.tau[i][1],self.tau[i][2])
+            self.tau[i][0],self.tau[i][1],self.tau[i][2],\
+            self.vel[i][0],self.vel[i][1],self.vel[i][2])
       self.inAtomset = 0
       self.done = ( self.step >= iter )
 

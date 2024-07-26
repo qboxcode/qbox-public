@@ -133,13 +133,12 @@ void UserInterface::processCmds(istream &cmdstream, const string prompt,
   if ( onpe0_ )
     cout << prompt << " ";
 
-  while ( !done )
+  do
   {
     if ( onpe0_ )
     {
       // readCmd returns 1 if a command is read, 0 if at EOF
       cmd_read = readCmd(cmdline, cmdstream, echo );
-      done = !cmd_read;
     }
 
     MPI_Bcast(&cmd_read,1,MPI_INT,0,MPI_COMM_WORLD);
@@ -159,7 +158,7 @@ void UserInterface::processCmds(istream &cmdstream, const string prompt,
       {
         execCmd(cmdline,prompt);
       }
-      catch ( invalid_argument const& e )
+      catch ( const exception& e )
       {
         if ( onpe0_ )
         {
@@ -175,7 +174,7 @@ void UserInterface::processCmds(istream &cmdstream, const string prompt,
       done |= terminate_;
 
     MPI_Bcast(&done,1,MPI_INT,0,MPI_COMM_WORLD);
-  }
+  } while ( !done && cmd_read );
 
   if ( onpe0_ )
     cout << " End of command stream " << endl;
@@ -255,7 +254,7 @@ void UserInterface::processCmdsServer ( string inputfilename,
         {
           execCmd(cmdline,prompt);
         }
-        catch ( invalid_argument const& e )
+        catch ( const exception& e )
         {
           if ( onpe0_ )
           {
@@ -418,6 +417,7 @@ void UserInterface::execCmd(string cmdline, string prompt)
         {
           if ( onpe0_ )
             cout << " No such command or file name: " << tok << endl;
+          throw runtime_error("UserInterface: no such command or file name");
         }
       }
     }

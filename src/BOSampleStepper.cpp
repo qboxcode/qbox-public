@@ -290,16 +290,14 @@ void BOSampleStepper::step(int niter)
   {
     // MLWF can be computed at the gamma point only
     // There must be a single k-point, and it must be gamma
-    if ( wf.nkp() > 1 || ( wf.nkp()==1 && wf.kpoint(0) != D3vector(0,0,0) ) )
-    {
-      if ( onpe0 )
-      {
-        cout << " BOSampleStepper::step: MLWF can be computed at k=0 only"
-             << endl;
-        cout << " BOSampleStepper::step: cannot run" << endl;
-      }
-      return;
-    }
+
+    // Check that only the k=0 point is used
+    if ( wf.nkp()>1 || length(wf.kpoint(0)) != 0.0 )
+      throw runtime_error("BOSampleStepper: can compute MLWF at k=0 only");
+
+    // Check if nempty > 0
+    if ( wf.nempty() > 0 )
+      throw runtime_error("BOSampleStepper: cannot compute MLWF with nempty>0");
 
     for ( int isp_loc = 0; isp_loc < wf.nsp_loc(); ++isp_loc )
     {
@@ -1174,13 +1172,25 @@ void BOSampleStepper::step(int niter)
         if ( onpe0 )
         {
           D3vector idipole = atoms.dipole();
-          cout << setprecision(6);
-          cout << " <ionic_dipole> " << idipole
-               << " </ionic_dipole>" << endl;
-          cout << " <total_dipole> " << idipole + edipole_sum
-               << " </total_dipole>" << endl;
-          cout << " <total_dipole_length> " << length(idipole + edipole_sum)
-               << " </total_dipole_length>" << endl;
+          cout << "<dipole>" << endl;
+          cout << setprecision(8);
+          cout << " <dipole_ion>   "
+               << setw(14) << idipole.x
+               << setw(14) << idipole.y
+               << setw(14) << idipole.z
+               << " </dipole_ion>" << endl;
+          cout << " <dipole_el>    "
+               << setw(14) << edipole_sum.x
+               << setw(14) << edipole_sum.y
+               << setw(14) << edipole_sum.z
+               << " </dipole_el>" << endl;
+          D3vector dipole_total = idipole + edipole_sum;
+          cout << " <dipole_total> "
+               << setw(14) << dipole_total.x
+               << setw(14) << dipole_total.y
+               << setw(14) << dipole_total.z
+               << " </dipole_total>" << endl;
+          cout << "</dipole>" << endl;
         }
         tmap["mlwf"].stop();
       }

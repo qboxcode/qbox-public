@@ -407,38 +407,26 @@ void MLWFTransform::apply_transform(SlaterDet& sd)
 ////////////////////////////////////////////////////////////////////////////////
 void MLWFTransform::print(ostream& os) const
 {
-  double total_spread[3] = { 0.0, 0.0, 0.0 };
   for ( int i = 0; i < sd_.nst(); i++ )
   {
     D3vector ctr = center(i);
-    double spi[3];
-    for (int j=0; j<3; j++)
-    {
-      spi[j] = spread2(i,j);
-      total_spread[j] += spi[j];
-    }
 
     os.setf(ios::fixed, ios::floatfield);
     os.setf(ios::right, ios::adjustfield);
     os << "   <mlwf>\n"
-       << "     <center>  " << setprecision(6)
-       << setw(12) << ctr.x
-       << setw(12) << ctr.y
-       << setw(12) << ctr.z
+       << "     <center>  " << setprecision(8)
+       << setw(14) << ctr.x
+       << setw(14) << ctr.y
+       << setw(14) << ctr.z
        << " </center>\n"
        << "     <spread2> "
-       << setw(12) << spi[0]
-       << setw(12) << spi[1]
-       << setw(12) << spi[2]
+       << setw(14) << spread2(i,0)
+       << setw(14) << spread2(i,1)
+       << setw(14) << spread2(i,2)
        << " </spread2>\n"
        << "   </mlwf>"
        << endl;
   }
-  D3vector edipole = dipole();
-  os << "   <e_dipole>  ";
-  for ( int j = 0; j < 3; j++ )
-    os << setprecision(6) << setw(12) << edipole[j];
-  os << " </e_dipole>" << endl;
 }
 ////////////////////////////////////////////////////////////////////////////////
 ostream& operator<<(ostream& os, MLWFTransform& mlwft)

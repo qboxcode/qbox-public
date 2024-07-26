@@ -94,7 +94,7 @@ class Wavefunction
 
   void resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
   void resize(double ec) { resize(cell_,refcell_,ec); }
-  void init(void); // initialize with lowest plane waves
+  void init_coeffs(void); // initialize with lowest plane waves
   void clear(void); // initialize with zero
   void reset(void); // reset to single kpoint, ecut=0
   void set_nel(int nel);

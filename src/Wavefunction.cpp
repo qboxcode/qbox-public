@@ -50,7 +50,7 @@ ecut_(wf.ecut_), weight_(wf.weight_), kpoint_(wf.kpoint_)
 {
   allocate();
   resize();
-  init();
+  init_coeffs();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -233,12 +233,12 @@ void Wavefunction::resize(void)
     cout << " Wavefunction: SlaterDetException during resize: " << endl
          << sdex.msg << endl;
     // no resize took place
-    return;
+    throw runtime_error("Wavefunction::resize error");
   }
   catch ( bad_alloc )
   {
     cout << " Wavefunction: insufficient memory for resize operation" << endl;
-    return;
+    throw runtime_error("Wavefunction::resize insufficient memory");
   }
 }
 
@@ -266,17 +266,17 @@ void Wavefunction::resize(const UnitCell& cell, const UnitCell& refcell,
     cout << " Wavefunction: SlaterDetException during resize: " << endl
          << sdex.msg << endl;
     // no resize took place
-    return;
+    throw runtime_error("Wavefunction::resize error");
   }
   catch ( bad_alloc )
   {
     cout << " Wavefunction: insufficient memory for resize operation" << endl;
-    return;
+    throw runtime_error("Wavefunction::resize insufficient memory");
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Wavefunction::init(void)
+void Wavefunction::init_coeffs(void)
 {
   // initialize all SlaterDets with lowest energy plane waves
   for ( int isp_loc = 0; isp_loc < sd_.size(); ++isp_loc )
@@ -341,10 +341,7 @@ void Wavefunction::set_nel(int nel)
 {
   if ( nel == nel_ ) return;
   if ( nel < 0 )
-  {
-    cout << " Wavefunction::set_nel: nel < 0" << endl;
-    return;
-  }
+    throw runtime_error("Wavefunction::set_nel: nel < 0");
 
   nel_ = nel;
   compute_nst();
@@ -356,10 +353,8 @@ void Wavefunction::set_nempty(int nempty)
 {
   if ( nempty == nempty_ ) return;
   if ( nempty < 0 )
-  {
-    cout << " Wavefunction::set_nempty: negative value" << endl;
-    return;
-  }
+    throw runtime_error("Wavefunction::set_nempty: negative value");
+
   nempty_ = nempty;
   compute_nst();
   update_occ(0.0);
@@ -378,7 +373,7 @@ void Wavefunction::set_nspin(int nspin)
   compute_nst();
   allocate();
   resize();
-  init();
+  init_coeffs();
   update_occ(0.0);
 }
 
@@ -390,20 +385,14 @@ void Wavefunction::set_deltaspin(int deltaspin)
   // check if value of deltaspin would result in nst[1] < 0
   // nst_[1] = nel_ / 2 - deltaspin_ + nempty_;
   if ( nel_ / 2 - deltaspin + nempty_ < 0 )
-  {
-    if ( MPIdata::onpe0() )
-    {
-      cout << " Wavefunction::set_deltaspin: nel+nempty too small" << endl;
-      cout << " Wavefunction::set_deltaspin: cannot set deltaspin" << endl;
-      return;
-    }
-  }
+    throw runtime_error("Wavefunction::set_deltaspin: nel+nempty too small");
+
   deallocate();
   deltaspin_ = deltaspin;
   compute_nst();
   allocate();
   resize();
-  init();
+  init_coeffs();
   update_occ(0.0);
 }
 
@@ -413,12 +402,7 @@ void Wavefunction::add_kpoint(D3vector kpoint, double weight)
   for ( int i = 0; i < kpoint_.size(); i++ )
   {
     if ( length(kpoint - kpoint_[i]) < 1.e-6 )
-    {
-      if ( MPIdata::onpe0() )
-        cout << " Wavefunction::add_kpoint: kpoint already defined"
-             << endl;
-      return;
-    }
+      throw runtime_error("Wavefunction::add_kpoint: kpoint already defined");
   }
 
   kpoint_.push_back(kpoint);
@@ -489,18 +473,14 @@ void Wavefunction::del_kpoint(D3vector kpoint)
     }
   }
   if ( !found )
-  {
-    if ( MPIdata::onpe0() )
-      cout << " Wavefunction::del_kpoint: no such kpoint"
-         << endl;
-    return;
-  }
+    throw runtime_error("Wavefunction::del_kpoint: no such kpoint");
+
   deallocate();
   kpoint_.erase(pk);
   weight_.erase(pw);
   allocate();
   resize();
-  init();
+  init_coeffs();
   update_occ(0.0);
 }
 
@@ -520,23 +500,17 @@ void Wavefunction::move_kpoint(D3vector kpoint, D3vector newkpoint)
       ikp++;
     }
   }
+
   if ( !found )
-  {
-    if ( MPIdata::onpe0() )
-      cout << " Wavefunction::move_kpoint: no such kpoint"
-         << endl;
-    return;
-  }
+    throw runtime_error("Wavefunction::move_kpoint: no such kpoint");
+
   // check if new kpoint position coincides with existing kpoint
   for ( int i = 0; i < kpoint_.size(); i++ )
   {
     if ( length(newkpoint - kpoint_[i]) < 1.e-6 )
     {
-      if ( MPIdata::onpe0() )
-        cout << " Wavefunction::move_kpoint: kpoint already defined "
-             << "at kpoint new position"
-             << endl;
-      return;
+      throw runtime_error("Wavefunction::move_kpoint: kpoint already defined"
+                          " at new position");
     }
   }
 
@@ -743,11 +717,7 @@ void Wavefunction::update_occ(double temp)
     }
 
     if ( niter == maxiter )
-    {
-      cout << "Wavefunction::update_occ: mu did not converge in "
-           << maxiter << " iterations" << endl;
-      MPI_Abort(MPIdata::comm(),1);
-    }
+      throw runtime_error("Wavefunction::update_occ: mu did not converge");
 
     if ( MPIdata::onpe0() )
     {

@@ -72,9 +72,11 @@ void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
   {
     if ( MPIdata::onpe0() )
       cout << "  CGIonicStepper: displacement exceeds limit, rescaling" << endl;
-    // rescale displacement
+    // rescale displacement and reset the CG optimizer
     double fac = max_disp/largest_disp;
     xp = x + fac * (xp - x);
+    cgopt_.set_alpha_start(fac*cgopt_.alpha_start());
+    cgopt_.reset();
   }
 
   if ( MPIdata::onpe0() )

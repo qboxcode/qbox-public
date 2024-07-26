@@ -1,4 +1,11 @@
 --------------------------------------------------------------------------------
+rel1_78_1
+--------------------------------------------------------------------------------
+193543a Unify MLWF and dipole print format
+74f6892 Update CGIonicStepper to reset optmizer
+734ffe9 Add velocity info in qbox move scripts
+f0665d9 Add optional velocities to move command
+--------------------------------------------------------------------------------
 rel1_78_0
 --------------------------------------------------------------------------------
 9b13e28 Cleanup ElectricEnthalpy

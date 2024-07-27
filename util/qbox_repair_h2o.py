@@ -43,9 +43,19 @@ for line in f:
   elif ( l[0] == "species" ):
     print (line)
   elif ( l[0] == "atom" ) & ( l[2] == "oxygen" ):
-    olist.append([l[0],l[1],l[2],float(l[3]),float(l[4]),float(l[5])])
+    if ( len(l) == 9 ):
+      olist.append([l[0],l[1],l[2],float(l[3]),float(l[4]),float(l[5]),
+      float(l[6]),float(l[7]),float(l[8])])
+    else:
+      olist.append([l[0],l[1],l[2],float(l[3]),float(l[4]),float(l[5]),
+      0.0, 0.0, 0.0])
   elif ( l[0] == "atom" ) & ( l[2] == "hydrogen" ):
-    hlist.append([l[0],l[1],l[2],float(l[3]),float(l[4]),float(l[5])])
+    if ( len(l) == 9 ):
+      hlist.append([l[0],l[1],l[2],float(l[3]),float(l[4]),float(l[5]),
+      float(l[6]),float(l[7]),float(l[8])])
+    else:
+      hlist.append([l[0],l[1],l[2],float(l[3]),float(l[4]),float(l[5]),
+      0.0, 0.0, 0.0])
 
 for o in olist:
   fold_in_ws(o)
@@ -78,6 +88,14 @@ for h in hlist:
     h[5] += sz_min
 
 for o in olist:
-  print (o[0],o[1],o[2],'%10.5f'%o[3],'%10.5f'%o[4],'%10.5f'%o[5])
+  if ( len(o) == 9 ):
+    print (o[0],o[1],o[2],'%14.8f'%o[3],'%14.8f'%o[4],'%14.8f'%o[5],
+    '%14.8f'%o[6],'%14.8f'%o[7],'%14.8f'%o[8])
+  else:
+    print (o[0],o[1],o[2],'%14.8f'%o[3],'%14.8f'%o[4],'%14.8f'%o[5])
 for h in hlist:
-  print (h[0],h[1],h[2],'%10.5f'%h[3],'%10.5f'%h[4],'%10.5f'%h[5])
+  if ( len(h) == 9 ):
+    print (h[0],h[1],h[2],'%14.8f'%h[3],'%14.8f'%h[4],'%14.8f'%h[5],
+    '%14.8f'%h[6],'%14.8f'%h[7],'%14.8f'%h[8])
+  else:
+    print (h[0],h[1],h[2],'%14.8f'%h[3],'%14.8f'%h[4],'%14.8f'%h[5])

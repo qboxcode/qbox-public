@@ -241,21 +241,52 @@ void ElectricEnthalpy::update(void)
       dwf_->clear();
       for ( int idir = 0; idir < 3; idir++ )
       {
-        if ( e_field_[idir] != 0.0 )
+        // MLWF part
+        if ( pol_type_ == mlwf )
         {
-          // MLWF part
-          if ( pol_type_ == mlwf )
+          const double fac = ( e_field_ * cell.a(idir) ) / ( 2.0 * M_PI );
+
+          if ( fac != 0.0 )
           {
             const double nst = sd_.nst();
-            std::vector<double> adiag_inv_real(nst,0),adiag_inv_imag(nst,0);
+            std::vector<double> z_inv_real(nst,0),z_inv_imag(nst,0);
             for ( int ist = 0; ist < nst; ist ++ )
             {
-              const std::complex<double>
-                adiag( mlwft_->adiag(idir*2,ist),mlwft_->adiag(idir*2+1,ist) );
-
-              adiag_inv_real[ist] = real( std::complex<double>(1,0) / adiag );
-              adiag_inv_imag[ist] = imag( std::complex<double>(1,0) / adiag );
-
+              // c,s = B^T * adiag(idir,ist)
+              const double itwopi = 1.0 / ( 2.0 * M_PI );
+              const double *bmat = cell.bmat();
+              double c,s;
+              if ( idir == 0 )
+              {
+                c = itwopi * ( bmat[0] * mlwft_->adiag(0,ist) +
+                               bmat[1] * mlwft_->adiag(2,ist) +
+                               bmat[2] * mlwft_->adiag(4,ist) );
+                s = itwopi * ( bmat[0] * mlwft_->adiag(1,ist) +
+                               bmat[1] * mlwft_->adiag(3,ist) +
+                               bmat[2] * mlwft_->adiag(5,ist) );
+              }
+              else if ( idir == 1 )
+              {
+                c = itwopi * ( bmat[3] * mlwft_->adiag(0,ist) +
+                               bmat[4] * mlwft_->adiag(2,ist) +
+                               bmat[5] * mlwft_->adiag(4,ist) );
+                s = itwopi * ( bmat[3] * mlwft_->adiag(1,ist) +
+                               bmat[4] * mlwft_->adiag(3,ist) +
+                               bmat[5] * mlwft_->adiag(5,ist) );
+              }
+              else
+              {
+                c = itwopi * ( bmat[6] * mlwft_->adiag(0,ist) +
+                               bmat[7] * mlwft_->adiag(2,ist) +
+                               bmat[8] * mlwft_->adiag(4,ist) );
+                s = itwopi * ( bmat[6] * mlwft_->adiag(1,ist) +
+                               bmat[7] * mlwft_->adiag(3,ist) +
+                               bmat[8] * mlwft_->adiag(5,ist) );
+              }
+              const std::complex<double> z(c,s);
+              const std::complex<double> z_inv = std::complex<double>(1,0)/z;
+              z_inv_real[ist] = real( z_inv );
+              z_inv_imag[ist] = imag( z_inv );
             }
 
             DoubleMatrix ccos(sdcos[idir]->c());
@@ -266,14 +297,12 @@ void ElectricEnthalpy::update(void)
             int mloc = cp.mloc();
             int ione = 1;
 
-            const double fac = cell.a_norm(idir)
-                               * e_field_[idir] / ( 2.0 * M_PI );
 
             for (int in = 0; in < nloc; in++)
             {
               int ist = cp.jglobal(in);
-              double fac1 = adiag_inv_real[ist] * fac;
-              double fac2 = adiag_inv_imag[ist] * fac;
+              double fac1 = z_inv_real[ist] * fac;
+              double fac2 = z_inv_imag[ist] * fac;
 
               double *ptr1 = &cp[in*mloc],
                      *ptrcos = &ccos[in*mloc],
@@ -281,12 +310,14 @@ void ElectricEnthalpy::update(void)
 
               daxpy(&mloc, &fac2, ptrcos, &ione, ptr1, &ione);
               daxpy(&mloc, &fac1, ptrsin, &ione, ptr1, &ione);
-
             }
-          }
-          else if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
+          } // if fac
+        }
+        else if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
+        {
+          // MLWF_REF part: real-space correction
+          if ( e_field_[idir] != 0.0 )
           {
-            // MLWF_REF part: real-space correction
             DoubleMatrix cc(rwf_[idir]->sd(0,0)->c());
             DoubleMatrix cp(dwf_->sd(0,0)->c());
 
@@ -294,8 +325,8 @@ void ElectricEnthalpy::update(void)
             double alpha = e_field_[idir];
             int ione = 1;
             daxpy (&size, &alpha, cc.valptr(), &ione, cp.valptr(), &ione);
-          } // if pol_type_
-        } // if e_field_[idir]
+          }
+        } // if pol_type_
       } // for idir
     } // if finite_field_
   }
@@ -308,11 +339,10 @@ void ElectricEnthalpy::update(void)
 
     for ( int idir = 0; idir < 3; idir++ )
     {
-      const double fac = cell.a_norm(idir)/( 2.0*M_PI );
       complex<double>* val = smat_[idir]->valptr();
 
-      const double* re = mlwft_->a(idir*2)->cvalptr();
-      const double* im = mlwft_->a(idir*2+1)->cvalptr();
+      const double* re = mlwft_->b(idir*2)->cvalptr();
+      const double* im = mlwft_->b(idir*2+1)->cvalptr();
       for ( int i = 0; i < smat_[idir]->size(); i++ )
         val[i] = complex<double>(re[i],im[i]);
 
@@ -346,52 +376,51 @@ void ElectricEnthalpy::update(void)
       for ( int ii = 0; ii < n; ii++ )
         sumarg += arg(diag[ii]);
 
-      // compute determinant
-      complex<double> det = 1.0;
-      for ( int ii = 0; ii < n; ii++ )
-        det *= diag[ii];
-
       const int sign = sm.signature(ipiv);
       if ( sign == -1 )
         sumarg += M_PI;
 
       // assume occupation number of 2.0
-      dipole_el_[idir] = - 2.0 * fac * sumarg;
+      // sumarg contains Im ln S(idir)
+      // contribution to dipole[i] = sum_idir -2.0 * a(i,idir) * S(idir)/(2*pi)
+
+      dipole_el_ -= cell.a(idir) * sumarg / M_PI;
 
       if ( finite_field_ )
       {
-        // compute inverse of smat
-        sm.inverse_from_lu(ipiv);
+        // alpha = ( e_field dot a_idir ) / ( 2 * pi )
+        double alpha = e_field_ * cell.a(idir) / ( 2.0 * M_PI );
 
-        // real and img part of S^{-1}
-        DoubleMatrix s_real(ctxt_,n,n,nb,nb);
-        DoubleMatrix s_img(ctxt_,n,n,nb,nb);
-        DoubleMatrix sp(sm);
+        if ( alpha != 0.0 )
+        {
 
-        int size = s_real.size();
-        int ione = 1, itwo = 2;
+          // compute inverse of smat
+          sm.inverse_from_lu(ipiv);
 
-        // copy real and imaginary parts of s to s_real and s_img
-        dcopy(&size,sp.valptr(),&itwo,s_real.valptr(),&ione);
-        dcopy(&size,sp.valptr()+1,&itwo,s_img.valptr(),&ione);
+          // real and img part of S^{-1}
+          DoubleMatrix s_real(ctxt_,n,n,nb,nb);
+          DoubleMatrix s_img(ctxt_,n,n,nb,nb);
+          DoubleMatrix sp(sm);
 
-        // proxy Matrix for cosx|psi> and sinx|psi>
-        DoubleMatrix cosp(sdcos[idir]->c());
-        DoubleMatrix sinp(sdsin[idir]->c());
+          int size = s_real.size();
+          int ione = 1, itwo = 2;
 
-        // alpha = E_i * L_i / 2pi
-        double alpha = fac * e_field_[idir];
+          // copy real and imaginary parts of s to s_real and s_img
+          dcopy(&size,sp.valptr(),&itwo,s_real.valptr(),&ione);
+          dcopy(&size,sp.valptr()+1,&itwo,s_img.valptr(),&ione);
 
-        gradp.gemm('n','n',alpha,cosp,s_img,1.0);
-        gradp.gemm('n','n',alpha,sinp,s_real,1.0);
+          // proxy Matrix for cosx|psi> and sinx|psi>
+          DoubleMatrix cosp(sdcos[idir]->c());
+          DoubleMatrix sinp(sdsin[idir]->c());
+
+          gradp.gemm('n','n',alpha,cosp,s_img,1.0);
+          gradp.gemm('n','n',alpha,sinp,s_real,1.0);
+        }
       }
     } // for idir
   }
 
   dipole_total_ = dipole_ion_ + dipole_el_;
-  cell.fold_in_ws(dipole_ion_);
-  cell.fold_in_ws(dipole_el_);
-  cell.fold_in_ws(dipole_total_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

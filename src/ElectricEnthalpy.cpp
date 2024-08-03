@@ -88,6 +88,13 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
     pol_type_ = mlwf_ref;
   else if ( s.ctrl.polarization == "MLWF_REF_Q" )
   {
+    const UnitCell& cell = sd_.basis().cell();
+    // test if unit cell is orthorhombic
+    if ( cell.a(0).y != 0 || cell.a(0).z != 0 ||
+         cell.a(1).z != 0 || cell.a(1).x != 0 ||
+         cell.a(2).x != 0 || cell.a(0).y != 0 )
+      throw runtime_error("ElectricEnthalpy: quadrupole not implemented"
+                          " for non-orthorhombic cells");
     pol_type_ = mlwf_ref_q;
     compute_quadrupole_ = true;
   }
@@ -481,16 +488,6 @@ void ElectricEnthalpy::compute_correction(void)
   const D3vector a1 = cell.a(1);
   const D3vector a2 = cell.a(2);
 
-  // cell vector lengths
-  const double a0n = length(a0);
-  const double a1n = length(a1);
-  const double a2n = length(a2);
-
-  // half cell vectors
-  const double a0h = 0.5 * a0n;
-  const double a1h = 0.5 * a1n;
-  const double a2h = 0.5 * a2n;
-
   for ( int i = 0; i < nst; i++ )
     correction_[i] = D3vector(0,0,0);
 
@@ -549,43 +546,33 @@ void ElectricEnthalpy::compute_correction(void)
       const double c1 = itwopi * ( bmat[3] * xc + bmat[4] * yc + bmat[5] * zc );
       const double c2 = itwopi * ( bmat[6] * xc + bmat[7] * yc + bmat[8] * zc );
 
-#if 0
-      // compute shifted sawtooth potentials v0, v1, v2
-      vector<double> v0(ft.np0()), v1(ft.np1()), v2(ft.np2());
-      for ( int i = 0; i < v0.size(); i++ )
+      // compute cache of shifted sawtooth potentials v0[i], v1[j], v2[k]
+      const int np0 = ft.np0();
+      const int np1 = ft.np1();
+      const int np2 = ft.np2();
+      vector<double> v0(np0), v1(np1), v2(np2);
+
+      for ( int i0 = 0; i0 < np0; ++i0 )
       {
-        double x = i * d0 - x0;
-        if ( x >  a0h ) x -= a0n;
-        if ( x < -a0h ) x += a0n;
-#ifdef NO_VSST
-        v0[i] = x / a0n;
-#else
-        v0[i] = vsst(x/a0n);
-#endif
+        double arg0 = static_cast<double>(i0)/np0 - c0;
+        if ( arg0 < -0.5 ) arg0 += 1.0;
+        if ( arg0 >  0.5 ) arg0 -= 1.0;
+        v0[i0] = vsst(arg0);
       }
-      for ( int j = 0; j < v1.size(); j++ )
+      for ( int i1 = 0; i1 < np1; ++i1 )
       {
-        double y = j * d1 - x1;
-        if ( y >  a1h ) y -= a1n;
-        if ( y < -a1h ) y += a1n;
-#ifdef NO_VSST
-        v1[j] = y / a1n;
-#else
-        v1[j] = vsst(y/a1n);
-#endif
+        double arg1 = static_cast<double>(i1)/np1 - c1;
+        if ( arg1 < -0.5 ) arg1 += 1.0;
+        if ( arg1 >  0.5 ) arg1 -= 1.0;
+        v1[i1] = vsst(arg1);
       }
-      for ( int k = 0; k < v2.size(); k++ )
+      for ( int i2 = 0; i2 < np2; ++i2 )
       {
-        double z = k * d2 - x2;
-        if ( z >  a2h ) z -= a2n;
-        if ( z < -a2h ) z += a2n;
-#ifdef NO_VSST
-        v2[k] = z / a2n;
-#else
-        v2[k] = vsst(z/a2n);
-#endif
+        double arg2 = static_cast<double>(i2)/np2 - c2;
+        if ( arg2 < -0.5 ) arg2 += 1.0;
+        if ( arg2 >  0.5 ) arg2 -= 1.0;
+        v2[i2] = vsst(arg2);
       }
-#endif
 
       for ( int i = 0; i < np012loc; i++ )
       {
@@ -593,42 +580,12 @@ void ElectricEnthalpy::compute_correction(void)
         int i1 = ft.j(i);
         int i2 = ft.k(i);
 
-        // position r in a coordinates:
-        // r = i0/np0 * a0 + i1/np1 * a1 + i2/np2 * a2
-        // subtract correction rc = c0 * a0 + c1 * a1 + c2 * a2
-        // project (r-rc) onto reciprocal lattice vectors b_k
-        // (r-rc)*b0/(2*pi) = (i0/np0-c0)
-        // (r-rc)*b1/(2*pi) = (i1/np1-c1)
-        // (r-rc)*b2/(2*pi) = (i2/np2-c2)
-
-        double arg0 = static_cast<double>(i0)/ft.np0() - c0;
-        double arg1 = static_cast<double>(i1)/ft.np1() - c1;
-        double arg2 = static_cast<double>(i2)/ft.np2() - c2;
-
-        // compute potential values v0, v1, v2
-        // v0 = vsst((r-rc)*b0)
-        // v1 = vsst((r-rc)*b1)
-        // v2 = vsst((r-rc)*b2)
-
-        // fold arguments in [-1/2,1/2] for vsst
-        if ( arg0 < -0.5 ) arg0 += 1.0;
-        if ( arg0 >  0.5 ) arg0 -= 1.0;
-        if ( arg1 < -0.5 ) arg1 += 1.0;
-        if ( arg1 >  0.5 ) arg1 -= 1.0;
-        if ( arg2 < -0.5 ) arg2 += 1.0;
-        if ( arg2 >  0.5 ) arg2 -= 1.0;
-
-        const double v0 = vsst(arg0);
-        const double v1 = vsst(arg1);
-        const double v2 = vsst(arg2);
-
         // multiply wft by each potential
-
         const double wft = real(wftmp[i]);
 
-        const double wft0 = v0 * wft;
-        const double wft1 = v1 * wft;
-        const double wft2 = v2 * wft;
+        const double wft0 = v0[i0] * wft;
+        const double wft1 = v1[i1] * wft;
+        const double wft2 = v2[i2] * wft;
 
         // accumulate sum for expectation values of vsst((r-rc)*b_k) k=0,1,2
         pref[0] += wft * wft0;
@@ -641,8 +598,6 @@ void ElectricEnthalpy::compute_correction(void)
 
         if ( compute_quadrupole_ )
         {
-          //!! quadrupole must be computed in absolute coordinates
-          throw runtime_error("quadrupole not implemented");
           pref[3] += wft0 * wft0;
           pref[4] += wft1 * wft1;
           pref[5] += wft2 * wft2;
@@ -680,8 +635,6 @@ void ElectricEnthalpy::compute_correction(void)
         D3vector& pcor = correction_[ist];
         D3tensor& pquad = quad_[ist];
 
-        //!! next lines not corrected for tranformation to absolute coordinates
-        throw runtime_error("ElectricEnthalpy: not implemented");
         pcor[0] += ref[ist*9]/np012v;
         pcor[1] += ref[ist*9+1]/np012v;
         pcor[2] += ref[ist*9+2]/np012v;
@@ -695,7 +648,7 @@ void ElectricEnthalpy::compute_correction(void)
     }
     else
     {
-      // corrections in b coordinates in vector (d0,d1,d2)
+      // correction in b coordinates in (d0,d1,d2)
       // compute correction in absolute coordinates using
       // (dx,dy,dz) = A * (d0,d1,d2)
 

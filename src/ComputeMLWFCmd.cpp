@@ -88,8 +88,8 @@ int ComputeMLWFCmd::action(int argc, char **argv)
   if ( onpe0 )
   {
     D3vector idipole = s->atoms.dipole();
+    cout << setprecision(8) << fixed << right;
     cout << "<dipole>" << endl;
-    cout << setprecision(8);
     cout << " <dipole_ion>   "
          << setw(14) << idipole.x
          << setw(14) << idipole.y

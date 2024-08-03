@@ -261,34 +261,16 @@ void ElectricEnthalpy::update(void)
               // c,s = B^T * adiag(idir,ist)
               const double itwopi = 1.0 / ( 2.0 * M_PI );
               const double *bmat = cell.bmat();
-              double c,s;
-              if ( idir == 0 )
-              {
-                c = itwopi * ( bmat[0] * mlwft_->adiag(0,ist) +
-                               bmat[1] * mlwft_->adiag(2,ist) +
-                               bmat[2] * mlwft_->adiag(4,ist) );
-                s = itwopi * ( bmat[0] * mlwft_->adiag(1,ist) +
-                               bmat[1] * mlwft_->adiag(3,ist) +
-                               bmat[2] * mlwft_->adiag(5,ist) );
-              }
-              else if ( idir == 1 )
-              {
-                c = itwopi * ( bmat[3] * mlwft_->adiag(0,ist) +
-                               bmat[4] * mlwft_->adiag(2,ist) +
-                               bmat[5] * mlwft_->adiag(4,ist) );
-                s = itwopi * ( bmat[3] * mlwft_->adiag(1,ist) +
-                               bmat[4] * mlwft_->adiag(3,ist) +
-                               bmat[5] * mlwft_->adiag(5,ist) );
-              }
-              else
-              {
-                c = itwopi * ( bmat[6] * mlwft_->adiag(0,ist) +
-                               bmat[7] * mlwft_->adiag(2,ist) +
-                               bmat[8] * mlwft_->adiag(4,ist) );
-                s = itwopi * ( bmat[6] * mlwft_->adiag(1,ist) +
-                               bmat[7] * mlwft_->adiag(3,ist) +
-                               bmat[8] * mlwft_->adiag(5,ist) );
-              }
+
+              const double c = itwopi * (
+                bmat[3*idir+0] * mlwft_->adiag(0,ist) +
+                bmat[3*idir+1] * mlwft_->adiag(2,ist) +
+                bmat[3*idir+2] * mlwft_->adiag(4,ist) );
+
+              const double s = itwopi * (
+                bmat[3*idir+0] * mlwft_->adiag(1,ist) +
+                bmat[3*idir+1] * mlwft_->adiag(3,ist) +
+                bmat[3*idir+2] * mlwft_->adiag(5,ist) );
               const std::complex<double> z(c,s);
               const std::complex<double> z_inv = std::complex<double>(1,0)/z;
               z_inv_real[ist] = real( z_inv );
@@ -302,7 +284,6 @@ void ElectricEnthalpy::update(void)
             int nloc = cp.nloc();
             int mloc = cp.mloc();
             int ione = 1;
-
 
             for (int in = 0; in < nloc; in++)
             {

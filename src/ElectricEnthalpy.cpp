@@ -248,12 +248,11 @@ void ElectricEnthalpy::update(void)
       dwf_->clear();
       for ( int idir = 0; idir < 3; idir++ )
       {
-        // MLWF part
-        if ( pol_type_ == mlwf )
+        double alpha = e_field_ * cell.a(idir);
+        if ( alpha != 0.0 )
         {
-          const double fac = ( e_field_ * cell.a(idir) ) / ( 2.0 * M_PI );
-
-          if ( fac != 0.0 )
+          // MLWF part
+          if ( pol_type_ == mlwf )
           {
             const double nst = sd_.nst();
             std::vector<double> z_inv_real(nst,0),z_inv_imag(nst,0);
@@ -308,8 +307,8 @@ void ElectricEnthalpy::update(void)
             for (int in = 0; in < nloc; in++)
             {
               int ist = cp.jglobal(in);
-              double fac1 = z_inv_real[ist] * fac;
-              double fac2 = z_inv_imag[ist] * fac;
+              double fac1 = z_inv_real[ist] * alpha / ( 2.0 * M_PI );
+              double fac2 = z_inv_imag[ist] * alpha / ( 2.0 * M_PI );
 
               double *ptr1 = &cp[in*mloc],
                      *ptrcos = &ccos[in*mloc],
@@ -318,22 +317,18 @@ void ElectricEnthalpy::update(void)
               daxpy(&mloc, &fac2, ptrcos, &ione, ptr1, &ione);
               daxpy(&mloc, &fac1, ptrsin, &ione, ptr1, &ione);
             }
-          } // if fac
-        }
-        else if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
-        {
-          // MLWF_REF part: real-space correction
-          if ( e_field_[idir] != 0.0 )
+          }
+          else if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
           {
+            // MLWF_REF part: real-space correction
             DoubleMatrix cc(rwf_[idir]->sd(0,0)->c());
             DoubleMatrix cp(dwf_->sd(0,0)->c());
 
             int size = cc.size();
-            double alpha = e_field_[idir];
             int ione = 1;
             daxpy (&size, &alpha, cc.valptr(), &ione, cp.valptr(), &ione);
-          }
-        } // if pol_type_
+          } // if pol_type_
+        } // if alpha
       } // for idir
     } // if finite_field_
   }

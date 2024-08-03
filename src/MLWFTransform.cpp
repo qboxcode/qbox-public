@@ -323,35 +323,13 @@ double MLWFTransform::spread2(int i, int j) const
 
   const double itwopi = 1.0 / ( 2.0 * M_PI );
   const double *bmat = cell_.bmat();
-  // c,s = B^T * adiag
-  double c,s;
-  if ( j == 0 )
-  {
-    c = itwopi * ( bmat[0] * adiag_[0][i] +
-                   bmat[1] * adiag_[2][i] +
-                   bmat[2] * adiag_[4][i] );
-    s = itwopi * ( bmat[0] * adiag_[1][i] +
-                   bmat[1] * adiag_[3][i] +
-                   bmat[2] * adiag_[5][i] );
-  }
-  else if ( j == 1 )
-  {
-    c = itwopi * ( bmat[3] * adiag_[0][i] +
-                   bmat[4] * adiag_[2][i] +
-                   bmat[5] * adiag_[4][i] );
-    s = itwopi * ( bmat[3] * adiag_[1][i] +
-                   bmat[4] * adiag_[3][i] +
-                   bmat[5] * adiag_[5][i] );
-  }
-  else
-  {
-    c = itwopi * ( bmat[6] * adiag_[0][i] +
-                   bmat[7] * adiag_[2][i] +
-                   bmat[8] * adiag_[4][i] );
-    s = itwopi * ( bmat[6] * adiag_[1][i] +
-                   bmat[7] * adiag_[3][i] +
-                   bmat[8] * adiag_[5][i] );
-  }
+  // c,s = B^T * adiag / ( 2 * pi )
+  const double c = itwopi * ( bmat[3*j+0] * adiag_[0][i] +
+                              bmat[3*j+1] * adiag_[2][i] +
+                              bmat[3*j+2] * adiag_[4][i] );
+  const double s = itwopi * ( bmat[3*j+0] * adiag_[1][i] +
+                              bmat[3*j+1] * adiag_[3][i] +
+                              bmat[3*j+2] * adiag_[5][i] );
 
   const double fac = 1.0 / length(cell_.b(j));
   return fac*fac * ( 1.0 - c*c - s*s );

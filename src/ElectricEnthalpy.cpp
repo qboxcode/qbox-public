@@ -254,49 +254,40 @@ void ElectricEnthalpy::update(void)
           // MLWF part
           if ( pol_type_ == mlwf )
           {
-            const double nst = sd_.nst();
-            std::vector<double> z_inv_real(nst,0),z_inv_imag(nst,0);
-            for ( int ist = 0; ist < nst; ist ++ )
-            {
-              // c,s = B^T * adiag(idir,ist)
-              const double itwopi = 1.0 / ( 2.0 * M_PI );
-              const double *bmat = cell.bmat();
-
-              const double c = itwopi * (
-                bmat[3*idir+0] * mlwft_->adiag(0,ist) +
-                bmat[3*idir+1] * mlwft_->adiag(2,ist) +
-                bmat[3*idir+2] * mlwft_->adiag(4,ist) );
-
-              const double s = itwopi * (
-                bmat[3*idir+0] * mlwft_->adiag(1,ist) +
-                bmat[3*idir+1] * mlwft_->adiag(3,ist) +
-                bmat[3*idir+2] * mlwft_->adiag(5,ist) );
-              const std::complex<double> z(c,s);
-              const std::complex<double> z_inv = std::complex<double>(1,0)/z;
-              z_inv_real[ist] = real( z_inv );
-              z_inv_imag[ist] = imag( z_inv );
-            }
-
             DoubleMatrix ccos(sdcos[idir]->c());
             DoubleMatrix csin(sdsin[idir]->c());
             DoubleMatrix cp(dwf_->sd(0,0)->c());
+            const int nloc = cp.nloc();
 
-            int nloc = cp.nloc();
-            int mloc = cp.mloc();
-            int ione = 1;
-
-            for (int in = 0; in < nloc; in++)
+            for (int n = 0; n < nloc; ++n)
             {
-              int ist = cp.jglobal(in);
-              double fac1 = z_inv_real[ist] * alpha / ( 2.0 * M_PI );
-              double fac2 = z_inv_imag[ist] * alpha / ( 2.0 * M_PI );
+              const int nglobal = cp.jglobal(n);
 
-              double *ptr1 = &cp[in*mloc],
-                     *ptrcos = &ccos[in*mloc],
-                     *ptrsin = &csin[in*mloc];
+              // z_re,z_im = B^T * adiag(idir,nglobal)
+              const double *bmat = cell.bmat();
 
-              daxpy(&mloc, &fac2, ptrcos, &ione, ptr1, &ione);
-              daxpy(&mloc, &fac1, ptrsin, &ione, ptr1, &ione);
+              const double z_re =
+                bmat[3*idir+0] * mlwft_->adiag(0,nglobal) +
+                bmat[3*idir+1] * mlwft_->adiag(2,nglobal) +
+                bmat[3*idir+2] * mlwft_->adiag(4,nglobal);
+
+              const double z_im =
+                bmat[3*idir+0] * mlwft_->adiag(1,nglobal) +
+                bmat[3*idir+1] * mlwft_->adiag(3,nglobal) +
+                bmat[3*idir+2] * mlwft_->adiag(5,nglobal);
+
+              // z = z_re + i z_im
+              complex<double> z(z_re,z_im);
+              // z_inv = 1 / z
+              complex<double> z_inv = complex<double>(1.0,0.0) / z;
+
+              double fac1 = alpha * z_inv.real();
+              double fac2 = alpha * z_inv.imag();
+
+              int mloc = cp.mloc();
+              int ione = 1;
+              daxpy(&mloc, &fac2, &ccos[n*mloc], &ione, &cp[n*mloc], &ione);
+              daxpy(&mloc, &fac1, &csin[n*mloc], &ione, &cp[n*mloc], &ione);
             }
           }
           else if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )

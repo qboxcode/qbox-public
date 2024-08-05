@@ -602,15 +602,41 @@ void ElectricEnthalpy::compute_correction(void)
         D3vector& pcor = correction_[ist];
         D3tensor& pquad = quad_[ist];
 
-        pcor[0] += ref[ist*9]/np012v;
-        pcor[1] += ref[ist*9+1]/np012v;
-        pcor[2] += ref[ist*9+2]/np012v;
-        pquad.setdiag ( 0, ref[ist*9+3]/np012v - pcor[0] * pcor[0] );
-        pquad.setdiag ( 1, ref[ist*9+4]/np012v - pcor[1] * pcor[1] );
-        pquad.setdiag ( 2, ref[ist*9+5]/np012v - pcor[2] * pcor[2] );
-        pquad.setoffdiag ( 0, ref[ist*9+6]/np012v - pcor[0] * pcor[1] );
-        pquad.setoffdiag ( 1, ref[ist*9+7]/np012v - pcor[1] * pcor[2] );
-        pquad.setoffdiag ( 2, ref[ist*9+8]/np012v - pcor[2] * pcor[0] );
+        const double d0 = ref[ist*9+0]/np012v;
+        const double d1 = ref[ist*9+1]/np012v;
+        const double d2 = ref[ist*9+2]/np012v;
+        const double d3 = ref[ist*9+3]/np012v;
+        const double d4 = ref[ist*9+4]/np012v;
+        const double d5 = ref[ist*9+5]/np012v;
+        const double d6 = ref[ist*9+6]/np012v;
+        const double d7 = ref[ist*9+7]/np012v;
+        const double d8 = ref[ist*9+8]/np012v;
+
+        const double a0n = length(a0);
+        const double a1n = length(a1);
+        const double a2n = length(a2);
+
+        const double dx = d0 * a0n;
+        const double dy = d1 * a1n;
+        const double dz = d2 * a2n;
+
+        const double dxx = d3 * a0n * a0n;
+        const double dyy = d4 * a1n * a1n;
+        const double dzz = d5 * a2n * a2n;
+
+        const double dxy = d6 * a0n * a1n;
+        const double dyz = d7 * a1n * a2n;
+        const double dzx = d8 * a2n * a0n;
+
+        pcor[0] += dx;
+        pcor[1] += dy;
+        pcor[2] += dz;
+        pquad.setdiag ( 0, dxx - pcor[0] * pcor[0] );
+        pquad.setdiag ( 1, dyy - pcor[1] * pcor[1] );
+        pquad.setdiag ( 2, dzz  - pcor[2] * pcor[2] );
+        pquad.setoffdiag ( 0, dxy - pcor[0] * pcor[1] );
+        pquad.setoffdiag ( 1, dyz - pcor[1] * pcor[2] );
+        pquad.setoffdiag ( 2, dzx - pcor[2] * pcor[0] );
       }
     }
     else

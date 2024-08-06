@@ -88,6 +88,7 @@ int ComputeMLWFCmd::action(int argc, char **argv)
   if ( onpe0 )
   {
     D3vector idipole = s->atoms.dipole();
+    wf.cell().fold_in_ws(idipole);
     cout << setprecision(8) << fixed << right;
     cout << "<dipole>" << endl;
     cout << " <dipole_ion>   "
@@ -95,12 +96,14 @@ int ComputeMLWFCmd::action(int argc, char **argv)
          << setw(14) << idipole.y
          << setw(14) << idipole.z
          << " </dipole_ion>" << endl;
+    wf.cell().fold_in_ws(edipole_sum);
     cout << " <dipole_el>    "
          << setw(14) << edipole_sum.x
          << setw(14) << edipole_sum.y
          << setw(14) << edipole_sum.z
          << " </dipole_el>" << endl;
     D3vector dipole_total = idipole + edipole_sum;
+    wf.cell().fold_in_ws(dipole_total);
     cout << " <dipole_total> "
          << setw(14) << dipole_total.x
          << setw(14) << dipole_total.y

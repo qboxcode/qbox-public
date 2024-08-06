@@ -395,6 +395,9 @@ void ElectricEnthalpy::update(void)
   }
 
   dipole_total_ = dipole_ion_ + dipole_el_;
+  cell.fold_in_ws(dipole_ion_);
+  cell.fold_in_ws(dipole_el_);
+  cell.fold_in_ws(dipole_total_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

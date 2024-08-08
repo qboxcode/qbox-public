@@ -10,6 +10,7 @@ import os.path
 import xml.sax
 import sys
 import urllib
+from qso import UnitCell
 
 def usage():
   print ("use: ",sys.argv[0]," [-iter i] {file|URL}")
@@ -41,6 +42,7 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     self.inPosition = 0
     self.inVelocity = 0
     self.done = False
+    self.cell = UnitCell()
 
   def startElement(self, name, attributes):
     if name == "atomset":
@@ -49,9 +51,10 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.atomname=[]
       self.inAtomset = 1
     elif (name == "unit_cell") & self.inAtomset:
-      self.cell_a = attributes["a"]
-      self.cell_b = attributes["b"]
-      self.cell_c = attributes["c"]
+      self.cell.a = [float(s) for s in attributes["a"].split()]
+      self.cell.b = [float(s) for s in attributes["b"].split()]
+      self.cell.c = [float(s) for s in attributes["c"].split()]
+      self.cell.update()
     elif (name == "atom") & self.inAtomset:
       self.atomname.append(attributes["name"])
       self.inAtom = 1
@@ -84,12 +87,11 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
           print ("#",input_source,"iteration",iter)
         else:
           print ("#",input_source)
-        avec = self.cell_a.split()
-        bvec = self.cell_b.split()
-        cvec = self.cell_c.split()
-        print ("set cell ",avec[0],avec[1],avec[2],\
-          bvec[0],bvec[1],bvec[2],\
-          cvec[0],cvec[1],cvec[2])
+        av = self.cell.a
+        bv = self.cell.b
+        cv = self.cell.c
+        print ("set cell ",av[0],av[1],av[2],
+               bv[0],bv[1],bv[2],cv[0],cv[1],cv[2])
         for i in range(len(self.tau)):
           print ("move ",self.atomname[i]," to ",\
             self.tau[i][0],self.tau[i][1],self.tau[i][2],\

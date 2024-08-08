@@ -22,6 +22,9 @@ class UnitCell:
     self.a = [ax,ay,az]
     self.b = [bx,by,bz]
     self.c = [cx,cy,cz]
+    self.update()
+
+  def update(self):
     self.av = np.array(self.a)
     self.bv = np.array(self.b)
     self.cv = np.array(self.c)
@@ -114,9 +117,10 @@ class QSOAtomSetHandler(xml.sax.handler.ContentHandler):
       self.s.atoms.atom_list = []
       self.inAtomSet = True
     elif (name == "unit_cell") and self.inAtomSet:
-      self.s.atoms.cell.a = attributes["a"]
-      self.s.atoms.cell.b = attributes["b"]
-      self.s.atoms.cell.c = attributes["c"]
+      self.s.atoms.cell.a = [float(s) for s in attributes["a"].split()]
+      self.s.atoms.cell.b = [float(s) for s in attributes["b"].split()]
+      self.s.atoms.cell.c = [float(s) for s in attributes["c"].split()]
+      self.cell.update()
     elif (name == "species"):
       self.inSpecies = True
       self.species_name = "species_name"

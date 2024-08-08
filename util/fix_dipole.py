@@ -6,7 +6,10 @@ import sys
 import numpy as np
 from qso import UnitCell
 
-assert(len(sys.argv)==11)
+if len(sys.argv) != 11:
+  print ("use: ",sys.argv[0]," ax ay az bx by bz cx cy cz dipole.dat")
+  sys.exit()
+
 ax=float(sys.argv[1])
 ay=float(sys.argv[2])
 az=float(sys.argv[3])

@@ -1,4 +1,25 @@
 --------------------------------------------------------------------------------
+rel1_78_2
+--------------------------------------------------------------------------------
+825b4ac Add -pbc option to post-processing scripts
+8de6ae5 Use UnitCell in qbox_move scripts
+2e33cc5 Add fold_in_ws() to QSO UnitCell in qso.py
+715abda Add fix_dipole.py script to unfold dipole data
+9fe771f Add fold_in_ws member to UnitCell in qso.py
+50c595c Restore dipole folding in WS cell
+1cfb74d Fix MLWF_REF_Q quadrupole calculation
+8edc0c7 Remove a_aniso from ResponseCmd output
+5a1cd8f Simplify MLWFTransform.cpp
+57737ca Simplify ElectricEnthalpy.cpp
+12fcb65 Optimize ElectricEnthalpy (1)
+c91c7de Fix gradients in ElectricEnthalpy
+f5457a9 Reimplement caches in ElectricEnthalpy
+2516b6f Fix polarization for non-ortho cells (partial)
+0f96a76 Fix print format in ComputeMLWFCmd.cpp
+e0f0d34 Fix ElectricEnthalpy for MLWF,BERRY ortho cells
+5f72868 Include velocity in qbox_repair_h2o.py
+f412b07 Increase precision in qso2qbox.py output
+--------------------------------------------------------------------------------
 rel1_78_1
 --------------------------------------------------------------------------------
 193543a Unify MLWF and dipole print format

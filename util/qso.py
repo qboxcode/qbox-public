@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import xml.sax
+import numpy as np
 # quantum-simulation.org (QSO) definitions
 class Atom:
   def __init__(self,name,species,pos,vel):
@@ -17,10 +18,56 @@ class Species:
     self.mass = mass
 
 class UnitCell:
-  def __init__(self):
-    a = []
-    b = []
-    c = []
+  def __init__(self,ax=0.0,ay=0.0,az=0.0,bx=0.0,by=0.0,bz=0.0,cx=0.0,cy=0.0,cz=0.0):
+    self.a = [ax,ay,az]
+    self.b = [bx,by,bz]
+    self.c = [cx,cy,cz]
+    self.update()
+
+  def update(self):
+    self.av = np.array(self.a)
+    self.bv = np.array(self.b)
+    self.cv = np.array(self.c)
+    self.an = [np.zeros(3) for i in range(13)]
+    self.an[0] = self.av
+    self.an[1] = self.bv
+    self.an[2] = self.cv
+    self.an[3] = self.av + self.bv
+    self.an[4] = self.av - self.bv
+    self.an[5] = self.bv + self.cv
+    self.an[6] = self.bv - self.cv
+    self.an[7] = self.cv + self.av
+    self.an[8] = self.cv - self.av
+    self.an[9] = self.av + self.bv + self.cv
+    self.an[10] = self.av - self.bv - self.cv
+    self.an[11] = self.av + self.bv - self.cv
+    self.an[12] = self.av - self.bv + self.cv
+    self.a_norm = np.array([np.linalg.norm(self.an[i]) for i in range(13)])
+    self.an2h = np.array([0.5*self.a_norm[i]*self.a_norm[i] for i in range(13)])
+
+  def fold_in_ws(self,x,y,z):
+    v = np.array([x,y,z])
+    epsilon=1.e-10
+    done = False
+    maxiter = 10
+    iter = 0
+    while ( not done and iter < maxiter ):
+      done = True
+      for i in range(13):
+        sp = np.dot(v,self.an[i])
+        if ( sp > self.an2h[i] + epsilon ):
+          done = False
+          v -= self.an[i]
+          while ( np.dot(v,self.an[i]) > self.an2h[i] + epsilon ):
+            v -= self.an[i]
+        elif ( sp < -self.an2h[i] - epsilon ):
+          done = False
+          v += self.an[i]
+          while ( np.dot(v,self.an[i]) < -self.an2h[i] - epsilon ):
+            v += self.an[i]
+      iter += 1
+    assert( iter < maxiter)
+    return (v[0],v[1],v[2])
 
 class AtomSet:
   def __init__(self):
@@ -70,9 +117,10 @@ class QSOAtomSetHandler(xml.sax.handler.ContentHandler):
       self.s.atoms.atom_list = []
       self.inAtomSet = True
     elif (name == "unit_cell") and self.inAtomSet:
-      self.s.atoms.cell.a = attributes["a"]
-      self.s.atoms.cell.b = attributes["b"]
-      self.s.atoms.cell.c = attributes["c"]
+      self.s.atoms.cell.a = [float(s) for s in attributes["a"].split()]
+      self.s.atoms.cell.b = [float(s) for s in attributes["b"].split()]
+      self.s.atoms.cell.c = [float(s) for s in attributes["c"].split()]
+      self.cell.update()
     elif (name == "species"):
       self.inSpecies = True
       self.species_name = "species_name"

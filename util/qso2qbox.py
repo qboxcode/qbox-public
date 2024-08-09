@@ -66,5 +66,4 @@ print ("set cell ",s.atoms.cell.a,s.atoms.cell.b,s.atoms.cell.c)
 for sp in s.atoms.species_list:
   print ("species",sp.name,sp.href)
 for a in s.atoms.atom_list:
-  print ("atom",a.name,a.species,a.position[0],a.position[1],a.position[2],a.velocity[0],a.velocity[1],a.velocity[2])
-
+  print ("atom",a.name,a.species,'%14.8f'%a.position[0],'%14.8f'%a.position[1],'%14.8f'%a.position[2],'%14.8f'%a.velocity[0],'%14.8f'%a.velocity[1],'%14.8f'%a.velocity[2])

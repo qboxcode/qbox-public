@@ -5,9 +5,12 @@
 import xml.sax
 import sys
 import math
+from qso import UnitCell
+import numpy as np
 
-if len(sys.argv) != 5:
-  print ("use: ",sys.argv[0]," name1 name2 name3 file.r")
+use_msg = "use: "+sys.argv[0]+" [-pbc] name1 name2 name3 file.r"
+if len(sys.argv) < 5 or len(sys.argv) > 6:
+  print(use_msg)
   sys.exit()
 
 name1 = ""
@@ -26,6 +29,8 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     self.buffer1 = ""
     self.buffer2 = ""
     self.buffer3 = ""
+    self.inAtomSet = False
+    self.cell = UnitCell()
 
   def startElement(self, name, attributes):
     if name == "atomset":
@@ -35,6 +40,12 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.atom1done = 0
       self.atom2done = 0
       self.atom3done = 0
+      self.inAtomSet = True
+    elif (name == "unit_cell") and self.inAtomSet:
+      self.cell.a = [float(s) for s in attributes["a"].split()]
+      self.cell.b = [float(s) for s in attributes["b"].split()]
+      self.cell.c = [float(s) for s in attributes["c"].split()]
+      self.cell.update()
     elif name == "atom":
       self.atom_name = attributes["name"]
       if self.atom_name == name1:
@@ -57,37 +68,52 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
   def endElement(self, name):
     if name == "atomset":
       pos1 = self.buffer1.split()
-      r1 = (float(pos1[0]),float(pos1[1]),float(pos1[2]))
+      r1 = np.array([float(pos1[0]),float(pos1[1]),float(pos1[2])])
       pos2 = self.buffer2.split()
-      r2 = (float(pos2[0]),float(pos2[1]),float(pos2[2]))
+      r2 = np.array([float(pos2[0]),float(pos2[1]),float(pos2[2])])
       pos3 = self.buffer3.split()
-      r3 = (float(pos3[0]),float(pos3[1]),float(pos3[2]))
-      #print "r1: ",r1
-      #print "r2: ",r2
-      #print "r3: ",r3
+      r3 = np.array([float(pos3[0]),float(pos3[1]),float(pos3[2])])
       # e12 = normalized r12
-      r12 = (r1[0]-r2[0],r1[1]-r2[1],r1[2]-r2[2])
-      fac12 = 1.0/norm(r12)
-      e12 = (fac12*r12[0],fac12*r12[1],fac12*r12[2])
+      r12 = r1 - r2
+      if ( use_pbc ):
+        r12=np.array(self.cell.fold_in_ws(r12[0],r12[1],r12[2]))
+      e12 = r12 / norm(r12)
+      print("r12=",r12)
       # e32 = normalized r32
-      r32 = (r3[0]-r2[0],r3[1]-r2[1],r3[2]-r2[2])
-      fac32 = 1.0/norm(r32)
-      e32 = (fac32*r32[0],fac32*r32[1],fac32*r32[2])
-      sp = e12[0]*e32[0] + e12[1]*e32[1] + e12[2]*e32[2]
+      r32 = r3 - r2
+      if ( use_pbc ):
+        r32=np.array(self.cell.fold_in_ws(r32[0],r32[1],r32[2]))
+      e32 = r32 / norm(r32)
+      print("r32=",r32)
+      sp = np.dot(e12,e32)
       c = sp
       c = max(-1.0,min(1.0,sp))
       a = (180.0/math.pi)*math.acos(c)
       print ('%.4f' % a)
+      self.inAtomSet = True
     elif name == "position":
       self.readPos1 = 0
       self.readPos2 = 0
       self.readPos3 = 0
 
-name1 = sys.argv[1]
-name2 = sys.argv[2]
-name3 = sys.argv[3]
-filename = sys.argv[4]
+if ( len(sys.argv) == 6 ):
+  if ( sys.argv[1] == "-pbc" ):
+    use_pbc = True
+    name1 = sys.argv[2]
+    name2 = sys.argv[3]
+    name3 = sys.argv[4]
+    filename = sys.argv[5]
+  else:
+    print(use_msg)
+    sys.exit()
+else:
+  use_pbc = False
+  name1 = sys.argv[1]
+  name2 = sys.argv[2]
+  name3 = sys.argv[3]
+  filename = sys.argv[4]
+
 parser = xml.sax.make_parser()
 handler = QboxOutputHandler()
 parser.setContentHandler(handler)
-parser.parse(sys.argv[4])
+parser.parse(filename)

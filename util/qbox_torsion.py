@@ -5,9 +5,12 @@
 import xml.sax
 import sys
 import math
+from qso import UnitCell
+import numpy as np
 
-if len(sys.argv) != 6:
-  print ("use: ",sys.argv[0]," name1 name2 name3 name4 file.r")
+use_msg = "use: "+sys.argv[0]+" [-pbc] name1 name2 name3 name4 file.r"
+if len(sys.argv) < 6 or len(sys.argv) > 7:
+  print(use_msg)
   sys.exit()
 
 name1 = ""
@@ -36,6 +39,8 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     self.buffer2 = ""
     self.buffer3 = ""
     self.buffer4 = ""
+    self.inAtomSet = False
+    self.cell = UnitCell()
 
   def startElement(self, name, attributes):
     if name == "atomset":
@@ -47,6 +52,12 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.atom2done = 0
       self.atom3done = 0
       self.atom4done = 0
+      self.inAtomSet = True
+    elif (name == "unit_cell") and self.inAtomSet:
+      self.cell.a = [float(s) for s in attributes["a"].split()]
+      self.cell.b = [float(s) for s in attributes["b"].split()]
+      self.cell.c = [float(s) for s in attributes["c"].split()]
+      self.cell.update()
     elif name == "atom":
       self.atom_name = attributes["name"]
       if self.atom_name == name1:
@@ -73,32 +84,31 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
   def endElement(self, name):
     if name == "atomset":
       pos1 = self.buffer1.split()
-      r1 = (float(pos1[0]),float(pos1[1]),float(pos1[2]))
+      r1 = np.array([float(pos1[0]),float(pos1[1]),float(pos1[2])])
       pos2 = self.buffer2.split()
-      r2 = (float(pos2[0]),float(pos2[1]),float(pos2[2]))
+      r2 = np.array([float(pos2[0]),float(pos2[1]),float(pos2[2])])
       pos3 = self.buffer3.split()
-      r3 = (float(pos3[0]),float(pos3[1]),float(pos3[2]))
+      r3 = np.array([float(pos3[0]),float(pos3[1]),float(pos3[2])])
       pos4 = self.buffer4.split()
-      r4 = (float(pos4[0]),float(pos4[1]),float(pos4[2]))
+      r4 = np.array([float(pos4[0]),float(pos4[1]),float(pos4[2])])
 
-      #print "r1: ",r1
-      #print "r2: ",r2
-      #print "r3: ",r3
-      #print "r4: ",r4
       # e12 = normalized r12
-      r12 = (r1[0]-r2[0],r1[1]-r2[1],r1[2]-r2[2])
-      fac12 = 1.0/norm(r12)
-      e12 = (fac12*r12[0],fac12*r12[1],fac12*r12[2])
+      r12 = r1 - r2
+      if ( use_pbc ):
+        r12=np.array(self.cell.fold_in_ws(r12[0],r12[1],r12[2]))
+      e12 = r12 / norm(r12)
       # e32 = normalized r32
-      r32 = (r3[0]-r2[0],r3[1]-r2[1],r3[2]-r2[2])
-      fac32 = 1.0/norm(r32)
-      e32 = (fac32*r32[0],fac32*r32[1],fac32*r32[2])
+      r32 = r3 - r2
+      if ( use_pbc ):
+        r32=np.array(self.cell.fold_in_ws(r32[0],r32[1],r32[2]))
+      e32 = r32 / norm(r32)
       # e43 = normalized r43
-      r43 = (r4[0]-r3[0],r4[1]-r3[1],r4[2]-r3[2])
-      fac43 = 1.0/norm(r43)
-      e43 = (fac43*r43[0],fac43*r43[1],fac43*r43[2])
+      r43 = r4 - r3
+      if ( use_pbc ):
+        r43=np.array(self.cell.fold_in_ws(r43[0],r43[1],r43[2]))
+      e43 = r43 / norm(r43)
       # e23 = - e32
-      e23 = (-e32[0],-e32[1],-e32[2])
+      e23 = -e32
 
       u = cross_product(e12,e32)
       v = cross_product(e23,e43)
@@ -118,18 +128,33 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
         a = (180.0/math.pi) * math.atan2(ss,cc)
 
       print ('%.4f' % a)
+      self.inAtomSet = True
     elif name == "position":
       self.readPos1 = 0
       self.readPos2 = 0
       self.readPos3 = 0
       self.readPos4 = 0
 
-name1 = sys.argv[1]
-name2 = sys.argv[2]
-name3 = sys.argv[3]
-name4 = sys.argv[4]
-filename = sys.argv[5]
+if ( len(sys.argv) == 7 ):
+  if ( sys.argv[1] == "-pbc" ):
+    use_pbc = True
+    name1 = sys.argv[2]
+    name2 = sys.argv[3]
+    name3 = sys.argv[4]
+    name4 = sys.argv[5]
+    filename = sys.argv[6]
+  else:
+    print(use_msg)
+    sys.exit()
+else:
+  use_pbc = False
+  name1 = sys.argv[1]
+  name2 = sys.argv[2]
+  name3 = sys.argv[3]
+  name4 = sys.argv[4]
+  filename = sys.argv[5]
+
 parser = xml.sax.make_parser()
 handler = QboxOutputHandler()
 parser.setContentHandler(handler)
-parser.parse(sys.argv[5])
+parser.parse(filename)

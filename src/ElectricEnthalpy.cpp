@@ -88,6 +88,13 @@ ElectricEnthalpy::ElectricEnthalpy(Sample& s): s_(s), wf_(s.wf),
     pol_type_ = mlwf_ref;
   else if ( s.ctrl.polarization == "MLWF_REF_Q" )
   {
+    const UnitCell& cell = sd_.basis().cell();
+    // test if unit cell is orthorhombic
+    if ( cell.a(0).y != 0 || cell.a(0).z != 0 ||
+         cell.a(1).z != 0 || cell.a(1).x != 0 ||
+         cell.a(2).x != 0 || cell.a(0).y != 0 )
+      throw runtime_error("ElectricEnthalpy: quadrupole not implemented"
+                          " for non-orthorhombic cells");
     pol_type_ = mlwf_ref_q;
     compute_quadrupole_ = true;
   }
@@ -241,47 +248,46 @@ void ElectricEnthalpy::update(void)
       dwf_->clear();
       for ( int idir = 0; idir < 3; idir++ )
       {
-        if ( e_field_[idir] != 0.0 )
+        double alpha = e_field_ * cell.a(idir);
+        if ( alpha != 0.0 )
         {
           // MLWF part
           if ( pol_type_ == mlwf )
           {
-            const double nst = sd_.nst();
-            std::vector<double> adiag_inv_real(nst,0),adiag_inv_imag(nst,0);
-            for ( int ist = 0; ist < nst; ist ++ )
-            {
-              const std::complex<double>
-                adiag( mlwft_->adiag(idir*2,ist),mlwft_->adiag(idir*2+1,ist) );
-
-              adiag_inv_real[ist] = real( std::complex<double>(1,0) / adiag );
-              adiag_inv_imag[ist] = imag( std::complex<double>(1,0) / adiag );
-
-            }
-
             DoubleMatrix ccos(sdcos[idir]->c());
             DoubleMatrix csin(sdsin[idir]->c());
             DoubleMatrix cp(dwf_->sd(0,0)->c());
+            const int nloc = cp.nloc();
 
-            int nloc = cp.nloc();
-            int mloc = cp.mloc();
-            int ione = 1;
-
-            const double fac = cell.a_norm(idir)
-                               * e_field_[idir] / ( 2.0 * M_PI );
-
-            for (int in = 0; in < nloc; in++)
+            for (int n = 0; n < nloc; ++n)
             {
-              int ist = cp.jglobal(in);
-              double fac1 = adiag_inv_real[ist] * fac;
-              double fac2 = adiag_inv_imag[ist] * fac;
+              const int nglobal = cp.jglobal(n);
 
-              double *ptr1 = &cp[in*mloc],
-                     *ptrcos = &ccos[in*mloc],
-                     *ptrsin = &csin[in*mloc];
+              // z_re,z_im = B^T * adiag(idir,nglobal)
+              const double *bmat = cell.bmat();
 
-              daxpy(&mloc, &fac2, ptrcos, &ione, ptr1, &ione);
-              daxpy(&mloc, &fac1, ptrsin, &ione, ptr1, &ione);
+              const double z_re =
+                bmat[3*idir+0] * mlwft_->adiag(0,nglobal) +
+                bmat[3*idir+1] * mlwft_->adiag(2,nglobal) +
+                bmat[3*idir+2] * mlwft_->adiag(4,nglobal);
 
+              const double z_im =
+                bmat[3*idir+0] * mlwft_->adiag(1,nglobal) +
+                bmat[3*idir+1] * mlwft_->adiag(3,nglobal) +
+                bmat[3*idir+2] * mlwft_->adiag(5,nglobal);
+
+              // z = z_re + i z_im
+              complex<double> z(z_re,z_im);
+              // z_inv = 1 / z
+              complex<double> z_inv = complex<double>(1.0,0.0) / z;
+
+              double fac1 = alpha * z_inv.real();
+              double fac2 = alpha * z_inv.imag();
+
+              int mloc = cp.mloc();
+              int ione = 1;
+              daxpy(&mloc, &fac2, &ccos[n*mloc], &ione, &cp[n*mloc], &ione);
+              daxpy(&mloc, &fac1, &csin[n*mloc], &ione, &cp[n*mloc], &ione);
             }
           }
           else if ( pol_type_ == mlwf_ref || pol_type_ == mlwf_ref_q )
@@ -291,11 +297,10 @@ void ElectricEnthalpy::update(void)
             DoubleMatrix cp(dwf_->sd(0,0)->c());
 
             int size = cc.size();
-            double alpha = e_field_[idir];
             int ione = 1;
             daxpy (&size, &alpha, cc.valptr(), &ione, cp.valptr(), &ione);
           } // if pol_type_
-        } // if e_field_[idir]
+        } // if alpha
       } // for idir
     } // if finite_field_
   }
@@ -308,11 +313,10 @@ void ElectricEnthalpy::update(void)
 
     for ( int idir = 0; idir < 3; idir++ )
     {
-      const double fac = cell.a_norm(idir)/( 2.0*M_PI );
       complex<double>* val = smat_[idir]->valptr();
 
-      const double* re = mlwft_->a(idir*2)->cvalptr();
-      const double* im = mlwft_->a(idir*2+1)->cvalptr();
+      const double* re = mlwft_->b(idir*2)->cvalptr();
+      const double* im = mlwft_->b(idir*2+1)->cvalptr();
       for ( int i = 0; i < smat_[idir]->size(); i++ )
         val[i] = complex<double>(re[i],im[i]);
 
@@ -346,44 +350,46 @@ void ElectricEnthalpy::update(void)
       for ( int ii = 0; ii < n; ii++ )
         sumarg += arg(diag[ii]);
 
-      // compute determinant
-      complex<double> det = 1.0;
-      for ( int ii = 0; ii < n; ii++ )
-        det *= diag[ii];
-
       const int sign = sm.signature(ipiv);
       if ( sign == -1 )
         sumarg += M_PI;
 
       // assume occupation number of 2.0
-      dipole_el_[idir] = - 2.0 * fac * sumarg;
+      // sumarg contains Im ln S(idir)
+      // contribution to dipole[i] = sum_idir -2.0 * a(i,idir) * S(idir)/(2*pi)
+
+      dipole_el_ -= cell.a(idir) * sumarg / M_PI;
 
       if ( finite_field_ )
       {
-        // compute inverse of smat
-        sm.inverse_from_lu(ipiv);
+        // alpha = ( e_field dot a_idir ) / ( 2 * pi )
+        double alpha = e_field_ * cell.a(idir) / ( 2.0 * M_PI );
 
-        // real and img part of S^{-1}
-        DoubleMatrix s_real(ctxt_,n,n,nb,nb);
-        DoubleMatrix s_img(ctxt_,n,n,nb,nb);
-        DoubleMatrix sp(sm);
+        if ( alpha != 0.0 )
+        {
 
-        int size = s_real.size();
-        int ione = 1, itwo = 2;
+          // compute inverse of smat
+          sm.inverse_from_lu(ipiv);
 
-        // copy real and imaginary parts of s to s_real and s_img
-        dcopy(&size,sp.valptr(),&itwo,s_real.valptr(),&ione);
-        dcopy(&size,sp.valptr()+1,&itwo,s_img.valptr(),&ione);
+          // real and img part of S^{-1}
+          DoubleMatrix s_real(ctxt_,n,n,nb,nb);
+          DoubleMatrix s_img(ctxt_,n,n,nb,nb);
+          DoubleMatrix sp(sm);
 
-        // proxy Matrix for cosx|psi> and sinx|psi>
-        DoubleMatrix cosp(sdcos[idir]->c());
-        DoubleMatrix sinp(sdsin[idir]->c());
+          int size = s_real.size();
+          int ione = 1, itwo = 2;
 
-        // alpha = E_i * L_i / 2pi
-        double alpha = fac * e_field_[idir];
+          // copy real and imaginary parts of s to s_real and s_img
+          dcopy(&size,sp.valptr(),&itwo,s_real.valptr(),&ione);
+          dcopy(&size,sp.valptr()+1,&itwo,s_img.valptr(),&ione);
 
-        gradp.gemm('n','n',alpha,cosp,s_img,1.0);
-        gradp.gemm('n','n',alpha,sinp,s_real,1.0);
+          // proxy Matrix for cosx|psi> and sinx|psi>
+          DoubleMatrix cosp(sdcos[idir]->c());
+          DoubleMatrix sinp(sdsin[idir]->c());
+
+          gradp.gemm('n','n',alpha,cosp,s_img,1.0);
+          gradp.gemm('n','n',alpha,sinp,s_real,1.0);
+        }
       }
     } // for idir
   }
@@ -441,10 +447,6 @@ void ElectricEnthalpy::compute_correction(void)
   ComplexMatrix& cy = rwf_[1]->sd(0,0)->c();
   ComplexMatrix& cz = rwf_[2]->sd(0,0)->c();
 
-  DoubleMatrix cpx(cx);
-  DoubleMatrix cpy(cy);
-  DoubleMatrix cpz(cz);
-
   // calculate refinements
   // ref is scaled by np012v
   vector<double> ref(nst*3);
@@ -452,19 +454,9 @@ void ElectricEnthalpy::compute_correction(void)
 
   // cell size;
   const UnitCell& cell = sd_.basis().cell();
-  const double ax = cell.amat(0);
-  const double ay = cell.amat(4);
-  const double az = cell.amat(8);
-
-  // half cell size;
-  const double ax2 = ax / 2.0;
-  const double ay2 = ay / 2.0;
-  const double az2 = az / 2.0;
-
-  // grid size;
-  const double dx = ax / np0v;
-  const double dy = ay / np1v;
-  const double dz = az / np2v;
+  const D3vector a0 = cell.a(0);
+  const D3vector a1 = cell.a(1);
+  const D3vector a2 = cell.a(2);
 
   for ( int i = 0; i < nst; i++ )
     correction_[i] = D3vector(0,0,0);
@@ -485,15 +477,16 @@ void ElectricEnthalpy::compute_correction(void)
       cout << " override mlwf_ref_niter value: niter = " << niter << endl;
     assert(niter > 0);
   }
+
   for ( int iter = 0; iter < niter; iter++ )
   {
     fill(ref.begin(),ref.end(),0.0);
 
     // wavefunctions in real space
     vector<complex<double> > wftmp(np012loc);
-    vector<complex<double> > xwftmp(np012loc);
-    vector<complex<double> > ywftmp(np012loc);
-    vector<complex<double> > zwftmp(np012loc);
+    vector<complex<double> > wftmp0(np012loc);
+    vector<complex<double> > wftmp1(np012loc);
+    vector<complex<double> > wftmp2(np012loc);
 
     for ( int in = 0; in < nloc; in++ )
     {
@@ -510,73 +503,77 @@ void ElectricEnthalpy::compute_correction(void)
       tmap["ft"].stop();
 
       tmap["real"].start();
-      double x0 = mlwfc_[n][0] + correction_[n][0];
-      double y0 = mlwfc_[n][1] + correction_[n][1];
-      double z0 = mlwfc_[n][2] + correction_[n][2];
+      // position of the corrected center
+      const double xc = mlwfc_[n][0] + correction_[n][0];
+      const double yc = mlwfc_[n][1] + correction_[n][1];
+      const double zc = mlwfc_[n][2] + correction_[n][2];
 
-      // compute shifted sawtooth potentials vx, vy, vz
-      vector<double> vx(ft.np0()), vy(ft.np1()), vz(ft.np2());
-      for ( int i = 0; i < vx.size(); i++ )
+      // position of the corrected center in the a basis
+      const double *bmat = cell.bmat();
+      // c = B^T * (xc,yc,zc)/(2*pi)
+      const double itwopi = 1.0 / ( 2.0 * M_PI );
+      const double c0 = itwopi * ( bmat[0] * xc + bmat[1] * yc + bmat[2] * zc );
+      const double c1 = itwopi * ( bmat[3] * xc + bmat[4] * yc + bmat[5] * zc );
+      const double c2 = itwopi * ( bmat[6] * xc + bmat[7] * yc + bmat[8] * zc );
+
+      // compute cache of shifted sawtooth potentials v0[i], v1[j], v2[k]
+      const int np0 = ft.np0();
+      const int np1 = ft.np1();
+      const int np2 = ft.np2();
+      vector<double> v0(np0), v1(np1), v2(np2);
+
+      for ( int i0 = 0; i0 < np0; ++i0 )
       {
-        double x = i * dx - x0;
-        if ( x >  ax2 ) x -= ax;
-        if ( x < -ax2 ) x += ax;
-#ifdef NO_VSST
-        vx[i] = x;
-#else
-        vx[i] = ax * vsst(x/ax);
-#endif
+        double arg0 = static_cast<double>(i0)/np0 - c0;
+        if ( arg0 < -0.5 ) arg0 += 1.0;
+        if ( arg0 >  0.5 ) arg0 -= 1.0;
+        v0[i0] = vsst(arg0);
       }
-      for ( int j = 0; j < vy.size(); j++ )
+      for ( int i1 = 0; i1 < np1; ++i1 )
       {
-        double y = j * dy - y0;
-        if ( y >  ay2 ) y -= ay;
-        if ( y < -ay2 ) y += ay;
-#ifdef NO_VSST
-        vy[j] = y;
-#else
-        vy[j] = ay * vsst(y/ay);
-#endif
+        double arg1 = static_cast<double>(i1)/np1 - c1;
+        if ( arg1 < -0.5 ) arg1 += 1.0;
+        if ( arg1 >  0.5 ) arg1 -= 1.0;
+        v1[i1] = vsst(arg1);
       }
-      for ( int k = 0; k < vz.size(); k++ )
+      for ( int i2 = 0; i2 < np2; ++i2 )
       {
-        double z = k * dz - z0;
-        if ( z >  az2 ) z -= az;
-        if ( z < -az2 ) z += az;
-#ifdef NO_VSST
-        vz[k] = z;
-#else
-        vz[k] = az * vsst(z/az);
-#endif
+        double arg2 = static_cast<double>(i2)/np2 - c2;
+        if ( arg2 < -0.5 ) arg2 += 1.0;
+        if ( arg2 >  0.5 ) arg2 -= 1.0;
+        v2[i2] = vsst(arg2);
       }
 
       for ( int i = 0; i < np012loc; i++ )
       {
-        int ix = ft.i(i);
-        int iy = ft.j(i);
-        int iz = ft.k(i);
+        int i0 = ft.i(i);
+        int i1 = ft.j(i);
+        int i2 = ft.k(i);
 
+        // multiply wft by each potential
         const double wft = real(wftmp[i]);
-        const double xwft = wft * vx[ix];
-        const double ywft = wft * vy[iy];
-        const double zwft = wft * vz[iz];
 
-        pref[0] += wft * xwft;
-        pref[1] += wft * ywft;
-        pref[2] += wft * zwft;
+        const double wft0 = v0[i0] * wft;
+        const double wft1 = v1[i1] * wft;
+        const double wft2 = v2[i2] * wft;
 
-        xwftmp[i] = xwft;
-        ywftmp[i] = ywft;
-        zwftmp[i] = zwft;
+        // accumulate sum for expectation values of vsst((r-rc)*b_k) k=0,1,2
+        pref[0] += wft * wft0;
+        pref[1] += wft * wft1;
+        pref[2] += wft * wft2;
+
+        wftmp0[i] = wft0;
+        wftmp1[i] = wft1;
+        wftmp2[i] = wft2;
 
         if ( compute_quadrupole_ )
         {
-          pref[3] += xwft * xwft;
-          pref[4] += ywft * ywft;
-          pref[5] += zwft * zwft;
-          pref[6] += xwft * ywft;
-          pref[7] += ywft * zwft;
-          pref[8] += zwft * xwft;
+          pref[3] += wft0 * wft0;
+          pref[4] += wft1 * wft1;
+          pref[5] += wft2 * wft2;
+          pref[6] += wft0 * wft1;
+          pref[7] += wft1 * wft2;
+          pref[8] += wft2 * wft0;
         }
       } // for i
       tmap["real"].stop();
@@ -585,12 +582,9 @@ void ElectricEnthalpy::compute_correction(void)
       if ( iter == niter - 1 )
       {
         tmap["ft"].start();
-        if ( e_field_[0] != 0.0 )
-          ft.forward(&xwftmp[0],cx.valptr(mloc*in));
-        if ( e_field_[1] != 0.0 )
-          ft.forward(&ywftmp[0],cy.valptr(mloc*in));
-        if ( e_field_[2] != 0.0 )
-          ft.forward(&zwftmp[0],cz.valptr(mloc*in));
+          ft.forward(&wftmp0[0],cx.valptr(mloc*in));
+          ft.forward(&wftmp1[0],cy.valptr(mloc*in));
+          ft.forward(&wftmp2[0],cz.valptr(mloc*in));
         tmap["ft"].stop();
       } // if
     } //for in
@@ -611,25 +605,62 @@ void ElectricEnthalpy::compute_correction(void)
         D3vector& pcor = correction_[ist];
         D3tensor& pquad = quad_[ist];
 
-        pcor[0] += ref[ist*9]/np012v;
-        pcor[1] += ref[ist*9+1]/np012v;
-        pcor[2] += ref[ist*9+2]/np012v;
-        pquad.setdiag ( 0, ref[ist*9+3]/np012v - pcor[0] * pcor[0] );
-        pquad.setdiag ( 1, ref[ist*9+4]/np012v - pcor[1] * pcor[1] );
-        pquad.setdiag ( 2, ref[ist*9+5]/np012v - pcor[2] * pcor[2] );
-        pquad.setoffdiag ( 0, ref[ist*9+6]/np012v - pcor[0] * pcor[1] );
-        pquad.setoffdiag ( 1, ref[ist*9+7]/np012v - pcor[1] * pcor[2] );
-        pquad.setoffdiag ( 2, ref[ist*9+8]/np012v - pcor[2] * pcor[0] );
+        const double d0 = ref[ist*9+0]/np012v;
+        const double d1 = ref[ist*9+1]/np012v;
+        const double d2 = ref[ist*9+2]/np012v;
+        const double d3 = ref[ist*9+3]/np012v;
+        const double d4 = ref[ist*9+4]/np012v;
+        const double d5 = ref[ist*9+5]/np012v;
+        const double d6 = ref[ist*9+6]/np012v;
+        const double d7 = ref[ist*9+7]/np012v;
+        const double d8 = ref[ist*9+8]/np012v;
+
+        const double a0n = length(a0);
+        const double a1n = length(a1);
+        const double a2n = length(a2);
+
+        const double dx = d0 * a0n;
+        const double dy = d1 * a1n;
+        const double dz = d2 * a2n;
+
+        const double dxx = d3 * a0n * a0n;
+        const double dyy = d4 * a1n * a1n;
+        const double dzz = d5 * a2n * a2n;
+
+        const double dxy = d6 * a0n * a1n;
+        const double dyz = d7 * a1n * a2n;
+        const double dzx = d8 * a2n * a0n;
+
+        pcor[0] += dx;
+        pcor[1] += dy;
+        pcor[2] += dz;
+        pquad.setdiag ( 0, dxx - pcor[0] * pcor[0] );
+        pquad.setdiag ( 1, dyy - pcor[1] * pcor[1] );
+        pquad.setdiag ( 2, dzz  - pcor[2] * pcor[2] );
+        pquad.setoffdiag ( 0, dxy - pcor[0] * pcor[1] );
+        pquad.setoffdiag ( 1, dyz - pcor[1] * pcor[2] );
+        pquad.setoffdiag ( 2, dzx - pcor[2] * pcor[0] );
       }
     }
     else
     {
+      // correction in b coordinates in (d0,d1,d2)
+      // compute correction in absolute coordinates using
+      // (dx,dy,dz) = A * (d0,d1,d2)
+
       for ( int ist = 0; ist < nst; ist++ )
       {
+        const double d0 = ref[ist*3+0]/np012v;
+        const double d1 = ref[ist*3+1]/np012v;
+        const double d2 = ref[ist*3+2]/np012v;
+        const double dx = d0 * a0.x + d1 * a1.x + d2 * a2.x;
+        const double dy = d0 * a0.y + d1 * a1.y + d2 * a2.y;
+        const double dz = d0 * a0.z + d1 * a1.z + d2 * a2.z;
+
         D3vector& pcor = correction_[ist];
-        pcor[0] += ref[ist*3]/np012v;
-        pcor[1] += ref[ist*3+1]/np012v;
-        pcor[2] += ref[ist*3+2]/np012v;
+        pcor[0] += dx;
+        pcor[1] += dy;
+        pcor[2] += dz;
       }
     }
     tmap["real"].stop();

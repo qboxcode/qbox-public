@@ -53,6 +53,7 @@ class MLWFTransform
   public:
 
   DoubleMatrix* a(int k) { return a_[k]; };
+  DoubleMatrix* b(int k) { return b_[k]; };
 
   SlaterDet* sdcosx(void) { return sdcosx_; };
   SlaterDet* sdcosy(void) { return sdcosy_; };

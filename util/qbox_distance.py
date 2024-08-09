@@ -5,9 +5,12 @@
 import xml.sax
 import sys
 import math
+from qso import UnitCell
+import numpy as np
 
-if len(sys.argv) != 4:
-  print ("use: ",sys.argv[0]," name1 name2 file.r")
+use_msg = "use: "+sys.argv[0]+" [-pbc] name1 name2 file.r"
+if len(sys.argv) < 4 or len(sys.argv) > 5:
+  print(use_msg)
   sys.exit()
 
 name1 = ""
@@ -20,6 +23,8 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     self.readPos2 = 0
     self.buffer1 = ""
     self.buffer2 = ""
+    self.inAtomSet = False
+    self.cell = UnitCell()
 
   def startElement(self, name, attributes):
     if name == "atomset":
@@ -27,6 +32,12 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.buffer2 = ""
       self.atom1done = 0
       self.atom2done = 0
+      self.inAtomSet = True
+    elif (name == "unit_cell") and self.inAtomSet:
+      self.cell.a = [float(s) for s in attributes["a"].split()]
+      self.cell.b = [float(s) for s in attributes["b"].split()]
+      self.cell.c = [float(s) for s in attributes["c"].split()]
+      self.cell.update()
     elif name == "atom":
       self.atom_name = attributes["name"]
       if self.atom_name == name1:
@@ -52,19 +63,33 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       r2x = float(pos2[0])
       r2y = float(pos2[1])
       r2z = float(pos2[2])
-      #print "r1: ",self.r1x,self.r1y,self.r1z
-      #print "r2: ",self.r2x,self.r2y,self.r2z
-      print ('%.4f' % math.sqrt((r1x-r2x)**2+
-                                (r1y-r2y)**2+
-                                (r1z-r2z)**2))
+      r1 = np.array([r1x,r1y,r1z])
+      r2 = np.array([r2x,r2y,r2z])
+      dr = r2 - r1
+      if ( use_pbc ):
+        dr=np.array(self.cell.fold_in_ws(dr[0],dr[1],dr[2]))
+      print ('%.4f' % math.sqrt(dr[0]**2+dr[1]**2+dr[2]**2))
+      self.inAtomSet = False
     elif name == "position":
       self.readPos1 = 0
       self.readPos2 = 0
 
-name1 = sys.argv[1]
-name2 = sys.argv[2]
-filename = sys.argv[3]
+if ( len(sys.argv) == 5 ):
+  if ( sys.argv[1] == "-pbc" ):
+    use_pbc = True
+    name1 = sys.argv[2]
+    name2 = sys.argv[3]
+    filename = sys.argv[4]
+  else:
+    print(use_msg)
+    sys.exit()
+else:
+  use_pbc = False
+  name1 = sys.argv[1]
+  name2 = sys.argv[2]
+  filename = sys.argv[3]
+
 parser = xml.sax.make_parser()
 handler = QboxOutputHandler()
 parser.setContentHandler(handler)
-parser.parse(sys.argv[3])
+parser.parse(filename)

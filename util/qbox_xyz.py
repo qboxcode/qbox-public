@@ -5,30 +5,31 @@
 # qbox_xyz.py: extract sets of atomic positions in xyz format
 # from a Qbox output file or from a Qbox sample file using SAX
 # incremental parsing
+# Optionally fold atoms into the unit cell [-pbc]
 #
-# use: qbox_xyz.py [-first] {file|URL}
+# use: qbox_xyz.py [-pbc] {file|URL}
 import os.path
 import xml.sax
 import sys
 import urllib
+from qso import UnitCell
+import numpy as np
 
 def usage():
-  print ("use: ",sys.argv[0]," [-first] {file|URL}")
+  print ("use: ",sys.argv[0]," [-pbc] {file|URL}")
   sys.exit()
 
 argc=len(sys.argv)
 if ( argc < 2 or argc > 3 ):
   usage()
 
-# check if option "-first" is used
-# "-first" option: extract first atomset only
-# default: extract all atomsets
-first_only = False
+# check if option "-pbc" is used
+use_pbc = False
 input_source = sys.argv[1]
-if ( sys.argv[1] == "-first" ):
+if ( sys.argv[1] == "-pbc" ):
   if ( argc != 3 ):
     usage()
-  first_only = True
+  use_pbc = True
   input_source = sys.argv[2]
 
 # conversion from Bohr to Angstrom
@@ -42,6 +43,7 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
     self.inAtom = 0
     self.inPosition = 0
     self.done_first = False
+    self.cell = UnitCell()
 
   def startElement(self, name, attributes):
     if name == "atomset":
@@ -49,9 +51,10 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.atomname=[]
       self.inAtomset = 1
     elif (name == "unit_cell") & self.inAtomset:
-      self.cell_a = attributes["a"]
-      self.cell_b = attributes["b"]
-      self.cell_c = attributes["c"]
+      self.cell.a = [float(s) for s in attributes["a"].split()]
+      self.cell.b = [float(s) for s in attributes["b"].split()]
+      self.cell.c = [float(s) for s in attributes["c"].split()]
+      self.cell.update()
     elif (name == "atom") & self.inAtomset:
       self.atomname.append(attributes["name"])
       self.inAtom = 1
@@ -68,27 +71,25 @@ class QboxOutputHandler(xml.sax.handler.ContentHandler):
       self.inAtom = 0
     if (name == "position") & self.inAtom:
       pos = self.buffer.split()
-      x = a0*float(pos[0])
-      y = a0*float(pos[1])
-      z = a0*float(pos[2])
-      self.tau.append([x,y,z])
+      x = float(pos[0])
+      y = float(pos[1])
+      z = float(pos[2])
+      r = np.array([x,y,z])
+      if ( use_pbc ):
+        r=np.array(self.cell.fold_in_ws(r[0],r[1],r[2]))
+
+      self.tau.append([a0*r[0],a0*r[1],a0*r[2]])
       self.inPosition = 0
     elif name == "atomset":
       self.step += 1
       print (len(self.tau))
-      avec = self.cell_a.split()
-      bvec = self.cell_b.split()
-      cvec = self.cell_c.split()
-      print (self.step,\
-      '%.6f'%(a0*float(avec[0])),\
-      '%.6f'%(a0*float(avec[1])),\
-      '%.6f'%(a0*float(avec[2])),\
-      '%.6f'%(a0*float(bvec[0])),\
-      '%.6f'%(a0*float(bvec[1])),\
-      '%.6f'%(a0*float(bvec[2])),\
-      '%.6f'%(a0*float(cvec[0])),\
-      '%.6f'%(a0*float(cvec[1])),\
-      '%.6f'%(a0*float(cvec[2])))
+      av = self.cell.a
+      bv = self.cell.b
+      cv = self.cell.c
+      print (self.step,
+      '%.6f'%(a0*(av[0])), '%.6f'%(a0*(av[1])), '%.6f'%(a0*(av[2])),
+      '%.6f'%(a0*(bv[0])), '%.6f'%(a0*(bv[1])), '%.6f'%(a0*(bv[2])),
+      '%.6f'%(a0*(cv[0])), '%.6f'%(a0*(cv[1])), '%.6f'%(a0*(cv[2])))
       for i in range(len(self.tau)):
         print (self.atomname[i],'%.6f'%self.tau[i][0],\
                                 '%.6f'%self.tau[i][1],\
@@ -104,7 +105,7 @@ parser.setContentHandler(handler)
 if ( os.path.isfile(input_source) ):
   file = open(input_source)
   s = file.read(8192)
-  while ( s !="" and not (first_only and handler.done_first) ):
+  while ( s !="" ):
     parser.feed(s)
     s = file.read(8192)
   file.close()
@@ -113,7 +114,7 @@ else:
   try:
     f = urllib.request.urlopen(input_source)
     s = f.read(8192)
-    while ( s !="" and not (first_only and handler.done_first) ):
+    while ( s !="" ):
       parser.feed(s)
       s = f.read(8192)
     f.close()

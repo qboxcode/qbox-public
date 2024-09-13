@@ -929,6 +929,13 @@ void Wavefunction::print(ostream& os, string encoding, string tag) const
        << cell_.a(0) << "\"\n        b=\""
        << cell_.a(1) << "\"\n        c=\""
        << cell_.a(2) << "\"/>" << endl;
+    if ( refcell_.volume() != 0.0 )
+    {
+      os << "<reference_domain a=\""
+         << refcell_.a(0) << "\"\n        b=\""
+         << refcell_.a(1) << "\"\n        c=\""
+         << refcell_.a(2) << "\"/>" << endl;
+    }
     os << "<grid nx=\"" << sd_[0][0]->basis().np(0) << "\""
        <<      " ny=\"" << sd_[0][0]->basis().np(1) << "\""
        <<      " nz=\"" << sd_[0][0]->basis().np(2) << "\"/>" << endl;

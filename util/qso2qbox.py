@@ -62,7 +62,13 @@ parser.reset()
 # write Qbox input file
 datestr=datetime.datetime.utcnow().isoformat()+'Z'
 print ("# converted",datestr,"from",input_source)
-print ("set cell ",s.atoms.cell.a,s.atoms.cell.b,s.atoms.cell.c)
+av = s.atoms.cell.a
+bv = s.atoms.cell.b
+cv = s.atoms.cell.c
+print ("set cell ",
+ '%.8f'%(av[0]), '%.8f'%(av[1]), '%.8f'%(av[2]),
+ '%.8f'%(bv[0]), '%.8f'%(bv[1]), '%.8f'%(bv[2]),
+ '%.8f'%(cv[0]), '%.8f'%(cv[1]), '%.8f'%(cv[2]))
 for sp in s.atoms.species_list:
   print ("species",sp.name,sp.href)
 for a in s.atoms.atom_list:

@@ -109,6 +109,7 @@ class QSOAtomSetHandler(xml.sax.handler.ContentHandler):
     self.inAtomicNumber = False
     self.inMass = False
     self.buffer = ""
+    self.cell = UnitCell()
     # flag to signal that the first <atomset> has been processed
     self.done_first = False
 

@@ -16,7 +16,7 @@ echo "# temperature of atoms of species: $species, file: ${*}"
 # extract mass of species
 xpath='//species[@name="'$species'"]/mass'
 elem=$(basename $xpath)
-mass=$(xmllint --xpath "$xpath" ${*} |sed "s/<$elem>//g" |sed "s/<\/$elem>/>/g" |tr '>' '\n' | sed "/^$/d")
+mass=$(xmllint --xpath "$xpath" $1 |sed "s/<$elem>//g" |sed "s/<\/$elem>/>/g" |tr '>' '\n' | sed "/^$/d")
 # Boltzmann constant in hartree/K
 kB=3.1667907e-06
 # nucleon mass

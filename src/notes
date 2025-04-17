@@ -1,4 +1,11 @@
 --------------------------------------------------------------------------------
+rel1_78_3
+--------------------------------------------------------------------------------
+a677c8e Fix qbox_species_temp.sh for multiple files
+6bdd346 Fix comment in NonLocalPotential.cpp
+63c2f8f Fix cell in qso.py, qso2qbox.py
+b6b1cb0 Fix writing of ref_cell in Wavefunction::print
+--------------------------------------------------------------------------------
 rel1_78_2
 --------------------------------------------------------------------------------
 825b4ac Add -pbc option to post-processing scripts

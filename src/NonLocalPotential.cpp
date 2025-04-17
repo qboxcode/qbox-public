@@ -1938,7 +1938,7 @@ double NonLocalPotential::energy(bool compute_hpsi, SlaterDet& dsd,
                     const double d13 = dt13[ig];
                     const double d14 = dt14[ig];
                     const double d15 = dt15[ig];
-                    // Next lines: (-i)^2 * ( a + ib ) =  - ( a + ib )
+                    // Next lines: (-i)^3 * ( a + ib ) =  ( -b + ia )
                     const double tc =  c[ig]; //   cosgr[ia][ig]
                     const double ts = -s[ig]; //  -singr[ia][ig]
                     a09[2 * ig] = d09 * ts;

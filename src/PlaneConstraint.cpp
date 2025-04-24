@@ -72,8 +72,6 @@ vector<vector<double> > &rp) const
 bool PlaneConstraint::enforce_v(const vector<vector<double> > &r0,
 vector<vector<double> > &v0) const
 {
-  const double* pr1 = &r0[is1_][3*ia1_];
-  D3vector r1(pr1);
   double* pv1 = &v0[is1_][3*ia1_];
   D3vector v1(pv1);
 
@@ -83,6 +81,10 @@ vector<vector<double> > &v0) const
   if ( fabs(vperp) < tol_ ) return true;
 
   v1 -= vperp * e_;
+
+  pv1[0] = v1.x;
+  pv1[1] = v1.y;
+  pv1[2] = v1.z;
 
   return false;
 }

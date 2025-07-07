@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import xml.sax
 import numpy as np
+import sys
+import subprocess
+from base64 import b64decode
+
 # quantum-simulation.org (QSO) definitions
 class Atom:
   def __init__(self,name,species,pos,vel):
@@ -200,3 +204,23 @@ class QSOAtomSetHandler(xml.sax.handler.ContentHandler):
       self.species_mass = float(self.buffer)
       self.inMass = False
 
+def getwf(filename,n):
+  """extract a wave function from a Qbox base64 encoded restart file and
+     return as a numpy array"""
+  # get grid_function[n] from file.xml
+  try:
+    # Run the xmllint command and get its output
+    command_output = subprocess.check_output(['xmllint','--xpath',
+      'string(//grid_function['+str(n)+'])',filename], text=True)
+
+  except subprocess.CalledProcessError as e:
+    print(f"Error executing command: {e}")
+  except FileNotFoundError:
+    print("xmllint command not found.")
+
+  # decode base64 string to binary string
+  wb=b64decode(command_output)
+  # read array from binary string
+  w=np.frombuffer(wb,dtype=np.float64)
+
+  return w

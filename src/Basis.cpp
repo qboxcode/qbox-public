@@ -252,7 +252,7 @@ Basis::Basis(MPI_Comm comm, D3vector kpoint) : comm_(comm)
 Basis::~Basis(void) {}
 
 ////////////////////////////////////////////////////////////////////////////////
-bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
+void Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   double ecut)
 {
   assert(ecut>=0.0);
@@ -264,7 +264,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     cell_ = cell;
     // only the cell changes, ecut and the refcell remain unchanged
     update_g();
-    return true;
+    return;
   }
 
   ecut_ = ecut;
@@ -301,7 +301,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     gx_.resize(3*localsize_[mype_]);
     kpgx_.resize(3*localsize_[mype_]);
     isort_loc.resize(localsize_[mype_]);
-    return true;
+    return;
   }
 
   const double two_ecut = 2.0 * ecut;
@@ -639,7 +639,7 @@ bool Basis::resize(const UnitCell& cell, const UnitCell& refcell,
 
   // basis set construction is complete
 
-  return true;
+  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

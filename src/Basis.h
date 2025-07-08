@@ -142,7 +142,7 @@ class Basis
   //Basis(const Basis &b);
   ~Basis(void);
 
-  bool resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
+  void resize(const UnitCell& cell, const UnitCell& refcell, double ecut);
   void print(std::ostream& os);
 };
 std::ostream& operator << ( std::ostream& os, Basis& b );

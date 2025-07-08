@@ -283,7 +283,7 @@ void Wavefunction::init_coeffs(void)
   {
     for ( int ikp_loc = 0; ikp_loc < sd_[isp_loc].size(); ++ikp_loc )
     {
-      sd_[isp_loc][ikp_loc]->init();
+      sd_[isp_loc][ikp_loc]->init_coeffs();
     }
   }
 }
@@ -530,7 +530,7 @@ void Wavefunction::move_kpoint(D3vector kpoint, D3vector newkpoint)
       SlaterDet *sd = sd_[isp_loc][ikp_loc];
       SlaterDet *sdn = new SlaterDet(sd->context(),newkpoint);
       sdn->resize(cell_,refcell_,ecut_,nst_[ispin]);
-      sdn->init();
+      sdn->init_coeffs();
       // copy wave functions from old to new SlaterDet
       const Basis& basis = sd_[isp_loc][ikp_loc]->basis();
       const Basis& newbasis = sdn->basis();

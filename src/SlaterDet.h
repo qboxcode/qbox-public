@@ -68,7 +68,7 @@ class SlaterDet
   void rs_mul_add(FourierTransform& ft, const double* v, SlaterDet& sdp) const;
   void randomize(double amplitude);
   void cleanup(void);
-  void init(void);
+  void init_coeffs(void);
   void gram(void);
   void riccati(const SlaterDet& sd);
   void lowdin(void);

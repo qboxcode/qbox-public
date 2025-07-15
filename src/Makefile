@@ -90,6 +90,7 @@ CXXFLAGS += -DVERSION='"$(VERSION)"'
         sinft.o spline.o UnitCell.o \
         Base64Transcoder.o Constraint.o ConstraintSet.o DistanceConstraint.o \
         AngleConstraint.o TorsionConstraint.o PositionConstraint.o \
+        PlaneConstraint.o \
         ExtForceSet.o ExtForce.o PairExtForce.o AtomicExtForce.o \
         GlobalExtForce.o sampling.o MPIdata.o cout0.o
 	$(LD) $(DFLAGS) -o $@ $^ $(LDFLAGS)

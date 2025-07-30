@@ -84,8 +84,8 @@ int RunCmd::action(int argc, char **argv)
   s->wf.info(cout,"wavefunction");
   stepper->step(niter);
 
-  // Delete wave function velocity if not using atoms_dyn = MD
-  if ( s->ctrl.atoms_dyn != "MD" )
+  // Delete wave function velocity if not ( atoms_dyn = MD or wf_dyn = MD )
+  if ( s->ctrl.atoms_dyn != "MD" && s->ctrl.wf_dyn != "MD" )
   {
     if ( s->wfv != 0 )
       delete s->wfv;

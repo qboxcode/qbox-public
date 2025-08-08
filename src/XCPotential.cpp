@@ -724,10 +724,10 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                               weight1 * tmprz[i].imag() * tmprz[i].imag();
                   v3txy[i] += weight0 * tmprx[i].real() * tmpry[i].real() +
                               weight1 * tmprx[i].imag() * tmpry[i].imag();
-                  v3txz[i] += weight0 * tmprx[i].real() * tmprz[i].real() +
-                              weight1 * tmprx[i].imag() * tmprz[i].imag();
                   v3tyz[i] += weight0 * tmpry[i].real() * tmprz[i].real() +
                               weight1 * tmpry[i].imag() * tmprz[i].imag();
+                  v3txz[i] += weight0 * tmprx[i].real() * tmprz[i].real() +
+                              weight1 * tmprx[i].imag() * tmprz[i].imag();
                 }
               }
             }
@@ -770,8 +770,8 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   v3tyy[i] += weight * tmpry[i].real() * tmpry[i].real();
                   v3tzz[i] += weight * tmprz[i].real() * tmprz[i].real();
                   v3txy[i] += weight * tmprx[i].real() * tmpry[i].real();
-                  v3txz[i] += weight * tmprx[i].real() * tmprz[i].real();
                   v3tyz[i] += weight * tmpry[i].real() * tmprz[i].real();
+                  v3txz[i] += weight * tmprx[i].real() * tmprz[i].real();
                 }
               }
             }
@@ -825,8 +825,8 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                   v3tyy[i] += weight * real(conj(tmpry[i]) * tmpry[i]);
                   v3tzz[i] += weight * real(conj(tmprz[i]) * tmprz[i]);
                   v3txy[i] += weight * real(conj(tmprx[i]) * tmpry[i]);
-                  v3txz[i] += weight * real(conj(tmprx[i]) * tmprz[i]);
                   v3tyz[i] += weight * real(conj(tmpry[i]) * tmprz[i]);
+                  v3txz[i] += weight * real(conj(tmprx[i]) * tmprz[i]);
                 }
               }
             } // n
@@ -847,11 +847,11 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
       v3tmp = v3txy;
       MPI_Allreduce(&v3tmp[0],&v3txy[0],np012loc_,MPI_DOUBLE,
                     MPI_SUM,MPIdata::st_kp_sp_comm());
-      v3tmp = v3txz;
-      MPI_Allreduce(&v3tmp[0],&v3txz[0],np012loc_,MPI_DOUBLE,
-                    MPI_SUM,MPIdata::st_kp_sp_comm());
       v3tmp = v3tyz;
       MPI_Allreduce(&v3tmp[0],&v3tyz[0],np012loc_,MPI_DOUBLE,
+                    MPI_SUM,MPIdata::st_kp_sp_comm());
+      v3tmp = v3txz;
+      MPI_Allreduce(&v3tmp[0],&v3txz[0],np012loc_,MPI_DOUBLE,
                     MPI_SUM,MPIdata::st_kp_sp_comm());
 
       for ( int ir = 0; ir < np012loc_; ir++ )
@@ -970,10 +970,10 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                                   weight1 * tmprz[i].imag() * tmprz[i].imag();
                     v3txyup[i] += weight0 * tmprx[i].real() * tmpry[i].real() +
                                   weight1 * tmprx[i].imag() * tmpry[i].imag();
-                    v3txzup[i] += weight0 * tmprx[i].real() * tmprz[i].real() +
-                                  weight1 * tmprx[i].imag() * tmprz[i].imag();
                     v3tyzup[i] += weight0 * tmpry[i].real() * tmprz[i].real() +
                                   weight1 * tmpry[i].imag() * tmprz[i].imag();
+                    v3txzup[i] += weight0 * tmprx[i].real() * tmprz[i].real() +
+                                  weight1 * tmprx[i].imag() * tmprz[i].imag();
                   }
                 }
                 else
@@ -988,10 +988,10 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                                   weight1 * tmprz[i].imag() * tmprz[i].imag();
                     v3txydn[i] += weight0 * tmprx[i].real() * tmpry[i].real() +
                                   weight1 * tmprx[i].imag() * tmpry[i].imag();
-                    v3txzdn[i] += weight0 * tmprx[i].real() * tmprz[i].real() +
-                                  weight1 * tmprx[i].imag() * tmprz[i].imag();
                     v3tyzdn[i] += weight0 * tmpry[i].real() * tmprz[i].real() +
                                   weight1 * tmpry[i].imag() * tmprz[i].imag();
+                    v3txzdn[i] += weight0 * tmprx[i].real() * tmprz[i].real() +
+                                  weight1 * tmprx[i].imag() * tmprz[i].imag();
                   }
                 }
               }
@@ -1037,8 +1037,8 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                     v3tyyup[i] += weight * (tmpry[i].real() * tmpry[i].real());
                     v3tzzup[i] += weight * (tmprz[i].real() * tmprz[i].real());
                     v3txyup[i] += weight * (tmprx[i].real() * tmpry[i].real());
-                    v3txzup[i] += weight * (tmprx[i].real() * tmprz[i].real());
                     v3tyzup[i] += weight * (tmpry[i].real() * tmprz[i].real());
+                    v3txzup[i] += weight * (tmprx[i].real() * tmprz[i].real());
                   }
                 }
                 else
@@ -1049,8 +1049,8 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                     v3tyydn[i] += weight * (tmpry[i].real() * tmpry[i].real());
                     v3tzzdn[i] += weight * (tmprz[i].real() * tmprz[i].real());
                     v3txydn[i] += weight * (tmprx[i].real() * tmpry[i].real());
-                    v3txzdn[i] += weight * (tmprx[i].real() * tmprz[i].real());
                     v3tyzdn[i] += weight * (tmpry[i].real() * tmprz[i].real());
+                    v3txzdn[i] += weight * (tmprx[i].real() * tmprz[i].real());
                   }
                 }
               }
@@ -1107,8 +1107,8 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                     v3tyyup[i] += weight * real(conj(tmpry[i]) * tmpry[i]);
                     v3tzzup[i] += weight * real(conj(tmprz[i]) * tmprz[i]);
                     v3txyup[i] += weight * real(conj(tmprx[i]) * tmpry[i]);
-                    v3txzup[i] += weight * real(conj(tmprx[i]) * tmprz[i]);
                     v3tyzup[i] += weight * real(conj(tmpry[i]) * tmprz[i]);
+                    v3txzup[i] += weight * real(conj(tmprx[i]) * tmprz[i]);
                   }
                 }
                 else
@@ -1119,8 +1119,8 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
                     v3tyydn[i] += weight * real(conj(tmpry[i]) * tmpry[i]);
                     v3tzzdn[i] += weight * real(conj(tmprz[i]) * tmprz[i]);
                     v3txydn[i] += weight * real(conj(tmprx[i]) * tmpry[i]);
-                    v3txzdn[i] += weight * real(conj(tmprx[i]) * tmprz[i]);
                     v3tyzdn[i] += weight * real(conj(tmpry[i]) * tmprz[i]);
+                    v3txzdn[i] += weight * real(conj(tmprx[i]) * tmprz[i]);
                   }
                 }
               }
@@ -1142,11 +1142,11 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
       v3tmp = v3txyup;
       MPI_Allreduce(&v3tmp[0],&v3txyup[0],np012loc_,MPI_DOUBLE,
                     MPI_SUM,MPIdata::st_kp_sp_comm());
-      v3tmp = v3txzup;
-      MPI_Allreduce(&v3tmp[0],&v3txzup[0],np012loc_,MPI_DOUBLE,
-                    MPI_SUM,MPIdata::st_kp_sp_comm());
       v3tmp = v3tyzup;
       MPI_Allreduce(&v3tmp[0],&v3tyzup[0],np012loc_,MPI_DOUBLE,
+                    MPI_SUM,MPIdata::st_kp_sp_comm());
+      v3tmp = v3txzup;
+      MPI_Allreduce(&v3tmp[0],&v3txzup[0],np012loc_,MPI_DOUBLE,
                     MPI_SUM,MPIdata::st_kp_sp_comm());
 
       v3tmp = v3txxdn;
@@ -1161,11 +1161,11 @@ void XCPotential::compute_stress(valarray<double>& sigma_exc)
       v3tmp = v3txydn;
       MPI_Allreduce(&v3tmp[0],&v3txydn[0],np012loc_,MPI_DOUBLE,
                     MPI_SUM,MPIdata::st_kp_sp_comm());
-      v3tmp = v3txzdn;
-      MPI_Allreduce(&v3tmp[0],&v3txzdn[0],np012loc_,MPI_DOUBLE,
-                    MPI_SUM,MPIdata::st_kp_sp_comm());
       v3tmp = v3tyzdn;
       MPI_Allreduce(&v3tmp[0],&v3tyzdn[0],np012loc_,MPI_DOUBLE,
+                    MPI_SUM,MPIdata::st_kp_sp_comm());
+      v3tmp = v3txzdn;
+      MPI_Allreduce(&v3tmp[0],&v3txzdn[0],np012loc_,MPI_DOUBLE,
                     MPI_SUM,MPIdata::st_kp_sp_comm());
 
       for ( int ir = 0; ir < np012loc_; ir++ )

@@ -192,7 +192,7 @@ void BOSampleStepper::step(int niter)
   const string atoms_dyn = s_.ctrl.atoms_dyn;
   const string cell_dyn = s_.ctrl.cell_dyn;
 
-  bool extrapolate_wf = ( atoms_dyn == "MD" && !fractional_occ );
+  bool extrapolate_wf = ( atoms_dyn == "MD" );
 
   bool ntc_extrapolation = false;
   bool asp_extrapolation = false;

@@ -176,6 +176,7 @@ int main(int argc, char **argv, char **envp)
       case 0:
         // help
         do_exit = true;
+        break;
       case 1:
         server_mode = 1;
         break;
@@ -230,7 +231,7 @@ int main(int argc, char **argv, char **envp)
     if ( mype == 0 )
       usage();
     MPI_Finalize();
-    return 0;
+    return 1;
   }
 
   const int interactive = ( argc == 0 );
@@ -259,7 +260,7 @@ int main(int argc, char **argv, char **envp)
     if ( mype == 0 )
       cerr << " nstb * nkpb * nspb does not divide ntasks evenly" << endl;
     MPI_Finalize();
-    return 0;
+    return 1;
   }
 
   MPIdata::set(ngb,nstb,nkpb,nspb);
@@ -489,7 +490,7 @@ int main(int argc, char **argv, char **envp)
         usage();
       }
       MPI_Finalize();
-      return 0;
+      return 1;
     }
     string inputfilename(argv[0]);
     string outputfilename(argv[1]);
@@ -538,7 +539,7 @@ int main(int argc, char **argv, char **envp)
       if ( MPIdata::onpe0() )
         cout << " Could not open input file " << argv[0] << endl;
       MPI_Finalize();
-      return 0;
+      return 1;
     }
   }
 

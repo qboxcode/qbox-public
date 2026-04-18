@@ -20,7 +20,6 @@
 #define COUT0_H
 
 #include <string>
-using namespace std;
 
 void cout0(std::string s, int isrc);
 #endif

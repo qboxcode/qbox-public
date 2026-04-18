@@ -1,4 +1,17 @@
 --------------------------------------------------------------------------------
+rel1_78_5
+--------------------------------------------------------------------------------
+af316c2 (origin/develop, develop) Fix testSlaterDet.cpp
+a891214 Update MacOS arch files
+f7f0375 Restore default wf extrapolation
+00c5442 Reorder sigma_ij expressions
+2813524 Disable wf extrapolation if fractional occ
+bf531f1 Add qbox_wf.py script
+6494976 Fix Makefile for testSample
+a83b893 Rename SlaterDet::init to init_coeffs
+52376cd Change Basis::resize return type to void
+123bc24 Add qbox_wf.py, modify qso.py
+--------------------------------------------------------------------------------
 rel1_78_4
 --------------------------------------------------------------------------------
 d69e0ef Fix PlaneConstraint::enforce_v

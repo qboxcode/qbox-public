@@ -91,7 +91,7 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
       // make a copy of c_ before resize
       ComplexMatrix ctmp(c_);
       c_.resize(m,nst,mb,nb);
-      init();
+      init_coeffs();
 
       // check if data can be copied from temporary copy
       // It is assumed that nst and ecut are not changing at the same time
@@ -164,7 +164,7 @@ void SlaterDet::resize(const UnitCell& cell, const UnitCell& refcell,
   cleanup();
 }
 ////////////////////////////////////////////////////////////////////////////////
-void SlaterDet::init(void)
+void SlaterDet::init_coeffs(void)
 {
   // initialize coefficients with lowest plane waves
   if ( c_.n() <= basis_->size() )

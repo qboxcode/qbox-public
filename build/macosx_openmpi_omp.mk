@@ -12,7 +12,7 @@
 #
 #-------------------------------------------------------------------------------
 #
-#  macosx_openmpi.mk
+#  macosx_openmpi_omp.mk
 #
 #-------------------------------------------------------------------------------
 #
@@ -33,12 +33,12 @@
              -DAPP_NO_THREADS -DXML_USE_NO_THREADS -DUSE_XERCES -DXERCESC_3 \
              -DSCALAPACK -DUSE_UUID
 
- CXXFLAGS= -g -O3 -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
+ CXXFLAGS= -g -O3 -fopenmp -D$(PLT) $(INCLUDE) $(PLTFLAGS) $(DFLAGS)
 
  LIBPATH = -L$(SCALAPACKDIR) -L$(LAPACKDIR) -L$(GCCDIR)
 
  LIBS =  -lfftw3 -lscalapack -llapack -lblas -lgfortran -lm \
-         -lxerces-c
+         -lxerces-c -lpthread -lgomp
 
  LDFLAGS = -Wl,-ld_classic $(LIBPATH) $(LIBS)
 #-------------------------------------------------------------------------------

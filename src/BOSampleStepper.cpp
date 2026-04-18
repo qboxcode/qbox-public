@@ -209,9 +209,15 @@ void BOSampleStepper::step(int niter)
     if ( val == "ASP" ) asp_extrapolation = true;
   }
 
-  Wavefunction* wfmm;
+  Wavefunction* wfmm = nullptr;
   if ( extrapolate_wf && ( ntc_extrapolation || asp_extrapolation ) )
     wfmm = new Wavefunction(wf);
+
+  if ( !extrapolate_wf )
+  {
+    delete wfv;
+    wfv = nullptr;
+  }
 
   // Next lines: special value of niter = 0: GS calculation only
   const bool atoms_move = ( niter > 0 && atoms_dyn != "LOCKED" );

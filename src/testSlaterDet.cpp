@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 
   if ( MPIdata::onpe0() )
     cout << "lowdin:" << endl;
-  sd.init();
+  sd.init_coeffs();
   sd.randomize(1.0/sd.basis().size());
   tmap["lowdin"].reset();
   tmap["lowdin"].start();
@@ -184,10 +184,10 @@ int main(int argc, char **argv)
 
   if ( MPIdata::onpe0() )
     cout << "align:" << endl;
-  sdm.init();
+  sdm.init_coeffs();
   sdm.randomize(100.0/sd.basis().size());
   sdm.gram();
-  sd.init();
+  sd.init_coeffs();
   sd.randomize(100.0/sd.basis().size());
   sd.randomize(100.0/sd.basis().size());
   sd.gram();
@@ -206,10 +206,10 @@ int main(int argc, char **argv)
 
   if ( MPIdata::onpe0() )
     cout << "ortho_align:" << endl;
-  sdm.init();
+  sdm.init_coeffs();
   sdm.randomize(100.0/sd.basis().size());
   sdm.gram();
-  sd.init();
+  sd.init_coeffs();
   sd.randomize(10.0/sd.basis().size());
   sd.randomize(10.0/sd.basis().size());
   tmap["ortho_align"].reset();

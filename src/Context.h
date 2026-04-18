@@ -143,7 +143,7 @@ class Context
   void ibcast_recv(int m, int n, int* a, int lda,int rsrc, int csrc) const;
 
   // string communications
-  void string_send(std::string& s, int rdest, int cdest) const;
+  void string_send(const std::string& s, int rdest, int cdest) const;
   void string_recv(std::string& s, int rsrc, int csrc) const;
   void string_bcast(std::string& s, int isrc) const;
 

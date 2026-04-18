@@ -834,7 +834,7 @@ void ComplexMatrix::set(char uplo, complex<double> xx)
     }
     else
     {
-      cout << " DoubleMatrix::set: invalid argument" << endl;
+      cout << " ComplexMatrix::set: invalid argument" << endl;
 #ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD,2);
 #else
@@ -961,7 +961,7 @@ double DoubleMatrix::amax(void) const
   if ( active_ )
   {
     int ione=1;
-    tam = val[idamax(&size_,val,&ione) - 1];
+    tam = fabs(val[idamax(&size_,val,&ione) - 1]);
   }
 #ifdef SCALAPACK
   if ( active_ )
@@ -2104,7 +2104,7 @@ void DoubleMatrix::inverse(void)
 ////////////////////////////////////////////////////////////////////////////////
 // determinant of a square double matrix in LU form
 ////////////////////////////////////////////////////////////////////////////////
-double DoubleMatrix::det_from_lu(valarray<int> ipiv)
+double DoubleMatrix::det_from_lu(const valarray<int>& ipiv)
 {
   if ( active() )
   {
@@ -2211,7 +2211,7 @@ void ComplexMatrix::inverse(void)
 ////////////////////////////////////////////////////////////////////////////////
 // determinant of a complex square matrix in LU form
 ////////////////////////////////////////////////////////////////////////////////
-complex<double> ComplexMatrix::det_from_lu(valarray<int> ipiv)
+complex<double> ComplexMatrix::det_from_lu(const valarray<int>& ipiv)
 {
   if ( active() )
   {
@@ -2739,22 +2739,19 @@ void DoubleMatrix::matgather(double *a, int lda) const
   {
     memset(a,0,lda*n_*sizeof(double));
 
-    if ( active_ )
+    for ( int li=0; li<mblocks(); li++)
     {
-      for ( int li=0; li<mblocks(); li++)
+      for ( int lj=0; lj<nblocks(); lj++)
       {
-        for ( int lj=0; lj<nblocks(); lj++)
+        for ( int ii=0; ii<mbs(li);  ii++)
         {
-          for ( int ii=0; ii<mbs(li);  ii++)
+          for ( int jj=0; jj<nbs(lj); jj++)
           {
-            for ( int jj=0; jj<nbs(lj); jj++)
-            {
-              assert(i(li,ii)<lda);
-              assert((ii+li*mb_)<mloc_);
-              assert((jj+lj*nb_)<nloc_);
-              a[ i(li,ii) + j(lj,jj)*lda ]
-                  = val[ (ii+li*mb_)+(jj+lj*nb_)*mloc_ ];
-            }
+            assert(i(li,ii)<lda);
+            assert((ii+li*mb_)<mloc_);
+            assert((jj+lj*nb_)<nloc_);
+            a[ i(li,ii) + j(lj,jj)*lda ]
+                = val[ (ii+li*mb_)+(jj+lj*nb_)*mloc_ ];
           }
         }
       }
@@ -2792,41 +2789,38 @@ void DoubleMatrix::initdiag(const double* const dmat)
   if ( active() )
   {
     // initialize diagonal elements
-    if ( active() )
+    // loop through all local blocks (ll,mm)
+    for ( int ll = 0; ll < mblocks(); ll++)
     {
-      // loop through all local blocks (ll,mm)
-      for ( int ll = 0; ll < mblocks(); ll++)
+      for ( int mm = 0; mm < nblocks(); mm++)
       {
-        for ( int mm = 0; mm < nblocks(); mm++)
+        // check if block (ll,mm) has diagonal elements
+        int imin = i(ll,0);
+        int imax = imin + mbs(ll)-1;
+        int jmin = j(mm,0);
+        int jmax = jmin + nbs(mm)-1;
+        // cout << " process (" << myrow_ << "," << mycol_ << ")"
+        // << " block (" << ll << "," << mm << ")"
+        // << " imin/imax=" << imin << "/" << imax
+        // << " jmin/jmax=" << jmin << "/" << jmax << endl;
+
+        if ((imin <= jmax) && (imax >= jmin))
         {
-          // check if block (ll,mm) has diagonal elements
-          int imin = i(ll,0);
-          int imax = imin + mbs(ll)-1;
-          int jmin = j(mm,0);
-          int jmax = jmin + nbs(mm)-1;
+          // block (ll,mm) holds diagonal elements
+          int idiagmin = max(imin,jmin);
+          int idiagmax = min(imax,jmax);
+
           // cout << " process (" << myrow_ << "," << mycol_ << ")"
-          // << " block (" << ll << "," << mm << ")"
-          // << " imin/imax=" << imin << "/" << imax
-          // << " jmin/jmax=" << jmin << "/" << jmax << endl;
+          // << " holds diagonal elements " << idiagmin << " to " <<
+          // idiagmax << " in block (" << ll << "," << mm << ")" << endl;
 
-          if ((imin <= jmax) && (imax >= jmin))
+          for ( int ii = idiagmin; ii <= idiagmax; ii++ )
           {
-            // block (ll,mm) holds diagonal elements
-            int idiagmin = max(imin,jmin);
-            int idiagmax = min(imax,jmax);
-
-            // cout << " process (" << myrow_ << "," << mycol_ << ")"
-            // << " holds diagonal elements " << idiagmin << " to " <<
-            // idiagmax << " in block (" << ll << "," << mm << ")" << endl;
-
-            for ( int ii = idiagmin; ii <= idiagmax; ii++ )
-            {
-              // access element (ii,ii)
-              int jj = ii;
-              int iii = ll * mb_ + x(ii);
-              int jjj = mm * nb_ + y(jj);
-              val[iii+mloc_*jjj] = dmat[ii];
-            }
+            // access element (ii,ii)
+            int jj = ii;
+            int iii = ll * mb_ + x(ii);
+            int jjj = mm * nb_ + y(jj);
+            val[iii+mloc_*jjj] = dmat[ii];
           }
         }
       }
@@ -3648,7 +3642,7 @@ ostream& operator<<(ostream& os, const ComplexMatrix& a)
 //
 // the vector ipiv is computed by the lu decomposition
 //
-int DoubleMatrix::signature(valarray<int> ipiv)
+int DoubleMatrix::signature(const valarray<int>& ipiv)
 {
   // count the number of non-trivial transpositions in the local ipiv vector
   int ntrans = 0;
@@ -3669,7 +3663,7 @@ int DoubleMatrix::signature(valarray<int> ipiv)
 //
 // the vector ipiv is computed by the lu decomposition
 //
-int ComplexMatrix::signature(valarray<int> ipiv)
+int ComplexMatrix::signature(const valarray<int>& ipiv)
 {
   // count the number of non-trivial transpositions in the local ipiv vector
   int ntrans = 0;

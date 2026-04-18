@@ -266,7 +266,7 @@ class DoubleMatrix
     // compute inverse and determinant of a square matrix
     double inverse_det(void);
     // compute determinant of a square matrix in LU form
-    double det_from_lu(std::valarray<int> ipiv);
+    double det_from_lu(const std::valarray<int>& ipiv);
     // compute inverse of a square matrix in LU form
     void inverse_from_lu(std::valarray<int>& ipiv);
 
@@ -298,7 +298,7 @@ class DoubleMatrix
     // permute the coeff of the matrix *this
     void lapiv(char direc, char rowcol, const int *ipiv);
     // signature of a permutation returned by lu
-    int signature(std::valarray<int> ipiv);
+    int signature(const std::valarray<int>& ipiv);
 
     // compute eigenvalues (only) of symmetric matrix *this
     // using the divide and conquer method of Tisseur and Dongarra
@@ -552,7 +552,7 @@ class ComplexMatrix
     // compute inverse and determinant of a square matrix
     std::complex<double> inverse_det(void);
     // compute determinant of a square matrix in LU form
-    std::complex<double> det_from_lu(std::valarray<int> ipiv);
+    std::complex<double> det_from_lu(const std::valarray<int>& ipiv);
     // compute inverse of a square matrix in LU form
     void inverse_from_lu(std::valarray<int>& ipiv);
 
@@ -575,7 +575,7 @@ class ComplexMatrix
     // permute the coeff of the matrix *this
     void lapiv(char direc, char rowcol, const int *ipiv);
     // signature of a permutation returned by lu
-    int signature(std::valarray<int> ipiv);
+    int signature(const std::valarray<int>& ipiv);
 };
 std::ostream& operator << ( std::ostream& os, const ComplexMatrix& a );
 #endif

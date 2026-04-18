@@ -38,9 +38,9 @@ class Base64Transcoder
   void byteswap_double(size_t n, double* const x);
   void byteswap_int(size_t n, int* const x);
   void print(size_t nchars, const char* const buf, std::ostream& o);
-  void print(const std::string buf, std::ostream& o);
+  void print(const std::string& buf, std::ostream& o);
   void print(size_t nchars, const char* const buf, FILE* outfile);
-  void print(const std::string buf, FILE* outfile);
+  void print(const std::string& buf, FILE* outfile);
 
   // number of chars needed to encode nbytes bytes
   size_t nchars(size_t nbytes) { return 4 * ( ( nbytes + 2 ) / 3 ); }

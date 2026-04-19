@@ -537,11 +537,11 @@ void Basis::resize(const UnitCell& cell, const UnitCell& refcell,
 
   // nodes contains a valid min-heap of zero-size Nodes
 
-  // insert rods into the min-heap
+  // insert rods into the min-heap starting from the largest
   // keep track of where rod(0,0,0) goes
   int pe_rod0 = -1, rank_rod0 = -1;
-  multiset<Rod>::iterator p = rodset.begin();
-  while ( p != rodset.end() )
+  multiset<Rod>::reverse_iterator p = rodset.rbegin();
+  while ( p != rodset.rend() )
   {
     // pop smallest element
     pop_heap(nodes.begin(), nodes.end(), ptr_greater<Node>());

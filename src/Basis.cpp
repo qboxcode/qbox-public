@@ -149,7 +149,6 @@ const D3vector Basis::kpoint(void) const { return kpoint_; }
 ////////////////////////////////////////////////////////////////////////////////
 bool Basis::real(void) const { return real_; }
 
-inline double sqr( double x ) { return x*x; }
 inline void swap(int &x, int &y) { int tmp = x; x = y; y = tmp; }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -484,7 +483,7 @@ void Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     }
   }
 
-#if DEBUG
+#ifdef DEBUG
   cout << " hmin/hmax: " << hmin << " / " << hmax << endl;
   cout << " kmin/kmax: " << kmin << " / " << kmax << endl;
   cout << " lmin/lmax: " << lmin << " / " << lmax << endl;
@@ -638,8 +637,6 @@ void Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   update_g();
 
   // basis set construction is complete
-
-  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -681,7 +678,7 @@ void Basis::update_g(void)
 
   VectorLess<double> g2_less(g2_);
   sort(isort_loc.begin(), isort_loc.end(), g2_less);
-#if DEBUG
+#ifdef DEBUG
   for ( int i = 0; i < locsize; i++ )
   {
     cout << mype_ << " sorted " << i << " " << g2_[isort_loc[i]] << endl;

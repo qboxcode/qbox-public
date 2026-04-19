@@ -104,10 +104,8 @@ const double* Basis::kpgx_ptr(int j) const
 ////////////////////////////////////////////////////////////////////////////////
 bool Basis::factorizable(int n) const
 {
-  // next lines: use AIX criterion for all platforms (AIX and fftw)
-
-//#if AIX
-
+#ifdef ESSL
+  // next lines: use ESSL library criterion for Fourier transforms
   // Acceptable lengths for FFTs in the ESSL library:
   // n = (2^h) (3^i) (5^j) (7^k) (11^m) for n <= 37748736
   // where:
@@ -123,13 +121,14 @@ bool Basis::factorizable(int n) const
   // memory allocation problems
   while ( ( n % 2 == 0 ) ) n /= 2;
   return ( n == 1 );
-
-// #else
-//   while ( n % 5 == 0 ) n /= 5;
-//   while ( n % 3 == 0 ) n /= 3;
-//   while ( n % 2 == 0 ) n /= 2;
-//   return ( n == 1 );
-// #endif
+#else
+  while ( n % 11 == 0 ) n /= 7;
+  while ( n % 7 == 0 ) n /= 7;
+  while ( n % 5 == 0 ) n /= 5;
+  while ( n % 3 == 0 ) n /= 3;
+  while ( n % 2 == 0 ) n /= 2;
+  return ( n == 1 );
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////

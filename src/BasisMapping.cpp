@@ -71,7 +71,7 @@ BasisMapping::BasisMapping (const Basis &basis, int np0, int np1, int np2) :
     for ( int iproc = k+1; iproc < nprocs_; iproc++ )
       np2_loc_[iproc] = 0;
   }
-  np012loc_ = np0_ * np1_ * np2_loc_[myproc_];
+  np012loc_ = (size_t)np0_ * np1_ * np2_loc_[myproc_];
 
   np2_first_[0] = 0;
   for ( int iproc = 1; iproc < nprocs_; iproc++ )
@@ -481,6 +481,7 @@ void BasisMapping::transpose_bwd(const complex<double> *zvec,
     const int len = zvec_size();
     double* const ps = (double*) &sbuf[0];
     const double* const pz = (const double*) zvec;
+    #pragma omp parallel for
     for ( int i = 0; i < len; i++ )
     {
       // sbuf[ipack_[i]] = zvec[i];
@@ -523,6 +524,7 @@ void BasisMapping::transpose_bwd(const complex<double> *zvec,
       const int rbuf_size = rbuf.size();
       const double* const pr = (double*) &rbuf[0];
       double* const pv = (double*) ct;
+      #pragma omp parallel for
       for ( int i = 0; i < rbuf_size; i++ )
       {
         // val[iunpack_[i]] = rbuf[i];
@@ -535,8 +537,7 @@ void BasisMapping::transpose_bwd(const complex<double> *zvec,
     }
 #endif
     // coefficients are now in ct
-
-  } // single task
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -611,6 +612,7 @@ void BasisMapping::transpose_fwd(const complex<double> *ct,
     const int len = zvec_size();
     const double* const ps = (double*) &sbuf[0];
     double* const pz = (double*) zvec;
+    #pragma omp parallel for
     for ( int i = 0; i < len; i++ )
     {
       // zvec[i] = sbuf[ipack_[i]];
@@ -621,7 +623,7 @@ void BasisMapping::transpose_fwd(const complex<double> *ct,
       pz[2*i+1] = b;
     }
 #endif
-  } // single task
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -637,6 +639,7 @@ void BasisMapping::vector_to_zvec(const complex<double> *c,
   const double* const pc = (const double*) c;
   if ( basis_.real() )
   {
+    #pragma omp parallel for
     for ( int ig = 0; ig < ng; ig++ )
     {
       // zvec[ip_[ig]] = c[ig];
@@ -706,6 +709,7 @@ void BasisMapping::zvec_to_vector(const complex<double> *zvec,
   const int ng = basis_.localsize();
   const double* const pz = (const double*) zvec;
   double* const pc = (double*) c;
+  #pragma omp parallel for
   for ( int ig = 0; ig < ng; ig++ )
   {
     // c[ig] = zvec[ip_[ig]];

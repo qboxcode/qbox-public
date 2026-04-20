@@ -6,5 +6,7 @@ then
 fi
 gnuplot -persist <<EOF
 set grid
+set xlabel "step"
+set ylabel "energy (Ha)"
 plot $range "<grep -h etotal_int $*" u 2 w l
 EOF

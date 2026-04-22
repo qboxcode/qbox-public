@@ -247,7 +247,7 @@ class DoubleMatrix
 
     // solve triangular system
     void trsm(char side, char uplo, char trans, char diag,
-              double alpha, const DoubleMatrix& a);
+              double alpha, const DoubleMatrix& b);
     void trtrs(char uplo, char trans, char diag, DoubleMatrix& b) const;
 
     // Cholesky decomposition of a symmetric matrix
@@ -533,7 +533,7 @@ class ComplexMatrix
     void trmm(char side, char uplo, char trans, char diag,
               std::complex<double> alpha, const ComplexMatrix& a);
     void trsm(char side, char uplo, char trans, char diag,
-              std::complex<double> alpha, const ComplexMatrix& a);
+              std::complex<double> alpha, const ComplexMatrix& b);
     void trtrs(char uplo, char trans, char diag, ComplexMatrix& b) const;
 
     // Cholesky decomposition of a hermitian matrix

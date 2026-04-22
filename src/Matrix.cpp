@@ -1121,6 +1121,7 @@ void ComplexMatrix::getsub(const ComplexMatrix &a,
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::transpose(double alpha, const DoubleMatrix& a, double beta)
 {
+  // do not allow in-place transpose
   assert(this != &a);
   assert( ictxt_ == a.ictxt() );
 
@@ -1137,13 +1138,10 @@ void DoubleMatrix::transpose(double alpha, const DoubleMatrix& a, double beta)
 #else
     scal(beta);
     for ( int i=0; i<m_; i++ )
-      for ( int j=0; j<i; j++ )
+      for ( int j=0; j<n_; j++ )
       {
-        val[i*m_+j] += alpha * a.val[j*m_+i];
-        val[j*m_+i] += alpha * a.val[i*m_+j];
+        val[i+j*m_] += alpha * a.val[j+i*n_];
       }
-    for ( int i=0; i<m_; i++ )
-      val[i*m_+i] += alpha * a.val[i*m_+i];
 #endif
   }
 }
@@ -1181,13 +1179,10 @@ void ComplexMatrix::transpose(complex<double> alpha, const ComplexMatrix& a,
 #else
     scal(beta);
     for ( int i=0; i<m_; i++ )
-      for ( int j=0; j<i; j++ )
+      for ( int j=0; j<n_; j++ )
       {
-        val[i*m_+j] += alpha * conj(a.val[j*m_+i]);
-        val[j*m_+i] += alpha * conj(a.val[i*m_+j]);
+        val[i+j*m_] += alpha * conj(a.val[j+i*n_]);
       }
-    for ( int i=0; i<m_; i++ )
-      val[i*m_+i] += alpha * a.val[i*m_+i];
 #endif
   }
 }
@@ -1879,73 +1874,73 @@ void DoubleMatrix::trmm(char side, char uplo, char trans, char diag,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Solve op(A) * X = alpha * *this  (if side=='l')
-// or    X * op(A) = alpha * *this  (if side=='r')
-// where op(A) = A or trans(A)
-// alpha is a scalar, *this is an m by n matrix, and A is a unit or non-unit,
+// Solve op(*this) * X = alpha * b  (if side=='l')
+// or    X * op(*this) = alpha * b  (if side=='r')
+// where op(*this) = *this or trans(*this)
+// alpha is a scalar, b is an m by n matrix, and *this is a unit or non-unit,
 // upper- or lower-triangular matrix.
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::trsm(char side, char uplo, char trans, char diag,
-                        double alpha, const DoubleMatrix& a)
+                        double alpha, const DoubleMatrix& b)
 {
   if ( active() )
   {
-    assert(a.m_==a.n_);
+    assert(m_==n_);
     if ( side=='L' || side=='l' )
     {
-      assert(a.n_==m_);
+      assert(n_==b.m_);
     }
     else
     {
-      assert(a.n_==n_);
+      assert(n_==b.n_);
     }
     if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
     {
       dtrsm(&side, &uplo, &trans, &diag,
-            &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
+            &b.m_, &b.n_, &alpha, val, &m_, b.val, &b.m_);
     }
     else
     {
-    int ione=1;
-    pdtrsm(&side, &uplo, &trans, &diag, &m_, &n_,
-           &alpha, a.val, &ione, &ione, a.desc_,
-           val, &ione, &ione, desc_);
+      int ione=1;
+      pdtrsm(&side, &uplo, &trans, &diag, &b.m_, &b.n_,
+             &alpha, val, &ione, &ione, desc_,
+             b.val, &ione, &ione, b.desc_);
     }
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Solve op(A) * X = alpha * *this  (if side=='l')
-// or    X * op(A) = alpha * *this  (if side=='r')
-// where op(A) = A or trans(A)
-// alpha is a scalar, *this is an m by n matrix, and A is a unit or non-unit,
+// Solve op(*this) * X = alpha * b  (if side=='l')
+// or    X * op(*this) = alpha * b  (if side=='r')
+// where op(*this) = *this or trans(*this)
+// alpha is a scalar, b is an m by n matrix, and *this is a unit or non-unit,
 // upper- or lower-triangular matrix.
 ////////////////////////////////////////////////////////////////////////////////
 void ComplexMatrix::trsm(char side, char uplo, char trans,
-  char diag, complex<double> alpha, const ComplexMatrix& a)
+  char diag, complex<double> alpha, const ComplexMatrix& b)
 {
   if ( active() )
   {
-    assert(a.m_==a.n_);
+    assert(m_==n_);
     if ( side=='L' || side=='l' )
     {
-      assert(a.n_==m_);
+      assert(n_==b.m_);
     }
     else
     {
-      assert(a.n_==n_);
+      assert(n_==b.n_);
     }
     if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
     {
       ztrsm(&side, &uplo, &trans, &diag,
-            &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
+            &b.m_, &b.n_, &alpha, val, &m_, b.val, &b.m_);
     }
     else
     {
       int ione=1;
-      pztrsm(&side, &uplo, &trans, &diag, &m_, &n_,
-             &alpha, a.val, &ione, &ione, a.desc_,
-             val, &ione, &ione, desc_);
+      pztrsm(&side, &uplo, &trans, &diag, &b.m_, &b.n_,
+             &alpha, val, &ione, &ione, desc_,
+             b.val, &ione, &ione, b.desc_);
     }
   }
 }

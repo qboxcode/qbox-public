@@ -517,7 +517,8 @@ void SlaterDet::gram(void)
     tmap["potrf"].stop();
     tmap["trsm"].start();
 #endif
-    c_proxy.trsm('r','l','t','n',1.0,s);
+    // s contains L^T
+    s.trsm('r','l','t','n',1.0,c_proxy);
 #if TIMING
     tmap["trsm"].stop();
 #endif
@@ -529,7 +530,8 @@ void SlaterDet::gram(void)
     s.herk('l','c',1.0,c_,0.0);
     s.potrf('l'); // Cholesky decomposition: S = L * L^H
     // solve triangular system X * L^H = C
-    c_.trsm('r','l','c','n',1.0,s);
+    // s contains L^H
+    s.trsm('r','l','c','n',1.0,c_);
   }
 }
 

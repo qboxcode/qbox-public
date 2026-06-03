@@ -834,7 +834,7 @@ void ComplexMatrix::set(char uplo, complex<double> xx)
     }
     else
     {
-      cout << " DoubleMatrix::set: invalid argument" << endl;
+      cout << " ComplexMatrix::set: invalid argument" << endl;
 #ifdef USE_MPI
       MPI_Abort(MPI_COMM_WORLD,2);
 #else
@@ -961,7 +961,7 @@ double DoubleMatrix::amax(void) const
   if ( active_ )
   {
     int ione=1;
-    tam = val[idamax(&size_,val,&ione) - 1];
+    tam = fabs(val[idamax(&size_,val,&ione) - 1]);
   }
 #ifdef SCALAPACK
   if ( active_ )
@@ -1121,6 +1121,7 @@ void ComplexMatrix::getsub(const ComplexMatrix &a,
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::transpose(double alpha, const DoubleMatrix& a, double beta)
 {
+  // do not allow in-place transpose
   assert(this != &a);
   assert( ictxt_ == a.ictxt() );
 
@@ -1137,13 +1138,10 @@ void DoubleMatrix::transpose(double alpha, const DoubleMatrix& a, double beta)
 #else
     scal(beta);
     for ( int i=0; i<m_; i++ )
-      for ( int j=0; j<i; j++ )
+      for ( int j=0; j<n_; j++ )
       {
-        val[i*m_+j] += alpha * a.val[j*m_+i];
-        val[j*m_+i] += alpha * a.val[i*m_+j];
+        val[i+j*m_] += alpha * a.val[j+i*n_];
       }
-    for ( int i=0; i<m_; i++ )
-      val[i*m_+i] += alpha * a.val[i*m_+i];
 #endif
   }
 }
@@ -1181,13 +1179,10 @@ void ComplexMatrix::transpose(complex<double> alpha, const ComplexMatrix& a,
 #else
     scal(beta);
     for ( int i=0; i<m_; i++ )
-      for ( int j=0; j<i; j++ )
+      for ( int j=0; j<n_; j++ )
       {
-        val[i*m_+j] += alpha * conj(a.val[j*m_+i]);
-        val[j*m_+i] += alpha * conj(a.val[i*m_+j]);
+        val[i+j*m_] += alpha * conj(a.val[j+i*n_]);
       }
-    for ( int i=0; i<m_; i++ )
-      val[i*m_+i] += alpha * a.val[i*m_+i];
 #endif
   }
 }
@@ -1879,73 +1874,73 @@ void DoubleMatrix::trmm(char side, char uplo, char trans, char diag,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Solve op(A) * X = alpha * *this  (if side=='l')
-// or    X * op(A) = alpha * *this  (if side=='r')
-// where op(A) = A or trans(A)
-// alpha is a scalar, *this is an m by n matrix, and A is a unit or non-unit,
+// Solve op(*this) * X = alpha * b  (if side=='l')
+// or    X * op(*this) = alpha * b  (if side=='r')
+// where op(*this) = *this or trans(*this)
+// alpha is a scalar, b is an m by n matrix, and *this is a unit or non-unit,
 // upper- or lower-triangular matrix.
 ////////////////////////////////////////////////////////////////////////////////
 void DoubleMatrix::trsm(char side, char uplo, char trans, char diag,
-                        double alpha, const DoubleMatrix& a)
+                        double alpha, const DoubleMatrix& b)
 {
   if ( active() )
   {
-    assert(a.m_==a.n_);
+    assert(m_==n_);
     if ( side=='L' || side=='l' )
     {
-      assert(a.n_==m_);
+      assert(n_==b.m_);
     }
     else
     {
-      assert(a.n_==n_);
+      assert(n_==b.n_);
     }
     if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
     {
       dtrsm(&side, &uplo, &trans, &diag,
-            &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
+            &b.m_, &b.n_, &alpha, val, &m_, b.val, &b.m_);
     }
     else
     {
-    int ione=1;
-    pdtrsm(&side, &uplo, &trans, &diag, &m_, &n_,
-           &alpha, a.val, &ione, &ione, a.desc_,
-           val, &ione, &ione, desc_);
+      int ione=1;
+      pdtrsm(&side, &uplo, &trans, &diag, &b.m_, &b.n_,
+             &alpha, val, &ione, &ione, desc_,
+             b.val, &ione, &ione, b.desc_);
     }
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Solve op(A) * X = alpha * *this  (if side=='l')
-// or    X * op(A) = alpha * *this  (if side=='r')
-// where op(A) = A or trans(A)
-// alpha is a scalar, *this is an m by n matrix, and A is a unit or non-unit,
+// Solve op(*this) * X = alpha * b  (if side=='l')
+// or    X * op(*this) = alpha * b  (if side=='r')
+// where op(*this) = *this or trans(*this)
+// alpha is a scalar, b is an m by n matrix, and *this is a unit or non-unit,
 // upper- or lower-triangular matrix.
 ////////////////////////////////////////////////////////////////////////////////
 void ComplexMatrix::trsm(char side, char uplo, char trans,
-  char diag, complex<double> alpha, const ComplexMatrix& a)
+  char diag, complex<double> alpha, const ComplexMatrix& b)
 {
   if ( active() )
   {
-    assert(a.m_==a.n_);
+    assert(m_==n_);
     if ( side=='L' || side=='l' )
     {
-      assert(a.n_==m_);
+      assert(n_==b.m_);
     }
     else
     {
-      assert(a.n_==n_);
+      assert(n_==b.n_);
     }
     if ( ( nprow_ == 1 ) && ( npcol_ == 1 ) )
     {
       ztrsm(&side, &uplo, &trans, &diag,
-            &m_, &n_, &alpha, a.val, &a.m_, val, &m_);
+            &b.m_, &b.n_, &alpha, val, &m_, b.val, &b.m_);
     }
     else
     {
       int ione=1;
-      pztrsm(&side, &uplo, &trans, &diag, &m_, &n_,
-             &alpha, a.val, &ione, &ione, a.desc_,
-             val, &ione, &ione, desc_);
+      pztrsm(&side, &uplo, &trans, &diag, &b.m_, &b.n_,
+             &alpha, val, &ione, &ione, desc_,
+             b.val, &ione, &ione, b.desc_);
     }
   }
 }
@@ -2104,7 +2099,7 @@ void DoubleMatrix::inverse(void)
 ////////////////////////////////////////////////////////////////////////////////
 // determinant of a square double matrix in LU form
 ////////////////////////////////////////////////////////////////////////////////
-double DoubleMatrix::det_from_lu(valarray<int> ipiv)
+double DoubleMatrix::det_from_lu(const valarray<int>& ipiv)
 {
   if ( active() )
   {
@@ -2211,7 +2206,7 @@ void ComplexMatrix::inverse(void)
 ////////////////////////////////////////////////////////////////////////////////
 // determinant of a complex square matrix in LU form
 ////////////////////////////////////////////////////////////////////////////////
-complex<double> ComplexMatrix::det_from_lu(valarray<int> ipiv)
+complex<double> ComplexMatrix::det_from_lu(const valarray<int>& ipiv)
 {
   if ( active() )
   {
@@ -2739,22 +2734,19 @@ void DoubleMatrix::matgather(double *a, int lda) const
   {
     memset(a,0,lda*n_*sizeof(double));
 
-    if ( active_ )
+    for ( int li=0; li<mblocks(); li++)
     {
-      for ( int li=0; li<mblocks(); li++)
+      for ( int lj=0; lj<nblocks(); lj++)
       {
-        for ( int lj=0; lj<nblocks(); lj++)
+        for ( int ii=0; ii<mbs(li);  ii++)
         {
-          for ( int ii=0; ii<mbs(li);  ii++)
+          for ( int jj=0; jj<nbs(lj); jj++)
           {
-            for ( int jj=0; jj<nbs(lj); jj++)
-            {
-              assert(i(li,ii)<lda);
-              assert((ii+li*mb_)<mloc_);
-              assert((jj+lj*nb_)<nloc_);
-              a[ i(li,ii) + j(lj,jj)*lda ]
-                  = val[ (ii+li*mb_)+(jj+lj*nb_)*mloc_ ];
-            }
+            assert(i(li,ii)<lda);
+            assert((ii+li*mb_)<mloc_);
+            assert((jj+lj*nb_)<nloc_);
+            a[ i(li,ii) + j(lj,jj)*lda ]
+                = val[ (ii+li*mb_)+(jj+lj*nb_)*mloc_ ];
           }
         }
       }
@@ -2792,41 +2784,38 @@ void DoubleMatrix::initdiag(const double* const dmat)
   if ( active() )
   {
     // initialize diagonal elements
-    if ( active() )
+    // loop through all local blocks (ll,mm)
+    for ( int ll = 0; ll < mblocks(); ll++)
     {
-      // loop through all local blocks (ll,mm)
-      for ( int ll = 0; ll < mblocks(); ll++)
+      for ( int mm = 0; mm < nblocks(); mm++)
       {
-        for ( int mm = 0; mm < nblocks(); mm++)
+        // check if block (ll,mm) has diagonal elements
+        int imin = i(ll,0);
+        int imax = imin + mbs(ll)-1;
+        int jmin = j(mm,0);
+        int jmax = jmin + nbs(mm)-1;
+        // cout << " process (" << myrow_ << "," << mycol_ << ")"
+        // << " block (" << ll << "," << mm << ")"
+        // << " imin/imax=" << imin << "/" << imax
+        // << " jmin/jmax=" << jmin << "/" << jmax << endl;
+
+        if ((imin <= jmax) && (imax >= jmin))
         {
-          // check if block (ll,mm) has diagonal elements
-          int imin = i(ll,0);
-          int imax = imin + mbs(ll)-1;
-          int jmin = j(mm,0);
-          int jmax = jmin + nbs(mm)-1;
+          // block (ll,mm) holds diagonal elements
+          int idiagmin = max(imin,jmin);
+          int idiagmax = min(imax,jmax);
+
           // cout << " process (" << myrow_ << "," << mycol_ << ")"
-          // << " block (" << ll << "," << mm << ")"
-          // << " imin/imax=" << imin << "/" << imax
-          // << " jmin/jmax=" << jmin << "/" << jmax << endl;
+          // << " holds diagonal elements " << idiagmin << " to " <<
+          // idiagmax << " in block (" << ll << "," << mm << ")" << endl;
 
-          if ((imin <= jmax) && (imax >= jmin))
+          for ( int ii = idiagmin; ii <= idiagmax; ii++ )
           {
-            // block (ll,mm) holds diagonal elements
-            int idiagmin = max(imin,jmin);
-            int idiagmax = min(imax,jmax);
-
-            // cout << " process (" << myrow_ << "," << mycol_ << ")"
-            // << " holds diagonal elements " << idiagmin << " to " <<
-            // idiagmax << " in block (" << ll << "," << mm << ")" << endl;
-
-            for ( int ii = idiagmin; ii <= idiagmax; ii++ )
-            {
-              // access element (ii,ii)
-              int jj = ii;
-              int iii = ll * mb_ + x(ii);
-              int jjj = mm * nb_ + y(jj);
-              val[iii+mloc_*jjj] = dmat[ii];
-            }
+            // access element (ii,ii)
+            int jj = ii;
+            int iii = ll * mb_ + x(ii);
+            int jjj = mm * nb_ + y(jj);
+            val[iii+mloc_*jjj] = dmat[ii];
           }
         }
       }
@@ -3648,7 +3637,7 @@ ostream& operator<<(ostream& os, const ComplexMatrix& a)
 //
 // the vector ipiv is computed by the lu decomposition
 //
-int DoubleMatrix::signature(valarray<int> ipiv)
+int DoubleMatrix::signature(const valarray<int>& ipiv)
 {
   // count the number of non-trivial transpositions in the local ipiv vector
   int ntrans = 0;
@@ -3669,7 +3658,7 @@ int DoubleMatrix::signature(valarray<int> ipiv)
 //
 // the vector ipiv is computed by the lu decomposition
 //
-int ComplexMatrix::signature(valarray<int> ipiv)
+int ComplexMatrix::signature(const valarray<int>& ipiv)
 {
   // count the number of non-trivial transpositions in the local ipiv vector
   int ntrans = 0;

@@ -104,10 +104,8 @@ const double* Basis::kpgx_ptr(int j) const
 ////////////////////////////////////////////////////////////////////////////////
 bool Basis::factorizable(int n) const
 {
-  // next lines: use AIX criterion for all platforms (AIX and fftw)
-
-//#if AIX
-
+#ifdef ESSL
+  // next lines: use ESSL library criterion for Fourier transforms
   // Acceptable lengths for FFTs in the ESSL library:
   // n = (2^h) (3^i) (5^j) (7^k) (11^m) for n <= 37748736
   // where:
@@ -123,13 +121,14 @@ bool Basis::factorizable(int n) const
   // memory allocation problems
   while ( ( n % 2 == 0 ) ) n /= 2;
   return ( n == 1 );
-
-// #else
-//   while ( n % 5 == 0 ) n /= 5;
-//   while ( n % 3 == 0 ) n /= 3;
-//   while ( n % 2 == 0 ) n /= 2;
-//   return ( n == 1 );
-// #endif
+#else
+  while ( n % 11 == 0 ) n /= 11;
+  while ( n % 7 == 0 ) n /= 7;
+  while ( n % 5 == 0 ) n /= 5;
+  while ( n % 3 == 0 ) n /= 3;
+  while ( n % 2 == 0 ) n /= 2;
+  return ( n == 1 );
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +148,6 @@ const D3vector Basis::kpoint(void) const { return kpoint_; }
 ////////////////////////////////////////////////////////////////////////////////
 bool Basis::real(void) const { return real_; }
 
-inline double sqr( double x ) { return x*x; }
 inline void swap(int &x, int &y) { int tmp = x; x = y; y = tmp; }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -484,7 +482,7 @@ void Basis::resize(const UnitCell& cell, const UnitCell& refcell,
     }
   }
 
-#if DEBUG
+#ifdef DEBUG
   cout << " hmin/hmax: " << hmin << " / " << hmax << endl;
   cout << " kmin/kmax: " << kmin << " / " << kmax << endl;
   cout << " lmin/lmax: " << lmin << " / " << lmax << endl;
@@ -538,11 +536,11 @@ void Basis::resize(const UnitCell& cell, const UnitCell& refcell,
 
   // nodes contains a valid min-heap of zero-size Nodes
 
-  // insert rods into the min-heap
+  // insert rods into the min-heap starting from the largest
   // keep track of where rod(0,0,0) goes
   int pe_rod0 = -1, rank_rod0 = -1;
-  multiset<Rod>::iterator p = rodset.begin();
-  while ( p != rodset.end() )
+  multiset<Rod>::reverse_iterator p = rodset.rbegin();
+  while ( p != rodset.rend() )
   {
     // pop smallest element
     pop_heap(nodes.begin(), nodes.end(), ptr_greater<Node>());
@@ -638,8 +636,6 @@ void Basis::resize(const UnitCell& cell, const UnitCell& refcell,
   update_g();
 
   // basis set construction is complete
-
-  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -681,7 +677,7 @@ void Basis::update_g(void)
 
   VectorLess<double> g2_less(g2_);
   sort(isort_loc.begin(), isort_loc.end(), g2_less);
-#if DEBUG
+#ifdef DEBUG
   for ( int i = 0; i < locsize; i++ )
   {
     cout << mype_ << " sorted " << i << " " << g2_[isort_loc[i]] << endl;

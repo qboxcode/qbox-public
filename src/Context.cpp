@@ -79,7 +79,7 @@ Context::Context(MPI_Comm comm, int nprow, int npcol) :
     Cblacs_gridinfo(ictxt_, &nprow_, &npcol_, &myrow_, &mycol_);
 
   size_ = nprow_ * npcol_;
-  myproc_ = Cblacs_pnum(ictxt_,myrow_,mycol_);
+  myproc_ = myrow_ < 0 ? -1 : Cblacs_pnum(ictxt_,myrow_,mycol_);
   onpe0_ = ( mype_ == 0 );
   active_ = ( ictxt_ >= 0 );
 
@@ -275,7 +275,7 @@ void Context::ibcast_recv(int m, int n, int* a, int lda,
 { ibcast_recv('A',' ',m,n,a,lda,rsrc,csrc); }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Context::string_send(std::string& s, int rdest, int cdest) const
+void Context::string_send(const std::string& s, int rdest, int cdest) const
 {
   int len = s.size();
   isend(1,1,&len,1,rdest,cdest);

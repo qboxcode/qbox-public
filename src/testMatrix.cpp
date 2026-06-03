@@ -444,7 +444,8 @@ int main(int argc, char **argv)
     tm.reset();
     tm.start();
     // solve triangular system X * L^T = C
-    a.trsm('r','l','t','n',1.0,s);
+    // s contains L^T
+    s.trsm('r','l','t','n',1.0,a);
     tm.stop();
     if (mype == 0) cout << "Gram triangular solve time: " << tm.real() << endl;
   }

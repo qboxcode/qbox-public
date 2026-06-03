@@ -41,11 +41,10 @@ void normal_dev(double* d1, double *d2)
 
 ////////////////////////////////////////////////////////////////////////////////
 // generate deviates for the gamma function
-// use the sum of nsum gaussian deviates
-// use: tgamma_sum nsum nval seed
 ////////////////////////////////////////////////////////////////////////////////
 double gamma_dev(int a)
 {
+  if (a == 1) return -log(drand48());
   double am=a-1.0, e, s=sqrt(2.0*(a-1.0)+1.0), v1, v2, x, y;
   do
   {

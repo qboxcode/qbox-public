@@ -41,7 +41,7 @@ Base64Transcoder::Base64Transcoder()
   etable[62] = '+';
   etable[63] = '/';
 
-  for (int i = 0; i < 255; i++)
+  for (int i = 0; i < 256; i++)
   {
       dtable[i] = 0x80;
   }
@@ -268,7 +268,7 @@ void Base64Transcoder::byteswap_int(size_t n, int* const x)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Base64Transcoder::print(const string buf, ostream& o)
+void Base64Transcoder::print(const string& buf, ostream& o)
 {
   print(buf.size(),buf.c_str(),o);
 }
@@ -307,7 +307,7 @@ void Base64Transcoder::print(size_t nchars, const char* const buf, ostream& o)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void Base64Transcoder::print(const string buf, FILE* outfile)
+void Base64Transcoder::print(const string& buf, FILE* outfile)
 {
   print(buf.size(),buf.c_str(),outfile);
 }

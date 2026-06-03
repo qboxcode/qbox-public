@@ -82,6 +82,7 @@ int RunCmd::action(int argc, char **argv)
     stepper->initialize_density();
 
   s->wf.info(cout,"wavefunction");
+  if ( s->ui->onpe0() ) cout << "<xc> " << s->ctrl.xc << " </xc>" << endl;
   stepper->step(niter);
 
   // Delete wave function velocity if not ( atoms_dyn = MD or wf_dyn = MD )

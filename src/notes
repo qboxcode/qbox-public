@@ -1,4 +1,20 @@
 --------------------------------------------------------------------------------
+rel1_78_6
+--------------------------------------------------------------------------------
+c31a79e Add xc element to output
+cfff46a Modify Matrix::trsm for consistency, fix Matrix::transpose
+9648ca0 Fix np012_ calc, add omp pragmas, cleanup
+af05436 Fix bug in Basis::factorizable
+02c1352 Remove ESSL constraints on FFT length in Basis.cpp
+1a64466 Optimize load balancing in Basis.cpp
+bddbae9 Cleanup Basis.cpp
+75307b8 Cleanup cout0.h
+fd56037 Cleanup & optimize Base64Transcoder
+c41f503 Add safeguard to gamma_dev, cleanup comments
+55514e4 Add safeguard to Context, optim string_send
+4935cf7 Fix amax and optimize Matrix.cpp
+4d14766 Fix -help option and return values in qb.cpp
+--------------------------------------------------------------------------------
 rel1_78_5
 --------------------------------------------------------------------------------
 af316c2 (origin/develop, develop) Fix testSlaterDet.cpp

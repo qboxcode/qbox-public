@@ -18,7 +18,7 @@
 #
  PLT=MacOSX_x86_64
 #-------------------------------------------------------------------------------
- SCALAPACKDIR=$(HOME)/software/scalapack/scalapack-2.2.0
+ SCALAPACKDIR=$(HOME)/software/scalapack/scalapack-2.2.2
  LAPACKDIR=$(HOME)/software/lapack/lapack-3.10.0
 # gfortran library link
  GCCDIR=/usr/local/Cellar/gcc/15.2.0_1/lib/gcc/current
@@ -37,8 +37,8 @@
 
  LIBPATH = -L$(SCALAPACKDIR) -L$(LAPACKDIR) -L$(GCCDIR)
 
- LIBS =  -lfftw3 -lscalapack -llapack -lblas -lgfortran -lm \
+ LIBS =  -lfftw3 -lscalapack -llapack -lrefblas -lgfortran -lm \
          -lxerces-c -lpthread -lgomp
 
- LDFLAGS = -Wl,-ld_classic $(LIBPATH) $(LIBS)
+ LDFLAGS = $(LIBPATH) $(LIBS)
 #-------------------------------------------------------------------------------

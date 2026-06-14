@@ -35,6 +35,16 @@ void UnitCell::set(const D3vector& a0, const D3vector& a1, const D3vector& a2)
   amat_[7] = a2.y;
   amat_[8] = a2.z;
 
+  amat_t_[0] = a0.x;
+  amat_t_[1] = a1.x;
+  amat_t_[2] = a2.x;
+  amat_t_[3] = a0.y;
+  amat_t_[4] = a1.y;
+  amat_t_[5] = a2.y;
+  amat_t_[6] = a0.z;
+  amat_t_[7] = a1.z;
+  amat_t_[8] = a2.z;
+
   // volume = det(A)
   volume_ = fabs(a0 * ( a1 ^ a2 ));
   if ( volume_ > 0.0 )

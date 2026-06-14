@@ -41,6 +41,8 @@ class UnitCell
   double bmat_[9];
   // 3x3 matrix form of inverse
   double amat_inv_[9];
+  // 3x3 matrix form of transpose
+  double amat_t_[9];
   // 3x3 matrix form of inverse transpose
   double amat_inv_t_[9];
 
@@ -62,7 +64,9 @@ class UnitCell
 
   const double* amat(void) const { return &amat_[0]; }
   const double* bmat(void) const { return &bmat_[0]; }
+  const double* amat_t(void) const { return &amat_t_[0]; }
   const double* amat_inv(void) const { return &amat_inv_[0]; }
+  const double* amat_inv_t(void) const { return &amat_inv_t_[0]; }
   double amat(int ij) const { return amat_[ij]; }
   double bmat(int ij) const { return bmat_[ij]; }
   double amat_inv(int ij) const { return amat_inv_[ij]; }

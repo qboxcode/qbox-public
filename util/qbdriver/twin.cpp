@@ -152,8 +152,8 @@ void sendCmd(const string filename, const string str)
 {
   FILE *fp = fopen(filename.c_str(),"w");
   fprintf(fp,"%s",str.c_str());
-  fclose(fp);
   fsync(fileno(fp));
+  fclose(fp);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -26,7 +26,7 @@ CGIonicStepper::CGIonicStepper(Sample& s) : IonicStepper(s),
   cgopt_(CGOptimizer(3*natoms_))
 {
   cgopt_.set_alpha_start(s_.ctrl.dt);
-  cgopt_.set_alpha_max(50.0);
+  cgopt_.set_alpha_max(20.0);
   cgopt_.set_beta_max(10.0);
 #ifdef DEBUG
   if ( MPIdata::onpe0() )
@@ -75,7 +75,7 @@ void CGIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
     // rescale displacement and reset the CG optimizer
     double fac = max_disp/largest_disp;
     xp = x + fac * (xp - x);
-    cgopt_.set_alpha_start(fac*cgopt_.alpha_start());
+    cgopt_.set_alpha_start(fac*cgopt_.alpha());
     cgopt_.reset();
   }
 

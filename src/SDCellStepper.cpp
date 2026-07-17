@@ -109,8 +109,9 @@ void SDCellStepper::update_cell(void)
   // rescale atomic positions in AtomSet
 
   // r_new = A_new A_old^-1 r_old
-  vector<vector<double> > r;
-  s_.atoms.get_positions(r);
+  vector<vector<double> > r0, r;
+  s_.atoms.get_positions(r0);
+  r = r0;
 
   double tau[3];
   for ( int is = 0; is < r.size(); is++ )
@@ -125,6 +126,8 @@ void SDCellStepper::update_cell(void)
       cellp.vecmult3x3(cellp.amat(),&tau[0],&r[is][3*ia]);
     }
   }
+  // enforce constraints on rescaled positions
+  s_.constraints.enforce_r(r0,r);
   s_.atoms.sync_positions(r);
   s_.atoms.set_positions(r);
   s_.atoms.sync_cell(cellp);

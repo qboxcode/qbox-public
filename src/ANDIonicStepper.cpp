@@ -23,7 +23,7 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 ANDIonicStepper::ANDIonicStepper(Sample& s) : IonicStepper(s),
-  mixer_(3*natoms_,10,false)
+  mixer_(3*natoms_,10,false), em_(std::numeric_limits<double>::max())
 {
   mixer_.restart();
 }
@@ -60,26 +60,47 @@ void ANDIonicStepper::compute_r(double e0, const vector<vector<double> >& f0)
 
   mixer_.update(&x[0],&g[0],&xbar[0],&fbar[0]);
 
-  // check largest displacement
+  // test for negative curvature
+  // Note: g = fion = -grad(f)
+  // compute dx_dg = (xbar-x).(fbar-g)
+  // curvature is negative if dx_dg > 0.0
+
+  const double dx_dg = ((xbar-x)*(fbar-g)).sum();
+  if ( MPIdata::onpe0() )
+    cout << "  ANDIonicStepper: (xbar-x).(fbar-g): " << dx_dg << endl;
+
+  // Note: on first use of the AndersonMixer, xbar==x and fbar==f
+  // and dx_dg == 0.0 so that the following block is skipped
+  if ( dx_dg > 0.0 )
+  {
+    if ( MPIdata::onpe0() )
+      cout << "  ANDIonicStepper: negative curvature detected" << endl;
+    // reverse direction
+    xbar = 2.0 * x - xbar;
+    mixer_.restart();
+  }
+
+  xp = xbar + fbar;
+
   // max_disp: largest acceptable displacement
   const double max_disp = 0.2;
   double largest_disp = 0.0;
   for ( int i = 0; i < xp.size(); i++ )
-    largest_disp = max(largest_disp,fabs(xbar[i]-fbar[i]-x[i]));
+    largest_disp = max(largest_disp,fabs(xp[i]-x[i]));
   if ( largest_disp > max_disp )
   {
     if ( MPIdata::onpe0() )
       cout << "  ANDIonicStepper: displacement exceeds limit" << endl;
-    // rescale displacement and reset the CG optimizer
+    // rescale displacement and reset the mixer
     double fac = max_disp/largest_disp;
-    xp = xbar + fac * fbar;
+    xp = x + fac * (xp - x);
     mixer_.restart();
   }
 
   for ( int is = 0, i = 0; is < r0_.size(); is++ )
     for ( int j = 0; j < r0_[is].size(); j++ )
     {
-      rp_[is][j] = xbar[i] + fbar[i];
+      rp_[is][j] = xp[i];
       i++;
     }
 

@@ -1,4 +1,24 @@
 --------------------------------------------------------------------------------
+rel1_79_0
+--------------------------------------------------------------------------------
+2cee63f Fix VectorLess syntax in VectorLess.h
+fbfc514 Fix VectorLess syntax in Basis.cpp
+6473d99 Implement curvature trap in ANDIonicStepper
+3236489 Use only 2-norm in AndersonMixer
+89678ed Use dt in BMD stepper, enforce constraints
+9c365ed Enforce constraints in SDCellStepper
+17cf987 Import improvements in CGCellStepper from serial
+e670a3e Import improvements in CGIonicStepper from serial
+36bcce2 Import improvements in CGOptimizer from serial
+ad1f50f Import improvements in LineMinimizer from serial
+b2154c1 Add transpose of A to UnitCell
+50b0ed9 Add dependency files to .gitignore
+3dd22f3 Add dependency files in Makefile
+05cd008 Fix qbdriver/twin.cpp
+e97c3ee Modify LoadCmd and SampleReader
+e97e4a1 Fix AtomSet::reset
+5c791eb Fix arch files on MacOS
+--------------------------------------------------------------------------------
 rel1_78_6
 --------------------------------------------------------------------------------
 c31a79e Add xc element to output

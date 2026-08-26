@@ -21,6 +21,7 @@
 
 #include "IonicStepper.h"
 #include "AndersonMixer.h"
+#include <limits>
 
 class ANDIonicStepper : public IonicStepper
 {

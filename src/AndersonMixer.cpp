@@ -45,7 +45,8 @@ void AndersonMixer::restart(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
+void AndersonMixer::update(const double* x, const double* f,
+  double* xbar, double* fbar)
 {
   // update:
   // input: x, f
@@ -194,31 +195,13 @@ void AndersonMixer::update(double* x, double* f, double* xbar, double* fbar)
           theta = b;
 
           // check condition on the norm of theta
-          norm_ok = true;
-#ifdef ANDERSON_SIMPLEX
-          // unit simplex criterion
-          double theta_sum = 0.0;
+          // default: use 2-norm criterion
+          double theta_norm2 = 0.0;
           for ( int i = 0; i < theta.size(); i++ )
           {
-            theta_sum += theta[i];
-            norm_ok &= theta[i] >= 0.0;
+            theta_norm2 += theta[i] * theta[i];
           }
-          norm_ok &= fabs(theta_sum) <= 1.0;
-#endif
-#ifdef ANDERSON_INF_NORM
-          // infinity norm criterion
-          for ( int i = 0; i < theta.size(); i++ )
-            norm_ok &= fabs(theta[i]) <  3.0;
-#endif
-#ifdef ANDERSON_2_NORM
-          // 2-norm criterion
-          double theta_sum = 0.0;
-          for ( int i = 0; i < theta.size(); i++ )
-          {
-            theta_sum += theta[i] * theta[i];
-          }
-          norm_ok = theta_sum <= 1.0;
-#endif
+          norm_ok = theta_norm2 <= 1.0;
 #ifdef DEBUG
           cout << " tp = " << tikhonov_parameter
                << " AndersonMixer: theta = ";

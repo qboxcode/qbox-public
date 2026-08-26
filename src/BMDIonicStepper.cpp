@@ -27,10 +27,14 @@ void BMDIonicStepper::compute_r(double e0, const vector<vector< double> >& f0)
   // enforce constraints for rp
   // update rm <- r0, r0 <- rp, and update atomset
 
+  // project forces to be compatible with constraints
+  vector<vector<double> > fp(f0);
+  constraints_.enforce_v(r0_,fp);
+
   // compute rp
   for ( int is = 0; is < r0_.size(); is++ )
     for ( int i = 0; i < r0_[is].size(); i++ )
-      rp_[is][i] = r0_[is][i] + v0_[is][i] + bmd_fac_ * f0[is][i];
+      rp_[is][i] = r0_[is][i] + v0_[is][i] + bmd_fac_[is] * fp[is][i];
 
   if ( s_.ctrl.lock_cm )
     reset_rcm(r0_,rp_);
@@ -53,7 +57,7 @@ void BMDIonicStepper::compute_v(double e0, const vector<vector< double> >& f0)
   e0_ = e0;
   for ( int is = 0; is < v0_.size(); is++ )
     for ( int i = 0; i < v0_[is].size(); i++ )
-      v0_[is][i] = r0_[is][i] - rm_[is][i] + bmd_fac_ * f0[is][i];
+      v0_[is][i] = r0_[is][i] - rm_[is][i] + bmd_fac_[is] * f0[is][i];
 
   // check if energy increased
   if ( e0_ > em_ )
@@ -91,7 +95,7 @@ void BMDIonicStepper::compute_ekin(void)
     for ( int i = 0; i < v0_[is].size(); i++ )
     {
       const double v = v0_[is][i];
-      ekin_ += v * v / ( 4.0 * bmd_fac_ );
+      ekin_ += v * v / ( 4.0 * bmd_fac_[is] );
     }
   }
 }

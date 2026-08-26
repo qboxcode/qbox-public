@@ -26,8 +26,8 @@ CGCellStepper::CGCellStepper(Sample& s) : CellStepper(s),
   cgopt_(CGOptimizer(3*s.atoms.size()+9)), cell0(s_.atoms.cell())
 {
   nat_ = atoms_.size();
-  cgopt_.set_alpha_start(0.002);
-  cgopt_.set_alpha_max(0.5);
+  cgopt_.set_alpha_start(0.001*s_.ctrl.dt);
+  cgopt_.set_alpha_max(0.100);
   cgopt_.set_beta_max(10.0);
 #ifdef DEBUG
   if ( MPIdata::onpe0() )
@@ -79,15 +79,15 @@ void CGCellStepper::compute_new_cell(double e, const valarray<double>& sigma,
   for ( int i = 0; i < 9; i++ )
     x[3*nat_+i] = u_[i];
 
-  // convert forces on positions to forces on tau coordinates, store -f in gvec
-  // f = A^-1 * fion
+  // convert forces to gradient in tau coordinates: g_tau = -A^T * fion
+  // R = A * tau => dE/dtau = A^T * dE/dR = -A^T * fion
   gvec.resize(r0.size());
   for ( int is = 0; is < r0.size(); is++ )
   {
     gvec[is].resize(r0[is].size());
     for ( int ia = 0; ia < r0[is].size()/3; ia++ )
     {
-      cell.vecmult3x3(cell.amat_inv(),&fion[is][3*ia],tmp3);
+      cell.vecmult3x3(cell.amat_t(),&fion[is][3*ia],tmp3);
       gvec[is][3*ia+0]=-tmp3[0];
       gvec[is][3*ia+1]=-tmp3[1];
       gvec[is][3*ia+2]=-tmp3[2];

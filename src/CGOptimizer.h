@@ -29,14 +29,13 @@ class CGOptimizer
   int n_;
   bool first_step_, debug_print;
   std::valarray<double> x0_, p_, gm_;
-  double f0_, fp0_, g0norm2_, alpha_, beta_max_;
+  double f0_, fp0_, g0norm2_, alpha_, alpha_max_ratio_, beta_max_;
   LineMinimizer linmin_;
-  double norm2(std::valarray<double>& v);
 
   public:
 
-  CGOptimizer(int n): n_(n), first_step_(true), alpha_(0.0), beta_max_(0.0),
-    debug_print(false)
+  CGOptimizer(int n): n_(n), first_step_(true), alpha_(0.0), alpha_max_ratio_(0.4),
+    beta_max_(0.0), debug_print(false)
   {
     x0_.resize(n);
     p_.resize(n);
@@ -48,6 +47,7 @@ class CGOptimizer
   void set_sigma2(double s) { linmin_.set_sigma2(s); }
   void set_alpha_start(double a ) { linmin_.set_alpha_start(a); }
   void set_alpha_max(double a ) { linmin_.set_alpha_max(a); }
+  void set_alpha_max_ratio(double a ) { alpha_max_ratio_ = a; }
   void set_beta_max(double b ) { beta_max_ = b; }
   void set_debug_print(void) { debug_print = true; linmin_.set_debug_print(); }
 
@@ -56,6 +56,8 @@ class CGOptimizer
   double sigma2(void) const { return linmin_.sigma2(); }
   double alpha(void) const { return alpha_; }
   double alpha_start(void) const { return linmin_.alpha_start(); }
+  double alpha_max(void) const { return linmin_.alpha_max(); }
+  double alpha_max_ratio(void) const { return alpha_max_ratio_; }
   double beta_max(void) const { return beta_max_; }
   void compute_xp(const std::valarray<double>& x, const double f,
                   std::valarray<double>& g, std::valarray<double>& xp);

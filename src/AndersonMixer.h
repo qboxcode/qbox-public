@@ -42,7 +42,7 @@ class AndersonMixer
   public:
 
   AndersonMixer(const int m, const int nmax, bool distributed);
-  void update(double* x, double* f, double* xbar, double* fbar);
+  void update(const double* x, const double* f, double* xbar, double* fbar);
   void restart(void);
   void set_diag(bool b) { diag_ = b; }
   void set_eig_ratio(double x) { eig_ratio_ = x; }

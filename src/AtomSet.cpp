@@ -285,17 +285,11 @@ bool AtomSet::reset(void)
   atom_list.resize(0);
   species_list.resize(0);
   spname.resize(0);
-  for ( map<string,int>::iterator i = na_.begin(); i != na_.end(); ++i )
-    na_.erase(i);
 
-  for ( map<string,int>::iterator i = isp_.begin(); i != isp_.end(); ++i )
-    isp_.erase(i);
-
-  for ( map<string,int>::iterator i = is_.begin(); i != is_.end(); ++i )
-    is_.erase(i);
-
-  for ( map<string,int>::iterator i = ia_.begin(); i != ia_.end(); ++i )
-    ia_.erase(i);
+  na_.clear();
+  isp_.clear();
+  is_.clear();
+  ia_.clear();
   nel_ = 0;
 
   return true;

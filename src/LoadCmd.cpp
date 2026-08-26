@@ -25,8 +25,9 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 int LoadCmd::action(int argc, char **argv)
 {
-  if ( argc != 2 && argc !=3 )
-    throw invalid_argument("use: load [-serial] uri");
+  string usage("  Use: load [-serial] filename");
+  if ( !(argc>=2 && argc<=3 ) )
+    throw invalid_argument(usage);
 
   int iarg = 1;
   bool serial = false;
@@ -40,10 +41,10 @@ int LoadCmd::action(int argc, char **argv)
   if ( ui->onpe0() )
     cout << " LoadCmd: loading from " << argv[iarg] << endl;
 
-  // Reset current sample
-  // cout << "atomset before reset: nsp: " << s->atoms.nsp() << endl;
-  s->reset();
-  // cout << "atomset after reset: nsp: " << s->atoms.nsp() << endl;
+  // reset current AtomSet, contraints and external forces
+  s->atoms.reset();
+  s->constraints.reset();
+  s->extforces.reset();
 
   SampleReader s_reader;
 

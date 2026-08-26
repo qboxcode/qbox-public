@@ -166,24 +166,30 @@ void SampleReader::readSample (Sample& s, const string uri, bool serial)
   if ( onpe0 )
     cout << " SampleReader: read time: " << tm.real() << " s" << endl;
 
-  // force consistency of unit cell
-  // Avoid inconsistency between atomset unit cell and wavefunction unit cell
-  // copy wavefunction domain on atomset unit_cell
-  //
-  // If the wave function cell was set:
+  // Enforce consistency between Wavefunction and AtomSet
+
+  // If a Wavefunction was read, or if the Wavefunction was
+  // previously defined, the Wavefunction cell volume is non-zero.
+  // In this case, enforce consistency between Wavefunction and
+  // AtomSet cell and nel
   if ( s.wf.cell().volume() != 0.0 )
   {
-    // cout << "copying wf.cell on atoms.cell" << endl;
+    // copy the Wavefunction cell to the AtomSet cell
     s.atoms.set_cell(s.wf.cell());
+
+    // if the number of electrons differ between the new AtomSet and
+    // the Wavefunction, throw an exception
+    if ( s.atoms.nel() != s.wf.nel() )
+      throw runtime_error("number of electrons incompatible");
   }
 
-  // If only the atomset was read (no wave function) initialize the
-  // wave function with appropriate sizes
-  // Use the Wavefunction cell volume as a criterion to determine if
-  // the Wavefunction was read
+  // If the Wavefunction cell volume is zero, the Wavefunction was
+  // not read and was not previously set,
+  // In this case, initialize the Wavefunction using the values of
+  // cell and nel from the AtomSet
   if ( s.wf.cell().volume() == 0.0 )
   {
-    // the Wavefunction was not read
+    // Initialize the Wavefunction
     s.wf.reset();
     // set wf cell
     s.wf.resize(s.atoms.cell(),s.atoms.cell(),s.wf.ecut());

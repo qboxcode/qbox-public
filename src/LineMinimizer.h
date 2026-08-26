@@ -23,30 +23,32 @@ class LineMinimizer
 {
   private:
 
-  double f0,fp0,fm,fpm,f_low,fp_low,f_high,fp_high,
-         alpha_m,alpha_low,alpha_high;
-  bool first_use, done_, fail_, bracketing, use_psi;
+  double f0,fp0,f_low,fp_low,f_high,fp_high,alpha_low,alpha_high;
+  double width_, width_prev_;
+  bool first_use, done_, reached_alpha_max_, fail_, bracketing, use_psi;
   bool debug_print;
   double alpha_start_, alpha_max_, sigma1_, sigma2_, delta_;
   int nstep_, nstep_max_;
 
   double psi(double alpha, double f) { return f - f0 - alpha * fp0 * sigma1_; }
   double psip(double fp) { return fp - fp0 * sigma1_; }
+  double phi(double alpha, double f) { return use_psi ? psi(alpha,f) : f; }
+  double phip(double fp) { return use_psi ? psip(fp) : fp; }
   double interpolate(void);
+  bool check_bracket(void);
 
   public:
 
-  LineMinimizer(void) : sigma1_(0.1), sigma2_(0.5), alpha_start_(0.1),
-   alpha_max_(1.0), delta_(0.2), first_use(true), done_(false), fail_(false),
-   bracketing(false), use_psi(true), nstep_(0), nstep_max_(5),
-   debug_print(false) {}
-  void reset(void) { first_use = true; done_ = false; fail_ = false;
-    bracketing = false; nstep_ = 0; }
+  LineMinimizer(void);
+  void reset(void);
   double sigma1(void) const { return sigma1_; }
   double sigma2(void) const { return sigma2_; }
   double alpha_start(void) const { return alpha_start_; }
   double alpha_max(void) const { return alpha_max_; }
+  double delta(void) const { return delta_; }
+  int nstep_max(void) const { return nstep_max_; }
   bool done(void) const { return done_; }
+  bool reached_alpha_max(void) const { return reached_alpha_max_; }
   bool fail(void) const { return fail_; }
 
   void set_sigma1(double s) { sigma1_ = s; }

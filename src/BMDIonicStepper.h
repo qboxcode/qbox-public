@@ -48,12 +48,13 @@
 #define BMDIONICSTEPPER_H
 
 #include "IonicStepper.h"
+#include <limits>
 
 class BMDIonicStepper : public IonicStepper
 {
   private:
 
-  const double bmd_fac_;
+  std::vector<double> bmd_fac_;  // dt^2/(2*mass) per species
   double e0_,em_;
   double ekin_;
   std::vector<std::vector< double> > fm_;
@@ -61,16 +62,21 @@ class BMDIonicStepper : public IonicStepper
 
   public:
 
-  BMDIonicStepper(Sample& s) : IonicStepper(s), bmd_fac_(0.025)
+  BMDIonicStepper(Sample& s) : IonicStepper(s)
   {
     e0_ = 0.0;
-    em_ = 0.0;
+    em_ = std::numeric_limits<double>::max();
     ekin_ = 0.0;
     atoms_.get_positions(r0_);
     atoms_.get_velocities(v0_);
     fm_.resize(r0_.size());
+    const double dt = s.ctrl.dt;
+    bmd_fac_.resize(r0_.size());
     for ( int is = 0; is < fm_.size(); is++ )
+    {
       fm_[is].resize(r0_[is].size());
+      bmd_fac_[is] = 0.5 * dt * dt / pmass_[is];
+    }
     compute_ekin();
   }
 

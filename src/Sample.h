@@ -50,13 +50,5 @@ class Sample
     sd_ctxt(MPIdata::sd_comm(),MPIdata::ngb(),MPIdata::nstb()),
     wf(sd_ctxt), wfv(0), vext(0) {}
   ~Sample(void) { delete wfv; }
-  void reset(void)
-  {
-    atoms.reset();
-    constraints.reset();
-    extforces.reset();
-    wf.reset();
-    delete wfv;
-  }
 };
 #endif

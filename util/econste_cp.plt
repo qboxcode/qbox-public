@@ -5,5 +5,7 @@ then
   shift 2
 fi
 gnuplot -persist <<EOF
+set xlabel "step"
+set ylabel "energy (Ha)"
 p $range  "<grep -h econst $*" u 2 w l, "<grep -h '<etotal>' $*" u 2 w l, "<grep -h '<ekin_ec>' $*" u 2 w l
 EOF
